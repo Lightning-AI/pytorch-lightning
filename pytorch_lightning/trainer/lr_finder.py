@@ -2,7 +2,7 @@
 Trainer Learning Rate Finder
 """
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Sequence
 
 import numpy as np
 import torch
@@ -20,6 +20,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TrainerLRFinderMixin(ABC):
+    default_root_dir: str
+
     @abstractmethod
     def save_checkpoint(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
@@ -35,17 +37,17 @@ class TrainerLRFinderMixin(ABC):
         # TODO: log lr.results to self.logger
         if isinstance(self.auto_lr_find, str):
             # Try to find requested field, may be nested
-            if _nested_hasattr(model.hparams, self.auto_lr_find):
-                _nested_setattr(model.hparams, self.auto_lr_find, lr)
+            if _nested_hasattr(model, self.auto_lr_find):
+                _nested_setattr(model, self.auto_lr_find, lr)
             else:
                 raise MisconfigurationException(
                     f'`auto_lr_find` was set to {self.auto_lr_find}, however'
                     ' could not find this as a field in `model.hparams`.')
         else:
-            if hasattr(model.hparams, 'lr'):
-                model.hparams.lr = lr
-            elif hasattr(model.hparams, 'learning_rate'):
-                model.hparams.learning_rate = lr
+            if hasattr(model, 'lr'):
+                model.lr = lr
+            elif hasattr(model, 'learning_rate'):
+                model.learning_rate = lr
             else:
                 raise MisconfigurationException(
                     'When auto_lr_find is set to True, expects that hparams'
@@ -196,11 +198,9 @@ class TrainerLRFinderMixin(ABC):
             'callbacks': self.callbacks,
             'logger': self.logger,
             'max_steps': self.max_steps,
-            'progress_bar_refresh_rate': self.progress_bar_refresh_rate,
             'checkpoint_callback': self.checkpoint_callback,
             'early_stop_callback': self.early_stop_callback,
             'enable_early_stop': self.enable_early_stop,
-            'progress_bar_callback': self.progress_bar_callback,
             'configure_optimizers': model.configure_optimizers,
         }
 
@@ -209,11 +209,9 @@ class TrainerLRFinderMixin(ABC):
         self.logger = self.__dumped_params['logger']
         self.callbacks = self.__dumped_params['callbacks']
         self.max_steps = self.__dumped_params['max_steps']
-        self.progress_bar_refresh_rate = self.__dumped_params['progress_bar_refresh_rate']
         self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.early_stop_callback = self.__dumped_params['early_stop_callback']
         self.enable_early_stop = self.__dumped_params['enable_early_stop']
-        self.progress_bar_callback = self.__dumped_params['progress_bar_callback']
         model.configure_optimizers = self.__dumped_params['configure_optimizers']
         del self.__dumped_params
 
@@ -350,7 +348,7 @@ class _LRCallback(Callback):
     """
     def __init__(self, num_training: int,
                  early_stop_threshold: float = 4.0,
-                 progress_bar_refresh_rate: bool = False,
+                 progress_bar_refresh_rate: int = 0,
                  beta: float = 0.98):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
@@ -414,6 +412,8 @@ class _LinearLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
+    last_epoch: int
+    base_lrs: Sequence
 
     def __init__(self,
                  optimizer: torch.optim.Optimizer,
@@ -454,6 +454,8 @@ class _ExponentialLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
+    last_epoch: int
+    base_lrs: Sequence
 
     def __init__(self,
                  optimizer: torch.optim.Optimizer,

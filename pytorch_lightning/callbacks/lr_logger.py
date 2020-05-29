@@ -10,6 +10,8 @@ Log learning rate for lr schedulers during training
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
+from pytorch_lightning.utilities import rank_zero_warn
+
 
 class LearningRateLogger(Callback):
     r"""
@@ -45,21 +47,22 @@ class LearningRateLogger(Callback):
             schedulers in the case of multiple of the same type or in
             the case of multiple parameter groups
         """
-        if trainer.lr_schedulers == []:
-            raise MisconfigurationException(
-                'Cannot use LearningRateLogger callback with models that have no'
-                ' learning rate schedulers. Please see documentation for'
-                ' `configure_optimizers` method.')
-
         if not trainer.logger:
             raise MisconfigurationException(
                 'Cannot use LearningRateLogger callback with Trainer that has no logger.')
+
+        if not trainer.lr_schedulers:
+            rank_zero_warn(
+                'You are using LearningRateLogger callback with models that'
+                ' have no learning rate schedulers. Please see documentation'
+                ' for `configure_optimizers` method.', RuntimeWarning
+            )
 
         # Find names for schedulers
         names = self._find_names(trainer.lr_schedulers)
 
         # Initialize for storing values
-        self.lrs = dict.fromkeys(names, [])
+        self.lrs = {name: [] for name in names}
 
     def on_batch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'step')

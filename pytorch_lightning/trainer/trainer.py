@@ -35,6 +35,7 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
 
+
 try:
     from apex import amp
 except ImportError:
@@ -129,7 +130,6 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             auto_lr_find: Union[bool, str] = False,
             replace_sampler_ddp: bool = True,
-            progress_bar_callback: Optional[Union[ProgressBarBase, bool]] = True,
             terminate_on_nan: bool = False,
             auto_scale_batch_size: Union[str, bool] = False,
             num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
@@ -288,7 +288,7 @@ class Trainer(
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence. Sets learning
-                rate in self.hparams.lr | self.hparams.learning_rate in the lightning module.
+                rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement.
@@ -303,7 +303,7 @@ class Trainer(
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.hparams.batch_size in the LightningModule.
+                The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
         """
@@ -363,7 +363,6 @@ class Trainer(
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
         self.num_processes = num_processes
 
-        self.process_position = process_position
         self.weights_summary = weights_summary
 
         self.max_epochs = max_epochs
@@ -400,6 +399,7 @@ class Trainer(
 
         self.auto_lr_find = auto_lr_find
         self.auto_scale_batch_size = auto_scale_batch_size
+        self._is_data_prepared = False
         self.replace_sampler_ddp = replace_sampler_ddp
 
         self.truncated_bptt_steps = truncated_bptt_steps
@@ -504,9 +504,7 @@ class Trainer(
         if show_progress_bar is not None:
             self.show_progress_bar = show_progress_bar
 
-        self.progress_bar_refresh_rate = progress_bar_refresh_rate
-        self.progress_bar_callback = progress_bar_callback
-        self.configure_progress_bar()
+        self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
         self.log_save_interval = log_save_interval
@@ -659,7 +657,6 @@ class Trainer(
              'min_steps': None,
              ...
              'profiler': None,
-             'progress_bar_callback': True,
              'progress_bar_refresh_rate': 1,
              ...}
 
@@ -728,20 +725,32 @@ class Trainer(
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
-        """create an instance from CLI arguments
+        """
+        Create an instance from CLI arguments.
+
+        Args:
+            args: The parser or namespace to take arguments from. Only known arguments will be
+                parsed and passed to the :class:`Trainer`.
+            **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
+                These must be valid Trainer arguments.
 
         Example:
             >>> parser = ArgumentParser(add_help=False)
             >>> parser = Trainer.add_argparse_args(parser)
+            >>> parser.add_argument('--my_custom_arg', default='something')  # doctest: +SKIP
             >>> args = Trainer.parse_argparser(parser.parse_args(""))
-            >>> trainer = Trainer.from_argparse_args(args)
+            >>> trainer = Trainer.from_argparse_args(args, logger=False)
         """
         if isinstance(args, ArgumentParser):
-            args = Trainer.parse_argparser(args)
+            args = cls.parse_argparser(args)
         params = vars(args)
-        params.update(**kwargs)
 
-        return cls(**params)
+        # we only want to pass in valid Trainer args, the rest may be user specific
+        valid_kwargs = inspect.signature(cls.__init__).parameters
+        trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+        trainer_kwargs.update(**kwargs)
+
+        return cls(**trainer_kwargs)
 
     @property
     def num_gpus(self) -> int:
@@ -753,6 +762,10 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return self.use_dp or self.use_ddp or self.use_ddp2
+
+    @property
+    def progress_bar_callback(self):
+        return self._progress_bar_callback
 
     @property
     def progress_bar_dict(self) -> dict:
@@ -822,31 +835,42 @@ class Trainer(
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
-        model.prepare_data()
+        if not self._is_data_prepared:
+            model.prepare_data()
+            self._is_data_prepared = True
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
                 self.auto_scale_batch_size = 'power'
             self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+            model.logger = self.logger  # reset logger binding
 
         # Run learning rate finder:
         if self.auto_lr_find:
             self._run_lr_finder_internally(model)
+            model.logger = self.logger  # reset logger binding
 
         # route to appropriate start method
         # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
-            task = int(os.environ['SLURM_LOCALID'])
+            if self.is_slurm_managing_tasks:
+                task = int(os.environ['SLURM_LOCALID'])
+
+            # torchelastic or general non_slurm ddp2
+            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
+                task = int(os.environ['LOCAL_RANK'])
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
-            # torchelastic
-            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+
+            # torchelastic or general non_slurm ddp
+            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
+
             else:
                 self.__set_random_port()
                 # track for predict
@@ -951,8 +975,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            if hasattr(ref_model, "hparams"):
-                self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_hyperparams(ref_model.module_arguments)
 
             self.logger.save()
 

@@ -277,7 +277,7 @@ class TrainerDDPMixin(ABC):
             should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
             if should_fake:
                 self.is_slurm_managing_tasks = True
-        except Exception as e:
+        except Exception:
             pass
 
         # notify user the that slurm is managing tasks
@@ -372,6 +372,7 @@ class TrainerDDPMixin(ABC):
         if self.use_amp and not self.use_native_amp:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
+            self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
 
         # DDP2 uses all GPUs on the machine
         if self.distributed_backend == 'ddp':
@@ -425,8 +426,8 @@ class TrainerDDPMixin(ABC):
 
     def resolve_root_node_address(self, root_node):
         if '[' in root_node:
-            name = root_node.split('[')[0]
-            number = root_node.split(',')[0]
+            name, numbers = root_node.split('[', maxsplit=1)
+            number = numbers.split(',', maxsplit=1)[0]
             if '-' in number:
                 number = number.split('-')[0]
 

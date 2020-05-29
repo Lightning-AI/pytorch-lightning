@@ -423,14 +423,14 @@ def test_batch_size_smaller_than_num_gpus():
             dataset = Subset(dataloader.dataset, range(size))
             dataloader = DataLoader(
                 dataset,
-                batch_size=self.hparams.batch_size,
+                batch_size=self.batch_size,
                 drop_last=False,
             )
             return dataloader
 
     hparams = EvalModelTemplate.get_default_hparams()
-    hparams.batch_size = batch_size
-    model = CurrentTestModel(hparams)
+    hparams['batch_size'] = batch_size
+    model = CurrentTestModel(**hparams)
 
     trainer = Trainer(
         max_epochs=1,

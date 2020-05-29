@@ -23,6 +23,7 @@ PyTorch Lightning Documentation
    hooks
    lightning-module
    loggers
+   metrics
    trainer
 
 .. toctree::
@@ -115,6 +116,7 @@ Indices and tables
    api/pytorch_lightning.core
    api/pytorch_lightning.callbacks
    api/pytorch_lightning.loggers
+   api/pytorch_lightning.metrics
    api/pytorch_lightning.overrides
    api/pytorch_lightning.profiler
    api/pytorch_lightning.trainer

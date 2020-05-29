@@ -57,9 +57,8 @@ def test_trainer_reset_correctly(tmpdir):
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'progress_bar_refresh_rate', 'early_stop_callback',
-                          'accumulate_grad_batches', 'enable_early_stop',
-                          'checkpoint_callback']
+                          'early_stop_callback', 'accumulate_grad_batches',
+                          'enable_early_stop', 'checkpoint_callback']
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
@@ -78,8 +77,8 @@ def test_trainer_reset_correctly(tmpdir):
 def test_trainer_arg_bool(tmpdir):
     """ Test that setting trainer arg to bool works """
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
-    before_lr = hparams.learning_rate
+    model = EvalModelTemplate(**hparams)
+    before_lr = hparams.get('learning_rate')
 
     # logger file to get meta
     trainer = Trainer(
@@ -89,18 +88,17 @@ def test_trainer_arg_bool(tmpdir):
     )
 
     trainer.fit(model)
-    after_lr = model.hparams.learning_rate
+    after_lr = model.learning_rate
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
 
 def test_trainer_arg_str(tmpdir):
     """ Test that setting trainer arg to string works """
-    hparams = EvalModelTemplate.get_default_hparams()
-    hparams.__dict__['my_fancy_lr'] = 1.0  # update with non-standard field
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate()
+    model.my_fancy_lr = 1.0  # update with non-standard field
 
-    before_lr = hparams.my_fancy_lr
+    before_lr = model.my_fancy_lr
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -109,7 +107,7 @@ def test_trainer_arg_str(tmpdir):
     )
 
     trainer.fit(model)
-    after_lr = model.hparams.my_fancy_lr
+    after_lr = model.my_fancy_lr
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
@@ -118,18 +116,18 @@ def test_call_to_trainer_method(tmpdir):
     """ Test that directly calling the trainer method works """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
-    before_lr = hparams.learning_rate
+    before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5
+        max_epochs=5,
     )
 
     lrfinder = trainer.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
-    model.hparams.learning_rate = after_lr
+    model.learning_rate = after_lr
     trainer.fit(model)
 
     assert before_lr != after_lr, \
@@ -141,9 +139,9 @@ def test_accumulation_and_early_stopping(tmpdir):
         accumulation also works for this feature """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
-    before_lr = hparams.learning_rate
+    before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
@@ -165,12 +163,12 @@ def test_suggestion_parameters_work(tmpdir):
     """ Test that default skipping does not alter results in basic case """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10
+        max_epochs=10,
     )
 
     lrfinder = trainer.lr_find(model)

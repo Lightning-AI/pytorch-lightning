@@ -8,7 +8,6 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
@@ -104,7 +103,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 def test_load_model_from_checkpoint(tmpdir):
     """Verify test() on pretrained model."""
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
@@ -128,8 +127,8 @@ def test_load_model_from_checkpoint(tmpdir):
     pretrained_model = EvalModelTemplate.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
-    for k, v in vars(hparams).items():
-        assert getattr(pretrained_model.hparams, k) == v
+    for k, v in hparams.items():
+        assert getattr(pretrained_model, k) == v
 
     # assert weights are the same
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
@@ -146,7 +145,7 @@ def test_load_model_from_checkpoint(tmpdir):
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     trainer_options = dict(
         max_epochs=1,
@@ -204,7 +203,7 @@ def test_dp_resume(tmpdir):
         tutils.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
     model.on_train_start = assert_good_acc
 
     # fit new model which should load hpc weights
@@ -270,42 +269,8 @@ def test_model_saving_loading(tmpdir):
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
 
 
-def test_load_model_with_missing_hparams(tmpdir):
-    trainer_options = dict(
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
-        logger=False,
-        default_root_dir=tmpdir,
-    )
+def test_model_pickle(tmpdir):
+    import pickle
 
-    # fit model
-    trainer = Trainer(**trainer_options)
-
-    class CurrentModelWithoutHparams(EvalModelTemplate):
-        def __init__(self):
-            super().__init__()
-
-    class CurrentModelUnusedHparams(EvalModelTemplate):
-        def __init__(self, hparams):
-            super().__init__()
-
-    model = CurrentModelWithoutHparams()
-    trainer.fit(model)
-    last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
-
-    # try to load a checkpoint that has hparams but model is missing hparams arg
-    with pytest.raises(MisconfigurationException, match=r".*__init__ is missing the argument 'hparams'.*"):
-        CurrentModelWithoutHparams.load_from_checkpoint(last_checkpoint)
-
-    # create a checkpoint without hyperparameters
-    # if the model does not take a hparams argument, it should not throw an error
-    ckpt = torch.load(last_checkpoint)
-    del(ckpt['hparams'])
-    torch.save(ckpt, last_checkpoint)
-    CurrentModelWithoutHparams.load_from_checkpoint(last_checkpoint)
-
-    # load checkpoint without hparams again
-    # warn if user's model has hparams argument
-    with pytest.warns(UserWarning, match=r".*Will pass in an empty Namespace instead."):
-        CurrentModelUnusedHparams.load_from_checkpoint(last_checkpoint)
+    model = EvalModelTemplate()
+    pickle.dumps(model)

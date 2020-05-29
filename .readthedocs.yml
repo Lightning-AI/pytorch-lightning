@@ -9,15 +9,16 @@ version: 2
 # reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
   configuration: docs/source/conf.py
-  # TODO: set it true and debug failing
-  fail_on_warning: false
+  fail_on_warning: true
 
 # Build documentation with MkDocs
 #mkdocs:
 #  configuration: mkdocs.yml
 
 # Optionally build your docs in additional formats such as PDF and ePub
-formats: all
+formats:
+  - htmlzip
+  - pdf
 
 # Optionally set the version of Python and requirements required to build your docs
 python:

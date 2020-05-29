@@ -17,8 +17,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml, update_hparams
-from pytorch_lightning.core.properties import DeviceDtypeModuleMixin
+from pytorch_lightning.core.saving import ModelIO, load_hparams_from_tags_csv, load_hparams_from_yaml
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
@@ -29,6 +29,8 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
+
+CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
 
 
 class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
@@ -62,16 +64,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: True if using ddp2
         self.use_ddp2 = False
 
+        # True if on tpu
+        self.use_tpu = False
+
         #: True if using amp
         self.use_amp = False
-
-        self.hparams = None
 
         #: Current dtype
         self._dtype = torch.float
 
         #: device reference
         self._device = torch.device('cpu')
+
+        # register all params passed into the child module in __init__
+        self._auto_collect_arguments()
 
     @property
     def on_gpu(self):
@@ -1158,7 +1164,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
                         for pg in optimizer.param_groups:
-                            pg['lr'] = lr_scale * self.hparams.learning_rate
+                            pg['lr'] = lr_scale * self.learning_rate
 
                     # update params
                     optimizer.step()
@@ -1312,7 +1318,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                                     download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
-                        batch_size=self.hparams.batch_size,
+                        batch_size=self.batch_size,
                         shuffle=True
                     )
                     return loader
@@ -1363,7 +1369,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                                     download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
-                        batch_size=self.hparams.batch_size,
+                        batch_size=self.batch_size,
                         shuffle=False
                     )
 
@@ -1408,7 +1414,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                                     transform=transform, download=True)
                     loader = torch.utils.data.DataLoader(
                         dataset=dataset,
-                        batch_size=self.hparams.batch_size,
+                        batch_size=self.batch_size,
                         shuffle=False
                     )
 
@@ -1448,46 +1454,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             hparams_file: Optional[str] = None,
             tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
-            hparam_overrides: Optional[Dict] = None,
             **kwargs
     ) -> 'LightningModule':
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
-        it stores the hyperparameters in the checkpoint if you initialized your :class:`LightningModule`
-        with an argument called ``hparams`` which is an object of :class:`~dict` or
-        :class:`~argparse.Namespace` (output of :meth:`~argparse.ArgumentParser.parse_args`
-        when parsing command line arguments).
-        If you want `hparams` to have a hierarchical structure, you have to define it as :class:`~dict`.
-        Any other arguments specified through \*args and \*\*kwargs will be passed to the model.
+        it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
 
-        Example:
-            .. code-block:: python
-
-                # define hparams as Namespace
-                from argparse import Namespace
-                hparams = Namespace(**{'learning_rate': 0.1})
-
-                model = MyModel(hparams)
-
-                class MyModel(LightningModule):
-                    def __init__(self, hparams: Namespace):
-                        self.learning_rate = hparams.learning_rate
-
-                # ----------
-
-                # define hparams as dict
-                hparams = {
-                    drop_prob: 0.2,
-                    dataloader: {
-                        batch_size: 32
-                    }
-                }
-
-                model = MyModel(hparams)
-
-                class MyModel(LightningModule):
-                    def __init__(self, hparams: dict):
-                        self.learning_rate = hparams['learning_rate']
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `module_arguments`.
 
         Args:
             checkpoint_path: Path to checkpoint.
@@ -1556,15 +1529,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # override some of the params with new values
                 MyLightningModule.load_from_checkpoint(
                     PATH,
-                    hparam_overrides={'num_layers': 128, 'pretrained_ckpt_path': NEW_PATH}
-                )
-
-                # or load passing whatever args the model takes to load
-                MyLightningModule.load_from_checkpoint(
-                    'path/to/checkpoint.ckpt',
-                    learning_rate=0.1, # These arguments will be passed to the model using **kwargs
-                    layers=2,
-                    pretrained_model=some_model
+                    num_layers=128,
+                    pretrained_ckpt_path: NEW_PATH,
                 )
 
                 # predict
@@ -1594,46 +1560,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             hparams['on_gpu'] = False
 
             # overwrite hparams by the given file
-            checkpoint['hparams'] = hparams
+            checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = hparams
 
-        # override the hparam keys that were passed in
-        if hparam_overrides is not None:
-            update_hparams(hparams, hparam_overrides)
+        # override the module_arguments with values that were passed in
+        checkpoint[CHECKPOINT_KEY_MODULE_ARGS].update(kwargs)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
 
     @classmethod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs) -> 'LightningModule':
-        cls_takes_hparams = 'hparams' in inspect.signature(cls.__init__).parameters
-        ckpt_hparams = checkpoint.get('hparams')
 
-        if cls_takes_hparams:
-            if ckpt_hparams is not None:
-                hparams_type = checkpoint.get('hparams_type', 'Namespace')
-                if hparams_type.lower() == 'dict':
-                    hparams = ckpt_hparams
-                elif hparams_type.lower() == 'namespace':
-                    hparams = Namespace(**ckpt_hparams)
-            else:
-                rank_zero_warn(
-                    f"Checkpoint does not contain hyperparameters but {cls.__name__}'s __init__"
-                    " contains argument 'hparams'. Will pass in an empty Namespace instead."
-                    " Did you forget to store your model hyperparameters in self.hparams?"
-                )
-                hparams = {}
-        else:  # The user's LightningModule does not define a hparams argument
-            if ckpt_hparams is None:
-                hparams = None
-            else:
-                raise MisconfigurationException(
-                    f"Checkpoint contains hyperparameters but {cls.__name__}'s __init__ "
-                    f"is missing the argument 'hparams'. Are you loading the correct checkpoint?"
-                )
+        # pass in the values we saved automatically
+        if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
+            model_args = checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
+            kwargs.update(**model_args)
 
         # load the state_dict on the model automatically
-        if cls_takes_hparams:
-            kwargs.update(hparams=hparams)
         model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
@@ -1757,3 +1700,49 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         rank_zero_warn("`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
+
+    def _auto_collect_arguments(self):
+        """Collect all arguments module arguments."""
+        frame = inspect.currentframe()
+
+        frame_args = _collect_init_args(frame.f_back, [])
+        child = _get_latest_child(frame)
+
+        # set module_arguments in child
+        child._module_self_arguments = frame_args[-1]
+        child._module_parents_arguments = {}
+        for args in frame_args[:-1]:
+            child._module_parents_arguments.update(args)
+
+    @property
+    def module_arguments(self) -> dict:
+        """Aggregate this module and all parents arguments."""
+        args = dict(self._module_parents_arguments)
+        args.update(self._module_self_arguments)
+        return args
+
+
+def _collect_init_args(frame, path_args: list) -> list:
+    """Recursive search for all children."""
+    if '__class__' in frame.f_locals:
+        local_args = dict(frame.f_locals)
+        local_args.update(local_args.get('kwargs', {}))
+        local_args = {k: v for k, v in local_args.items()
+                      if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
+        # if 'hparams' in local_args:
+        #     # back compatible hparams as single argument
+        #     hparams = local_args.get('hparams')
+        #     local_args.update(vars(hparams) if isinstance(hparams, Namespace) else hparams)
+        # recursive update
+        path_args.append(local_args)
+        return _collect_init_args(frame.f_back, path_args)
+    else:
+        return path_args
+
+
+def _get_latest_child(frame, child: object = None) -> object:
+    """Recursive search for lowest child."""
+    if 'self' in frame.f_locals:
+        return _get_latest_child(frame.f_back, frame.f_locals['self'])
+    else:
+        return child
