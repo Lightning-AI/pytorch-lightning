@@ -76,8 +76,8 @@ class Result(Dict):
         metrics = dict(
             metric=metric,
             name=name,
-            log=log,
-            pbar=pbar,
+            # log=log,
+            # pbar=pbar,
             # reduce_fx=reduce_fx
         )
         self['reduce_on_batch_end'] = metrics
@@ -86,8 +86,8 @@ class Result(Dict):
         metrics = dict(
             metric=metric,
             name=name,
-            log=log,
-            pbar=pbar,
+            # log=log,
+            # pbar=pbar,
             # reduce_fx=reduce_fx
         )
         self['reduce_on_epoch_end'] = metrics
