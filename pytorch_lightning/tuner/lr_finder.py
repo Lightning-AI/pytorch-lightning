@@ -18,17 +18,19 @@ from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 class TunerLRFinderMixin(ABC):
     def _lr_finder_call_order(self):
-        pass  # 
+        pass  # nothing to check
     
     def lr_find(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
                 val_dataloaders: Optional[DataLoader] = None,
+                monitor_val = 'loss',
                 min_lr: float = 1e-8,
                 max_lr: float = 1,
                 num_training: int = 100,
                 mode: str = 'exponential',
-                early_stop_threshold: float = 4.0):
+                early_stop_threshold: float = 4.0,
+                *args, **kwargs):
         r"""
         lr_find enables the user to do a range test of good initial learning rates,
         to reduce the amount of guesswork in picking a good starting learning rate.
@@ -39,7 +41,18 @@ class TunerLRFinderMixin(ABC):
             train_dataloader: A PyTorch
                 DataLoader with training samples. If the model has
                 a predefined train_dataloader method this will be skipped.
-
+            
+            val_dataloader: A PyTorch
+                DataLoader with training samples. If the model has
+                a predefined train_dataloader method this will be skipped.
+            
+            monitor_val: either `loss` or `val_loss`. Default is `loss`, meaning
+                that we are monitoring the training loss. If `val_loss` we are
+                monitoring the validation loss. Note that `val_loss` takes significant
+                longer time because it involves a full validation run after each
+                step, however, this usually also gives better estimates of the
+                learning rate.
+            
             min_lr: minimum learning rate to investigate
 
             max_lr: maximum learning rate to investigate
@@ -62,19 +75,7 @@ class TunerLRFinderMixin(ABC):
             trainer = pl.Trainer()
 
             # Run lr finder
-            lr_finder = trainer.lr_find(model, ...)
-
-            # Inspect results
-            fig = lr_finder.plot(); fig.show()
-            suggested_lr = lr_finder.suggestion()
-
-            # Overwrite lr and create new model
-            hparams.lr = suggested_lr
-            model = MyModelClass(hparams)
-
-            # Ready to train with new learning rate
-            trainer.fit(model)
-
+            lr_finder = trainer.lr_find(model, ...)  
         """
         # Check for correct call order
         self._lr_finder_call_order()
@@ -83,22 +84,20 @@ class TunerLRFinderMixin(ABC):
         self.__lr_finder_dump_params(model)
         
         # Initialize lr finder callback
-        lr_finder = LRFinderCallback(mode, min_lr, max_lr, num_training,
-                                     early_stop_threshold)
-        
+        lr_finder = LRFinderCallback(mode, min_lr, max_lr, monitor_val,
+                                     num_training, early_stop_threshold)
         
         # Set to values that are required by the algorithm
-        self.__lr_finder_reset_params(model, lr_finder, num_training)
-        if self.progress_bar_callback:
-            self.progress_bar_callback.disable()
+        self.__lr_finder_reset_params(model, lr_finder, num_training, monitor_val)
+        if self.trainer.progress_bar_callback:
+            self.trainer.progress_bar_callback.disable()
 
         # Save initial model, that is loaded after batch size is found
         save_path = os.path.join(self.trainer.default_root_dir, 'temp_model.ckpt')
         self.trainer.save_checkpoint(str(save_path))
-
         
         # Configure optimizer and scheduler
-        optimizers, _, _ = self.init_optimizers(model)
+        optimizers, _, _ = self.trainer.init_optimizers(model)
         if len(optimizers) != 1:
             raise MisconfigurationException(
                 f'`model.configure_optimizers()` returned {len(optimizers)}, but'
@@ -107,37 +106,39 @@ class TunerLRFinderMixin(ABC):
                                                     num_training, mode)
 
         # Fit, lr & loss logged in callback
-        self.fit(model,
-                 train_dataloader=train_dataloader,
-                 val_dataloaders=val_dataloaders)
-
+        self.trainer.fit(model,
+                         train_dataloader=train_dataloader,
+                         val_dataloaders=val_dataloaders)
+        lr_finder._total_batch_idx = self.trainer.total_batch_idx  # for debug purpose
+        
+        import pdb
+        pdb.set_trace()
+        
+        lr_finder.results['lr'].pop(-1)
+        
         # Prompt if we stopped early
-        if self.global_step != num_training:
+        if self.trainer.global_step != num_training:
             log.info('LR finder stopped early due to diverging loss.')
 
-        # Transfer results from callback to lr finder object
-        lr_finder.results.update({'lr': self.callbacks[0].lrs,
-                                  'loss': self.callbacks[0].losses})
-        lr_finder._total_batch_idx = self.total_batch_idx  # for debug purpose
-
         # Reset model state
-        self.restore(str(save_path), on_gpu=self.on_gpu)
+        self.trainer.restore(str(save_path), on_gpu=self.trainer.on_gpu)
         os.remove(save_path)
 
         # Finish by resetting variables so trainer is ready to fit model
         self.__lr_finder_restore_params(model)
-        if self.progress_bar_callback:
-            self.progress_bar_callback.enable()
-        
+        if self.trainer.progress_bar_callback:
+            self.trainer.progress_bar_callback.enable()
+
         # Log that method was called and return object
         self._lr_find_called = True
         return lr_finder
 
     def __lr_finder_dump_params(self, model):
-        # Prevent going into infinite loop
         self.__dumped_params = {
             'callbacks': self.trainer.callbacks,
             'logger': self.trainer.logger,
+            'weights_summary': self.trainer.weights_summary,
+            'val_check_interval': self.trainer.val_check_interval,
             'max_steps': self.trainer.max_steps,
             'checkpoint_callback': self.trainer.checkpoint_callback,
             'early_stop_callback': self.trainer.early_stop_callback,
@@ -145,23 +146,29 @@ class TunerLRFinderMixin(ABC):
             'configure_optimizers': model.configure_optimizers,
         }
         
-    def __lr_finder_reset_params(self, model, lr_finder_callback, num_training):
-        self.trainer.callback = [lr_finder_callback]
+    def __lr_finder_reset_params(self, model, lr_finder_callback, 
+                                 num_training, monitor_val):
+        self.trainer.callbacks = [lr_finder_callback]
         self.trainer.logger = DummyLogger()
+        self.trainer.weights_summary = None
         self.trainer.max_steps = num_training
         self.trainer.checkpoint_callback = False
         self.trainer.early_stop_callback = None
         self.trainer.enable_early_stop = False
         self.trainer.optimizers, self.trainer.schedulers = [], [],
         self.trainer.model = model
+        if monitor_val != 'loss':
+            self.trainer.val_check_interval = 1
         
     def __lr_finder_restore_params(self, model):
-        self.callbacks = self.__dumped_params['callbacks']
-        self.logger = self.__dumped_params['logger']
-        self.max_steps = self.__dumped_params['max_steps']
-        self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
-        self.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.enable_early_stop = self.__dumped_params['enable_early_stop']
+        self.trainer.callbacks = self.__dumped_params['callbacks']
+        self.trainer.logger = self.__dumped_params['logger']
+        self.trainer.weights_summary = self.__dumped_params['weights_summary']
+        self.trainer.val_check_interval = self.__dumped_params['val_check_interval']
+        self.trainer.max_steps = self.__dumped_params['max_steps']
+        self.trainer.checkpoint_callback = self.__dumped_params['checkpoint_callback']
+        self.trainer.early_stop_callback = self.__dumped_params['early_stop_callback']
+        self.trainer.enable_early_stop = self.__dumped_params['enable_early_stop']
         model.configure_optimizers = self.__dumped_params['configure_optimizers']
         del self.__dumped_params
 
@@ -183,7 +190,7 @@ class LRFinderCallback(Callback):
         # Get suggestion
         lr = lr_finder.suggestion()
     """
-    def __init__(self, mode: str, lr_min: float, lr_max: float,
+    def __init__(self, mode: str, lr_min: float, lr_max: float, monitor_val: str,
                  num_training: int, early_stop_threshold: float = 4.0,
                  beta: float = 0.98, progress_bar_refresh_rate: bool = True):
         assert mode in ('linear', 'exponential'), \
@@ -192,6 +199,7 @@ class LRFinderCallback(Callback):
         self.mode = mode
         self.lr_min = lr_min
         self.lr_max = lr_max
+        self.monitor_val = monitor_val
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
@@ -222,8 +230,9 @@ class LRFinderCallback(Callback):
         if self.mode == 'exponential':
             ax.set_xscale("log")
         ax.set_xlabel("Learning rate")
-        ax.set_ylabel("Loss")
-
+        ax.set_ylabel(self.monitor_val)
+        
+        # Plot suggestion
         if suggest:
             _ = self.suggestion()
             if self._optimal_idx:
@@ -262,18 +271,23 @@ class LRFinderCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
-        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].last_lr)
+        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].get_last_lr())
 
     @rank_zero_only
     def on_batch_end(self, trainer, pl_module):
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
+        
+        # We wait an additional iteration such that trainer.callback metrics
+        # are avaiable. This therefore logs the results from the past batch
+        if len(self.results['lr']) < 2:
+            return
 
         if self.progress_bar:
             self.progress_bar.update()
 
-        current_loss = trainer.running_loss.last().item()
+        current_loss = trainer.callback_metrics[self.monitor_val].item()
         current_step = trainer.global_step + 1  # remove the +1 in 1.0
 
         # Avg loss (loss with momentum) + smoothing
@@ -282,13 +296,13 @@ class LRFinderCallback(Callback):
 
         # Check if we diverging
         if self.early_stop_threshold is not None:
-            if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
+            if current_step > 2 and smoothed_loss > self.early_stop_threshold * self.best_loss:
                 trainer.max_steps = current_step  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
 
         # Save best loss for diverging checking
-        if smoothed_loss < self.best_loss or current_step == 1:
+        if smoothed_loss < self.best_loss or current_step == 2:
             self.best_loss = smoothed_loss
 
         self.results['loss'].append(smoothed_loss)
@@ -313,15 +327,7 @@ class PatchOptimizer(object):
 
 
 class LinearLearningRateScheduler(_LRScheduler):
-    """Linearly increases the learning rate between two boundaries
-    over a number of iterations.
-    Arguments:
-        optimizer: wrapped optimizer.
-        end_lr: the final learning rate.
-        num_iter: the number of iterations over which the test occurs.
-        last_epoch: the index of last epoch. Default: -1.
-    """
-
+    """Linearly increases the learning rate between two boundaries """
     def __init__(self,
                  optimizer: torch.optim.Optimizer,
                  end_lr: float,
@@ -342,15 +348,7 @@ class LinearLearningRateScheduler(_LRScheduler):
         return val
 
 class ExponentialLearningRateScheduler(_LRScheduler):
-    """Exponentially increases the learning rate between two boundaries
-    over a number of iterations.
-    Arguments:
-        optimizer: wrapped optimizer.
-        end_lr: the final learning rate.
-        num_iter: the number of iterations over which the test occurs.
-        last_epoch: the index of last epoch. Default: -1.
-    """
-
+    """Exponentially increases the learning rate between two boundaries """
     def __init__(self,
                  optimizer: torch.optim.Optimizer,
                  end_lr: float,
