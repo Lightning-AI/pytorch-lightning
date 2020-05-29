@@ -34,7 +34,7 @@ else:
 CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, ParametersSplitsModuleMixin, GradInformation, ModelIO, ModelHooks):
+class LightningModule(DeviceDtypeModuleMixin, ParametersSplitsModuleMixin, GradInformation, ModelIO, ModelHooks, ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
