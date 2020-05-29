@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import EvalModelTemplate
 
 
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
