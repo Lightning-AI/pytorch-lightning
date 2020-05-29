@@ -81,27 +81,19 @@ class SuperLitModel(LightningModule):
             progress_bar={'train_loss': loss}
         )
 
+        step_result.reduce_on_epoch_end(loss, 'nce_loss')
+
         return step_result
 
     def validation_step(self, batch: Tensor, batch_idx: int):
         # forward pass
         x, y = batch
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+        val_loss = F.cross_entropy(y_hat, y)
 
-        # structure the return from the training loop
-        return {'loss': loss}
-
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
-        step_result = Result(
-            checkpoint_on=avg_loss,
-            early_stop_on=avg_loss,
-            logs={'avg_loss': avg_loss},
-            progress_bar={'avg_loss': avg_loss}
-        )
-
-        return step_result
+        result = Result()
+        result.reduce_on_epoch_end(val_loss, 'val_loss')
+        return result
 
     def configure_optimizers(self):
         """

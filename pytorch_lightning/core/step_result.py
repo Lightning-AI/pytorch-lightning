@@ -1,6 +1,7 @@
 from typing import Optional, Dict
 from torch import Tensor
 from collections import OrderedDict
+import torch
 
 
 class Result(OrderedDict):
@@ -69,6 +70,34 @@ class Result(OrderedDict):
         self.progress_bar = progress_bar
         self.hiddens = hiddens
         self.minimize = minimize
+
+    def reduce_on_batch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
+        # track the metric to reduce on batch end
+        if 'reduce_on_batch_end' not in self:
+            self.__setitem__('reduce_on_batch_end', {})
+        metrics = self.__getitem__('reduce_on_batch_end')
+
+        metrics[name] = dict(
+            name=name,
+            metric=metric,
+            log=log,
+            pbar=pbar,
+            reduce_fx=reduce_fx
+        )
+
+    def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
+        # track the metric to reduce on batch end
+        if 'reduce_on_epoch_end' not in self:
+            self.__setitem__('reduce_on_epoch_end', {})
+        metrics = self.__getitem__('reduce_on_epoch_end')
+
+        metrics[name] = dict(
+            name=name,
+            metric=metric,
+            log=log,
+            pbar=pbar,
+            reduce_fx=reduce_fx
+        )
 
     def to_bar(self, key: str, value: Tensor):
         """
