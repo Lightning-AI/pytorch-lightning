@@ -61,6 +61,7 @@ def test_pytorch_parity(tmpdir):
 
     lightning_outs, pl_times = lightning_loop(ParityRNN, num_rums, num_epochs)
     manual_outs, pt_times = vanilla_loop(ParityRNN, num_rums, num_epochs)
+
     # make sure the losses match exactly  to 5 decimal places
     for pl_out, pt_out in zip(lightning_outs, manual_outs):
         np.testing.assert_almost_equal(pl_out, pt_out, 8)

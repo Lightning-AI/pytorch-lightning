@@ -1,4 +1,3 @@
-import os
 import time
 
 import numpy as np
@@ -53,7 +52,7 @@ def test_pytorch_parity(tmpdir):
     :param tmpdir:
     :return:
     """
-    num_epochs = 2
+    num_epochs = 5
     num_rums = 3
     lightning_outs, pl_times = lightning_loop(ParityModuleMNIST, num_rums, num_epochs)
     manual_outs, pt_times = vanilla_loop(ParityModuleMNIST, num_rums, num_epochs)
@@ -95,11 +94,7 @@ def vanilla_loop(MODEL, num_runs=10, num_epochs=10):
 
             # run through full training set
             for j, batch in enumerate(dl):
-                x, y = batch
-                x = x.cuda(0)
-                y = y.cuda(0)
-                batch = (x, y)
-
+                batch = [x.to(device) for x in batch]
                 loss_dict = model.training_step(batch, j)
                 loss = loss_dict['loss']
                 loss.backward()
