@@ -144,14 +144,14 @@ class ModelCheckpoint(Callback):
 
     @property
     def best(self):
-        rank_zero_warn("attribute `best` has been renamed to `best_model_score` since v0.8.0"
-                       " and will be removed in v1.0.0", DeprecationWarning)
+        rank_zero_warn("Attribute `best` has been renamed to `best_model_score` since v0.8.0"
+                       " and will be removed in v0.10.0", DeprecationWarning)
         return self.best_model_score
 
     @property
     def kth_best_model(self):
-        rank_zero_warn("attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
-                       " and will be removed in v1.0.0", DeprecationWarning)
+        rank_zero_warn("Attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
+                       " and will be removed in v0.10.0", DeprecationWarning)
         return self.kth_best_model_path
 
     def _del_model(self, filepath):
