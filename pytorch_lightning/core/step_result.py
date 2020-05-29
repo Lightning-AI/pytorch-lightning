@@ -79,9 +79,9 @@ class Result(OrderedDict):
 
         metrics[name] = dict(
             name=name,
-            metric=metric,
-            log=log,
-            pbar=pbar,
+            # metric=metric,
+            # log=log,
+            # pbar=pbar,
             # reduce_fx=reduce_fx
         )
 
@@ -92,10 +92,10 @@ class Result(OrderedDict):
         metrics = self.__getitem__('reduce_on_epoch_end')
 
         metrics[name] = dict(
-            name=name,
-            metric=metric,
-            log=log,
-            pbar=pbar,
+            # name=name,
+            # metric=metric,
+            # log=log,
+            # pbar=pbar,
             # reduce_fx=reduce_fx
         )
 
