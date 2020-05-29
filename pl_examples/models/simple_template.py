@@ -92,7 +92,7 @@ class SuperLitModel(LightningModule):
         val_loss = F.cross_entropy(y_hat, y)
 
         result = Result()
-        result.reduce_on_epoch_end(val_loss, 'val_loss')
+        result.reduce_on_epoch_end(val_loss, 'val_loss', pbar=True)
         result.reduce_on_epoch_end(val_loss, 'val_loss_2')
 
         return result
