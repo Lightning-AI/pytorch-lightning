@@ -75,20 +75,20 @@ class Result(Dict):
         # track the metric to reduce on batch end
         metrics = dict(
             name=name,
-            # metric=metric,
-            # log=log,
-            # pbar=pbar,
-            # reduce_fx=reduce_fx
+            metric=metric,
+            log=log,
+            pbar=pbar,
+            reduce_fx=reduce_fx
         )
         self['reduce_on_batch_end'] = metrics
 
     def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
         metrics = dict(
             name=name,
-            # metric=metric,
-            # log=log,
-            # pbar=pbar,
-            # reduce_fx=reduce_fx
+            metric=metric,
+            log=log,
+            pbar=pbar,
+            reduce_fx=reduce_fx
         )
         self['reduce_on_epoch_end'] = metrics
 
