@@ -314,8 +314,8 @@ class TrainerIOMixin(ABC):
 
         if not weights_only:
             if self.checkpoint_callback:
-                checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
-                checkpoint['checkpoint_callback_best_model'] = self.checkpoint_callback.best_model
+                checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
+                checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
 
             if self.early_stop_callback:
                 checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
@@ -400,8 +400,11 @@ class TrainerIOMixin(ABC):
             )
 
         if self.checkpoint_callback:
-            self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
-            self.checkpoint_callback.best_model = checkpoint['checkpoint_callback_best_model']
+            if 'checkpoint_callback_best' in checkpoint:
+                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
+            else:
+                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best_model_score']
+            self.checkpoint_callback.best_model_path = checkpoint['checkpoint_callback_best_model_path']
 
         if self.early_stop_callback:
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
