@@ -19,7 +19,7 @@ from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.parsing import nested_hasattr, nested_setattr
+from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr, lightning_getattr
 
 class TunerBatchScalerMixin(ABC):
     def _batch_scaler_call_order(self):
@@ -36,7 +36,7 @@ class TunerBatchScalerMixin(ABC):
                          mode: str = 'power',
                          steps_per_trial: int = 3,
                          init_val: int = 2,
-                         max_trials: int = 25,
+                         max_trials: int = 15,
                          attribute_name: str = 'batch_size'):
         r"""
         Will iteratively try to find the largest batch size for a given model
@@ -66,8 +66,8 @@ class TunerBatchScalerMixin(ABC):
         """
         # Check for correct call order
         self._batch_scaler_call_order()
-
-        if not nested_hasattr(model, attribute_name):
+        
+        if not lightning_hasattr(model, attribute_name):
             raise MisconfigurationException(f'Field {attribute_name} not found in `model` namespace')
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
@@ -96,8 +96,13 @@ class TunerBatchScalerMixin(ABC):
         else:
             raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
         garbage_collection_cuda()
-        import pdb
-        pdb.set_trace()
+
+        # Convert times to work on same data amount
+        max_batch_size = max(bs for bs, suc in \
+                             zip(batch_scaler.results['batch_size'], batch_scaler.results['fits_in_memory']) if suc)
+        batch_scaler.results['time'] = [t * max_batch_size/bs for t,bs in \
+                                        zip(batch_scaler.results['time'], batch_scaler.results['batch_size'])]
+        
         # Restore initial state of model
         self.trainer.restore(str(save_path), on_gpu=self.trainer.on_gpu)
         os.remove(save_path)
@@ -160,38 +165,56 @@ class BatchScaler(object):
         """
         import matplotlib.pyplot as plt
 
-        bs = self.results["bs"]
-        times = self.results["times"]
-        succes = self.results["fits_in_memory"]
-        max_bs = np.argmax(bs[succes])
-        
-        fig, ax = plt.subplots()
+        bs = np.array(self.results["batch_size"])
+        times = np.array(self.results["time"])
+        succes = np.array(self.results["fits_in_memory"])
+        max_bs = np.max(bs[succes])
 
-        # Plot loss as a function of the learning rate
-        ax.plot(bs, times)
-        ax.axvline(x=max_bs, ymin=0, ymax=max(times))  # plot maximum
+        # Reorder
+        idx_sort = np.argsort(bs)
+        bs, times, succes = bs[idx_sort], times[idx_sort], succes[idx_sort]
+        
+        # Plot time as function of batch size, mark largest batch size
+        fig, ax = plt.subplots()
+        ax.plot(bs, times, '-o')
+        ax.set_yscale("log")
+        ax.axvline(x=max_bs, ymin=0, ymax=max(times), color='green', label='maximum batch size')
         ax.set_xlabel("Batch size")
         ax.set_ylabel("Time")
-
+        
+        # Plot suggestion
         if suggest:
-            _ = self.suggestion()
-            ax.plot(bs[self._optimal_idx], times[self._optimal_idx],
-                    markersize=10, marker='o', color='red')
-
+            suggestion = self.suggestion()
+            ax.plot(suggestion, self.results["time"][self._optimal_idx],
+                    markersize=10, marker='o', color='red', label='suggestion')
+        ax.legend()
+        
         if show:
             plt.show()
 
         return fig
         
-    def suggestion(self, mode='size'):
-        assert mode in ['size', 'speed']
-        if mode == 'size':
-            self._optimal_idx = np.argmax(self.results["bs"][self.results["fits_in_memory"]])
-            return self.results["bs"][self._optimal_idx]
+    def suggestion(self, condition='size'):
+        """ This will propose a suggestion for choice of batch size either base
+            on choosing the largest batch that fits in memory (default) or the
+            batch size that approximately give the fastest training time.
+        Args:
+            condition: either `size` or `speed`
+        Returns:
+            lr: suggested batch size to use
+        """
+        assert condition in ['size', 'speed'], \
+            'condition needs to be either `size` or `speed`'
+        if condition == 'size':
+            bs = np.array(self.results["batch_size"]).astype('int')
+            suc = np.array(self.results["fits_in_memory"]).astype('int')
+            self._optimal_idx = np.argmax(bs * suc)
+            return self.results["batch_size"][self._optimal_idx]
         else:
-            self._optimal_idx = np.argmin(self.results["times"][self.results["fits_in_memory"]])
-            return self.results["bs"][self._optimal_idx]
-        
+            time = np.array(self.results["time"]).astype('float')
+            suc = np.array(self.results["fits_in_memory"]).astype('float')
+            self._optimal_idx = np.argmin(time * (1-suc) * 10**6)
+            return self.results["batch_size"][self._optimal_idx]
 
 def _adjust_batch_size(trainer,
                        batch_arg_name: str = 'batch_size',
@@ -214,12 +237,11 @@ def _adjust_batch_size(trainer,
             Note that the value of `factor` will not have an effect in this case
 
         desc: either `succeeded` or `failed`. Used purely for logging
-
     """
     model = trainer.get_model()
-    batch_size = getattr(model, batch_arg_name)
+    batch_size = lightning_getattr(model, batch_arg_name)
     if value:
-        setattr(model, batch_arg_name, value)
+        lightning_setattr(model, batch_arg_name, value)
         new_size = value
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
@@ -227,7 +249,7 @@ def _adjust_batch_size(trainer,
         new_size = int(batch_size * factor)
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-        setattr(model, batch_arg_name, new_size)
+        lightning_setattr(model, batch_arg_name, new_size)
     return new_size
 
 
@@ -253,6 +275,8 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
                 garbage_collection_cuda()
                 batch_scaler.results['fits_in_memory'].append(False)    
                 new_size = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
+                end = time.monotonic()
+                batch_scaler.results['time'].append(end-start)
                 break
             else:
                 raise  # some other error not memory related
@@ -279,11 +303,15 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
             batch_scaler.results['fits_in_memory'].append(True)
             count += 1
             if count > max_trials:
+                end = time.monotonic()
+                batch_scaler.results['time'].append(end-start)
                 break
             # Double in size
             low = new_size
             if high:
                 if high - low <= 1:
+                    end = time.monotonic()
+                    batch_scaler.results['time'].append(end-start)
                     break
                 midval = (high + low) // 2
                 new_size = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='succeeded')
@@ -299,9 +327,12 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
                 midval = (high + low) // 2
                 new_size = _adjust_batch_size(trainer, value=midval, desc='failed')
                 if high - low <= 1:
+                    end = time.monotonic()
+                    batch_scaler.results['time'].append(end-start)
                     break
             else:
                 raise  # some other error not memory related
         end = time.monotonic()
         batch_scaler.results['time'].append(end-start)
+    
     return batch_scaler

@@ -49,48 +49,55 @@ def clean_namespace(hparams):
             del hparams[k]
 
 
-def nested_hasattr(namespace, attribute):
-    """
-    Recursively check if a namespace has a certain attribute
-    """
-    parts = attribute.split(".")
-    for part in parts:
-        if hasattr(namespace, part):
-            namespace = getattr(namespace, part)
-        else:
-            return False
-    else:
+def lightning_hasattr(model, attribute):
+    """ Special hasattr for lightning. Checks for attribute in model namespace
+        and the old hparams namespace/dict """
+    # New format
+    if hasattr(model, attribute):
         return True
-
-
-def nested_setattr(namespace, attribute, value):
-    """
-    Recursively look through a namespace for a certain attribute and set
-    to a given value
-    """
-    parts = attribute.split(".")
-    for part in parts[:-1]:
-        if hasattr(namespace, part):
-            namespace = getattr(namespace, part)
-    setattr(namespace, parts[-1], value)
-    
-    
-def nested_getattr(namespace, attribute):
-    """
-    Recursively look through a namespace for certain attribute and return
-    the given value
-    """
-    parts = attribute.split(".")
-    found = False
-    for part in parts:
-        if hasattr(namespace, part):
-            namespace = getattr(namespace, part)
+    # Old hparams format, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            if attribute in model.hparams:
+                return True
         else:
-            found = False
+            if hasattr(model.hparams, attribute):
+                return True
     else:
-        found = True
-    
-    if found:    
-        return namespace
+        return False        
+
+
+def lightning_getattr(model, attribute):
+    """ Special getattr for lightning. Checks for attribute in model namespace
+        and the old hparams namespace/dict """
+    # New format
+    if hasattr(model, attribute):
+        return getattr(model, attribute)
+    # Old hparams format, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            return model.hparams[attribute]
+        else:
+            return getattr(model.hparams, attribute)
     else:
-        raise AttributeError(f'{namespace} object has no attribute {attribute}')
+        raise ValueError(f'{attribute} is not stored in the model namespace'
+                          ' or the `hparams` namespace/dict.')
+
+
+def lightning_setattr(model, attribute, value):
+    """ Special setattr for lightning. Checks for attribute in model namespace
+        and the old hparams namespace/dict """
+    # New format
+    if hasattr(model, attribute):
+        setattr(model, attribute, value)
+        return
+    # Old hparams format, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            model.hparams[attribute] = value
+            return
+        else:
+            setattr(model.hparams, attribute, value)
+    else:
+        raise ValueError(f'{attribute} is not stored in the model namespace'
+                          ' or the `hparams` namespace/dict.')

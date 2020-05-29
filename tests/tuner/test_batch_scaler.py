@@ -2,7 +2,7 @@ import pytest
 import torch
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Tuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -20,8 +20,9 @@ def test_model_reset_correctly(tmpdir):
     )
 
     before_state_dict = model.state_dict()
-
-    trainer.scale_batch_size(model, max_trials=5)
+    
+    tuner = Tuner(trainer)
+    tuner.scale_batch_size(model, max_trials=5)
 
     after_state_dict = model.state_dict()
 
@@ -41,7 +42,8 @@ def test_trainer_reset_correctly(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
-
+    tuner = Tuner(trainer)
+    
     changed_attributes = ['max_steps',
                           'weights_summary',
                           'logger',
@@ -55,7 +57,7 @@ def test_trainer_reset_correctly(tmpdir):
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
 
-    trainer.scale_batch_size(model, max_trials=5)
+    tuner.scale_batch_size(model, max_trials=5)
 
     attributes_after = {}
     for ca in changed_attributes:
@@ -66,12 +68,18 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-@pytest.mark.parametrize('scale_arg', ['power', 'binsearch'])
-def test_trainer_arg(tmpdir, scale_arg):
+@pytest.mark.parametrize('tuner_arg', [True, 'my_batch_arg'])
+def test_trainer_arg(tmpdir, tuner_arg):
     """ Check that trainer arg works with bool input. """
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
+    
+    class CurrentModel(EvalModelTemplate):
+        @property
+        def my_batch_arg(self):
+            return self.batch_size
+    
     model = EvalModelTemplate(**hparams)
 
     before_batch_size = hparams.get('batch_size')
@@ -79,10 +87,11 @@ def test_trainer_arg(tmpdir, scale_arg):
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
-        auto_scale_batch_size=scale_arg,
     )
+    model.__dict__['my_batch_arg'] = 2
+    tuner = Tuner(trainer, auto_scale_batch_size=tuner_arg)
 
-    trainer.fit(model)
+    tuner.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
@@ -102,8 +111,10 @@ def test_call_to_trainer_method(tmpdir, scale_method):
         default_save_path=tmpdir,
         max_epochs=1,
     )
+    tuner = Tuner(trainer)
 
-    after_batch_size = trainer.scale_batch_size(model, mode=scale_method, max_trials=5)
+    batch_scaler = tuner.scale_batch_size(model, mode=scale_method, max_trials=8)
+    after_batch_size = batch_scaler.suggestion()
     model.batch_size = after_batch_size
     trainer.fit(model)
 
@@ -122,12 +133,12 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2,
-        auto_scale_batch_size='power'
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True))
+    tuner = Tuner(trainer, auto_scale_batch_size=True)
+    tune_options = dict(train_dataloader=model.dataloader(train=True))
 
     with pytest.raises(MisconfigurationException):
-        trainer.fit(model, **fit_options)
+        tuner.tune(model, **tune_options)
 
 
 def test_logger_reset_correctly(tmpdir):
@@ -140,10 +151,10 @@ def test_logger_reset_correctly(tmpdir):
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=1,
-        auto_scale_batch_size=True
     )
+    tuner = Tuner(trainer, auto_scale_batch_size=True)
     logger1 = trainer.logger
-    trainer.fit(model)
+    tuner.tune(model)
     logger2 = trainer.logger
     logger3 = model.logger
 

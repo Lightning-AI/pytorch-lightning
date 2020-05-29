@@ -10,7 +10,7 @@ from pytorch_lightning.tuner.batch_scaler import TunerBatchScalerMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.warnings import ExperimentalWarning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import nested_hasattr, nested_setattr
+from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 
 class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
     r"""
@@ -49,11 +49,11 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
                        ' change drastically within the next few releases',
                        ExperimentalWarning)
     
-    def optimize(self, 
-                 model: LightningModule,
-                 train_dataloader: Optional[DataLoader] = None,
-                 val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
-                 ):
+    def tune(self, 
+             model: LightningModule,
+             train_dataloader: Optional[DataLoader] = None,
+             val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+             ):
         r"""
         Automatic run the enabled tuner algorithms
 
@@ -83,37 +83,33 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
             self._call_internally(model, 
                                   self.scale_batch_size, 
                                   self.auto_scale_batch_size,
-                                  ['batch_size'])
+                                  'batch_size')
             
         # Run learning rate finder:
         if self.auto_lr_find:
             self._call_internally(model, 
                                   self.lr_find, 
                                   self.auto_lr_find, 
-                                  ['learning_rate', 'lr'])
+                                  'learning_rate')
         
         # Reset model logger
         model.logger = self.trainer.logger
     
     def _call_internally(self, model, method, attribute, default):
-        attribute = [attribute] if isinstance(attribute, str) else default
+        attribute = attribute if isinstance(attribute, str) else default
         
         # Check that user has the wanted attribute in their model
-        found = False
-        for a in attribute:
-            if nested_hasattr(model, a):
-                arg, found = a, True
-        if not found:
-            raise MisconfigurationException('Model does not have a field called'
-                    f' {attribute} which is required by tuner algorithm {method}')
+        if not lightning_hasattr(model, attribute):
+            raise MisconfigurationException('model or model.hparams does not have'
+                    f' a field called {attribute} which is required by tuner algorithm {method}')
         
         # Call method
-        obj = method(model, attribute_name=arg)
+        obj = method(model, attribute_name=attribute)
         
         # Get suggested value
         value = obj.suggestion()
         
         # Set value in model
-        nested_setattr(model, arg, value)
-        log.info(f'Attribute {a} set to {value}')
+        lightning_setattr(model, attribute, value)
+        log.info(f'Attribute {attribute} set to {value}')
        

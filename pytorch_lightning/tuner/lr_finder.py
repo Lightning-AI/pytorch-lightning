@@ -238,10 +238,11 @@ class LRFinderCallback(Callback):
     def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
         """ This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
-        Returns:
-            lr: suggested initial learning rate to use
+        Args:
             skip_begin: how many samples to skip in the beginning. Prevent too naive estimates
             skip_end: how many samples to skip in the end. Prevent too optimistic estimates
+        Returns:
+            lr: suggested initial learning rate to use
         """
         try:
             loss = self.results["loss"][skip_begin:-skip_end]
