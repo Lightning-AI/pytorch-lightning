@@ -93,6 +93,8 @@ class SuperLitModel(LightningModule):
 
         result = Result()
         result.reduce_on_epoch_end(val_loss, 'val_loss')
+        result.reduce_on_epoch_end(val_loss, 'val_loss_2')
+
         return result
 
     def configure_optimizers(self):
