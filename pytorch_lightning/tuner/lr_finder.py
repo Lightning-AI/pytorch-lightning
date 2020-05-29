@@ -109,11 +109,7 @@ class TunerLRFinderMixin(ABC):
         self.trainer.fit(model,
                          train_dataloader=train_dataloader,
                          val_dataloaders=val_dataloaders)
-        lr_finder._total_batch_idx = self.trainer.total_batch_idx  # for debug purpose
-        
-        import pdb
-        pdb.set_trace()
-        
+        lr_finder._total_batch_idx = self.trainer.total_batch_idx  # for debug purpose        
         lr_finder.results['lr'].pop(-1)
         
         # Prompt if we stopped early
@@ -151,7 +147,7 @@ class TunerLRFinderMixin(ABC):
         self.trainer.callbacks = [lr_finder_callback]
         self.trainer.logger = DummyLogger()
         self.trainer.weights_summary = None
-        self.trainer.max_steps = num_training
+        self.trainer.max_steps = num_training+1
         self.trainer.checkpoint_callback = False
         self.trainer.early_stop_callback = None
         self.trainer.enable_early_stop = False
@@ -271,7 +267,7 @@ class LRFinderCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
-        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].get_last_lr())
+        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].get_last_lr()[0])
 
     @rank_zero_only
     def on_batch_end(self, trainer, pl_module):
@@ -327,7 +323,16 @@ class PatchOptimizer(object):
 
 
 class LinearLearningRateScheduler(_LRScheduler):
-    """Linearly increases the learning rate between two boundaries """
+    """Linearly increases the learning rate between two boundaries
+    over a number of iterations.
+    Arguments:
+        optimizer: wrapped optimizer.
+        end_lr: the final learning rate.
+        num_iter: the number of iterations over which the test occurs.
+        last_epoch: the index of last epoch. Default: -1.
+    Inspired by:
+        https://github.com/davidtvs/pytorch-lr-finder/blob/master/torch_lr_finder/lr_finder.py
+    """
     def __init__(self,
                  optimizer: torch.optim.Optimizer,
                  end_lr: float,
@@ -348,7 +353,16 @@ class LinearLearningRateScheduler(_LRScheduler):
         return val
 
 class ExponentialLearningRateScheduler(_LRScheduler):
-    """Exponentially increases the learning rate between two boundaries """
+    """Exponentially increases the learning rate between two boundaries
+    over a number of iterations.
+    Arguments:
+        optimizer: wrapped optimizer.
+        end_lr: the final learning rate.
+        num_iter: the number of iterations over which the test occurs.
+        last_epoch: the index of last epoch. Default: -1.
+    Inspired by:
+        https://github.com/davidtvs/pytorch-lr-finder/blob/master/torch_lr_finder/lr_finder.py
+    """
     def __init__(self,
                  optimizer: torch.optim.Optimizer,
                  end_lr: float,

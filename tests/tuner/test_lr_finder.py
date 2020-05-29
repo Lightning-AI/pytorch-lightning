@@ -2,7 +2,7 @@ import pytest
 import torch
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Tuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -18,9 +18,10 @@ def test_error_on_more_than_1_optimizer(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
+    tuner = Tuner(trainer)
 
     with pytest.raises(MisconfigurationException):
-        trainer.lr_find(model)
+        tuner.lr_find(model)
 
 
 def test_model_reset_correctly(tmpdir):
@@ -33,10 +34,11 @@ def test_model_reset_correctly(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
+    tuner = Tuner(trainer)
 
     before_state_dict = model.state_dict()
 
-    _ = trainer.lr_find(model, num_training=5)
+    _ = tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -55,27 +57,30 @@ def test_trainer_reset_correctly(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
+    tuner = Tuner(trainer)
 
-    changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
-                          'early_stop_callback', 'accumulate_grad_batches',
-                          'enable_early_stop', 'checkpoint_callback']
+    changed_attributes = ['callbacks', 'logger', 'val_check_interval', 
+                          'max_steps', 'checkpoint_callback', 'early_stop_callback',
+                          'enable_early_stop']
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
+    attributes_before['configure_optimizers'] = getattr(model, 'configure_optimizers')
 
-    _ = trainer.lr_find(model, num_training=5)
+    _ = tuner.lr_find(model, num_training=5)
 
     attributes_after = {}
     for ca in changed_attributes:
         attributes_after[ca] = getattr(trainer, ca)
-
+    attributes_after['configure_optimizers'] = getattr(model, 'configure_optimizers')
+    
     for key in changed_attributes:
         assert attributes_before[key] == attributes_after[key], \
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-def test_trainer_arg_bool(tmpdir):
-    """ Test that setting trainer arg to bool works """
+def test_tuner_arg_bool(tmpdir):
+    """ Test that setting tuner arg to bool works """
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
     before_lr = hparams.get('learning_rate')
@@ -84,17 +89,17 @@ def test_trainer_arg_bool(tmpdir):
     trainer = Trainer(
         default_save_path=tmpdir,
         max_epochs=5,
-        auto_lr_find=True
     )
+    tuner = Tuner(trainer, auto_lr_find=True)
 
-    trainer.fit(model)
+    tuner.tune(model)
     after_lr = model.learning_rate
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
 
-def test_trainer_arg_str(tmpdir):
-    """ Test that setting trainer arg to string works """
+def test_tuner_arg_str(tmpdir):
+    """ Test that setting tuner arg to string works """
     model = EvalModelTemplate()
     model.my_fancy_lr = 1.0  # update with non-standard field
 
@@ -105,15 +110,16 @@ def test_trainer_arg_str(tmpdir):
         max_epochs=5,
         auto_lr_find='my_fancy_lr'
     )
+    tuner = Tuner(trainer, auto_lr_find='my_fancy_lr')
 
-    trainer.fit(model)
+    tuner.tune(model)
     after_lr = model.my_fancy_lr
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
 
-def test_call_to_trainer_method(tmpdir):
-    """ Test that directly calling the trainer method works """
+def test_call_to_tuner_method(tmpdir):
+    """ Test that directly calling the tuner method works """
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
@@ -124,12 +130,12 @@ def test_call_to_trainer_method(tmpdir):
         default_save_path=tmpdir,
         max_epochs=5,
     )
+    tuner = Tuner(trainer)
 
-    lrfinder = trainer.lr_find(model, mode='linear')
+    lrfinder = tuner.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
-    trainer.fit(model)
-
+    
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
@@ -147,15 +153,16 @@ def test_accumulation_and_early_stopping(tmpdir):
         default_save_path=tmpdir,
         accumulate_grad_batches=2
     )
+    tuner = Tuner(trainer)
 
-    lrfinder = trainer.lr_find(model, early_stop_threshold=None)
+    lrfinder = tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
     assert len(lrfinder.results['lr']) == 100, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 100 * 2, \
+    assert lrfinder._total_batch_idx == 101 * 2, \
         'Accumulation parameter did not work'
 
 
@@ -170,8 +177,9 @@ def test_suggestion_parameters_work(tmpdir):
         default_save_path=tmpdir,
         max_epochs=10,
     )
+    tuner = Tuner(trainer)
 
-    lrfinder = trainer.lr_find(model)
+    lrfinder = tuner.lr_find(model)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
     lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
 
@@ -190,8 +198,9 @@ def test_suggestion_with_non_finite_values(tmpdir):
         default_save_path=tmpdir,
         max_epochs=10
     )
+    tuner = Tuner(trainer)
 
-    lrfinder = trainer.lr_find(model)
+    lrfinder = tuner.lr_find(model)
     before_lr = lrfinder.suggestion()
     lrfinder.results['loss'][-1] = float('nan')
     after_lr = lrfinder.suggestion()
@@ -212,8 +221,10 @@ def test_logger_reset_correctly(tmpdir):
         max_epochs=10,
         auto_lr_find=True
     )
+    tuner = Tuner(trainer, auto_lr_find=True)
+    
     logger1 = trainer.logger
-    trainer.fit(model)
+    tuner.tune(model)
     logger2 = trainer.logger
     logger3 = model.logger
 

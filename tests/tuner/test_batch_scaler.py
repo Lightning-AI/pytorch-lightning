@@ -69,13 +69,14 @@ def test_trainer_reset_correctly(tmpdir):
 
 
 @pytest.mark.parametrize('tuner_arg', [True, 'my_batch_arg'])
-def test_trainer_arg(tmpdir, tuner_arg):
-    """ Check that trainer arg works with bool input. """
+def test_tuner_arg(tmpdir, tuner_arg):
+    """ Check that tuner arg works with bool input. """
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
     
     class CurrentModel(EvalModelTemplate):
+        # Workaround to test if this also works with non-default field input
         @property
         def my_batch_arg(self):
             return self.batch_size
@@ -98,8 +99,8 @@ def test_trainer_arg(tmpdir, tuner_arg):
 
 
 @pytest.mark.parametrize('scale_method', ['power', 'binsearch'])
-def test_call_to_trainer_method(tmpdir, scale_method):
-    """ Test that calling the trainer method itself works. """
+def test_call_to_tuner_method(tmpdir, scale_method):
+    """ Test that calling the tuner method itself works. """
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
