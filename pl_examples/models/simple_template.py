@@ -94,6 +94,7 @@ class SuperLitModel(LightningModule):
         result = Result()
         result.reduce_on_epoch_end(val_loss, 'val_loss', pbar=True)
         result.reduce_on_epoch_end(val_loss, 'val_loss_2')
+        result.reduce_on_batch_end(val_loss, 'val_loss_batch_end')
 
         return result
 
