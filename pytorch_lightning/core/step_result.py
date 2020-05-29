@@ -77,19 +77,13 @@ class Result(OrderedDict):
             self.__setitem__('reduce_on_batch_end', {})
         metrics = self.__getitem__('reduce_on_batch_end')
 
-        if pbar:
-            self.to_bar(name, metric)
-
-        if log:
-            self.log(name, metric)
-
-        # metrics[name] = dict(
-        #     name=name,
-        #     metric=metric,
-        #     log=log,
-        #     pbar=pbar,
-        #     reduce_fx=reduce_fx
-        # )
+        metrics[name] = dict(
+            name=name,
+            # metric=metric,
+            # log=log,
+            # pbar=pbar,
+            # reduce_fx=reduce_fx
+        )
 
     def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
         # track the metric to reduce on batch end
@@ -97,19 +91,13 @@ class Result(OrderedDict):
             self.__setitem__('reduce_on_epoch_end', {})
         metrics = self.__getitem__('reduce_on_epoch_end')
 
-        if pbar:
-            self.to_bar(name, metric)
-
-        if log:
-            self.log(name, metric)
-
-        # metrics[name] = dict(
-        #     name=name,
-        #     metric=metric,
-        #     log=log,
-        #     pbar=pbar,
-        #     reduce_fx=reduce_fx
-        # )
+        metrics[name] = dict(
+            name=name,
+            # metric=metric,
+            # log=log,
+            # pbar=pbar,
+            # reduce_fx=reduce_fx
+        )
 
     def to_bar(self, key: str, value: Tensor):
         """
