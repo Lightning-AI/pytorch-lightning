@@ -38,9 +38,9 @@ In this  case, the options you pass to trainer will be used when
 running the test set (ie: 16-bit, dp, ddp, etc...)
 
 
-Test additional data loaders
-----------------------------
-You can still run inference on a test set even if the `test_dataloaders` method hasn't been
+Test with additional data loaders
+---------------------------------
+You can still run inference on a test set even if the `test_dataloader` method hasn't been
 defined within your :class:`~pytorch_lightning.core.LightningModule` instance. This would be the case when your test data
 is not available at the time your model was declared.
 
