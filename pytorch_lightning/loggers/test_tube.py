@@ -46,10 +46,9 @@ class TestTubeLogger(LightningLoggerBase):
     Args:
         save_dir: Save directory
         name: Experiment name. Defaults to ``'default'``.
-        description: A short snippet about this experiment
+        description: A short snippet about this experiment.
         debug: If ``True``, it doesn't log anything.
-        version: Experiment version. If version is not specified the logger inspects the save
-            directory for existing versions, then automatically assigns the next available version.
+        version: Sets the version, mainly used to resume a previous run.
         create_git_tag: If ``True`` creates a git tag to save the code used in this experiment.
 
     """
