@@ -68,10 +68,20 @@ class LightningDataParallel(DataParallel):
         # structured responses break gather when not dict
         if isinstance(outputs[0], Result):
             import pdb; pdb.set_trace()
-            original_class = outputs[0].__class__
+            prototype_output = outputs[0]
+            original_class = prototype_output.__class__
             outputs = [dict(x) for x in outputs]
+
+            # functions cannot be reduced... delete from each output and track so we can add back
+            reduce_fxs = {k: prototype_output[k] for k in prototype_output.keys() if 'reduce_fx' in k}
+            for i, output in enumerate(outputs):
+                for k in reduce_fxs.keys():
+                    del output[k]
+
             outputs = self.gather(outputs, self.output_device)
             outputs = original_class(**outputs)
+            for k, v in reduce_fxs.items():
+                outputs[k] = v
 
         else:
             outputs = self.gather(outputs, self.output_device)
