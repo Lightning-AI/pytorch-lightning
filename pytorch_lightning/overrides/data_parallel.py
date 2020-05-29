@@ -67,7 +67,6 @@ class LightningDataParallel(DataParallel):
 
         # structured responses break gather when not dict
         if isinstance(outputs[0], Result):
-            import pdb; pdb.set_trace()
             prototype_output = outputs[0]
             original_class = prototype_output.__class__
             outputs = [dict(x) for x in outputs]
