@@ -836,7 +836,7 @@ class Trainer(
             parsing.clean_namespace(model.hparams)
 
         # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
+        self._attach_dataloaders(model, train_dataloader, val_dataloaders)
 
         # check that model is configured correctly
         self.check_model_configuration(model)
@@ -933,7 +933,7 @@ class Trainer(
             default_port = random.randint(10000, 19000)
             os.environ['MASTER_PORT'] = str(default_port)
 
-    def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
+    def _attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
         if train_dataloader is not None:
@@ -1082,9 +1082,9 @@ class Trainer(
 
         if test_dataloaders is not None:
             if model:
-                self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+                self._attach_dataloaders(model, test_dataloaders=test_dataloaders)
             else:
-                self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+                self._attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
 
         if model is not None:
             self.model = model

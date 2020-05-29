@@ -74,14 +74,16 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
 
         """
         # Bind train_dataloader and val_dataloader to trainer
-        self.trainer.__attach_dataloaders(model, train_dataloader, val_dataloaders)
+        self.trainer._attach_dataloaders(model,
+                                         train_dataloader=train_dataloader, 
+                                         val_dataloaders=val_dataloaders)
         
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             self._call_internally(model, 
                                   self.scale_batch_size, 
                                   self.auto_scale_batch_size,
-                                  ['batch_size', 'bs'])
+                                  ['batch_size'])
             
         # Run learning rate finder:
         if self.auto_lr_find:

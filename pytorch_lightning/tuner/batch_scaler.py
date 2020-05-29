@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import gc
 import os
 from typing import Optional
+import time
 
 import numpy as np
 import torch
@@ -18,7 +19,7 @@ from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.utilities import rank_zero_warn
-
+from pytorch_lightning.utilities.parsing import nested_hasattr, nested_setattr
 
 class TunerBatchScalerMixin(ABC):
     def _batch_scaler_call_order(self):
@@ -49,7 +50,7 @@ class TunerBatchScalerMixin(ABC):
                 we get an OOM error. If mode is 'binsearch', we will initially
                 also keep multiplying by 2 and after encountering an OOM error
                 do a binary search between the last successful batch size and the
-                batch size that failed.
+                batch size thTrainerLRFinderMixinat failed.
 
             steps_per_trial: number of steps to run with a given batch size.
                 Idealy 1 should be enough to test if a OOM error occurs,
@@ -65,8 +66,8 @@ class TunerBatchScalerMixin(ABC):
         """
         # Check for correct call order
         self._batch_scaler_call_order()
-        
-        if not hasattr(model, attribute_name):
+
+        if not nested_hasattr(model, attribute_name):
             raise MisconfigurationException(f'Field {attribute_name} not found in `model` namespace')
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
@@ -95,7 +96,8 @@ class TunerBatchScalerMixin(ABC):
         else:
             raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
         garbage_collection_cuda()
-        
+        import pdb
+        pdb.set_trace()
         # Restore initial state of model
         self.trainer.restore(str(save_path), on_gpu=self.trainer.on_gpu)
         os.remove(save_path)
@@ -147,7 +149,7 @@ class TunerBatchScalerMixin(ABC):
 
 class BatchScaler(object):
     def __init__(self):
-        pass
+        self.results = {'batch_size': [], 'time': [], 'fits_in_memory': []}
     
     def plot(self, suggest=True, show=False):
         """ Plot results from batch_size_scaler run
@@ -232,12 +234,16 @@ def _adjust_batch_size(trainer,
 def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
     """ Batch scaling mode where the size is doubled at each iteration until an
         OOM error is encountered. """
+    batch_scaler = BatchScaler()
     for _ in range(max_trials):
         garbage_collection_cuda()
         trainer.global_step = 0  # reset after each try
+        start = time.monotonic()
+        batch_scaler.results['batch_size'].append(new_size)
         try:
             # Try fit
             trainer.fit(model)
+            batch_scaler.results['fits_in_memory'].append(True)
             # Double in size
             new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
         except RuntimeError as exception:
@@ -245,25 +251,32 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
+                batch_scaler.results['fits_in_memory'].append(False)    
                 new_size = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
                 break
             else:
                 raise  # some other error not memory related
-    return new_size
+        end = time.monotonic()
+        batch_scaler.results['time'].append(end-start)
+    return batch_scaler
 
 
 def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials):
     """ Batch scaling mode where the size is initially is doubled at each iteration
         until an OOM error is encountered. Hereafter, the batch size is further
         refined using a binary search """
+    batch_scaler = BatchScaler()
     high = None
     count = 0
     while True:
         garbage_collection_cuda()
         trainer.global_step = 0  # reset after each try
+        start = time.monotonic()
+        batch_scaler.results['batch_size'].append(new_size)
         try:
             # Try fit
             trainer.fit(model)
+            batch_scaler.results['fits_in_memory'].append(True)
             count += 1
             if count > max_trials:
                 break
@@ -279,6 +292,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
+                batch_scaler.results['fits_in_memory'].append(False)
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
                 high = new_size
@@ -288,4 +302,6 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
                     break
             else:
                 raise  # some other error not memory related
-    return new_size
+        end = time.monotonic()
+        batch_scaler.results['time'].append(end-start)
+    return batch_scaler
