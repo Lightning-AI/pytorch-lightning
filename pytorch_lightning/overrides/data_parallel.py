@@ -79,10 +79,10 @@ class LightningDataParallel(DataParallel):
                     del output[k]
 
             outputs = self.gather(outputs, self.output_device)
-            outputs = original_class(**outputs)
-            for k, v in reduce_fxs.items():
-                outputs[k] = v
-
+            result = original_class()
+            result.update(outputs)
+            result.update(reduce_fxs)
+            outputs = result
         else:
             outputs = self.gather(outputs, self.output_device)
         return outputs
