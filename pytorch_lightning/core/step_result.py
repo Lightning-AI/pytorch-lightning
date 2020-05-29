@@ -79,10 +79,10 @@ class Result(OrderedDict):
 
         metrics[name] = dict(
             name=name,
-            # metric=metric,
-            # log=log,
-            # pbar=pbar,
-            # reduce_fx=reduce_fx
+            metric=metric,
+            log=log,
+            pbar=pbar,
+            reduce_fx=reduce_fx
         )
 
     def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
@@ -92,11 +92,11 @@ class Result(OrderedDict):
         metrics = self.__getitem__('reduce_on_epoch_end')
 
         metrics[name] = dict(
-            # name=name,
-            # metric=metric,
-            # log=log,
-            # pbar=pbar,
-            # reduce_fx=reduce_fx
+            name=name,
+            metric=metric,
+            log=log,
+            pbar=pbar,
+            reduce_fx=reduce_fx
         )
 
     def to_bar(self, key: str, value: Tensor):
