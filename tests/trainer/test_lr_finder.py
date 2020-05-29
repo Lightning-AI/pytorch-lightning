@@ -74,6 +74,7 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_trainer_arg_bool(tmpdir):
     """ Test that setting trainer arg to bool works """
     hparams = EvalModelTemplate.get_default_hparams()
@@ -93,6 +94,7 @@ def test_trainer_arg_bool(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_trainer_arg_str(tmpdir):
     """ Test that setting trainer arg to string works """
     model = EvalModelTemplate()

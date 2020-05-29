@@ -244,6 +244,7 @@ def test_pickling(tmpdir):
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
@@ -266,6 +267,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     'logger_version,expected',
     [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
 )
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
     tutils.reset_seed()

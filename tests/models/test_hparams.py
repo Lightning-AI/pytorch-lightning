@@ -31,6 +31,7 @@ class AggSubClassEvalModel(SubClassEvalModel):
                                  SubClassEvalModel,
                                  SubSubClassEvalModel,
                                  AggSubClassEvalModel])
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     extra_args = dict(my_loss=torch.nn.CosineEmbeddingLoss()) if cls is AggSubClassEvalModel else {}

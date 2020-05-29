@@ -28,6 +28,7 @@ def _get_logger_args(logger_class, save_dir):
     # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
     # prevent comet logger from trying to print at exit, since
@@ -102,6 +103,7 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
     pytest.param(dict(max_epochs=10, auto_lr_find=True), id='LR-Finder'),
 ])
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_logger_reset_correctly(tmpdir, extra_params):
     """ Test that the tuners do not alter the logger reference """
     tutils.reset_seed()

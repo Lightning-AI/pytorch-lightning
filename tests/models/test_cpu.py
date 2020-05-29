@@ -97,6 +97,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     model.unfreeze()
 
 
+@pytest.mark.filterwarnings("ignore:must be a Torch.Tensor instance, checkpoint not saved")
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
     model = EvalModelTemplate()
