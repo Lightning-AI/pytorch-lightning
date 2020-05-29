@@ -73,33 +73,24 @@ class Result(OrderedDict):
 
     def reduce_on_batch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
         # track the metric to reduce on batch end
-        if 'reduce_on_batch_end' not in self:
-            self.__setitem__('reduce_on_batch_end', {})
-        metrics = self.__getitem__('reduce_on_batch_end')
-
-        metrics[name] = dict(
+        metrics = dict(
             name=name,
             # metric=metric,
             # log=log,
             # pbar=pbar,
             # reduce_fx=reduce_fx
         )
-        self.__setitem__('reduce_on_batch_end', metrics)
+        self['reduce_on_batch_end'] = metrics
 
     def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
-        # track the metric to reduce on batch end
-        if 'reduce_on_epoch_end' not in self:
-            self.__setitem__('reduce_on_epoch_end', {})
-        metrics = self.__getitem__('reduce_on_epoch_end')
-
-        metrics[name] = dict(
+        metrics = dict(
             name=name,
             # metric=metric,
             # log=log,
             # pbar=pbar,
             # reduce_fx=reduce_fx
         )
-        self.__setitem__('reduce_on_epoch_end', metrics)
+        self['reduce_on_epoch_end'] = metrics
 
     def to_bar(self, key: str, value: Tensor):
         """
