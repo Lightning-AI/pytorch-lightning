@@ -78,7 +78,7 @@ class Result(Dict):
             name=name,
             log=int(log),
             pbar=int(pbar),
-            reduce_fx=reduce_fx
+            # reduce_fx=reduce_fx
         )
         self['reduce_on_batch_end'] = metrics
 
@@ -88,7 +88,7 @@ class Result(Dict):
             name=name,
             log=int(log),
             pbar=int(pbar),
-            reduce_fx=reduce_fx
+            # reduce_fx=reduce_fx
         )
         self['reduce_on_epoch_end'] = metrics
 
