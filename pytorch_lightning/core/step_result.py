@@ -84,6 +84,7 @@ class Result(OrderedDict):
             # pbar=pbar,
             # reduce_fx=reduce_fx
         )
+        self.__setitem__(metrics)
 
     def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
         # track the metric to reduce on batch end
@@ -98,6 +99,8 @@ class Result(OrderedDict):
             # pbar=pbar,
             # reduce_fx=reduce_fx
         )
+        self.__setitem__(metrics)
+
 
     def to_bar(self, key: str, value: Tensor):
         """
