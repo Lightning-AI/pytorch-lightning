@@ -4,7 +4,7 @@ from collections import OrderedDict
 import torch
 
 
-class Result(OrderedDict):
+class Result(Dict):
 
     def __init__(self,
                  minimize:Optional[Tensor] = None,
