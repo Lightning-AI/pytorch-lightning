@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable
 
 import torch.distributed as torch_distrib
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
@@ -113,6 +113,13 @@ class TrainerDataLoadingMixin(ABC):
         need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
 
         if self.replace_sampler_ddp and need_dist_sampler:
+            if not isinstance(dataloader.sampler, SequentialSampler):
+                raise MisconfigurationException(
+                    'You seem to have configured a sampler in your DataLoader. This will be replaced '
+                    'by `DistributedSampler` since `replace_sampler_ddp` is True and you are using '
+                    'distributed training. Either remove the sampler from your DataLoader or set '
+                    '`replace_sampler_ddp`=False if you want to use your custom sampler.')
+
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 
             dl_args = {

@@ -393,6 +393,14 @@ def test_dataloader_reinit_for_subclass():
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
 
+    class CustomSampler(torch.utils.data.Sampler):
+        pass
+
+    with pytest.raises(MisconfigurationException, match='DistributedSampler'):
+        trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), train=True)
+        trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), sampler=CustomSampler()),
+                                 train=True)
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
 def test_batch_size_smaller_than_num_gpus():
