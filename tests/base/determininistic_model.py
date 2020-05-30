@@ -96,6 +96,7 @@ class DeterministicModel(LightningModule):
                     assert key in batch_out
 
         result = TrainResult()
+        result.pass_to_epoch_end('from_train_step_end', torch.tensor(19))
 
     def training_epoch_end(self, outputs):
         if self.use_dp or self.use_ddp2:

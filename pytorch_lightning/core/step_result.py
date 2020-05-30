@@ -206,7 +206,7 @@ class Result(Dict):
 class TrainResult(Result):
 
     def __init__(self,
-                 minimize,
+                 minimize: Tensor = None,
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
                  hiddens: Optional[Tensor] = None):
