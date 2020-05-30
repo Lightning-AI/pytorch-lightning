@@ -490,7 +490,7 @@ Lightning supports the use of PytorchElastic to enable fault-tolerent and elasti
     Trainer(gpus=8, distributed_backend='ddp')
     
     
-Following the `PytorchElastic Quickstart documentation <https://pytorch.org/elastic/0.2.0/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
+Following the `PytorchElastic Quickstart documentation <https://pytorch.org/elastic/latest/quickstart.html>`_, you then need to start a single-node etcd server on one of the hosts:
 
 .. code-block:: bash
 
@@ -512,5 +512,5 @@ And then launch the elastic job with:
             YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
             
 
-See the official `PytorchElastic documentation <https://pytorch.org/elastic/0.2.0/index.html>`_ for details
+See the official `PytorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
