@@ -231,6 +231,8 @@ class TrainerEvaluationLoopMixin(ABC):
             test_mode:
         """
         # enable eval mode
+        # TODO: apply new return policy
+
         model.zero_grad()
         model.eval()
 
