@@ -34,7 +34,7 @@ class MyModel(LightningTemplateModel):
             # Unfreeze all layers, we can also use `unfreeze`, but `freeze_to` has the
             # additional property of only considering parameters returned by `model_splits`
             self.freeze_to(0)
-            self.replace_lr_scheduler(self.n_unfreeze_epochs, self.freeze_lrs, pct_start=.2)
+            self.replace_lr_scheduler(self.n_unfreeze_epochs, self.unfreeze_lrs, pct_start=.2)
 
     # Currently specific to OneCycleLR
     def replace_lr_scheduler(self, n_epochs, lrs, pct_start):
@@ -49,7 +49,7 @@ class MyModel(LightningTemplateModel):
 
 # if __name__ == '__main__':
 n_param_groups = 2
-freeze_lrs = [1e-3] * n_param_groups
+freeze_lrs = [0] * (n_param_groups - 1) + [1e-3]
 unfreeze_lrs = np.linspace(5e-6, 5e-4, n_param_groups).tolist()
 
 # HACK: Have to define `lr_logger` globally because we're calling `lr_logger.on_train_start` inside `model.on_epoch_start`
@@ -63,4 +63,3 @@ model = MyModel(
 )
 trainer = pl.Trainer(max_epochs=4, gpus=1, callbacks=[lr_logger])
 trainer.fit(model)
-
