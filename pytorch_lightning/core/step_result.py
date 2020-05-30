@@ -8,10 +8,8 @@ class Result(Dict):
 
     def __init__(self,
                  minimize:Optional[Tensor] = None,
-                 logs: Optional[Dict] = None,
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
-                 progress_bar: Optional[Dict] = None,
                  hiddens: Optional[Tensor] = None):
         """
         Result is an OrderedDict that gives type hints, allowed fields and validation for bad user input.
@@ -64,10 +62,8 @@ class Result(Dict):
         """
         super().__init__()
 
-        self.logs = logs
         self.early_stop_on = early_stop_on
         self.checkpoint_on = checkpoint_on
-        self.progress_bar = progress_bar
         self.hiddens = hiddens
         self.minimize = minimize
 
