@@ -332,9 +332,44 @@ class TrainerEvaluationLoopMixin(ABC):
                 eval_loop_result.pbar_on_epoch_end = eval_epoch_end_result.get('progress_bar')
 
         else:
+            def gather_map(outputs, result=None):
+                if result is None:
+                    result = {}
+
+                for out in outputs:
+                    for k, v in out.items():
+                        if k in ['reduce_fx_on_epoch_end', 'to_batch_end', 'to_epoch_end']:
+                            continue
+
+                        if k not in result:
+                            result[k] = {} if isinstance(v, dict) else []
+
+                        if isinstance(v, dict):
+                            v = gather_map([v], result[k])
+                            result[k] = v
+                        else:
+                            result[k].append(v)
+
+                return result
+
+            def apply_fx_recursively(outputs, fxs):
+                for k, v in outputs.items():
+                    if isinstance(v, list):
+                        if k in fxs:
+                            fx = fxs[k]
+                            v = fx(torch.stack(v))
+                            outputs[k] = v
+                    else:
+                        apply_fx_recursively(outputs[k], fxs)
+
             # TODO: reduce for user
             eval_loop_result = EvalResult()
-            # use this guy: all_dataloader_outputs
+            for dl_output_list in all_dataloader_outputs:
+                reduce_fxs = dl_output_list[0].get('reduce_fx_on_epoch_end')
+
+                # merge all batches across the dataloader results and apply the fx to the requested value
+                merged_eval_results = gather_map(dl_output_list)
+                apply_fx_recursively(merged_eval_results, reduce_fxs)
 
         # -----------------------
         # enable training mode

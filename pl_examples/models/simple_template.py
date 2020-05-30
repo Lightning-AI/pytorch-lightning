@@ -101,13 +101,13 @@ class SuperLitModel(pl.LightningModule):
 
         return result
 
-    def validation_step_end(self, outputs):
-        result = pl.EvalResult()
-        result.pass_to_epoch_end('from_val_step_end', 12)
-        return result
-
-    def validation_epoch_end(self, outputs):
-        return {'val_loss': 2}
+    # def validation_step_end(self, outputs):
+    #     result = pl.EvalResult()
+    #     result.pass_to_epoch_end('from_val_step_end', 12)
+    #     return result
+    #
+    # def validation_epoch_end(self, outputs):
+    #     return {'val_loss': 2}
 
     def configure_optimizers(self):
         """
