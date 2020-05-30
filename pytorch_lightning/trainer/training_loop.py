@@ -494,7 +494,7 @@ class TrainerTrainLoopMixin(ABC):
             should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
-                self.log_metrics(batch_output.log_on_batch_end, batch_output.grad_norm_dic)
+                self.log_metrics(batch_output.to_log_on_batch_end, batch_output.grad_norm_dic)
 
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
