@@ -80,7 +80,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 1. Submit a github issue - describe what is the motivation of such feature (adding the use case or an example is helpful).
 2. Let's discuss to determine the feature scope.
-3. # Submit a PR! (with updated docs and tests🙃).
+3. Submit a PR! (with updated docs and tests🙃).
 
 ---
 
@@ -181,7 +181,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    - hint: give your PR a good name! it will be useful later when you may work on multiple tasks/PRs
 2. Create a "Draft PR" which is clearly marked, to let us know you don't need feedback yet.
 3. When you feel ready for integrating your work, mark your PR "Ready for review".
-4. # Use tags in PR name for following cases:
+4. Use tags in PR name for following cases:
    - **[blocked by #<number>]** if you work is depending on others changes
    - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime
 
@@ -189,7 +189,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 1. **How can I help/contribute?**
 
-   All help is very welcome - reporting bug, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
+   All help is very welcome - reporting bugs, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
 
 2. **Is there a recommendation for branch names?**
 
@@ -197,7 +197,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 3. **How to rebase my PR?**
 
-   We recommend to create a PR in separate branch different from `master`, especially if you plan to submit several changes and do not want to wait until the fist one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
+   We recommend creating a PR in separate branch other than `master`, especially if you plan submitting several changes and do not want to wait until the fist one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
 
    ```bash
    git fetch --all --prune
