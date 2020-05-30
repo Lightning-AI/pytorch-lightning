@@ -363,13 +363,14 @@ class TrainerEvaluationLoopMixin(ABC):
                         apply_fx_recursively(outputs[k], fxs)
 
             # TODO: reduce for user
-            eval_loop_result = EvalResult()
+            eval_loop_result = []
             for dl_output_list in all_dataloader_outputs:
                 reduce_fxs = dl_output_list[0].get('reduce_fx_on_epoch_end')
 
                 # merge all batches across the dataloader results and apply the fx to the requested value
                 merged_eval_results = gather_map(dl_output_list)
                 apply_fx_recursively(merged_eval_results, reduce_fxs)
+                eval_loop_result.append(merged_eval_results)
 
         # -----------------------
         # enable training mode
@@ -377,7 +378,9 @@ class TrainerEvaluationLoopMixin(ABC):
         model.train()
         torch.set_grad_enabled(True)
 
-        return eval_epoch_end_result
+        # [dl_results_dict, dl_results-dict] -> dl_results_dict
+        eval_loop_result = gather_map(eval_loop_result)
+        return eval_loop_result
 
     def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode) -> EvalResult:
         """
