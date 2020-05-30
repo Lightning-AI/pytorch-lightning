@@ -160,6 +160,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 import subprocess
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 try:
     from apex import amp
@@ -442,22 +443,22 @@ class TrainerTrainLoopMixin(ABC):
             # ---------------
             # RUN TRAIN STEP
             # ---------------
-            batch_outputs = self.run_training_batch(batch, batch_idx)
-            batch_result_idx, grad_norm_dic, log_on_batch_end, training_step_output, \
-            pbar_on_epoch_end, log_on_epoch_end = batch_outputs
+            batch_output = self.run_training_batch(batch, batch_idx)
 
             # log or add these metrics to the pbar when the epoch completes
-            to_log_on_epoch_end.append(log_on_epoch_end)
-            to_pbar_on_epoch_end.append(pbar_on_epoch_end)
-            to_log_pbar_reduce_fxs.append(training_step_output)
+            to_log_on_epoch_end.append(batch_output.to_log_on_epoch_end)
+            to_pbar_on_epoch_end.append(batch_output.to_pbar_on_epoch_end)
+
+            # TODO: pull out reduce fxs
+            #to_log_pbar_reduce_fxs.append(batch_output.training_step_outputs)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
-                epoch_outputs.append(training_step_output)
+                epoch_outputs.append(batch_output.training_step_output)
 
             # when returning -1 from train_step, we end epoch early
-            early_stop_epoch = batch_result_idx == -1
+            early_stop_epoch = batch_output.signal == -1
 
             # TODO: consolidate all actions that need to take place only after
             # self.accumulate_grad_batches steps (optimizer step, lr update, global step increment)
@@ -493,7 +494,7 @@ class TrainerTrainLoopMixin(ABC):
             should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
-                self.log_metrics(log_on_batch_end, grad_norm_dic)
+                self.log_metrics(batch_output.log_on_batch_end, batch_output.grad_norm_dic)
 
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -692,7 +693,15 @@ class TrainerTrainLoopMixin(ABC):
 
         # training_step_output are passed to training_epoch_end
         # batch_log_metrics metrics to log
-        return 0, grad_norm_dic, to_log_on_batch_end, training_step_output, to_pbar_on_epoch_end, to_log_on_epoch_end
+        result = AttributeDict(
+            signal=0,
+            grad_norm_dic=grad_norm_dic,
+            to_log_on_batch_end=to_log_on_batch_end,
+            training_step_output=training_step_output,
+            to_pbar_on_epoch_end=to_pbar_on_epoch_end,
+            to_log_on_epoch_end=to_log_on_epoch_end
+        )
+        return result
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
