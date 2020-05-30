@@ -16,6 +16,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -334,7 +335,7 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint_epoch_restored(tmpdir):
+def test_resume_from_checkpoint_epoch_restored(tmpdir, tmpdir_server):
     """Verify resuming from checkpoint runs the right number of epochs"""
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -387,10 +388,12 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
     checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
+    # add some url checkpoints
+    checkpoints += ['http://localhost:8000/' + os.path.basename(check) for check in checkpoints]
 
     for check in checkpoints:
         next_model = _new_model()
-        state = torch.load(check)
+        state = pl_load(check)
 
         # Resume training
         trainer_options['max_epochs'] = 2
