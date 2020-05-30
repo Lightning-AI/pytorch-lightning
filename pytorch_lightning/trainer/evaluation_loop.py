@@ -277,8 +277,9 @@ class TrainerEvaluationLoopMixin(ABC):
             all_dataloader_outputs.append(dataloader_outputs)
 
         # with a single dataloader don't pass an array of dataloaders
+        epoch_end_inputs = [x.to_epoch_end for x in all_dataloader_outputs]
         if len(dataloaders) == 1:
-            all_dataloader_outputs = all_dataloader_outputs[0]
+            epoch_end_inputs = epoch_end_inputs[0]
 
         # get model from parallel wrapper
         model_ref = self.get_model()
@@ -286,19 +287,20 @@ class TrainerEvaluationLoopMixin(ABC):
         # -----------------------------
         # RUN XXX_EPOCH_END
         # -----------------------------
-        eval_epoch_end_result = EvalResult()
+        # eval_epoch_end_result = EvalResult()
         eval_key = 'test' if test_mode else 'validation'
         if self.is_overridden(f'{eval_key}_end', model=model_ref):
             # TODO: remove in v1.0.0
             test_end_fx = getattr(model, f'{eval_key}_end')
-            eval_epoch_end_result = test_end_fx(all_dataloader_outputs)
+            eval_epoch_end_result = test_end_fx(epoch_end_inputs)
             rank_zero_warn(f'Method `{eval_key}_end` was deprecated in v0.7 and will be removed v1.0.'
                            f' Use `{eval_key}_epoch_end` instead.', DeprecationWarning)
 
         elif self.is_overridden(f'{eval_key}_epoch_end', model=model_ref):
             test_epoch_end_fx = getattr(model, f'{eval_key}_epoch_end')
-            eval_epoch_end_result = test_epoch_end_fx(all_dataloader_outputs)
+            eval_epoch_end_result = test_epoch_end_fx(epoch_end_inputs)
 
+        # TODO: figure out eval_epoch_end_result
         # -------------------------------------
         # MAP SIMPLE DICT TO STRUCTURED RESULT
         # -------------------------------------
