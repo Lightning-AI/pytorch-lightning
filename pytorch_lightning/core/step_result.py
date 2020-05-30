@@ -25,10 +25,8 @@ class Result(Dict):
 
         Args:
             minimize: Metric to minimize
-            logs: dictionary that will be added to your logger(s)
             early_stop_on: Metric for early stopping. If none set, will use minimize by default.
             checkpoint_on: Metric for checkpointing. If none set, will use minimize by default.
-            progress_bar: dictionary of values to add to the progress bar
             hiddens: tensor of hiddens to pass to next step when using TBPTT
 
         .. code-block: python
@@ -39,8 +37,6 @@ class Result(Dict):
                     minimize=loss,
                     checkpoint_on=loss,
                     early_stop_on=loss,
-                    logs={'train_loss': loss},
-                    progress_bar={'train_loss': loss}
                 )
 
             # most of the time
