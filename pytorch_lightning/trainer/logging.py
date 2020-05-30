@@ -187,6 +187,7 @@ class TrainerLoggingMixin(ABC):
 
         # for callbacks we only use two metrics right now
         # checkpoint_on and early_stop_on
+        import pdb; pdb.set_trace()
         callback_metrics = dict()
         if 'checkpoint_on' in step_result:
             callback_metrics['step_result'] = step_result.checkpoint_on
