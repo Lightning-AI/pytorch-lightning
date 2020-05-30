@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-def test_no_val_module(tmpdir):
+def test_no_val_module(tmpdir, tmpdir_server):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
     model = EvalModelTemplate()
@@ -55,8 +55,15 @@ def test_no_val_module(tmpdir):
     )
     model_2.eval()
 
+    # load new model from url
+    model_3 = EvalModelTemplate.load_from_checkpoint(
+        checkpoint_path='http://localhost:8000/save_test.ckpt',
+        hparams_file=hparams_path
+    )
+    model_3.eval()
 
-def test_no_val_end_module(tmpdir):
+
+def test_no_val_end_module(tmpdir, tmpdir_server):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
 
     model = EvalModelTemplate()
@@ -87,6 +94,13 @@ def test_no_val_end_module(tmpdir):
         hparams_file=hparams_path
     )
     model_2.eval()
+
+    # load new model from url
+    model_3 = EvalModelTemplate.load_from_checkpoint(
+        checkpoint_path='http://localhost:8000/save_test.ckpt',
+        hparams_file=hparams_path
+    )
+    model_3.eval()
 
 
 def test_gradient_accumulation_scheduling(tmpdir):
