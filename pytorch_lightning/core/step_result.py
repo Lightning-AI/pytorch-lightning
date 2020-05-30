@@ -71,13 +71,7 @@ class Result(Dict):
         self.hiddens = hiddens
         self.minimize = minimize
 
-    def reduce_on_batch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
-        self.__reduce_on_callback('on_batch_end', metric, name, log, pbar, reduce_fx)
-
-    def reduce_on_epoch_end(self, metric, name, log=True, pbar=False, reduce_fx=torch.mean):
-        self.__reduce_on_callback('on_epoch_end', metric, name, log, pbar, reduce_fx)
-
-    def __reduce_on_callback(self, callback_name, metric, name, log, pbar, reduce_fx):
+    def __reduce_on_callback(self, callback_name, name, metric, log, pbar, reduce_fx):
         keys = [f'reduce_{callback_name}']
         if log:
             keys.append(f'log_{callback_name}')
@@ -98,38 +92,17 @@ class Result(Dict):
         metrics = self[key]
         metrics[name] = reduce_fx
 
-    def to_bar(self, key: str, value: Tensor):
-        """
-        Adds this key-value pair to the progress bar
+    def to_pbar(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        if on_batch_end:
+            self.__reduce_on_callback('on_batch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
+        if on_epoch_end:
+            self.__reduce_on_callback('on_epoch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
 
-        Args:
-            key: a string
-            value: a tensor
-
-        Returns:
-
-        """
-        if 'progress_bar' not in self:
-            self.__setitem__('progress_bar', {})
-
-        progress_bar = self.__getitem__('progress_bar')
-        progress_bar[key] = value
-
-    def log(self, key: str, value: Tensor):
-        """
-        Adds this key-value pair to your logger(s)
-        Args:
-            key: a string
-            value: a tensor
-
-        Returns:
-
-        """
-        if 'logs' not in self:
-            self.__setitem__('logs', {})
-
-        logs = self.__getitem__('logs')
-        logs[key] = value
+    def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        if on_batch_end:
+            self.__reduce_on_callback('on_batch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
+        if on_epoch_end:
+            self.__reduce_on_callback('on_epoch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
 
     @property
     def progress_bar(self):
