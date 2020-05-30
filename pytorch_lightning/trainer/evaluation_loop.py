@@ -505,9 +505,10 @@ class TrainerEvaluationLoopMixin(ABC):
             self.on_validation_start()
 
         # run evaluation
+        import pdb; pdb.set_trace()
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
-        if isinstance(eval_results, Result):
+        if isinstance(eval_results, EvalResult):
             eval_results = self.process_step_result(eval_results)
         else:
             eval_results = self.process_output(eval_results)
