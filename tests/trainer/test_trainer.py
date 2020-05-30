@@ -17,18 +17,14 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 
 
-def test_return_object(tmpdir):
-    # test the simple training step with a result object
+def test_evaluate(tmpdir):
     model = EvalModelTemplate()
-    model.training_step = model.training_step__result_object
+    _evaluate = TrainerEvaluationLoopMixin._evaluate(model, model.train_dataloader(), 2, False)
 
-    logger = tutils.get_default_logger(tmpdir)
-    trainer = Trainer(fast_dev_run=True, logger=logger)
-    result = trainer.fit(model)
-    assert result == 1, 'training_step with step result failed'
-
+test_evaluate('')
 
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
