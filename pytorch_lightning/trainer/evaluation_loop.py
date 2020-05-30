@@ -378,9 +378,13 @@ class TrainerEvaluationLoopMixin(ABC):
         model.train()
         torch.set_grad_enabled(True)
 
+        # merge all results of all dataloaders
         # [dl_results_dict, dl_results-dict] -> dl_results_dict
         eval_loop_result = gather_map(eval_loop_result)
-        return eval_loop_result
+        eval_result = EvalResult()
+        eval_result.log_on_epoch_end = eval_loop_result.get('log_on_epoch_end', {})
+        eval_result.pbar_on_epoch_end = eval_loop_result.get('pbar_on_epoch_end', {})
+        return eval_result
 
     def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode) -> EvalResult:
         """

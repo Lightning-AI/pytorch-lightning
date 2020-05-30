@@ -92,6 +92,26 @@ class Result(Dict):
             self.__setitem__('pbar_on_batch_end', x)
 
     @property
+    def log_on_epoch_end(self):
+        return self.__getitem__('log_on_epoch_end')
+
+    @log_on_epoch_end.setter
+    def log_on_epoch_end(self, x):
+        if x is not None:
+            assert isinstance(x, dict), 'log_on_epoch_end must be a dict'
+            self.__setitem__('log_on_epoch_end', x)
+
+    @property
+    def pbar_on_epoch_end(self):
+        return self.__getitem__('pbar_on_epoch_end')
+
+    @pbar_on_epoch_end.setter
+    def pbar_on_epoch_end(self, x):
+        if x is not None:
+            assert isinstance(x, dict), 'pbar_on_epoch_end must be a dict'
+            self.__setitem__('pbar_on_epoch_end', x)
+
+    @property
     def to_batch_end(self):
         return self.__getitem__('to_batch_end')
 
