@@ -11,52 +11,6 @@ class Result(Dict):
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
                  hiddens: Optional[Tensor] = None):
-        """
-        Result is an OrderedDict that gives type hints, allowed fields and validation for bad user input.
-
-        Use as the return value for:
-        - training_step
-        - validation_epoch_end
-        - training_epoch_end
-
-        .. note:: Plain dictionary returns are supported but are more prone to errors
-
-        We automatically detach anything here for you to avoid holding references to graphs
-
-        Args:
-            minimize: Metric to minimize
-            early_stop_on: Metric for early stopping. If none set, will use minimize by default.
-            checkpoint_on: Metric for checkpointing. If none set, will use minimize by default.
-            hiddens: tensor of hiddens to pass to next step when using TBPTT
-
-        .. code-block: python
-
-            # all options:
-            def training_step(...):
-                return TrainResult(
-                    minimize=loss,
-                    checkpoint_on=loss,
-                    early_stop_on=loss,
-                )
-
-            # most of the time
-            # will early stop and save checkpoints based on this metric by default
-            return TrainResult(loss)
-
-
-            # to change what to early stop on
-            return TrainResult(loss, early_stop_on=accuracy)
-
-            # to change what to checkpoint on
-            return TrainResult(loss, early_stop_on=accuracy, checkpoint_on=bleu_score)
-
-            # shorthand for logging
-            result = TrainResult(loss)
-            result.log('train_nce_loss', loss)
-
-            # shorthand to put on progress bar
-            result.to_pbar('train_nce_loss', loss)
-        """
         super().__init__()
 
         self.early_stop_on = early_stop_on
@@ -176,6 +130,68 @@ class Result(Dict):
 
 
 class TrainResult(Result):
+    """
+    TrainResult is an OrderedDict that gives type hints, allowed fields and validation for bad user input.
+
+    Use as the return value for:
+    - training_step
+
+    .. note:: Plain dictionary returns are supported but are more prone to errors
+
+    We automatically detach anything here for you to avoid holding references to graphs
+
+    Args:
+        minimize: Metric to minimize
+        early_stop_on: Metric for early stopping. Ignored with a validation loop.
+        checkpoint_on: Metric for checkpointing. Ignored with a validation loop otherwise defaults to `minimize` value.
+        hiddens: tensor of hiddens to pass to next step when using TBPTT
+
+    .. code-block: python
+
+        # all options:
+        def training_step(...):
+            return TrainResult(
+                minimize=loss,
+                checkpoint_on=loss,
+            )
+
+            # equivalent
+            return TrainResult(loss)
+
+        # if you have no validation loop, you can still early_stop and/or checkpoint on a metric
+        # only checkpointing is applied by default here
+        return TrainResult(loss, early_stop_on=accuracy, checkpoint_on=bleu_score)
+
+        result = TrainResult(loss)
+
+        # logging will log to your logger(s) at the end of the batch
+        result.log('train_nce_loss', loss)
+
+        # you can log at the end of the batch, or epoch or both
+        result.log('train_nce_loss', loss, on_batch_end=True, on_epoch_end=False)
+
+        # same thing for the progress bar
+        result.to_pbar(train_nce_loss', loss)
+        result.to_pbar('train_nce_loss', loss, on_batch_end=True, on_epoch_end=False)
+
+    Although 99% of the time we are interested in a metric for each training batch, (ie: loss decrease over the epoch),
+    sometimes you may want to know something like the average loss for the full epoch. You can either
+    define the `training_epoch_end` method for something fancy, or use the `on_epoch_end` argument with your custom
+    reduce function
+
+    .. code-block: python
+
+        # maybe sum `log_probs` across all the training batches
+        result.log('log_probs', log_probs, reduce_fx=torch.sum)
+
+        # or do something weird to `log_probs` across all the training batches
+        def my_weird_reduction(all_log_probs):
+            all_log_probs = F.softmax(torch.cat(all_log_probs), dim=1)
+            return all_log_probs
+
+        result.log('log_probs', log_probs, reduce_fx=my_weird_reduction)
+    """
+
     def log(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
         # no graph pointers for logs
         value = value.detach()
@@ -192,7 +208,80 @@ class EvalResult(Result):
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
                  hiddens: Optional[Tensor] = None):
+        """
+            EvalResult is an OrderedDict that gives type hints, allowed fields and validation for bad user input.
 
+            Use as the return value for:
+            - validation_step
+            - test_step
+
+            .. note:: Plain dictionary returns are supported but are more prone to errors
+
+            We automatically detach anything here for you to avoid holding references to graphs
+
+            Args:
+                early_stop_on: Metric for early stopping. If none set, will use minimize by default.
+                checkpoint_on: Metric for checkpointing. If none set, will use minimize by default.
+                hiddens: tensor of hiddens to pass to next step when using TBPTT
+
+            .. code-block: python
+
+                # all options:
+                def validation_step(...):
+                    return EvalResult(
+                        checkpoint_on=loss,
+                        early_stop_on=loss,
+                    )
+
+                    # equivalent
+                    return EvalResult(loss)
+
+                # early stop or checkpoint on different metrics
+                return EvalResult(early_stop_on=accuracy, checkpoint_on=bleu_score)
+
+                result = EvalResult()
+
+                # Example: log the average validation loss for the full epoch
+                result.log('val_loss', loss)
+
+                # Example: log the validation_loss for each batch
+                result.log('val_loss', loss, on_batch_end=True, on_epoch_end=False)
+
+                # Example: or log the va_loss at the end of the batch AND end of epoch
+                result.log('val_loss', loss, on_batch_end=True, on_epoch_end=True)
+
+                # instead of using the mean of the metric (default) use your own function
+                result.log('log_prob', log_probs, reduce_fx=torch.sum)
+
+                def some_fancy_reduction(all_probs):
+                    return ...
+
+                result.log('log_prob', log_probs, reduce_fx=some_fancy_reduction)
+
+                # same thing for the progress bar
+                result.to_pbar(train_nce_loss', loss)
+                result.to_pbar('train_nce_loss', loss, on_batch_end=True, on_epoch_end=True)
+
+            In previous lightning versions `validation_epoch_end` or `test_epoch_end` was used to do
+            aggregations for batches across an epoch. Unless you need more functionality,
+            you can now do the same using `log(reduce_fx)`
+
+            .. code-block:: python
+
+                def validation_step(...):
+                    return {'val_loss': val_loss}
+
+                def validation_epoch_end(self, outputs):
+                    val_loss = torch.stack([x['val_loss'] for x in outputs).mean()
+                    return val_loss
+
+                # equivalent
+                def validation_step(...):
+                    return EvalResult().log('val_loss', val_loss)
+
+            .. note:: dictionary returns are still supported but not recommended.
+
+            """
         super().__init__(None, early_stop_on, checkpoint_on, hiddens)
 
     def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
