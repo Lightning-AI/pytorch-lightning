@@ -306,8 +306,9 @@ class TrainerEvaluationLoopMixin(ABC):
             result = EvalResult()
 
             # TODO: pull key from callbacks
-            result.checkpoint_on = eval_epoch_end_result.get('val_loss')
-            result.early_stop_on = eval_epoch_end_result.get('val_loss')
+            callback_key = 'val_loss'
+            result.checkpoint_on = eval_epoch_end_result.get(callback_key)
+            result.early_stop_on = eval_epoch_end_result.get(callback_key)
 
             result.log_on_epoch_end = eval_epoch_end_result.get('log')
             result.pbar_on_epoch_end = eval_epoch_end_result.get('progress_bar')
