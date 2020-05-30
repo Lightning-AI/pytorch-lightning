@@ -184,20 +184,24 @@ class Result(Dict):
 
 class TrainResult(Result):
     def log(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+        # no graph pointers for logs
+        value = value.detach()
         super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
     def to_pbar(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+        # no graph pointers for progress bar
+        value = value.detach()
         super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
 
 class EvalResult(Result):
     def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
-        # in eval we shouldn't have graph pointers
+        # no graph pointers for logs
         value = value.detach()
         super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
     def to_pbar(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
-        # in eval we shouldn't have graph pointers
+        # no graph pointers for progress bar
         value = value.detach()
         super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
