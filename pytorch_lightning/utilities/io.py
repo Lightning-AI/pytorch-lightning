@@ -3,7 +3,7 @@ import torch
 from urllib.parse import urlparse
 
 
-def load(path_or_url: str, map_location):
+def load(path_or_url: str, map_location=None):
     parsed = urlparse(path_or_url)
     if parsed.scheme == '':
         # local file
