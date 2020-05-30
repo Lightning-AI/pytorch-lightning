@@ -276,8 +276,16 @@ class TrainerEvaluationLoopMixin(ABC):
             # ----------------------------------
             all_dataloader_outputs.append(dataloader_outputs)
 
-        # with a single dataloader don't pass an array of dataloaders
-        epoch_end_inputs = [x.to_epoch_end for x in all_dataloader_outputs]
+        # -----------------------
+        # format epoch_end inputs
+        # -----------------------
+        # only use .to_epoch_end dict
+        epoch_end_inputs = []
+        for dl_output_list in all_dataloader_outputs:
+            to_epoch_ends = [x.to_epoch_end for x in dl_output_list]
+            epoch_end_inputs.append(to_epoch_ends)
+
+        # with a single dataloader don't pass an array of dataloader outputs
         if len(dataloaders) == 1:
             epoch_end_inputs = epoch_end_inputs[0]
 
