@@ -267,8 +267,9 @@ class TrainerEvaluationLoopMixin(ABC):
                     break
 
                 # run the dataloader step
-                eval_step_output = self._dataloader_eval_step(model, batch, batch_idx, dataloader_idx, test_mode)
-                dataloader_outputs.append(eval_step_output)
+                # eval_step_result is an EvalResult object
+                eval_step_result = self._dataloader_eval_step(model, batch, batch_idx, dataloader_idx, test_mode)
+                dataloader_outputs.append(eval_step_result)
 
             # ----------------------------------
             # track to merge all the dataloader outputs
