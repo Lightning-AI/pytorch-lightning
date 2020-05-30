@@ -65,6 +65,7 @@ def test_horovod_cpu(tmpdir):
         val_percent_check=0.2,
         distributed_backend='horovod',
         deterministic=True,
+        replace_sampler_ddp=False
     )
     _run_horovod(trainer_options)
 
@@ -81,6 +82,7 @@ def test_horovod_cpu_implicit(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         deterministic=True,
+        replace_sampler_ddp=False
     )
     _run_horovod(trainer_options)
 

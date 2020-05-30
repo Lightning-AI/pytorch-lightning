@@ -51,7 +51,8 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
                            train_percent_check=0.4,
                            val_percent_check=0.2,
                            gpus=[0, 1],
-                           distributed_backend='ddp')
+                           distributed_backend='ddp',
+                           replace_sampler_ddp=False)
 
     model = EvalModelTemplate()
     fit_options = dict(train_dataloader=model.train_dataloader(),

@@ -126,29 +126,31 @@ class TrainerDataLoadingMixin(ABC):
                 k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
             }
 
-            if self.use_tpu:
-                sampler = DistributedSampler(
-                    dataloader.dataset,
-                    num_replicas=xm.xrt_world_size(),
-                    rank=xm.get_ordinal(),
-                )
-            elif self.use_horovod:
-                sampler = DistributedSampler(dataloader.dataset,
-                                             num_replicas=hvd.size(),
-                                             rank=hvd.rank())
-            else:
-                world_size = {
-                    'ddp': self.num_nodes * self.num_processes,
-                    'ddp2': self.num_nodes,
-                    'ddp_cpu': self.num_processes * self.num_nodes
-                }
-                sampler = DistributedSampler(
-                    dataloader.dataset,
-                    num_replicas=world_size[self.distributed_backend],
-                    rank=self.proc_rank,
-                )
+            def get_distributed_sampler(dataloader):
+                if self.use_tpu:
+                    sampler = DistributedSampler(
+                        dataloader.dataset,
+                        num_replicas=xm.xrt_world_size(),
+                        rank=xm.get_ordinal(),
+                    )
+                elif self.use_horovod:
+                    sampler = DistributedSampler(dataloader.dataset,
+                                                 num_replicas=hvd.size(),
+                                                 rank=hvd.rank())
+                else:
+                    world_size = {
+                        'ddp': self.num_nodes * self.num_processes,
+                        'ddp2': self.num_nodes,
+                        'ddp_cpu': self.num_processes * self.num_nodes
+                    }
+                    sampler = DistributedSampler(
+                        dataloader.dataset,
+                        num_replicas=world_size[self.distributed_backend],
+                        rank=self.proc_rank,
+                    )
+                return sampler
 
-            dl_args['sampler'] = sampler
+            dl_args['sampler'] = get_distributed_sampler(dataloader)
             dataloader = type(dataloader)(**dl_args)
 
         return dataloader
