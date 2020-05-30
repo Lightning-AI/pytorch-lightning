@@ -14,6 +14,8 @@ class Result(Dict):
 
         self.early_stop_on = early_stop_on
         self.checkpoint_on = checkpoint_on
+
+        # TODO: should hiddens detach?
         self.hiddens = hiddens
         self.minimize = minimize
 
@@ -99,8 +101,7 @@ class Result(Dict):
     def checkpoint_on(self, x):
         if x is not None:
             assert isinstance(x, Tensor), 'checkpoint_on must be a torch.Tensor'
-            self._checkpoint_on = x
-            self.__setitem__('checkpoint_on', self._checkpoint_on)
+            self.__setitem__('checkpoint_on', x.detach())
 
     @property
     def early_stop_on(self):
@@ -115,7 +116,7 @@ class Result(Dict):
     def early_stop_on(self, x):
         if x is not None:
             assert isinstance(x, Tensor), 'early_stop_on must be a torch.Tensor'
-            self.__setitem__('early_stop_on', x)
+            self.__setitem__('early_stop_on', x.detach())
 
     @property
     def minimize(self):

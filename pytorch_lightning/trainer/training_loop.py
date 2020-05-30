@@ -535,7 +535,7 @@ class TrainerTrainLoopMixin(ABC):
         all_callback_metrics = []
 
         # track metrics to log
-        all_log_metrics = []
+        to_log_on_batch_end = []
 
         if batch is None:
             return 0, grad_norm_dic, {}, {}
@@ -585,10 +585,22 @@ class TrainerTrainLoopMixin(ABC):
                         # format and reduce outputs accordingly
                         if isinstance(output, Result):
                             processed_output = self.process_step_result(output, train=True)
+                            closure_loss = processed_output[0]
+                            pbar_on_batch_end = processed_output[1]
+                            pbar_on_epoch_end = processed_output[2]
+                            log_on_batch_end  = processed_output[3]
+                            log_on_epoch_end = processed_output[4]
+                            callback_metrics = processed_output[5]
+                            self.hiddens = processed_output[6]
+
+                            # compatibility mapping
+                            # until we stop supporting dics, this plugs structured results into the sytem
+                            progress_bar_metrics = pbar_on_batch_end
+
                         else:
                             processed_output = self.process_output(output, train=True)
-
-                    closure_loss, progress_bar_metrics, log_metrics, callback_metrics, self.hiddens = processed_output
+                            closure_loss, progress_bar_metrics, log_on_batch_end, \
+                            callback_metrics, self.hiddens = processed_output
 
                     # accumulate loss
                     # (if accumulate_grad_batches = 1 no effect)
@@ -604,7 +616,7 @@ class TrainerTrainLoopMixin(ABC):
 
                     # track progress bar metrics
                     self.add_progress_bar_metrics(progress_bar_metrics)
-                    all_log_metrics.append(log_metrics)
+                    to_log_on_batch_end.append(log_on_batch_end)
 
                     if self.use_horovod:
                         # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
@@ -616,10 +628,10 @@ class TrainerTrainLoopMixin(ABC):
                         with self.profiler.profile('on_after_backward'):
                             model_ref.on_after_backward()
 
-                    return closure_loss, callback_metrics
+                    return closure_loss, processed_output
 
                 # calculate loss
-                loss, batch_output = optimizer_closure()
+                loss, processed_output = optimizer_closure()
 
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:
@@ -666,12 +678,15 @@ class TrainerTrainLoopMixin(ABC):
                 self.get_model().on_batch_end()
 
         # collapse all metrics into one dict
-        all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
+        to_log_on_batch_end = {k: v for d in to_log_on_batch_end for k, v in d.items()}
 
         # track all metrics for callbacks
+        # TODO: make early stopping and checkpoint use the new metrics
         self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
 
-        return 0, grad_norm_dic, all_log_metrics, batch_output
+        # batch_output are passed to training_epoch_end
+        # batch_log_metrics metrics to log
+        return 0, grad_norm_dic, to_log_on_batch_end, processed_output
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
