@@ -72,6 +72,8 @@ class Result(Dict):
         self.minimize = minimize
 
     def __reduce_on_callback(self, callback_name, name, metric, log, pbar, reduce_fx):
+        assert isinstance(metric, torch.Tensor), f'{name} must be a torch.Tensor'
+
         keys = [f'reduce_{callback_name}']
         if log:
             keys.append(f'log_{callback_name}')
@@ -81,6 +83,9 @@ class Result(Dict):
         for key in keys:
             if key not in self:
                 self[key] = {}
+
+            if 'log' in key or 'pbar' in key:
+                metric = metric.detach()
 
             metrics = self[key]
             metrics[name] = metric
