@@ -25,7 +25,7 @@ class DeterministicModel(LightningModule):
         )
 
         result.log('log_acc1', torch.tensor(12).type_as(x))
-        result.log('log_acc1', torch.tensor(7).type_as(x))
+        result.log('log_acc2', torch.tensor(7).type_as(x))
         result.to_pbar('pbar_acc1', torch.tensor(17).type_as(x))
         result.to_pbar('pbar_acc2', torch.tensor(19).type_as(x))
         return result
@@ -79,8 +79,8 @@ class DeterministicModel(LightningModule):
 
         acc = torch.all(y_hat, y)
 
-        logs = {'log_acc1': acc * 12, 'log_acc2': acc * 7}
-        pbar = {'pbar_acc1': acc * 17, 'pbar_acc2': acc * 19}
+        logs = {'log_acc1': torch.tensor(12).type_as(x), 'log_acc2': torch.tensor(7).type_as(x)}
+        pbar = {'pbar_acc1': torch.tensor(17).type_as(x), 'pbar_acc2': torch.tensor(19).type_as(x)}
         return {'loss': acc, 'log': logs, 'progress_bar': pbar}
 
     def training_step_end(self, outputs):
