@@ -232,7 +232,6 @@ class TrainerEvaluationLoopMixin(ABC):
             test_mode:
         """
         # copy properties for forward overrides
-        import pdb; pdb.set_trace()
         self.copy_trainer_model_properties(model)
 
         # ----------------------------------
@@ -367,6 +366,8 @@ class TrainerEvaluationLoopMixin(ABC):
             # reduce for the user
             # ----------------------
             eval_loop_result = []
+            import pdb;
+            pdb.set_trace()
             for dl_output_list in all_dataloader_outputs:
                 reduce_fxs = dl_output_list[0].get('reduce_fx_on_epoch_end')
 
