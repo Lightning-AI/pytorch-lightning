@@ -276,7 +276,7 @@ class TrainerEvaluationLoopMixin(ABC):
             # ----------------------------------
             all_dataloader_outputs.append(dataloader_outputs)
 
-        # with a single dataloader don't pass an array
+        # with a single dataloader don't pass an array of dataloaders
         if len(dataloaders) == 1:
             all_dataloader_outputs = all_dataloader_outputs[0]
 
