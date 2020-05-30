@@ -297,6 +297,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # -----------------------------
         # eval_epoch_end_result = EvalResult()
         eval_key = 'test' if test_mode else 'validation'
+        eval_epoch_end_result = None
         if self.is_overridden(f'{eval_key}_end', model=model_ref):
             # TODO: remove in v1.0.0
             test_end_fx = getattr(model, f'{eval_key}_end')
@@ -307,6 +308,38 @@ class TrainerEvaluationLoopMixin(ABC):
         elif self.is_overridden(f'{eval_key}_epoch_end', model=model_ref):
             test_epoch_end_fx = getattr(model, f'{eval_key}_epoch_end')
             eval_epoch_end_result = test_epoch_end_fx(epoch_end_inputs)
+
+        # -------------------------------------------
+        # auto reduce or use the output of epoch_end
+        # -------------------------------------------
+        epoch_end_fx_used = eval_epoch_end_result is not None
+        if epoch_end_fx_used:
+            # user returned EvalResult which we use as final output
+            if isinstance(eval_epoch_end_result, EvalResult):
+                eval_loop_result = eval_epoch_end_result
+
+            # user return a dict which we map to EvalResult
+            else:
+                assert eval_epoch_end_result is dict, f'{eval_key}_epoch_end return must be a dict'
+                eval_loop_result = EvalResult()
+
+                # TODO: pull key from callbacks
+                callback_key = 'val_loss'
+                eval_loop_result.checkpoint_on = eval_epoch_end_result.get(callback_key)
+                eval_loop_result.early_stop_on = eval_epoch_end_result.get(callback_key)
+
+                eval_loop_result.log_on_epoch_end = eval_epoch_end_result.get('log')
+                eval_loop_result.pbar_on_epoch_end = eval_epoch_end_result.get('progress_bar')
+
+        else:
+            # TODO: reduce for user
+            eval_loop_result = EvalResult()
+
+        # if epoch_end was used, set as result
+            # dict
+            # or regular result
+        # if no epoch_end was used, then reduce
+        if isinstance(eval_epoch_end_result, EvalResult):
 
         # TODO: apply key reductions here if test_epoch_end was not used
 
