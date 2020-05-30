@@ -362,7 +362,9 @@ class TrainerEvaluationLoopMixin(ABC):
                     else:
                         apply_fx_recursively(outputs[k], fxs)
 
-            # TODO: reduce for user
+            # ----------------------
+            # reduce for the user
+            # ----------------------
             eval_loop_result = []
             for dl_output_list in all_dataloader_outputs:
                 reduce_fxs = dl_output_list[0].get('reduce_fx_on_epoch_end')
