@@ -46,7 +46,7 @@ class DeterministicModel(LightningModule):
         acc = torch.all(y_hat, y)
 
         result = self.base_eval_result(acc, x)
-        result.to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(x))
+        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(x))
 
         return result
 
@@ -57,7 +57,7 @@ class DeterministicModel(LightningModule):
         acc = torch.all(y_hat, y)
 
         result = self.base_eval_result(acc, x)
-        result.to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(x))
+        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(x))
 
         return result
 
@@ -68,8 +68,8 @@ class DeterministicModel(LightningModule):
         acc = torch.all(y_hat, y)
 
         result = self.base_eval_result(acc, x)
-        result.to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(x))
-        result.to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(x))
+        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(x))
+        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(x))
 
         return result
 
@@ -89,3 +89,22 @@ class DeterministicModel(LightningModule):
         else:
             # only saw 3 batches
             assert len(outputs) == 3
+            for batch_out in outputs:
+                assert len(batch_out.keys()) == 2
+                keys = ['to_batch_end_1', 'to_batch_end_2', 'minimize']
+                for key in keys:
+                    assert key in batch_out
+
+        result = TrainResult()
+
+    def training_epoch_end(self, outputs):
+        if self.use_dp or self.use_ddp2:
+            pass
+        else:
+            # only saw 3 batches
+            assert len(outputs) == 3
+            for batch_out in outputs:
+                assert len(batch_out.keys()) == 2
+                keys = ['to_batch_end_1', 'to_batch_end_2']
+                for key in keys:
+                    assert key in batch_out
