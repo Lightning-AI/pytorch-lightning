@@ -447,5 +447,4 @@ class TrainerEvaluationLoopMixin(ABC):
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)
-        import pdb; pdb.set_trace()
         return output
