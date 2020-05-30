@@ -534,11 +534,13 @@ class TrainerTrainLoopMixin(ABC):
         # track all metrics for callbacks
         batch_callback_metrics = []
 
-        # track metrics to log
+        # track metrics to log either on the batch end or on the epoch end
         to_log_on_batch_end = []
+        to_pbar_on_epoch_end = []
+        to_log_on_epoch_end = []
 
         if batch is None:
-            return 0, grad_norm_dic, {}, {}
+            return 0, grad_norm_dic, {}, {}, {}, {}
 
         # Batch start events
         with self.profiler.profile('on_batch_start'):
@@ -548,7 +550,7 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
                 if response == -1:
-                    return -1, grad_norm_dic, {}, {}
+                    return -1, grad_norm_dic, {}, {}, {}, {}
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
@@ -556,10 +558,12 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('tbptt_split_batch'):
                 splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
 
+        # apply TBPTT. normal training meanst TBPTT = 1 (ie: don't split the batch across time)
         self.hiddens = None
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
+            # loop over each optimizer
             for opt_idx, optimizer in self._get_optimizers_iterable():
                 # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
@@ -576,31 +580,30 @@ class TrainerTrainLoopMixin(ABC):
                     with self.profiler.profile('model_forward'):
                         if self.use_amp and self.use_native_amp:
                             with torch.cuda.amp.autocast():
-                                output = self.training_forward(split_batch, batch_idx,
-                                                                    opt_idx, self.hiddens)
+                                training_step_output = self.training_forward(split_batch, batch_idx,
+                                                                             opt_idx, self.hiddens)
                         else:
-                            output = self.training_forward(split_batch, batch_idx, opt_idx,
-                                                                self.hiddens)
+                            training_step_output = self.training_forward(split_batch, batch_idx, opt_idx,
+                                                                         self.hiddens)
 
                         # format and reduce outputs accordingly
-                        if isinstance(output, Result):
-                            processed_output = self.process_step_result(output, train=True)
-                            closure_loss = processed_output[0]
-                            pbar_on_batch_end = processed_output[1]
-                            pbar_on_epoch_end = processed_output[2]
-                            log_on_batch_end  = processed_output[3]
-                            log_on_epoch_end = processed_output[4]
-                            callback_metrics = processed_output[5]
-                            self.hiddens = processed_output[6]
+                        if isinstance(training_step_output, Result):
+                            training_step_output = self.process_step_result(training_step_output, train=True)
+                            closure_loss = training_step_output[0]
+                            pbar_on_batch_end = training_step_output[1]
+                            pbar_on_epoch_end = training_step_output[2]
+                            log_on_batch_end  = training_step_output[3]
+                            log_on_epoch_end = training_step_output[4]
+                            callback_metrics = training_step_output[5]
+                            self.hiddens = training_step_output[6]
 
-                            # compatibility mapping
-                            # until we stop supporting dics, this plugs structured results into the sytem
-                            progress_bar_metrics = pbar_on_batch_end
+                            to_pbar_on_epoch_end.append(pbar_on_epoch_end)
+                            to_log_on_epoch_end.append(log_on_epoch_end)
 
                         else:
-                            processed_output = self.process_output(output, train=True)
-                            closure_loss, progress_bar_metrics, log_on_batch_end, \
-                            callback_metrics, self.hiddens = processed_output
+                            training_step_output = self.process_output(training_step_output, train=True)
+                            closure_loss, pbar_on_batch_end, log_on_batch_end, \
+                            callback_metrics, self.hiddens = training_step_output
 
                     # accumulate loss
                     # (if accumulate_grad_batches = 1 no effect)
@@ -615,7 +618,7 @@ class TrainerTrainLoopMixin(ABC):
                     batch_callback_metrics.append(callback_metrics)
 
                     # track progress bar metrics
-                    self.add_progress_bar_metrics(progress_bar_metrics)
+                    self.add_progress_bar_metrics(pbar_on_batch_end)
                     to_log_on_batch_end.append(log_on_batch_end)
 
                     if self.use_horovod:
@@ -628,10 +631,10 @@ class TrainerTrainLoopMixin(ABC):
                         with self.profiler.profile('on_after_backward'):
                             model_ref.on_after_backward()
 
-                    return closure_loss, processed_output
+                    return closure_loss, training_step_output
 
                 # calculate loss
-                loss, processed_output = optimizer_closure()
+                loss, training_step_output = optimizer_closure()
 
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:
@@ -686,7 +689,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # batch_output are passed to training_epoch_end
         # batch_log_metrics metrics to log
-        return 0, grad_norm_dic, to_log_on_batch_end, processed_output
+        return 0, grad_norm_dic, to_log_on_batch_end, training_step_output, to_pbar_on_epoch_end, to_log_on_epoch_end
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
