@@ -243,7 +243,7 @@ class TrainerEvaluationLoopMixin(ABC):
         torch.set_grad_enabled(False)
 
         # bookkeeping
-        outputs = []
+        eval_step_outputs = []
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -274,58 +274,58 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 if self.use_amp and self.use_native_amp:
                     with torch.cuda.amp.autocast():
-                        output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                        eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:
-                    output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                    eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
                     if self.is_overridden('test_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('test_step_end'):
-                            output = model_ref.test_step_end(output)
+                            eval_step_output = model_ref.test_step_end(eval_step_output)
                     self.on_test_batch_end()
                 else:
                     if self.is_overridden('validation_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('validation_step_end'):
-                            output = model_ref.validation_step_end(output)
+                            eval_step_output = model_ref.validation_step_end(eval_step_output)
                     self.on_validation_batch_end()
 
-                # track outputs for collation
-                dl_outputs.append(output)
+                # track eval_step_outputs for collation
+                dl_outputs.append(eval_step_output)
 
-            outputs.append(dl_outputs)
+            eval_step_outputs.append(dl_outputs)
 
         eval_results = {}
 
         # with a single dataloader don't pass an array
         if len(dataloaders) == 1:
-            outputs = outputs[0]
+            eval_step_outputs = eval_step_outputs[0]
 
-        # give model a chance to do something with the outputs (and method defined)
+        # give model a chance to do something with the eval_step_outputs (and method defined)
         if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
             model = model.module
 
         if test_mode:
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
-                eval_results = model.test_end(outputs)
+                eval_results = model.test_end(eval_step_outputs)
                 rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
-                eval_results = model.test_epoch_end(outputs)
+                eval_results = model.test_epoch_end(eval_step_outputs)
 
         else:
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
-                eval_results = model.validation_end(outputs)
+                eval_results = model.validation_end(eval_step_outputs)
                 rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
-                eval_results = model.validation_epoch_end(outputs)
+                eval_results = model.validation_epoch_end(eval_step_outputs)
 
         # enable train mode again
         model.train()
