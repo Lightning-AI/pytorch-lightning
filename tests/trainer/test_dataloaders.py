@@ -396,6 +396,7 @@ def test_dataloader_reinit_for_subclass():
     class CustomSampler(torch.utils.data.Sampler):
         pass
 
+    # Should raise an error if existing sampler is being replaced
     with pytest.raises(MisconfigurationException, match='DistributedSampler'):
         trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), train=True)
         trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), sampler=CustomSampler()),
