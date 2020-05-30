@@ -54,7 +54,7 @@ class Result(Dict):
             result.log('train_nce_loss', loss)
 
             # shorthand to put on progress bar
-            result.to_bar('train_nce_loss', loss)
+            result.to_pbar('train_nce_loss', loss)
         """
         super().__init__()
 
