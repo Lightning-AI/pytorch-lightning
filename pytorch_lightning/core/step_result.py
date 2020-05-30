@@ -45,6 +45,20 @@ class Result(Dict):
         metrics = self[key]
         metrics[name] = reduce_fx
 
+    def pass_to_epoch_end(self, name, metric):
+        if 'pass_to_epoch_end' not in self:
+            self['pass_to_epoch_end'] = {}
+
+        metrics = self['pass_to_epoch_end']
+        metrics[name] = metric
+
+    def pass_to_batch_end(self, name, metric):
+        if 'pass_to_batch_end' not in self:
+            self['pass_to_batch_end'] = {}
+
+        metrics = self['pass_to_batch_end']
+        metrics[name] = metric
+
     def to_pbar(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         if on_batch_end:
             self.__reduce_on_callback('on_batch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)

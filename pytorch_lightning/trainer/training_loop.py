@@ -443,12 +443,12 @@ class TrainerTrainLoopMixin(ABC):
             # RUN TRAIN STEP
             # ---------------
             batch_outputs = self.run_training_batch(batch, batch_idx)
-            batch_result_idx, grad_norm_dic, to_log_on_batch_end, training_step_output, \
-            to_pbar_on_epoch_end, to_log_on_epoch_end = batch_outputs
+            batch_result_idx, grad_norm_dic, log_on_batch_end, training_step_output, \
+            pbar_on_epoch_end, log_on_epoch_end = batch_outputs
 
             # log or add these metrics to the pbar when the epoch completes
-            to_log_on_epoch_end.append(to_log_on_epoch_end)
-            to_pbar_on_epoch_end.append(to_pbar_on_epoch_end)
+            to_log_on_epoch_end.append(log_on_epoch_end)
+            to_pbar_on_epoch_end.append(pbar_on_epoch_end)
             to_log_pbar_reduce_fxs.append(training_step_output)
 
             # only track outputs when user implements training_epoch_end
@@ -493,7 +493,7 @@ class TrainerTrainLoopMixin(ABC):
             should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
-                self.log_metrics(to_log_on_batch_end, grad_norm_dic)
+                self.log_metrics(log_on_batch_end, grad_norm_dic)
 
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:

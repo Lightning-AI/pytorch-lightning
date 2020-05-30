@@ -80,6 +80,9 @@ class SuperLitModel(pl.LightningModule):
 
         step_result.log('train_loss', loss)
         step_result.to_pbar('pbar_loss', loss)
+        step_result.pass_to_epoch_end('epoch_end_metric', loss)
+        # step_result.to_pbar('on_epoch_end_pbar', loss, on_epoch_end=True)
+        # step_result.log('on_epoch_end_log', loss, on_epoch_end=True)
 
         return step_result
 
