@@ -33,7 +33,7 @@ class Result(Dict):
 
             # all options:
             def training_step(...):
-                return Result(
+                return TrainResult(
                     minimize=loss,
                     checkpoint_on=loss,
                     early_stop_on=loss,
@@ -41,16 +41,17 @@ class Result(Dict):
 
             # most of the time
             # will early stop and save checkpoints based on this metric by default
-            return Result(loss)
+            return TrainResult(loss)
+
 
             # to change what to early stop on
-            return Result(loss, early_stop_on=accuracy)
+            return TrainResult(loss, early_stop_on=accuracy)
 
             # to change what to checkpoint on
-            return Result(loss, early_stop_on=accuracy, checkpoint_on=bleu_score)
+            return TrainResult(loss, early_stop_on=accuracy, checkpoint_on=bleu_score)
 
             # shorthand for logging
-            result = Result(loss)
+            result = TrainResult(loss)
             result.log('train_nce_loss', loss)
 
             # shorthand to put on progress bar
@@ -187,6 +188,13 @@ class TrainResult(Result):
 
 
 class EvalResult(Result):
+    def __init__(self,
+                 early_stop_on: Tensor = None,
+                 checkpoint_on: Tensor = None,
+                 hiddens: Optional[Tensor] = None):
+
+        super().__init__(None, early_stop_on, checkpoint_on, hiddens)
+
     def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         # no graph pointers for logs
         value = value.detach()
