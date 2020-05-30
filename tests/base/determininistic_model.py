@@ -49,7 +49,7 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch)
 
         result = self.base_eval_result(acc)
-        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(x))
+        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(acc))
 
         return result
 
@@ -57,7 +57,7 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch)
 
         result = self.base_eval_result(acc)
-        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(x))
+        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(acc))
 
         return result
 
@@ -65,16 +65,16 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch)
 
         result = self.base_eval_result(acc)
-        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(x))
-        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(x))
+        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(acc))
+        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(acc))
 
         return result
 
     def training_step_dict_return(self, batch, batch_idx):
         acc = self.step(batch)
 
-        logs = {'log_acc1': torch.tensor(12).type_as(x), 'log_acc2': torch.tensor(7).type_as(x)}
-        pbar = {'pbar_acc1': torch.tensor(17).type_as(x), 'pbar_acc2': torch.tensor(19).type_as(x)}
+        logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
+        pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
         return {'loss': acc, 'log': logs, 'progress_bar': pbar}
 
     def training_step_end(self, outputs):
