@@ -308,6 +308,8 @@ class TrainerEvaluationLoopMixin(ABC):
             test_epoch_end_fx = getattr(model, f'{eval_key}_epoch_end')
             eval_epoch_end_result = test_epoch_end_fx(epoch_end_inputs)
 
+        # TODO: apply key reductions here if test_epoch_end was not used
+
         # TODO: figure out eval_epoch_end_result
         # -------------------------------------
         # MAP SIMPLE DICT TO STRUCTURED RESULT
