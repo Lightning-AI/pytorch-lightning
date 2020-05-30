@@ -5,7 +5,7 @@ Welcome to the PyTorch Lightning community! We're building the most advanced res
 ## Main Core Value: One less thing to remember
 
 Simplify the API as much as possible from the user perspective.
-Any additions or improvements should minimize things the user needs to remember.
+Any additions or improvements should minimize the things the user needs to remember.
 
 For example: One benefit of the validation_step is that the user doesn't have to remember to set the model to .eval().
 This helps users avoid all sorts of subtle errors.
@@ -193,7 +193,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 2. **Is there a recommendation for branch names?**
 
-   We do not rely on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feaure`, `docs`, `tests`, ...
+   We do not rely on the name convention so far you are working with your own fork. Anyway it would be nice to follow this convention `<type>/<issue-id>_<short-name>` where the types are: `bugfix`, `feature`, `docs`, `tests`, ...
 
 3. **How to rebase my PR?**
 
