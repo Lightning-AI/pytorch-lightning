@@ -72,6 +72,26 @@ class Result(Dict):
             self.__reduce_on_callback('on_epoch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
 
     @property
+    def log_on_batch_end(self):
+        return self.__getitem__('log_on_batch_end')
+
+    @log_on_batch_end.setter
+    def log_on_batch_end(self, x):
+        if x is not None:
+            assert isinstance(x, dict), 'log_on_batch_end must be a dict'
+            self.__setitem__('log_on_batch_end', x)
+
+    @property
+    def pbar_on_batch_end(self):
+        return self.__getitem__('pbar_on_batch_end')
+
+    @pbar_on_batch_end.setter
+    def pbar_on_batch_end(self, x):
+        if x is not None:
+            assert isinstance(x, dict), 'pbar_on_batch_end must be a dict'
+            self.__setitem__('pbar_on_batch_end', x)
+
+    @property
     def to_batch_end(self):
         return self.__getitem__('to_batch_end')
 

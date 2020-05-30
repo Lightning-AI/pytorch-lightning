@@ -275,8 +275,6 @@ class TrainerEvaluationLoopMixin(ABC):
             # ----------------------------------
             all_dataloader_outputs.append(dataloader_outputs)
 
-        eval_results = {}
-
         # with a single dataloader don't pass an array
         if len(dataloaders) == 1:
             all_dataloader_outputs = all_dataloader_outputs[0]
@@ -287,17 +285,32 @@ class TrainerEvaluationLoopMixin(ABC):
         # -----------------------------
         # RUN XXX_EPOCH_END
         # -----------------------------
+        eval_epoch_end_result = EvalResult()
         eval_key = 'test' if test_mode else 'validation'
         if self.is_overridden(f'{eval_key}_end', model=model_ref):
             # TODO: remove in v1.0.0
             test_end_fx = getattr(model, f'{eval_key}_end')
-            eval_epoch_end_results = test_end_fx(all_dataloader_outputs)
+            eval_epoch_end_result = test_end_fx(all_dataloader_outputs)
             rank_zero_warn(f'Method `{eval_key}_end` was deprecated in v0.7 and will be removed v1.0.'
                            f' Use `{eval_key}_epoch_end` instead.', DeprecationWarning)
 
         elif self.is_overridden(f'{eval_key}_epoch_end', model=model_ref):
             test_epoch_end_fx = getattr(model, f'{eval_key}_epoch_end')
-            eval_epoch_end_results = test_epoch_end_fx(all_dataloader_outputs)
+            eval_epoch_end_result = test_epoch_end_fx(all_dataloader_outputs)
+
+        # -------------------------------------
+        # MAP SIMPLE DICT TO STRUCTURED RESULT
+        # -------------------------------------
+        if not isinstance(eval_epoch_end_result, EvalResult):
+            assert isinstance(eval_epoch_end_result, dict), f'output of {eval_key}_epoch_end must be dict or EvalResult'
+            result = EvalResult()
+
+            # TODO: pull key from callbacks
+            result.checkpoint_on = eval_epoch_end_result.get('val_loss')
+            result.early_stop_on = eval_epoch_end_result.get('val_loss')
+
+            result.log_on_epoch_end = eval_epoch_end_result.get('log')
+            result.pbar_on_epoch_end = eval_epoch_end_result.get('progress_bar')
 
         # -----------------------
         # enable training mode
@@ -305,7 +318,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model.train()
         torch.set_grad_enabled(True)
 
-        return eval_epoch_end_results
+        return eval_epoch_end_result
 
     def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode):
         """
