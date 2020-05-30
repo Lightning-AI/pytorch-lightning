@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
-from typing import Union, Callable
+from typing import Union, Callable, Any, List, Optional
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -311,26 +311,27 @@ def normalize_parse_gpu_string_input(s):
         return s
 
 
-def get_all_available_gpus():
+def get_all_available_gpus() -> List[int]:
     """
-    :return: a list of all available gpus
+    Returns:
+         a list of all available gpus
     """
     return list(range(torch.cuda.device_count()))
 
 
-def check_gpus_data_type(gpus):
+def check_gpus_data_type(gpus: Any) -> None:
     """
-    :param gpus: gpus parameter as passed to the Trainer
-        Function checks that it is one of: None, Int, String or List
-        Throws otherwise
-    :return: return unmodified gpus variable
-    """
+    Checks that the gpus argument is one of: None, Int, String or List.
+    Raises a MisconfigurationException otherwise.
 
+    Args:
+        gpus: parameter as passed to the Trainer
+    """
     if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 
-def normalize_parse_gpu_input_to_list(gpus):
+def normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
     assert gpus is not None
     if isinstance(gpus, list):
         return gpus
@@ -344,12 +345,16 @@ def normalize_parse_gpu_input_to_list(gpus):
     return list(range(gpus))
 
 
-def sanitize_gpu_ids(gpus):
+def sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     """
-    :param gpus: list of ints corresponding to GPU indices
-        Checks that each of the GPUs in the list is actually available.
-        Throws if any of the GPUs is not available.
-    :return: unmodified gpus variable
+    Checks that each of the GPUs in the list is actually available.
+    Raises a MisconfigurationException if any of the GPUs is not available.
+
+    Args:
+        gpus: list of ints corresponding to GPU indices
+
+    Returns:
+        unmodified gpus variable
     """
     all_available_gpus = get_all_available_gpus()
     misconfig = False
@@ -371,18 +376,23 @@ def sanitize_gpu_ids(gpus):
     return gpus
 
 
-def parse_gpu_ids(gpus):
+def parse_gpu_ids(gpus: Union[int, str, List]) -> Optional[List[int]]:
     """
-    :param gpus: Int, string or list
-        An int -1 or string '-1' indicate that all available GPUs should be used.
-        A list of ints or a string containing list of comma separated integers
-        indicates specific GPUs to use
-        An int 0 means that no GPUs should be used
-        Any int N > 0 indicates that GPUs [0..N) should be used.
-    :return: List of gpus to be used
+    Parses the GPU ids given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer`.
 
-        If no GPUs are available but the value of gpus variable indicates request for GPUs
-        then a misconfiguration exception is raised.
+    Args:
+        gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
+            A list of ints or a string containing list of comma separated integers
+            indicates specific GPUs to use.
+            An int 0 means that no GPUs should be used.
+            Any int N > 0 indicates that GPUs [0..N) should be used.
+
+    Returns:
+        a list of gpus to be used or ``None`` if no GPUs were requested
+
+    If no GPUs are available but the value of gpus variable indicates request for GPUs
+    then a MisconfigurationException is raised.
     """
 
     # nothing was passed into the GPUs argument
@@ -408,10 +418,13 @@ def parse_gpu_ids(gpus):
     return gpus
 
 
-def determine_root_gpu_device(gpus):
+def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     """
-    :param gpus: non empty list of ints representing which gpus to use
-    :return: designated root GPU device
+    Args:
+        gpus: non-empty list of ints representing which gpus to use
+
+    Returns:
+        designated root GPU device id
     """
     if gpus is None:
         return None
