@@ -192,9 +192,13 @@ class TrainResult(Result):
 
 class EvalResult(Result):
     def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        # in eval we shouldn't have graph pointers
+        value = value.detach()
         super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
     def to_pbar(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        # in eval we shouldn't have graph pointers
+        value = value.detach()
         super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
 
