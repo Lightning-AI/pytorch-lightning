@@ -223,7 +223,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def _evaluate(self, model: LightningModule, dataloaders, max_batches: int, test_mode: bool = False):
         """
-        Runs full evalutation (test or validation) on all the dataloaders
+        Runs full evaluation (test or validation) on all the dataloaders
 
         Args:
             model: PT model
@@ -359,39 +359,45 @@ class TrainerEvaluationLoopMixin(ABC):
             eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
         # -------------------------------------
-        # STRUCTURE RESPONSE INTO RESULT OBJ
-        # -------------------------------------
-        # always use a structured response
-        # for plain dictionary responses add to structured response
-        if not isinstance(eval_step_output, EvalResult):
-            result = EvalResult()
-            result.to_batch_end = eval_step_output
-            eval_step_output = result
-
-        # -------------------------------------
         # VALIDATION_STEP_END OR TEST_STEP_END
         # -------------------------------------
         # on dp / ddp2 might still want to do something with the batch parts
         # the result of this step will also be sent to on_epoch_end
         callback_name = 'test_step_end' if test_mode else 'validation_step_end'
         if self.is_overridden(callback_name):
+
+            # -------------------------------------
+            # STRUCTURE RESPONSE INTO RESULT OBJ
+            # -------------------------------------
+            if not isinstance(eval_step_output, EvalResult):
+                assert eval_step_output is dict, 'validation_step and test_step output must be a dict or EvalResult'
+                result = EvalResult()
+                result.to_batch_end = eval_step_output
+                eval_step_output = result
+
             # TODO: add warning if user overrode this method and did not pass in a `to_xxx_step_end` key
 
             # get the model within parallel wrapper
             model_ref = self.get_model()
 
-            # run through the callback in the pl module (validation_step_end or test_step_end)
+            # ------------------------
+            # XXX_STEP_END
+            # ------------------------
             with self.profiler.profile(callback_name):
                 callback_fx = getattr(model_ref, callback_name)
                 batch_step_end_output = callback_fx(eval_step_output.to_batch_end)
 
-                # the output of the test step end gets sent to epoch end
-                # in the .to_epoch_end property of Result
-                # since the user can return dict or Result, we make sure to only
-                # use the .to_epoch_end of the Result
-                if isinstance(batch_step_end_output, EvalResult):
-                    batch_step_end_output = batch_step_end_output.to_epoch_end
-                eval_step_output.to_epoch_end.update(batch_step_end_output)
+            if isinstance(batch_step_end_output, EvalResult):
+                batch_step_end_output = batch_step_end_output.to_epoch_end
+            eval_step_output.to_epoch_end.update(batch_step_end_output)
+
+        # ------------------------------
+        # MAP NORMAL DICT TO EVALRESULT
+        # ------------------------------
+        if not isinstance(eval_step_output, EvalResult):
+            result = EvalResult()
+            result.to_epoch_end = eval_step_output
+            eval_step_output = result
 
         # -------------------------------------
         # ON_XXX_BATCH_END CALLBACK
