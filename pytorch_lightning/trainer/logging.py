@@ -7,6 +7,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 
 class TrainerLoggingMixin(ABC):
@@ -164,11 +165,6 @@ class TrainerLoggingMixin(ABC):
             if self.use_dp or self.use_ddp2:
                 loss = self.reduce_distributed_output(loss, self.num_gpus)
 
-        # ---------------
-        # EXTRACT HIDDEN
-        # ---------------
-        hiddens = output.get('hiddens')
-
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)
         callback_metrics.update(log_metrics)
@@ -177,7 +173,14 @@ class TrainerLoggingMixin(ABC):
         # no .item() because it will slow things down
         callback_metrics = recursive_detach(callback_metrics)
 
-        return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
+        result = AttributeDict(
+            batch_loss=loss,
+            pbar_on_batch_end=progress_bar_metrics,
+            log_on_batch_end=log_metrics,
+            callback_metrics=callback_metrics,
+            hiddens=output.get('hiddens')
+        )
+        return result
 
     def process_step_result(self, step_result: Result, train=False):
         """
@@ -215,6 +218,20 @@ class TrainerLoggingMixin(ABC):
         except Exception:
             pbar_on_batch_end = {}
             pbar_on_epoch_end = {}
+
+        # ---------------
+        # EXTRACT pass to epoch end
+        # ---------------
+        try:
+            pass_to_epoch_end = step_result.get('pass_to_epoch_end', {})
+
+            # reduce progress metrics for progress bar when using dp
+            if train and (self.use_dp or self.use_ddp2):
+                num_gpus = self.num_gpus
+                pass_to_epoch_end = self.reduce_distributed_output(pass_to_epoch_end, num_gpus)
+
+        except Exception:
+            pass_to_epoch_end = {}
 
         # ---------------
         # EXTRACT LOGGING KEYS
@@ -255,13 +272,19 @@ class TrainerLoggingMixin(ABC):
             if self.use_dp or self.use_ddp2:
                 loss = self.reduce_distributed_output(loss, self.num_gpus)
 
-        # ---------------
-        # EXTRACT HIDDEN
-        # ---------------
-        hiddens = step_result.get('hiddens')
-
         # TODO: good place to dist all_reduce to aggregate metrics across gpus
-        return loss, pbar_on_batch_end, pbar_on_epoch_end, log_on_batch_end, log_on_epoch_end, callback_metrics, hiddens
+        result = AttributeDict(
+            batch_loss=loss,
+            pbar_on_batch_end=pbar_on_batch_end,
+            pbar_on_epoch_end=pbar_on_epoch_end,
+            log_on_batch_end=log_on_batch_end,
+            log_on_epoch_end=log_on_epoch_end,
+            callback_metrics=callback_metrics,
+            hiddens=step_result.get('hiddens'),
+            pass_to_epoch_end=pass_to_epoch_end,
+            pass_to_batch_end=step_result.get('pass_to_batch_end', {})
+        )
+        return result
 
     def reduce_distributed_output(self, output, num_gpus):
         if num_gpus <= 1:

@@ -598,25 +598,17 @@ class TrainerTrainLoopMixin(ABC):
                         # format and reduce outputs accordingly
                         if isinstance(training_step_output, Result):
                             training_step_output = self.process_step_result(training_step_output, train=True)
-                            closure_loss = training_step_output[0]
-                            pbar_on_batch_end = training_step_output[1]
-                            pbar_on_epoch_end = training_step_output[2]
-                            log_on_batch_end  = training_step_output[3]
-                            log_on_epoch_end = training_step_output[4]
-                            callback_metrics = training_step_output[5]
-                            self.hiddens = training_step_output[6]
-
-                            to_pbar_on_epoch_end.append(pbar_on_epoch_end)
-                            to_log_on_epoch_end.append(log_on_epoch_end)
+                            to_pbar_on_epoch_end.append(training_step_output.pbar_on_epoch_end)
+                            to_log_on_epoch_end.append(training_step_output.log_on_epoch_end)
 
                         else:
                             training_step_output = self.process_output(training_step_output, train=True)
-                            closure_loss, pbar_on_batch_end, log_on_batch_end, \
-                            callback_metrics, self.hiddens = training_step_output
+
+                    self.hiddens = training_step_output.hiddens
 
                     # accumulate loss
                     # (if accumulate_grad_batches = 1 no effect)
-                    closure_loss = closure_loss / self.accumulate_grad_batches
+                    closure_loss = training_step_output.closure_loss / self.accumulate_grad_batches
 
                     # backward pass
                     model_ref = self.get_model()
@@ -624,11 +616,11 @@ class TrainerTrainLoopMixin(ABC):
                         model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
-                    batch_callback_metrics.append(callback_metrics)
+                    batch_callback_metrics.append(training_step_output.callback_metrics)
 
                     # track progress bar metrics
-                    self.add_progress_bar_metrics(pbar_on_batch_end)
-                    to_log_on_batch_end.append(log_on_batch_end)
+                    self.add_progress_bar_metrics(training_step_output.pbar_on_batch_end)
+                    to_log_on_batch_end.append(training_step_output.log_on_batch_end)
 
                     if self.use_horovod:
                         # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
