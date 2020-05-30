@@ -374,23 +374,21 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             eval_results = self.process_output(eval_results)
 
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = eval_results
-
         # add metrics to prog bar
-        self.add_progress_bar_metrics(prog_bar_metrics)
+        self.add_progress_bar_metrics(eval_results.pbar_on_epoch_end)
 
         # log results of test
         if test_mode and self.proc_rank == 0:
             print('-' * 80)
             print('TEST RESULTS')
-            pprint(callback_metrics)
+            pprint(eval_results.log_on_epoch_end)
             print('-' * 80)
 
         # log metrics
-        self.log_metrics(log_metrics, {})
+        self.log_metrics(eval_results.log_on_epoch_end, {})
 
         # track metrics for callbacks
-        self.callback_metrics.update(callback_metrics)
+        self.callback_metrics.update(eval_results.callback_metrics)
 
         # hook
         model.on_post_performance_check()
