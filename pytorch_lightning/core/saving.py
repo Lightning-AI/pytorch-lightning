@@ -56,7 +56,7 @@ class ModelIO(object):
         Any arguments specified through \*args and \*\*kwargs will override args stored in `module_arguments`.
 
         Args:
-            checkpoint_path: Path to checkpoint.
+            checkpoint_path: Path to checkpoint. This can also be a URL.
             args: Any positional args needed to init the model.
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
@@ -163,7 +163,6 @@ class ModelIO(object):
 
     @classmethod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs):
-
         # pass in the values we saved automatically
         if cls.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
             # todo add some back compatibility
