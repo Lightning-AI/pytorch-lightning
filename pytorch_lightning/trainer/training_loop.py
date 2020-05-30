@@ -608,7 +608,7 @@ class TrainerTrainLoopMixin(ABC):
 
                     # accumulate loss
                     # (if accumulate_grad_batches = 1 no effect)
-                    closure_loss = training_step_output.closure_loss / self.accumulate_grad_batches
+                    closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
 
                     # backward pass
                     model_ref = self.get_model()
