@@ -322,6 +322,10 @@ Example::
 
 .. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
+See Also:
+    - `Multi-GPU training guide <multi_gpu.rst>`_
+    - `Multi-node (SLURM) guide <slurm.rst>`_
+
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
 
@@ -410,7 +414,8 @@ Example::
     # uses 8 gpus in total
     trainer = Trainer(gpus=2, num_nodes=4)
 
-.. note:: See the `multi-gpu computing guide <multi_gpu.rst>`_
+See Also:
+    - `Multi-GPU training guide <multi_gpu.rst>`_
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
