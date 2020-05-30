@@ -334,30 +334,7 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             # TODO: reduce for user
             eval_loop_result = EvalResult()
-
-        # if epoch_end was used, set as result
-            # dict
-            # or regular result
-        # if no epoch_end was used, then reduce
-        if isinstance(eval_epoch_end_result, EvalResult):
-
-        # TODO: apply key reductions here if test_epoch_end was not used
-
-        # TODO: figure out eval_epoch_end_result
-        # -------------------------------------
-        # MAP SIMPLE DICT TO STRUCTURED RESULT
-        # -------------------------------------
-        if not isinstance(eval_epoch_end_result, EvalResult):
-            assert isinstance(eval_epoch_end_result, dict), f'output of {eval_key}_epoch_end must be dict or EvalResult'
-            result = EvalResult()
-
-            # TODO: pull key from callbacks
-            callback_key = 'val_loss'
-            result.checkpoint_on = eval_epoch_end_result.get(callback_key)
-            result.early_stop_on = eval_epoch_end_result.get(callback_key)
-
-            result.log_on_epoch_end = eval_epoch_end_result.get('log')
-            result.pbar_on_epoch_end = eval_epoch_end_result.get('progress_bar')
+            # use this guy: all_dataloader_outputs
 
         # -----------------------
         # enable training mode
