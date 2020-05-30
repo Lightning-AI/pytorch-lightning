@@ -423,6 +423,9 @@ class TrainerTrainLoopMixin(ABC):
 
         # bookkeeping
         epoch_outputs = []
+        to_log_on_epoch_end = []
+        to_pbar_on_epoch_end = []
+        to_log_pbar_reduce_fxs = []
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -442,7 +445,11 @@ class TrainerTrainLoopMixin(ABC):
             batch_outputs = self.run_training_batch(batch, batch_idx)
             batch_result_idx, grad_norm_dic, to_log_on_batch_end, training_step_output, \
             to_pbar_on_epoch_end, to_log_on_epoch_end = batch_outputs
-            # TODO: use to_log_on_epoch_end, to_pbar_on_epoch_end
+
+            # log or add these metrics to the pbar when the epoch completes
+            to_log_on_epoch_end.append(to_log_on_epoch_end)
+            to_pbar_on_epoch_end.append(to_pbar_on_epoch_end)
+            to_log_pbar_reduce_fxs.append(training_step_output)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
@@ -684,6 +691,8 @@ class TrainerTrainLoopMixin(ABC):
 
         # collapse all metrics into one dict
         to_log_on_batch_end = {k: v for d in to_log_on_batch_end for k, v in d.items()}
+        to_pbar_on_epoch_end = {k: v for d in to_pbar_on_epoch_end for k, v in d.items()}
+        to_log_on_epoch_end = {k: v for d in to_log_on_epoch_end for k, v in d.items()}
 
         # track all metrics for callbacks
         # TODO: make early stopping and checkpoint use the new metrics
