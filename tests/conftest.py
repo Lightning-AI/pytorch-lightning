@@ -21,9 +21,9 @@ def pytest_pyfunc_call(pyfuncitem):
         return True
 
 
-def run_file_server(dir):
+def run_file_server(root_dir):
     if sys.version_info >= (3, 7):
-        Handler = partial(SimpleHTTPRequestHandler, directory=dir)
+        Handler = partial(SimpleHTTPRequestHandler, directory=root_dir)
     else:
         # unfortunately SimpleHTTPRequestHandler doesn't accept the directory arg in python3.6
         # so we have to hack it like this
@@ -35,8 +35,8 @@ def run_file_server(dir):
                 path = super().translate_path(path)
                 # get the relative path
                 relpath = os.path.relpath(path, os.getcwd())
-                # return the full path from dir
-                return os.path.join(dir, relpath)
+                # return the full path from root_dir
+                return os.path.join(root_dir, relpath)
 
     with HTTPServer(('', 8000), Handler) as httpd:
         httpd.serve_forever()
