@@ -39,56 +39,19 @@ class TrainerCallbackConfigMixin(ABC):
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
-        ckpt_path = self.default_root_dir
-        if checkpoint_callback:
-            # init a default one
-            if self.logger is not None:
-                save_dir = (getattr(self.logger, 'save_dir', None) or
-                            getattr(self.logger, '_save_dir', None) or
-                            self.default_root_dir)
-
-                # weights_save_path overrides anything
-                if self.weights_save_path is not None and self.weights_save_path is not True:
-                    save_dir = self.weights_save_path
-
-                version = self.logger.version if isinstance(
-                    self.logger.version, str) else f'version_{self.logger.version}'
-                ckpt_path = os.path.join(
-                    save_dir,
-                    self.logger.name,
-                    version,
-                    "checkpoints"
-                )
-            else:
-                ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
-
+        if checkpoint_callback is True:
             # when no val step is defined, use 'loss' otherwise 'val_loss'
             train_step_only = not self.is_overridden('validation_step')
             monitor_key = 'loss' if train_step_only else 'val_loss'
-
-            if checkpoint_callback is True:
-                os.makedirs(ckpt_path, exist_ok=True)
-                checkpoint_callback = ModelCheckpoint(
-                    filepath=ckpt_path,
-                    monitor=monitor_key
-                )
-            # If user specified None in filepath, override with runtime default
-            elif isinstance(checkpoint_callback, ModelCheckpoint) \
-                    and checkpoint_callback.dirpath is None:
-                checkpoint_callback.dirpath = ckpt_path
-                checkpoint_callback.filename = '{epoch}'
-                os.makedirs(checkpoint_callback.dirpath, exist_ok=True)
+            checkpoint_callback = ModelCheckpoint(
+                filepath=None,
+                monitor=monitor_key
+            )
         elif checkpoint_callback is False:
             checkpoint_callback = None
 
-        self.ckpt_path = ckpt_path
-
         if checkpoint_callback:
-            # set the path for the callbacks
             checkpoint_callback.save_function = self.save_checkpoint
-
-            # if checkpoint callback used, then override the weights path
-            self.weights_save_path = checkpoint_callback.dirpath
 
         # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
