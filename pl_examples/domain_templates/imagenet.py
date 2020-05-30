@@ -228,12 +228,14 @@ def get_args():
     return parser.parse_args()
 
 
-def main(hparams):
-    model = ImageNetLightningModel(hparams)
+def main(hparams: argparse.Namespace) -> None:
+    model = ImageNetLightningModel(**vars(hparams))
+
     if hparams.seed is not None:
         random.seed(hparams.seed)
         torch.manual_seed(hparams.seed)
         cudnn.deterministic = True
+
     trainer = pl.Trainer(
         default_root_dir=hparams.save_path,
         gpus=hparams.gpus,
@@ -241,6 +243,7 @@ def main(hparams):
         distributed_backend=hparams.distributed_backend,
         precision=16 if hparams.use_16bit else 32,
     )
+
     if hparams.evaluate:
         trainer.run_evaluation()
     else:
