@@ -78,7 +78,13 @@ class LightningDataParallel(DataParallel):
                     del output[k]
 
             outputs = self.gather(outputs, self.output_device)
-            result = original_class()
+
+            # pass minimize to constructor for TrainResult
+            if 'minimize' in outputs:
+                result = original_class(outputs['minimize'])
+            else:
+                result = original_class()
+
             result.update(outputs)
             result.update(reduce_fxs)
             outputs = result
