@@ -6,7 +6,7 @@ import torch
 class Result(Dict):
 
     def __init__(self,
-                 minimize:Optional[Tensor] = None,
+                 minimize: Optional[Tensor] = None,
                  early_stop_on: Tensor = None,
                  checkpoint_on: Tensor = None,
                  hiddens: Optional[Tensor] = None):
@@ -129,67 +129,74 @@ class Result(Dict):
 
 
 class TrainResult(Result):
-    """
-    TrainResult is an OrderedDict that gives type hints, allowed fields and validation for bad user input.
 
-    Use as the return value for:
-    - training_step
+    def __init__(self,
+                 minimize,
+                 early_stop_on: Tensor = None,
+                 checkpoint_on: Tensor = None,
+                 hiddens: Optional[Tensor] = None):
+        """
+        TrainResult is an OrderedDict that gives type hints, allowed fields and validation for bad user input.
 
-    .. note:: Plain dictionary returns are supported but are more prone to errors
+        Use as the return value for:
+        - training_step
 
-    We automatically detach anything here for you to avoid holding references to graphs
+        .. note:: Plain dictionary returns are supported but are more prone to errors
 
-    Args:
-        minimize: Metric to minimize
-        early_stop_on: Metric for early stopping. Ignored with a validation loop.
-        checkpoint_on: Metric for checkpointing. Ignored with a validation loop otherwise defaults to `minimize` value.
-        hiddens: tensor of hiddens to pass to next step when using TBPTT
+        We automatically detach anything here for you to avoid holding references to graphs
 
-    .. code-block: python
+        Args:
+            minimize: Metric to minimize
+            early_stop_on: Metric for early stopping. Ignored with a validation loop.
+            checkpoint_on: Metric for checkpointing. Ignored with a validation loop otherwise defaults to `minimize` value.
+            hiddens: tensor of hiddens to pass to next step when using TBPTT
 
-        # all options:
-        def training_step(...):
-            return TrainResult(
-                minimize=loss,
-                checkpoint_on=loss,
-            )
+        .. code-block: python
 
-            # equivalent
-            return TrainResult(loss)
+            # all options:
+            def training_step(...):
+                return TrainResult(
+                    minimize=loss,
+                    checkpoint_on=loss,
+                )
 
-        # if you have no validation loop, you can still early_stop and/or checkpoint on a metric
-        # only checkpointing is applied by default here
-        return TrainResult(loss, early_stop_on=accuracy, checkpoint_on=bleu_score)
+                # equivalent
+                return TrainResult(loss)
 
-        result = TrainResult(loss)
+            # if you have no validation loop, you can still early_stop and/or checkpoint on a metric
+            # only checkpointing is applied by default here
+            return TrainResult(loss, early_stop_on=accuracy, checkpoint_on=bleu_score)
 
-        # logging will log to your logger(s) at the end of the batch
-        result.log('train_nce_loss', loss)
+            result = TrainResult(loss)
 
-        # you can log at the end of the batch, or epoch or both
-        result.log('train_nce_loss', loss, on_batch_end=True, on_epoch_end=False)
+            # logging will log to your logger(s) at the end of the batch
+            result.log('train_nce_loss', loss)
 
-        # same thing for the progress bar
-        result.to_pbar(train_nce_loss', loss)
-        result.to_pbar('train_nce_loss', loss, on_batch_end=True, on_epoch_end=False)
+            # you can log at the end of the batch, or epoch or both
+            result.log('train_nce_loss', loss, on_batch_end=True, on_epoch_end=False)
 
-    Although 99% of the time we are interested in a metric for each training batch, (ie: loss decrease over the epoch),
-    sometimes you may want to know something like the average loss for the full epoch. You can either
-    define the `training_epoch_end` method for something fancy, or use the `on_epoch_end` argument with your custom
-    reduce function
+            # same thing for the progress bar
+            result.to_pbar(train_nce_loss', loss)
+            result.to_pbar('train_nce_loss', loss, on_batch_end=True, on_epoch_end=False)
 
-    .. code-block: python
+        Although 99% of the time we are interested in a metric for each training batch, (ie: loss decrease over the epoch),
+        sometimes you may want to know something like the average loss for the full epoch. You can either
+        define the `training_epoch_end` method for something fancy, or use the `on_epoch_end` argument with your custom
+        reduce function
 
-        # maybe sum `log_probs` across all the training batches
-        result.log('log_probs', log_probs, reduce_fx=torch.sum)
+        .. code-block: python
 
-        # or do something weird to `log_probs` across all the training batches
-        def my_weird_reduction(all_log_probs):
-            all_log_probs = F.softmax(torch.cat(all_log_probs), dim=1)
-            return all_log_probs
+            # maybe sum `log_probs` across all the training batches
+            result.log('log_probs', log_probs, reduce_fx=torch.sum)
 
-        result.log('log_probs', log_probs, reduce_fx=my_weird_reduction)
-    """
+            # or do something weird to `log_probs` across all the training batches
+            def my_weird_reduction(all_log_probs):
+                all_log_probs = F.softmax(torch.cat(all_log_probs), dim=1)
+                return all_log_probs
+
+            result.log('log_probs', log_probs, reduce_fx=my_weird_reduction)
+        """
+        super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
 
     def log(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
         # no graph pointers for logs
