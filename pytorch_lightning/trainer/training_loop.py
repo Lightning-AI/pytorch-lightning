@@ -532,7 +532,7 @@ class TrainerTrainLoopMixin(ABC):
         grad_norm_dic = {}
 
         # track all metrics for callbacks
-        all_callback_metrics = []
+        batch_callback_metrics = []
 
         # track metrics to log
         to_log_on_batch_end = []
@@ -612,7 +612,7 @@ class TrainerTrainLoopMixin(ABC):
                         model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
-                    all_callback_metrics.append(callback_metrics)
+                    batch_callback_metrics.append(callback_metrics)
 
                     # track progress bar metrics
                     self.add_progress_bar_metrics(progress_bar_metrics)
@@ -682,7 +682,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # track all metrics for callbacks
         # TODO: make early stopping and checkpoint use the new metrics
-        self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
+        self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
         # batch_output are passed to training_epoch_end
         # batch_log_metrics metrics to log
