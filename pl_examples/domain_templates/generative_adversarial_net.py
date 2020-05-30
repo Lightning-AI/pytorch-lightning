@@ -183,7 +183,6 @@ class GAN(LightningModule):
         self.logger.experiment.add_image('generated_images', grid, self.current_epoch)
 
 
-<<<<<<< HEAD
 def main(args):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
