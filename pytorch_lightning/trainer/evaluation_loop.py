@@ -232,6 +232,7 @@ class TrainerEvaluationLoopMixin(ABC):
             test_mode:
         """
         # copy properties for forward overrides
+        import pdb; pdb.set_trace()
         self.copy_trainer_model_properties(model)
 
         # ----------------------------------
