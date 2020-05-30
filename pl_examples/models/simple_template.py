@@ -76,8 +76,6 @@ class SuperLitModel(pl.LightningModule):
             minimize=loss,
             checkpoint_on=loss,
             early_stop_on=loss,
-            logs={'train_loss': loss},
-            progress_bar={'train_loss': loss}
         )
 
         step_result.log('train_loss', loss)
