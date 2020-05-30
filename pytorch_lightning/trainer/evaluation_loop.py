@@ -132,7 +132,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.core.step_result import EvalResult
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -256,6 +256,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = dataloader.per_device_loader(device)
 
             for batch_idx, batch in enumerate(dataloader):
+                # ignore null batches
                 if batch is None:
                     continue
 
@@ -263,37 +264,8 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch_idx >= max_batches:
                     break
 
-                # callbacks
-                if test_mode:
-                    self.on_test_batch_start()
-                else:
-                    self.on_validation_batch_start()
-
-                # -----------------
-                # RUN EVALUATION STEP
-                # -----------------
-                if self.use_amp and self.use_native_amp:
-                    with torch.cuda.amp.autocast():
-                        eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
-                else:
-                    eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
-
-                # on dp / ddp2 might still want to do something with the batch parts
-                if test_mode:
-                    if self.is_overridden('test_step_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('test_step_end'):
-                            eval_step_output = model_ref.test_step_end(eval_step_output)
-                    self.on_test_batch_end()
-                else:
-                    if self.is_overridden('validation_step_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('validation_step_end'):
-                            eval_step_output = model_ref.validation_step_end(eval_step_output)
-                    self.on_validation_batch_end()
-
-                # track eval_step_outputs for collation
-                dl_outputs.append(eval_step_output)
+                # run the dataloader step
+                self._dataloader_eval_step()
 
             eval_step_outputs.append(dl_outputs)
 
@@ -334,6 +306,87 @@ class TrainerEvaluationLoopMixin(ABC):
         torch.set_grad_enabled(True)
 
         return eval_results
+
+    def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode):
+        """
+        Runs through the following sequence
+        - on_xxx_batch_start
+        - XXX_step
+        - XXX_step_end
+        - XXX_epoch_end
+        - on_xxx_batch_end
+
+        Args:
+            model:
+            batch:
+            batch_idx:
+            dataloader_idx:
+            test_mode:
+
+        Returns:
+
+        """
+
+        # -------------------------------------
+        # ON_XXX_BATCH_START CALLBACK
+        # -------------------------------------
+        if test_mode:
+            self.on_test_batch_start()
+        else:
+            self.on_validation_batch_start()
+
+        # -------------------------------------
+        # VALIDATION_STEP OR TEST_STEP
+        # -------------------------------------
+        if self.use_amp and self.use_native_amp:
+            with torch.cuda.amp.autocast():
+                eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+        else:
+            eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+
+        # -------------------------------------
+        # STRUCTURE RESPONSE INTO RESULT OBJ
+        # -------------------------------------
+        # always use a structured response
+        # for plain dictionary responses add to structured response
+        if not isinstance(eval_step_output, EvalResult):
+            result = EvalResult()
+            result.to_batch_end = eval_step_output
+            eval_step_output = result
+
+        # -------------------------------------
+        # VALIDATION_STEP_END OR TEST_STEP_END
+        # -------------------------------------
+        # on dp / ddp2 might still want to do something with the batch parts
+        # the result of this step will also be sent to on_epoch_end
+        callback_name = 'test_step_end' if test_mode else 'validation_step_end'
+        if self.is_overridden(callback_name):
+            # TODO: add warning if user overrode this method and did not pass in a `to_xxx_step_end` key
+
+            # get the model within parallel wrapper
+            model_ref = self.get_model()
+
+            # run through the callback in the pl module (validation_step_end or test_step_end)
+            with self.profiler.profile(callback_name):
+                callback_fx = getattr(model_ref, callback_name)
+                batch_step_end_output = callback_fx(eval_step_output.to_batch_end)
+
+                # the output of the test step end gets sent to epoch end
+                # in the .to_epoch_end property of Result
+                # since the user can return dict or Result, we make sure to only
+                # use the .to_epoch_end of the Result
+                if isinstance(batch_step_end_output, EvalResult):
+                    batch_step_end_output = batch_step_end_output.to_epoch_end
+                eval_step_output.to_epoch_end.update(batch_step_end_output)
+
+        # -------------------------------------
+        # ON_XXX_BATCH_END CALLBACK
+        # -------------------------------------
+        # call the `on_test_batch_end` or `on_validation_batch_end` function
+        on_batch_end_fx = self.on_test_batch_end if test_mode else self.on_validation_batch_end
+        on_batch_end_fx()
+
+        return eval_step_output
 
     def run_evaluation(self, test_mode: bool = False):
         # hook

@@ -95,8 +95,14 @@ class SuperLitModel(pl.LightningModule):
         result = pl.EvalResult()
         result.log('val_loss', val_loss)
         result.to_pbar('pbar_loss', val_loss)
+        result.pass_to_epoch_end('epoch_end_metric', val_loss)
+        result.pass_to_batch_end('batch_end_metric', val_loss)
 
         return result
+
+    def validation_step_end(self, outputs):
+        result = pl.EvalResult()
+        result.to_epoch_end('d', 12)
 
     def configure_optimizers(self):
         """
