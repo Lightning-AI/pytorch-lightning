@@ -321,7 +321,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_epoch_end_result
 
-    def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode):
+    def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode) -> EvalResult:
         """
         Runs through the following sequence
         - on_xxx_batch_start
@@ -337,10 +337,8 @@ class TrainerEvaluationLoopMixin(ABC):
             dataloader_idx:
             test_mode:
 
-        Returns:
-
+        Returns: EvalResult
         """
-
         # -------------------------------------
         # ON_XXX_BATCH_START CALLBACK
         # -------------------------------------
