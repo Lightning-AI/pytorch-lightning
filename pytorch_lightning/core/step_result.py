@@ -177,6 +177,22 @@ class Result(Dict):
             self.__setitem__('minimize', x)
 
 
+class TrainResult(Result):
+    def log(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+        super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
+
+    def to_pbar(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+        super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
+
+
+class EvalResult(Result):
+    def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
+
+    def to_pbar(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
+
+
 if __name__ == '__main__':
     import torch
     result = Result()

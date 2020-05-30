@@ -5,17 +5,16 @@ import os
 
 import torch
 from torch import Tensor
-from pytorch_lightning import Result
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
-from pytorch_lightning.core import LightningModule
 import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
+import pytorch_lightning as pl
 
 
-class SuperLitModel(LightningModule):
+class SuperLitModel(pl.LightningModule):
     """
     Sample model to show how to define a template.
 
@@ -31,7 +30,7 @@ class SuperLitModel(LightningModule):
                  out_features: int = 10,
                  hidden_dim: int = 1000,
                  **kwargs
-                 ) -> 'LightningTemplateModel':
+                 ):
         # init superclass
         super().__init__()
         self.drop_prob = drop_prob
@@ -73,7 +72,7 @@ class SuperLitModel(LightningModule):
         loss = F.cross_entropy(y_hat, y)
 
         # structure the return from the training loop
-        step_result = Result(
+        step_result = pl.TrainResult(
             minimize=loss,
             checkpoint_on=loss,
             early_stop_on=loss,
@@ -81,8 +80,7 @@ class SuperLitModel(LightningModule):
             progress_bar={'train_loss': loss}
         )
 
-        step_result.reduce_on_epoch_end(loss, 'nce_loss')
-
+        step_result.log('train_loss', loss)
         return step_result
 
     def validation_step(self, batch: Tensor, batch_idx: int):
@@ -91,7 +89,7 @@ class SuperLitModel(LightningModule):
         y_hat = self(x)
         val_loss = F.cross_entropy(y_hat, y)
 
-        result = Result()
+        result = pl.EvalResult()
         result.log('val_loss', val_loss)
         result.to_pbar('pbar_loss', val_loss)
 

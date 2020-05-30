@@ -334,7 +334,7 @@ LightningModule Class
 
 from pytorch_lightning.core.decorators import data_loader
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
 
-__all__ = ['LightningModule', 'data_loader', 'Result']
+__all__ = ['LightningModule', 'data_loader', 'TrainResult', 'EvalResult']
 # __call__ = __all__
