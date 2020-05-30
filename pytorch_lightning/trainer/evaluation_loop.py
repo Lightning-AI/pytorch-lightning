@@ -279,39 +279,33 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # with a single dataloader don't pass an array
         if len(dataloaders) == 1:
-            eval_step_outputs = eval_step_outputs[0]
+            all_dataloader_outputs = all_dataloader_outputs[0]
 
-        # give model a chance to do something with the eval_step_outputs (and method defined)
-        if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
-            model = model.module
+        # get model from parallel wrapper
+        model_ref = self.get_model()
 
-        if test_mode:
-            if self.is_overridden('test_end', model=model):
-                # TODO: remove in v1.0.0
-                eval_results = model.test_end(eval_step_outputs)
-                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
-                               ' Use `test_epoch_end` instead.', DeprecationWarning)
+        # -----------------------------
+        # RUN XXX_EPOCH_END
+        # -----------------------------
+        eval_key = 'test' if test_mode else 'validation'
+        if self.is_overridden(f'{eval_key}_end', model=model_ref):
+            # TODO: remove in v1.0.0
+            test_end_fx = getattr(model, f'{eval_key}_end')
+            eval_epoch_end_results = test_end_fx(all_dataloader_outputs)
+            rank_zero_warn(f'Method `{eval_key}_end` was deprecated in v0.7 and will be removed v1.0.'
+                           f' Use `{eval_key}_epoch_end` instead.', DeprecationWarning)
 
-            elif self.is_overridden('test_epoch_end', model=model):
-                eval_results = model.test_epoch_end(eval_step_outputs)
+        elif self.is_overridden(f'{eval_key}_epoch_end', model=model_ref):
+            test_epoch_end_fx = getattr(model, f'{eval_key}_epoch_end')
+            eval_epoch_end_results = test_epoch_end_fx(all_dataloader_outputs)
 
-        else:
-            if self.is_overridden('validation_end', model=model):
-                # TODO: remove in v1.0.0
-                eval_results = model.validation_end(eval_step_outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
-                               ' Use `validation_epoch_end` instead.', DeprecationWarning)
-
-            elif self.is_overridden('validation_epoch_end', model=model):
-                eval_results = model.validation_epoch_end(eval_step_outputs)
-
-        # enable train mode again
+        # -----------------------
+        # enable training mode
+        # -----------------------
         model.train()
-
-        # enable gradients to save memory
         torch.set_grad_enabled(True)
 
-        return eval_results
+        return eval_epoch_end_results
 
     def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode):
         """
