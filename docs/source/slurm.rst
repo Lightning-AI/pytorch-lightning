@@ -5,13 +5,13 @@
 Computing cluster (SLURM)
 =========================
 
-Lightning automates job the details behind  training on a SLURM powered cluster.
+Lightning automates the details behind training on a SLURM-powered cluster.
 
 .. _multi-node:
 
 Multi-node training
 -------------------
-To train a model using multiple-nodes do the following:
+To train a model using multiple nodes, do the following:
 
 1.  Design your LightningModule.
 

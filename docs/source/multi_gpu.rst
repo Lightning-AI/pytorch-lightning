@@ -81,7 +81,7 @@ when needed.
 
 .. note:: For iterable datasets, we don't do this automatically.
 
-Make Model Picklable
+Make model picklable
 ^^^^^^^^^^^^^^^^^^^^
 It's very likely your code is already `picklable <https://docs.python.org/3/library/pickle.html>`_,
 so you don't have to do anything to make this change.
@@ -122,22 +122,100 @@ is usually helpful.
 ie: in the stacktrace example here, there seems to be a lambda function somewhere in the user code
 which cannot be pickled.
 
+GPU device selection
+--------------------
+
+You can select the GPU devices with ranges, a list of indices or a string containing
+a comma separated list of GPU ids:
+
+.. testsetup::
+    k = 1
+
+.. testcode::
+
+    # DEFAULT (int) specifies how many GPUs to use.
+    Trainer(gpus=k)
+
+    # Above is equivalent to
+    Trainer(gpus=list(range(k)))
+
+    # You specify which GPUs (don't use if running on cluster)
+    Trainer(gpus=[0, 1])
+
+    # can also be a string
+    Trainer(gpus='0, 1')
+
+    # can also be -1 or '-1', this uses all available GPUs
+    # this is equivalent to list(range(torch.cuda.available_devices()))
+    Trainer(gpus=-1)
+
+The table below lists examples of possible input formats and how they are interpreted by Lightning.
+Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
+
++---------------+-----------+---------------------+---------------------------------+
+| `gpus`        | Type      | Parsed              | Meaning                         |
++===============+===========+=====================+=================================+
+| None          | NoneType  | None                | CPU                             |
++---------------+-----------+---------------------+---------------------------------+
+| 0             | int       | None                | CPU                             |
++---------------+-----------+---------------------+---------------------------------+
+| 3             | int       | [0, 1, 2]           | first 3 GPUs                    |
++---------------+-----------+---------------------+---------------------------------+
+| -1            | int       | [0, 1, 2, ...]      | all available GPUs              |
++---------------+-----------+---------------------+---------------------------------+
+| [0]           | list      | [0]                 | GPU 0                           |
++---------------+-----------+---------------------+---------------------------------+
+| [1, 3]        | list      | [1, 3]              | GPUs 1 and 3                    |
++---------------+-----------+---------------------+---------------------------------+
+| "0"           | str       | [0]                 | GPU 0                           |
++---------------+-----------+---------------------+---------------------------------+
+| "3"           | str       | [3]                 | GPU 3                           |
++---------------+-----------+---------------------+---------------------------------+
+| "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
++---------------+-----------+---------------------+---------------------------------+
+| "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
++---------------+-----------+---------------------+---------------------------------+
+
+CUDA flags
+^^^^^^^^^^
+
+CUDA flags make certain GPUs visible to your script.
+Lightning sets these for you automatically, there's NO NEED to do this yourself.
+
+.. testcode::
+
+    # lightning will set according to what you give the trainer
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+However, when using a cluster, Lightning will NOT set these flags (and you should not either).
+SLURM will set these for you.
+For more details see the `SLURM cluster guide <slurm.rst>`_.
+
+
 Distributed modes
 -----------------
 Lightning allows multiple ways of training
 
 - Data Parallel (`distributed_backend='dp'`) (multiple-gpus, 1 machine)
 - DistributedDataParallel (`distributed_backend='ddp'`) (multiple-gpus across many machines).
-- DistributedDataParallel2 (`distributed_backend='ddp2'`) (dp in a machine, ddp across machines).
+- DistributedDataParallel 2 (`distributed_backend='ddp2'`) (dp in a machine, ddp across machines).
 - Horovod (`distributed_backend='horovod'`) (multi-machine, multi-gpu, configured at runtime)
 - TPUs (`tpu_cores=8|x`) (tpu or TPU pod)
 
-.. note:: If you request multiple GPUs without setting a mode, ddp will be automatically used.
+.. note::
+    If you request multiple GPUs or nodes without setting a mode, ddp will be automatically used.
 
-Data Parallel (dp)
-^^^^^^^^^^^^^^^^^^
-`DataParallel <https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel>`_ splits a batch across k GPUs. That is, if you have a batch of 32 and use dp with 2 gpus,
-each GPU will process 16 samples, after which the root node will aggregate the results.
+For a deeper understanding of what Lightning is doing, feel free to read this
+`guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
+
+
+
+Data Parallel
+^^^^^^^^^^^^^
+`DataParallel <https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel>`_ splits a batch across k GPUs.
+That is, if you have a batch of 32 and use dp with 2 gpus, each GPU will process 16 samples,
+after which the root node will aggregate the results.
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. Use ddp which is more stable and at least 3x faster
 
@@ -157,7 +235,7 @@ Distributed Data Parallel
 
 3. Each process inits the model.
 
-.. note:: Make sure  to set the random seed so that each model inits  with the same weights
+.. note:: Make sure to set the random seed so that each model initializes with the same weights.
 
 4. Each process performs a full forward and backward pass in parallel.
 
@@ -176,11 +254,11 @@ Distributed Data Parallel
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In certain cases, it's advantageous to use all batches on the same machine instead of a subset.
-For instance you might want to compute a NCE loss where it pays  to have more negative samples.
+For instance you might want to compute a NCE loss where it pays to have more negative samples.
 
 In  this case, we can use ddp2 which behaves like dp in a machine and ddp across nodes. DDP2 does the following:
 
-1. Copies a subset of the  data to each node.
+1. Copies a subset of the data to each node.
 
 2. Inits a model on each node.
 
@@ -297,7 +375,7 @@ In pseudocode, the full sequence is:
     # use the full batch for something like softmax
     full out = model.training_step_end(all_results)
 
-to illustrate why this is needed, let's look at dataparallel
+to illustrate why this is needed, let's look at DataParallel
 
 .. testcode::
 
@@ -331,6 +409,30 @@ Validation and test step also have the same option when using dp
 
     def test_step_end(self, batch_parts_outputs):
         ...
+
+
+Distributed and 16-bit precision
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Due to an issue with apex and DistributedDataParallel (PyTorch and NVIDIA issue), Lightning does
+not allow 16-bit and DP training. We tried to get this to work, but it's an issue on their end.
+
+Below are the possible configurations we support.
+
++-------+---------+----+-----+---------+------------------------------------------------------------+
+| 1 GPU | 1+ GPUs | DP | DDP | 16-bit  | command                                                    |
++=======+=========+====+=====+=========+============================================================+
+| Y     |         |    |     |         | `Trainer(gpus=1)`                                          |
++-------+---------+----+-----+---------+------------------------------------------------------------+
+| Y     |         |    |     | Y       | `Trainer(gpus=1, use_amp=True)`                            |
++-------+---------+----+-----+---------+------------------------------------------------------------+
+|       | Y       | Y  |     |         | `Trainer(gpus=k, distributed_backend='dp')`                |
++-------+---------+----+-----+---------+------------------------------------------------------------+
+|       | Y       |    | Y   |         | `Trainer(gpus=k, distributed_backend='ddp')`               |
++-------+---------+----+-----+---------+------------------------------------------------------------+
+|       | Y       |    | Y   | Y       | `Trainer(gpus=k, distributed_backend='ddp', use_amp=True)` |
++-------+---------+----+-----+---------+------------------------------------------------------------+
+
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
