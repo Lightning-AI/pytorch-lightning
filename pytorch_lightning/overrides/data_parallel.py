@@ -88,11 +88,9 @@ class LightningDataParallel(DataParallel):
             result.update(outputs)
             result.update(reduce_fxs)
             outputs = result
-            import pdb; pdb.set_trace()
         else:
             outputs = self.gather(outputs, self.output_device)
         return outputs
-
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
