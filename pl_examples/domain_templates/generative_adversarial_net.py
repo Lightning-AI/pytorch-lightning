@@ -73,17 +73,26 @@ class Discriminator(nn.Module):
 class GAN(LightningModule):
 
     def __init__(self,
+                 hparams=None,
                  latent_dim: int = 100,
                  lr: float = 0.0002,
                  b1: float = 0.5,
                  b2: float = 0.999,
                  batch_size: int = 64, **kwargs):
         super().__init__()
-        self.latent_dim = latent_dim
-        self.lr = lr
-        self.b1 = b1
-        self.b2 = b2
-        self.batch_size = batch_size
+        self.hparams = hparams
+        if self.hparams is None:
+            self.latent_dim = latent_dim
+            self.lr = lr
+            self.b1 = b1
+            self.b2 = b2
+            self.batch_size = batch_size
+        else:
+            self.latent_dim = self.hparams.latent_dim
+            self.lr = self.hparams.lr
+            self.b1 = self.hparams.b1
+            self.b2 = self.hparams.b2
+            self.batch_size = self.hparams.batch_size
 
         # networks
         mnist_shape = (1, 28, 28)
@@ -145,7 +154,7 @@ class GAN(LightningModule):
 
             # how well can it label as fake?
             fake = torch.zeros(imgs.size(0), 1)
-            fake = fake.type_as(fake)
+            fake = fake.type_as(imgs)
 
             fake_loss = self.adversarial_loss(
                 self.discriminator(self.generated_imgs.detach()), fake)
@@ -189,7 +198,7 @@ def main(hparams):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = GAN(hparams)
+    model = GAN(hparams=hparams)
 
     # ------------------------
     # 2 INIT TRAINER
