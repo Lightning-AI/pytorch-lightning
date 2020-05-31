@@ -1083,7 +1083,8 @@ class Trainer(
 
         # clear cache before training
         if self.on_gpu:
-            torch.cuda.empty_cache()
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
 
         # CORE TRAINING LOOP
         self.train()

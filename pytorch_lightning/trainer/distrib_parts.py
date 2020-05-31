@@ -487,7 +487,6 @@ class TrainerDPMixin(ABC):
 
     def single_gpu_train(self, model):
         # source of truth is cuda for gpu idx
-        import pdb; pdb.set_trace()
         gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
         local_rank = int(os.environ['LOCAL_RANK'])
         gpu_idx = int(gpus[local_rank])
