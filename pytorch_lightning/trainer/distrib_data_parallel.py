@@ -311,7 +311,7 @@ class TrainerDDPMixin(ABC):
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
         # when slurm is managing the task it sets the visible devices
-        if not is_slurm_managing_tasks:
+        if not is_slurm_managing_tasks and 'CUDA_VISIBLE_DEVICES' not in os.environ:
             if isinstance(data_parallel_device_ids, int):
                 id_str = ','.join(str(x) for x in list(range(data_parallel_device_ids)))
                 os.environ["CUDA_VISIBLE_DEVICES"] = id_str
