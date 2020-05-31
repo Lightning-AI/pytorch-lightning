@@ -915,7 +915,7 @@ class Trainer(
                     delay = np.random.uniform(1, 10, 1)[0]
                     # sleep(delay)
 
-                local_rank = 6
+                local_rank = 0
                 self.ddp_train(local_rank, model)
 
         # 1 gpu or dp option triggers training using DP module
