@@ -23,16 +23,12 @@ class TrainingStepVariations(ABC):
         loss_val = self.loss(y, y_hat)
 
         # alternate possible outputs to test
-        if self.trainer.batch_idx % 1 == 0:
-            output = OrderedDict({
-                'loss': loss_val,
-                'progress_bar': {'some_val': loss_val * loss_val},
-                'log': {'train_some_val': loss_val * loss_val},
-            })
-            return output
-
-        if self.trainer.batch_idx % 2 == 0:
-            return loss_val
+        output = OrderedDict({
+            'loss': loss_val,
+            'progress_bar': {'some_val': loss_val * loss_val},
+            'log': {'train_some_val': loss_val * loss_val},
+        })
+        return output
 
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
         output = self.training_step(batch, batch_idx, optimizer_idx)
