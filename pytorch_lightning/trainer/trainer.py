@@ -1083,6 +1083,8 @@ class Trainer(
 
         # clear cache before training
         if self.on_gpu:
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
 
