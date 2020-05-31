@@ -892,8 +892,6 @@ class Trainer(
                 full_path = abspath(command[0])
                 command[0] = full_path
 
-                import pdb; pdb.set_trace()
-
                 for local_rank in range(1, self.num_processes):
                     env_copy = os.environ.copy()
                     env_copy['LOCAL_RANK'] = f'{local_rank}'
