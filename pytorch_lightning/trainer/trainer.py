@@ -911,10 +911,13 @@ class Trainer(
                 # since this script sets the visible devices we replace the gpus flag with a number
                 num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
 
-                import pdb; pdb.set_trace()
-                if '--gpus' in command:
-                    gpu_flag_idx = command.index('--gpus')
-                    command[gpu_flag_idx + 1] = f'{num_gpus}'
+                # if script called without a flag, pass in a flag anyhow
+                if '--gpus' in not command:
+                    arg_gpus = len(self.gpus) if isinstance(self.gpus, list) else self.gpus
+                    command += ['--gpus', arg_gpus]
+
+                gpu_flag_idx = command.index('--gpus')
+                command[gpu_flag_idx + 1] = f'{num_gpus}'
 
                 os.environ['WORLD_SIZE'] = f'{num_gpus*self.num_nodes}'
 
