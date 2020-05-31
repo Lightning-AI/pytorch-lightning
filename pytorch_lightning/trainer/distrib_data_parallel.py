@@ -395,7 +395,6 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         self.run_pretrain_routine(model)
 
-
     def save_spawn_weights(self, model):
         """
         Dump a temporary checkpoint after ddp ends to get weights out of the process

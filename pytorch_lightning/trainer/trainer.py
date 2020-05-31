@@ -893,14 +893,14 @@ class Trainer(
                 os.environ['MASTER_ADDR'] = f'{master_address}'
 
                 # allow the user to pass the node rank
-                node_rank = f'0'
+                node_rank = '0'
                 if 'NODE_RANK' in os.environ:
                     node_rank = os.environ['NODE_RANK']
                 if 'GROUP_RANK' in os.environ:
                     node_rank = os.environ['GROUP_RANK']
 
                 os.environ['NODE_RANK'] = node_rank
-                os.environ['LOCAL_RANK'] = f'0'
+                os.environ['LOCAL_RANK'] = '0'
 
                 # pull out the commands used to run the script and resolve the abs file path
                 command = sys.argv
