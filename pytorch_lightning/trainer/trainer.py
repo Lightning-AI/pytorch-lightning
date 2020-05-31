@@ -907,6 +907,7 @@ class Trainer(
                     # import pdb; pdb.set_trace()
                     # start process
                     subprocess.call(command, env=env_copy)
+                    print('process called')
 
                     # starting all processes at once can cause issues with dataloaders delay between 1-10 seconds
                     delay = np.random.uniform(1, 10, 1)[0]
