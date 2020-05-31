@@ -916,6 +916,7 @@ class Trainer(
                     # sleep(delay)
 
                 local_rank = 0
+                import pdb; pdb.set_trace()
                 self.ddp_train(local_rank, model)
 
         # 1 gpu or dp option triggers training using DP module
