@@ -76,9 +76,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: device reference
         self._device = torch.device('cpu')
 
-        # register all params passed into the child module in __init__
-        self._auto_collect_arguments()
-
     @property
     def on_gpu(self):
         """
@@ -1701,7 +1698,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def _auto_collect_arguments(self):
+    def auto_collect_arguments(self):
         """Collect all arguments module arguments."""
         frame = inspect.currentframe()
 

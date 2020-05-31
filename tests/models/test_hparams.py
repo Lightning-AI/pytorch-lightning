@@ -23,21 +23,11 @@ def test_omegaconf(tmpdir):
     # ensure ogc passed values correctly
     assert model.size == 15.4
 
-    # fit
-    model = EvalModelTemplate()
-    trainer = Trainer(max_steps=5, default_root_dir=tmpdir)
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.1)
+    result = trainer.fit(model)
 
-    # check that the values are stored properly
-    raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
-    raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
-    raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
+    assert result == 1
 
-    raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
-    assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['size'] == 15.4
-
-test_omegaconf('/Users/williamfalcon/Desktop')
 
 class SubClassEvalModel(EvalModelTemplate):
     any_other_loss = torch.nn.CrossEntropyLoss()
@@ -78,7 +68,7 @@ def test_collect_init_arguments(tmpdir, cls):
         assert isinstance(model.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(max_steps=5, default_root_dir=tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.1)
     trainer.fit(model)
     raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
     raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
