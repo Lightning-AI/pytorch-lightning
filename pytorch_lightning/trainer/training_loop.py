@@ -387,12 +387,13 @@ class TrainerTrainLoopMixin(ABC):
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-            self.interrupted = True
+            if not self.interrupted:
+                self.interrupted = True
 
-            for proc in self.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
+                for proc in self.interactive_ddp_procs:
+                    subprocess.Popen.kill(proc)
 
-            self.run_training_teardown()
+                self.run_training_teardown()
 
     def run_training_epoch(self):
 
