@@ -322,7 +322,7 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         log.info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def ddp_train(self, process_idx, model):
+    def ddp_train(self, process_idx, model, is_master=False):
         """
         Entry point into a DP thread
         :param gpu_idx:
@@ -359,11 +359,13 @@ class TrainerDDPMixin(ABC):
         # MODEL
         # copy model to each gpu
         if self.on_gpu:
-            # source of truth is cuda for gpu idx
-            gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-            local_rank = int(os.environ['LOCAL_RANK'])
-            gpu_idx = int(gpus[local_rank])
-            print(gpus, local_rank, gpu_idx)
+            gpu_idx = process_idx
+            if is_master:
+                # source of truth is cuda for gpu idx
+                gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+                local_rank = int(os.environ['LOCAL_RANK'])
+                gpu_idx = int(gpus[local_rank])
+
             self.root_gpu = gpu_idx
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)

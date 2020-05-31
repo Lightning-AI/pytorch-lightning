@@ -916,7 +916,7 @@ class Trainer(
                     # sleep(delay)
 
                 local_rank = 0
-                self.ddp_train(local_rank, model)
+                self.ddp_train(local_rank, model, is_master=True)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
