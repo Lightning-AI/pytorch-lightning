@@ -886,8 +886,10 @@ class Trainer(
 
                 for local_rank in range(1, self.num_processes):
                     flags = f'MASTER_ADDR={master_address} MASTER_PORT={port} NODE_RANK=0 LOCAL_RANK={local_rank}'
-
                     cmd_parts = [flags] + command
+
+                    import pdb; pdb.set_trace()
+                    # start process
                     p = subprocess.Popen(cmd_parts)
 
                     # starting all processes at once can cause issues with dataloaders delay between 1-10 seconds
