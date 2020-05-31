@@ -363,6 +363,7 @@ class TrainerDDPMixin(ABC):
             gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
             local_rank = int(os.environ['LOCAL_RANK'])
             gpu_idx = int(gpus[local_rank])
+            import pdb; pdb.set_trace()
             self.root_gpu = gpu_idx
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
