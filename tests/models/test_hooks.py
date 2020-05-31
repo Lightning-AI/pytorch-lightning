@@ -85,12 +85,14 @@ def test_transfer_batch_hook():
 
         hook_called = False
 
-        def transfer_batch_to_device(self, batch, device):
+        def transfer_batch_to_device(self, data, device):
             self.hook_called = True
-            if isinstance(batch, CustomBatch):
-                batch.samples = batch.samples.to(device)
-                batch.targets = batch.targets.to(device)
-            return batch
+            if isinstance(data, CustomBatch):
+                data.samples = data.samples.to(device)
+                data.targets = data.targets.to(device)
+            else:
+                data = super().transfer_batch_to_device(data, device)
+            return data
 
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))

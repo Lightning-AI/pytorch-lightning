@@ -3,6 +3,8 @@ from typing import Any
 import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
+from pytorch_lightning.utilities import transfer_batch_to_device
+
 
 try:
     from apex import amp
@@ -158,7 +160,8 @@ class ModelHooks(torch.nn.Module):
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
         wrapped in a custom data structure.
-        Lightning only calls the hook if it does not recognize the data type of your batch as one of
+
+        The data types listed below (and any arbitrary nesting of them) are supported out of the box:
 
         - :class:`torch.Tensor`
         - :class:`list`
@@ -166,8 +169,6 @@ class ModelHooks(torch.nn.Module):
         - :class:`tuple`
         - ``torchtext.data.Batch`` (COMING SOON)
 
-        These data types (and any arbitrary nesting of them) are supported out of the box
-        (see :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`).
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 
         Example::
@@ -177,6 +178,8 @@ class ModelHooks(torch.nn.Module):
                     # move all tensors in your custom data structure to the device
                     batch.samples = batch.samples.to(device)
                     batch.targets = batch.targets.to(device)
+                else:
+                    batch = super().transfer_batch_to_device(data, device)
                 return batch
 
         Args:
@@ -188,7 +191,7 @@ class ModelHooks(torch.nn.Module):
 
         Note:
             This hook should only transfer the data and not modify it, nor should it move the data to
-            any other device than the one passed in as argument.
+            any other device than the one passed in as argument (unless you know what you are doing).
             The :class:`~pytorch_lightning.trainer.trainer.Trainer` already takes care of splitting the
             batch and determines the target devices.
 
@@ -196,3 +199,4 @@ class ModelHooks(torch.nn.Module):
             - :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
+        return transfer_batch_to_device(batch, device)
