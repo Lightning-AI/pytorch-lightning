@@ -21,8 +21,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-def test_no_val_module(tmpdir, tmpdir_server):
+def test_no_val_module(monkeypatch, tmpdir, tmpdir_server):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     model = EvalModelTemplate()
 
@@ -64,8 +66,10 @@ def test_no_val_module(tmpdir, tmpdir_server):
     model_3.eval()
 
 
-def test_no_val_end_module(tmpdir, tmpdir_server):
+def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     model = EvalModelTemplate()
 
@@ -335,8 +339,10 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint_epoch_restored(tmpdir, tmpdir_server):
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server):
     """Verify resuming from checkpoint runs the right number of epochs"""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     hparams = EvalModelTemplate.get_default_hparams()
 
