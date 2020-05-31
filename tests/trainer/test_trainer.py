@@ -397,8 +397,9 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
     if url_ckpt:
         # transform local paths into url checkpoints
+        ip, port = tmpdir_server
         checkpoints = [
-            f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/' + os.path.basename(check) for check in checkpoints
+            f'http://{ip}:{port}/' + os.path.basename(check) for check in checkpoints
         ]
 
     for check in checkpoints:
