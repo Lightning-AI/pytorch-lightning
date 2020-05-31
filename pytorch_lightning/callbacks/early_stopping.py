@@ -107,7 +107,7 @@ class EarlyStopping(Callback):
         # Allow instances to be re-used
         self.wait = 0
         self.stopped_epoch = 0
-        self.best = torch_inf if self.monitor_op == torch.lt else -torch_inf
+        self.best = -torch_inf if self.monitor_op(torch.Tensor(1), torch.Tensor(2))[0].item() else torch_inf
 
     def on_validation_end(self, trainer, pl_module):
         self._run_early_stopping_check(trainer, pl_module)
