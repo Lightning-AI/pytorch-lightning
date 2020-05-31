@@ -81,9 +81,9 @@ when needed.
 
 .. note:: For iterable datasets, we don't do this automatically.
 
-Make model picklable
-^^^^^^^^^^^^^^^^^^^^
-It's very likely your code is already `picklable <https://docs.python.org/3/library/pickle.html>`_,
+Make model pickleable
+^^^^^^^^^^^^^^^^^^^^^
+It's very likely your code is already `pickleable <https://docs.python.org/3/library/pickle.html>`_,
 so you don't have to do anything to make this change.
 However, if you run distributed and see an error like this:
 
