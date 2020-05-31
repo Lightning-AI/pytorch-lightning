@@ -6,7 +6,38 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
 from tests.base import EvalModelTemplate
+from omegaconf import OmegaConf
 
+
+class OmegaConfModel(EvalModelTemplate):
+    def __init__(self, ogc):
+        super().__init__()
+        self.ogc = ogc
+        self.size = ogc.list[0]
+
+
+def test_omegaconf(tmpdir):
+    conf = OmegaConf.create({"k": "v", "list": [15.4, {"a": "1", "b": "2"}]})
+    model = OmegaConfModel(conf)
+
+    # ensure ogc passed values correctly
+    assert model.size == 15.4
+
+    # fit
+    model = EvalModelTemplate()
+    trainer = Trainer(max_steps=5, default_root_dir=tmpdir)
+    trainer.fit(model)
+
+    # check that the values are stored properly
+    raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
+    raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
+    raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
+
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
+    assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['size'] == 15.4
+
+test_omegaconf('/Users/williamfalcon/Desktop')
 
 class SubClassEvalModel(EvalModelTemplate):
     any_other_loss = torch.nn.CrossEntropyLoss()
