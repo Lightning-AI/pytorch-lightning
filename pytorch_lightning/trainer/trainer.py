@@ -886,7 +886,7 @@ class Trainer(
                 os.environ['NODE_RANK'] = f'0'
                 os.environ['LOCAL_RANK'] = f'0'
 
-                command = sys.argv
+                command = ' '.join(sys.argv)
 
                 for local_rank in range(1, self.num_processes):
                     env_copy = os.environ.copy()
