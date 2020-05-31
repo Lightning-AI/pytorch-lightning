@@ -877,6 +877,10 @@ class Trainer(
                 self.ddp_train(task, model)
 
             else:
+                # ----------------
+                # interactive ddp
+                # (ie called from shell on a multi-gpu node)
+                # ----------------
                 # track for predict
                 self.model = model
 
