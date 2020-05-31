@@ -42,7 +42,6 @@ class DeterministicModel(LightningModule):
             early_stop_on=torch.tensor(1.4).type_as(x),
             checkpoint_on=torch.tensor(1.5).type_as(x)
         )
-
         result.log('log_acc1', torch.tensor(12).type_as(x))
         result.log('log_acc2', torch.tensor(7).type_as(x))
         result.to_pbar('pbar_acc1', torch.tensor(17).type_as(x))
@@ -53,11 +52,10 @@ class DeterministicModel(LightningModule):
         x = batch
         y_hat = self(x)
 
-        if batch_idx == 0:
-            assert torch.all(y_hat[0, :] == 15.0)
-            assert torch.all(y_hat[1, :] == 42.0)
-            out = y_hat.sum()
-            assert out == (42.0*3) + (15.0*3)
+        assert torch.all(y_hat[0, :] == 15.0)
+        assert torch.all(y_hat[1, :] == 42.0)
+        out = y_hat.sum()
+        assert out == (42.0*3) + (15.0*3)
 
         return out
 
@@ -143,6 +141,7 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch, batch_idx)
 
         result = self.base_eval_result(acc)
+
         return result
 
     def validation_step_with_batch_end(self, batch, batch_idx):
@@ -211,9 +210,11 @@ class DeterministicModel(LightningModule):
         return DataLoader(DummyDataset(), batch_size=3, shuffle=False)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters())
+        return torch.optim.Adam(self.parameters(), lr=0)
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
+        assert loss == 171.0
+        loss.backward()
 
 
 class DummyDataset(Dataset):

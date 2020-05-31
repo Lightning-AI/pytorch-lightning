@@ -21,7 +21,13 @@ from tests.base.determininistic_model import DeterministicModel
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 
 
-def test_evaluate(tmpdir):
+def test_train_val_step_only(tmpdir):
+    """
+    Verifies trainining_step and validation_step functionality
+    """
+    # ------------------
+    # test EvalReturn
+    # ------------------
     model = DeterministicModel()
     model.training_step = model.training_step_only
     model.validation_step = model.validation_step_only
@@ -30,11 +36,36 @@ def test_evaluate(tmpdir):
     trainer = Trainer(fast_dev_run=True, weights_summary=None)
     trainer.fit(model)
 
+    # make sure evaluate outputs what is expected
     out = trainer._evaluate(model, loaders, max_batches=2, test_mode=False)
-    print('a')
+    assert out.log_on_epoch_end['log_acc1'] == 12.0
+    assert out.log_on_epoch_end['log_acc2'] == 7.0
+    assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
+    assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
+    assert out['early_stop_on'] == 1.4
+    assert out['checkpoint_on'] == 1.5
+
+    # ---------------------
+    # test dic return only
+    # ---------------------
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_dict_return
+
+    loaders = [model.train_dataloader()]
+    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer.fit(model)
+
+    out = trainer._evaluate(model, loaders, max_batches=2, test_mode=False)
+    assert out.log_on_epoch_end['log_acc1'] == 12.0
+    assert out.log_on_epoch_end['log_acc2'] == 7.0
+    assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
+    assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
+    assert out['early_stop_on'] == 1.4
+    assert out['checkpoint_on'] == 1.5
 
 
-test_evaluate('')
+test_train_val_step_only('')
 
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""

@@ -623,6 +623,7 @@ class TrainerTrainLoopMixin(ABC):
 
                     # once backward has been applied, release graph
                     closure_loss = closure_loss.detach()
+                    training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
                     # track metrics for callbacks
                     batch_callback_metrics.append(training_step_output.callback_metrics)

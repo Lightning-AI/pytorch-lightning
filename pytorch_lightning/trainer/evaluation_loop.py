@@ -282,7 +282,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # only use .to_epoch_end dict
         epoch_end_inputs = []
         for dl_output_list in all_dataloader_outputs:
-            to_epoch_ends = [x.to_epoch_end for x in dl_output_list]
+            to_epoch_ends = [x.to_epoch_end for x in dl_output_list if 'to_epoch_end' in x]
             epoch_end_inputs.append(to_epoch_ends)
 
         # with a single dataloader don't pass an array of dataloader outputs
@@ -352,6 +352,27 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 return result
 
+            def dicts_union(outputs, result=None):
+                if result is None:
+                    result = {}
+
+                for out in outputs:
+                    for k, v in out.items():
+                        if k in ['reduce_fx_on_epoch_end', 'to_batch_end', 'to_epoch_end']:
+                            continue
+
+                        if k not in result and isinstance(v, dict):
+                            result[k] = {}
+
+                        if isinstance(v, dict):
+                            v = dicts_union([v], result[k])
+
+                        if isinstance(v, list) and len(v) == 1:
+                            v = v[0]
+                        result[k] = v
+
+                return result
+
             def apply_fx_recursively(outputs, fxs):
                 for k, v in outputs.items():
                     if isinstance(v, list):
@@ -382,8 +403,26 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # merge all results of all dataloaders
         # [dl_results_dict, dl_results-dict] -> dl_results_dict
-        eval_loop_result = gather_map(eval_loop_result)
-        eval_result = EvalResult()
+        eval_loop_result = dicts_union(eval_loop_result)
+
+        # -----------------------------
+        # use 1 value as representative
+        # -----------------------------
+        early_stop_on = eval_loop_result.get('early_stop_on')
+        if isinstance(early_stop_on, list) and len(early_stop_on) > 1:
+            early_stop_on = early_stop_on[0]
+
+        checkpoint_on = eval_loop_result.get('checkpoint_on')
+        if isinstance(checkpoint_on, list) and len(checkpoint_on) > 1:
+            checkpoint_on = checkpoint_on[0]
+
+        # -----------------------------
+        # format response
+        # -----------------------------
+        eval_result = EvalResult(
+            early_stop_on=early_stop_on,
+            checkpoint_on=checkpoint_on
+        )
         eval_result.log_on_epoch_end = eval_loop_result.get('log_on_epoch_end', {})
         eval_result.pbar_on_epoch_end = eval_loop_result.get('pbar_on_epoch_end', {})
         return eval_result
@@ -505,7 +544,6 @@ class TrainerEvaluationLoopMixin(ABC):
             self.on_validation_start()
 
         # run evaluation
-        import pdb; pdb.set_trace()
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
         if isinstance(eval_results, EvalResult):
