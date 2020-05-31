@@ -17,12 +17,22 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.determininistic_model import DeterministicModel
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 
 
 def test_evaluate(tmpdir):
-    model = EvalModelTemplate()
-    _evaluate = TrainerEvaluationLoopMixin._evaluate(model, model.train_dataloader(), 2, False)
+    model = DeterministicModel()
+    model.training_step = model.training_step_only
+    model.validation_step = model.validation_step_only
+
+    loaders = [model.train_dataloader()]
+    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer.fit(model)
+
+    out = trainer._evaluate(model, loaders, max_batches=2, test_mode=False)
+    print('a')
+
 
 test_evaluate('')
 
