@@ -899,7 +899,7 @@ class Trainer(
                 gpu_flag_idx = command.index('--gpus')
                 command[gpu_flag_idx+1] = f'{num_gpus}'
 
-                os.environ['WORLD_SIZE'] = f'{num_gpus}'
+                os.environ['WORLD_SIZE'] = f'{num_gpus*self.num_nodes}'
 
                 self.interactive_ddp_procs = []
                 for local_rank in range(1, self.num_processes):
