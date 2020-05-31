@@ -1,4 +1,5 @@
 import os
+from packaging import version
 
 import pytest
 import torch
@@ -19,21 +20,21 @@ class OmegaConfModel(EvalModelTemplate):
 
 def test_class_nesting(tmpdir):
 
-    class Module(LightningModule):
+    class MyModule(LightningModule):
         def forward(self):
             return 0
 
     # make sure PL modules are always nn.Module
-    a = Module()
+    a = MyModule()
     assert isinstance(a, torch.nn.Module)
 
     def test_outside():
-        a = Module()
+        a = MyModule()
         print(a.module_arguments)
 
     class A:
         def test(self):
-            a = Module()
+            a = MyModule()
             print(a.module_arguments)
 
         def test2(self):
@@ -44,7 +45,7 @@ def test_class_nesting(tmpdir):
     A().test()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason='OmegaConf only for Python >= 3.8')
+@pytest.mark.xfail(sys.version_info < (3, 8), reason='OmegaConf only for Python >= 3.8')
 def test_omegaconf(tmpdir):
     conf = OmegaConf.create({"k": "v", "list": [15.4, {"a": "1", "b": "2"}]})
     model = OmegaConfModel(conf)

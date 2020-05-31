@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
 import torch
 import torch.distributed as torch_distrib
 from torch import Tensor
+from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
@@ -33,7 +34,7 @@ else:
 CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, torch.nn.Module):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
