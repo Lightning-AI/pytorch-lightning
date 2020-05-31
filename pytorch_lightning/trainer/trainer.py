@@ -888,7 +888,7 @@ class Trainer(
                     flags = f'MASTER_ADDR={master_address} MASTER_PORT={port} NODE_RANK=0 LOCAL_RANK={local_rank}'
                     cmd_parts = [flags] + command
 
-                    import pdb; pdb.set_trace()
+                    # import pdb; pdb.set_trace()
                     # start process
                     p = subprocess.Popen(cmd_parts)
 
