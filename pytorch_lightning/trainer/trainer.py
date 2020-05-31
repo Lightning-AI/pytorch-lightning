@@ -881,16 +881,20 @@ class Trainer(
                 self.__set_random_port()
                 port = os.environ['MASTER_PORT']
                 master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
+                os.environ['MASTER_PORT'] = f'{port}'
+                os.environ['MASTER_ADDR'] = f'{master_address}'
+                os.environ['NODE_RANK'] = f'0'
+                os.environ['LOCAL_RANK'] = f'0'
 
                 command = sys.argv
 
                 for local_rank in range(1, self.num_processes):
-                    flags = f'MASTER_ADDR={master_address} MASTER_PORT={port} NODE_RANK=0 LOCAL_RANK={local_rank}'
-                    cmd_parts = [flags] + command
+                    env_copy = os.environ.copy()
+                    env_copy['LOCAL_RANK'] = f'{local_rank}'
 
                     # import pdb; pdb.set_trace()
                     # start process
-                    p = subprocess.Popen(cmd_parts)
+                    p = subprocess.Popen(command, env=env_copy)
 
                     # starting all processes at once can cause issues with dataloaders delay between 1-10 seconds
                     delay = np.random.uniform(1, 10, 1)[0]
