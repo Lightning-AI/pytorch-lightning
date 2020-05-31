@@ -876,14 +876,15 @@ class Trainer(
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
 
-            else:
+            elif self.distributed_backend == 'cpu_ddp':
+                self.model = model
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+
+            elif self.distributed_backend == 'ddp':
                 # ----------------
                 # interactive ddp
                 # (ie called from shell on a multi-gpu node)
                 # ----------------
-                # track for predict
-                self.model = model
-
                 self.__set_random_port()
                 port = os.environ['MASTER_PORT']
 
