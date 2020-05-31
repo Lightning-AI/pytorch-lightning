@@ -385,10 +385,6 @@ class TrainerTrainLoopMixin(ABC):
 
             self.run_training_teardown()
 
-            # reset signal handlers
-            for sig_name in SIGNAL_TERMINATE:
-                signal.signal(getattr(signal, sig_name), orig_signal_handlers[sig_name])
-
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
             self.interrupted = True
@@ -682,7 +678,7 @@ class TrainerTrainLoopMixin(ABC):
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.optimizers[opt_idx])]
 
-    @atexit.register
+    # @atexit.register
     def run_training_teardown(self):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
