@@ -167,6 +167,7 @@ else:
     APEX_AVAILABLE = True
 
 try:
+    import torch_xla
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
 except ImportError:
@@ -412,8 +413,8 @@ class TrainerTrainLoopMixin(ABC):
         train_dataloader = self.train_dataloader
 
         # on TPU we have to wrap it under the ParallelLoader
-        if self.use_tpu and self.tpu_id is None:
-            device = xm.xla_device()
+        if self.use_tpu:
+            device = torch_xla._XLAC._xla_get_default_device()
             train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
             train_dataloader = train_dataloader.per_device_loader(device)
 
