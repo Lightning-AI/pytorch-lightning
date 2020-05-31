@@ -135,20 +135,20 @@ a comma separated list of GPU ids:
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
 
-    # DEFAULT (int) specifies how many GPUs to use.
+    # DEFAULT (int) specifies how many GPUs to use
     Trainer(gpus=k)
 
     # Above is equivalent to
     Trainer(gpus=list(range(k)))
 
-    # You specify which GPUs (don't use if running on cluster)
+    # Specify which GPUs to use (don't use if running on cluster)
     Trainer(gpus=[0, 1])
 
     # can also be a string
     Trainer(gpus='0, 1')
 
     # can also be -1 or '-1', this uses all available GPUs
-    # this is equivalent to list(range(torch.cuda.available_devices()))
+    # equivalent to list(range(torch.cuda.available_devices()))
     Trainer(gpus=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
