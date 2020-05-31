@@ -912,7 +912,7 @@ class Trainer(
                 num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
 
                 # if script called without a flag, pass in a flag anyhow
-                if '--gpus' in not command:
+                if '--gpus' not in command:
                     arg_gpus = len(self.gpus) if isinstance(self.gpus, list) else self.gpus
                     command += ['--gpus', arg_gpus]
 
