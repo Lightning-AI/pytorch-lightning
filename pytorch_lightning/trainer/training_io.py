@@ -403,11 +403,16 @@ class TrainerIOMixin(ABC):
             )
 
         if self.checkpoint_callback:
-            if 'checkpoint_callback_best' in checkpoint:
-                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
-            else:
+            if 'checkpoint_callback_best_model_score' in checkpoint:
                 self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best_model_score']
-            self.checkpoint_callback.best_model_path = checkpoint.get('checkpoint_callback_best_model_path')
+            else:
+                # Old naming until version 0.7.6
+                rank_zero_warn(
+                    'Loading a checkpoint created with an old version of Lightning; '
+                    'this will not be supported in the future.'
+                )
+                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
+            self.checkpoint_callback.best_model_path = checkpoint['checkpoint_callback_best_model_path']
 
         if self.early_stop_callback:
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
