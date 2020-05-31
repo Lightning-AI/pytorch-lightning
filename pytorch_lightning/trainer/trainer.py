@@ -478,7 +478,6 @@ class Trainer(
         else:
             self.gpus = gpus
 
-        import pdb; pdb.set_trace()
         self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
@@ -934,8 +933,8 @@ class Trainer(
 
                     # starting all processes at once can cause issues
                     # with dataloaders delay between 1-10 seconds
-                    delay = np.random.uniform(1, 10, 1)[0]
-                    # sleep(delay)
+                    delay = np.random.uniform(1, 5, 1)[0]
+                    sleep(delay)
 
                 local_rank = 0
                 self.ddp_train(local_rank, model, is_master=True)
