@@ -158,6 +158,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+import subprocess
 
 try:
     from apex import amp
@@ -389,9 +390,12 @@ class TrainerTrainLoopMixin(ABC):
                 signal.signal(getattr(signal, sig_name), orig_signal_handlers[sig_name])
 
         except KeyboardInterrupt:
-            if self.proc_rank == 0:
-                log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
+            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
             self.interrupted = True
+
+            for proc in self.interactive_ddp_procs:
+                subprocess.Popen.kill(proc)
+
             self.run_training_teardown()
 
     def run_training_epoch(self):

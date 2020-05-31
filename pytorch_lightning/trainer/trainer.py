@@ -498,6 +498,7 @@ class Trainer(
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
+        self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
 
@@ -900,18 +901,19 @@ class Trainer(
 
                 os.environ['WORLD_SIZE'] = f'{num_gpus}'
 
+                self.interactive_ddp_procs = []
                 for local_rank in range(0, self.num_processes):
                     env_copy = os.environ.copy()
                     env_copy['LOCAL_RANK'] = f'{local_rank}'
 
                     # import pdb; pdb.set_trace()
                     # start process
-                    subprocess.Popen(command, env=env_copy)
+                    proc = subprocess.Popen(command, env=env_copy)
+                    self.interactive_ddp_procs.append(proc)
 
                     # starting all processes at once can cause issues with dataloaders delay between 1-10 seconds
                     delay = np.random.uniform(1, 10, 1)[0]
                     # sleep(delay)
-
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
