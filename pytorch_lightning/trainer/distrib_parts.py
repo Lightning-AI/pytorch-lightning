@@ -486,6 +486,12 @@ class TrainerDPMixin(ABC):
         return batch
 
     def single_gpu_train(self, model):
+        # source of truth is cuda for gpu idx
+        gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+        local_rank = int(os.environ['LOCAL_RANK'])
+        gpu_idx = int(gpus[local_rank])
+        self.root_gpu = gpu_idx
+
         model.cuda(self.root_gpu)
 
         # CHOOSE OPTIMIZER

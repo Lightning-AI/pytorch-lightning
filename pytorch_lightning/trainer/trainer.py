@@ -927,6 +927,7 @@ class Trainer(
             self.horovod_train(model)
 
         elif self.single_gpu:
+            os.environ['LOCAL_RANK'] = f'{0}'
             self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
