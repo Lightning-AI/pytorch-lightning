@@ -26,7 +26,7 @@ def main(args):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer(gpus=[6, 7])
+    trainer = pl.Trainer.from_argparse_args(args)
 
     # ------------------------
     # 3 START TRAINING
