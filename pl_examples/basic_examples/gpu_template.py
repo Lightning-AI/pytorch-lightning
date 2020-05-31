@@ -16,10 +16,8 @@ np.random.seed(SEED)
 
 
 def main(trainer_args, hparams):
-    """
-    Main training routine specific for this project
-    :param hparams:
-    """
+    """ Main training routine specific for this project """
+
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
@@ -48,33 +46,41 @@ if __name__ == '__main__':
     # these are project-wide arguments
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    parent_parser = ArgumentParser(add_help=False)
+    # parent_parser = ArgumentParser()
+    parent_parser = ArgumentParser(parents=[parent_parser])
 
     # gpu args
-    parent_parser.add_argument(
+    trainer_parser.add_argument(
         '--gpus',
         type=int,
         default=1,
         help='how many gpus'
     )
-    parent_parser.add_argument(
+    trainer_parser.add_argument(
         '--distributed_backend',
         type=str,
-        default='dp',
+        default='ddp',
         help='supports three options dp, ddp, ddp2'
     )
-    parent_parser.add_argument(
+    trainer_parser.add_argument(
         '--use_16bit',
         dest='use_16bit',
         action='store_true',
         help='if true uses 16 bit precision'
     )
-    parent_parser.add_argument('--epochs', default=20, type=int)
+    trainer_parser.add_argument(
+        '--epochs',
+        type=int,
+        default=20,
+        help='number of training epochs'
+    )
 
     # each LightningModule defines arguments relevant to it
-    trainer_args, args = parent_parser.parse_known_args()
-    parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
-    hyperparams = parser.parse_args(args)
+    trainer_args = trainer_parser.parse_args()
+
+    hparams_parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
+    hyperparams = hparams_parser.parse_args()
+    print(hyperparams)
 
     # ---------------------
     # RUN TRAINING

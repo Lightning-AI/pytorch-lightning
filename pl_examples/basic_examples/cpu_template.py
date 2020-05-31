@@ -41,6 +41,7 @@ if __name__ == '__main__':
     # these are project-wide arguments
     root_dir = os.path.dirname(os.path.realpath(__file__))
     parent_parser = ArgumentParser(add_help=False)
+    trainer_parser = pl.Trainer.add_argparse_args(parent_parser)
 
     # each LightningModule defines arguments relevant to it
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)

@@ -45,8 +45,7 @@ class LightningTemplateModel(LightningModule):
                  data_root: str = './datasets',
                  out_features: int = 10,
                  hidden_dim: int = 1000,
-                 **kwargs
-                 ) -> 'LightningTemplateModel':
+                 ):
         # init superclass
         super().__init__()
         self.drop_prob = drop_prob
@@ -161,7 +160,7 @@ class LightningTemplateModel(LightningModule):
         """
         Define parameters that only apply to this model
         """
-        parser = ArgumentParser(parents=[parent_parser])
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
         # param overwrites
         # parser.set_defaults(gradient_clip_val=5.0)
