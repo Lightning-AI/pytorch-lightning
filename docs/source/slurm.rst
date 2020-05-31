@@ -100,7 +100,7 @@ Normally now you would need to add a
 Lightning automates this for you. But if you still need to set a sampler set the Trainer flag
 :paramref:`~pytorch_lightning.Trainer.replace_sampler_ddp` to ``False``.
 
-Here's an example of how to add your own sampler (again no need with Lightning).
+Here's an example of how to add your own sampler (again, not needed with Lightning).
 
 .. testcode::
 
