@@ -15,7 +15,7 @@ torch.manual_seed(SEED)
 np.random.seed(SEED)
 
 
-def main(hparams):
+def main(trainer_args, hparams):
     """
     Main training routine specific for this project
     :param hparams:
@@ -23,16 +23,16 @@ def main(hparams):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = LightningTemplateModel(hparams)
+    model = LightningTemplateModel(**vars(hparams))
 
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
     trainer = pl.Trainer(
-        max_epochs=hparams.epochs,
-        gpus=hparams.gpus,
-        distributed_backend=hparams.distributed_backend,
-        precision=16 if hparams.use_16bit else 32,
+        max_epochs=trainer_args.epochs,
+        gpus=trainer_args.gpus,
+        distributed_backend=trainer_args.distributed_backend,
+        precision=16 if trainer_args.use_16bit else 32,
     )
 
     # ------------------------
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parent_parser.add_argument(
         '--gpus',
         type=int,
-        default=2,
+        default=1,
         help='how many gpus'
     )
     parent_parser.add_argument(
@@ -69,12 +69,14 @@ if __name__ == '__main__':
         action='store_true',
         help='if true uses 16 bit precision'
     )
+    parent_parser.add_argument('--epochs', default=20, type=int)
 
     # each LightningModule defines arguments relevant to it
+    trainer_args, args = parent_parser.parse_known_args()
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
-    hyperparams = parser.parse_args()
+    hyperparams = parser.parse_args(args)
 
     # ---------------------
     # RUN TRAINING
     # ---------------------
-    main(hyperparams)
+    main(trainer_args, hyperparams)
