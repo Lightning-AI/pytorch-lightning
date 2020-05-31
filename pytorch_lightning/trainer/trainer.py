@@ -123,7 +123,7 @@ class Trainer(
             distributed_backend: Optional[str] = None,
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'full',
+            weights_summary: Optional[str] = 'top',
             weights_save_path: Optional[str] = None,
             num_sanity_val_steps: int = 2,
             truncated_bptt_steps: Optional[int] = None,
