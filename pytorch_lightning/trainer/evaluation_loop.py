@@ -135,7 +135,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
 
 try:
-    import torch_xla
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
 except ImportError:
@@ -251,7 +250,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
             # on TPU we have to wrap it under the ParallelLoader
             if self.use_tpu:
-                device = torch_xla._XLAC._xla_get_default_device()
+                device = xm.xla_device(self.tpu_id)
                 dataloader = xla_pl.ParallelLoader(dataloader, [device])
                 dataloader = dataloader.per_device_loader(device)
 
