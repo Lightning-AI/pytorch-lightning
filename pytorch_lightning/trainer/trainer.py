@@ -34,7 +34,10 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
-
+import subprocess
+import sys
+from time import sleep
+import numpy as np
 
 try:
     from apex import amp
@@ -872,15 +875,28 @@ class Trainer(
                 self.ddp_train(task, model)
 
             else:
-                self.__set_random_port()
                 # track for predict
                 self.model = model
-                # train
-                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-                # load weights if not interrupted
-                if self.on_colab_kaggle:
-                    self.load_spawn_weights(model)
-                    self.model = model
+
+                self.__set_random_port()
+                port = os.environ['MASTER_PORT']
+                master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
+
+                command = sys.argv
+
+                for local_rank in range(1, self.num_processes):
+                    flags = f'MASTER_ADDR={master_address} MASTER_PORT={port} NODE_RANK=0 LOCAL_RANK={local_rank}'
+
+                    cmd_parts = [flags] + command
+                    p = subprocess.Popen(cmd_parts)
+
+                    # starting all processes at once can cause issues with dataloaders delay between 1-10 seconds
+                    delay = np.random.uniform(1, 10, 1)[0]
+                    # sleep(delay)
+
+                # run this model
+                this_local_rank = 0
+                self.ddp_train(this_local_rank, model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues

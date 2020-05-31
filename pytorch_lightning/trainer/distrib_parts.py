@@ -685,6 +685,8 @@ def sanitize_gpu_ids(gpus):
     :return: unmodified gpus variable
     """
     all_available_gpus = get_all_available_gpus()
+    # TODO: remove
+    # all_available_gpus = [0, 1]
     for gpu in gpus:
         if gpu not in all_available_gpus:
             raise MisconfigurationException(f"""
