@@ -1,5 +1,5 @@
 .. testsetup:: *
-    from torch.utils.data import Dataset, DataLoader
+
     from pytorch_lightning.trainer.trainer import Trainer
 
 Computing cluster (SLURM)
@@ -102,21 +102,14 @@ Lightning automates this for you. But if you still need to set a sampler set the
 
 Here's an example of how to add your own sampler (again no need with Lightning).
 
-.. testsetup::
-    class MyDataset(Dataset):
-
-        def __len__(self):
-            return 0
-
-        def __getitem__(self, item):
-            return None
-
 .. testcode::
 
     # in your LightningModule
-    dataset = MyDataset()
-    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-    dataloader = Dataloader(dataset, sampler=dist_sampler)
+    def train_dataloader(self):
+        dataset = MyDataset()
+        dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+        dataloader = Dataloader(dataset, sampler=dist_sampler)
+        return dataloader
 
     # in your training script
     trainer = Trainer(replace_sampler_ddp=False)

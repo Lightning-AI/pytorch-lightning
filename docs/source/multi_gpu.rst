@@ -129,6 +129,7 @@ You can select the GPU devices with ranges, a list of indices or a string contai
 a comma separated list of GPU ids:
 
 .. testsetup::
+
     k = 1
 
 .. testcode::
