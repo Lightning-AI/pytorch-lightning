@@ -74,6 +74,7 @@ def test_multiple_val_dataloader(tmpdir):
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple
     model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end_multiple_dataloaders
 
     # fit model
     trainer = Trainer(
@@ -193,6 +194,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
 
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end_multiple_dataloaders
     model.test_step = model.test_step__multiple_dataloaders
 
     # train, multiple val and multiple test passed to fit
