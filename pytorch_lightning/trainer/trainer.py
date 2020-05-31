@@ -38,6 +38,7 @@ import subprocess
 import sys
 from time import sleep
 import numpy as np
+from os.path import abspath
 
 try:
     from apex import amp
@@ -886,7 +887,11 @@ class Trainer(
                 os.environ['NODE_RANK'] = f'0'
                 os.environ['LOCAL_RANK'] = f'0'
 
-                command = ' '.join(sys.argv)
+                # pull out the commands used to run the script and resolve the abs file path
+                command = sys.argv
+                full_path = abspath(command[0])
+                command[0] = full_path
+
                 import pdb; pdb.set_trace()
 
                 for local_rank in range(1, self.num_processes):
