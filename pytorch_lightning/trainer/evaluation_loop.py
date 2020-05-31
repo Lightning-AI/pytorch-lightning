@@ -466,6 +466,20 @@ class TrainerEvaluationLoopMixin(ABC):
         eval_step_result = EvalResult()
         if isinstance(eval_step_output, EvalResult):
             eval_step_result = eval_step_output
+        else:
+            # -------------------------------
+            # map dict to structured results
+            # -------------------------------
+            eval_step_result.to_batch_end = eval_step_output
+            eval_step_result.to_epoch_end = eval_step_output
+            eval_step_result.log_on_epoch_end = eval_step_output.get('log')
+            eval_step_result.pbar_on_epoch_end = eval_step_output.get('progress_bar')
+
+            # TODO: get actual key
+            callback_key = 'val_loss'
+            if callback_key in eval_step_output:
+                eval_step_result.checkpoint_on = eval_step_output.get(callback_key)
+                eval_step_result.early_stop_on = eval_step_output.get(callback_key)
 
         # -------------------------------------
         # VALIDATION_STEP_END OR TEST_STEP_END
