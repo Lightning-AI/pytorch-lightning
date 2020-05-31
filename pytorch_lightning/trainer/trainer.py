@@ -34,11 +34,6 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
-import subprocess
-import sys
-from time import sleep
-import numpy as np
-from os.path import abspath
 
 try:
     from apex import amp
@@ -881,63 +876,7 @@ class Trainer(
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp':
-                # ----------------
-                # interactive ddp
-                # (ie called from shell on a multi-gpu node)
-                # ----------------
-                self.__set_random_port()
-                port = os.environ['MASTER_PORT']
-
-                master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
-                os.environ['MASTER_PORT'] = f'{port}'
-                os.environ['MASTER_ADDR'] = f'{master_address}'
-
-                # allow the user to pass the node rank
-                node_rank = '0'
-                if 'NODE_RANK' in os.environ:
-                    node_rank = os.environ['NODE_RANK']
-                if 'GROUP_RANK' in os.environ:
-                    node_rank = os.environ['GROUP_RANK']
-
-                os.environ['NODE_RANK'] = node_rank
-                os.environ['LOCAL_RANK'] = '0'
-
-                # pull out the commands used to run the script and resolve the abs file path
-                command = sys.argv
-                full_path = abspath(command[0])
-                command[0] = full_path
-                command = ['python'] + command
-
-                # since this script sets the visible devices we replace the gpus flag with a number
-                num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
-
-                # if script called without a flag, pass in a flag anyhow
-                if '--gpus' not in command:
-                    arg_gpus = len(self.gpus) if isinstance(self.gpus, list) else self.gpus
-                    command += ['--gpus', arg_gpus]
-
-                gpu_flag_idx = command.index('--gpus')
-                command[gpu_flag_idx + 1] = f'{num_gpus}'
-
-                os.environ['WORLD_SIZE'] = f'{num_gpus*self.num_nodes}'
-
-                self.interactive_ddp_procs = []
-                for local_rank in range(1, self.num_processes):
-                    env_copy = os.environ.copy()
-                    env_copy['LOCAL_RANK'] = f'{local_rank}'
-
-                    # import pdb; pdb.set_trace()
-                    # start process
-                    proc = subprocess.Popen(command, env=env_copy)
-                    self.interactive_ddp_procs.append(proc)
-
-                    # starting all processes at once can cause issues
-                    # with dataloaders delay between 1-10 seconds
-                    delay = np.random.uniform(1, 5, 1)[0]
-                    sleep(delay)
-
-                local_rank = 0
-                self.ddp_train(local_rank, model, is_master=True)
+                self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -985,18 +924,6 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
-
-    def __set_random_port(self):
-        """
-        When running DDP NOT managed by SLURM, the ports might collide
-        :return:
-        """
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
-            os.environ['MASTER_PORT'] = str(default_port)
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
