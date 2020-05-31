@@ -887,6 +887,7 @@ class Trainer(
                 os.environ['LOCAL_RANK'] = f'0'
 
                 command = ' '.join(sys.argv)
+                import pdb; pdb.set_trace()
 
                 for local_rank in range(1, self.num_processes):
                     env_copy = os.environ.copy()
