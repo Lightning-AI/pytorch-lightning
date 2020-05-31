@@ -60,7 +60,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server):
 
     # load new model from url
     model_3 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path='http://localhost:8000/save_test.ckpt',
+        checkpoint_path=f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/save_test.ckpt',
         hparams_file=hparams_path
     )
     model_3.eval()
@@ -102,7 +102,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server):
 
     # load new model from url
     model_3 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path='http://localhost:8000/save_test.ckpt',
+        checkpoint_path=f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/save_test.ckpt',
         hparams_file=hparams_path
     )
     model_3.eval()
@@ -339,7 +339,8 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs"""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv('TORCH_HOME', tmpdir)
@@ -394,8 +395,10 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
     checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
-    # add some url checkpoints
-    checkpoints += ['http://localhost:8000/' + os.path.basename(check) for check in checkpoints]
+    if url_ckpt:
+        # transform local paths into url checkpoints
+        checkpoints = [f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/' +
+                       os.path.basename(check) for check in checkpoints]
 
     for check in checkpoints:
         next_model = _new_model()
