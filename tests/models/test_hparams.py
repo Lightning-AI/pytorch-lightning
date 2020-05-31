@@ -7,6 +7,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
 from tests.base import EvalModelTemplate
 from omegaconf import OmegaConf
+import sys
 
 
 class OmegaConfModel(EvalModelTemplate):
@@ -17,6 +18,13 @@ class OmegaConfModel(EvalModelTemplate):
 
 
 def test_omegaconf(tmpdir):
+
+    # ogc only for 3.8
+    major = sys.version_info[0]
+    minor = sys.version_info[1]
+    if major < 3 and minor < 8:
+        return
+
     conf = OmegaConf.create({"k": "v", "list": [15.4, {"a": "1", "b": "2"}]})
     model = OmegaConfModel(conf)
 
