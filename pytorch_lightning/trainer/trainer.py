@@ -898,7 +898,7 @@ class Trainer(
                 gpu_flag_idx = command.index('--gpus')
                 command[gpu_flag_idx+1] = f'{num_gpus}'
 
-                os.environ['WORLD_SIZE'] = num_gpus
+                os.environ['WORLD_SIZE'] = f'{num_gpus}'
 
                 for local_rank in range(1, self.num_processes):
                     env_copy = os.environ.copy()
