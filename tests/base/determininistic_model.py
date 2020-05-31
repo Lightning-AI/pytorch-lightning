@@ -74,7 +74,6 @@ class DeterministicModel(LightningModule):
 
         return num_graphs
 
-
     def training_step_only(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
 
@@ -213,6 +212,9 @@ class DeterministicModel(LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters())
+
+    def backward(self, trainer, loss, optimizer, optimizer_idx):
+
 
 class DummyDataset(Dataset):
 

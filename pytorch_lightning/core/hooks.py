@@ -115,6 +115,15 @@ class ModelHooks(torch.nn.Module):
                                                              global_step=self.trainer.global_step)
 
         """
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
+        if self.trainer.use_native_amp:
+            scaled_loss = self.trainer.scaler.scale(unscaled_loss)
+
+        else:
+            # TODO: remove in v0.8.0
+            scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
+
+        return scaled_loss
 
     def backward(self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
         """
@@ -134,27 +143,10 @@ class ModelHooks(torch.nn.Module):
         Example::
 
             def backward(self, use_amp, loss, optimizer):
-                if use_amp:
-                    with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    loss.backward()
+                loss.backward()
 
         """
-        if trainer.precision == 16:
-            # .backward is not special on 16-bit with TPUs
-            if trainer.on_tpu:
-                return
-
-            if self.trainer.use_native_amp:
-                self.trainer.scaler.scale(loss).backward()
-
-            # TODO: remove in v0.8.0
-            else:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-        else:
-            loss.backward()
+        loss.backward()
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         """
