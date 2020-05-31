@@ -3,7 +3,7 @@ import os
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
 from tests.base import EvalModelTemplate
 from omegaconf import OmegaConf
@@ -15,6 +15,34 @@ class OmegaConfModel(EvalModelTemplate):
         super().__init__()
         self.ogc = ogc
         self.size = ogc.list[0]
+
+
+def test_class_nesting(tmpdir):
+
+    class Module(LightningModule):
+        def forward(self):
+            return 0
+
+    # make sure PL modules are always nn.Module
+    a = Module()
+    assert isinstance(a, torch.nn.Module)
+
+    print('a')
+    def test_outside():
+        a = Module()
+        print(a.module_arguments)
+
+    class A:
+        def test(self):
+            a = Module()
+            print(a.module_arguments)
+
+        def test2(self):
+            test_outside()
+
+    test_outside()
+    A().test2()
+    A().test()
 
 
 def test_omegaconf(tmpdir):

@@ -33,7 +33,7 @@ else:
 CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, torch.nn.Module):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1714,9 +1714,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     @property
     def module_arguments(self) -> dict:
         """Aggregate this module and all parents arguments."""
-        args = dict(self._module_parents_arguments)
-        args.update(self._module_self_arguments)
-        return args
+        try:
+            args = dict(self._module_parents_arguments)
+            args.update(self._module_self_arguments)
+            return args
+        except AttributeError as e:
+            rank_zero_warn('you called `module.module_arguments` without calling self.auto_collect_arguments()')
+            return {}
 
 
 def _collect_init_args(frame, path_args: list) -> list:
