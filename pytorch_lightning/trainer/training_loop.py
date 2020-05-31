@@ -306,13 +306,13 @@ class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         # add signal handlers for process kills
-        def _signal_kill_handler(*args):
-            return TrainerTrainLoopMixin.run_training_teardown(self)
-
-        orig_signal_handlers = {}
-        for sig_name in SIGNAL_TERMINATE:
-            orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
-                                                           _signal_kill_handler)
+        # def _signal_kill_handler(*args):
+        #     return TrainerTrainLoopMixin.run_training_teardown(self)
+        #
+        # orig_signal_handlers = {}
+        # for sig_name in SIGNAL_TERMINATE:
+        #     orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
+        #                                                    _signal_kill_handler)
 
         # get model
         model = self.get_model()
