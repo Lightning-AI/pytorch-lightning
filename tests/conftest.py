@@ -1,8 +1,9 @@
 from functools import wraps, partial
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 import sys
 import pytest
+import threading
 import torch.multiprocessing as mp
 
 
@@ -21,9 +22,10 @@ def pytest_pyfunc_call(pyfuncitem):
         return True
 
 
-def run_file_server(root_dir):
+@pytest.fixture
+def tmpdir_server(tmpdir):
     if sys.version_info >= (3, 7):
-        Handler = partial(SimpleHTTPRequestHandler, directory=root_dir)
+        Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
     else:
         # unfortunately SimpleHTTPRequestHandler doesn't accept the directory arg in python3.6
         # so we have to hack it like this
@@ -36,15 +38,12 @@ def run_file_server(root_dir):
                 # get the relative path
                 relpath = os.path.relpath(path, os.getcwd())
                 # return the full path from root_dir
-                return os.path.join(root_dir, relpath)
+                return os.path.join(str(tmpdir), relpath)
 
-    with HTTPServer(('', 8000), Handler) as httpd:
-        httpd.serve_forever()
-
-
-@pytest.fixture
-def tmpdir_server(tmpdir):
-    p = mp.Process(target=run_file_server, args=(str(tmpdir),))
-    p.start()
-    yield
-    p.terminate()
+    with ThreadingHTTPServer(('', 0), Handler) as server:
+        server_thread = threading.Thread(target=server.serve_forever)
+        # Exit the server thread when the main thread terminates
+        server_thread.daemon = True
+        server_thread.start()
+        yield server.server_address
+        server.shutdown()
