@@ -911,7 +911,7 @@ class Trainer(
                 # since this script sets the visible devices we replace the gpus flag with a number
                 num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
                 gpu_flag_idx = command.index('--gpus')
-                command[gpu_flag_idx+1] = f'{num_gpus}'
+                command[gpu_flag_idx + 1] = f'{num_gpus}'
 
                 os.environ['WORLD_SIZE'] = f'{num_gpus*self.num_nodes}'
 
@@ -925,7 +925,8 @@ class Trainer(
                     proc = subprocess.Popen(command, env=env_copy)
                     self.interactive_ddp_procs.append(proc)
 
-                    # starting all processes at once can cause issues with dataloaders delay between 1-10 seconds
+                    # starting all processes at once can cause issues
+                    # with dataloaders delay between 1-10 seconds
                     delay = np.random.uniform(1, 10, 1)[0]
                     # sleep(delay)
 
