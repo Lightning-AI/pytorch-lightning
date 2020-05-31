@@ -901,7 +901,6 @@ class Trainer(
                 for local_rank in range(1, self.num_processes):
                     env_copy = os.environ.copy()
                     env_copy['LOCAL_RANK'] = f'{local_rank}'
-                    import pdb; pdb.set_trace()
 
                     # import pdb; pdb.set_trace()
                     # start process
