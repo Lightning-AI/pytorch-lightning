@@ -376,10 +376,18 @@ class TrainerEvaluationLoopMixin(ABC):
             def apply_fx_recursively(outputs, fxs):
                 for k, v in outputs.items():
                     if isinstance(v, list):
-                        if k in fxs:
+                        if fxs is None:
+                            # apply mean as default
+                            fx = torch.mean
+                            v = fx(torch.stack(v))
+                            outputs[k] = v
+
+                        elif k in fxs:
                             fx = fxs[k]
                             v = fx(torch.stack(v))
                             outputs[k] = v
+
+
                     else:
                         apply_fx_recursively(outputs[k], fxs)
 

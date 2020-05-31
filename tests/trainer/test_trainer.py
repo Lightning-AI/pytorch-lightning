@@ -18,7 +18,6 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.determininistic_model import DeterministicModel
-from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 
 
 def test_train_val_step_only(tmpdir):
@@ -61,11 +60,59 @@ def test_train_val_step_only(tmpdir):
     assert out.log_on_epoch_end['log_acc2'] == 7.0
     assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
     assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
+    assert out['early_stop_on'] == 171.0
+    assert out['checkpoint_on'] == 171.0
+
+
+def test_train_val_step_end(tmpdir):
+    """
+    Verifies:
+    - training_step + training_step_end
+    - validation_step + validation_step_end
+    """
+    # ------------------
+    # test EvalReturn
+    # ------------------
+    model = DeterministicModel()
+    model.training_step = model.training_step_with_batch_end
+    model.training_step_end = model.training_step_end_basic
+    model.validation_step = model.validation_step_with_batch_end
+    model.validation_step_end = model.validation_step_end_basic
+
+    loaders = [model.train_dataloader()]
+    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer.fit(model)
+
+    # make sure evaluate outputs what is expected
+    out = trainer._evaluate(model, loaders, max_batches=2, test_mode=False)
+    assert out.log_on_epoch_end['log_acc1'] == 12.0
+    assert out.log_on_epoch_end['log_acc2'] == 7.0
+    assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
+    assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
     assert out['early_stop_on'] == 1.4
     assert out['checkpoint_on'] == 1.5
 
+    # ---------------------
+    # test dic return only
+    # ---------------------
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_dict_return
 
-test_train_val_step_only('')
+    loaders = [model.train_dataloader()]
+    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer.fit(model)
+
+    out = trainer._evaluate(model, loaders, max_batches=2, test_mode=False)
+    assert out.log_on_epoch_end['log_acc1'] == 12.0
+    assert out.log_on_epoch_end['log_acc2'] == 7.0
+    assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
+    assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
+    assert out['early_stop_on'] == 171.0
+    assert out['checkpoint_on'] == 171.0
+
+
+test_train_val_step_end('')
 
 def test_no_val_module(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""

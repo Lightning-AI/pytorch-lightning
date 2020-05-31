@@ -111,19 +111,13 @@ class DeterministicModel(LightningModule):
         return {'loss': acc, 'log': logs, 'progress_bar': pbar}
 
     def training_step_end_basic(self, outputs):
-        if self.use_dp or self.use_ddp2:
-            pass
-        else:
-            # only saw 3 batches
-            assert len(outputs) == 3
-            for batch_out in outputs:
-                assert len(batch_out.keys()) == 2
-                keys = ['to_batch_end_1', 'to_batch_end_2', 'minimize']
-                for key in keys:
-                    assert key in batch_out
+        # make sure only the expected keys are here
+        keys = set(outputs.keys())
+        assert keys == {'to_batch_end_1', 'minimize'}
 
         result = TrainResult()
         result.pass_to_epoch_end('from_train_step_end', torch.tensor(19))
+        return result
 
     def training_epoch_end_basic(self, outputs):
         if self.use_dp or self.use_ddp2:
@@ -174,7 +168,7 @@ class DeterministicModel(LightningModule):
 
         logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
-        return {'loss': acc, 'log': logs, 'progress_bar': pbar}
+        return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
 
     def validation_step_end_basic(self, outputs):
         if self.use_dp or self.use_ddp2:

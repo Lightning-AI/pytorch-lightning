@@ -774,13 +774,13 @@ class TrainerTrainLoopMixin(ABC):
 
         # distributed forward
         if self.use_ddp or self.use_ddp2 or self.use_dp:
-            output = self.model(*args)
+            training_step_output = self.model(*args)
 
         # Horovod
         elif self.use_horovod and self.on_gpu:
             batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
             args[0] = batch
-            output = self.model.training_step(*args)
+            training_step_output = self.model.training_step(*args)
 
         # single GPU forward
         elif self.single_gpu:
@@ -793,36 +793,44 @@ class TrainerTrainLoopMixin(ABC):
             # wind up copying it to the same device repeatedly.
             batch = self.transfer_batch_to_gpu(batch, gpu_id)
             args[0] = batch
-            output = self.model.training_step(*args)
+            training_step_output = self.model.training_step(*args)
 
         # TPU support
         elif self.use_tpu:
             batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
             args[0] = batch
-            output = self.model.training_step(*args)
+            training_step_output = self.model.training_step(*args)
 
         # CPU forward
         else:
-            output = self.model.training_step(*args)
+            training_step_output = self.model.training_step(*args)
 
-        # allow any mode to define training_step_end
-        # do something will all the dp outputs (like softmax)
-        if self.is_overridden('training_step_end'):
+        # ------------------------------------------
+        # TRAINING_STEP_END
+        # ------------------------------------------
+        call_train_step_end = self.is_overridden('training_step_end')
+        call_train_end = self.is_overridden('training_end')  # TODO: remove in 1.0.0
+
+        if call_train_step_end or call_train_end:
+            callback_name = 'training_step_end' if call_train_step_end else 'training_end'
             model_ref = self.get_model()
-            with self.profiler.profile('training_step_end'):
-                output = model_ref.training_step_end(output)
+            with self.profiler.profile(callback_name):
+                # format the inputs to the callback
+                train_step_end_input = training_step_output.to_batch_end
+                train_step_end_input.update({'minimize': training_step_output.minimize})
 
-        # allow any mode to define training_end
-        # TODO: remove in 1.0.0
-        if self.is_overridden('training_end'):
-            model_ref = self.get_model()
-            with self.profiler.profile('training_end'):
-                output = model_ref.training_end(output)
+                # apply the callback
+                callback_fx = getattr(model_ref, callback_name)
+                train_step_end_output = callback_fx(train_step_end_input)
 
+                # TODO: pass on to test output (could be dict or Result)
+                # add as update to to_epoch_end
+
+        if call_train_end:
             rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
                            ' Use training_epoch_end instead', DeprecationWarning)
 
-        return output
+        return train_step_end_output
 
     def update_learning_rates(self, interval: str):
         """Update learning rates.
