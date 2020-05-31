@@ -900,7 +900,7 @@ class Trainer(
 
                 os.environ['WORLD_SIZE'] = f'{num_gpus}'
 
-                for local_rank in range(1, self.num_processes):
+                for local_rank in range(0, self.num_processes):
                     env_copy = os.environ.copy()
                     env_copy['LOCAL_RANK'] = f'{local_rank}'
 
@@ -912,9 +912,6 @@ class Trainer(
                     delay = np.random.uniform(1, 10, 1)[0]
                     # sleep(delay)
 
-                # run this model
-                this_local_rank = 0
-                self.ddp_train(this_local_rank, model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
