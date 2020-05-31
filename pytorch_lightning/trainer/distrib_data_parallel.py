@@ -359,7 +359,10 @@ class TrainerDDPMixin(ABC):
         # MODEL
         # copy model to each gpu
         if self.on_gpu:
-            self.root_gpu = process_idx
+            # source of truth is cuda for gpu idx
+            gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+            gpu_idx = int(gpus[process_idx])
+            self.root_gpu = gpu_idx
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
 
