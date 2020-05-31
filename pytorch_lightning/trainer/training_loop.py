@@ -387,6 +387,8 @@ class TrainerTrainLoopMixin(ABC):
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
+
+            # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
 
