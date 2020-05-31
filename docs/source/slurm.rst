@@ -114,7 +114,7 @@ Here's an example of how to add your own sampler (again no need with Lightning).
     # in your training script
     trainer = Trainer(replace_sampler_ddp=False)
 
-Walltime auto-resubmit
+Wall time auto-resubmit
 ----------------------
 When you use Lightning in a SLURM cluster, it automatically detects when it is about
 to run into the wall time and does the following:
