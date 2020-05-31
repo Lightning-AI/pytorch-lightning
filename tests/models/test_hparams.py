@@ -27,7 +27,6 @@ def test_class_nesting(tmpdir):
     a = Module()
     assert isinstance(a, torch.nn.Module)
 
-    print('a')
     def test_outside():
         a = Module()
         print(a.module_arguments)
