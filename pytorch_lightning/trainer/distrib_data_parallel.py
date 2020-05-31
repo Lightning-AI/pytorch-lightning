@@ -361,7 +361,8 @@ class TrainerDDPMixin(ABC):
         if self.on_gpu:
             # source of truth is cuda for gpu idx
             gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-            gpu_idx = int(gpus[process_idx])
+            local_rank = int(os.environ['LOCAL_RANK'])
+            gpu_idx = int(gpus[local_rank])
             self.root_gpu = gpu_idx
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
