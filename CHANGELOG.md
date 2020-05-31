@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Renamed `ModelCheckpoint`'s attributes `best` to `best_model_score` and `kth_best_model` to `kth_best_model_path` ([#1799](https://github.com/PyTorchLightning/pytorch-lightning/pull/1799))
 
+- Re-Enable Logger's `ImportError`s ([#1938](https://github.com/PyTorchLightning/pytorch-lightning/pull/1938))
+
 ### Deprecated
 
 - Deprecated `ModelCheckpoint`'s attributes `best` and `kth_best_model` ([#1799](https://github.com/PyTorchLightning/pytorch-lightning/pull/1799))
@@ -39,6 +41,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Removed
 
 - Removed unintended Trainer argument `progress_bar_callback`, the callback should be passed in by `Trainer(callbacks=[...])` instead ([#1855](https://github.com/PyTorchLightning/pytorch-lightning/pull/1855))
+
+- Remove obsolete `self._device` in Trainer ([#1849](https://github.com/PyTorchLightning/pytorch-lightning/pull/1849))
 
 ### Fixed
 
@@ -55,6 +59,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed root node resolution for SLURM cluster with dash in host name ([#1954](https://github.com/PyTorchLightning/pytorch-lightning/pull/1954))
 
 - Fixed `LearningRateLogger` in multi-scheduler setting ([#1944](https://github.com/PyTorchLightning/pytorch-lightning/pull/1944))
+
+- Fixed test configuration check and testing ([#1804](https://github.com/PyTorchLightning/pytorch-lightning/pull/1804))
+
+- Fixed an issue with Trainer constructor silently ignoring unknown/misspelled arguments ([#1820](https://github.com/PyTorchLightning/pytorch-lightning/pull/1820))
+
+- Fixed `save_weights_only` in ModelCheckpoint ([#1780](https://github.com/PyTorchLightning/pytorch-lightning/pull/1780))
 
 ## [0.7.6] - 2020-05-16
 
@@ -107,11 +117,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed saving native AMP scaler state ([#1561](https://github.com/PyTorchLightning/pytorch-lightning/pull/1561), [#1777](https://github.com/PyTorchLightning/pytorch-lightning/pull/1777))
 - Fixed native amp + ddp ([#1788](https://github.com/PyTorchLightning/pytorch-lightning/pull/1788))
 - Fixed `hparam` logging with metrics ([#1647](https://github.com/PyTorchLightning/pytorch-lightning/pull/1647))
-
-
-- Fixed an issue with Trainer constructor silently ignoring unkown/misspelled arguments ([#1820](https://github.com/PyTorchLightning/pytorch-lightning/pull/1820))
-
-- Fixed `save_weights_only` in ModelCheckpoint ([#1780](https://github.com/PyTorchLightning/pytorch-lightning/pull/1780))
 
 ## [0.7.5] - 2020-04-27
 
@@ -655,16 +660,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed a bug where `Experiment` object was not process safe, potentially causing logs to be overwritten
 
-## [0.3.5] - 2019-MM-DD
+## [0.3.5] - 2019-07-25
 
-## [0.3.4] - 2019-MM-DD
+## [0.3.4] - 2019-07-22
 
-## [0.3.3] - 2019-MM-DD
+## [0.3.3] - 2019-07-22
 
-## [0.3.2] - 2019-MM-DD
+## [0.3.2] - 2019-07-21
 
-## [0.3.1] - 2019-MM-DD
+## [0.3.1] - 2019-07-21
 
-## [0.2.x] - YYYY-MM-DD
+## [0.2.x] - 2019-07-09
 
-## [0.1.x] - YYYY-MM-DD
+## [0.1.x] - 2019-06-DD

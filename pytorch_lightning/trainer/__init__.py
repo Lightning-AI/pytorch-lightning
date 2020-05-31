@@ -54,7 +54,7 @@ main.py file this way
 
         main(args)
 
-So you can run it like so:distributed_backend
+So you can run it like so:
 
 .. code-block:: bash
 
@@ -111,7 +111,7 @@ and set ``deterministic``` flag in ``Trainer``.
 
 .. code-block:: python
 
-    from pytorch-lightning import Trainer, seed_everything
+    from pytorch_lightning import Trainer, seed_everything
 
     seed_everything(42)
     # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
