@@ -893,7 +893,6 @@ class Trainer(
                 command[0] = full_path
                 command = ['python'] + command
 
-                import pdb; pdb.set_trace()
                 # since this script sets the visible devices we replace the gpus flag with a number
                 num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
                 gpu_flag_idx = command.index('--gpus')
