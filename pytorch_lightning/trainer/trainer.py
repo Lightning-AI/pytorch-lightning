@@ -1136,7 +1136,10 @@ class Trainer(
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no-cover
+
+        # on tpu, .spawn means we don't have a trained model
+        # TODO: remove TPU spawn
+        elif self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model

@@ -395,8 +395,6 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         self.run_pretrain_routine(model)
 
-        # when ddp ends, we save the model
-        self.save_spawn_weights(model)
 
     def save_spawn_weights(self, model):
         """
