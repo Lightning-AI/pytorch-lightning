@@ -58,7 +58,7 @@ def test_omegaconf(tmpdir):
     # ensure ogc passed values correctly
     assert model.size == 15.4
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
     result = trainer.fit(model)
 
     assert result == 1
@@ -70,6 +70,7 @@ class SubClassEvalModel(EvalModelTemplate):
     def __init__(self, *args, subclass_arg=1200, **kwargs):
         super().__init__(*args, **kwargs)
         self.subclass_arg = subclass_arg
+        self.auto_collect_arguments()
 
 
 class SubSubClassEvalModel(SubClassEvalModel):
@@ -81,6 +82,7 @@ class AggSubClassEvalModel(SubClassEvalModel):
     def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
         super().__init__(*args, **kwargs)
         self.my_loss = my_loss
+        self.auto_collect_arguments()
 
 
 @pytest.mark.parametrize("cls", [EvalModelTemplate,
@@ -103,7 +105,7 @@ def test_collect_init_arguments(tmpdir, cls):
         assert isinstance(model.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
     trainer.fit(model)
     raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
     raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
