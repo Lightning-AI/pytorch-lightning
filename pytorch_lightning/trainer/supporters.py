@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from typing import Any, Union
 
 
 class TensorRunningAccum(object):
