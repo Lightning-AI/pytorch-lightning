@@ -1,3 +1,4 @@
+import os
 import platform
 from collections import namedtuple
 
