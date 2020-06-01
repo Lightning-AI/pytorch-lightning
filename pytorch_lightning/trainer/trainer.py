@@ -35,7 +35,6 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
 
-
 try:
     from apex import amp
 except ImportError:
@@ -119,7 +118,7 @@ class Trainer(
             distributed_backend: Optional[str] = None,
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'full',
+            weights_summary: Optional[str] = 'top',
             weights_save_path: Optional[str] = None,
             num_sanity_val_steps: int = 2,
             truncated_bptt_steps: Optional[int] = None,
@@ -494,6 +493,7 @@ class Trainer(
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
+        self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
 
@@ -871,16 +871,12 @@ class Trainer(
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
 
-            else:
-                self.__set_random_port()
-                # track for predict
+            elif self.distributed_backend == 'cpu_ddp':
                 self.model = model
-                # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-                # load weights if not interrupted
-                if self.on_colab_kaggle:
-                    self.load_spawn_weights(model)
-                    self.model = model
+
+            elif self.distributed_backend == 'ddp':
+                self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -927,18 +923,6 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
-
-    def __set_random_port(self):
-        """
-        When running DDP NOT managed by SLURM, the ports might collide
-        :return:
-        """
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
-            os.environ['MASTER_PORT'] = str(default_port)
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -1046,7 +1030,10 @@ class Trainer(
 
         # clear cache before training
         if self.on_gpu:
-            torch.cuda.empty_cache()
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
 
         # CORE TRAINING LOOP
         self.train()
@@ -1096,7 +1083,10 @@ class Trainer(
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no-cover
+
+        # on tpu, .spawn means we don't have a trained model
+        # TODO: remove TPU spawn
+        elif self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model

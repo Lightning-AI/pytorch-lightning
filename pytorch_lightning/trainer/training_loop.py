@@ -158,6 +158,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+import subprocess
 
 try:
     from apex import amp
@@ -305,13 +306,13 @@ class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         # add signal handlers for process kills
-        def _signal_kill_handler(*args):
-            return TrainerTrainLoopMixin.run_training_teardown(self)
-
-        orig_signal_handlers = {}
-        for sig_name in SIGNAL_TERMINATE:
-            orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
-                                                           _signal_kill_handler)
+        # def _signal_kill_handler(*args):
+        #     return TrainerTrainLoopMixin.run_training_teardown(self)
+        #
+        # orig_signal_handlers = {}
+        # for sig_name in SIGNAL_TERMINATE:
+        #     orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
+        #                                                    _signal_kill_handler)
 
         # get model
         model = self.get_model()
@@ -384,15 +385,17 @@ class TrainerTrainLoopMixin(ABC):
 
             self.run_training_teardown()
 
-            # reset signal handlers
-            for sig_name in SIGNAL_TERMINATE:
-                signal.signal(getattr(signal, sig_name), orig_signal_handlers[sig_name])
-
         except KeyboardInterrupt:
-            if self.proc_rank == 0:
-                log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
-            self.interrupted = True
-            self.run_training_teardown()
+            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
+
+            # user could press ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.interrupted = True
+
+                for proc in self.interactive_ddp_procs:
+                    subprocess.Popen.kill(proc)
+
+                self.run_training_teardown()
 
     def run_training_epoch(self):
 
@@ -678,7 +681,7 @@ class TrainerTrainLoopMixin(ABC):
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.optimizers[opt_idx])]
 
-    @atexit.register
+    # @atexit.register
     def run_training_teardown(self):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return

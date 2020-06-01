@@ -83,7 +83,7 @@ def test_trainer_arg_bool(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
         auto_lr_find=True
     )
 
@@ -102,7 +102,7 @@ def test_trainer_arg_str(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
         auto_lr_find='my_fancy_lr'
     )
 
@@ -122,7 +122,7 @@ def test_call_to_trainer_method(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
     )
 
     lrfinder = trainer.lr_find(model, mode='linear')
@@ -135,6 +135,8 @@ def test_call_to_trainer_method(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
+    pytest.skip('TODO: speed up this test')
+
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
 
@@ -145,7 +147,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        accumulate_grad_batches=2
+        accumulate_grad_batches=2,
     )
 
     lrfinder = trainer.lr_find(model, early_stop_threshold=None)
@@ -168,7 +170,7 @@ def test_suggestion_parameters_work(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10,
+        max_epochs=3,
     )
 
     lrfinder = trainer.lr_find(model)
@@ -188,7 +190,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10
+        max_epochs=3
     )
 
     lrfinder = trainer.lr_find(model)
