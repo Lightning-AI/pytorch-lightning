@@ -8,6 +8,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
 
 from tests.base import EvalModelTemplate
+from tests.base.utils import reset_seed
 
 
 class OnlyMetricsListLogger(LightningLoggerBase):
@@ -75,23 +76,23 @@ class ModelWithManualGradTracker(EvalModelTemplate):
         self.stored_grad_norms.append(out)
 
 
-@pytest.mark.parametrize("seed", [479_158_593])  # a vetted random number
 @pytest.mark.parametrize("norm_type", [1., 1.25, 1.5, 2, 3, 5, 10, 'inf'])
-def test_grad_tracking(tmpdir, norm_type, seed, rtol=5e-3):
+def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     # rtol=5e-3 respects the 3 decmials rounding in `.grad_norms` and above
 
-    seed_everything(seed)
+    reset_seed()
 
     # use a custom grad tracking module and a list logger
     model = ModelWithManualGradTracker(norm_type)
     logger = OnlyMetricsListLogger()
 
-    result = Trainer(
+    trainer = Trainer(
         max_epochs=3,
         logger=logger,
         track_grad_norm=norm_type,
         row_log_interval=1,  # request grad_norms every batch
-    ).fit(model)
+    )
+    result = trainer.fit(model)
 
     assert result == 1, "Training failed"
     assert len(logger.metrics) == len(model.stored_grad_norms)

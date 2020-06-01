@@ -342,10 +342,9 @@ class Trainer(
 
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
-        if not isinstance(track_grad_norm, (int, float)) \
-           and track_grad_norm != 'inf':
-            raise MisconfigurationException("track_grad_norm can be an int, a "
-                                            "float or 'inf' (infinity norm).")
+        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+            raise MisconfigurationException(
+                "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
