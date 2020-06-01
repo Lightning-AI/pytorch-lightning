@@ -63,7 +63,7 @@ def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        max_epochs=2,
+        max_epochs=1,
         progress_bar_refresh_rate=0,
         weights_summary='top',
         train_percent_check=0.2,
