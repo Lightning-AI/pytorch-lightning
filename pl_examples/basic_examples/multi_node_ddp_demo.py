@@ -4,23 +4,19 @@ Multi-node example (GPU)
 import os
 from argparse import ArgumentParser
 
-import numpy as np
-import torch
-
 import pytorch_lightning as pl
 from pl_examples.models.lightning_template import LightningTemplateModel
 
-SEED = 2334
-torch.manual_seed(SEED)
-np.random.seed(SEED)
+pl.seed_everything(234)
 
 
-def main(hparams):
-    """Main training routine specific for this project."""
+def main(model_args):
+    """ Main training routine specific for this project """
+
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = LightningTemplateModel(hparams)
+    model = LightningTemplateModel(model_args)
 
     # ------------------------
     # 2 INIT TRAINER
@@ -43,9 +39,9 @@ if __name__ == '__main__':
 
     # each LightningModule defines arguments relevant to it
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
-    hyperparams = parser.parse_args()
+    model_args = parser.parse_args()
 
     # ---------------------
     # RUN TRAINING
     # ---------------------
-    main(hyperparams)
+    main(model_args)

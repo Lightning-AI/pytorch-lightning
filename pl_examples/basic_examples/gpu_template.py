@@ -4,24 +4,19 @@ Runs a model on a single node across multiple gpus.
 import os
 from argparse import ArgumentParser
 
-import numpy as np
-import torch
-
 import pytorch_lightning as pl
 from pl_examples.models.lightning_template import LightningTemplateModel
 
-SEED = 2334
-torch.manual_seed(SEED)
-np.random.seed(SEED)
+pl.seed_everything(234)
 
 
-def main(trainer_args, hparams):
+def main(trainer_args, model_args):
     """ Main training routine specific for this project """
 
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = LightningTemplateModel(**vars(hparams))
+    model = LightningTemplateModel(**vars(model_args))
 
     # ------------------------
     # 2 INIT TRAINER
@@ -44,12 +39,8 @@ if __name__ == '__main__':
     # TRAINING ARGUMENTS
     # ------------------------
     # these are project-wide arguments
-
     root_dir = os.path.dirname(os.path.realpath(__file__))
-    # parent_parser = ArgumentParser()
-    parent_parser = ArgumentParser(parents=[parent_parser])
-
-    # gpu args
+    trainer_parser = ArgumentParser(add_help=False)
     trainer_parser.add_argument(
         '--gpus',
         type=int,
@@ -74,15 +65,14 @@ if __name__ == '__main__':
         default=20,
         help='number of training epochs'
     )
+    trainer_args, model_args = trainer_parser.parse_known_args()
 
     # each LightningModule defines arguments relevant to it
-    trainer_args = trainer_parser.parse_args()
-
-    hparams_parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
-    hyperparams = hparams_parser.parse_args()
-    print(hyperparams)
+    model_parser = ArgumentParser(add_help=False)
+    parser = LightningTemplateModel.add_model_specific_args(model_parser, root_dir)
+    model_args = parser.parse_args(model_args)
 
     # ---------------------
     # RUN TRAINING
     # ---------------------
-    main(trainer_args, hyperparams)
+    main(trainer_args, model_args)
