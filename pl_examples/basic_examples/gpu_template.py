@@ -50,7 +50,7 @@ if __name__ == '__main__':
     trainer_parser.add_argument(
         '--distributed_backend',
         type=str,
-        default='ddp',
+        default='dp',
         help='supports three options dp, ddp, ddp2'
     )
     trainer_parser.add_argument(
