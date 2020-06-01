@@ -1,17 +1,18 @@
-import tutorials.tagger.config_allennlp
-from allennlp.data.dataset_readers import DatasetReader
-from allennlp.data.dataloader import DataLoader
-import allennlp.training.util as training_util
-from allennlp.data.vocabulary import Vocabulary
-from allennlp.models import Model
-from copy import deepcopy
-from pytorch_lightning.core import LightningModule
-from typing import Dict, Any, List, Union
-import torch
-import flatten_dict
 import itertools
 import statistics
+from copy import deepcopy
+from typing import Dict, Union
+
+import allennlp.training.util as training_util
+import flatten_dict
+import torch
+from allennlp.data.dataloader import DataLoader
+from allennlp.data.dataset_readers import DatasetReader
+from allennlp.data.vocabulary import Vocabulary
+from allennlp.models import Model
+
 from pytorch_lightning import _logger as log
+from pytorch_lightning.core import LightningModule
 
 
 def is_scalar(x):

@@ -1,2 +1,4 @@
 torchvision>=0.4.0
 gym>=0.17.0
+allennlp
+flatten-dict
