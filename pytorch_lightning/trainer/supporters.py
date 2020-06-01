@@ -21,7 +21,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from torch import Tensor
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import Any
+from typing import Any, Union
 
 
 class TensorRunningAccum(object):
