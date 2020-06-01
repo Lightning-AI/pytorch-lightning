@@ -11,26 +11,26 @@ from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import EvalModelTemplate
 
 
-def test_early_stopping_cpu_model(tmpdir):
-    """Test each of the trainer options."""
-    stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        early_stop_callback=stopping,
-        max_epochs=2,
-        gradient_clip_val=1.0,
-        overfit_pct=0.20,
-        track_grad_norm=2,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
-    )
-
-    model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
+# def test_early_stopping_cpu_model(tmpdir):
+#     """Test each of the trainer options."""
+#     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
+#     trainer_options = dict(
+#         default_root_dir=tmpdir,
+#         early_stop_callback=stopping,
+#         max_epochs=2,
+#         gradient_clip_val=1.0,
+#         overfit_pct=0.20,
+#         track_grad_norm=2,
+#         train_percent_check=0.1,
+#         val_percent_check=0.1,
+#     )
+#
+#     model = EvalModelTemplate()
+#     tutils.run_model_test(trainer_options, model, on_gpu=False)
+#
+#     # test freeze on cpu
+#     model.freeze()
+#     model.unfreeze()
 
 
 @pytest.mark.spawn
