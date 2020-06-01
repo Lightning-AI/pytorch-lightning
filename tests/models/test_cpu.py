@@ -111,7 +111,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=8,
+        max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
