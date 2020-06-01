@@ -1,11 +1,14 @@
 import itertools
 import statistics
+from argparse import Namespace
 from copy import deepcopy
 from typing import Dict, Union
 
 import allennlp.training.util as training_util
 import flatten_dict
 import torch
+from allennlp.common import Params
+from allennlp.common.checks import ConfigurationError
 from allennlp.data.dataloader import DataLoader
 from allennlp.data.dataset_readers import DatasetReader
 from allennlp.data.vocabulary import Vocabulary
@@ -15,18 +18,18 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 
 
-def is_scalar(x):
+def _is_scalar(x):
     return isinstance(x, (int, float)) or (isinstance(x, torch.Tensor) and x.dim() == 0)
 
 
-def is_loggable(x):
-    return is_scalar(x) or isinstance(x, dict) or isinstance(x, list)
+def _is_loggable(x):
+    return _is_scalar(x) or isinstance(x, dict) or isinstance(x, list)
 
 
 def anlp_param(param):
     # Not sure if this is the best way to define the paramaters
-    for p in ["train_data_path", "validation_data_path", "test_data_path", "dataset_reader", "val_dataset_reader",
-              "model", "data_loader"]:
+    for p in ["train_data_path", "validation_data_path", "test_data_path", "dataset_reader",
+              "val_dataset_reader", "model", "data_loader"]:
         if param == p or param.startswith(p + "."):
             return True
     return False
@@ -147,13 +150,12 @@ class AllenNlpLightningModule(LightningModule):
         output_dict.update(self.model.get_metrics())
 
         update = {}
-        update['log'] = {k: v for k, v in output_dict.items() if is_loggable(v)}
-        update['log']['loss'] = output_dict['loss']
-        update['log']['epoch'] = self.current_epoch
+        update['log'] = {k: v for k, v in output_dict.items() if _is_loggable(v)}
+        update['log'].update(loss=output_dict['loss'], epoch=self.current_epoch)
         #         update['log']['batch'] = batch_idx
         update['progress_bar'] = {k: v for k, v in output_dict.items()
-                                  if is_scalar(v) and k != 'loss'}
-        update['progress_bar']['batch'] = batch_idx
+                                  if _is_scalar(v) and k != 'loss'}
+        update['progress_bar'].update(batch=batch_idx)
         output_dict.update(update)
         return output_dict
 
@@ -168,17 +170,18 @@ class AllenNlpLightningModule(LightningModule):
 
         # Handle loss:
         val_loss = torch.stack([x['loss'] for x in outputs]).mean()
-        result = {'log': {}, 'progress_bar': {}}
-        result['val_loss'] = val_loss
-        result['log']['val_loss'] = val_loss
-        result['progress_bar']['val_loss'] = val_loss
+        result = {
+            'val_loss': val_loss,
+            'log': {'val_loss': val_loss},
+            'progress_bar': {'val_loss': val_loss}
+        }
 
         # Handle everything else
         for key in outputs[0].keys():
             if key in ['log', 'progress_bar']:
                 continue
             val_key = "val_" + key
-            if is_scalar(outputs[0][key]):
+            if _is_scalar(outputs[0][key]):
                 # take mean of scalar values
                 if isinstance(outputs[0][key], torch.Tensor):
                     val = torch.stack([x[key] for x in outputs]).mean()
@@ -187,7 +190,7 @@ class AllenNlpLightningModule(LightningModule):
                 result[val_key] = val
                 result['log'][val_key] = val
                 result['progress_bar'][val_key] = val
-            elif is_loggable(outputs[0][key]):
+            elif _is_loggable(outputs[0][key]):
                 # chain non-scalar values into a list
                 val = list(itertools.chain(*[output[key] for output in outputs]))
                 result['log'][val_key] = val
@@ -196,11 +199,9 @@ class AllenNlpLightningModule(LightningModule):
         result['log']['epoch'] = self.current_epoch
         return result
 
-    @pytorch_lightning.data_loader
     def train_dataloader(self):
         return self.data_loader
 
-    @pytorch_lightning.data_loader
     def val_dataloader(self):
         return self.validation_data_loader
 
