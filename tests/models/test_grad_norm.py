@@ -43,7 +43,7 @@ class OnlyMetricsListLogger(LightningLoggerBase):
 class ModelWithManualGradTracker(EvalModelTemplate):
     def __init__(self, norm_type, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.stored_grad_norms, self.norm_type = [], norm_type
+        self.stored_grad_norms, self.norm_type = [], float(norm_type)
 
     # validation spoils logger's metrics with `val_loss` records
     validation_step = None
@@ -76,8 +76,8 @@ class ModelWithManualGradTracker(EvalModelTemplate):
 
 
 @pytest.mark.parametrize("seed", [479_158_593])  # a vetted random number
-@pytest.mark.parametrize("norm_type", [1., 1.25, 1.5, 2, 3, 5, 10, float('inf')])
-def test_custom_logger(tmpdir, norm_type, seed, rtol=5e-3):
+@pytest.mark.parametrize("norm_type", [1., 1.25, 1.5, 2, 3, 5, 10, 'inf'])
+def test_grad_tracking(tmpdir, norm_type, seed, rtol=5e-3):
     # rtol=5e-3 respects the 3 decmials rounding in `.grad_norms` and above
 
     seed_everything(seed)
