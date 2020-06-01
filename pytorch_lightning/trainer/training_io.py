@@ -124,7 +124,12 @@ PRIMITIVE_TYPES = (
     list, tuple, set, dict,
     Namespace,  # for back compatibility
 )
-
+try:
+    from omegaconf import DictConfig
+except ImportError:
+    pass
+else:
+    PRIMITIVE_TYPES = PRIMITIVE_TYPES + (DictConfig, )
 
 class TrainerIOMixin(ABC):
 

@@ -3,8 +3,7 @@ import sys
 
 import pytest
 import torch
-from omegaconf import OmegaConf
-from packaging import version
+from omegaconf import OmegaConf, DictConfig
 
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
@@ -91,16 +90,27 @@ class AggSubClassEvalModel(SubClassEvalModel):
         self.auto_collect_arguments()
 
 
+class DictConfSubClassEvalModel(SubClassEvalModel):
+    def __init__(self, *args, dict_conf=DictConfig(dict(my_param='something')), **kwargs):
+        super().__init__()
+        self.dict_conf = dict_conf
+
+
 @pytest.mark.parametrize("cls", [
     EvalModelTemplate,
     SubClassEvalModel,
     SubSubClassEvalModel,
     AggSubClassEvalModel,
     UnconventionalArgsEvalModel,
+    DictConfSubClassEvalModel,
 ])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
-    extra_args = dict(my_loss=torch.nn.CosineEmbeddingLoss()) if cls is AggSubClassEvalModel else {}
+    extra_args = {}
+    if cls is AggSubClassEvalModel:
+        extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
+    elif cls is DictConfSubClassEvalModel:
+        extra_args.update(dict_conf=DictConfig(dict(my_param='anything')))
 
     model = cls(**extra_args)
     assert model.batch_size == 32
@@ -130,6 +140,10 @@ def test_collect_init_arguments(tmpdir, cls):
 
     if isinstance(model, AggSubClassEvalModel):
         assert isinstance(model.my_loss, torch.nn.CrossEntropyLoss)
+
+    if isinstance(model, DictConfSubClassEvalModel):
+        assert isinstance(model.dict_conf, DictConfig)
+        assert model.dict_conf == 'anything'
 
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
