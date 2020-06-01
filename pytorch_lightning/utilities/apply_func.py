@@ -1,7 +1,7 @@
 from abc import ABC
 from collections import Mapping, Sequence
 from copy import copy
-from typing import Any, Callable, Union
+from typing import Any, Callable, Union, Optional
 
 import torch
 
