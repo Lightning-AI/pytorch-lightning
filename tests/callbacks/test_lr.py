@@ -16,7 +16,7 @@ def test_lr_logger_single_lr(tmpdir):
     lr_logger = LearningRateLogger()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
         val_percent_check=0.1,
         train_percent_check=0.5,
         callbacks=[lr_logger]
@@ -39,7 +39,7 @@ def test_lr_logger_no_lr(tmpdir):
     lr_logger = LearningRateLogger()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
         val_percent_check=0.1,
         train_percent_check=0.5,
         callbacks=[lr_logger]
@@ -87,7 +87,7 @@ def test_lr_logger_param_groups(tmpdir):
     lr_logger = LearningRateLogger()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
         val_percent_check=0.1,
         train_percent_check=0.5,
         callbacks=[lr_logger]

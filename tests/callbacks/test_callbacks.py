@@ -220,7 +220,7 @@ def test_early_stopping_no_val_step(tmpdir):
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
         overfit_pct=0.20,
-        max_epochs=5,
+        max_epochs=2,
     )
     result = trainer.fit(model)
 
@@ -254,7 +254,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     trainer = Trainer(default_root_dir=tmpdir,
                       checkpoint_callback=checkpoint,
                       overfit_pct=0.20,
-                      max_epochs=5
+                      max_epochs=2
                       )
     trainer.fit(model)
 
@@ -275,7 +275,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     trainer = Trainer(
         default_root_dir=tmpdir,
         overfit_pct=0.2,
-        max_epochs=5,
+        max_epochs=2,
         logger=logger
     )
     trainer.fit(model)
