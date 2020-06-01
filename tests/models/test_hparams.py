@@ -92,7 +92,7 @@ class AggSubClassEvalModel(SubClassEvalModel):
 
 class DictConfSubClassEvalModel(SubClassEvalModel):
     def __init__(self, *args, dict_conf=DictConfig(dict(my_param='something')), **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.dict_conf = dict_conf
 
 
