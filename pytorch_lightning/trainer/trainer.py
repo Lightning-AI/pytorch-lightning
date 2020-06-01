@@ -344,6 +344,9 @@ class Trainer(
         # set default save path if user didn't provide one
         if default_root_dir is None or default_root_dir is True:
             # Backward compatibility, TODO: remove default_save_path in v0.8.0
+            if default_save_path:
+                rank_zero_warn("Argument `default_save_path` has been replaced by `default_root_dir`"
+                               " and will be removed in v0.8.0", DeprecationWarning)
             default_root_dir = default_save_path or os.getcwd()
         self.default_root_dir = default_root_dir
 
