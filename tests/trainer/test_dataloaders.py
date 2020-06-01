@@ -457,6 +457,7 @@ def test_batch_size_smaller_than_num_gpus():
 
     trainer = Trainer(
         max_epochs=1,
+        train_percent_check=0.1,
         val_percent_check=0,
         gpus=num_gpus,
     )
