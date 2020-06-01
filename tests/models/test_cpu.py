@@ -147,7 +147,7 @@ def test_lbfgs_cpu_model(tmpdir):
                    learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
-    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.3)
+    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
