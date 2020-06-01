@@ -108,7 +108,7 @@ class TrainerDPMixin(ABC):
             batch: A tensor or collection of tensors.
             tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
 
-        Returns:
+        Return:
             the tensor on the TPU device.
 
         See Also:
@@ -130,7 +130,7 @@ class TrainerDPMixin(ABC):
             batch: A tensor or collection of tensors.
             gpu_id: The id of the GPU device. If omitted, the first available GPU is chosen.
 
-        Returns:
+        Return:
             the tensor on the GPU device.
 
         See Also:

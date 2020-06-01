@@ -47,7 +47,7 @@ def transfer_batch_to_device(batch: Any, device: torch.device):
             for a list of supported collection types.
         device: The device to which tensors should be moved
 
-    Returns:
+    Return:
         the same collection but with all contained tensors residing on the new device.
 
     See Also:
