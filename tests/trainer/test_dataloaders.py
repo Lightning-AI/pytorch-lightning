@@ -281,168 +281,168 @@ def test_mixing_of_dataloader_options(tmpdir):
 #         trainer.test(model)
 #
 #
-# @pytest.mark.parametrize('check_interval', [50, 1.0])
-# def test_inf_train_dataloader(tmpdir, check_interval):
-#     """Test inf train data loader (e.g. IterableDataset)"""
-#
-#     model = EvalModelTemplate()
-#     model.train_dataloader = model.train_dataloader__infinite
-#
-#     trainer = Trainer(
-#         default_root_dir=tmpdir,
-#         max_epochs=1,
-#         val_check_interval=check_interval
-#     )
-#     result = trainer.fit(model)
-#     # verify training completed
-#     assert result == 1
+@pytest.mark.parametrize('check_interval', [50, 1.0])
+def test_inf_train_dataloader(tmpdir, check_interval):
+    """Test inf train data loader (e.g. IterableDataset)"""
+
+    model = EvalModelTemplate()
+    model.train_dataloader = model.train_dataloader__infinite
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=check_interval
+    )
+    result = trainer.fit(model)
+    # verify training completed
+    assert result == 1
 
 
-# @pytest.mark.parametrize('check_interval', [1.0])
-# def test_inf_val_dataloader(tmpdir, check_interval):
-#     """Test inf val data loader (e.g. IterableDataset)"""
-#
-#     model = EvalModelTemplate()
-#     model.val_dataloader = model.val_dataloader__infinite
-#
-#     # logger file to get meta
-#     trainer = Trainer(
-#         default_root_dir=tmpdir,
-#         max_epochs=1,
-#         val_check_interval=check_interval,
-#     )
-#     result = trainer.fit(model)
-#
-#     # verify training completed
-#     assert result == 1
-#
-#
-# def test_error_on_zero_len_dataloader(tmpdir):
-#     """ Test that error is raised if a zero-length dataloader is defined """
-#
-#     model = EvalModelTemplate()
-#     model.train_dataloader = model.train_dataloader__zero_length
-#
-#     # fit model
-#     with pytest.raises(ValueError):
-#         trainer = Trainer(
-#             default_root_dir=tmpdir,
-#             max_epochs=1,
-#             train_percent_check=0.1,
-#             val_percent_check=0.1,
-#             test_percent_check=0.1
-#         )
-#         trainer.fit(model)
-#
-#
-# @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-# def test_warning_with_few_workers(tmpdir):
-#     """ Test that error is raised if dataloader with only a few workers is used """
-#
-#     model = EvalModelTemplate()
-#
-#     # logger file to get meta
-#     trainer_options = dict(
-#         default_root_dir=tmpdir,
-#         max_epochs=1,
-#         val_percent_check=0.1,
-#         train_percent_check=0.2
-#     )
-#
-#     fit_options = dict(train_dataloader=model.dataloader(train=True),
-#                        val_dataloaders=model.dataloader(train=False))
-#     test_options = dict(test_dataloaders=model.dataloader(train=False))
-#
-#     trainer = Trainer(**trainer_options)
-#
-#     # fit model
-#     with pytest.warns(UserWarning, match='train'):
-#         trainer.fit(model, **fit_options)
-#
-#     with pytest.warns(UserWarning, match='val'):
-#         trainer.fit(model, **fit_options)
-#
-#     with pytest.warns(UserWarning, match='test'):
-#         trainer.test(**test_options)
-#
-#
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
-# def test_dataloader_reinit_for_subclass():
-#
-#     class CustomDataLoader(torch.utils.data.DataLoader):
-#         def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
-#                      batch_sampler=None, num_workers=0, collate_fn=None,
-#                      pin_memory=False, drop_last=False, timeout=0,
-#                      worker_init_fn=None, dummy_kwarg=None):
-#             super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
-#                              num_workers, collate_fn, pin_memory, drop_last, timeout,
-#                              worker_init_fn)
-#
-#             self.dummy_kwarg = dummy_kwarg
-#
-#     trainer = Trainer(
-#         gpus=[0, 1],
-#         num_nodes=1,
-#         distributed_backend='ddp',
-#     )
-#
-#     class CustomDummyObj:
-#         sampler = None
-#
-#     result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
-#     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
-#
-#     result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
-#     assert isinstance(result, torch.utils.data.DataLoader)
-#     assert isinstance(result, CustomDataLoader)
-#     assert hasattr(result, 'dummy_kwarg')
-#
-#
-# @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
-# def test_batch_size_smaller_than_num_gpus():
-#     # we need at least 3 gpus for this test
-#     num_gpus = 3
-#     batch_size = 3
-#
-#     class CurrentTestModel(EvalModelTemplate):
-#
-#         def __init__(self, *args, **kwargs):
-#             super().__init__(*args, **kwargs)
-#             # batch norm doesn't work with batch size 1, we replace it
-#             self.c_d1_bn = torch.nn.ReLU()
-#
-#         def training_step(self, *args, **kwargs):
-#             output = super().training_step(*args, **kwargs)
-#             loss = output['loss']
-#             # we make sure to add some metrics to the output dict,
-#             # this is essential for this test
-#             output['progress_bar'] = {'train_loss': loss}
-#             return output
-#
-#         def train_dataloader(self):
-#             dataloader = super().train_dataloader()
-#             # construct a dataset with a size that is not divisible by num_gpus
-#             # therefore the last batch will have a size < num_gpus
-#             size = num_gpus * batch_size + (num_gpus - 1)
-#             dataset = Subset(dataloader.dataset, range(size))
-#             dataloader = DataLoader(
-#                 dataset,
-#                 batch_size=self.batch_size,
-#                 drop_last=False,
-#             )
-#             return dataloader
-#
-#     hparams = EvalModelTemplate.get_default_hparams()
-#     hparams['batch_size'] = batch_size
-#     model = CurrentTestModel(**hparams)
-#
-#     trainer = Trainer(
-#         max_epochs=1,
-#         val_percent_check=0,
-#         gpus=num_gpus,
-#     )
-#
-#     # we expect the reduction for the metrics also to happen on the last batch
-#     # where we will get fewer metrics than gpus
-#     result = trainer.fit(model)
-#     assert 1 == result
+@pytest.mark.parametrize('check_interval', [1.0])
+def test_inf_val_dataloader(tmpdir, check_interval):
+    """Test inf val data loader (e.g. IterableDataset)"""
+
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__infinite
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=check_interval,
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
+
+
+def test_error_on_zero_len_dataloader(tmpdir):
+    """ Test that error is raised if a zero-length dataloader is defined """
+
+    model = EvalModelTemplate()
+    model.train_dataloader = model.train_dataloader__zero_length
+
+    # fit model
+    with pytest.raises(ValueError):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            train_percent_check=0.1,
+            val_percent_check=0.1,
+            test_percent_check=0.1
+        )
+        trainer.fit(model)
+
+
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+def test_warning_with_few_workers(tmpdir):
+    """ Test that error is raised if dataloader with only a few workers is used """
+
+    model = EvalModelTemplate()
+
+    # logger file to get meta
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_percent_check=0.1,
+        train_percent_check=0.2
+    )
+
+    fit_options = dict(train_dataloader=model.dataloader(train=True),
+                       val_dataloaders=model.dataloader(train=False))
+    test_options = dict(test_dataloaders=model.dataloader(train=False))
+
+    trainer = Trainer(**trainer_options)
+
+    # fit model
+    with pytest.warns(UserWarning, match='train'):
+        trainer.fit(model, **fit_options)
+
+    with pytest.warns(UserWarning, match='val'):
+        trainer.fit(model, **fit_options)
+
+    with pytest.warns(UserWarning, match='test'):
+        trainer.test(**test_options)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+def test_dataloader_reinit_for_subclass():
+
+    class CustomDataLoader(torch.utils.data.DataLoader):
+        def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
+                     batch_sampler=None, num_workers=0, collate_fn=None,
+                     pin_memory=False, drop_last=False, timeout=0,
+                     worker_init_fn=None, dummy_kwarg=None):
+            super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
+                             num_workers, collate_fn, pin_memory, drop_last, timeout,
+                             worker_init_fn)
+
+            self.dummy_kwarg = dummy_kwarg
+
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        distributed_backend='ddp',
+    )
+
+    class CustomDummyObj:
+        sampler = None
+
+    result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
+    assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
+
+    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
+    assert isinstance(result, torch.utils.data.DataLoader)
+    assert isinstance(result, CustomDataLoader)
+    assert hasattr(result, 'dummy_kwarg')
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
+def test_batch_size_smaller_than_num_gpus():
+    # we need at least 3 gpus for this test
+    num_gpus = 3
+    batch_size = 3
+
+    class CurrentTestModel(EvalModelTemplate):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # batch norm doesn't work with batch size 1, we replace it
+            self.c_d1_bn = torch.nn.ReLU()
+
+        def training_step(self, *args, **kwargs):
+            output = super().training_step(*args, **kwargs)
+            loss = output['loss']
+            # we make sure to add some metrics to the output dict,
+            # this is essential for this test
+            output['progress_bar'] = {'train_loss': loss}
+            return output
+
+        def train_dataloader(self):
+            dataloader = super().train_dataloader()
+            # construct a dataset with a size that is not divisible by num_gpus
+            # therefore the last batch will have a size < num_gpus
+            size = num_gpus * batch_size + (num_gpus - 1)
+            dataset = Subset(dataloader.dataset, range(size))
+            dataloader = DataLoader(
+                dataset,
+                batch_size=self.batch_size,
+                drop_last=False,
+            )
+            return dataloader
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    hparams['batch_size'] = batch_size
+    model = CurrentTestModel(**hparams)
+
+    trainer = Trainer(
+        max_epochs=1,
+        val_percent_check=0,
+        gpus=num_gpus,
+    )
+
+    # we expect the reduction for the metrics also to happen on the last batch
+    # where we will get fewer metrics than gpus
+    result = trainer.fit(model)
+    assert 1 == result
