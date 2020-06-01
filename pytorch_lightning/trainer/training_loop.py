@@ -256,7 +256,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_evaluation(self, *args):
+    def run_evaluation(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -464,7 +464,6 @@ class TrainerTrainLoopMixin(ABC):
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
-                self.call_checkpoint_callback()
 
             # ---------------
             # CHECKPOINTING, EARLY STOPPING
