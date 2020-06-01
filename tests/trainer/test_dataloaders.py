@@ -359,9 +359,18 @@ def test_warning_with_few_workers(tmpdir):
         train_percent_check=0.2
     )
 
-    fit_options = dict(train_dataloader=model.dataloader(train=True),
-                       val_dataloaders=model.dataloader(train=False))
-    test_options = dict(test_dataloaders=model.dataloader(train=False))
+    train_dl = model.dataloader(train=True)
+    train_dl.num_workers = 0
+
+    val_dl = model.dataloader(train=False)
+    val_dl.num_workers = 0
+
+    train_dl = model.dataloader(train=False)
+    train_dl.num_workers = 0
+
+    fit_options = dict(train_dataloader=train_dl,
+                       val_dataloaders=val_dl)
+    test_options = dict(test_dataloaders=train_dl)
 
     trainer = Trainer(**trainer_options)
 
