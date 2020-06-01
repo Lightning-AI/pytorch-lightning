@@ -5,7 +5,6 @@ import torch
 
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -77,74 +76,6 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model, **fit_options)
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
-
-
-def test_cpu_slurm_save_load(tmpdir):
-    """Verify model save/load/checkpoint on CPU."""
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-
-    # logger file to get meta
-    logger = tutils.get_default_logger(tmpdir)
-    version = logger.version
-
-    # fit model
-    trainer = Trainer(
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
-    )
-    result = trainer.fit(model)
-    real_global_step = trainer.global_step
-
-    # traning complete
-    assert result == 1, 'cpu model failed to complete'
-
-    # predict with trained model before saving
-    # make a prediction
-    dataloaders = model.test_dataloader()
-    if not isinstance(dataloaders, list):
-        dataloaders = [dataloaders]
-
-    for dataloader in dataloaders:
-        for batch in dataloader:
-            break
-
-    x, y = batch
-    x = x.view(x.size(0), -1)
-
-    model.eval()
-    pred_before_saving = model(x)
-
-    # test HPC saving
-    # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(tmpdir, logger)
-    assert os.path.exists(saved_filepath)
-
-    # new logger file to get meta
-    logger = tutils.get_default_logger(tmpdir, version=version)
-
-    trainer = Trainer(
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
-    )
-    model = EvalModelTemplate(**hparams)
-
-    # set the epoch start hook so we can predict before the model does the full training
-    def assert_pred_same():
-        assert trainer.global_step == real_global_step and trainer.global_step > 0
-
-        # predict with loaded model to make sure answers are the same
-        trainer.model.eval()
-        new_pred = trainer.model(x)
-        assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
-
-    model.on_epoch_start = assert_pred_same
-
-    # by calling fit again, we trigger training, loading weights from the cluster
-    # and our hook to predict using current model before any more weight updates
-    trainer.fit(model)
 
 
 @pytest.mark.spawn
