@@ -887,6 +887,7 @@ class Trainer(
             self.horovod_train(model)
 
         elif self.single_gpu:
+            import pdb; pdb.set_trace()
             os.environ['LOCAL_RANK'] = f'{0}'
             self.single_gpu_train(model)
 
