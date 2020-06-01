@@ -11,23 +11,17 @@ class GradInformation(torch.nn.Module):
     def grad_norm(self, norm_type: Union[float, int, str]) -> Dict[str, float]:
         r"""Compute individual parameter's gradient norms and the overall norm.
 
-        Parameters
-        ----------
-        norm_type: float, int, str:
-            The type of the used p-norm, cast to float if necessary. Can be
-            ``'inf'`` for infinity norm.
-
-        Returns
-        -------
-        norms: dict
-            The dictionary of p-norms each individual gradient and the a
-            special entry for the total p-norm of the parameters' gradients
-            viewed as a single vector.
-
-        Details
-        -------
         The overall norm is computed over all gradients together, as if they
         were concatenated into a single vector.
+
+        Args:
+            norm_type: The type of the used p-norm, cast to float if necessary.
+                Can be ``'inf'`` for infinity norm.
+
+        Return:
+            norms: The dictionary of p-norms each individual gradient and the a
+                special entry for the total p-norm of the parameters' gradients
+                viewed as a single vector.
         """
         norm_type = float(norm_type)
 
