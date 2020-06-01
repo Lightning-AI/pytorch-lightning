@@ -2,7 +2,7 @@ import torch
 import pytest
 import numpy as np
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
@@ -75,9 +75,13 @@ class ModelWithManualGradTracker(EvalModelTemplate):
         self.stored_grad_norms.append(out)
 
 
-# @pytest.mark.skip(reason="might fail for small `norm_type` due to round-off")
+@pytest.mark.parametrize("seed", [479_158_593])  # a vetted random number
 @pytest.mark.parametrize("norm_type", [1., 1.25, 1.5, 2, 3, 5, 10, float('inf')])
-def test_custom_logger(tmpdir, norm_type):
+def test_custom_logger(tmpdir, norm_type, seed, rtol=5e-3):
+    # rtol=5e-3 respects the 3 decmials rounding in `.grad_norms` and above
+
+    seed_everything(seed)
+
     # use a custom grad tracking module and a list logger
     model = ModelWithManualGradTracker(norm_type)
     logger = OnlyMetricsListLogger()
@@ -90,13 +94,12 @@ def test_custom_logger(tmpdir, norm_type):
     ).fit(model)
 
     assert result == 1, "Training failed"
-    assert logger.metrics
+    assert len(logger.metrics) == len(model.stored_grad_norms)
 
-    # compare the logged metrics gainst tracked by the model on `.backward`
+    # compare the logged metrics against tracked norms on `.backward`
     for mod, log in zip(model.stored_grad_norms, logger.metrics):
         common = mod.keys() & log.keys()
 
         log, mod = [log[k] for k in common], [mod[k] for k in common]
 
-        # 1e-3 respects the round-off in grad_norms and above
-        assert np.allclose(log, mod, rtol=5e-3)
+        assert np.allclose(log, mod, rtol=rtol)
