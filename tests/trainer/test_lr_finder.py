@@ -135,6 +135,8 @@ def test_call_to_trainer_method(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
+    pytest.skip('TODO: speed up this test')
+
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
 
@@ -145,7 +147,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        accumulate_grad_batches=2
+        accumulate_grad_batches=2,
     )
 
     lrfinder = trainer.lr_find(model, early_stop_threshold=None)
