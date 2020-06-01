@@ -44,7 +44,7 @@ if __name__ == '__main__':
     trainer_parser.add_argument(
         '--gpus',
         type=int,
-        default=1,
+        default=2,
         help='how many gpus'
     )
     trainer_parser.add_argument(
