@@ -328,7 +328,9 @@ def test_error_on_zero_len_dataloader(tmpdir):
         trainer = Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,
-            test_percent_check=0.5
+            train_percent_check=0.1,
+            val_percent_check=0.1,
+            test_percent_check=0.1
         )
         trainer.fit(model)
 
