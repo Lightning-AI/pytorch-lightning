@@ -328,7 +328,8 @@ def test_tbptt_cpu_model(tmpdir):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_single_gpu_model(tmpdir):
+@pytest.mark.parametrize('gpus', [1, [0], [1]])
+def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -336,7 +337,7 @@ def test_single_gpu_model(tmpdir):
         max_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
-        gpus=1
+        gpus=gpus
     )
 
     model = EvalModelTemplate()
