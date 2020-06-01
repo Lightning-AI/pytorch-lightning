@@ -25,7 +25,7 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
         f"lightning was slower than PT (threshold {max_diff_per_epoch})"
 
 
-def run_model_test_without_loggers(trainer_options, model, min_acc=0.40):
+def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
     reset_seed()
 
     # fit model
@@ -155,7 +155,7 @@ def load_model_from_checkpoint(root_weights_dir, module_class=EvalModelTemplate)
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False, min_acc=0.4):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.45):
     # run prediction on 1 batch
     for batch in dataloader:
         break
