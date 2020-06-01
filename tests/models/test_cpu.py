@@ -17,6 +17,7 @@ def test_early_stopping_cpu_model(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
+        max_epochs=5,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
