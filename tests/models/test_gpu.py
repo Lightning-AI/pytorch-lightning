@@ -64,8 +64,8 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     trainer_options = dict(default_root_dir=tmpdir,
                            progress_bar_refresh_rate=0,
                            max_epochs=1,
-                           train_percent_check=0.4,
-                           val_percent_check=0.2,
+                           train_percent_check=0.1,
+                           val_percent_check=0.1,
                            gpus=[0, 1],
                            distributed_backend='ddp')
 
