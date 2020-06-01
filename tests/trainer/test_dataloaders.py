@@ -248,26 +248,26 @@ def test_mixing_of_dataloader_options(tmpdir):
         f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
-def test_train_inf_dataloader_error(tmpdir):
-    """Test inf train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate()
-    model.train_dataloader = model.train_dataloader__infinite
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
-
-    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
-        trainer.fit(model)
-
-
-def test_val_inf_dataloader_error(tmpdir):
-    """Test inf train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate()
-    model.val_dataloader = model.val_dataloader__infinite
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
-
-    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
-        trainer.fit(model)
+# def test_train_inf_dataloader_error(tmpdir):
+#     """Test inf train data loader (e.g. IterableDataset)"""
+#     model = EvalModelTemplate()
+#     model.train_dataloader = model.train_dataloader__infinite
+#
+#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
+#
+#     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+#         trainer.fit(model)
+#
+#
+# def test_val_inf_dataloader_error(tmpdir):
+#     """Test inf train data loader (e.g. IterableDataset)"""
+#     model = EvalModelTemplate()
+#     model.val_dataloader = model.val_dataloader__infinite
+#
+#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
+#
+#     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+#         trainer.fit(model)
 
 
 # def test_test_inf_dataloader_error(tmpdir):
