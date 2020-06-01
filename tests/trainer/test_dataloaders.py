@@ -248,73 +248,83 @@ def test_mixing_of_dataloader_options(tmpdir):
         f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
-# def test_train_inf_dataloader_error(tmpdir):
-#     """Test inf train data loader (e.g. IterableDataset)"""
-#     model = EvalModelTemplate()
-#     model.train_dataloader = model.train_dataloader__infinite
-#
-#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
-#
-#     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
-#         trainer.fit(model)
+def test_train_inf_dataloader_error(tmpdir):
+    pytest.skip('TODO: fix speed of this test')
+
+    """Test inf train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate()
+    model.train_dataloader = model.train_dataloader__infinite
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.fit(model)
 
 
-# def test_val_inf_dataloader_error(tmpdir):
-#     """Test inf train data loader (e.g. IterableDataset)"""
-#     model = EvalModelTemplate()
-#     model.val_dataloader = model.val_dataloader__infinite
-#
-#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
-#
-#     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
-#         trainer.fit(model)
+def test_val_inf_dataloader_error(tmpdir):
+    pytest.skip('TODO: fix speed of this test')
+
+    """Test inf train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__infinite
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.fit(model)
 
 
-# def test_test_inf_dataloader_error(tmpdir):
-#     """Test inf train data loader (e.g. IterableDataset)"""
-#     model = EvalModelTemplate()
-#     model.test_dataloader = model.test_dataloader__infinite
-#
-#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, test_percent_check=0.5)
-#
-#     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
-#         trainer.test(model)
-#
-#
-# @pytest.mark.parametrize('check_interval', [50, 1.0])
-# def test_inf_train_dataloader(tmpdir, check_interval):
-#     """Test inf train data loader (e.g. IterableDataset)"""
-#
-#     model = EvalModelTemplate()
-#     model.train_dataloader = model.train_dataloader__infinite
-#
-#     trainer = Trainer(
-#         default_root_dir=tmpdir,
-#         max_epochs=1,
-#         val_check_interval=check_interval
-#     )
-#     result = trainer.fit(model)
-#     # verify training completed
-#     assert result == 1
-#
-#
-# @pytest.mark.parametrize('check_interval', [1.0])
-# def test_inf_val_dataloader(tmpdir, check_interval):
-#     """Test inf val data loader (e.g. IterableDataset)"""
-#
-#     model = EvalModelTemplate()
-#     model.val_dataloader = model.val_dataloader__infinite
-#
-#     # logger file to get meta
-#     trainer = Trainer(
-#         default_root_dir=tmpdir,
-#         max_epochs=1,
-#         val_check_interval=check_interval,
-#     )
-#     result = trainer.fit(model)
-#
-#     # verify training completed
-#     assert result == 1
+def test_test_inf_dataloader_error(tmpdir):
+    pytest.skip('TODO: fix speed of this test')
+
+    """Test inf train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate()
+    model.test_dataloader = model.test_dataloader__infinite
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, test_percent_check=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.test(model)
+
+
+@pytest.mark.parametrize('check_interval', [50, 1.0])
+def test_inf_train_dataloader(tmpdir, check_interval):
+    pytest.skip('TODO: fix speed of this test')
+
+    """Test inf train data loader (e.g. IterableDataset)"""
+
+    model = EvalModelTemplate()
+    model.train_dataloader = model.train_dataloader__infinite
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=check_interval
+    )
+    result = trainer.fit(model)
+    # verify training completed
+    assert result == 1
+
+
+@pytest.mark.parametrize('check_interval', [1.0])
+def test_inf_val_dataloader(tmpdir, check_interval):
+    pytest.skip('TODO: fix speed of this test')
+
+    """Test inf val data loader (e.g. IterableDataset)"""
+
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__infinite
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=check_interval,
+    )
+    result = trainer.fit(model)
+
+    # verify training completed
+    assert result == 1
 
 
 def test_error_on_zero_len_dataloader(tmpdir):
