@@ -59,43 +59,43 @@ def test_multi_cpu_model_ddp(tmpdir):
     tutils.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_lbfgs_cpu_model(tmpdir):
-    """Test each of the trainer options."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        progress_bar_refresh_rate=0,
-        weights_summary='top',
-        train_percent_check=1.0,
-        val_percent_check=0.2,
-    )
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    hparams.update(optimizer_name='lbfgs',
-                   learning_rate=0.002)
-    model = EvalModelTemplate(**hparams)
-    model.configure_optimizers = model.configure_optimizers__lbfgs
-    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
-
-
-# def test_default_logger_callbacks_cpu_model(tmpdir):
+# def test_lbfgs_cpu_model(tmpdir):
 #     """Test each of the trainer options."""
 #     trainer_options = dict(
 #         default_root_dir=tmpdir,
-#         max_epochs=1,
-#         gradient_clip_val=1.0,
-#         overfit_pct=0.20,
+#         max_epochs=2,
 #         progress_bar_refresh_rate=0,
-#         train_percent_check=0.01,
-#         val_percent_check=0.01,
+#         weights_summary='top',
+#         train_percent_check=1.0,
+#         val_percent_check=0.2,
 #     )
 #
-#     model = EvalModelTemplate()
-#     tutils.run_model_test_without_loggers(trainer_options, model)
-#
-#     # test freeze on cpu
-#     model.freeze()
-#     model.unfreeze()
+#     hparams = EvalModelTemplate.get_default_hparams()
+#     hparams.update(optimizer_name='lbfgs',
+#                    learning_rate=0.002)
+#     model = EvalModelTemplate(**hparams)
+#     model.configure_optimizers = model.configure_optimizers__lbfgs
+#     tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
+
+
+def test_default_logger_callbacks_cpu_model(tmpdir):
+    """Test each of the trainer options."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        progress_bar_refresh_rate=0,
+        train_percent_check=0.01,
+        val_percent_check=0.01,
+    )
+
+    model = EvalModelTemplate()
+    tutils.run_model_test_without_loggers(trainer_options, model)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
 
 
 def test_running_test_after_fitting(tmpdir):
