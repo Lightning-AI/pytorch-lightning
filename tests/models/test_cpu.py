@@ -11,26 +11,26 @@ from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import EvalModelTemplate
 
 
-# def test_early_stopping_cpu_model(tmpdir):
-#     """Test each of the trainer options."""
-#     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
-#     trainer_options = dict(
-#         default_root_dir=tmpdir,
-#         early_stop_callback=stopping,
-#         max_epochs=2,
-#         gradient_clip_val=1.0,
-#         overfit_pct=0.20,
-#         track_grad_norm=2,
-#         train_percent_check=0.1,
-#         val_percent_check=0.1,
-#     )
-#
-#     model = EvalModelTemplate()
-#     tutils.run_model_test(trainer_options, model, on_gpu=False)
-#
-#     # test freeze on cpu
-#     model.freeze()
-#     model.unfreeze()
+def test_early_stopping_cpu_model(tmpdir):
+    """Test each of the trainer options."""
+    stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        early_stop_callback=stopping,
+        max_epochs=2,
+        gradient_clip_val=1.0,
+        overfit_pct=0.20,
+        track_grad_norm=2,
+        train_percent_check=0.1,
+        val_percent_check=0.1,
+    )
+
+    model = EvalModelTemplate()
+    tutils.run_model_test(trainer_options, model, on_gpu=False)
+
+    # test freeze on cpu
+    model.freeze()
+    model.unfreeze()
 
 
 @pytest.mark.spawn
@@ -78,24 +78,24 @@ def test_lbfgs_cpu_model(tmpdir):
     tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
 
 
-def test_default_logger_callbacks_cpu_model(tmpdir):
-    """Test each of the trainer options."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gradient_clip_val=1.0,
-        overfit_pct=0.20,
-        progress_bar_refresh_rate=0,
-        train_percent_check=0.01,
-        val_percent_check=0.01,
-    )
-
-    model = EvalModelTemplate()
-    tutils.run_model_test_without_loggers(trainer_options, model)
-
-    # test freeze on cpu
-    model.freeze()
-    model.unfreeze()
+# def test_default_logger_callbacks_cpu_model(tmpdir):
+#     """Test each of the trainer options."""
+#     trainer_options = dict(
+#         default_root_dir=tmpdir,
+#         max_epochs=1,
+#         gradient_clip_val=1.0,
+#         overfit_pct=0.20,
+#         progress_bar_refresh_rate=0,
+#         train_percent_check=0.01,
+#         val_percent_check=0.01,
+#     )
+#
+#     model = EvalModelTemplate()
+#     tutils.run_model_test_without_loggers(trainer_options, model)
+#
+#     # test freeze on cpu
+#     model.freeze()
+#     model.unfreeze()
 
 
 def test_running_test_after_fitting(tmpdir):
