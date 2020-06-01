@@ -76,8 +76,8 @@ class EarlyStopping(Callback):
             if self.verbose > 0:
                 log.info(f'EarlyStopping mode set to {self.mode} for monitoring {self.monitor}.')
 
-        self.min_delta *= 1 if self.monitor_op == np.greater else -1
-        self.best = np.Inf if self.monitor_op == np.less else -np.Inf
+        self.min_delta *= 1 if self.monitor_op == torch.gt else -1
+        self.best = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def _validate_condition_metric(self, logs):
         """
