@@ -116,9 +116,9 @@ class TrainerDataLoadingMixin(ABC):
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
                 raise MisconfigurationException(
                     'You seem to have configured a sampler in your DataLoader. This will be replaced '
-                    'by `DistributedSampler` since `replace_sampler_ddp` is True and you are using '
-                    'distributed training. Either remove the sampler from your DataLoader or set '
-                    '`replace_sampler_ddp`=False if you want to use your custom sampler.')
+                    ' by `DistributedSampler` since `replace_sampler_ddp` is True and you are using'
+                    ' distributed training. Either remove the sampler from your DataLoader or set'
+                    ' `replace_sampler_ddp`=False if you want to use your custom sampler.')
 
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 
@@ -133,26 +133,17 @@ class TrainerDataLoadingMixin(ABC):
 
     def _get_distributed_sampler(self, dataloader):
         if self.use_tpu:
-            sampler = DistributedSampler(
-                dataloader.dataset,
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-            )
+            kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
         elif self.use_horovod:
-            sampler = DistributedSampler(dataloader.dataset,
-                                         num_replicas=hvd.size(),
-                                         rank=hvd.rank())
+            kwargs = dict(num_replicas=hvd.size(), rank=hvd.rank())
         else:
             world_size = {
                 'ddp': self.num_nodes * self.num_processes,
                 'ddp2': self.num_nodes,
                 'ddp_cpu': self.num_processes * self.num_nodes
             }
-            sampler = DistributedSampler(
-                dataloader.dataset,
-                num_replicas=world_size[self.distributed_backend],
-                rank=self.proc_rank,
-            )
+            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.proc_rank)
+        sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
     def reset_train_dataloader(self, model: LightningModule) -> None:

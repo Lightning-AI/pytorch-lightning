@@ -405,8 +405,7 @@ def test_dataloader_reinit_for_subclass():
     # Should raise an error if existing sampler is being replaced
     with pytest.raises(MisconfigurationException, match='DistributedSampler'):
         trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))),
-            train=True)
+            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
