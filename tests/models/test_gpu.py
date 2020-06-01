@@ -56,6 +56,7 @@ def test_multi_gpu_model(tmpdir, backend):
     memory.get_memory_profile('min_max')
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
