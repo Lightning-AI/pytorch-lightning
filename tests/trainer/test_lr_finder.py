@@ -134,7 +134,7 @@ def test_call_to_trainer_method(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
-@pytest.skip('TODO: speed up this test')
+@pytest.mark.skip('TODO: speed up this test')
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
