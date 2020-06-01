@@ -237,8 +237,8 @@ class ModelCheckpoint(Callback):
         self.filename = '{epoch}'
 
         if trainer.logger is not None:
-            save_dir = (getattr(trainer.logger, 'save_dir') or
-                        getattr(trainer.logger, '_save_dir') or
+            save_dir = (getattr(trainer.logger, 'save_dir', None) or
+                        getattr(trainer.logger, '_save_dir', None) or
                         trainer.default_root_dir)
 
             # weights_save_path overrides anything
