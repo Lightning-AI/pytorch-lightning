@@ -26,7 +26,7 @@ class EarlyStopping(Callback):
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
             improvement. Default: ``0``.
-        patience: number of epochs with no improvement
+        patience: number of validation epochs with no improvement
             after which training will be stopped. Default: ``0``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of {auto, min, max}. In `min` mode,
@@ -124,7 +124,7 @@ class EarlyStopping(Callback):
         logs = trainer.callback_metrics
         self._validate_condition_metric(logs)
 
-    def on_epoch_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, pl_module):
         logs = trainer.callback_metrics
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present

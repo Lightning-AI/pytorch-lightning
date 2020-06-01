@@ -821,14 +821,6 @@ class TrainerTrainLoopMixin(ABC):
                 else:
                     lr_scheduler['scheduler'].step()
 
-    def call_checkpoint_callback(self):
-        if self.checkpoint_callback is not None:
-            self.checkpoint_callback.on_validation_end(self, self.get_model())
-
-    def call_early_stop_callback(self):
-        if self.early_stop_callback:
-            self.early_stop_callback.on_epoch_end(self, self.get_model())
-
 
 def _with_is_last(iterable):
     """Pass through values from the given iterable with an added boolean indicating if this is the last item.
