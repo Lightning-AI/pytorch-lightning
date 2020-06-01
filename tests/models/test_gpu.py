@@ -78,7 +78,6 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
