@@ -1,11 +1,13 @@
+import pickle
+from pathlib import Path
+
 import pytest
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
-from pathlib import Path
 
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
@@ -16,11 +18,12 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(default_root_dir=tmpdir,
-                      checkpoint_callback=checkpoint,
-                      overfit_pct=0.20,
-                      max_epochs=5
-                      )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        checkpoint_callback=checkpoint,
+        overfit_pct=0.20,
+        max_epochs=5
+    )
     trainer.fit(model)
 
     # These should be different if the dirpath has be overridden
@@ -50,7 +53,6 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
 
 
 def test_pickling(tmpdir):
-    import pickle
     ckpt = ModelCheckpoint(tmpdir)
     ckpt_pickled = pickle.dumps(ckpt)
     ckpt_loaded = pickle.loads(ckpt_pickled)
