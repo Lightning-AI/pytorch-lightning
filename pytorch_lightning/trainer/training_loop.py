@@ -625,7 +625,7 @@ class TrainerTrainLoopMixin(ABC):
 
                     # track gradient norms when requested
                     if batch_idx % self.row_log_interval == 0:
-                        if self.track_grad_norm > 0:
+                        if float(self.track_grad_norm) > 0:
                             model = self.get_model()
                             grad_norm_dic = model.grad_norm(
                                 self.track_grad_norm)
