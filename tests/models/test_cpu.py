@@ -12,7 +12,6 @@ from tests.base import EvalModelTemplate
 
 
 def test_early_stopping_cpu_model(tmpdir):
-    print('test 1')
     """Test each of the trainer options."""
     stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
     trainer_options = dict(
@@ -41,7 +40,7 @@ def test_early_stopping_cpu_model(tmpdir):
                      version_parse(torch.__version__) < version_parse("1.3.0")),
                     reason="Distributed training is not supported on MacOS before Torch 1.3.0")
 def test_multi_cpu_model_ddp(tmpdir):
-    print('test 2')
+    print('in ddp test')
     """Make sure DDP works."""
     tutils.set_random_master_port()
 
@@ -61,7 +60,6 @@ def test_multi_cpu_model_ddp(tmpdir):
 
 
 def test_lbfgs_cpu_model(tmpdir):
-    print('test 3')
     """Test each of the trainer options."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -81,7 +79,6 @@ def test_lbfgs_cpu_model(tmpdir):
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
-    print('test 4')
     """Test each of the trainer options."""
     trainer_options = dict(
         default_root_dir=tmpdir,
