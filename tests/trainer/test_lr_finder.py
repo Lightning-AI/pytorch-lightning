@@ -168,7 +168,7 @@ def test_suggestion_parameters_work(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10,
+        max_epochs=3,
     )
 
     lrfinder = trainer.lr_find(model)
@@ -188,7 +188,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10
+        max_epochs=3
     )
 
     lrfinder = trainer.lr_find(model)

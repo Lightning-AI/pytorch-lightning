@@ -60,7 +60,7 @@ def test_lr_logger_multi_lrs(tmpdir):
     lr_logger = LearningRateLogger()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=10,
+        max_epochs=2,
         val_percent_check=0.1,
         train_percent_check=0.5,
         callbacks=[lr_logger]
