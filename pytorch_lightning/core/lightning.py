@@ -957,7 +957,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                         f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-        log.info(f"initializing proc_rank {proc_rank} world {world_size}")
+        log.info(f"initializing ddp: LOCAL_RANK: {proc_rank}/{world_size - 1} WORLD_SIZE:{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
 
     def configure_apex(

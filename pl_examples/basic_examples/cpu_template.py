@@ -10,25 +10,23 @@ import torch
 import pytorch_lightning as pl
 from pl_examples.models.lightning_template import LightningTemplateModel
 
-SEED = 2334
-torch.manual_seed(SEED)
-np.random.seed(SEED)
+pl.seed_everything(234)
 
 
-def main(hparams):
+def main(args):
     """
     Main training routine specific for this project
-    :param hparams:
+    :param args:
     """
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = LightningTemplateModel(hparams)
+    model = LightningTemplateModel(**vars(args))
 
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer(max_epochs=hparams.epochs, overfit_pct=0.01, early_stop_callback=True)
+    trainer = pl.Trainer.from_argparse_args(args)
 
     # ------------------------
     # 3 START TRAINING
@@ -46,9 +44,10 @@ if __name__ == '__main__':
 
     # each LightningModule defines arguments relevant to it
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
-    hyperparams = parser.parse_args()
+    parser = pl.Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
 
     # ---------------------
     # RUN TRAINING
     # ---------------------
-    main(hyperparams)
+    main(args)

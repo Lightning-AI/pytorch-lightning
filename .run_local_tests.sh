@@ -12,8 +12,8 @@ rm -rf ./tests/cometruns*
 rm -rf ./tests/wandb*
 rm -rf ./tests/tests/*
 rm -rf ./lightning_logs
-python -m coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --flake8
+python -m coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --doctest-modules --flake8 --durations=0
 python -m coverage report -m
 
 # specific file
-# python -m coverage run --source pytorch_lightning -m py.test -k test_trainer.py --flake8
+# python -m coverage run --source pytorch_lightning -m py.test -k test_trainer.py --flake8 --durations=0

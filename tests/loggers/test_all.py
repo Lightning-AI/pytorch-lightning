@@ -100,7 +100,7 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
 @pytest.mark.parametrize("extra_params", [
     pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
-    pytest.param(dict(max_epochs=10, auto_lr_find=True), id='LR-Finder'),
+    pytest.param(dict(max_epochs=3, auto_lr_find=True), id='LR-Finder'),
 ])
 def test_logger_reset_correctly(tmpdir, extra_params):
     """ Test that the tuners do not alter the logger reference """

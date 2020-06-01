@@ -12,7 +12,7 @@ class ModelTemplateData:
         loader = DataLoader(
             dataset=dataset,
             batch_size=self.batch_size,
-            # test and valid shall not be shuffled
+            num_workers=3,
             shuffle=train,
         )
         return loader
