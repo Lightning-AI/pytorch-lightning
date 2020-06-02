@@ -53,9 +53,16 @@ We are currently looking for help implementing new features or adding bug fixes.
 A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
-1. Submit a github issue - try to describe what happened so others can reproduce it too (config, code samples, expected vs. actual behaviour).
+1. Submit a github issue - try to describe what happened so others can reproduce it too (config, code samples, expected vs. actual behaviour). 
+ Note, that the sample code shall be minimal and if needed with publicly available data.
 2. Try to fix it or recommend a solution...
+ We highly recommend to use test driven approach
+   * convert your minimal code example to a unit/integration test with assert on expected results
+   * start with debugging the issue... you can run just this particular test in your IDE and draft a fix
+   * verify that your test case fails on the master branch and only passes with the fix applied
 3. Submit a PR!
+
+_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution and we can help you or finish it with you :]_
 
 
 ### New Features:
