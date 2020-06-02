@@ -59,9 +59,10 @@ A lot of good work has already been done in project mechanics (requirements.txt,
  We highly recommend to use test driven approach
    * convert your minimal code example to a unit/integration test with assert on expected results
    * start with debugging the issue... you can run just this particular test in your IDE and draft a fix
+   * verify that your test case fails on the master branch and only passes with the fix applied
 3. Submit a PR!
 
-_**None**, even you do not find the solution sending a PR with test covering the issue is avalaible contribution and we can help you or finish it with you :]_
+_**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution and we can help you or finish it with you :]_
 
 
 ### New Features:
