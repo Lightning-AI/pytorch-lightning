@@ -6,7 +6,7 @@
 - [ ] Did you write any new necessary tests?  
 - [ ] If you made a notable change (that affects users), did you update the [CHANGELOG](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/CHANGELOG.md)?
 
-<!-- For CHANGELOG separate each item in unreleased section by blank line to reduce collisions -->
+<!-- For CHANGELOG separate each item in unreleased section by a blank line to reduce collisions -->
 
 ## What does this PR do?
 Fixes # (issue).
