@@ -115,7 +115,7 @@ Here's an example of how to add your own sampler (again, not needed with Lightni
     trainer = Trainer(replace_sampler_ddp=False)
 
 Wall time auto-resubmit
-----------------------
+-----------------------
 When you use Lightning in a SLURM cluster, it automatically detects when it is about
 to run into the wall time and does the following:
 
