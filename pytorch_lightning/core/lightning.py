@@ -1725,15 +1725,18 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
 def _collect_init_args(frame, path_args: list) -> list:
     """Recursive search for all children."""
-    if '__class__' in frame.f_locals:
-        local_args = dict(frame.f_locals)
+    arg_names, _, _, local_vars = inspect.getargvalues(frame)
+    if '__class__' in local_vars:
+        cls = local_vars['__class__']
+        self_name = arg_names[0]  # "self" unless user renames it (always first arg)
+        init_parameters = inspect.signature(cls.__init__).parameters
+        exclude_argnames = ('args', 'kwargs', self_name, '__class__', 'frame', 'frame_args')
+
+        # only collect variables that appear in the signature
+        local_args = {k: local_vars[k] for k in init_parameters.keys()}
         local_args.update(local_args.get('kwargs', {}))
-        local_args = {k: v for k, v in local_args.items()
-                      if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
-        # if 'hparams' in local_args:
-        #     # back compatible hparams as single argument
-        #     hparams = local_args.get('hparams')
-        #     local_args.update(vars(hparams) if isinstance(hparams, Namespace) else hparams)
+        local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
+
         # recursive update
         path_args.append(local_args)
         return _collect_init_args(frame.f_back, path_args)
