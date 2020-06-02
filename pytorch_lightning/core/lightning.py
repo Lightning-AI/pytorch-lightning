@@ -1707,13 +1707,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         frame = inspect.currentframe()
 
         frame_args = _collect_init_args(frame.f_back, [])
-        child = _get_latest_child(frame)
+        self_arguments = frame_args[-1]
 
         # set module_arguments in child
-        child._module_self_arguments = frame_args[-1]
-        child._module_parents_arguments = {}
+        self._module_self_arguments = self_arguments
+        self._module_parents_arguments = {}
+
+        # add all arguments from parents
         for args in frame_args[:-1]:
-            child._module_parents_arguments.update(args)
+            self._module_parents_arguments.update(args)
 
     @property
     def module_arguments(self) -> dict:
@@ -1763,11 +1765,3 @@ def _collect_init_args(frame, path_args: list) -> list:
         return _collect_init_args(frame.f_back, path_args)
     else:
         return path_args
-
-
-def _get_latest_child(frame, child: object = None) -> object:
-    """Recursive search for lowest child."""
-    if 'self' in frame.f_locals:
-        return _get_latest_child(frame.f_back, frame.f_locals['self'])
-    else:
-        return child
