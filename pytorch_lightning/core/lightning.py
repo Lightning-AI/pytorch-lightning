@@ -1701,8 +1701,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def auto_collect_arguments(self) -> None:
         """
         Collect all module arguments in the current constructor and all child constructors.
-        The child constructors are all the ``__init__`` methods that reach the current class with
-        by calling ``super().__init__()``.
+        The child constructors are all the ``__init__`` methods that reach the current class through
+        (chained) ``super().__init__()`` calls.
         """
         frame = inspect.currentframe()
 
