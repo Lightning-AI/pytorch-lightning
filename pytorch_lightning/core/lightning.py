@@ -1698,8 +1698,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def auto_collect_arguments(self):
-        """Collect all arguments module arguments."""
+    def auto_collect_arguments(self) -> None:
+        """
+        Collect all module arguments in the current constructor and all child constructors.
+        The child constructors are all the ``__init__`` methods that reach the current class with
+        by calling ``super().__init__()``.
+        """
         frame = inspect.currentframe()
 
         frame_args = _collect_init_args(frame.f_back, [])
@@ -1713,7 +1717,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @property
     def module_arguments(self) -> dict:
-        """Aggregate this module and all parents arguments."""
+        """
+        Aggregate of arguments passed to the constructor of this module and all parents.
+
+        Return:
+            a dict in which the keys are the union of all argument names in the constructor and all
+            parent constructors, excluding `self`, `*args` and `**kwargs`.
+        """
         try:
             args = dict(self._module_parents_arguments)
             args.update(self._module_self_arguments)
@@ -1724,7 +1734,18 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
 
 def _collect_init_args(frame, path_args: list) -> list:
-    """Recursive search for all children."""
+    """
+    Recursively collects the arguments passed to the child constructors in the inheritance tree.
+
+    Args:
+        frame: the current stack frame
+        path_args: a list of dictionaries containing the constructor args in all parent classes
+
+    Return:
+          A list of dictionaries where each dictionary contains the arguments passed to the
+          constructor at that level. The last entry corresponds to the constructor call of the
+          most specific class in the hierarchy.
+    """
     arg_names, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' in local_vars:
         cls = local_vars['__class__']
