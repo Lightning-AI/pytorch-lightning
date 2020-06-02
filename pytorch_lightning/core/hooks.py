@@ -3,7 +3,7 @@ from typing import Any
 import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
-from pytorch_lightning.utilities import transfer_batch_to_device
+from pytorch_lightning.utilities import move_data_to_device
 
 
 try:
@@ -196,7 +196,7 @@ class ModelHooks(torch.nn.Module):
             batch and determines the target devices.
 
         See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
-        return transfer_batch_to_device(batch, device)
+        return move_data_to_device(batch, device)

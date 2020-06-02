@@ -18,7 +18,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import transfer_batch_to_device
+from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -112,7 +112,7 @@ class TrainerDPMixin(ABC):
             the tensor on the TPU device.
 
         See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
         """
         if not XLA_AVAILABLE:
             raise MisconfigurationException(
@@ -134,7 +134,7 @@ class TrainerDPMixin(ABC):
             the tensor on the GPU device.
 
         See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.transfer_batch_to_device`
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
         """
         device = torch.device('cuda', gpu_id)
         return self.__transfer_batch_to_device(batch, device)
@@ -143,7 +143,7 @@ class TrainerDPMixin(ABC):
         model = self.get_model()
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
-        return transfer_batch_to_device(batch, device)
+        return move_data_to_device(batch, device)
 
     def single_gpu_train(self, model):
         model.cuda(self.root_gpu)

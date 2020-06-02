@@ -38,7 +38,7 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
     return data
 
 
-def transfer_batch_to_device(batch: Any, device: torch.device):
+def move_data_to_device(batch: Any, device: torch.device):
     """
     Transfers a collection of tensors to the given device.
 
