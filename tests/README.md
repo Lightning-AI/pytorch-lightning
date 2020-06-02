@@ -9,6 +9,9 @@ run on a 2-GPU machine to validate the full test-suite.
 
 
 To run all tests do the following:
+
+Install [Open MPI](https://www.open-mpi.org/) or another MPI implementation. Learn how to install Open MPI [on this page](https://www.open-mpi.org/faq/?category=building#easy-build>).
+
 ```bash
 git clone https://github.com/PyTorchLightning/pytorch-lightning
 cd pytorch-lightning
