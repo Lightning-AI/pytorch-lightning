@@ -1018,11 +1018,11 @@ Options: 'full', 'top', None.
 
 Example::
 
-    # default used by the Trainer (ie: print all weights)
-    trainer = Trainer(weights_summary='full')
-
-    # print only the top level modules
+    # default used by the Trainer (ie: print summary of top level modules)
     trainer = Trainer(weights_summary='top')
+
+    # print full summary of all modules and submodules
+    trainer = Trainer(weights_summary='full')
 
     # don't print a summary
     trainer = Trainer(weights_summary=None)
