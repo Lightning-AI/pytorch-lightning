@@ -1762,7 +1762,6 @@ def _collect_init_args(frame, path_args: list) -> list:
 
         # only collect variables that appear in the signature
         local_args = {k: local_vars[k] for k in init_parameters.keys()}
-        local_args.update(local_args.get(varargs_identifier, {}))
         local_args.update(local_args.get(kwargs_identifier, {}))
         local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
 
