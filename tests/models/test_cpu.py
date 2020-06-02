@@ -1,5 +1,6 @@
 import os
 import platform
+import sys
 from collections import namedtuple
 
 import pytest
@@ -279,6 +280,9 @@ def test_single_gpu_batch_parse():
     assert batch[0].a.type() == 'torch.cuda.FloatTensor'
 
 
+# TODO: temporary suspension for Python 3.8 on macOS
+@pytest.mark.skipif((sys.version_info >= (3, 8) and platform.system() == "Darwin"),
+                    reason="Temporary issue with Python 3.8 on macOS")
 def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
     model = EvalModelTemplate()
