@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import ModelHooks
+from pytorch_lightning.core.hooks import ModelHooks, DistributedStateHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, PRIMITIVE_TYPES, ALLOWED_CONFIG_TYPES
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
@@ -32,7 +32,7 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, DistributedStateHooks, Module):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

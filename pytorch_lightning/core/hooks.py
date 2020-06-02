@@ -240,3 +240,25 @@ class ModelHooks(Module):
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
         return move_data_to_device(batch, device)
+
+class DistributedStateHooks(nn.Module):
+
+    def __init__(self):
+        super(DistributedStateHooks, self).__init__()
+
+        setattr(self, 'distributed_state', self.DistributedState())
+
+    def on_after_model_replicate(self, replicas) -> None:
+        """
+        TODO: add documentation
+        """
+        pass
+
+    def on_after_dp_parallel_apply(self) -> None:
+        """
+        TODO: add documentation
+        """
+        pass
+
+    class DistributedState:
+        pass

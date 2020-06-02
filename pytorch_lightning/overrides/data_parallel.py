@@ -1,11 +1,13 @@
 import itertools
 import threading
 from itertools import chain
+from copy import deepcopy
 
 import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel.replicate import _broadcast_coalesced_reshape
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -37,11 +39,25 @@ def get_a_var(obj):  # pragma: no-cover
 
 
 class LightningDataParallel(DataParallel):
-    """
-    Override the forward call in lightning so it goes to training and validation step respectively
-    """
+
+    def __init__(self, module, device_ids=None, output_device=None, dim=0):
+        super(LightningDataParallel, self).__init__(
+            module=module,
+            device_ids=device_ids,
+            output_device=output_device,
+            dim=dim
+        )
+
+        # maintains copies of state for each GPU
+        self.distributed_buffer = []
+
+        # self.distributed_buffer[0] contains a reference to self.module.distributed_state
+        self.distributed_buffer.append(self.module.distributed_state)
 
     def forward(self, *inputs, **kwargs):
+        """
+        Override the forward call in lightning so it goes to training and validation step respectively
+        """
         if not self.device_ids:
             return self.module(*inputs, **kwargs)
 
@@ -62,11 +78,66 @@ class LightningDataParallel(DataParallel):
             return self.module.validation_step(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        self.module.on_after_model_replicate(replicas)
+
+        # scatter distributed state from buffer to replicas
+        self.scatter_distributed_state(replicas, len(inputs))
+
         outputs = self.parallel_apply(replicas, inputs, kwargs)
+        self.module.on_after_dp_parallel_apply()
+
         return self.gather(outputs, self.output_device)
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+
+    def scatter_distributed_state(self, replicas, num_inputs):
+
+        if len(self.distributed_buffer) == len(replicas):
+            # TODO: detach here?
+            for idx in range(len(replicas)):
+                replicas[idx].distributed_state = self.distributed_buffer[idx]
+        else:
+            state_idx = 0
+            distributed_state_list = []
+            distributed_state_idx = {}
+
+            module_state_dict = self.module.distributed_state.__dict__
+
+            for var in module_state_dict:
+                if isinstance(module_state_dict[var], torch.Tensor):
+                    module_state_dict[var] = module_state_dict[var].to(
+                        self.module.device
+                    )
+
+                    distributed_state_list.append(module_state_dict[var])
+                    distributed_state_idx[var] = state_idx
+
+                    state_idx += 1
+
+            distributed_state_copies = _broadcast_coalesced_reshape(
+                distributed_state_list,
+                self.device_ids[:num_inputs],
+                detach=True
+            )
+
+            for idx in range(1, len(replicas)):
+                self.distributed_buffer.append(
+                    deepcopy(replicas[idx].distributed_state)
+                )
+
+                dist_buffer_dict = self.distributed_buffer[idx].__dict__
+
+                for var in dist_buffer_dict:
+                    if dist_buffer_dict[var] is not None:
+                        dist_buffer_dict[var] = deepcopy(
+                            distributed_state_copies[idx][distributed_state_idx[var]]
+                        )
+
+                replicas[idx].distributed_state = self.distributed_buffer[idx]
+
+            # reference self.module.distributed_state from the 0-th replica
+            replicas[0].distributed_state = self.distributed_buffer[0]
 
 
 class LightningDistributedDataParallel(DistributedDataParallel):
