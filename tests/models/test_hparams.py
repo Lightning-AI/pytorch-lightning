@@ -44,14 +44,8 @@ def test_class_nesting(tmpdir):
     A().test()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason='OmegaConf only for Python >= 3.8')
 def test_omegaconf(tmpdir):
-
-    # ogc only for 3.8
-    major = sys.version_info[0]
-    minor = sys.version_info[1]
-    if major < 3 and minor < 8:
-        return
-
     conf = OmegaConf.create({"k": "v", "list": [15.4, {"a": "1", "b": "2"}]})
     model = OmegaConfModel(conf)
 
