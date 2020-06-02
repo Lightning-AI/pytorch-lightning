@@ -19,7 +19,7 @@ jobs:
           # excludes PT 1.3 as it is missing on pypi
           - python-version: 3.8
             requires: 'minimal'
-          # temporary fix till hanging jobs on macOS for py38 is resolved
+          # TODO: temporary suspension for hanging Batch finder
           - python-version: 3.8
             os: 'macOS'
 
