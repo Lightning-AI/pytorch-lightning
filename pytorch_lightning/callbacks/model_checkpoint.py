@@ -20,7 +20,10 @@ from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 class ModelCheckpoint(Callback):
     r"""
-    Save the model after every epoch.
+    Save the model after every epoch if it improves.
+
+    After training finishes, use :attr:`best_model_path` to retrieve the path to the
+    best checkpoint file and :attr:`best_model_score` to retrieve its score.
 
     Args:
         filepath: path to save the model file.
@@ -81,6 +84,13 @@ class ModelCheckpoint(Callback):
         ...     filepath='my/path/sample-mnist_{epoch:02d}-{val_loss:.2f}'
         ... )
 
+        # retrieve the best checkpoint after training
+        checkpoint_callback = ModelCheckpoint(filepath='my/path/')
+        trainer = Trainer(checkpoint_callback=checkpoint_callback)
+        model = ...
+        trainer.fit(model)
+        checkpoint_callback.best_model_path
+
     """
 
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
@@ -112,8 +122,9 @@ class ModelCheckpoint(Callback):
         self.prefix = prefix
         self.best_k_models = {}
         # {filename: monitor}
-        self.kth_best_model = ''
-        self.best = 0
+        self.kth_best_model_path = ''
+        self.best_model_score = 0
+        self.best_model_path = ''
         self.save_function = None
 
         torch_inf = torch.tensor(np.Inf)
@@ -130,6 +141,18 @@ class ModelCheckpoint(Callback):
             mode = 'auto'
 
         self.kth_value, self.mode = mode_dict[mode]
+
+    @property
+    def best(self):
+        rank_zero_warn("Attribute `best` has been renamed to `best_model_score` since v0.8.0"
+                       " and will be removed in v0.10.0", DeprecationWarning)
+        return self.best_model_score
+
+    @property
+    def kth_best_model(self):
+        rank_zero_warn("Attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
+                       " and will be removed in v0.10.0", DeprecationWarning)
+        return self.kth_best_model_path
 
     def _del_model(self, filepath):
         if os.path.isfile(filepath):
@@ -162,7 +185,7 @@ class ModelCheckpoint(Callback):
             "max": torch.gt,
         }[self.mode]
 
-        return monitor_op(current, self.best_k_models[self.kth_best_model])
+        return monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
         """Generate a filename according to the defined template.
@@ -258,25 +281,26 @@ class ModelCheckpoint(Callback):
 
         del_list = []
         if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
-            delpath = self.kth_best_model
-            self.best_k_models.pop(self.kth_best_model)
+            delpath = self.kth_best_model_path
+            self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
 
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == self.save_top_k:
             # monitor dict has reached k elements
             _op = max if self.mode == 'min' else min
-            self.kth_best_model = _op(self.best_k_models,
-                                      key=self.best_k_models.get)
-            self.kth_value = self.best_k_models[self.kth_best_model]
+            self.kth_best_model_path = _op(self.best_k_models,
+                                           key=self.best_k_models.get)
+            self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == 'min' else max
-        self.best = _op(self.best_k_models.values())
+        self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
+        self.best_model_score = self.best_k_models[self.best_model_path]
 
         if self.verbose > 0:
             log.info(
                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
-                f' {current:0.5f} (best {self.best:0.5f}), saving model to'
+                f' {current:0.5f} (best {self.best_model_score:0.5f}), saving model to'
                 f' {filepath} as top {self.save_top_k}')
         self._save_model(filepath)
 

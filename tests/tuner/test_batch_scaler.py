@@ -140,26 +140,3 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
     with pytest.raises(MisconfigurationException):
         tuner.tune(model, **tune_options)
-
-
-def test_logger_reset_correctly(tmpdir):
-    """ Test that logger is updated correctly """
-    tutils.reset_seed()
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
-
-    trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=1,
-    )
-    tuner = Tuner(trainer, auto_scale_batch_size=True)
-    logger1 = trainer.logger
-    tuner.tune(model)
-    logger2 = trainer.logger
-    logger3 = model.logger
-
-    assert logger1 == logger2, \
-        'Batch size finder altered the logger of trainer'
-    assert logger2 == logger3, \
-        'Batch size finder altered the logger of model'

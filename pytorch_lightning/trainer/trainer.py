@@ -34,7 +34,6 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing
 
-
 try:
     from apex import amp
 except ImportError:
@@ -117,7 +116,7 @@ class Trainer(
             distributed_backend: Optional[str] = None,
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'full',
+            weights_summary: Optional[str] = 'top',
             weights_save_path: Optional[str] = None,
             num_sanity_val_steps: int = 2,
             truncated_bptt_steps: Optional[int] = None,
@@ -503,6 +502,7 @@ class Trainer(
         # init flags for SLURM+ddp to work
         self.proc_rank = 0
         self.world_size = 1
+        self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
 
@@ -853,27 +853,27 @@ class Trainer(
         if self.use_ddp2:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+
+            # torchelastic or general non_slurm ddp2
+            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(task, model)
-            # torchelastic
-            elif 'WORLD_SIZE' in os.environ and 'GROUP_RANK' in os.environ:
+
+            # torchelastic or general non_slurm ddp
+            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
-            else:
-                self.__set_random_port()
-                # track for predict
+
+            elif self.distributed_backend == 'cpu_ddp':
                 self.model = model
-                # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-                # load weights if not interrupted
-                if self.on_colab_kaggle:
-                    self.load_spawn_weights(model)
-                    self.model = model
+
+            elif self.distributed_backend == 'ddp':
+                self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -897,7 +897,7 @@ class Trainer(
 
             # train
             if self.tpu_id is not None:
-                self.tpu_train(model)
+                self.tpu_train(self.tpu_id, model)
             else:
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
@@ -1039,7 +1039,10 @@ class Trainer(
 
         # clear cache before training
         if self.on_gpu:
-            torch.cuda.empty_cache()
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
 
         # CORE TRAINING LOOP
         self.train()
@@ -1089,7 +1092,10 @@ class Trainer(
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no-cover
+
+        # on tpu, .spawn means we don't have a trained model
+        # TODO: remove TPU spawn
+        elif self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model

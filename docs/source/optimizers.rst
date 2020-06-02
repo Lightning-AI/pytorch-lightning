@@ -17,7 +17,7 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
       scheduler = ReduceLROnPlateau(optimizer, ...)
       return [optimizer], [scheduler]
 
-   # Two optimziers each with a scheduler
+   # Two optimizers each with a scheduler
    def configure_optimizers(self):
       optimizer1 = Adam(...)
       optimizer2 = SGD(...)

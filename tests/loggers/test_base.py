@@ -143,7 +143,7 @@ def test_adding_step_key(tmpdir):
     model.validation_epoch_end = _validation_epoch_end
     model.training_epoch_end = _training_epoch_end
     trainer = Trainer(
-        max_epochs=4,
+        max_epochs=3,
         default_root_dir=tmpdir,
         train_percent_check=0.001,
         val_percent_check=0.01,

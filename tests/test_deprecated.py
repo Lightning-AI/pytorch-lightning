@@ -97,7 +97,8 @@ def test_tbd_remove_in_v0_9_0_trainer():
     assert getattr(trainer, 'show_progress_bar')
 
     with pytest.deprecated_call(match='v0.9.0'):
-        _ = Trainer(num_tpu_cores=8)
+        trainer = Trainer(num_tpu_cores=8)
+        assert trainer.tpu_cores == 8
 
 
 def test_tbd_remove_in_v0_9_0_module_imports():

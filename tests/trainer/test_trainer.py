@@ -445,7 +445,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
-        max_epochs=5
+        max_epochs=2
     )
 
     # define less min steps than 1 epoch
@@ -823,5 +823,5 @@ def test_trainer_subclassing():
     assert trainer.fast_dev_run
 
     # when we pass in an unknown arg, the base class should complain
-    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'") as e:
+    with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'"):
         TrainerSubclass(abcdefg='unknown_arg')

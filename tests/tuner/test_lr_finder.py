@@ -88,7 +88,8 @@ def test_tuner_arg_bool(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
+        auto_lr_find=True
     )
     tuner = Tuner(trainer, auto_lr_find=True)
 
@@ -107,7 +108,7 @@ def test_tuner_arg_str(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
         auto_lr_find='my_fancy_lr'
     )
     tuner = Tuner(trainer, auto_lr_find='my_fancy_lr')
@@ -128,7 +129,7 @@ def test_call_to_tuner_method(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=5,
+        max_epochs=2,
     )
     tuner = Tuner(trainer)
 
@@ -141,6 +142,8 @@ def test_call_to_tuner_method(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
+    pytest.skip('TODO: speed up this test')
+
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
 
@@ -151,7 +154,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        accumulate_grad_batches=2
+        accumulate_grad_batches=2,
     )
     tuner = Tuner(trainer)
 
@@ -175,7 +178,7 @@ def test_suggestion_parameters_work(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10,
+        max_epochs=3,
     )
     tuner = Tuner(trainer)
 
@@ -196,7 +199,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_save_path=tmpdir,
-        max_epochs=10
+        max_epochs=3
     )
     tuner = Tuner(trainer)
 
@@ -207,28 +210,3 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
-
-
-def test_logger_reset_correctly(tmpdir):
-    """ Test that logger is updated correctly """
-    tutils.reset_seed()
-
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
-
-    trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=10,
-        auto_lr_find=True
-    )
-    tuner = Tuner(trainer, auto_lr_find=True)
-    
-    logger1 = trainer.logger
-    tuner.tune(model)
-    logger2 = trainer.logger
-    logger3 = model.logger
-
-    assert logger1 == logger2, \
-        'Learning rate finder altered the logger of trainer'
-    assert logger2 == logger3, \
-        'Learning rate finder altered the logger of model'

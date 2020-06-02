@@ -33,7 +33,7 @@ else:
 CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, torch.nn.Module):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -75,9 +75,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: device reference
         self._device = torch.device('cpu')
-
-        # register all params passed into the child module in __init__
-        self._auto_collect_arguments()
 
     @property
     def on_gpu(self):
@@ -960,7 +957,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                         f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-        log.info(f"initializing proc_rank {proc_rank} world {world_size}")
+        log.info(f"initializing ddp: LOCAL_RANK: {proc_rank}/{world_size - 1} WORLD_SIZE:{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
 
     def configure_apex(
@@ -1701,7 +1698,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def _auto_collect_arguments(self):
+    def auto_collect_arguments(self):
         """Collect all arguments module arguments."""
         frame = inspect.currentframe()
 
@@ -1717,9 +1714,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     @property
     def module_arguments(self) -> dict:
         """Aggregate this module and all parents arguments."""
-        args = dict(self._module_parents_arguments)
-        args.update(self._module_self_arguments)
-        return args
+        try:
+            args = dict(self._module_parents_arguments)
+            args.update(self._module_self_arguments)
+            return args
+        except AttributeError as e:
+            rank_zero_warn('you called `module.module_arguments` without calling self.auto_collect_arguments()')
+            return {}
 
 
 def _collect_init_args(frame, path_args: list) -> list:

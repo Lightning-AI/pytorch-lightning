@@ -84,7 +84,6 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 """
 
 import os
-import pickle
 import re
 import signal
 from abc import ABC
@@ -211,7 +210,7 @@ class TrainerIOMixin(ABC):
             job_name = os.environ['SLURM_JOB_NAME']
             if job_name != 'bash':
                 on_slurm = True
-        except Exception as e:
+        except Exception:
             pass
 
         if on_slurm:
@@ -331,7 +330,8 @@ class TrainerIOMixin(ABC):
 
         if not weights_only:
             if self.checkpoint_callback:
-                checkpoint['checkpoint_callback_best'] = self.checkpoint_callback.best
+                checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
+                checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
 
             if self.early_stop_callback:
                 checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
@@ -402,10 +402,19 @@ class TrainerIOMixin(ABC):
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
-        if self.checkpoint_callback is not None and self.checkpoint_callback is not False:
-            self.checkpoint_callback.best = checkpoint['checkpoint_callback_best']
+        if self.checkpoint_callback:
+            if 'checkpoint_callback_best_model_score' in checkpoint:
+                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best_model_score']
+            else:
+                # Old naming until version 0.7.6
+                rank_zero_warn(
+                    'Loading a checkpoint created with an old version of Lightning; '
+                    'this will not be supported in the future.'
+                )
+                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
+            self.checkpoint_callback.best_model_path = checkpoint['checkpoint_callback_best_model_path']
 
-        if self.early_stop_callback is not None and self.early_stop_callback is not False:
+        if self.early_stop_callback:
             self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
             self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
 

@@ -76,7 +76,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
-        max_epochs=4,
+        max_epochs=3,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
