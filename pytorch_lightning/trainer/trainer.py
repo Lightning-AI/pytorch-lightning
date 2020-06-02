@@ -100,7 +100,7 @@ class Trainer(
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
-            track_grad_norm: int = -1,
+            track_grad_norm: Union[int, float, str] = -1,
             check_val_every_n_epoch: int = 1,
             fast_dev_run: bool = False,
             accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
@@ -204,7 +204,7 @@ class Trainer(
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
-            track_grad_norm: -1 no tracking. Otherwise tracks that norm
+            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
@@ -340,7 +340,12 @@ class Trainer(
             self.gradient_clip = gradient_clip
 
         self.check_val_every_n_epoch = check_val_every_n_epoch
-        self.track_grad_norm = track_grad_norm
+
+        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+            raise MisconfigurationException(
+                "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+        self.track_grad_norm = float(track_grad_norm)
+
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
