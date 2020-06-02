@@ -67,10 +67,12 @@ class SubClassEvalModel(EvalModelTemplate):
         self.auto_collect_arguments()
 
 
-class SelfRenamedEvalModel(EvalModelTemplate):
+class UnconventionalArgsEvalModel(EvalModelTemplate):
+    """ A model that has unconventional names for "self", "*args" and "**kwargs". """
 
-    def __init__(obj, *args, other_arg=300, **kwargs):  # intentionally named obj
-        super().__init__(*args, **kwargs)
+    def __init__(obj, *more_args, other_arg=300, **more_kwargs):
+        # intentionally named obj
+        super().__init__(*more_args, **more_kwargs)
         obj.other_arg = other_arg
         other_arg = 321
         obj.auto_collect_arguments()
@@ -93,7 +95,7 @@ class AggSubClassEvalModel(SubClassEvalModel):
     SubClassEvalModel,
     SubSubClassEvalModel,
     AggSubClassEvalModel,
-    SelfRenamedEvalModel
+    UnconventionalArgsEvalModel,
 ])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """

@@ -1748,16 +1748,21 @@ def _collect_init_args(frame, path_args: list) -> list:
           constructor at that level. The last entry corresponds to the constructor call of the
           most specific class in the hierarchy.
     """
-    arg_names, _, _, local_vars = inspect.getargvalues(frame)
+    _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' in local_vars:
         cls = local_vars['__class__']
-        self_name = arg_names[0]  # "self" unless user renames it (always first arg)
+        spec = inspect.getfullargspec(cls.__init__)
         init_parameters = inspect.signature(cls.__init__).parameters
-        exclude_argnames = ('args', 'kwargs', self_name, '__class__', 'frame', 'frame_args')
+        self_identifier = spec.args[0]        # "self" unless user renames it (always first arg)
+        varargs_identifier = spec.varargs     # by convention this is named "*args"
+        kwargs_identifier = spec.varkw        # by convention this is named "**kwargs"
+        exclude_argnames = (
+            varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
+        )
 
         # only collect variables that appear in the signature
         local_args = {k: local_vars[k] for k in init_parameters.keys()}
-        local_args.update(local_args.get('kwargs', {}))
+        local_args.update(local_args.get(kwargs_identifier, {}))
         local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
 
         # recursive update
