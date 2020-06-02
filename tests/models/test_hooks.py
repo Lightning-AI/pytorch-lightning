@@ -1,3 +1,6 @@
+import platform
+import sys
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -31,6 +34,9 @@ def test_on_before_zero_grad_called(max_steps):
     assert 0 == model.on_before_zero_grad_called
 
 
+# TODO: temporary suspension for Python 3.8 on macOS
+@pytest.mark.skipif((sys.version_info >= (3, 8) and platform.system() == "Darwin"),
+                    reason="Temporary issue with Python 3.8 on macOS")
 def test_training_epoch_end_metrics_collection(tmpdir):
     """ Test that progress bar metrics also get collected at the end of an epoch. """
     num_epochs = 3
