@@ -73,6 +73,15 @@ class SubClassEvalModel(EvalModelTemplate):
         self.auto_collect_arguments()
 
 
+class SelfRenamedEvalModel(EvalModelTemplate):
+
+    def __init__(obj, *args, other_arg=300, **kwargs):  # intentionally named obj
+        super().__init__(*args, **kwargs)
+        obj.other_arg = other_arg
+        other_arg = 321
+        obj.auto_collect_arguments()
+
+
 class SubSubClassEvalModel(SubClassEvalModel):
     pass
 
@@ -85,10 +94,13 @@ class AggSubClassEvalModel(SubClassEvalModel):
         self.auto_collect_arguments()
 
 
-@pytest.mark.parametrize("cls", [EvalModelTemplate,
-                                 SubClassEvalModel,
-                                 SubSubClassEvalModel,
-                                 AggSubClassEvalModel])
+@pytest.mark.parametrize("cls", [
+    EvalModelTemplate,
+    SubClassEvalModel,
+    SubSubClassEvalModel,
+    AggSubClassEvalModel,
+    SelfRenamedEvalModel
+])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     extra_args = dict(my_loss=torch.nn.CosineEmbeddingLoss()) if cls is AggSubClassEvalModel else {}
