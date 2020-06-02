@@ -125,3 +125,36 @@ def test_collect_init_arguments(tmpdir, cls):
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
     assert model.batch_size == 99
+
+
+class LocalVariableModel1(EvalModelTemplate):
+    """ This model has the super().__init__() call at the end. """
+
+    def __init__(self, arg1, arg2, *args, **kwargs):
+        self.argument1 = arg1
+        arg1 = None  # arg2 intentionally not set
+        local_var = 1234
+        super().__init__(*args, **kwargs)  # this is intentionally here at the end
+
+
+class LocalVariableModel2(EvalModelTemplate):
+    """ This model has the auto_collect_arguments() call at the end. """
+
+    def __init__(self, arg1, arg2, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.argument1 = arg1  # arg2 intentionally not set
+        arg1 = None
+        local_var = 1234
+        self.auto_collect_arguments()  # this is intentionally here at the end
+
+
+@pytest.mark.parametrize("cls", [
+    LocalVariableModel1,
+    LocalVariableModel2,
+])
+def test_collect_init_arguments_with_local_vars(cls):
+    """ Tests that only the arguments are collected and not local variables. """
+    model = cls(arg1=1, arg2=2)
+    assert 'local_var' not in model.module_arguments
+    assert model.module_arguments['arg1'] is None
+    assert model.module_arguments['arg2'] == 2
