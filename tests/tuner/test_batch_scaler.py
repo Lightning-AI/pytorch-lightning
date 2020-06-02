@@ -20,7 +20,7 @@ def test_model_reset_correctly(tmpdir):
     )
 
     before_state_dict = model.state_dict()
-    
+
     tuner = Tuner(trainer)
     tuner.scale_batch_size(model, max_trials=5)
 
@@ -43,7 +43,7 @@ def test_trainer_reset_correctly(tmpdir):
         max_epochs=1
     )
     tuner = Tuner(trainer)
-    
+
     changed_attributes = ['max_steps',
                           'weights_summary',
                           'logger',
@@ -74,13 +74,13 @@ def test_tuner_arg(tmpdir, tuner_arg):
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    
+
     class CurrentModel(EvalModelTemplate):
         # Workaround to test if this also works with non-default field input
         @property
         def my_batch_arg(self):
             return self.batch_size
-    
+
     model = EvalModelTemplate(**hparams)
 
     before_batch_size = hparams.get('batch_size')

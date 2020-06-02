@@ -64,7 +64,7 @@ def lightning_hasattr(model, attribute):
             if hasattr(model.hparams, attribute):
                 return True
     else:
-        return False        
+        return False
 
 
 def lightning_getattr(model, attribute):
@@ -81,7 +81,7 @@ def lightning_getattr(model, attribute):
             return getattr(model.hparams, attribute)
     else:
         raise ValueError(f'{attribute} is not stored in the model namespace'
-                          ' or the `hparams` namespace/dict.')
+                         ' or the `hparams` namespace/dict.')
 
 
 def lightning_setattr(model, attribute, value):
@@ -100,4 +100,4 @@ def lightning_setattr(model, attribute, value):
             setattr(model.hparams, attribute, value)
     else:
         raise ValueError(f'{attribute} is not stored in the model namespace'
-                          ' or the `hparams` namespace/dict.')
+                         ' or the `hparams` namespace/dict.')

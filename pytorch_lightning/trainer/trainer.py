@@ -283,7 +283,7 @@ class Trainer(
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
-            auto_lr_find: 
+            auto_lr_find:
                 .. warning:: .. deprecated:: 0.8.0
 
                     Has no effect. Please use tuner class instead.
@@ -299,7 +299,7 @@ class Trainer(
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
-            auto_scale_batch_size: 
+            auto_scale_batch_size:
                 .. warning:: .. deprecated:: 0.8.0
 
                     Has no effect. Please use tuner class instead.
@@ -398,15 +398,15 @@ class Trainer(
         if auto_lr_find is not None:
             rank_zero_warn("Argument `auto_lr_find` has no effect since v0.8.0"
                            " and will be removed in v0.9.0. Tuning the learning"
-                           " rate can instead be achieved using the Tuner class.", 
+                           " rate can instead be achieved using the Tuner class.",
                            DeprecationWarning)
-        
+
         if auto_scale_batch_size is not None:
             rank_zero_warn("Argument `auto_scale_batch_size` has no effect since v0.8.0"
                            " and will be removed in v0.9.0. Tuning the batch size"
-                           " can instead be achieved using the Tuner class.", 
+                           " can instead be achieved using the Tuner class.",
                            DeprecationWarning)
-        
+
         self._is_data_prepared = False
         self.replace_sampler_ddp = replace_sampler_ddp
 

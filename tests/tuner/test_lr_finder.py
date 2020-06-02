@@ -59,7 +59,7 @@ def test_trainer_reset_correctly(tmpdir):
     )
     tuner = Tuner(trainer)
 
-    changed_attributes = ['callbacks', 'logger', 'val_check_interval', 
+    changed_attributes = ['callbacks', 'logger', 'val_check_interval',
                           'max_steps', 'checkpoint_callback', 'early_stop_callback',
                           'enable_early_stop']
     attributes_before = {}
@@ -73,7 +73,7 @@ def test_trainer_reset_correctly(tmpdir):
     for ca in changed_attributes:
         attributes_after[ca] = getattr(trainer, ca)
     attributes_after['configure_optimizers'] = getattr(model, 'configure_optimizers')
-    
+
     for key in changed_attributes:
         assert attributes_before[key] == attributes_after[key], \
             f'Attribute {key} was not reset correctly after learning rate finder'
@@ -136,7 +136,7 @@ def test_call_to_tuner_method(tmpdir):
     lrfinder = tuner.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
-    
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
