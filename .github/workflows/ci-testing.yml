@@ -19,6 +19,9 @@ jobs:
           # excludes PT 1.3 as it is missing on pypi
           - python-version: 3.8
             requires: 'minimal'
+          # TODO: temporary suspension for hanging Batch finder
+          - python-version: 3.8
+            os: 'macOS'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
