@@ -104,9 +104,6 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id='Batch-size-Finder'),
     pytest.param(dict(max_epochs=3, auto_lr_find=True), id='LR-Finder'),
 ])
-# TODO: temporary suspension for hanging Batch finder
-@pytest.mark.skipif((sys.version_info >= (3, 8) and platform.system() == "Darwin"),
-                    reason="Temporary issue with Python 3.8 on macOS")
 def test_logger_reset_correctly(tmpdir, extra_params):
     """ Test that the tuners do not alter the logger reference """
     tutils.reset_seed()
