@@ -119,7 +119,8 @@ def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
     # applies collection conversion from tensor to numpy to all inputs
     # we need to include numpy arrays here, since otherwise they will also be treated as sequences
     func_convert_inputs = _apply_to_inputs(
-        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)(func_to_decorate)
+        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy
+    )(func_to_decorate)
     # converts all inputs back to tensors (device doesn't matter here, since this is handled by BaseMetric)
     func_convert_in_out = _apply_to_outputs(_convert_to_tensor)(func_convert_inputs)
     return func_convert_in_out
@@ -140,15 +141,15 @@ def _tensor_metric_conversion(func_to_decorate: Callable) -> Callable:
     # converts all inputs to tensor if possible
     # we need to include tensors here, since otherwise they will also be treated as sequences
     func_convert_inputs = _apply_to_inputs(
-        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_tensor)(func_to_decorate)
+        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_tensor
+    )(func_to_decorate)
     # convert all outputs to tensor if possible
     return _apply_to_outputs(_convert_to_tensor)(func_convert_inputs)
 
 
-def _sync_ddp_if_available(result: Union[torch.Tensor],
-                           group: Optional[Any] = None,
-                           reduce_op: Optional[torch.distributed.ReduceOp] = None,
-                           ) -> torch.Tensor:
+def _sync_ddp_if_available(
+    result: Union[torch.Tensor], group: Optional[Any] = None, reduce_op: Optional[torch.distributed.ReduceOp] = None,
+) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
 
@@ -171,14 +172,12 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
 
         # sync all processes before reduction
         torch.distributed.barrier(group=group)
-        torch.distributed.all_reduce(result, op=reduce_op, group=group,
-                                     async_op=False)
+        torch.distributed.all_reduce(result, op=reduce_op, group=group, async_op=False)
 
     return result
 
 
-def numpy_metric(group: Optional[Any] = None,
-                 reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
+def numpy_metric(group: Optional[Any] = None, reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on numpy arrays.
 
@@ -197,15 +196,14 @@ def numpy_metric(group: Optional[Any] = None,
     """
 
     def decorator_fn(func_to_decorate):
-        return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp_if_available,
-                                 group=group,
-                                 reduce_op=reduce_op)(_numpy_metric_conversion(func_to_decorate))
+        return _apply_to_outputs(
+            apply_to_collection, torch.Tensor, _sync_ddp_if_available, group=group, reduce_op=reduce_op
+        )(_numpy_metric_conversion(func_to_decorate))
 
     return decorator_fn
 
 
-def tensor_metric(group: Optional[Any] = None,
-                  reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
+def tensor_metric(group: Optional[Any] = None, reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on tensors.
 
@@ -223,8 +221,8 @@ def tensor_metric(group: Optional[Any] = None,
     """
 
     def decorator_fn(func_to_decorate):
-        return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp_if_available,
-                                 group=group,
-                                 reduce_op=reduce_op)(_tensor_metric_conversion(func_to_decorate))
+        return _apply_to_outputs(
+            apply_to_collection, torch.Tensor, _sync_ddp_if_available, group=group, reduce_op=reduce_op
+        )(_tensor_metric_conversion(func_to_decorate))
 
     return decorator_fn

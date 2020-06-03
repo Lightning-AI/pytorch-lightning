@@ -7,7 +7,6 @@ import torch
 
 
 class GradInformation(torch.nn.Module):
-
     def grad_norm(self, norm_type: Union[float, int, str]) -> Dict[str, float]:
         """Compute each parameter's gradient's norm and their overall norm.
 

@@ -5,7 +5,6 @@ from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerModelHooksMixin(ABC):
-
     def is_function_implemented(self, f_name):
         model = self.get_model()
         f_op = getattr(model, f_name, None)

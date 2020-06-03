@@ -10,7 +10,6 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class ModelIO(object):
-
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """
         Do something with the checkpoint.

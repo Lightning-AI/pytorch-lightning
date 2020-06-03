@@ -42,9 +42,12 @@ def _run_horovod(trainer_options, on_gpu=False):
     tutils.reset_seed()
     cmdline = [
         'horovodrun',
-        '-np', '2',
-        sys.executable, TEST_SCRIPT,
-        '--trainer-options', shlex.quote(json.dumps(trainer_options))
+        '-np',
+        '2',
+        sys.executable,
+        TEST_SCRIPT,
+        '--trainer-options',
+        shlex.quote(json.dumps(trainer_options)),
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
@@ -100,7 +103,7 @@ def test_horovod_multi_gpu(tmpdir):
         val_percent_check=0.2,
         gpus=1,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -110,7 +113,6 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
-
     class TestTrainingStepModel(EvalModelTemplate):
         def training_step(self, batch, *args, **kwargs):
             x, y = batch
@@ -135,7 +137,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         val_percent_check=0.2,
         gpus=1,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
     tutils.run_model_test_without_loggers(trainer_options, model)
 
@@ -152,7 +154,7 @@ def test_horovod_multi_optimizer(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
 
     # fit model

@@ -7,22 +7,20 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 1),
-    ([], 2),
-    ([ProgressBar(refresh_rate=1)], 0),
-    ([ProgressBar(refresh_rate=2)], 0),
-    ([ProgressBar(refresh_rate=2)], 1),
-])
+@pytest.mark.parametrize(
+    'callbacks,refresh_rate',
+    [
+        ([], 1),
+        ([], 2),
+        ([ProgressBar(refresh_rate=1)], 0),
+        ([ProgressBar(refresh_rate=2)], 0),
+        ([ProgressBar(refresh_rate=2)], 1),
+    ],
+)
 def test_progress_bar_on(callbacks, refresh_rate):
     """Test different ways the progress bar can be turned on."""
 
-    trainer = Trainer(
-        callbacks=callbacks,
-        progress_bar_refresh_rate=refresh_rate,
-        max_epochs=1,
-        overfit_pct=0.2,
-    )
+    trainer = Trainer(callbacks=callbacks, progress_bar_refresh_rate=refresh_rate, max_epochs=1, overfit_pct=0.2,)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     # Trainer supports only a single progress bar callback at the moment
@@ -30,18 +28,11 @@ def test_progress_bar_on(callbacks, refresh_rate):
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize('callbacks,refresh_rate', [
-    ([], 0),
-    ([], False),
-    ([ModelCheckpoint('../trainer')], 0),
-])
+@pytest.mark.parametrize('callbacks,refresh_rate', [([], 0), ([], False), ([ModelCheckpoint('../trainer')], 0),])
 def test_progress_bar_off(callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
 
-    trainer = Trainer(
-        callbacks=callbacks,
-        progress_bar_refresh_rate=refresh_rate,
-    )
+    trainer = Trainer(callbacks=callbacks, progress_bar_refresh_rate=refresh_rate,)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
     assert 0 == len(progress_bars)
@@ -60,11 +51,7 @@ def test_progress_bar_totals():
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        progress_bar_refresh_rate=1,
-        val_percent_check=1.0,
-        max_epochs=1,
-    )
+    trainer = Trainer(progress_bar_refresh_rate=1, val_percent_check=1.0, max_epochs=1,)
     bar = trainer.progress_bar_callback
     assert 0 == bar.total_train_batches
     assert 0 == bar.total_val_batches
@@ -109,9 +96,7 @@ def test_progress_bar_totals():
 def test_progress_bar_fast_dev_run():
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        fast_dev_run=True,
-    )
+    trainer = Trainer(fast_dev_run=True,)
 
     progress_bar = trainer.progress_bar_callback
     assert 1 == progress_bar.total_train_batches

@@ -18,7 +18,6 @@ class OmegaConfModel(EvalModelTemplate):
 
 
 def test_class_nesting(tmpdir):
-
     class Module(LightningModule):
         def forward(self):
             return 0
@@ -78,17 +77,13 @@ class SubSubClassEvalModel(SubClassEvalModel):
 
 
 class AggSubClassEvalModel(SubClassEvalModel):
-
     def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
         super().__init__(*args, **kwargs)
         self.my_loss = my_loss
         self.auto_collect_arguments()
 
 
-@pytest.mark.parametrize("cls", [EvalModelTemplate,
-                                 SubClassEvalModel,
-                                 SubSubClassEvalModel,
-                                 AggSubClassEvalModel])
+@pytest.mark.parametrize("cls", [EvalModelTemplate, SubClassEvalModel, SubSubClassEvalModel, AggSubClassEvalModel])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     extra_args = dict(my_loss=torch.nn.CosineEmbeddingLoss()) if cls is AggSubClassEvalModel else {}

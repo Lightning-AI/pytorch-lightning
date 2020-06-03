@@ -36,17 +36,18 @@ class LightningTemplateModel(LightningModule):
         >>> model = LightningTemplateModel(**params)
     """
 
-    def __init__(self,
-                 drop_prob: float = 0.2,
-                 batch_size: int = 2,
-                 in_features: int = 28 * 28,
-                 learning_rate: float = 0.001 * 8,
-                 optimizer_name: str = 'adam',
-                 data_root: str = './datasets',
-                 out_features: int = 10,
-                 hidden_dim: int = 1000,
-                 **kwargs
-                 ) -> 'LightningTemplateModel':
+    def __init__(
+        self,
+        drop_prob: float = 0.2,
+        batch_size: int = 2,
+        in_features: int = 28 * 28,
+        learning_rate: float = 0.001 * 8,
+        optimizer_name: str = 'adam',
+        data_root: str = './datasets',
+        out_features: int = 10,
+        hidden_dim: int = 1000,
+        **kwargs,
+    ) -> 'LightningTemplateModel':
         # init superclass
         super().__init__()
         self.drop_prob = drop_prob
@@ -58,13 +59,11 @@ class LightningTemplateModel(LightningModule):
         self.out_features = out_features
         self.hidden_dim = hidden_dim
 
-        self.c_d1 = nn.Linear(in_features=self.in_features,
-                              out_features=self.hidden_dim)
+        self.c_d1 = nn.Linear(in_features=self.in_features, out_features=self.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
         self.c_d1_drop = nn.Dropout(self.drop_prob)
 
-        self.c_d2 = nn.Linear(in_features=self.hidden_dim,
-                              out_features=self.out_features)
+        self.c_d2 = nn.Linear(in_features=self.hidden_dim, out_features=self.out_features)
 
     def forward(self, x):
         """
@@ -139,8 +138,7 @@ class LightningTemplateModel(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
         self.mnist_train = MNIST(self.data_root, train=True, download=True, transform=transform)
         self.mnist_test = MNIST(self.data_root, train=False, download=True, transform=transform)
 

@@ -11,4 +11,5 @@ def data_loader(fn):
 
     def inner_fx(self):
         return fn(self)
+
     return inner_fx

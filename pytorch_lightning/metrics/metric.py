@@ -19,6 +19,7 @@ class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
     1. Return multiple Outputs
     2. Handle their own DDP sync
     """
+
     def __init__(self, name: str):
         """
         Args:
@@ -48,9 +49,8 @@ class TensorMetric(Metric):
     All inputs and outputs will be casted to tensors if necessary.
     Already handles DDP sync and input/output conversions.
     """
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -61,15 +61,13 @@ class TensorMetric(Metric):
                 Defaults to sum.
         """
         super().__init__(name)
-        self._orig_call = tensor_metric(group=reduce_group,
-                                        reduce_op=reduce_op)(super().__call__)
+        self._orig_call = tensor_metric(group=reduce_group, reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
             return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
 
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor, _to_device_dtype)
 
 
 class NumpyMetric(Metric):
@@ -79,9 +77,8 @@ class NumpyMetric(Metric):
     be casted to tensors if necessary.
     Already handles DDP sync and input/output conversions.
     """
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -92,12 +89,10 @@ class NumpyMetric(Metric):
                 Defaults to sum.
         """
         super().__init__(name)
-        self._orig_call = numpy_metric(group=reduce_group,
-                                       reduce_op=reduce_op)(super().__call__)
+        self._orig_call = numpy_metric(group=reduce_group, reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
             return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
 
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor, _to_device_dtype)

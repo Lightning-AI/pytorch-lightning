@@ -35,6 +35,7 @@ def test_wandb_pickle(wandb):
 
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
+
     class Experiment:
         id = 'the_id'
 

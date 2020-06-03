@@ -12,6 +12,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from torch.utils.data import IterableDataset
+
     ITERABLE_DATASET_EXISTS = True
 except ImportError:
     ITERABLE_DATASET_EXISTS = False
@@ -46,8 +47,9 @@ def _has_len(dataloader: DataLoader) -> bool:
     try:
         # try getting the length
         if len(dataloader) == 0:
-            raise ValueError('`Dataloader` returned 0 length.'
-                             ' Please make sure that your Dataloader at least returns 1 batch')
+            raise ValueError(
+                '`Dataloader` returned 0 length.' ' Please make sure that your Dataloader at least returns 1 batch'
+            )
         return True
     except TypeError:
         return False
@@ -87,16 +89,18 @@ class TrainerDataLoadingMixin(ABC):
         if name == 'val_check_interval':
             msg += ' If you want to disable validation set `val_percent_check` to 0.0 instead.'
 
-        if not 0. <= value <= 1.:
+        if not 0.0 <= value <= 1.0:
             raise ValueError(msg)
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         on_windows = platform.system() == 'Windows'
 
         if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2 and not on_windows:
-            rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
-                           ' Consider increasing the value of the `num_workers` argument`'
-                           ' in the `DataLoader` init to improve performance.')
+            rank_zero_warn(
+                f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
+                ' Consider increasing the value of the `num_workers` argument`'
+                ' in the `DataLoader` init to improve performance.'
+            )
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
@@ -110,7 +114,7 @@ class TrainerDataLoadingMixin(ABC):
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
-        need_dist_sampler = (self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu)
+        need_dist_sampler = self.use_ddp or self.use_ddp2 or self.use_horovod or self.use_tpu
 
         if self.replace_sampler_ddp and need_dist_sampler:
             if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
@@ -118,13 +122,12 @@ class TrainerDataLoadingMixin(ABC):
                     'You seem to have configured a sampler in your DataLoader. This will be replaced '
                     ' by `DistributedSampler` since `replace_sampler_ddp` is True and you are using'
                     ' distributed training. Either remove the sampler from your DataLoader or set'
-                    ' `replace_sampler_ddp`=False if you want to use your custom sampler.')
+                    ' `replace_sampler_ddp`=False if you want to use your custom sampler.'
+                )
 
             skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 
-            dl_args = {
-                k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
-            }
+            dl_args = {k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys}
 
             dl_args['sampler'] = self._get_distributed_sampler(dataloader)
             dataloader = type(dataloader)(**dl_args)
@@ -140,7 +143,7 @@ class TrainerDataLoadingMixin(ABC):
             world_size = {
                 'ddp': self.num_nodes * self.num_processes,
                 'ddp2': self.num_nodes,
-                'ddp_cpu': self.num_processes * self.num_nodes
+                'ddp_cpu': self.num_processes * self.num_nodes,
             }
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.proc_rank)
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
@@ -179,7 +182,8 @@ class TrainerDataLoadingMixin(ABC):
                 raise ValueError(
                     f'`val_check_interval` ({self.val_check_interval}) must be less than or equal '
                     f'to the number of the training batches ({self.num_training_batches}). '
-                    'If you want to disable validation set `val_percent_check` to 0.0 instead.')
+                    'If you want to disable validation set `val_percent_check` to 0.0 instead.'
+                )
         else:
             if not _has_len(self.train_dataloader):
                 if self.val_check_interval == 1.0:
@@ -189,7 +193,8 @@ class TrainerDataLoadingMixin(ABC):
                         'When using an infinite DataLoader (e.g. with an IterableDataset'
                         ' or when DataLoader does not implement `__len__`) for `train_dataloader`,'
                         ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
-                        ' checking validation every k training batches.')
+                        ' checking validation every k training batches.'
+                    )
             else:
                 self._percent_range_check('val_check_interval')
 
@@ -216,7 +221,8 @@ class TrainerDataLoadingMixin(ABC):
             if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
                 rank_zero_warn(
                     f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
-                    ' this off for validation and test dataloaders.')
+                    ' this off for validation and test dataloaders.'
+                )
 
         if any([dl is None for dl in dataloaders]):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
@@ -245,7 +251,8 @@ class TrainerDataLoadingMixin(ABC):
                 raise MisconfigurationException(
                     'When using an infinite DataLoader (e.g. with an IterableDataset'
                     f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
-                    f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
+                    f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.'
+                )
         return num_batches, dataloaders
 
     def reset_val_dataloader(self, model: LightningModule) -> None:
@@ -255,8 +262,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         if self.is_overridden('validation_step'):
-            self.num_val_batches, self.val_dataloaders = \
-                self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.
@@ -265,8 +271,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         if self.is_overridden('test_step'):
-            self.num_test_batches, self.test_dataloaders =\
-                self._reset_eval_dataloader(model, 'test')
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, 'test')
 
     def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.
@@ -295,8 +300,9 @@ class TrainerDataLoadingMixin(ABC):
 
         return dataloader
 
-    def determine_data_use_amount(self, train_percent_check: float, val_percent_check: float,
-                                  test_percent_check: float, overfit_pct: float) -> None:
+    def determine_data_use_amount(
+        self, train_percent_check: float, val_percent_check: float, test_percent_check: float, overfit_pct: float
+    ) -> None:
         """Use less data for debugging purposes
         """
         self.train_percent_check = train_percent_check
@@ -304,8 +310,7 @@ class TrainerDataLoadingMixin(ABC):
         self.test_percent_check = test_percent_check
         if overfit_pct > 0:
             if overfit_pct > 1:
-                raise ValueError(
-                    f'`overfit_pct` must be not greater than 1.0, but got {overfit_pct:.3f}.')
+                raise ValueError(f'`overfit_pct` must be not greater than 1.0, but got {overfit_pct:.3f}.')
 
             self.train_percent_check = overfit_pct
             self.val_percent_check = overfit_pct

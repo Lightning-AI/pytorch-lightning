@@ -340,9 +340,11 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_horovod) \
-                        and hasattr(self.train_dataloader, 'sampler') \
-                        and hasattr(self.train_dataloader.sampler, 'set_epoch'):
+                if (
+                    (self.use_ddp or self.use_horovod)
+                    and hasattr(self.train_dataloader, 'sampler')
+                    and hasattr(self.train_dataloader.sampler, 'set_epoch')
+                ):
                     self.train_dataloader.sampler.set_epoch(epoch)
 
                 # update training progress in trainer and model
@@ -353,9 +355,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
                 # stores accumulated grad fractions per batch
-                self.batch_loss_value = TensorRunningAccum(
-                    window_length=self.accumulate_grad_batches
-                )
+                self.batch_loss_value = TensorRunningAccum(window_length=self.accumulate_grad_batches)
 
                 # -----------------
                 # RUN TNG EPOCH
@@ -425,7 +425,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
-                enumerate(_with_is_last(train_dataloader)), "get_train_batch"
+            enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
@@ -575,8 +575,7 @@ class TrainerTrainLoopMixin(ABC):
                     with self.profiler.profile('model_forward'):
                         if self.use_amp and self.use_native_amp:
                             with torch.cuda.amp.autocast():
-                                output_dict = self.training_forward(split_batch, batch_idx,
-                                                                    opt_idx, self.hiddens)
+                                output_dict = self.training_forward(split_batch, batch_idx, opt_idx, self.hiddens)
                         else:
                             output_dict = self.training_forward(split_batch, batch_idx, opt_idx, self.hiddens)
 
@@ -630,8 +629,7 @@ class TrainerTrainLoopMixin(ABC):
                     if batch_idx % self.row_log_interval == 0:
                         if float(self.track_grad_norm) > 0:
                             model = self.get_model()
-                            grad_norm_dic = model.grad_norm(
-                                self.track_grad_norm)
+                            grad_norm_dic = model.grad_norm(self.track_grad_norm)
 
                     # clip gradients
                     if self.use_amp and self.use_native_amp:
@@ -642,9 +640,9 @@ class TrainerTrainLoopMixin(ABC):
                     # override function to modify this behavior
                     model = self.get_model()
                     with self.profiler.profile('optimizer_step'):
-                        model.optimizer_step(self.current_epoch, batch_idx,
-                                             optimizer, opt_idx,
-                                             lambda: optimizer_closure()[0])
+                        model.optimizer_step(
+                            self.current_epoch, batch_idx, optimizer, opt_idx, lambda: optimizer_closure()[0]
+                        )
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value.mean())
@@ -775,8 +773,10 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)
 
-            rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                           ' Use training_epoch_end instead', DeprecationWarning)
+            rank_zero_warn(
+                '`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.' ' Use training_epoch_end instead',
+                DeprecationWarning,
+            )
 
         return output
 

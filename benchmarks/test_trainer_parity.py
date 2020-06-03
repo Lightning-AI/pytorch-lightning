@@ -15,7 +15,6 @@ from tests.base.datasets import TrialMNIST
 
 
 class ParityMNIST(LightningModule):
-
     def __init__(self):
         super(ParityMNIST, self).__init__()
         self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
@@ -42,11 +41,7 @@ class ParityMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(TrialMNIST(train=True,
-                                     download=True,
-                                     num_samples=500,
-                                     digits=list(range(5))),
-                          batch_size=128)
+        return DataLoader(TrialMNIST(train=True, download=True, num_samples=500, digits=list(range(5))), batch_size=128)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

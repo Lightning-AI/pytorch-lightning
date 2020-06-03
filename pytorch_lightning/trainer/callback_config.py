@@ -39,22 +39,20 @@ class TrainerCallbackConfigMixin(ABC):
         if self.checkpoint_callback:
             # init a default one
             if self.logger is not None:
-                save_dir = (getattr(self.logger, 'save_dir', None) or
-                            getattr(self.logger, '_save_dir', None) or
-                            self.default_root_dir)
+                save_dir = (
+                    getattr(self.logger, 'save_dir', None)
+                    or getattr(self.logger, '_save_dir', None)
+                    or self.default_root_dir
+                )
 
                 # weights_save_path overrides anything
                 if self.weights_save_path is not None:
                     save_dir = self.weights_save_path
 
-                version = self.logger.version if isinstance(
-                    self.logger.version, str) else f'version_{self.logger.version}'
-                ckpt_path = os.path.join(
-                    save_dir,
-                    self.logger.name,
-                    version,
-                    "checkpoints"
+                version = (
+                    self.logger.version if isinstance(self.logger.version, str) else f'version_{self.logger.version}'
                 )
+                ckpt_path = os.path.join(save_dir, self.logger.name, version, "checkpoints")
             else:
                 ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
 
@@ -64,13 +62,9 @@ class TrainerCallbackConfigMixin(ABC):
 
             if self.checkpoint_callback is True:
                 os.makedirs(ckpt_path, exist_ok=True)
-                self.checkpoint_callback = ModelCheckpoint(
-                    filepath=ckpt_path,
-                    monitor=monitor_key
-                )
+                self.checkpoint_callback = ModelCheckpoint(filepath=ckpt_path, monitor=monitor_key)
             # If user specified None in filepath, override with runtime default
-            elif isinstance(self.checkpoint_callback, ModelCheckpoint) \
-                    and self.checkpoint_callback.dirpath is None:
+            elif isinstance(self.checkpoint_callback, ModelCheckpoint) and self.checkpoint_callback.dirpath is None:
                 self.checkpoint_callback.dirpath = ckpt_path
                 self.checkpoint_callback.filename = '{epoch}'
                 os.makedirs(self.checkpoint_callback.dirpath, exist_ok=True)
@@ -93,11 +87,7 @@ class TrainerCallbackConfigMixin(ABC):
     def configure_early_stopping(self, early_stop_callback):
         if early_stop_callback is True or None:
             self.early_stop_callback = EarlyStopping(
-                monitor='val_loss',
-                patience=3,
-                strict=True,
-                verbose=True,
-                mode='min'
+                monitor='val_loss', patience=3, strict=True, verbose=True, mode='min'
             )
             self.enable_early_stop = True
         elif not early_stop_callback:
@@ -117,10 +107,7 @@ class TrainerCallbackConfigMixin(ABC):
         elif len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(
-                refresh_rate=refresh_rate,
-                process_position=process_position,
-            )
+            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position,)
             self.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None

@@ -11,7 +11,7 @@ class DummyTensorMetric(TensorMetric):
     def forward(self, input1, input2):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
-        return 1.
+        return 1.0
 
 
 class DummyNumpyMetric(NumpyMetric):
@@ -21,11 +21,11 @@ class DummyNumpyMetric(NumpyMetric):
     def forward(self, input1, input2):
         assert isinstance(input1, np.ndarray)
         assert isinstance(input2, np.ndarray)
-        return 1.
+        return 1.0
 
 
 def _test_metric(metric: Metric):
-    input1, input2 = torch.tensor([1.]), torch.tensor([2.])
+    input1, input2 = torch.tensor([1.0]), torch.tensor([2.0])
 
     def change_and_check_device_dtype(device, dtype):
         metric.to(device=device, dtype=dtype)

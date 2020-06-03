@@ -21,8 +21,7 @@ def assert_speed_parity(pl_times, pt_times, num_epochs):
     diffs = pl_times - pt_times
     diffs = diffs / num_epochs
 
-    assert np.alltrue(diffs < max_diff_per_epoch), \
-        f"lightning was slower than PT (threshold {max_diff_per_epoch})"
+    assert np.alltrue(diffs < max_diff_per_epoch), f"lightning was slower than PT (threshold {max_diff_per_epoch})"
 
 
 def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
@@ -36,9 +35,9 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.50):
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(trainer.logger,
-                                  trainer.checkpoint_callback.dirpath,
-                                  path_expt=trainer_options.get('default_root_dir'))
+    pretrained_model = load_model(
+        trainer.logger, trainer.checkpoint_callback.dirpath, path_expt=trainer_options.get('default_root_dir')
+    )
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -88,8 +87,9 @@ def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=T
         if trainer.use_ddp or trainer.use_ddp2:
             # on hpc this would work fine... but need to hack it for the purpose of the test
             trainer.model = pretrained_model
-            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = \
-                trainer.init_optimizers(pretrained_model)
+            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
+                pretrained_model
+            )
 
         # test HPC loading / saving
         trainer.hpc_save(save_dir, logger)
@@ -131,10 +131,7 @@ def load_model(logger, root_weights_dir, module_class=EvalModelTemplate, path_ex
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
-    trained_model = module_class.load_from_checkpoint(
-        checkpoint_path=weights_dir,
-        hparams_file=hparams_path
-    )
+    trained_model = module_class.load_from_checkpoint(checkpoint_path=weights_dir, hparams_file=hparams_path)
 
     assert trained_model is not None, 'loading model failed'
 
@@ -146,9 +143,7 @@ def load_model_from_checkpoint(root_weights_dir, module_class=EvalModelTemplate)
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
-    trained_model = module_class.load_from_checkpoint(
-        checkpoint_path=weights_dir,
-    )
+    trained_model = module_class.load_from_checkpoint(checkpoint_path=weights_dir,)
 
     assert trained_model is not None, 'loading model failed'
 

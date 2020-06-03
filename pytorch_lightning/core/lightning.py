@@ -34,7 +34,6 @@ CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
 
 
 class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, torch.nn.Module):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -153,9 +152,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         """
 
-    def training_step(self, *args, **kwargs) -> Union[
-        int, Dict[str, Union[Tensor, Dict[str, Tensor]]]
-    ]:
+    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -246,8 +243,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def training_epoch_end(
-            self,
-            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """Called at the end of the training epoch with the outputs of all training steps.
 
@@ -322,9 +318,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def training_step_end(self, *args, **kwargs) -> Dict[
-        str, Union[Tensor, Dict[str, Tensor]]
-    ]:
+    def training_step_end(self, *args, **kwargs) -> Dict[str, Union[Tensor, Dict[str, Tensor]]]:
         """
         Use this when training with dp or ddp2 because :meth:`training_step`
         will operate on only part of the batch. However, this is still optional
@@ -543,8 +537,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def validation_epoch_end(
-            self,
-            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
@@ -770,8 +763,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def test_epoch_end(
-            self,
-            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """
         Called at the end of a test epoch with the output of all test steps.
@@ -847,11 +839,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def configure_ddp(
-            self,
-            model: 'LightningModule',
-            device_ids: List[int]
-    ) -> DistributedDataParallel:
+    def configure_ddp(self, model: 'LightningModule', device_ids: List[int]) -> DistributedDataParallel:
         r"""
         Override to init DDP in your own way or with your own wrapper.
         The only requirements are that:
@@ -881,11 +869,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return model
 
         """
-        model = LightningDistributedDataParallel(
-            model,
-            device_ids=device_ids,
-            find_unused_parameters=True
-        )
+        model = LightningDistributedDataParallel(model, device_ids=device_ids, find_unused_parameters=True)
         return model
 
     def _init_slurm_connection(self) -> None:
@@ -921,12 +905,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
-    def init_ddp_connection(
-            self,
-            proc_rank: int,
-            world_size: int,
-            is_slurm_managing_tasks: bool = True
-    ) -> None:
+    def init_ddp_connection(self, proc_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
         """
         Override to define your custom way of setting up a distributed environment.
 
@@ -953,19 +932,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         if 'WORLD_SIZE' in os.environ and int(os.environ['WORLD_SIZE']) != world_size:
-            log.warning(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                        f"is not equal to the computed world size ({world_size}). Ignored.")
+            log.warning(
+                f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
+                f"is not equal to the computed world size ({world_size}). Ignored."
+            )
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         log.info(f"initializing ddp: LOCAL_RANK: {proc_rank}/{world_size - 1} WORLD_SIZE:{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
 
     def configure_apex(
-            self,
-            amp: object,
-            model: 'LightningModule',
-            optimizers: List[Optimizer],
-            amp_level: str
+        self, amp: object, model: 'LightningModule', optimizers: List[Optimizer], amp_level: str
     ) -> Tuple['LightningModule', List[Optimizer]]:
         r"""
         Override to init AMP your own way.
@@ -991,15 +968,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     return model, optimizers
         """
-        model, optimizers = amp.initialize(
-            model, optimizers, opt_level=amp_level,
-        )
+        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level,)
 
         return model, optimizers
 
-    def configure_optimizers(self) -> Optional[Union[
-        Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]
-    ]]:
+    def configure_optimizers(
+        self,
+    ) -> Optional[Union[Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]]]:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
@@ -1101,12 +1076,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         rank_zero_warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer')
 
     def optimizer_step(
-            self,
-            epoch: int,
-            batch_idx: int,
-            optimizer: Optimizer,
-            optimizer_idx: int,
-            second_order_closure: Optional[Callable] = None,
+        self,
+        epoch: int,
+        batch_idx: int,
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        second_order_closure: Optional[Callable] = None,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1180,7 +1155,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             if self.trainer.use_amp and self.trainer.use_native_amp:
                 raise MisconfigurationException(
                     'native PyTorch amp and lbfgs are not compatible.'
-                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                    ' To request, please file a Github issue in PyTorch and tag @mcarilli'
+                )
             optimizer.step(second_order_closure)
         else:
             if self.trainer.use_amp and self.trainer.use_native_amp:
@@ -1250,11 +1226,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_split = []
             for i, x in enumerate(batch):
                 if isinstance(x, torch.Tensor):
-                    split_x = x[:, t:t + split_size]
+                    split_x = x[:, t : t + split_size]
                 elif isinstance(x, collections.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t:t + split_size]
+                        split_x[batch_idx] = x[batch_idx][t : t + split_size]
 
                 batch_split.append(split_x)
 
@@ -1329,8 +1305,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Deprecated in v0.5.0. Use :meth:`train_dataloader` instead. Will be removed in 1.0.0.
         """
         output = self.train_dataloader()
-        rank_zero_warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
-                       " and this method will be removed in v1.0.0", DeprecationWarning)
+        rank_zero_warn(
+            "`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
+            " and this method will be removed in v1.0.0",
+            DeprecationWarning,
+        )
         return output
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
@@ -1439,19 +1418,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         rank_zero_warn(
             "`load_from_metrics` method has been unified with `load_from_checkpoint` in v0.7.0."
-            " The deprecated method will be removed in v0.9.0.", DeprecationWarning
+            " The deprecated method will be removed in v0.9.0.",
+            DeprecationWarning,
         )
         return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
 
     @classmethod
     def load_from_checkpoint(
-            cls,
-            checkpoint_path: str,
-            *args,
-            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-            hparams_file: Optional[str] = None,
-            tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
-            **kwargs
+        cls,
+        checkpoint_path: str,
+        *args,
+        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        hparams_file: Optional[str] = None,
+        tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
+        **kwargs,
     ) -> 'LightningModule':
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
@@ -1671,9 +1651,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
-        tqdm_dict = {
-            'loss': '{:.3f}'.format(avg_training_loss)
-        }
+        tqdm_dict = {'loss': '{:.3f}'.format(avg_training_loss)}
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict['split_idx'] = self.trainer.split_idx
@@ -1694,8 +1672,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Deprecated since v0.7.3.
             Use :meth:`get_progress_bar_dict` instead.
         """
-        rank_zero_warn("`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
-                       " and this method will be removed in v1.0.0", DeprecationWarning)
+        rank_zero_warn(
+            "`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
+            " and this method will be removed in v1.0.0",
+            DeprecationWarning,
+        )
         return self.get_progress_bar_dict()
 
     def auto_collect_arguments(self):
@@ -1728,8 +1709,11 @@ def _collect_init_args(frame, path_args: list) -> list:
     if '__class__' in frame.f_locals:
         local_args = dict(frame.f_locals)
         local_args.update(local_args.get('kwargs', {}))
-        local_args = {k: v for k, v in local_args.items()
-                      if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')}
+        local_args = {
+            k: v
+            for k, v in local_args.items()
+            if k not in ('args', 'kwargs', 'self', '__class__', 'frame', 'frame_args')
+        }
         # if 'hparams' in local_args:
         #     # back compatible hparams as single argument
         #     hparams = local_args.get('hparams')

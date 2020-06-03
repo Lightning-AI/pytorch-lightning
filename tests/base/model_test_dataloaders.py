@@ -4,7 +4,6 @@ from tests.base.dataloaders import CustomInfDataloader
 
 
 class TestDataloaderVariations(ABC):
-
     @abstractmethod
     def dataloader(self, train: bool):
         """placeholder"""

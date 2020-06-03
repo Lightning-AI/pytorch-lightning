@@ -15,13 +15,7 @@ from tests.base import EvalModelTemplate
 def test_amp_single_gpu(tmpdir, backend):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=1,
-        distributed_backend=backend,
-        precision=16
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, distributed_backend=backend, precision=16)
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
@@ -45,7 +39,7 @@ def test_amp_multi_gpu(tmpdir, backend):
         # gpus=2,
         gpus='0, 1',  # test init with gpu string
         distributed_backend=backend,
-        precision=16
+        precision=16,
     )
 
     # tutils.run_model_test(trainer_options, model)
@@ -72,12 +66,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
     # fit model
     trainer = Trainer(
-        max_epochs=1,
-        gpus=[0],
-        distributed_backend='ddp',
-        precision=16,
-        checkpoint_callback=checkpoint,
-        logger=logger,
+        max_epochs=1, gpus=[0], distributed_backend='ddp', precision=16, checkpoint_callback=checkpoint, logger=logger,
     )
     trainer.is_slurm_managing_tasks = True
     result = trainer.fit(model)
@@ -100,7 +89,7 @@ def test_cpu_model_with_amp(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.4,
-        precision=16
+        precision=16,
     )
 
     model = EvalModelTemplate()

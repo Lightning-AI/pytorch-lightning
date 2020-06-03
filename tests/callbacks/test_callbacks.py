@@ -216,12 +216,7 @@ def test_early_stopping_no_val_step(tmpdir):
     model.val_dataloader = None
 
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=stopping,
-        overfit_pct=0.20,
-        max_epochs=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, early_stop_callback=stopping, overfit_pct=0.20, max_epochs=2,)
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
@@ -230,6 +225,7 @@ def test_early_stopping_no_val_step(tmpdir):
 
 def test_pickling(tmpdir):
     import pickle
+
     early_stopping = EarlyStopping()
     ckpt = ModelCheckpoint(tmpdir)
 
@@ -251,11 +247,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(default_root_dir=tmpdir,
-                      checkpoint_callback=checkpoint,
-                      overfit_pct=0.20,
-                      max_epochs=2
-                      )
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_pct=0.20, max_epochs=2)
     trainer.fit(model)
 
     # These should be different if the dirpath has be overridden
@@ -263,8 +255,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
 
 @pytest.mark.parametrize(
-    'logger_version,expected',
-    [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+    'logger_version,expected', [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
 )
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
@@ -272,12 +263,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        overfit_pct=0.2,
-        max_epochs=2,
-        logger=logger
-    )
+    trainer = Trainer(default_root_dir=tmpdir, overfit_pct=0.2, max_epochs=2, logger=logger)
     trainer.fit(model)
 
     ckpt_version = Path(trainer.ckpt_path).parent.name

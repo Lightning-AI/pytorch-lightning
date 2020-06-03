@@ -120,8 +120,14 @@ else:
     HOROVOD_AVAILABLE = True
 
 PRIMITIVE_TYPES = (
-    bool, int, float, str,
-    list, tuple, set, dict,
+    bool,
+    int,
+    float,
+    str,
+    list,
+    tuple,
+    set,
+    dict,
     Namespace,  # for back compatibility
 )
 
@@ -152,8 +158,7 @@ class TrainerIOMixin(ABC):
     scaler: ...
 
     def get_model(self):
-        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
-                                               LightningDataParallel))
+        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel, LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
         return model
 
@@ -275,8 +280,9 @@ class TrainerIOMixin(ABC):
             except AttributeError as err:
                 if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
                     del checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
-                rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
-                               f' An attribute is not picklable {err}')
+                rank_zero_warn(
+                    'Warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                )
                 self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
@@ -362,8 +368,9 @@ class TrainerIOMixin(ABC):
 
         if hasattr(model, CHECKPOINT_KEY_MODULE_ARGS) and model.module_arguments:
             # add arguments to the checkpoint
-            checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = {k: v for k, v in model.module_arguments.items()
-                                                      if isinstance(v, PRIMITIVE_TYPES)}
+            checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = {
+                k: v for k, v in model.module_arguments.items() if isinstance(v, PRIMITIVE_TYPES)
+            }
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -479,8 +486,9 @@ class TrainerIOMixin(ABC):
         except AttributeError as err:
             if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
                 del checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
-            rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
-                           f' An attribute is not picklable {err}')
+            rank_zero_warn(
+                'warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
+            )
             self._atomic_save(checkpoint, filepath)
 
         return filepath

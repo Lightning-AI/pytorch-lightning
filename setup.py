@@ -2,6 +2,7 @@
 
 import os
 from io import open
+
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
@@ -26,7 +27,7 @@ def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
     for ln in lines:
         # filer all comments
         if comment_char in ln:
-            ln = ln[:ln.index(comment_char)]
+            ln = ln[: ln.index(comment_char)]
         if ln:  # if requirement is not empty
             reqs.append(ln)
     return reqs
@@ -58,23 +59,19 @@ setup(
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
-
     long_description=load_long_description(),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
-
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
     install_requires=load_requirements(PATH_ROOT),
-
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
         "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
         "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
     },
-
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',

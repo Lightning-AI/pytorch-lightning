@@ -76,7 +76,7 @@ class ModelWithManualGradTracker(EvalModelTemplate):
         self.stored_grad_norms.append(out)
 
 
-@pytest.mark.parametrize("norm_type", [1., 1.25, 1.5, 2, 3, 5, 10, 'inf'])
+@pytest.mark.parametrize("norm_type", [1.0, 1.25, 1.5, 2, 3, 5, 10, 'inf'])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     # rtol=5e-3 respects the 3 decmials rounding in `.grad_norms` and above
 
@@ -87,10 +87,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     logger = OnlyMetricsListLogger()
 
     trainer = Trainer(
-        max_epochs=3,
-        logger=logger,
-        track_grad_norm=norm_type,
-        row_log_interval=1,  # request grad_norms every batch
+        max_epochs=3, logger=logger, track_grad_norm=norm_type, row_log_interval=1,  # request grad_norms every batch
     )
     result = trainer.fit(model)
 

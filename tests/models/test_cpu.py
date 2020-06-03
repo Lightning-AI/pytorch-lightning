@@ -28,7 +28,7 @@ def test_cpu_slurm_save_load(tmpdir):
         logger=logger,
         train_percent_check=0.2,
         val_percent_check=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -60,11 +60,7 @@ def test_cpu_slurm_save_load(tmpdir):
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
-    trainer = Trainer(
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
-    )
+    trainer = Trainer(max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),)
     model = EvalModelTemplate(**hparams)
 
     # set the epoch start hook so we can predict before the model does the full training
@@ -106,11 +102,11 @@ def test_early_stopping_cpu_model(tmpdir):
 
 
 @pytest.mark.spawn
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and
-                     version_parse(torch.__version__) < version_parse("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    (platform.system() == "Darwin" and version_parse(torch.__version__) < version_parse("1.3.0")),
+    reason="Distributed training is not supported on MacOS before Torch 1.3.0",
+)
 def test_multi_cpu_model_ddp(tmpdir):
     print('in ddp test')
     """Make sure DDP works."""
@@ -124,7 +120,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         val_percent_check=0.2,
         gpus=None,
         num_processes=2,
-        distributed_backend='ddp_cpu'
+        distributed_backend='ddp_cpu',
     )
 
     model = EvalModelTemplate()
@@ -143,8 +139,7 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
-    hparams.update(optimizer_name='lbfgs',
-                   learning_rate=0.004)
+    hparams.update(optimizer_name='lbfgs', learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
     tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
@@ -189,7 +184,7 @@ def test_running_test_after_fitting(tmpdir):
         val_percent_check=0.2,
         test_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
     )
     result = trainer.fit(model)
 
@@ -220,7 +215,7 @@ def test_running_test_no_val(tmpdir):
         test_percent_check=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
-        early_stop_callback=False
+        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -260,8 +255,7 @@ def test_single_gpu_batch_parse():
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
     # tuple of tensor list and list of tensor dict
-    batch = ([torch.rand(2, 3) for _ in range(2)],
-             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
+    batch = ([torch.rand(2, 3) for _ in range(2)], [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
     batch = trainer.transfer_batch_to_gpu(batch, 0)
     assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
 
@@ -284,12 +278,7 @@ def test_simple_cpu(tmpdir):
     model = EvalModelTemplate()
 
     # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.1,)
     result = trainer.fit(model)
 
     # traning complete
@@ -303,7 +292,7 @@ def test_cpu_model(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.4
+        val_percent_check=0.4,
     )
 
     model = EvalModelTemplate()
@@ -322,7 +311,7 @@ def test_all_features_cpu_model(tmpdir):
         accumulate_grad_batches=2,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.4
+        val_percent_check=0.4,
     )
 
     model = EvalModelTemplate()
@@ -361,8 +350,7 @@ def test_tbptt_cpu_model(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
             return {
                 'loss': loss_val,
                 'hiddens': self.test_hidden,
@@ -370,10 +358,7 @@ def test_tbptt_cpu_model(tmpdir):
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(),
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=None,
+                dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None,
             )
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -381,7 +366,7 @@ def test_tbptt_cpu_model(tmpdir):
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
         hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
+        out_features=truncated_bptt_steps,
     )
 
     model = BpttTestModel(**hparams)
@@ -393,7 +378,7 @@ def test_tbptt_cpu_model(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         val_percent_check=0,
         weights_summary=None,
-        early_stop_callback=False
+        early_stop_callback=False,
     )
     result = trainer.fit(model)
 

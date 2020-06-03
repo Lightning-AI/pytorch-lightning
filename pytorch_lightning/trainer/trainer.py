@@ -22,7 +22,11 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
+    TrainerDPMixin,
+    parse_gpu_ids,
+    determine_root_gpu_device,
+    pick_multiple_gpus,
+)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -78,69 +82,74 @@ class Trainer(
     TrainerDeprecatedAPITillVer0_9,
 ):
     DEPRECATED_IN_0_8 = (
-        'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
-        'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
+        'gradient_clip',
+        'nb_gpu_nodes',
+        'max_nb_epochs',
+        'min_nb_epochs',
+        'add_row_log_interval',
+        'nb_sanity_val_steps',
+        'tng_tqdm_dic',
     )
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
-            self,
-            logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-            checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-            early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
-            callbacks: Optional[List[Callback]] = None,
-            default_root_dir: Optional[str] = None,
-            gradient_clip_val: float = 0,
-            process_position: int = 0,
-            num_nodes: int = 1,
-            num_processes: int = 1,
-            gpus: Optional[Union[List[int], str, int]] = None,
-            auto_select_gpus: bool = False,
-            tpu_cores: Optional[Union[List[int], int]] = None,
-            log_gpu_memory: Optional[str] = None,
-            progress_bar_refresh_rate: int = 1,
-            overfit_pct: float = 0.0,
-            track_grad_norm: Union[int, float, str] = -1,
-            check_val_every_n_epoch: int = 1,
-            fast_dev_run: bool = False,
-            accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-            max_epochs: int = 1000,
-            min_epochs: int = 1,
-            max_steps: Optional[int] = None,
-            min_steps: Optional[int] = None,
-            train_percent_check: float = 1.0,
-            val_percent_check: float = 1.0,
-            test_percent_check: float = 1.0,
-            val_check_interval: float = 1.0,
-            log_save_interval: int = 100,
-            row_log_interval: int = 10,
-            add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
-            distributed_backend: Optional[str] = None,
-            precision: int = 32,
-            print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'top',
-            weights_save_path: Optional[str] = None,
-            num_sanity_val_steps: int = 2,
-            truncated_bptt_steps: Optional[int] = None,
-            resume_from_checkpoint: Optional[str] = None,
-            profiler: Optional[Union[BaseProfiler, bool]] = None,
-            benchmark: bool = False,
-            deterministic: bool = False,
-            reload_dataloaders_every_epoch: bool = False,
-            auto_lr_find: Union[bool, str] = False,
-            replace_sampler_ddp: bool = True,
-            terminate_on_nan: bool = False,
-            auto_scale_batch_size: Union[str, bool] = False,
-            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
-            amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
-            default_save_path=None,  # backward compatible, todo: remove in v0.8.0
-            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
-            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
-            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            use_amp=None,  # backward compatible, todo: remove in v0.9.0
-            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
-            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
+        self,
+        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+        checkpoint_callback: Union[ModelCheckpoint, bool] = True,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        callbacks: Optional[List[Callback]] = None,
+        default_root_dir: Optional[str] = None,
+        gradient_clip_val: float = 0,
+        process_position: int = 0,
+        num_nodes: int = 1,
+        num_processes: int = 1,
+        gpus: Optional[Union[List[int], str, int]] = None,
+        auto_select_gpus: bool = False,
+        tpu_cores: Optional[Union[List[int], int]] = None,
+        log_gpu_memory: Optional[str] = None,
+        progress_bar_refresh_rate: int = 1,
+        overfit_pct: float = 0.0,
+        track_grad_norm: Union[int, float, str] = -1,
+        check_val_every_n_epoch: int = 1,
+        fast_dev_run: bool = False,
+        accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
+        max_epochs: int = 1000,
+        min_epochs: int = 1,
+        max_steps: Optional[int] = None,
+        min_steps: Optional[int] = None,
+        train_percent_check: float = 1.0,
+        val_percent_check: float = 1.0,
+        test_percent_check: float = 1.0,
+        val_check_interval: float = 1.0,
+        log_save_interval: int = 100,
+        row_log_interval: int = 10,
+        add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
+        distributed_backend: Optional[str] = None,
+        precision: int = 32,
+        print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
+        weights_summary: Optional[str] = 'top',
+        weights_save_path: Optional[str] = None,
+        num_sanity_val_steps: int = 2,
+        truncated_bptt_steps: Optional[int] = None,
+        resume_from_checkpoint: Optional[str] = None,
+        profiler: Optional[Union[BaseProfiler, bool]] = None,
+        benchmark: bool = False,
+        deterministic: bool = False,
+        reload_dataloaders_every_epoch: bool = False,
+        auto_lr_find: Union[bool, str] = False,
+        replace_sampler_ddp: bool = True,
+        terminate_on_nan: bool = False,
+        auto_scale_batch_size: Union[str, bool] = False,
+        num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
+        amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
+        default_save_path=None,  # backward compatible, todo: remove in v0.8.0
+        gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
+        nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
+        max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
+        min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
+        use_amp=None,  # backward compatible, todo: remove in v0.9.0
+        show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
+        nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
     ):
         r"""
 
@@ -327,31 +336,39 @@ class Trainer(
         self.num_nodes = num_nodes
         # Backward compatibility, TODO: remove in v0.8.0
         if nb_gpu_nodes is not None:
-            rank_zero_warn("Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
+                " and this method will be removed in v0.8.0",
+                DeprecationWarning,
+            )
             self.num_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
 
         self.gradient_clip_val = gradient_clip_val
         # Backward compatibility, TODO: remove in v0.8.0
         if gradient_clip is not None:
-            rank_zero_warn("Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
+                " and this method will be removed in v0.8.0",
+                DeprecationWarning,
+            )
             self.gradient_clip = gradient_clip
 
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
-            raise MisconfigurationException(
-                "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+            raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
         if num_tpu_cores is not None:
-            rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
-                           " and this argument will be removed in v0.9.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
+                " and this argument will be removed in v0.9.0",
+                DeprecationWarning,
+            )
 
         if tpu_cores is None:
             tpu_cores = num_tpu_cores
@@ -372,15 +389,21 @@ class Trainer(
         self.max_epochs = max_epochs
         # Backward compatibility, TODO: remove in v0.8.0
         if max_nb_epochs is not None:
-            rank_zero_warn("Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
+                " and this method will be removed in v0.8.0",
+                DeprecationWarning,
+            )
             self.max_nb_epochs = max_nb_epochs
 
         self.min_epochs = min_epochs
         # Backward compatibility, TODO: remove in v0.8.0
         if min_nb_epochs is not None:
-            rank_zero_warn("Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
+                " and this method will be removed in v0.8.0",
+                DeprecationWarning,
+            )
             self.min_nb_epochs = min_nb_epochs
 
         self.max_steps = max_steps
@@ -389,15 +412,21 @@ class Trainer(
         self.num_sanity_val_steps = num_sanity_val_steps
         # Backward compatibility, TODO: remove in v0.8.0
         if nb_sanity_val_steps is not None:
-            rank_zero_warn("Argument `nb_sanity_val_steps` has renamed to "
-                           "`num_sanity_val_steps` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `nb_sanity_val_steps` has renamed to "
+                "`num_sanity_val_steps` since v0.5.0"
+                " and this method will be removed in v0.8.0",
+                DeprecationWarning,
+            )
             self.nb_sanity_val_steps = nb_sanity_val_steps
 
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
-            rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
-                           " NaN grads will be printed automatically when detected.", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
+                " NaN grads will be printed automatically when detected.",
+                DeprecationWarning,
+            )
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -415,8 +444,7 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
-            log.info('Running in fast_dev_run mode: will run a full train,'
-                     ' val and test loop using a single batch')
+            log.info('Running in fast_dev_run mode: will run a full train,' ' val and test loop using a single batch')
 
         # set default save path if user didn't provide one
         self.default_root_dir = default_root_dir
@@ -517,16 +545,18 @@ class Trainer(
 
         # backward compatibility
         if add_row_log_interval is not None:
-            rank_zero_warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
+            rank_zero_warn(
+                "`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
+                " and this method will be removed in v0.8.0",
+                DeprecationWarning,
+            )
             if not row_log_interval:  # in case you did not set the proper value
                 row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
         self.overfit_pct = overfit_pct
-        self.determine_data_use_amount(train_percent_check, val_percent_check,
-                                       test_percent_check, overfit_pct)
+        self.determine_data_use_amount(train_percent_check, val_percent_check, test_percent_check, overfit_pct)
 
         # AMP init
         # These are the only lines needed after v0.8.0
@@ -666,7 +696,7 @@ class Trainer(
              ...}
 
         """
-        parser = ArgumentParser(parents=[parent_parser], add_help=False, )
+        parser = ArgumentParser(parents=[parent_parser], add_help=False,)
 
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
@@ -674,8 +704,9 @@ class Trainer(
         allowed_types = (str, float, int, bool)
 
         # TODO: get "help" from docstring :)
-        for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
-                                            if at[0] not in depr_arg_names):
+        for arg, arg_types, arg_default in (
+            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
+        ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
                 # skip argument with not supported type
@@ -688,6 +719,7 @@ class Trainer(
                     # redefine the type for ArgParser needed
                     def use_type(x):
                         return bool(parsing.strtobool(x))
+
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
@@ -782,10 +814,10 @@ class Trainer(
     # MODEL TRAINING
     # -----------------------------
     def fit(
-            self,
-            model: LightningModule,
-            train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     ):
         r"""
         Runs the full optimization routine.
@@ -1009,8 +1041,9 @@ class Trainer(
             return
 
         # check if we should run validation during training
-        self.disable_validation = not (self.is_overridden('validation_step') and self.val_percent_check > 0) \
-            and not self.fast_dev_run
+        self.disable_validation = (
+            not (self.is_overridden('validation_step') and self.val_percent_check > 0) and not self.fast_dev_run
+        )
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -1021,10 +1054,7 @@ class Trainer(
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
-            eval_results = self._evaluate(model,
-                                          self.val_dataloaders,
-                                          self.num_sanity_val_steps,
-                                          False)
+            eval_results = self._evaluate(model, self.val_dataloaders, self.num_sanity_val_steps, False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             self.on_sanity_check_end()
@@ -1044,9 +1074,9 @@ class Trainer(
         self.train()
 
     def test(
-            self,
-            model: Optional[LightningModule] = None,
-            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+        self,
+        model: Optional[LightningModule] = None,
+        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
     ):
         r"""
 
@@ -1117,50 +1147,59 @@ class Trainer(
             if not self.is_overridden('training_step', model):
                 raise MisconfigurationException(
                     'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.'
+                )
 
             if not self.is_overridden('train_dataloader', model):
                 raise MisconfigurationException(
                     'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.'
+                )
 
             if not self.is_overridden('configure_optimizers', model):
                 raise MisconfigurationException(
                     'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.'
+                )
 
             # Check val_dataloader, validation_step and validation_epoch_end
             if self.is_overridden('val_dataloader', model):
                 if not self.is_overridden('validation_step', model):
-                    raise MisconfigurationException('You have passed in a `val_dataloader()`'
-                                                    ' but have not defined `validation_step()`.')
+                    raise MisconfigurationException(
+                        'You have passed in a `val_dataloader()`' ' but have not defined `validation_step()`.'
+                    )
                 else:
                     if not self.is_overridden('validation_epoch_end', model):
                         rank_zero_warn(
                             'You have defined a `val_dataloader()` and have defined a `validation_step()`,'
                             ' you may also want to define `validation_epoch_end()` for accumulating stats.',
-                            RuntimeWarning
+                            RuntimeWarning,
                         )
             else:
                 if self.is_overridden('validation_step', model):
-                    raise MisconfigurationException('You have defined `validation_step()`,'
-                                                    ' but have not passed in a `val_dataloader()`.')
+                    raise MisconfigurationException(
+                        'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.'
+                    )
 
         # Check test_dataloader, test_step and test_epoch_end
         if self.is_overridden('test_dataloader', model):
             if not self.is_overridden('test_step', model):
-                raise MisconfigurationException('You have passed in a `test_dataloader()`'
-                                                ' but have not defined `test_step()`.')
+                raise MisconfigurationException(
+                    'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.'
+                )
             else:
                 if not self.is_overridden('test_epoch_end', model):
                     rank_zero_warn(
                         'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
-                        ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
+                        ' define `test_epoch_end()` for accumulating stats.',
+                        RuntimeWarning,
                     )
         else:
             if self.testing and self.is_overridden('test_step', model):
-                raise MisconfigurationException('You have defined `test_step()` but did not'
-                                                ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
+                raise MisconfigurationException(
+                    'You have defined `test_step()` but did not'
+                    ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.'
+                )
 
 
 class _PatchDataLoader(object):

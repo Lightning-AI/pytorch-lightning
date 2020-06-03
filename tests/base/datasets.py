@@ -48,8 +48,9 @@ class MNIST(Dataset):
     TEST_FILE_NAME = 'test.pt'
     cache_folder_name = 'complete'
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = True):
+    def __init__(
+        self, root: str = PATH_DATASETS, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = True
+    ):
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -136,28 +137,27 @@ class TrialMNIST(MNIST):
         tensor([100, 100, 100])
     """
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2)):
+    def __init__(
+        self,
+        root: str = PATH_DATASETS,
+        train: bool = True,
+        normalize: tuple = (0.5, 1.0),
+        download: bool = False,
+        num_samples: int = 100,
+        digits: Optional[Sequence] = (0, 1, 2),
+    ):
 
         # number of examples per class
         self.num_samples = num_samples
         # take just a subset of MNIST dataset
         self.digits = digits if digits else list(range(10))
 
-        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) \
-                                 + f'_nb-{self.num_samples}'
+        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) + f'_nb-{self.num_samples}'
 
-        super().__init__(
-            root,
-            train=train,
-            normalize=normalize,
-            download=download
-        )
+        super().__init__(root, train=train, normalize=normalize, download=download)
 
     @staticmethod
-    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor,
-                        num_samples: int, digits: Sequence):
+    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
         classes = {d: 0 for d in digits}
         indexes = []
         for idx, target in enumerate(full_targets):

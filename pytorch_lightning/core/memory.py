@@ -18,7 +18,6 @@ from pytorch_lightning import _logger as log
 
 
 class ModelSummary(object):
-
     def __init__(self, model: 'pl.LightningModule', mode: str = 'full'):
         """ Generates summaries of model layers and dimensions. """
         self.model = model
@@ -56,16 +55,14 @@ class ModelSummary(object):
             device = next(self.model.parameters()).get_device()
             # test if input is a list or a tuple
             if isinstance(input_, (list, tuple)):
-                input_ = [input_i.cuda(device) if torch.is_tensor(input_i) else input_i
-                          for input_i in input_]
+                input_ = [input_i.cuda(device) if torch.is_tensor(input_i) else input_i for input_i in input_]
             else:
                 input_ = input_.cuda(device)
 
         if self.model.trainer.use_amp:
             # test if it is not a list or a tuple
             if isinstance(input_, (list, tuple)):
-                input_ = [input_i.half() if torch.is_tensor(input_i) else input_i
-                          for input_i in input_]
+                input_ = [input_i.half() if torch.is_tensor(input_i) else input_i for input_i in input_]
             else:
                 input_ = input_.half()
 
@@ -142,9 +139,11 @@ class ModelSummary(object):
 
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
         """
-        arrays = [['Name', self.layer_names],
-                  ['Type', self.layer_types],
-                  ['Params', list(map(get_human_readable_count, self.param_nums))]]
+        arrays = [
+            ['Name', self.layer_names],
+            ['Type', self.layer_types],
+            ['Params', list(map(get_human_readable_count, self.param_nums))],
+        ]
         if self.model.example_input_array is not None:
             arrays.append(['In sizes', self.in_sizes])
             arrays.append(['Out sizes', self.out_sizes])
@@ -268,15 +267,13 @@ def get_gpu_memory_map() -> Dict[str, int]:
         values are memory usage as integers in MB.
     """
     result = subprocess.run(
-        [
-            'nvidia-smi',
-            '--query-gpu=memory.used',
-            '--format=csv,nounits,noheader',
-        ],
+        ['nvidia-smi', '--query-gpu=memory.used', '--format=csv,nounits,noheader',],
         encoding='utf-8',
         # capture_output=True,          # valid for python version >=3.7
-        stdout=PIPE, stderr=PIPE,       # for backward compatibility with python version 3.6
-        check=True)
+        stdout=PIPE,
+        stderr=PIPE,  # for backward compatibility with python version 3.6
+        check=True,
+    )
     # Convert lines into a dictionary
     gpu_memory = [int(x) for x in result.stdout.strip().split(os.linesep)]
     gpu_memory_map = {f'gpu_{index}': memory for index, memory in enumerate(gpu_memory)}

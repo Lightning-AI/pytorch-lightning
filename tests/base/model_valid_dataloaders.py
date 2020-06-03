@@ -4,7 +4,6 @@ from tests.base.dataloaders import CustomInfDataloader
 
 
 class ValDataloaderVariations(ABC):
-
     @abstractmethod
     def dataloader(self, train: bool):
         """placeholder"""
@@ -13,8 +12,7 @@ class ValDataloaderVariations(ABC):
         return self.dataloader(train=False)
 
     def val_dataloader__multiple(self):
-        return [self.dataloader(train=False),
-                self.dataloader(train=False)]
+        return [self.dataloader(train=False), self.dataloader(train=False)]
 
     def val_dataloader__infinite(self):
         return CustomInfDataloader(self.dataloader(train=False))

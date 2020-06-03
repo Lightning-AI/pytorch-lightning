@@ -65,12 +65,7 @@ def test_custom_logger(tmpdir):
 
     logger = CustomLogger()
 
-    trainer = Trainer(
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=logger,
-        default_root_dir=tmpdir
-    )
+    trainer = Trainer(max_epochs=1, train_percent_check=0.05, logger=logger, default_root_dir=tmpdir)
     result = trainer.fit(model)
     assert result == 1, "Training failed"
     assert logger.hparams_logged == hparams
@@ -85,12 +80,7 @@ def test_multiple_loggers(tmpdir):
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer = Trainer(
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=[logger1, logger2],
-        default_root_dir=tmpdir
-    )
+    trainer = Trainer(max_epochs=1, train_percent_check=0.05, logger=[logger1, logger2], default_root_dir=tmpdir)
     result = trainer.fit(model)
     assert result == 1, "Training failed"
 
@@ -149,8 +139,7 @@ def test_adding_step_key(tmpdir):
         val_percent_check=0.01,
         num_sanity_val_steps=0,
     )
-    trainer.logger.log_metrics = _log_metrics_decorator(
-        trainer.logger.log_metrics)
+    trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
     trainer.fit(model)
 
 

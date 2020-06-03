@@ -45,9 +45,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.dirpath,
-                                         module_class=EvalModelTemplate)
+    pretrained_model = tutils.load_model(logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -80,7 +78,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
     )
 
     # fit model
@@ -89,9 +87,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(
-        logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate
-    )
+    pretrained_model = tutils.load_model(logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -147,11 +143,7 @@ def test_dp_resume(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    trainer_options = dict(
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='dp',
-    )
+    trainer_options = dict(max_epochs=1, gpus=2, distributed_backend='dp',)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)
@@ -221,11 +213,7 @@ def test_model_saving_loading(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
-    )
+    trainer_options = dict(max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir))
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -257,10 +245,7 @@ def test_model_saving_loading(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
-        hparams_file=hparams_path
-    )
+    model_2 = EvalModelTemplate.load_from_checkpoint(checkpoint_path=new_weights_path, hparams_file=hparams_path)
     model_2.eval()
 
     # make prediction

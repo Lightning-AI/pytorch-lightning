@@ -29,11 +29,15 @@ def test_tbd_remove_in_v0_8_0_module_imports():
     _soft_unimport_module("pytorch_lightning.pt_overrides.override_data_parallel")
     with pytest.deprecated_call(match='v0.8.0'):
         from pytorch_lightning.pt_overrides.override_data_parallel import (  # noqa: F811
-            LightningDataParallel, LightningDistributedDataParallel)
+            LightningDataParallel,
+            LightningDistributedDataParallel,
+        )
     _soft_unimport_module("pytorch_lightning.overrides.override_data_parallel")
     with pytest.deprecated_call(match='v0.8.0'):
         from pytorch_lightning.overrides.override_data_parallel import (  # noqa: F811
-            LightningDataParallel, LightningDistributedDataParallel)
+            LightningDataParallel,
+            LightningDistributedDataParallel,
+        )
 
     _soft_unimport_module("pytorch_lightning.core.model_saving")
     with pytest.deprecated_call(match='v0.8.0'):
@@ -80,10 +84,10 @@ def test_tbd_remove_in_v0_8_0_trainer():
         attr_new = mapping_old_new[attr_old]
         with pytest.deprecated_call(match='v0.8.0'):
             _ = getattr(trainer, attr_old)
-        assert kwargs[attr_old] == getattr(trainer, attr_old), \
-            'Missing deprecated attribute "%s"' % attr_old
-        assert kwargs[attr_old] == getattr(trainer, attr_new), \
-            'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
+        assert kwargs[attr_old] == getattr(trainer, attr_old), 'Missing deprecated attribute "%s"' % attr_old
+        assert kwargs[attr_old] == getattr(
+            trainer, attr_new
+        ), 'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
 
 
 def test_tbd_remove_in_v0_9_0_trainer():
@@ -105,6 +109,7 @@ def test_tbd_remove_in_v0_9_0_module_imports():
     _soft_unimport_module("pytorch_lightning.core.decorators")
     with pytest.deprecated_call(match='v0.9.0'):
         from pytorch_lightning.core.decorators import data_loader  # noqa: F811
+
         data_loader(print)
 
     _soft_unimport_module("pytorch_lightning.logging.comet")

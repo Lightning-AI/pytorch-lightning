@@ -9,6 +9,7 @@ class TrainingStepVariations(ABC):
     """
     Houses all variations of training steps
     """
+
     test_step_inf_loss = float('inf')
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -23,11 +24,13 @@ class TrainingStepVariations(ABC):
         loss_val = self.loss(y, y_hat)
 
         # alternate possible outputs to test
-        output = OrderedDict({
-            'loss': loss_val,
-            'progress_bar': {'some_val': loss_val * loss_val},
-            'log': {'train_some_val': loss_val * loss_val},
-        })
+        output = OrderedDict(
+            {
+                'loss': loss_val,
+                'progress_bar': {'some_val': loss_val * loss_val},
+                'log': {'train_some_val': loss_val * loss_val},
+            }
+        )
         return output
 
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
