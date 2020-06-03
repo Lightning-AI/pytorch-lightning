@@ -60,8 +60,8 @@ else:
         'Trainer',
         'LightningModule',
         'Callback',
-        'data_loader'
-        'seed_everything'
+        'data_loader',
+        'seed_everything',
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed

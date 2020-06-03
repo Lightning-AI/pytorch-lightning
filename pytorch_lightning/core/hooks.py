@@ -3,6 +3,8 @@ from typing import Any
 import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
+from pytorch_lightning.utilities import move_data_to_device
+
 
 try:
     from apex import amp
@@ -153,3 +155,48 @@ class ModelHooks(torch.nn.Module):
                     scaled_loss.backward()
         else:
             loss.backward()
+
+    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
+        """
+        Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
+        wrapped in a custom data structure.
+
+        The data types listed below (and any arbitrary nesting of them) are supported out of the box:
+
+        - :class:`torch.Tensor`
+        - :class:`list`
+        - :class:`dict`
+        - :class:`tuple`
+        - ``torchtext.data.Batch`` (COMING SOON)
+
+        For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
+
+        Example::
+
+            def transfer_batch_to_device(self, batch, device)
+                if isinstance(batch, CustomBatch):
+                    # move all tensors in your custom data structure to the device
+                    batch.samples = batch.samples.to(device)
+                    batch.targets = batch.targets.to(device)
+                else:
+                    batch = super().transfer_batch_to_device(data, device)
+                return batch
+
+        Args:
+            batch: A batch of data that needs to be transferred to a new device.
+            device: The target device as defined in PyTorch.
+
+        Returns:
+            A reference to the data on the new device.
+
+        Note:
+            This hook should only transfer the data and not modify it, nor should it move the data to
+            any other device than the one passed in as argument (unless you know what you are doing).
+            The :class:`~pytorch_lightning.trainer.trainer.Trainer` already takes care of splitting the
+            batch and determines the target devices.
+
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
+            - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
+        """
+        return move_data_to_device(batch, device)
