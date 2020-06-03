@@ -22,7 +22,6 @@ def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callab
         func_to_apply: the function to apply to the inputs
         *dec_args: positional arguments for the function to be applied
         **dec_kwargs: keyword arguments for the function to be applied
-
     Returns:
         the decorated function
     """
@@ -46,7 +45,6 @@ def _apply_to_outputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Calla
         func_to_apply: the function to apply to the outputs
         *dec_args: positional arguments for the function to be applied
         **dec_kwargs: keyword arguments for the function to be applied
-
     Returns:
         the decorated function
     """
@@ -64,40 +62,36 @@ def _apply_to_outputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Calla
 
 def _convert_to_tensor(data: Any) -> Any:
     """
-    Maps all kind of collections and numbers to tensors
-
+    Maps all kind of collections and numbers to tensors.
     Args:
         data: the data to convert to tensor
-
     Returns:
         the converted data
-
     """
     if isinstance(data, numbers.Number):
         return torch.tensor([data])
     # is not array of object
     elif isinstance(data, np.ndarray) and np_str_obj_array_pattern.search(data.dtype.str) is None:
         return torch.from_numpy(data)
-
-    raise TypeError("The given type ('%s') cannot be converted to a tensor!" % type(data).__name__)
+    elif isinstance(data, torch.Tensor):
+        return data
 
     raise TypeError(f"The given type ('{type(data).__name__}') cannot be converted to a tensor!")
 
 
 def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
-    """
-    converts all tensors and numpy arrays to numpy arrays
+    """Convert all tensors and numpy arrays to numpy arrays.
     Args:
         data: the tensor or array to convert to numpy
-
     Returns:
         the resulting numpy array
-
     """
     if isinstance(data, torch.Tensor):
         return data.cpu().detach().numpy()
     elif isinstance(data, numbers.Number):
         return np.array([data])
+    elif isinstance(data, np.ndarray):
+        return data
 
     raise TypeError("The given type ('%s') cannot be converted to a numpy array!" % type(data).__name__)
 
@@ -107,13 +101,10 @@ def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
     Decorator handling the argument conversion for metrics working on numpy.
     All inputs of the decorated function will be converted to numpy and all
     outputs will be converted to tensors.
-
     Args:
         func_to_decorate: the function whose inputs and outputs shall be converted
-
     Returns:
         the decorated function
-
     """
     # applies collection conversion from tensor to numpy to all inputs
     # we need to include numpy arrays here, since otherwise they will also be treated as sequences
@@ -128,13 +119,10 @@ def _tensor_metric_conversion(func_to_decorate: Callable) -> Callable:
     """
     Decorator Handling the argument conversion for metrics working on tensors.
     All inputs and outputs of the decorated function will be converted to tensors
-
     Args:
         func_to_decorate: the function whose inputs and outputs shall be converted
-
     Returns:
         the decorated function
-
     """
     # converts all inputs to tensor if possible
     # we need to include tensors here, since otherwise they will also be treated as sequences
@@ -150,15 +138,12 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
                            ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
-
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum.
-
     Returns:
         reduced value
-
     """
 
     if torch.distributed.is_available() and torch.distributed.is_initialized():
@@ -180,23 +165,19 @@ def numpy_metric(group: Optional[Any] = None,
                  reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on numpy arrays.
-
     It handles the argument conversion and DDP reduction for metrics working on numpy.
     All inputs of the decorated function will be converted to numpy and all
     outputs will be converted to tensors.
     In DDP Training all output tensors will be reduced according to the given rules.
-
     Args:
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum
-
     Returns:
         the decorated function
-
     """
 
     def decorator_fn(func_to_decorate):
-        return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp,
+        return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp_if_available,
                                  group=group,
                                  reduce_op=reduce_op)(_numpy_metric_conversion(func_to_decorate))
 
@@ -207,23 +188,18 @@ def tensor_metric(group: Optional[Any] = None,
                   reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on tensors.
-
     It handles the argument conversion and DDP reduction for metrics working on tensors.
     All inputs and outputs of the decorated function will be converted to tensors.
     In DDP Training all output tensors will be reduced according to the given rules.
-
     Args:
        group: the process group to gather results from. Defaults to all processes (world)
        reduce_op: the reduction operation. Defaults to sum
-
     Returns:
        the decorated function
-
     """
 
-
     def decorator_fn(func_to_decorate):
-        return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp,
+        return _apply_to_outputs(apply_to_collection, torch.Tensor, _sync_ddp_if_available,
                                  group=group,
                                  reduce_op=reduce_op)(_tensor_metric_conversion(func_to_decorate))
 
