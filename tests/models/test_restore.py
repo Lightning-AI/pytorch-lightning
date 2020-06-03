@@ -66,9 +66,6 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
         tutils.run_prediction(dataloader, pretrained_model)
 
 
-# TODO: temporary suspension for Python 3.8 on macOS
-@pytest.mark.skipif((sys.version_info >= (3, 8) and platform.system() == "Darwin"),
-                    reason="Temporary issue with Python 3.8 on macOS")
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
     model = EvalModelTemplate()
@@ -219,9 +216,6 @@ def test_dp_resume(tmpdir):
     model.unfreeze()
 
 
-# TODO: temporary suspension for Python 3.8 on macOS
-@pytest.mark.skipif((sys.version_info >= (3, 8) and platform.system() == "Darwin"),
-                    reason="Temporary issue with Python 3.8 on macOS")
 def test_model_saving_loading(tmpdir):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     model = EvalModelTemplate()
