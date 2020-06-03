@@ -3,7 +3,7 @@ import torch
 
 from pytorch_lightning.metrics.functional.classification import to_onehot, to_categorical, get_num_classes, \
     stat_scores, stat_scores_multiple_classes, accuracy, confusion_matrix, precision, recall, fbeta_score, \
-    f1_score, _binary_clf_curve, dice_score, average_precision, auroc, precision_recall_curve, roc
+    f1_score, _binary_clf_curve, dice_score, average_precision, auroc, precision_recall_curve, roc, auc
 
 
 @pytest.fixture
@@ -271,6 +271,17 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
 def test_auroc(pred, target, expected):
     score = auroc(pred, target).item()
     assert score == expected
+
+@pytest.mark.parametrize(['x', 'y', 'expected'],[
+    pytest.param(torch.tensor([0, 1]), torch.tensor([0, 1]), 0.5),
+    pytest.param(torch.tensor([1, 0]), torch.tensor([0, 1]), 0.5),
+    pytest.param(torch.tensor([1, 0, 0]), torch.tensor([0, 1, 1]), 0.5),
+    pytest.param(torch.tensor([0, 1]), torch.tensor([1, 1]), 1),
+    pytest.param(torch.tensor([0, 0.5, 1]), torch.tensor([0, 0.5, 1]), 0.5)
+])
+def test_auc(x, y, expected):
+    # Test Area Under Curve (AUC) computation
+    assert auc(x, y) == expected
 
 
 def test_average_precision_constant_values():
