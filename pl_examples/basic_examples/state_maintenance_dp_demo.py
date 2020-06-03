@@ -203,7 +203,12 @@ def main(args: Namespace) -> None:
     # ------------------------
     # If use distubuted training  PyTorch recommends to use DistributedDataParallel.
     # See: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
-    trainer = Trainer()
+    trainer = Trainer(
+        num_nodes=1,
+        gpus=[0, 1],
+        distributed_backend='dp',
+        show_progress_bar=True
+    )
 
     # ------------------------
     # 3 START TRAINING
