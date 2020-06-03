@@ -241,6 +241,7 @@ class ModelHooks(Module):
         """
         return move_data_to_device(batch, device)
 
+
 class DistributedStateHooks(torch.nn.Module):
 
     def __init__(self):

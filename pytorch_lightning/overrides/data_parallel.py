@@ -94,8 +94,13 @@ class LightningDataParallel(DataParallel):
     def scatter_distributed_state(self, replicas, num_inputs):
 
         if len(self.distributed_buffer) == len(replicas):
-            # TODO: detach here?
             for idx in range(len(replicas)):
+
+                buffer = self.distributed_buffer[idx]
+                for var, state in buffer.__dict__.items():
+                    if isinstance(state, torch.Tensor):
+                        buffer.__dict__[var] = state.detach()
+
                 replicas[idx].distributed_state = self.distributed_buffer[idx]
         else:
             state_idx = 0
