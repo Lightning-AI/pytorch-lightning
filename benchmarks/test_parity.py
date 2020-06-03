@@ -9,9 +9,12 @@ from benchmarks.parity_modules import ParityModuleRNN, ParityModuleMNIST
 from pytorch_lightning import Trainer, seed_everything
 
 
-@pytest.mark.parametrize('cls_model', [ParityModuleRNN, ParityModuleMNIST])
+@pytest.mark.parametrize('cls_model,max_diff', [
+    (ParityModuleRNN, 0.01),
+    (ParityModuleMNIST, 0.1)
+])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_pytorch_parity(tmpdir, cls_model):
+def test_pytorch_parity(tmpdir, cls_model, max_diff):
     """
     Verify that the same  pytorch and lightning models achieve the same results
     """
