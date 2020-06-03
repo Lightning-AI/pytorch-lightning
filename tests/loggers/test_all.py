@@ -1,7 +1,5 @@
 import inspect
 import pickle
-import platform
-import sys
 
 import pytest
 

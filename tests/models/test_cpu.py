@@ -1,6 +1,5 @@
 import os
 import platform
-import sys
 from collections import namedtuple
 
 import pytest

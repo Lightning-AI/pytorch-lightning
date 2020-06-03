@@ -1,8 +1,6 @@
 import glob
 import logging as log
 import os
-import platform
-import sys
 
 import pytest
 import torch
