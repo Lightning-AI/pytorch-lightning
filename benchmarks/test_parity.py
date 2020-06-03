@@ -29,7 +29,7 @@ def test_pytorch_parity(tmpdir, cls_model, max_diff):
 
     # the fist run initialize dataset (download & filter)
     tutils.assert_speed_parity_absolute(pl_times[1:], pt_times[1:],
-                                        nb_epochs=num_epochs, max_diff=0.6)
+                                        nb_epochs=num_epochs, max_diff=max_diff)
 
 
 def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
