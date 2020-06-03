@@ -91,7 +91,7 @@ class AggSubClassEvalModel(SubClassEvalModel):
 
 
 class DictConfSubClassEvalModel(SubClassEvalModel):
-    def __init__(self, *args, dict_conf=DictConfig(dict(my_param='something')), **kwargs):
+    def __init__(self, *args, dict_conf=OmegaConf.create(dict(my_param='something')), **kwargs):
         super().__init__(*args, **kwargs)
         self.dict_conf = dict_conf
 
@@ -110,7 +110,7 @@ def test_collect_init_arguments(tmpdir, cls):
     if cls is AggSubClassEvalModel:
         extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
     elif cls is DictConfSubClassEvalModel:
-        extra_args.update(dict_conf=DictConfig(dict(my_param='anything')))
+        extra_args.update(dict_conf=OmegaConf.create(dict(my_param='anything')))
 
     model = cls(**extra_args)
     assert model.batch_size == 32
