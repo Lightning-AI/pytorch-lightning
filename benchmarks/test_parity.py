@@ -10,7 +10,7 @@ from pytorch_lightning import Trainer, seed_everything
 
 
 @pytest.mark.parametrize('cls_model,max_diff', [
-    (ParityModuleRNN, 0.01),
+    (ParityModuleRNN, 0.05),
     (ParityModuleMNIST, 0.5)
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
