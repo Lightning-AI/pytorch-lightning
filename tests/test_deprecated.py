@@ -4,8 +4,6 @@ import sys
 import pytest
 
 from pytorch_lightning import Trainer
-
-import tests.base.utils as tutils
 from tests.base import EvalModelTemplate
 
 
