@@ -391,7 +391,8 @@ def test_dp_state_maintenance(tmpdir, backend):
                 # test if replicas[idx].distributed_state are set to
                 # the correct buffer entries
                 for idx, dist_state in enumerate(distributed_buffer):
-                    assert dist_state.__dict__ is replicas[idx].__dict__
+                    assert dist_state.__dict__ is \
+                        replicas[idx].distributed_state.__dict__
             else:
                 # before first call to forward
 
@@ -433,7 +434,8 @@ def test_dp_state_maintenance(tmpdir, backend):
             # test if y_hat was added to state after forward
             # test if a was assigned a tensor after forward call
             for idx, dist_state in enumerate(distributed_buffer):
-                assert dist_state.__dict__ is replicas[idx].__dict__
+                assert dist_state.__dict__ is \
+                    replicas[idx].distributed_state.__dict__
 
                 assert 'y_hat' in dist_state.__dict__
                 assert isinstance(dist_state.__dict__['y_hat'], torch.Tensor)
