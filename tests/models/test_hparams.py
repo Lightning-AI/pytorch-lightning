@@ -184,31 +184,6 @@ def test_collect_init_arguments_with_local_vars(cls):
     assert model.module_arguments['arg2'] == 2
 
 
-class ManuallyArgsModel(EvalModelTemplate):
-
-    def __init__(self, arg1, arg2, arg3):
-        # manually
-        self.save_hyperparameters(arg_name1=arg1, arg_name2=arg2, arg_name3=arg3)
-
-
-class AutomaticArgsModel(EvalModelTemplate):
-
-    def __init__(self, arg1, arg2, arg3):
-        # equivalent automatic
-        self.save_hyperparameters()
-
-
-@pytest.mark.parametrize("cls", [
-    ManuallyArgsModel,
-    AutomaticArgsModel,
-])
-def test_save_hyperparameters(cls):
-    model = cls(1, 'abc', 3.14)
-    assert model.arg1 == 1
-    assert model.arg2 == 'abc'
-    assert model.arg3 == 3.14
-
-
 class NamespaceArgModel(EvalModelTemplate):
     def __init__(self, hparams: Namespace):
         # manually
@@ -233,4 +208,5 @@ class OtherArgModel(EvalModelTemplate):
         self.save_hyperparameters(some_rand_alternative)
 
 
+def test_single_config_models(cls, )
 
