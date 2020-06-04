@@ -357,6 +357,134 @@ def test_single_gpu_batch_parse():
     batch = trainer.transfer_batch_to_gpu(CustomBatchType())
     assert batch.a.type() == 'torch.cuda.FloatTensor'
 
+
+@pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp'])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_dp_state_maintenance(tmpdir, backend):
+
+    class CurrentTestModel(EvalModelTemplate):
+        self.distributed_state.a = None
+        self.distributed_state.b = torch.randn(2, 2)
+        self.distributed_state.c = None
+        self.distributed_state.d = torch.randn(5, 5)
+        self.distributed_state.e = torch.randn(7, 7)
+        self.distributed_state.gpu_id = self.device
+
+        forward_called = False
+
+        def on_after_model_replicate(self, replicas, distributed_buffer, device_ids):
+            """
+            called after replicas have been populated with state
+            """
+
+            # test self.module.distributed_state and
+            # self.distributed_buffer[0] point to the same object
+            assert self.module.distributed_state.__dict__ is \
+                distributed_buffer[0].__dict__
+
+            if self.forward_called:
+                # after initial call to forward
+
+                # test if replicas[idx].distributed_state are set to
+                # the correct buffer entries
+                for idx, dist_state in enumerate(distributed_buffer):
+                    assert dist_state.__dict__ is replicas[idx].__dict__
+            else:
+                # before first call to forward
+
+                # test original tensors are on the correct GPU
+                module_state = distributed_buffer[0]
+                for var, state in module_state.__dict__.items():
+                    if isinstance(state, torch.Tensor):
+                        assert str(state.get_device()) == str(self.device)
+
+                # test each GPU has correct tensors against variable names
+                for idx, dist_state in enumerate(distributed_buffer):
+                    for var, state in dist_state.__dict__:
+                        if var == 'a' or var == 'c':
+                            assert state is None
+                        else:
+                            assert isinstance(state, torch.Tensor)
+                            assert str(state.device) == str(device_ids[idx])
+
+                            if var == 'b':
+                                assert tuple(state.shape) == (2, 2)
+                            elif var == 'd':
+                                assert tuple(state.shape) == (5, 5)
+                            elif var == 'e':
+                                assert tuple(state.shape) == (7, 7)
+
+        def on_after_dp_parallel_apply(self, replicas, distributed_buffer, device_ids):
+            """
+            called after forward (parallel_apply)
+            """
+            self.forward_called = True
+
+            # test self.module.distributed_state and
+            # self.distributed_buffer[0] point to the same object
+            assert self.module.distributed_state.__dict__ is \
+                distributed_buffer[0].__dict__
+
+            # state updated with changes in forward
+            #
+            # test if y_hat was added to state after forward
+            # test if a was assigned a tensor after forward call
+            for idx, dist_state in enumerate(distributed_buffer):
+                assert dist_state.__dict__ is replicas[idx].__dict__
+
+                assert 'y_hat' in dist_state.__dict__
+                assert isinstance(dist_state.__dict__['y_hat'], torch.Tensor)
+                assert str(dist_state.__dict__['y_hat'].device) == str(device_ids[idx])
+
+                assert isinstance(dist_state.__dict__['a'], torch.Tensor)
+                assert str(dist_state.__dict__['a'].device) == str(device_ids[idx])
+
+                assert isinstance(dist_state.__dict__['e'], str)
+                assert dist_state.__dict__['e'] == str(device_ids[idx])
+
+        def training_step(self, batch, batch_idx, optimizer_idx=None):
+            """Lightning calls this inside the training loop"""
+            # forward pass
+            x, y = batch
+            x = x.view(x.size(0), -1)
+
+            # _________________
+            # CHANGE
+            # add new tensor to distributed_state
+            self.distributed_state.y_hat = self(x)
+
+            # change existing tensor to something else
+            self.distributed_state.e = str(self.distributed_state.y_hat.device)
+
+            # change None to tensor
+            # calculate loss
+            self.distributed_state.a = self.loss(y, self.distributed_state.y_hat)
+            # CHANGE
+            # _________________
+
+            # alternate possible outputs to test
+            output = OrderedDict({
+                'loss': self.distributed_state.a,
+                'progress_bar': {'some_val': loss_val * loss_val},
+                'log': {'train_some_val': loss_val * loss_val},
+            })
+            return output
+
+    model = CurrentTestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=[0, 1],
+        distributed_backend=backend
+    )
+
+    result = trainer.fit(model)
+    assert result == 1
+
     # torchtext.data.Batch
     samples = [
         {'text': 'PyTorch Lightning is awesome!', 'label': 0},

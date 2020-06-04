@@ -78,13 +78,17 @@ class LightningDataParallel(DataParallel):
             return self.module.validation_step(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-        self.module.on_after_model_replicate(replicas)
 
         # scatter distributed state from buffer to replicas
         self.scatter_distributed_state(replicas, len(inputs))
+        self.module.on_after_model_replicate(
+            replicas, self.distributed_buffer, self.device_ids[:len(inputs)]
+        )
 
         outputs = self.parallel_apply(replicas, inputs, kwargs)
-        self.module.on_after_dp_parallel_apply(replicas)
+        self.module.on_after_dp_parallel_apply(
+            replicas, self.distributed_buffer, self.device_ids[:len(inputs)]
+        )
 
         return self.gather(outputs, self.output_device)
 

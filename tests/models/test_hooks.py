@@ -117,10 +117,10 @@ def test_distributed_state_hooks(tmpdir, backend):
         on_after_model_replicate_called = False
         on_after_dp_parallel_apply_called = False
 
-        def on_after_model_replicate(self, replicas):
+        def on_after_model_replicate(self, replicas, distributed_buffer, device_ids):
             self.on_after_model_replicate_called = True
 
-        def on_after_dp_parallel_apply(self, replicas):
+        def on_after_dp_parallel_apply(self, replicas, distributed_buffer, device_ids):
             self.on_after_dp_parallel_apply_called = True
 
     model = CurrentTestModel()

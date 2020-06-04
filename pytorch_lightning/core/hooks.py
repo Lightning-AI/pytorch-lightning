@@ -249,13 +249,13 @@ class DistributedStateHooks(torch.nn.Module):
 
         setattr(self, 'distributed_state', self.DistributedState())
 
-    def on_after_model_replicate(self, replicas) -> None:
+    def on_after_model_replicate(self, replicas, distributed_buffer, device_ids) -> None:
         """
         TODO: add documentation
         """
         pass
 
-    def on_after_dp_parallel_apply(self, replicas) -> None:
+    def on_after_dp_parallel_apply(self, replicas, distributed_buffer, device_ids) -> None:
         """
         TODO: add documentation
         """
