@@ -1,4 +1,5 @@
 import collections
+import copy
 import inspect
 import os
 import warnings
@@ -76,6 +77,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: device reference
         self._device = torch.device('cpu')
+
+        self._module_self_arguments = {}
+        self._module_parents_arguments = {}
 
     @property
     def on_gpu(self):
@@ -1714,13 +1718,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def _auto_collect_arguments(self) -> None:
+    def _auto_collect_arguments(self, frame=None) -> None:
         """
         Collect all module arguments in the current constructor and all child constructors.
         The child constructors are all the ``__init__`` methods that reach the current class through
         (chained) ``super().__init__()`` calls.
         """
-        frame = inspect.currentframe()
+        if not frame:
+            frame = inspect.currentframe()
 
         frame_args = _collect_init_args(frame.f_back, [])
         self_arguments = frame_args[-1]
@@ -1751,6 +1756,32 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             return {}
 
     def save_hyperparameters(self, *args, **kwargs) -> None:
+        """
+
+        >>> from collections import OrderedDict
+        >>> class ManuallyArgsModel(LightningModule):
+        ...     def __init__(self, arg1, arg2, arg3):
+        ...         super().__init__()
+        ...         # manually
+        ...         self.save_hyperparameters(arg_name1=arg1, arg_name2=arg2, arg_name3=arg3)
+        ...     def forward(self, *args, **kwargs):
+        ...         ...
+        >>> model = ManuallyArgsModel(1, 'abc', 3.14)
+        >>> OrderedDict(model.module_arguments)
+        OrderedDict([('arg_name1', 1), ('arg_name2', 'abc'), ('arg_name3', 3.14)])
+
+        >>> from collections import OrderedDict
+        >>> class AutomaticArgsModel(LightningModule):
+        ...     def __init__(self, arg1, arg2, arg3):
+        ...         super().__init__()
+        ...         # equivalent automatic
+        ...         self.save_hyperparameters()
+        ...     def forward(self, *args, **kwargs):
+        ...         ...
+        >>> model = AutomaticArgsModel(1, 'abc', 3.14)
+        >>> OrderedDict(model.module_arguments)
+        OrderedDict([('arg1', 1), ('arg2', 'abc'), ('arg3', 3.14)])
+        """
         if not args and not kwargs:
             self._auto_collect_arguments()
             return
@@ -1761,13 +1792,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             arg = args[0]
             if not isinstance(arg, (dict, Namespace)):  # add OmegaConf
                 raise ValueError(f'Unsupported argument type `{type(arg)}`.')
-            self._module_self_arguments = arg
+            self._module_self_arguments = copy.copy(arg)
 
-        if kwargs:
-            self._module_self_arguments = kwargs
+        elif kwargs:
+            self._module_self_arguments = copy.deepcopy(kwargs)
 
 
-def _collect_init_args(frame, path_args: list) -> list:
+def _collect_init_args(frame, path_args: list, inside: bool = False) -> list:
     """
     Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
@@ -1785,9 +1816,9 @@ def _collect_init_args(frame, path_args: list) -> list:
         cls = local_vars['__class__']
         spec = inspect.getfullargspec(cls.__init__)
         init_parameters = inspect.signature(cls.__init__).parameters
-        self_identifier = spec.args[0]        # "self" unless user renames it (always first arg)
-        varargs_identifier = spec.varargs     # by convention this is named "*args"
-        kwargs_identifier = spec.varkw        # by convention this is named "**kwargs"
+        self_identifier = spec.args[0]  # "self" unless user renames it (always first arg)
+        varargs_identifier = spec.varargs  # by convention this is named "*args"
+        kwargs_identifier = spec.varkw  # by convention this is named "**kwargs"
         exclude_argnames = (
             varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
         )
@@ -1799,6 +1830,8 @@ def _collect_init_args(frame, path_args: list) -> list:
 
         # recursive update
         path_args.append(local_args)
-        return _collect_init_args(frame.f_back, path_args)
+        return _collect_init_args(frame.f_back, path_args, inside=True)
+    elif not inside:
+        return _collect_init_args(frame.f_back, path_args, inside)
     else:
         return path_args
