@@ -1009,8 +1009,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
             - Single optimizer.
             - List or Tuple - List of optimizers.
-            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers.
-            - Dictionary, with an 'optimizer' key and (optionally) a 'lr_scheduler' key.
+            - Two lists - The first list has multiple optimizers, the second a list of LR schedulers (or lr_dict).
+            - Dictionary, with an 'optimizer' key, and (optionally) a 'lr_scheduler' key which value is a single LR scheduler or lr_dict.
             - Tuple of dictionaries as described, with an optional 'frequency' key.
             - None - Fit will run without any optimizer.
 
@@ -1021,6 +1021,21 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             and passing multiple optimizers in dictionaries with a frequency of 1:
             In the former case, all optimizers will operate on the given batch in each optimization step.
             In the latter, only one optimizer will operate on the given batch at every step.
+
+            The lr_dict is a dictionary which contains scheduler and its associated configuration.
+            It has five keys. The default configuration is shown below.
+
+            .. code-block:: python
+
+                {
+                    'scheduler': lr_scheduler, # The LR schduler
+                    'interval': 'epoch', # The unit of the scheduler's step size
+                    'frequency': 1, # The frequency of the scheduler
+                    'reduce_on_plateau': False, # For ReduceLROnPlateau scheduler
+                    'monitor': 'val_loss' # Metric to monitor
+                }
+
+            If user only provides LR schedulers, then their configuration will set to default as shown above.
 
         Examples:
             .. code-block:: python
@@ -1086,15 +1101,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
               default ``.step()`` schedule, override the :meth:`optimizer_step` hook.
 
             - If you only want to call a learning rate scheduler every ``x`` step or epoch,
-              or want to monitor a custom metric, you can specify these in a dictionary:
+              or want to monitor a custom metric, you can specify these in a lr_dict:
 
               .. code-block:: python
 
                   {
                       'scheduler': lr_scheduler,
-                      'interval': 'step'  # or 'epoch'
+                      'interval': 'step',  # or 'epoch'
                       'monitor': 'val_f1',
-                      'frequency': x
+                      'frequency': x,
                   }
 
         """
