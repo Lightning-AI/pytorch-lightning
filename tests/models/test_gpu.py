@@ -372,7 +372,6 @@ def test_dp_state_maintenance(tmpdir, backend):
             self.distributed_state.c = None
             self.distributed_state.d = torch.randn(5, 5)
             self.distributed_state.e = torch.randn(7, 7)
-            self.distributed_state.gpu_id = self.device
 
             self.forward_called = False
 
@@ -381,9 +380,9 @@ def test_dp_state_maintenance(tmpdir, backend):
             called after replicas have been populated with state
             """
 
-            # test self.module.distributed_state and
-            # self.distributed_buffer[0] point to the same object
-            assert self.module.distributed_state.__dict__ is \
+            # test self.distributed_state and
+            # distributed_buffer[0] point to the same object
+            assert self.distributed_state.__dict__ is \
                 distributed_buffer[0].__dict__
 
             if self.forward_called:
@@ -424,9 +423,9 @@ def test_dp_state_maintenance(tmpdir, backend):
             """
             self.forward_called = True
 
-            # test self.module.distributed_state and
-            # self.distributed_buffer[0] point to the same object
-            assert self.module.distributed_state.__dict__ is \
+            # test self.distributed_state and
+            # distributed_buffer[0] point to the same object
+            assert self.distributed_state.__dict__ is \
                 distributed_buffer[0].__dict__
 
             # state updated with changes in forward
@@ -463,17 +462,10 @@ def test_dp_state_maintenance(tmpdir, backend):
             # change None to tensor
             # calculate loss
             self.distributed_state.a = self.loss(y, self.distributed_state.y_hat)
-            loss_val = self.distributed_state.a
             # CHANGE
             # _________________
 
-            # alternate possible outputs to test
-            output = OrderedDict({
-                'loss': loss_val,
-                'progress_bar': {'some_val': loss_val * loss_val},
-                'log': {'train_some_val': loss_val * loss_val},
-            })
-            return output
+            return {'loss': self.distributed_state.a}
 
     model = CurrentTestModel()
 
