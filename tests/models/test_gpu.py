@@ -399,16 +399,16 @@ def test_dp_state_maintenance(tmpdir, backend):
                 module_state = distributed_buffer[0]
                 for var, state in module_state.__dict__.items():
                     if isinstance(state, torch.Tensor):
-                        assert str(state.get_device()) == str(self.device)
+                        assert str(state.device) == str(self.device)
 
                 # test each GPU has correct tensors against variable names
                 for idx, dist_state in enumerate(distributed_buffer):
-                    for var, state in dist_state.__dict__:
+                    for var, state in dist_state.__dict__.items():
                         if var == 'a' or var == 'c':
                             assert state is None
                         else:
                             assert isinstance(state, torch.Tensor)
-                            assert str(state.device) == str(device_ids[idx])
+                            assert str(state.get_device()) == str(device_ids[idx])
 
                             if var == 'b':
                                 assert tuple(state.shape) == (2, 2)
@@ -437,10 +437,10 @@ def test_dp_state_maintenance(tmpdir, backend):
 
                 assert 'y_hat' in dist_state.__dict__
                 assert isinstance(dist_state.__dict__['y_hat'], torch.Tensor)
-                assert str(dist_state.__dict__['y_hat'].device) == str(device_ids[idx])
+                assert str(dist_state.__dict__['y_hat'].get_device()) == str(device_ids[idx])
 
                 assert isinstance(dist_state.__dict__['a'], torch.Tensor)
-                assert str(dist_state.__dict__['a'].device) == str(device_ids[idx])
+                assert str(dist_state.__dict__['a'].get_device()) == str(device_ids[idx])
 
                 assert isinstance(dist_state.__dict__['e'], str)
                 assert dist_state.__dict__['e'] == str(device_ids[idx])
@@ -457,7 +457,8 @@ def test_dp_state_maintenance(tmpdir, backend):
             self.distributed_state.y_hat = self(x)
 
             # change existing tensor to something else
-            self.distributed_state.e = str(self.distributed_state.y_hat.device)
+            self.distributed_state.e = str(self.distributed_state.y_hat.get_device())
+            loss_val = self.distributed_state.e
 
             # change None to tensor
             # calculate loss
@@ -465,7 +466,12 @@ def test_dp_state_maintenance(tmpdir, backend):
             # CHANGE
             # _________________
 
-            return {'loss': self.distributed_state.a}
+            output = OrderedDict({
+                'loss': loss_val,
+                'progress_bar': {'some_val': loss_val * loss_val},
+                'log': {'train_some_val': loss_val * loss_val},
+            })
+            return output
 
     model = CurrentTestModel()
 
@@ -474,6 +480,7 @@ def test_dp_state_maintenance(tmpdir, backend):
         max_epochs=3,
         overfit_pct=0.1,
         gpus=[0, 1],
+        logger=None,
         distributed_backend=backend
     )
 
