@@ -13,12 +13,11 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.seed import seed_everything
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
     TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
@@ -73,7 +72,6 @@ class Trainer(
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
     TrainerLRFinderMixin,
-    TrainerDeprecatedAPITillVer0_8,
     TrainerDeprecatedAPITillVer0_9,
 ):
     DEPRECATED_IN_0_8 = (
@@ -113,7 +111,6 @@ class Trainer(
             val_check_interval: float = 1.0,
             log_save_interval: int = 100,
             row_log_interval: int = 10,
-            add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
             distributed_backend: Optional[str] = None,
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
@@ -131,15 +128,8 @@ class Trainer(
             terminate_on_nan: bool = False,
             auto_scale_batch_size: Union[str, bool] = False,
             num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
-            amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
-            default_save_path=None,  # backward compatible, todo: remove in v0.8.0
-            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
-            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
-            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
             use_amp=None,  # backward compatible, todo: remove in v0.9.0
             show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
-            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
     ):
         r"""
 
@@ -271,11 +261,6 @@ class Trainer(
 
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
 
-            nb_sanity_val_steps:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `num_sanity_val_steps` instead. Will remove 0.8.0.
-
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
@@ -324,20 +309,9 @@ class Trainer(
 
         # Transfer params
         self.num_nodes = num_nodes
-        # Backward compatibility, TODO: remove in v0.8.0
-        if nb_gpu_nodes is not None:
-            rank_zero_warn("Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.num_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
 
         self.gradient_clip_val = gradient_clip_val
-        # Backward compatibility, TODO: remove in v0.8.0
-        if gradient_clip is not None:
-            rank_zero_warn("Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.gradient_clip = gradient_clip
-
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
@@ -369,30 +343,11 @@ class Trainer(
         self.weights_summary = weights_summary
 
         self.max_epochs = max_epochs
-        # Backward compatibility, TODO: remove in v0.8.0
-        if max_nb_epochs is not None:
-            rank_zero_warn("Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.max_nb_epochs = max_nb_epochs
-
         self.min_epochs = min_epochs
-        # Backward compatibility, TODO: remove in v0.8.0
-        if min_nb_epochs is not None:
-            rank_zero_warn("Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.min_nb_epochs = min_nb_epochs
-
         self.max_steps = max_steps
         self.min_steps = min_steps
 
         self.num_sanity_val_steps = num_sanity_val_steps
-        # Backward compatibility, TODO: remove in v0.8.0
-        if nb_sanity_val_steps is not None:
-            rank_zero_warn("Argument `nb_sanity_val_steps` has renamed to "
-                           "`num_sanity_val_steps` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.nb_sanity_val_steps = nb_sanity_val_steps
-
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
@@ -419,10 +374,6 @@ class Trainer(
 
         # set default save path if user didn't provide one
         self.default_root_dir = default_root_dir
-
-        # Backward compatibility, TODO: remove in v0.8.0
-        if default_save_path is not None:
-            self.default_root_dir = default_save_path
 
         if self.default_root_dir is None:
             self.default_root_dir = os.getcwd()
@@ -514,12 +465,6 @@ class Trainer(
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
 
-        # backward compatibility
-        if add_row_log_interval is not None:
-            rank_zero_warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not row_log_interval:  # in case you did not set the proper value
-                row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -535,8 +480,6 @@ class Trainer(
         self.precision = precision
         self.scaler = None
 
-        # TODO: remove for v0.8.0
-        self.amp_level = amp_level
         self.init_amp(use_amp)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')

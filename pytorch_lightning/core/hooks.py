@@ -149,11 +149,6 @@ class ModelHooks(Module):
 
             if self.trainer.use_native_amp:
                 self.trainer.scaler.scale(loss).backward()
-
-            # TODO: remove in v0.8.0
-            else:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
         else:
             loss.backward()
 

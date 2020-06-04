@@ -428,13 +428,6 @@ Example::
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
 
-
-gradient_clip:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `gradient_clip_val` instead. Will remove 0.8.0.
-
 log_gpu_memory
 ^^^^^^^^^^^^^^
 Options:
@@ -495,12 +488,6 @@ Example::
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
 
-max_nb_epochs:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `max_epochs` instead. Will remove 0.8.0.
-
 min_epochs
 ^^^^^^^^^^
 Force training for at least these many epochs
@@ -509,11 +496,6 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(min_epochs=1)
-
-min_nb_epochs:
-
-.. warning:: deprecated:: 0.5.0
-    Use `min_epochs` instead. Will remove 0.8.0.
 
 max_steps
 ^^^^^^^^^
@@ -559,12 +541,6 @@ Example::
     # to train on 8 nodes
     trainer = Trainer(num_nodes=8)
 
-nb_gpu_nodes:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `num_nodes` instead. Will remove 0.8.0.
-
 num_processes
 ^^^^^^^^^^^^^
 
@@ -594,12 +570,6 @@ Example::
 
     # turn it off
     trainer = Trainer(num_sanity_val_steps=0)
-
-nb_sanity_val_steps:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `num_sanity_val_steps` instead. Will remove 0.8.0.
 
 num_tpu_cores
 ^^^^^^^^^^^^^
@@ -824,13 +794,6 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(row_log_interval=10)
-
-
-add_row_log_interval:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `row_log_interval` instead. Will remove 0.8.0.
 
 use_amp:
 

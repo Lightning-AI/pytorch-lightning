@@ -141,13 +141,6 @@ exclude_patterns = [
     'api/modules.rst',
 
     # deprecated/renamed:
-    'api/pytorch_lightning.loggers.comet_logger.rst',           # TODO: remove in v0.8.0
-    'api/pytorch_lightning.loggers.mlflow_logger.rst',          # TODO: remove in v0.8.0
-    'api/pytorch_lightning.loggers.test_tube_logger.rst',       # TODO: remove in v0.8.0
-    'api/pytorch_lightning.callbacks.pt_callbacks.*',           # TODO: remove in v0.8.0
-    'api/pytorch_lightning.pt_overrides.*',                     # TODO: remove in v0.8.0
-    'api/pytorch_lightning.root_module.*',                      # TODO: remove in v0.8.0
-    'api/pytorch_lightning.logging.*',                          # TODO: remove in v0.8.0
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
