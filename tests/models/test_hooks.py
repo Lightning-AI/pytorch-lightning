@@ -128,8 +128,7 @@ def test_distributed_state_hooks(tmpdir, backend):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        overfit_pct=0.1,
         gpus=[0, 1],
         distributed_backend=backend
     )
