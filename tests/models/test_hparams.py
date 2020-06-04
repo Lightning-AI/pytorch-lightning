@@ -44,14 +44,8 @@ def test_class_nesting(tmpdir):
     A().test()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason='OmegaConf only for Python >= 3.8')
 def test_omegaconf(tmpdir):
-
-    # ogc only for 3.8
-    major = sys.version_info[0]
-    minor = sys.version_info[1]
-    if major < 3 and minor < 8:
-        return
-
     conf = OmegaConf.create({"k": "v", "list": [15.4, {"a": "1", "b": "2"}]})
     model = OmegaConfModel(conf)
 
@@ -73,6 +67,17 @@ class SubClassEvalModel(EvalModelTemplate):
         self.auto_collect_arguments()
 
 
+class UnconventionalArgsEvalModel(EvalModelTemplate):
+    """ A model that has unconventional names for "self", "*args" and "**kwargs". """
+
+    def __init__(obj, *more_args, other_arg=300, **more_kwargs):
+        # intentionally named obj
+        super().__init__(*more_args, **more_kwargs)
+        obj.other_arg = other_arg
+        other_arg = 321
+        obj.auto_collect_arguments()
+
+
 class SubSubClassEvalModel(SubClassEvalModel):
     pass
 
@@ -85,10 +90,13 @@ class AggSubClassEvalModel(SubClassEvalModel):
         self.auto_collect_arguments()
 
 
-@pytest.mark.parametrize("cls", [EvalModelTemplate,
-                                 SubClassEvalModel,
-                                 SubSubClassEvalModel,
-                                 AggSubClassEvalModel])
+@pytest.mark.parametrize("cls", [
+    EvalModelTemplate,
+    SubClassEvalModel,
+    SubSubClassEvalModel,
+    AggSubClassEvalModel,
+    UnconventionalArgsEvalModel,
+])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
     extra_args = dict(my_loss=torch.nn.CosineEmbeddingLoss()) if cls is AggSubClassEvalModel else {}
@@ -125,3 +133,36 @@ def test_collect_init_arguments(tmpdir, cls):
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
     assert model.batch_size == 99
+
+
+class LocalVariableModel1(EvalModelTemplate):
+    """ This model has the super().__init__() call at the end. """
+
+    def __init__(self, arg1, arg2, *args, **kwargs):
+        self.argument1 = arg1  # arg2 intentionally not set
+        arg1 = 'overwritten'
+        local_var = 1234
+        super().__init__(*args, **kwargs)  # this is intentionally here at the end
+
+
+class LocalVariableModel2(EvalModelTemplate):
+    """ This model has the auto_collect_arguments() call at the end. """
+
+    def __init__(self, arg1, arg2, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.argument1 = arg1  # arg2 intentionally not set
+        arg1 = 'overwritten'
+        local_var = 1234
+        self.auto_collect_arguments()  # this is intentionally here at the end
+
+
+@pytest.mark.parametrize("cls", [
+    LocalVariableModel1,
+    LocalVariableModel2,
+])
+def test_collect_init_arguments_with_local_vars(cls):
+    """ Tests that only the arguments are collected and not local variables. """
+    model = cls(arg1=1, arg2=2)
+    assert 'local_var' not in model.module_arguments
+    assert model.module_arguments['arg1'] == 'overwritten'
+    assert model.module_arguments['arg2'] == 2
