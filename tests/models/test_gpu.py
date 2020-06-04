@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import pytest
 import torch
+from collections import OrderedDict
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
@@ -358,20 +359,22 @@ def test_single_gpu_batch_parse():
     assert batch.a.type() == 'torch.cuda.FloatTensor'
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_state_maintenance(tmpdir, backend):
 
     class CurrentTestModel(EvalModelTemplate):
-        self.distributed_state.a = None
-        self.distributed_state.b = torch.randn(2, 2)
-        self.distributed_state.c = None
-        self.distributed_state.d = torch.randn(5, 5)
-        self.distributed_state.e = torch.randn(7, 7)
-        self.distributed_state.gpu_id = self.device
+        def __init__(self):
+            super(CurrentTestModel, self).__init__()
 
-        forward_called = False
+            self.distributed_state.a = None
+            self.distributed_state.b = torch.randn(2, 2)
+            self.distributed_state.c = None
+            self.distributed_state.d = torch.randn(5, 5)
+            self.distributed_state.e = torch.randn(7, 7)
+            self.distributed_state.gpu_id = self.device
+
+            self.forward_called = False
 
         def on_after_model_replicate(self, replicas, distributed_buffer, device_ids):
             """
@@ -460,12 +463,13 @@ def test_dp_state_maintenance(tmpdir, backend):
             # change None to tensor
             # calculate loss
             self.distributed_state.a = self.loss(y, self.distributed_state.y_hat)
+            loss_val = self.distributed_state.a
             # CHANGE
             # _________________
 
             # alternate possible outputs to test
             output = OrderedDict({
-                'loss': self.distributed_state.a,
+                'loss': loss_val,
                 'progress_bar': {'some_val': loss_val * loss_val},
                 'log': {'train_some_val': loss_val * loss_val},
             })

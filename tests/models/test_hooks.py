@@ -108,7 +108,6 @@ def test_transfer_batch_hook():
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_distributed_state_hooks(tmpdir, backend):
