@@ -1769,7 +1769,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
-        ...         # manually
+        ...         # manually assin arguments
         ...         self.save_hyperparameters(arg_name1=arg1, arg_name2=arg2, arg_name3=arg3)
         ...     def forward(self, *args, **kwargs):
         ...         ...
@@ -1789,7 +1789,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         >>> OrderedDict(model.module_arguments)
         OrderedDict([('arg1', 1), ('arg2', 'abc'), ('arg3', 3.14)])
 
-        >>> from collections import OrderedDict
         >>> class SingleArgModel(LightningModule):
         ...     def __init__(self, hparams):
         ...         super().__init__()

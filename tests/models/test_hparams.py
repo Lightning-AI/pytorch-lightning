@@ -123,9 +123,7 @@ def test_collect_init_arguments(tmpdir, cls):
     # verify that the checkpoint saved the correct values
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
     trainer.fit(model)
-    raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
-    raw_checkpoint_path = [x for x in raw_checkpoint_path if '.ckpt' in x][0]
-    raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
 
     raw_checkpoint = torch.load(raw_checkpoint_path)
     assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
@@ -145,6 +143,13 @@ def test_collect_init_arguments(tmpdir, cls):
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
     assert model.batch_size == 99
+
+
+def _raw_checkpoint_path(trainer) -> str:
+    raw_checkpoint_paths = os.listdir(trainer.checkpoint_callback.dirpath)
+    raw_checkpoint_path = [x for x in raw_checkpoint_paths if '.ckpt' in x][0]
+    raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
+    return raw_checkpoint_path
 
 
 class LocalVariableModel1(EvalModelTemplate):
@@ -212,7 +217,7 @@ def test_single_config_models(tmpdir, cls, config):
     trainer.fit(model)
 
     # verify that model loads correctly
-    raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = cls.load_from_checkpoint(raw_checkpoint_path)
     assert model.module_arguments == config
 
@@ -220,14 +225,12 @@ def test_single_config_models(tmpdir, cls, config):
 class AnotherArgModel(EvalModelTemplate):
     def __init__(self, arg1):
         super().__init__()
-        # manually
         self.save_hyperparameters(arg1)
 
 
 class OtherArgsModel(EvalModelTemplate):
     def __init__(self, arg1, arg2):
         super().__init__()
-        # manually
         self.save_hyperparameters(arg1, arg2)
 
 
