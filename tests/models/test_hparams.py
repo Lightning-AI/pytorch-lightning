@@ -1,5 +1,6 @@
 import os
 import sys
+from argparse import Namespace
 
 import pytest
 import torch
@@ -64,7 +65,7 @@ class SubClassEvalModel(EvalModelTemplate):
     def __init__(self, *args, subclass_arg=1200, **kwargs):
         super().__init__(*args, **kwargs)
         self.subclass_arg = subclass_arg
-        self.auto_collect_arguments()
+        self.save_hyperparameters()
 
 
 class UnconventionalArgsEvalModel(EvalModelTemplate):
@@ -75,7 +76,7 @@ class UnconventionalArgsEvalModel(EvalModelTemplate):
         super().__init__(*more_args, **more_kwargs)
         obj.other_arg = other_arg
         other_arg = 321
-        obj.auto_collect_arguments()
+        obj.save_hyperparameters()
 
 
 class SubSubClassEvalModel(SubClassEvalModel):
@@ -87,7 +88,7 @@ class AggSubClassEvalModel(SubClassEvalModel):
     def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
         super().__init__(*args, **kwargs)
         self.my_loss = my_loss
-        self.auto_collect_arguments()
+        self.save_hyperparameters()
 
 
 class DictConfSubClassEvalModel(SubClassEvalModel):
@@ -161,14 +162,14 @@ class LocalVariableModel1(EvalModelTemplate):
 
 
 class LocalVariableModel2(EvalModelTemplate):
-    """ This model has the auto_collect_arguments() call at the end. """
+    """ This model has the _auto_collect_arguments() call at the end. """
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.argument1 = arg1  # arg2 intentionally not set
         arg1 = 'overwritten'
         local_var = 1234
-        self.auto_collect_arguments()  # this is intentionally here at the end
+        self._auto_collect_arguments()  # this is intentionally here at the end
 
 
 @pytest.mark.parametrize("cls", [
@@ -181,3 +182,55 @@ def test_collect_init_arguments_with_local_vars(cls):
     assert 'local_var' not in model.module_arguments
     assert model.module_arguments['arg1'] == 'overwritten'
     assert model.module_arguments['arg2'] == 2
+
+
+class ManuallyArgsModel(EvalModelTemplate):
+
+    def __init__(self, arg1, arg2, arg3):
+        # manually
+        self.save_hyperparameters(arg_name1=arg1, arg_name2=arg2, arg_name3=arg3)
+
+
+class AutomaticArgsModel(EvalModelTemplate):
+
+    def __init__(self, arg1, arg2, arg3):
+        # equivalent automatic
+        self.save_hyperparameters()
+
+
+@pytest.mark.parametrize("cls", [
+    ManuallyArgsModel,
+    AutomaticArgsModel,
+])
+def test_save_hyperparameters(cls):
+    model = cls(1, 'abc', 3.14)
+    assert model.arg1 == 1
+    assert model.arg2 == 'abc'
+    assert model.arg3 == 3.14
+
+
+class NamespaceArgModel(EvalModelTemplate):
+    def __init__(self, hparams: Namespace):
+        # manually
+        self.save_hyperparameters(hparams)
+
+
+class DictArgModel(EvalModelTemplate):
+    def __init__(self, some_dict: dict):
+        # manually
+        self.save_hyperparameters(some_dict)
+
+
+class OmegaConfArgModel(EvalModelTemplate):
+    def __init__(self, conf: OmegaConf):
+        # manually
+        self.save_hyperparameters(conf)
+
+
+class OtherArgModel(EvalModelTemplate):
+    def __init__(self, some_rand_alternative):
+        # manually
+        self.save_hyperparameters(some_rand_alternative)
+
+
+

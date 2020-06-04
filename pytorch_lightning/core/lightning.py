@@ -1714,7 +1714,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def auto_collect_arguments(self) -> None:
+    def _auto_collect_arguments(self) -> None:
         """
         Collect all module arguments in the current constructor and all child constructors.
         The child constructors are all the ``__init__`` methods that reach the current class through
@@ -1747,8 +1747,24 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             args.update(self._module_self_arguments)
             return args
         except AttributeError as e:
-            rank_zero_warn('you called `module.module_arguments` without calling self.auto_collect_arguments()')
+            rank_zero_warn('you called `module.module_arguments` without calling self._auto_collect_arguments()')
             return {}
+
+    def save_hyperparameters(self, *args, **kwargs) -> None:
+        if not args and not kwargs:
+            self._auto_collect_arguments()
+            return
+
+        if args:
+            if len(args) > 1:
+                raise ValueError('Only one argument can be passed.')
+            arg = args[0]
+            if not isinstance(arg, (dict, Namespace)):  # add OmegaConf
+                raise ValueError(f'Unsupported argument type `{type(arg)}`.')
+            self._module_self_arguments = arg
+
+        if kwargs:
+            self._module_self_arguments = kwargs
 
 
 def _collect_init_args(frame, path_args: list) -> list:
