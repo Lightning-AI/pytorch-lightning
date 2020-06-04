@@ -1718,3 +1718,9 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics['a_val'] == 2
+
+
+Benchmark with vanila PyTorch
+-----------------------------
+
+TODO
