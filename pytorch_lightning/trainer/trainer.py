@@ -817,7 +817,7 @@ class Trainer(
             train, val = DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
-            trainer.fit(model, train_dataloader=train, val_dataloader=val)
+            trainer.fit(model, train_dataloader=train, val_dataloaders=val)
 
             # Option 1 & 2 can be mixed, for example the training set can be
             # defined as part of the model, and validation can then be feed to .fit()
