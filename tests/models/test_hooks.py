@@ -106,3 +106,35 @@ def test_transfer_batch_hook():
     expected = torch.device('cuda', 0)
     assert model.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected
+
+
+@pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp'])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_distributed_state_hooks(tmpdir, backend):
+
+    class CurrentTestModel(EvalModelTemplate):
+        on_after_model_replicate_called = False
+        on_after_dp_parallel_apply_called = False
+
+        def on_after_model_replicate(self, replicas):
+            self.on_after_model_replicate_called = True
+
+        def on_after_dp_parallel_apply(self, replicas):
+            self.on_after_dp_parallel_apply_called = True
+
+    model = CurrentTestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        gpus=[0, 1],
+        distributed_backend=backend
+    )
+
+    result = trainer.fit(model)
+    assert result == 1
+    assert model.on_after_model_replicate_called
+    assert model.on_after_dp_parallel_apply_called

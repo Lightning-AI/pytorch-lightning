@@ -255,7 +255,7 @@ class DistributedStateHooks(torch.nn.Module):
         """
         pass
 
-    def on_after_dp_parallel_apply(self) -> None:
+    def on_after_dp_parallel_apply(self, replicas) -> None:
         """
         TODO: add documentation
         """

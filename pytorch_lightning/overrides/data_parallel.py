@@ -84,7 +84,7 @@ class LightningDataParallel(DataParallel):
         self.scatter_distributed_state(replicas, len(inputs))
 
         outputs = self.parallel_apply(replicas, inputs, kwargs)
-        self.module.on_after_dp_parallel_apply()
+        self.module.on_after_dp_parallel_apply(replicas)
 
         return self.gather(outputs, self.output_device)
 
