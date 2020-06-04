@@ -1,5 +1,4 @@
 import os
-from argparse import Namespace
 
 import numpy as np
 import torch
