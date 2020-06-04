@@ -272,7 +272,8 @@ def test_auroc(pred, target, expected):
     score = auroc(pred, target).item()
     assert score == expected
 
-@pytest.mark.parametrize(['x', 'y', 'expected'],[
+
+@pytest.mark.parametrize(['x', 'y', 'expected'], [
     pytest.param(torch.tensor([0, 1]), torch.tensor([0, 1]), 0.5),
     pytest.param(torch.tensor([1, 0]), torch.tensor([0, 1]), 0.5),
     pytest.param(torch.tensor([1, 0, 0]), torch.tensor([0, 1, 1]), 0.5),
