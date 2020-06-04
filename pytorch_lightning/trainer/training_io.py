@@ -125,11 +125,12 @@ PRIMITIVE_TYPES = (
     Namespace,  # for back compatibility
 )
 try:
-    from omegaconf import DictConfig
+    from omegaconf import DictConfig, OmegaConf
 except ImportError:
     pass
 else:
-    PRIMITIVE_TYPES = PRIMITIVE_TYPES + (DictConfig, )
+    PRIMITIVE_TYPES = PRIMITIVE_TYPES + (DictConfig, OmegaConf)
+
 
 class TrainerIOMixin(ABC):
 

@@ -32,6 +32,15 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+ALLOWED_CONFIG_TYPES = (dict, Namespace)
+try:
+    from omegaconf import DictConfig, OmegaConf
+except ImportError:
+    pass
+else:
+    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (DictConfig, OmegaConf)
+
+
 CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
 
 
@@ -1744,16 +1753,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Aggregate of arguments passed to the constructor of this module and all parents.
 
         Return:
-            a dict in which the keys are the union of all argument names in the constructor and all
-            parent constructors, excluding `self`, `*args` and `**kwargs`.
+            custom object or dict in which the keys are the union of all argument names in the constructor
+            and all parent constructors, excluding `self`, `*args` and `**kwargs`.
         """
-        try:
-            args = dict(self._module_parents_arguments)
+        args = copy.deepcopy(self._module_parents_arguments)
+        if isinstance(args, dict):
             args.update(self._module_self_arguments)
-            return args
-        except AttributeError as e:
-            rank_zero_warn('you called `module.module_arguments` without calling self._auto_collect_arguments()')
-            return {}
+        return args
 
     def save_hyperparameters(self, *args, **kwargs) -> None:
         """
@@ -1790,7 +1796,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             if len(args) > 1:
                 raise ValueError('Only one argument can be passed.')
             arg = args[0]
-            if not isinstance(arg, (dict, Namespace)):  # add OmegaConf
+            if not isinstance(arg, ALLOWED_CONFIG_TYPES):
                 raise ValueError(f'Unsupported argument type `{type(arg)}`.')
             self._module_self_arguments = copy.copy(arg)
 

@@ -186,27 +186,63 @@ def test_collect_init_arguments_with_local_vars(cls):
 
 class NamespaceArgModel(EvalModelTemplate):
     def __init__(self, hparams: Namespace):
+        super().__init__()
         # manually
         self.save_hyperparameters(hparams)
 
 
 class DictArgModel(EvalModelTemplate):
     def __init__(self, some_dict: dict):
+        super().__init__()
         # manually
         self.save_hyperparameters(some_dict)
 
 
 class OmegaConfArgModel(EvalModelTemplate):
     def __init__(self, conf: OmegaConf):
+        super().__init__()
         # manually
         self.save_hyperparameters(conf)
 
 
-class OtherArgModel(EvalModelTemplate):
-    def __init__(self, some_rand_alternative):
+@pytest.mark.parametrize("cls,config", [
+    (NamespaceArgModel, Namespace(my_arg=42)),
+    (DictArgModel, dict(my_arg=42)),
+    (OmegaConfArgModel, OmegaConf.create(dict(my_arg=42))),
+])
+def test_single_config_models(tmpdir, cls, config):
+    """ Test that the model automatically saves the arguments passed into the constructor """
+    model = cls(config)
+
+    # verify that the checkpoint saved the correct values
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+    trainer.fit(model)
+
+    # verify that model loads correctly
+    raw_checkpoint_path = os.listdir(trainer.checkpoint_callback.dirpath)
+    model = cls.load_from_checkpoint(raw_checkpoint_path)
+    assert model.module_arguments == config
+
+
+class AnotherArgModel(EvalModelTemplate):
+    def __init__(self, arg1):
+        super().__init__()
         # manually
-        self.save_hyperparameters(some_rand_alternative)
+        self.save_hyperparameters(arg1)
 
 
-def test_single_config_models(cls, )
+class OtherArgsModel(EvalModelTemplate):
+    def __init__(self, arg1, arg2):
+        super().__init__()
+        # manually
+        self.save_hyperparameters(arg1, arg2)
 
+
+@pytest.mark.parametrize("cls,config", [
+    (AnotherArgModel, dict(arg1=42)),
+    (OtherArgsModel, dict(arg1=42, arg2='abc')),
+])
+def test_single_config_models_fail(tmpdir, cls, config):
+    """ Test fail on passing unsupported config type. """
+    with pytest.raises(ValueError):
+        model = cls(**config)
