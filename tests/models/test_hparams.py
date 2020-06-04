@@ -170,7 +170,7 @@ class LocalVariableModel2(EvalModelTemplate):
         self.argument1 = arg1  # arg2 intentionally not set
         arg1 = 'overwritten'
         local_var = 1234
-        self._auto_collect_arguments()  # this is intentionally here at the end
+        self.save_hyperparameters()  # this is intentionally here at the end
 
 
 @pytest.mark.parametrize("cls", [
