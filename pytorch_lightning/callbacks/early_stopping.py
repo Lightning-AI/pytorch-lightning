@@ -94,7 +94,7 @@ class EarlyStopping(Callback):
         error_msg = (
             f'Early stopping conditioned on metric `{self.monitor}`'
             f' which is not available. Either add `{self.monitor}` to the return of '
-            f' validation_epoch end or modify your EarlyStopping callback to use any of the '
+            ' validation_epoch end or modify your EarlyStopping callback to use any of the '
             f'following: `{"`, `".join(list(logs.keys()))}`'
         )
 

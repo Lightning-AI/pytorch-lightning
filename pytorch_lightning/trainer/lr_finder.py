@@ -120,9 +120,8 @@ class TrainerLRFinderMixin(ABC):
         """
         if num_accumulation_steps is not None:
             rank_zero_warn(
-                "Argument `num_accumulation_steps` has been deprepecated"
-                " since v0.7.6 and will be removed in 0.9. Please"
-                " set trainer argument `accumulate_grad_batches` instead.",
+                "Argument `num_accumulation_steps` has been deprecated since v0.7.6 and will be removed in 0.9."
+                " Please set trainer argument `accumulate_grad_batches` instead.",
                 DeprecationWarning,
             )
 

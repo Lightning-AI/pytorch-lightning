@@ -178,9 +178,9 @@ class ImageNetLightningModel(LightningModule):
             default=256,
             type=int,
             metavar='N',
-            help='mini-batch size (default: 256), this is the total '
-            'batch size of all GPUs on the current node when '
-            'using Data Parallel or Distributed Data Parallel',
+            help='mini-batch size (default: 256), this is the total'
+            ' batch size of all GPUs on the current node when'
+            ' using Data Parallel or Distributed Data Parallel',
         )
         parser.add_argument(
             '--lr', '--learning-rate', default=0.1, type=float, metavar='LR', help='initial learning rate', dest='lr'

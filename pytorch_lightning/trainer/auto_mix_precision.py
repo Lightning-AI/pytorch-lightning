@@ -23,8 +23,7 @@ class TrainerAMPMixin(ABC):
         # TODO: remove in v 0.8.0
         if self.use_native_amp:
             rank_zero_warn(
-                "`amp_level` has been deprecated since v0.7.4 "
-                "(native amp does not require it)"
+                "`amp_level` has been deprecated since v0.7.4 (native amp does not require it)"
                 " and this argument will be removed in v0.8.0",
                 DeprecationWarning,
             )
@@ -32,8 +31,7 @@ class TrainerAMPMixin(ABC):
         # Backward compatibility, TODO: remove in v0.9.0
         if use_amp is not None:
             rank_zero_warn(
-                "`use_amp` has been replaced by `precision` since v0.7.0"
-                " and this argument will be removed in v0.9.0",
+                "`use_amp` has been replaced by `precision` since v0.7.0 and this argument will be removed in v0.9.0",
                 DeprecationWarning,
             )
             self.precision = 16 if use_amp else 32
