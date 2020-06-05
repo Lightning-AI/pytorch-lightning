@@ -9,10 +9,11 @@ def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
         to_reduce : the tensor, which shall be reduced
        reduction :  a string specifying the reduction method ('elementwise_mean', 'none', 'sum')
 
-    Returns:
+    Return:
         reduced Tensor
 
-    Raises: ValueError if an invalid reduction parameter was given
+    Raise:
+        ValueError if an invalid reduction parameter was given
     """
     if reduction == 'elementwise_mean':
         return torch.mean(to_reduce)
