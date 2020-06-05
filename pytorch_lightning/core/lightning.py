@@ -24,6 +24,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 try:
     import torch_xla.core.xla_model as xm
@@ -1797,7 +1798,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         ...     def forward(self, *args, **kwargs):
         ...         ...
         >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
-        >>> model.module_arguments
+        >>> model.hparams
         Namespace(p1=1, p2='abc', p3=3.14)
         """
         if not args and not kwargs:
@@ -1810,15 +1811,22 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             arg = args[0]
             if not isinstance(arg, ALLOWED_CONFIG_TYPES):
                 raise ValueError(f'Unsupported argument type `{type(arg)}`.')
-            self._module_self_arguments = copy.copy(arg)
+            self.hparams = arg
 
         elif kwargs:
-            self._module_self_arguments = copy.deepcopy(kwargs)
+            self.hparams = copy.deepcopy(kwargs)
 
     @property
-    def hparams(self):
-        # TODO
-        ...
+    def hparams(self) -> Union[AttributeDict, Any]:
+        return self._hparams
+
+    @hparams.setter
+    def hparams(self, hp: Union[dict, Namespace, Any]):
+        if isinstance(hp, Namespace):
+            hp = vars(hp)
+        if isinstance(hp, dict):
+            hp = AttributeDict(hp)
+        self._hparams = hp
 
 
 def _collect_init_args(frame, path_args: list, inside: bool = False) -> list:

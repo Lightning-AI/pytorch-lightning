@@ -47,3 +47,12 @@ def clean_namespace(hparams):
 
         for k in del_attrs:
             del hparams[k]
+
+
+class AttributeDict(dict):
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
+
+    def __repr__(self):
+        # todo, ordered
+        return repr(self)
