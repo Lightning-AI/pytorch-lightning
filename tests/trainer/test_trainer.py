@@ -689,7 +689,7 @@ def test_gradient_clipping(tmpdir):
 
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
     )
     # Only run if CUDA is available
     if not torch.cuda.is_available():

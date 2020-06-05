@@ -15,7 +15,7 @@ def test_model_reset_correctly(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -38,7 +38,7 @@ def test_trainer_reset_correctly(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -77,7 +77,7 @@ def test_trainer_arg(tmpdir, scale_arg):
     before_batch_size = hparams.get('batch_size')
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
         auto_scale_batch_size=scale_arg,
     )
@@ -99,7 +99,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     before_batch_size = hparams.get('batch_size')
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1,
     )
 

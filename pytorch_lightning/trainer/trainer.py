@@ -146,11 +146,6 @@ class Trainer(
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed
 
-            default_save_path:
-                .. warning:: .. deprecated:: 0.7.3
-
-                    Use `default_root_dir` instead. Will remove 0.9.0.
-
             gradient_clip_val: 0 means don't clip.
 
             gradient_clip:
