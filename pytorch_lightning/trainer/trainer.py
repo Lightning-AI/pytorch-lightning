@@ -1,6 +1,5 @@
 import inspect
 import os
-import logging as python_logging
 from argparse import ArgumentParser, Namespace
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -687,7 +686,7 @@ class Trainer(
                 if len(arg_types) == 1:
                     # redefine the type for ArgParser needed
                     def use_type(x):
-                        return bool(parsing.strtobool(x))
+                        return bool(parsing.str_to_bool(x))
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]

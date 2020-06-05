@@ -2,7 +2,6 @@ import collections
 import copy
 import inspect
 import os
-import warnings
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
@@ -24,7 +23,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
 
 try:
     import torch_xla.core.xla_model as xm
@@ -33,7 +32,8 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
-ALLOWED_CONFIG_TYPES = (dict, Namespace)
+PRIMITIVE_TYPES = (bool, int, float, str)
+ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
 try:
     from omegaconf import DictConfig, OmegaConf
 except ImportError:
@@ -1737,7 +1737,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if not frame:
             frame = inspect.currentframe()
 
-        frame_args = _collect_init_args(frame.f_back, [])
+        frame_args = collect_init_args(frame.f_back, [])
         self_arguments = frame_args[-1]
 
         # set module_arguments in child
@@ -1748,21 +1748,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         for args in frame_args[:-1]:
             self._module_parents_arguments.update(args)
 
-    @property
-    def module_arguments(self) -> dict:
-        """
-        Aggregate of arguments passed to the constructor of this module and all parents.
-
-        Return:
-            custom object or dict in which the keys are the union of all argument names in the constructor
-            and all parent constructors, excluding `self`, `*args` and `**kwargs`.
-        """
-        if isinstance(self._module_self_arguments, dict):
-            args = copy.deepcopy(self._module_parents_arguments)
-            args.update(self._module_self_arguments)
-            return args
-        return copy.deepcopy(self._module_self_arguments)
-
     def save_hyperparameters(self, *args, **kwargs) -> None:
         """
 
@@ -1770,8 +1755,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
-        ...         # manually assin arguments
-        ...         self.save_hyperparameters(arg_name1=arg1, arg_name2=arg2, arg_name3=arg3)
+        ...         # manually assine arguments
+        ...         self.save_hyperparameters(['arg1', 'arg3'])
         ...     def forward(self, *args, **kwargs):
         ...         ...
         >>> model = ManuallyArgsModel(1, 'abc', 3.14)
@@ -1826,43 +1811,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             hp = vars(hp)
         if isinstance(hp, dict):
             hp = AttributeDict(hp)
+        if isinstance(hp, PRIMITIVE_TYPES):
+            raise ValueError(f'Primitives {PRIMITIVE_TYPES} are not allowed.')
+        if not isinstance(hp, ALLOWED_CONFIG_TYPES):
+            raise ValueError(f'Unsupported config type of {type(hp)}.')
         self._hparams = hp
-
-
-def _collect_init_args(frame, path_args: list, inside: bool = False) -> list:
-    """
-    Recursively collects the arguments passed to the child constructors in the inheritance tree.
-
-    Args:
-        frame: the current stack frame
-        path_args: a list of dictionaries containing the constructor args in all parent classes
-
-    Return:
-          A list of dictionaries where each dictionary contains the arguments passed to the
-          constructor at that level. The last entry corresponds to the constructor call of the
-          most specific class in the hierarchy.
-    """
-    _, _, _, local_vars = inspect.getargvalues(frame)
-    if '__class__' in local_vars:
-        cls = local_vars['__class__']
-        spec = inspect.getfullargspec(cls.__init__)
-        init_parameters = inspect.signature(cls.__init__).parameters
-        self_identifier = spec.args[0]  # "self" unless user renames it (always first arg)
-        varargs_identifier = spec.varargs  # by convention this is named "*args"
-        kwargs_identifier = spec.varkw  # by convention this is named "**kwargs"
-        exclude_argnames = (
-            varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
-        )
-
-        # only collect variables that appear in the signature
-        local_args = {k: local_vars[k] for k in init_parameters.keys()}
-        local_args.update(local_args.get(kwargs_identifier, {}))
-        local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
-
-        # recursive update
-        path_args.append(local_args)
-        return _collect_init_args(frame.f_back, path_args, inside=True)
-    elif not inside:
-        return _collect_init_args(frame.f_back, path_args, inside)
-    else:
-        return path_args
