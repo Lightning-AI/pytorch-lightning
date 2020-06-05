@@ -27,6 +27,10 @@ def test_tbd_remove_in_v0_9_0_trainer():
         trainer = Trainer(num_tpu_cores=8)
         assert trainer.tpu_cores == 8
 
+    with pytest.deprecated_call(match='v0.9.0'):
+        trainer = Trainer(amp_level='O1')
+        assert trainer.amp_level == 'O1'
+
 
 def test_tbd_remove_in_v0_9_0_module_imports():
     _soft_unimport_module("pytorch_lightning.core.decorators")

@@ -81,55 +81,56 @@ class Trainer(
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
-            self,
-            logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-            checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-            early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
-            callbacks: Optional[List[Callback]] = None,
-            default_root_dir: Optional[str] = None,
-            gradient_clip_val: float = 0,
-            process_position: int = 0,
-            num_nodes: int = 1,
-            num_processes: int = 1,
-            gpus: Optional[Union[List[int], str, int]] = None,
-            auto_select_gpus: bool = False,
-            tpu_cores: Optional[Union[List[int], int]] = None,
-            log_gpu_memory: Optional[str] = None,
-            progress_bar_refresh_rate: int = 1,
-            overfit_pct: float = 0.0,
-            track_grad_norm: Union[int, float, str] = -1,
-            check_val_every_n_epoch: int = 1,
-            fast_dev_run: bool = False,
-            accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-            max_epochs: int = 1000,
-            min_epochs: int = 1,
-            max_steps: Optional[int] = None,
-            min_steps: Optional[int] = None,
-            train_percent_check: float = 1.0,
-            val_percent_check: float = 1.0,
-            test_percent_check: float = 1.0,
-            val_check_interval: float = 1.0,
-            log_save_interval: int = 100,
-            row_log_interval: int = 10,
-            distributed_backend: Optional[str] = None,
-            precision: int = 32,
-            print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'top',
-            weights_save_path: Optional[str] = None,
-            num_sanity_val_steps: int = 2,
-            truncated_bptt_steps: Optional[int] = None,
-            resume_from_checkpoint: Optional[str] = None,
-            profiler: Optional[Union[BaseProfiler, bool]] = None,
-            benchmark: bool = False,
-            deterministic: bool = False,
-            reload_dataloaders_every_epoch: bool = False,
-            auto_lr_find: Union[bool, str] = False,
-            replace_sampler_ddp: bool = True,
-            terminate_on_nan: bool = False,
-            auto_scale_batch_size: Union[str, bool] = False,
-            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
-            use_amp=None,  # backward compatible, todo: remove in v0.9.0
-            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
+        self,
+        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+        checkpoint_callback: Union[ModelCheckpoint, bool] = True,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        callbacks: Optional[List[Callback]] = None,
+        default_root_dir: Optional[str] = None,
+        gradient_clip_val: float = 0,
+        process_position: int = 0,
+        num_nodes: int = 1,
+        num_processes: int = 1,
+        gpus: Optional[Union[List[int], str, int]] = None,
+        auto_select_gpus: bool = False,
+        tpu_cores: Optional[Union[List[int], int]] = None,
+        log_gpu_memory: Optional[str] = None,
+        progress_bar_refresh_rate: int = 1,
+        overfit_pct: float = 0.0,
+        track_grad_norm: Union[int, float, str] = -1,
+        check_val_every_n_epoch: int = 1,
+        fast_dev_run: bool = False,
+        accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
+        max_epochs: int = 1000,
+        min_epochs: int = 1,
+        max_steps: Optional[int] = None,
+        min_steps: Optional[int] = None,
+        train_percent_check: float = 1.0,
+        val_percent_check: float = 1.0,
+        test_percent_check: float = 1.0,
+        val_check_interval: float = 1.0,
+        log_save_interval: int = 100,
+        row_log_interval: int = 10,
+        distributed_backend: Optional[str] = None,
+        precision: int = 32,
+        print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
+        weights_summary: Optional[str] = 'top',
+        weights_save_path: Optional[str] = None,
+        num_sanity_val_steps: int = 2,
+        truncated_bptt_steps: Optional[int] = None,
+        resume_from_checkpoint: Optional[str] = None,
+        profiler: Optional[Union[BaseProfiler, bool]] = None,
+        benchmark: bool = False,
+        deterministic: bool = False,
+        reload_dataloaders_every_epoch: bool = False,
+        auto_lr_find: Union[bool, str] = False,
+        replace_sampler_ddp: bool = True,
+        terminate_on_nan: bool = False,
+        auto_scale_batch_size: Union[str, bool] = False,
+        amp_level: str = 'O1',  # backward compatible, todo: remove in v0.9.0
+        num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
+        use_amp=None,  # backward compatible, todo: remove in v0.9.0
+        show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
     ):
         r"""
 
@@ -475,6 +476,8 @@ class Trainer(
         self.precision = precision
         self.scaler = None
 
+        # TODO: remove for v0.9.0
+        self.amp_level = amp_level
         self.init_amp(use_amp)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
