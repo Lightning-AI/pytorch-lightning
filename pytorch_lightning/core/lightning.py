@@ -1756,7 +1756,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
         ...         # manually assine arguments
-        ...         self.save_hyperparameters(['arg1', 'arg3'])
+        ...         self.save_hyperparameters('arg1', 'arg3')
         ...     def forward(self, *args, **kwargs):
         ...         ...
         >>> model = ManuallyArgsModel(1, 'abc', 3.14)
@@ -1786,9 +1786,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         >>> model.hparams
         Namespace(p1=1, p2='abc', p3=3.14)
         """
-        if not args and not kwargs:
+        init_args =
             self._auto_collect_arguments()
-            return
 
         if args:
             if len(args) > 1:
