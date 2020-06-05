@@ -11,6 +11,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.models import TestGAN
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 
@@ -363,9 +364,11 @@ def test_single_gpu_batch_parse():
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_state_maintenance(tmpdir, backend):
 
-    class CurrentTestModel(EvalModelTemplate):
+    class CurrentTestModel(TestGAN):
         def __init__(self):
-            super(CurrentTestModel, self).__init__()
+            super(CurrentTestModel, self).__init__(
+                **EvalModelTemplate.get_default_hparams()
+            )
 
             self.distributed_state.a = None
             self.distributed_state.b = torch.randn(2, 2)
@@ -374,6 +377,10 @@ def test_dp_state_maintenance(tmpdir, backend):
             self.distributed_state.e = torch.randn(7, 7)
 
             self.forward_called = False
+
+            # cache for generated images
+            self.distributed_state.generated_imgs = None
+            self.distributed_state.last_imgs = None
 
         def on_after_model_replicate(self, replicas, distributed_buffer, device_ids):
             """
@@ -405,7 +412,8 @@ def test_dp_state_maintenance(tmpdir, backend):
                 # test each GPU has correct tensors against variable names
                 for idx, dist_state in enumerate(distributed_buffer):
                     for var, state in dist_state.__dict__.items():
-                        if var == 'a' or var == 'c':
+                        if var == 'a' or var == 'c' or \
+                            var == 'generated_imgs' or var =='last_imgs':
                             assert state is None
                         else:
                             assert isinstance(state, torch.Tensor)
@@ -447,40 +455,81 @@ def test_dp_state_maintenance(tmpdir, backend):
                 assert isinstance(dist_state.__dict__['e'], str)
                 assert dist_state.__dict__['e'] == str(device_ids[idx])
 
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            """Lightning calls this inside the training loop"""
-            # forward pass
-            x, y = batch
-            x = x.view(x.size(0), -1)
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            imgs, _ = batch
+            self.distributed_state.last_imgs = imgs
 
-            # _________________
-            # CHANGE
-            # add new tensor to distributed_state
-            self.distributed_state.y_hat = self(x)
+            # train generator
+            if optimizer_idx == 0:
+                # sample noise
+                z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
+                z = z.type_as(imgs)
 
-            # change existing tensor to something else
-            self.distributed_state.e = str(self.distributed_state.y_hat.get_device())
-            loss_val = self.distributed_state.e
+                # generate images
+                self.distributed_state.generated_imgs = self(z)
 
-            # change None to tensor
-            # calculate loss
-            self.distributed_state.a = self.loss(y, self.distributed_state.y_hat)
-            # CHANGE
-            # _________________
+                # log sampled images
+                # sample_imgs = self.generated_imgs[:6]
+                # grid = torchvision.utils.make_grid(sample_imgs)
+                # self.logger.experiment.add_image('generated_images', grid, 0)
 
-            output = OrderedDict({
-                'loss': loss_val,
-                'progress_bar': {'some_val': loss_val * loss_val},
-                'log': {'train_some_val': loss_val * loss_val},
-            })
-            return output
+                # ground truth result (ie: all fake)
+                # put on GPU because we created this tensor inside training_loop
+                valid = torch.ones(imgs.size(0), 1)
+                valid = valid.type_as(imgs)
+
+                #_________________
+                # CHANGE
+                self.distributed_state.y_hat = self(z)
+                self.distributed_state.e = str(self.distributed_state.y_hat.get_device())
+
+                # adversarial loss is binary cross-entropy
+                self.distributed_state.a = self.adversarial_loss(self.discriminator(self.distributed_state.generated_imgs), valid)
+                g_loss = self.distributed_state.a
+                # CHANGE
+                #_________________
+
+                tqdm_dict = {'g_loss': g_loss}
+                output = OrderedDict({
+                    'loss': g_loss,
+                    'progress_bar': tqdm_dict,
+                    'log': tqdm_dict
+                })
+                return output
+
+            # train discriminator
+            if optimizer_idx == 1:
+                # Measure discriminator's ability to classify real from generated samples
+
+                # how well can it label as real?
+                valid = torch.ones(imgs.size(0), 1)
+                valid = valid.type_as(imgs)
+
+                real_loss = self.adversarial_loss(self.discriminator(imgs), valid)
+
+                # how well can it label as fake?
+                fake = torch.zeros(imgs.size(0), 1)
+                fake = fake.type_as(imgs)
+
+                fake_loss = self.adversarial_loss(
+                    self.discriminator(self.distributed_state.generated_imgs.detach()), fake)
+
+                # discriminator loss is the average of these
+                d_loss = (real_loss + fake_loss) / 2
+                tqdm_dict = {'d_loss': d_loss}
+                output = OrderedDict({
+                    'loss': d_loss,
+                    'progress_bar': tqdm_dict,
+                    'log': tqdm_dict
+                })
+                return output
 
     model = CurrentTestModel()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
-        overfit_pct=0.1,
+        overfit_pct=1.,
         gpus=[0, 1],
         logger=None,
         distributed_backend=backend
