@@ -1760,8 +1760,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         ...     def forward(self, *args, **kwargs):
         ...         ...
         >>> model = ManuallyArgsModel(1, 'abc', 3.14)
-        >>> OrderedDict(model.module_arguments)
-        OrderedDict([('arg_name1', 1), ('arg_name2', 'abc'), ('arg_name3', 3.14)])
+        >>> model.hparams
+        "arg1": 1
+        "arg3": 3.14
 
         >>> from collections import OrderedDict
         >>> class AutomaticArgsModel(LightningModule):
@@ -1772,8 +1773,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         ...     def forward(self, *args, **kwargs):
         ...         ...
         >>> model = AutomaticArgsModel(1, 'abc', 3.14)
-        >>> OrderedDict(model.module_arguments)
-        OrderedDict([('arg1', 1), ('arg2', 'abc'), ('arg3', 3.14)])
+        >>> model.hparams
+        "arg1": 1
+        "arg2": abc
+        "arg3": 3.14
 
         >>> class SingleArgModel(LightningModule):
         ...     def __init__(self, hparams):
@@ -1784,21 +1787,27 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         ...         ...
         >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
         >>> model.hparams
-        Namespace(p1=1, p2='abc', p3=3.14)
+        "arg1": 1
+        "arg2": abc
+        "arg3": 3.14
         """
-        init_args =
-            self._auto_collect_arguments()
-
+        hp = {}
         if args:
-            if len(args) > 1:
-                raise ValueError('Only one argument can be passed.')
-            arg = args[0]
-            if not isinstance(arg, ALLOWED_CONFIG_TYPES):
-                raise ValueError(f'Unsupported argument type `{type(arg)}`.')
-            self.hparams = arg
+            if len(args) == 1 and not isinstance(args[0], str):
+                self.hparams = args[0]
+            else:
+                # todo
+                _, _, _, local_vars = inspect.getargvalues(inspect.currentframe().f_back)
+                hp.update({arg: local_vars[arg] for arg in args})
 
-        elif kwargs:
-            self.hparams = copy.deepcopy(kwargs)
+        if kwargs:
+            hp.update(kwargs)
+
+        if not args and not kwargs:
+            # todo
+            _, _, _, local_vars = inspect.getargvalues(inspect.currentframe().f_back)
+
+        self.hparams = hp
 
     @property
     def hparams(self) -> Union[AttributeDict, Any]:
