@@ -254,6 +254,9 @@ class Trainer(
                     stored in a different place than the logs written in `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
+                .. warning:: .. deprecated:: 0.7.6
+
+                    Has no effect for native AMP. Will remove 0.9.0.
 
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
 
