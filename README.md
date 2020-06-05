@@ -322,6 +322,10 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
 
 
+## Running speed
+Migrating to lightning does not mean compromising on speed! You can expect an overhead of about 600 ms per epoch comparing to pure PyTorch.
+
+
 ## Examples
 Check out this awesome list of research papers and implementations done with Lightning.
 
