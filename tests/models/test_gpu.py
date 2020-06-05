@@ -412,8 +412,7 @@ def test_dp_state_maintenance(tmpdir, backend):
                 # test each GPU has correct tensors against variable names
                 for idx, dist_state in enumerate(distributed_buffer):
                     for var, state in dist_state.__dict__.items():
-                        if var == 'a' or var == 'c' or \
-                            var == 'generated_imgs' or var =='last_imgs':
+                        if var in ['a', 'c', 'generated_imgs', 'last_imgs']:
                             assert state is None
                         else:
                             assert isinstance(state, torch.Tensor)
@@ -462,7 +461,7 @@ def test_dp_state_maintenance(tmpdir, backend):
             # train generator
             if optimizer_idx == 0:
                 # sample noise
-                z = torch.randn(imgs.shape[0], self.hparams.latent_dim)
+                z = torch.randn(imgs.shape[0], self.hidden_dim)
                 z = z.type_as(imgs)
 
                 # generate images
@@ -478,16 +477,19 @@ def test_dp_state_maintenance(tmpdir, backend):
                 valid = torch.ones(imgs.size(0), 1)
                 valid = valid.type_as(imgs)
 
-                #_________________
+                # _________________
                 # CHANGE
                 self.distributed_state.y_hat = self(z)
                 self.distributed_state.e = str(self.distributed_state.y_hat.get_device())
 
                 # adversarial loss is binary cross-entropy
-                self.distributed_state.a = self.adversarial_loss(self.discriminator(self.distributed_state.generated_imgs), valid)
+                self.distributed_state.a = self.adversarial_loss(
+                    self.discriminator(self.distributed_state.generated_imgs),
+                    valid
+                )
                 g_loss = self.distributed_state.a
                 # CHANGE
-                #_________________
+                # _________________
 
                 tqdm_dict = {'g_loss': g_loss}
                 output = OrderedDict({
@@ -512,7 +514,9 @@ def test_dp_state_maintenance(tmpdir, backend):
                 fake = fake.type_as(imgs)
 
                 fake_loss = self.adversarial_loss(
-                    self.discriminator(self.distributed_state.generated_imgs.detach()), fake)
+                    self.discriminator(self.distributed_state.generated_imgs.detach()),
+                    fake
+                )
 
                 # discriminator loss is the average of these
                 d_loss = (real_loss + fake_loss) / 2
