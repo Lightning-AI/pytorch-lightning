@@ -74,10 +74,6 @@ class Trainer(
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
 ):
-    DEPRECATED_IN_0_8 = (
-        'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
-        'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
-    )
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
