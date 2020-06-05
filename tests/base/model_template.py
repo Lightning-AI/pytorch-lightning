@@ -51,7 +51,7 @@ class EvalModelTemplate(
                  **kwargs) -> object:
         # init superclass
         super().__init__()
-        self._auto_collect_arguments()
+        self.save_hyperparameters()
 
         self.drop_prob = drop_prob
         self.batch_size = batch_size

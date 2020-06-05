@@ -1815,6 +1815,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         elif kwargs:
             self._module_self_arguments = copy.deepcopy(kwargs)
 
+    @property
+    def hparams(self):
+        # TODO
+        ...
+
 
 def _collect_init_args(frame, path_args: list, inside: bool = False) -> list:
     """
