@@ -23,6 +23,14 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from tests.base import EvalModelTemplate
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 @pytest.mark.parametrize('url_ckpt', [True, False])
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
@@ -780,6 +788,20 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+
+@pytest.mark.parametrize(['tpu_cores', 'error_expected'], [
+    pytest.param(1, False),
+    pytest.param(8, False),
+    pytest.param([1], False),
+    pytest.param(2, True),
+    pytest.param(10, True),
+])
+def test_tpu_choice(tmpdir, tpu_cores, error_expected):
+    if error_expected:
+        with pytest.raises(AssertionError, match=r'.*tpu_cores` can only be 1, 8 or [<1-8>]*'):
+            Trainer(default_save_path=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+    else:
+        Trainer(default_save_path=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
