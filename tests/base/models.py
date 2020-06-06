@@ -83,6 +83,8 @@ class TestGAN(LightningModule):
         self.generated_imgs = None
         self.last_imgs = None
 
+        self.example_input_array = torch.rand(2, self.hidden_dim)
+
     def forward(self, z):
         return self.generator(z)
 

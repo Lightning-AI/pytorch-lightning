@@ -1,164 +1,233 @@
-"""
-Generates a summary of a model's layers and dimensionality
-"""
-
-import gc
 import os
 import subprocess
+from collections import OrderedDict
 from subprocess import PIPE
-from typing import Tuple, Dict, Union, List
+from typing import Tuple, Dict, Union, List, Any
 
 import numpy as np
 import torch
-from torch.nn import Module
+import torch.nn as nn
 
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import transfer_batch_to_device
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
-from pytorch_lightning import _logger as log
+UNKNOWN_SIZE = '?'
+
+
+class LayerSummary(object):
+    """
+    Summary class for a single layer in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+    It collects the following information:
+
+    - Type of the layer (e.g. Linear, BatchNorm1d, ...)
+    - Input shape
+    - Output shape
+    - Number of parameters
+
+    The input and output shapes are only known after the example input array was
+    passed through the model.
+
+    Example::
+
+        >>> model = torch.nn.Conv2d(3, 8, 3)
+        >>> summary = LayerSummary(model)
+        >>> summary.num_parameters
+        224
+        >>> summary.layer_type
+        'Conv2d'
+        >>> output = model(torch.rand(1, 3, 5, 5))
+        >>> summary.in_size
+        [1, 3, 5, 5]
+        >>> summary.out_size
+        [1, 8, 3, 3]
+
+    Args:
+        module: A module to summarize
+
+    """
+
+    def __init__(self, module: nn.Module):
+        super().__init__()
+        self._module = module
+        self._hook_handle = self._register_hook()
+        self._in_size = None
+        self._out_size = None
+
+    def _register_hook(self):
+        """
+        Registers a hook on the module that computes the input- and output size(s)
+        on the first forward pass. The hook will remove itself from the module, meaning that
+        recursive models will only record their input- and output shapes once.
+        """
+
+        def hook(module, inp, out):
+            if len(inp) == 1:
+                inp = inp[0]
+            self._in_size = parse_batch_shape(inp)
+            self._out_size = parse_batch_shape(out)
+            self._hook_handle.remove()  # hook detaches itself from module
+
+        return self._module.register_forward_hook(hook)
+
+    @property
+    def in_size(self):
+        return self._in_size or UNKNOWN_SIZE
+
+    @property
+    def out_size(self):
+        return self._out_size or UNKNOWN_SIZE
+
+    @property
+    def layer_type(self) -> str:
+        """ Returns the class name of the module. """
+        return str(self._module.__class__.__name__)
+
+    @property
+    def num_parameters(self) -> int:
+        """ Returns the number of parameters in this module. """
+        return sum(np.prod(p.shape) for p in self._module.parameters())
 
 
 class ModelSummary(object):
+    """
+    Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+
+    Args:
+        model: The model to summarize (also referred to as the root module)
+        mode: Can be one of
+
+             - `full` (default): summarizes all layers and their submodules in the root module
+             - `top`: Only the top-level modules will be recorded (the children of the root module)
+
+    The string representation of this summary prints a table with columns containing
+    the name, type and number of parameters for each layer.
+
+    The root module may also have an attribute ``example_input_array`` as shown in the example below.
+    If present, the root module will be called with it as input to determine the
+    intermediate input- and output shapes of all layers. Supported are tensors and
+    nested lists and tuples of tensors. All other types of inputs will be skipped and show as `?`
+    in the summary table. The summary will also display `?` for layers not used in the forward pass.
+
+    Example::
+
+        >>> class LitModel(pl.LightningModule):
+        ...
+        ...     def __init__(self):
+        ...         super().__init__()
+        ...         self.net = nn.Sequential(nn.Linear(256, 512), nn.BatchNorm1d(512))
+        ...         self.example_input_array = torch.zeros(10, 256)  # optional
+        ...
+        ...     def forward(self, x):
+        ...         return self.net(x)
+        ...
+        >>> model = LitModel()
+        >>> ModelSummary(model)  # doctest: +NORMALIZE_WHITESPACE
+          | Name  | Type        | Params | In sizes  | Out sizes
+        --------------------------------------------------------------
+        0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
+        1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
+        2 | net.1 | BatchNorm1d | 1 K    | [10, 512] | [10, 512]
+    """
 
     def __init__(self, model: 'pl.LightningModule', mode: str = 'full'):
-        """ Generates summaries of model layers and dimensions. """
-        self.model = model
-        self.mode = mode
-        self.in_sizes = []
-        self.out_sizes = []
+        self._model = model
+        self._mode = mode
+        self._layer_summary = self.summarize()
 
-        self.summarize()
-
-    def __str__(self):
-        return self.summary.__str__()
-
-    def __repr__(self):
-        return self.summary.__str__()
-
-    def named_modules(self) -> List[Tuple[str, Module]]:
-        if self.mode == 'full':
-            mods = self.model.named_modules()
+    @property
+    def named_modules(self) -> List[Tuple[str, nn.Module]]:
+        if self._mode == 'full':
+            mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
-        elif self.mode == 'top':
+        elif self._mode == 'top':
             # the children are the top-level modules
-            mods = self.model.named_children()
+            mods = self._model.named_children()
         else:
             mods = []
         return list(mods)
 
-    def get_variable_sizes(self) -> None:
-        """ Run sample input through each layer to get output sizes. """
-        mods = self.named_modules()
-        in_sizes = []
-        out_sizes = []
-        input_ = self.model.example_input_array
+    @property
+    def layer_names(self) -> List[str]:
+        return list(self._layer_summary.keys())
 
-        if self.model.on_gpu:
-            device = next(self.model.parameters()).get_device()
-            # test if input is a list or a tuple
-            if isinstance(input_, (list, tuple)):
-                input_ = [input_i.cuda(device) if torch.is_tensor(input_i) else input_i
-                          for input_i in input_]
-            else:
-                input_ = input_.cuda(device)
+    @property
+    def layer_types(self) -> List[str]:
+        return [layer.layer_type for layer in self._layer_summary.values()]
 
-        if self.model.trainer.use_amp:
-            # test if it is not a list or a tuple
-            if isinstance(input_, (list, tuple)):
-                input_ = [input_i.half() if torch.is_tensor(input_i) else input_i
-                          for input_i in input_]
-            else:
-                input_ = input_.half()
+    @property
+    def in_sizes(self) -> List:
+        return [layer.in_size for layer in self._layer_summary.values()]
 
+    @property
+    def out_sizes(self) -> List:
+        return [layer.out_size for layer in self._layer_summary.values()]
+
+    @property
+    def param_nums(self) -> List[int]:
+        return [layer.num_parameters for layer in self._layer_summary.values()]
+
+    def summarize(self) -> Dict[str, LayerSummary]:
+        summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
+        if self._model.example_input_array is not None:
+            self._forward_example_input()
+        return summary
+
+    def _forward_example_input(self) -> None:
+        """ Run the example input through each layer to get input- and output sizes. """
+        model = self._model
+        trainer = self._model.trainer
+
+        input_ = self._model.example_input_array
+        input_ = transfer_batch_to_device(input_, self._model.device)
+
+        if trainer is not None and trainer.use_amp:
+            if model.use_native_amp:
+                model.forward = torch.cuda.amp.autocast()(model.forward)
+
+        input_ = apply_to_collection(input_, torch.Tensor, lambda x: x.type(model.dtype))
+
+        mode = model.training
+        model.eval()
         with torch.no_grad():
+            # let the model hooks collect the input- and output shapes
+            if isinstance(input_, (list, tuple)):
+                model(*input_)
+            elif isinstance(input_, dict):
+                model(**input_)
+            else:
+                model(input_)
+        model.train(mode)  # restore mode of module
 
-            for _, m in mods:
-                if isinstance(input_, (list, tuple)):  # pragma: no-cover
-                    out = m(*input_)
-                else:
-                    out = m(input_)
-
-                if isinstance(input_, (list, tuple)):  # pragma: no-cover
-                    in_size = []
-                    for x in input_:
-                        if isinstance(x, list):
-                            in_size.append(len(x))
-                        else:
-                            in_size.append(x.size())
-                else:
-                    in_size = np.array(input_.size())
-
-                in_sizes.append(in_size)
-
-                if isinstance(out, (list, tuple)):  # pragma: no-cover
-                    out_size = np.asarray([x.size() for x in out])
-                else:
-                    out_size = np.array(out.size())
-
-                out_sizes.append(out_size)
-                input_ = out
-
-        self.in_sizes = in_sizes
-        self.out_sizes = out_sizes
-        assert len(in_sizes) == len(out_sizes)
-
-    def get_layer_names(self) -> None:
-        """ Collect Layer Names """
-        mods = self.named_modules()
-        names = []
-        layers = []
-        for name, m in mods:
-            names += [name]
-            layers += [str(m.__class__)]
-
-        layer_types = [x.split('.')[-1][:-2] for x in layers]
-
-        self.layer_names = names
-        self.layer_types = layer_types
-
-    def get_parameter_sizes(self) -> None:
-        """ Get sizes of all parameters in `model`. """
-        mods = self.named_modules()
-        sizes = []
-        for _, m in mods:
-            p = list(m.parameters())
-            modsz = [np.array(param.size()) for param in p]
-            sizes.append(modsz)
-
-        self.param_sizes = sizes
-
-    def get_parameter_nums(self) -> None:
-        """ Get number of parameters in each layer. """
-        param_nums = []
-        for mod in self.param_sizes:
-            all_params = 0
-            for p in mod:
-                all_params += np.prod(p)
-            param_nums.append(all_params)
-        self.param_nums = param_nums
-
-    def make_summary(self) -> None:
+    def __str__(self):
         """
         Makes a summary listing with:
 
-        Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
+        Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes
         """
-        arrays = [['Name', self.layer_names],
+        arrays = [[' ', list(map(str, range(len(self._layer_summary))))],
+                  ['Name', self.layer_names],
                   ['Type', self.layer_types],
                   ['Params', list(map(get_human_readable_count, self.param_nums))]]
-        if self.model.example_input_array is not None:
+        if self._model.example_input_array is not None:
             arrays.append(['In sizes', self.in_sizes])
             arrays.append(['Out sizes', self.out_sizes])
 
-        self.summary = _format_summary_table(*arrays)
+        return _format_summary_table(*arrays)
 
-    def summarize(self) -> None:
-        self.get_layer_names()
-        self.get_parameter_sizes()
-        self.get_parameter_nums()
+    def __repr__(self):
+        return str(self)
 
-        if self.model.example_input_array is not None:
-            self.get_variable_sizes()
-        self.make_summary()
+
+def parse_batch_shape(batch: Any) -> Union[str, List]:
+    if hasattr(batch, 'shape'):
+        return list(batch.shape)
+
+    if isinstance(batch, (list, tuple)):
+        shape = [parse_batch_shape(el) for el in batch]
+        return shape
+
+    return UNKNOWN_SIZE
 
 
 def _format_summary_table(*cols) -> str:
@@ -170,66 +239,27 @@ def _format_summary_table(*cols) -> str:
     n_rows = len(cols[0][1])
     n_cols = 1 + len(cols)
 
-    # Layer counter
-    counter = list(map(str, list(range(n_rows))))
-    counter_len = max([len(c) for c in counter])
-
-    # Get formatting length of each column
-    length = []
+    # Get formatting width of each column
+    col_widths = []
     for c in cols:
-        str_l = len(c[0])  # default length is header length
-        for a in c[1]:
-            if isinstance(a, np.ndarray):
-                array_string = '[' + ', '.join([str(j) for j in a]) + ']'
-                str_l = max(len(array_string), str_l)
-            else:
-                str_l = max(len(a), str_l)
-        length.append(str_l)
+        col_width = max(len(str(a)) for a in c[1]) if n_rows else 0
+        col_width = max(col_width, len(c[0]))  # minimum length is header length
+        col_widths.append(col_width)
 
     # Formatting
     s = '{:<{}}'
-    full_length = sum(length) + 3 * n_cols
-    header = [s.format(' ', counter_len)] + [s.format(c[0], l) for c, l in zip(cols, length)]
+    total_width = sum(col_widths) + 3 * n_cols
+    header = [s.format(c[0], l) for c, l in zip(cols, col_widths)]
 
     # Summary = header + divider + Rest of table
-    summary = ' | '.join(header) + '\n' + '-' * full_length
+    summary = ' | '.join(header) + '\n' + '-' * total_width
     for i in range(n_rows):
-        line = s.format(counter[i], counter_len)
-        for c, l in zip(cols, length):
-            if isinstance(c[1][i], np.ndarray):
-                array_string = '[' + ', '.join([str(j) for j in c[1][i]]) + ']'
-                line += ' | ' + array_string + ' ' * (l - len(array_string))
-            else:
-                line += ' | ' + s.format(c[1][i], l)
-        summary += '\n' + line
+        line = []
+        for c, l in zip(cols, col_widths):
+            line.append(s.format(str(c[1][i]), l))
+        summary += '\n' + ' | '.join(line)
 
     return summary
-
-
-def print_mem_stack() -> None:  # pragma: no-cover
-    for obj in gc.get_objects():
-        try:
-            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                log.info(type(obj), obj.size())
-        except Exception:
-            pass
-
-
-def count_mem_items() -> Tuple[int, int]:  # pragma: no-cover
-    num_params = 0
-    num_tensors = 0
-    for obj in gc.get_objects():
-        try:
-            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                obj_type = str(type(obj))
-                if 'parameter' in obj_type:
-                    num_params += 1
-                else:
-                    num_tensors += 1
-        except Exception:
-            pass
-
-    return num_params, num_tensors
 
 
 def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
