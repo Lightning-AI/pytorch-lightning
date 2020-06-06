@@ -922,6 +922,9 @@ class Trainer(
         elif self.use_tpu:  # pragma: no-cover
             rank_zero_info(f'training on {self.tpu_cores} TPU cores')
 
+            if not XLA_AVAILABLE:
+                raise MisconfigurationException('No TPU devices found.')
+
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
 
