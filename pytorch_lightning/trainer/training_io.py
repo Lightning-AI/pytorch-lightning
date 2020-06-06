@@ -371,8 +371,7 @@ class TrainerIOMixin(ABC):
                 checkpoint[LightningModule.CHECKPOINT_NAME_HYPER_PARAMS] = model._hparams_name
             # add arguments to the checkpoint
             # todo: how to interpret OmegaConf
-            checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS] = \
-                {k: v for k, v in model.hparams.items() if isinstance(v, PRIMITIVE_TYPES)}
+            checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS] = dict(model.hparams)
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)

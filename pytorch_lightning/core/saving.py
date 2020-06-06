@@ -22,7 +22,7 @@ else:
 
 class ModelIO(object):
     CHECKPOINT_KEY_HYPER_PARAMS = 'hyper_parameters'
-    CHECKPOINT_NAME_HYPER_PARAMS = 'hparams_type'
+    CHECKPOINT_NAME_HYPER_PARAMS = 'hparams_name'
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
@@ -173,6 +173,8 @@ class ModelIO(object):
                 kwargs.update(**model_args)
 
         # load the state_dict on the model automatically
+        print(args)
+        print(kwargs)
         model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
