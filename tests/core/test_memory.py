@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from benchmarks.test_rnn_parity import ParityRNN
+from benchmarks.parity_modules import ParityModuleRNN
 from pytorch_lightning import LightningModule
 from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
 
@@ -83,7 +83,7 @@ def test_linear_model_summary_shapes(device, dtype):
 
 def test_rnn_summary_shapes():
     """ Test that the model summary works for RNNs. """
-    model = ParityRNN()
+    model = ParityModuleRNN()
 
     b = 3
     t = 5
