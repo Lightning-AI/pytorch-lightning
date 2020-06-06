@@ -273,5 +273,7 @@ def test_model_saving_loading(tmpdir):
 
 def test_model_pickle(tmpdir):
     model = EvalModelTemplate()
-    pickle.dumps(model)
-    cloudpickle.dumps(model)
+    pkl = pickle.dumps(model)
+    assert model == pickle.loads(pkl)
+    pkl = cloudpickle.dumps(model)
+    assert model == pickle.loads(pkl)

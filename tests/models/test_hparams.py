@@ -491,4 +491,7 @@ def test_single_config_models_fail(tmpdir, cls, config):
 
 def test_hparams_pickle(tmpdir):
     ad = AttributeDict({'key1': 1, 'key2': 'abc'})
-    pickle.dumps(ad)
+    pkl = pickle.dumps(ad)
+    assert ad == pickle.loads(pkl)
+    pkl = cloudpickle.dumps(ad)
+    assert ad == pickle.loads(pkl)
