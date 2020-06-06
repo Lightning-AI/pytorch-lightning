@@ -789,10 +789,14 @@ def test_gpu_choice(tmpdir):
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
 
+
 @pytest.mark.parametrize(['tpu_cores', 'error_expected'], [
     pytest.param(1, False),
     pytest.param(8, False),
     pytest.param([1], False),
+    pytest.param([8], False),
+    pytest.param([9], True),
+    pytest.param([0], True),
     pytest.param(2, True),
     pytest.param(10, True),
 ])
