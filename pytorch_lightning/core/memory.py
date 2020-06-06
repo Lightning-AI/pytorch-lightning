@@ -121,6 +121,10 @@ class ModelSummary(object):
         ...         return self.net(x)
         ...
         >>> model = LitModel()
+        >>> ModelSummary(model, mode='top')  # doctest: +NORMALIZE_WHITESPACE
+          | Name | Type       | Params | In sizes  | Out sizes
+        ------------------------------------------------------------
+        0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
         >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
@@ -144,7 +148,7 @@ class ModelSummary(object):
         if self._mode == ModelSummary.MODE_FULL:
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
-        elif self._mode == ModelSummary.MODE_FULL:
+        elif self._mode == ModelSummary.MODE_TOP:
             # the children are the top-level modules
             mods = self._model.named_children()
         else:
