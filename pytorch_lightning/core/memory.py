@@ -11,7 +11,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
-UNKNOWN_SIZE = '?'
+UNKNOWN_SIZE = "?"
 
 
 class LayerSummary(object):
@@ -133,12 +133,12 @@ class ModelSummary(object):
         2 | net.1 | BatchNorm1d | 1 K    | [10, 512] | [10, 512]
     """
 
-    MODE_TOP = 'top'
-    MODE_FULL = 'full'
+    MODE_TOP = "top"
+    MODE_FULL = "full"
     MODE_DEFAULT = MODE_TOP
     MODES = [MODE_FULL, MODE_TOP]
 
-    def __init__(self, model: 'pl.LightningModule', mode: str = MODE_DEFAULT):
+    def __init__(self, model: "pl.LightningModule", mode: str = MODE_DEFAULT):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
@@ -212,13 +212,15 @@ class ModelSummary(object):
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes
         """
-        arrays = [[' ', list(map(str, range(len(self._layer_summary))))],
-                  ['Name', self.layer_names],
-                  ['Type', self.layer_types],
-                  ['Params', list(map(get_human_readable_count, self.param_nums))]]
+        arrays = [
+            [" ", list(map(str, range(len(self._layer_summary))))],
+            ["Name", self.layer_names],
+            ["Type", self.layer_types],
+            ["Params", list(map(get_human_readable_count, self.param_nums))],
+        ]
         if self._model.example_input_array is not None:
-            arrays.append(['In sizes', self.in_sizes])
-            arrays.append(['Out sizes', self.out_sizes])
+            arrays.append(["In sizes", self.in_sizes])
+            arrays.append(["Out sizes", self.out_sizes])
 
         return _format_summary_table(*arrays)
 
@@ -227,7 +229,7 @@ class ModelSummary(object):
 
 
 def parse_batch_shape(batch: Any) -> Union[str, List]:
-    if hasattr(batch, 'shape'):
+    if hasattr(batch, "shape"):
         return list(batch.shape)
 
     if isinstance(batch, (list, tuple)):
@@ -254,17 +256,17 @@ def _format_summary_table(*cols) -> str:
         col_widths.append(col_width)
 
     # Formatting
-    s = '{:<{}}'
+    s = "{:<{}}"
     total_width = sum(col_widths) + 3 * n_cols
     header = [s.format(c[0], l) for c, l in zip(cols, col_widths)]
 
     # Summary = header + divider + Rest of table
-    summary = ' | '.join(header) + '\n' + '-' * total_width
+    summary = " | ".join(header) + "\n" + "-" * total_width
     for i in range(n_rows):
         line = []
         for c, l in zip(cols, col_widths):
             line.append(s.format(str(c[1][i]), l))
-        summary += '\n' + ' | '.join(line)
+        summary += "\n" + " | ".join(line)
 
     return summary
 
@@ -288,11 +290,11 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     """
     memory_map = get_gpu_memory_map()
 
-    if mode == 'min_max':
+    if mode == "min_max":
         min_index, min_memory = min(memory_map.items(), key=lambda item: item[1])
         max_index, max_memory = max(memory_map.items(), key=lambda item: item[1])
 
-        memory_map = {'min_gpu_mem': min_memory, 'max_gpu_mem': max_memory}
+        memory_map = {"min_gpu_mem": min_memory, "max_gpu_mem": max_memory}
 
     return memory_map
 
@@ -305,18 +307,16 @@ def get_gpu_memory_map() -> Dict[str, int]:
         values are memory usage as integers in MB.
     """
     result = subprocess.run(
-        [
-            'nvidia-smi',
-            '--query-gpu=memory.used',
-            '--format=csv,nounits,noheader',
-        ],
-        encoding='utf-8',
+        ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader",],
+        encoding="utf-8",
         # capture_output=True,          # valid for python version >=3.7
-        stdout=PIPE, stderr=PIPE,       # for backward compatibility with python version 3.6
-        check=True)
+        stdout=PIPE,
+        stderr=PIPE,  # for backward compatibility with python version 3.6
+        check=True,
+    )
     # Convert lines into a dictionary
     gpu_memory = [int(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {f'gpu_{index}': memory for index, memory in enumerate(gpu_memory)}
+    gpu_memory_map = {f"gpu_{index}": memory for index, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
@@ -347,11 +347,11 @@ def get_human_readable_count(number: int) -> str:
 
     """
     assert number >= 0
-    labels = [' ', 'K', 'M', 'B', 'T']
+    labels = [" ", "K", "M", "B", "T"]
     num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
     number = number * (10 ** shift)
     index = num_groups - 1
-    return f'{int(number):,d} {labels[index]}'
+    return f"{int(number):,d} {labels[index]}"
