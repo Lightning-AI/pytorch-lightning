@@ -46,6 +46,26 @@ def clean_namespace(hparams):
             del hparams[k]
 
 
+def get_init_args(frame):
+    _, _, _, local_vars = inspect.getargvalues(frame)
+    assert '__class__' in local_vars
+    cls = local_vars['__class__']
+    spec = inspect.getfullargspec(cls.__init__)
+    init_parameters = inspect.signature(cls.__init__).parameters
+    self_identifier = spec.args[0]  # "self" unless user renames it (always first arg)
+    varargs_identifier = spec.varargs  # by convention this is named "*args"
+    kwargs_identifier = spec.varkw  # by convention this is named "**kwargs"
+    exclude_argnames = (
+        varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
+    )
+
+    # only collect variables that appear in the signature
+    local_args = {k: local_vars[k] for k in init_parameters.keys()}
+    local_args.update(local_args.get(kwargs_identifier, {}))
+    local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
+    return local_args
+
+
 def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
     """
     Recursively collects the arguments passed to the child constructors in the inheritance tree.
@@ -62,21 +82,7 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
     """
     _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' in local_vars:
-        cls = local_vars['__class__']
-        spec = inspect.getfullargspec(cls.__init__)
-        init_parameters = inspect.signature(cls.__init__).parameters
-        self_identifier = spec.args[0]  # "self" unless user renames it (always first arg)
-        varargs_identifier = spec.varargs  # by convention this is named "*args"
-        kwargs_identifier = spec.varkw  # by convention this is named "**kwargs"
-        exclude_argnames = (
-            varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
-        )
-
-        # only collect variables that appear in the signature
-        local_args = {k: local_vars[k] for k in init_parameters.keys()}
-        local_args.update(local_args.get(kwargs_identifier, {}))
-        local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
-
+        local_args = get_init_args(frame)
         # recursive update
         path_args.append(local_args)
         return collect_init_args(frame.f_back, path_args, inside=True)

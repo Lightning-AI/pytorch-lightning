@@ -1,5 +1,4 @@
 import collections
-import copy
 import inspect
 import os
 from abc import ABC, abstractmethod
@@ -23,7 +22,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args
+from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
 try:
     import torch_xla.core.xla_model as xm
@@ -1748,8 +1747,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         for args in frame_args[:-1]:
             self._module_parents_arguments.update(args)
 
-    def save_hyperparameters(self, *args, **kwargs) -> None:
-        """
+    def save_hyperparameters(self, *args) -> None:
+        """Save all model arguments.
+
+        Args:
+            args: single object of `dict`, `NameSpace` or `OmegaConf`
+             or string names or argumenst from class `__init__`
 
         >>> from collections import OrderedDict
         >>> class ManuallyArgsModel(LightningModule):
@@ -1787,27 +1790,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         ...         ...
         >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
         >>> model.hparams
-        "arg1": 1
-        "arg2": abc
-        "arg3": 3.14
+        "p1": 1
+        "p2": abc
+        "p3": 3.14
         """
-        hp = {}
-        if args:
-            if len(args) == 1 and not isinstance(args[0], str):
-                self.hparams = args[0]
-            else:
-                # todo
-                _, _, _, local_vars = inspect.getargvalues(inspect.currentframe().f_back)
-                hp.update({arg: local_vars[arg] for arg in args})
-
-        if kwargs:
-            hp.update(kwargs)
-
-        if not args and not kwargs:
-            # todo
-            _, _, _, local_vars = inspect.getargvalues(inspect.currentframe().f_back)
+        if not args:
+            hp = get_init_args(inspect.currentframe().f_back)
+        else:
+            isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
+            if len(isx_non_str) == 1:
+                hp = args[isx_non_str[0]]
+            if len(args) > len(isx_non_str):
+                hp = {} if not hp else hp
+                init_args = get_init_args(inspect.currentframe().f_back)
+                hp.update({arg: init_args[arg] for arg in args if isinstance(arg, str)})
 
         self.hparams = hp
+
 
     @property
     def hparams(self) -> Union[AttributeDict, Any]:
