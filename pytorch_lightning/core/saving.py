@@ -168,7 +168,7 @@ class ModelIO(object):
             model_args = checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS]
             args_name = checkpoint.get(cls.CHECKPOINT_NAME_HYPER_PARAMS)
             if args_name:
-                kwargs.update(args_name=model_args)
+                kwargs.update({args_name: model_args})
             else:
                 kwargs.update(**model_args)
 
