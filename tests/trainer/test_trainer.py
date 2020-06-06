@@ -23,14 +23,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from tests.base import EvalModelTemplate
 
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 @pytest.mark.parametrize('url_ckpt', [True, False])
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
