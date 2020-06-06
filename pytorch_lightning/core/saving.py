@@ -13,11 +13,11 @@ from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
 try:
-    from omegaconf import DictConfig, OmegaConf
+    from omegaconf import Container
 except ImportError:
     pass
 else:
-    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (DictConfig, OmegaConf)
+    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
 
 
 class ModelIO(object):
