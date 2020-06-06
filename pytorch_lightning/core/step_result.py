@@ -65,11 +65,25 @@ class Result(Dict):
         if on_epoch_end:
             self.__reduce_on_callback('on_epoch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
 
+    def to_pbar(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        for name, value in values.items():
+            if on_batch_end:
+                self.__reduce_on_callback('on_batch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
+            if on_epoch_end:
+                self.__reduce_on_callback('on_epoch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
+
     def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         if on_batch_end:
             self.__reduce_on_callback('on_batch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
         if on_epoch_end:
             self.__reduce_on_callback('on_epoch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
+
+    def log(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+        for name, value in values.items():
+            if on_batch_end:
+                self.__reduce_on_callback('on_batch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
+            if on_epoch_end:
+                self.__reduce_on_callback('on_epoch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
 
     @property
     def log_on_batch_end(self):
