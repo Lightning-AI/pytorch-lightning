@@ -59,26 +59,26 @@ class Result(Dict):
         metrics = self['to_batch_end']
         metrics[name] = metric
 
-    def to_pbar(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def pbar_metric(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         if on_batch_end:
             self.__reduce_on_callback('on_batch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
         if on_epoch_end:
             self.__reduce_on_callback('on_epoch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
 
-    def to_pbar(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def pbar_metrics(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         for name, value in values.items():
             if on_batch_end:
                 self.__reduce_on_callback('on_batch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
             if on_epoch_end:
                 self.__reduce_on_callback('on_epoch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
 
-    def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def log_metric(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         if on_batch_end:
             self.__reduce_on_callback('on_batch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
         if on_epoch_end:
             self.__reduce_on_callback('on_epoch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
 
-    def log(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def log_metrics(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         for name, value in values.items():
             if on_batch_end:
                 self.__reduce_on_callback('on_batch_end', name, value, log=True, pbar=False, reduce_fx=reduce_fx)
@@ -287,26 +287,27 @@ class TrainResult(Result):
         """
         super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
 
-    def log(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+    def log_metric(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
         # no graph pointers for logs
         value = value.detach()
-        super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
+        super().log_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
-    def to_pbar(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+    def pbar_metric(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
         # no graph pointers for progress bar
         value = value.detach()
-        super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
+        super().pbar_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
-    def log(self, values: dict, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+    def log_metrics(self, values: dict, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
         # no graph pointers for logs
         for name, value in values.items():
             value = value.detach()
-            super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
+            super().log_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
-    def to_pbar(self, name: str, value: Tensor, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
+    def pbar_metrics(self, values: dict, on_batch_end=True, on_epoch_end=False, reduce_fx=torch.mean):
         # no graph pointers for progress bar
-        value = value.detach()
-        super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
+        for name, value in values.items():
+            value = value.detach()
+            super().pbar_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
 
 class EvalResult(Result):
@@ -348,25 +349,25 @@ class EvalResult(Result):
                 result = EvalResult()
 
                 # Example: log the average validation loss for the full epoch
-                result.log('val_loss', loss)
+                result.log_metric('val_loss', loss)
 
                 # Example: log the validation_loss for each batch
-                result.log('val_loss', loss, on_batch_end=True, on_epoch_end=False)
+                result.log_metric('val_loss', loss, on_batch_end=True, on_epoch_end=False)
 
                 # Example: or log the va_loss at the end of the batch AND end of epoch
-                result.log('val_loss', loss, on_batch_end=True, on_epoch_end=True)
+                result.log_metric('val_loss', loss, on_batch_end=True, on_epoch_end=True)
 
                 # instead of using the mean of the metric (default) use your own function
-                result.log('log_prob', log_probs, reduce_fx=torch.sum)
+                result.log_metric('log_prob', log_probs, reduce_fx=torch.sum)
 
                 def some_fancy_reduction(all_probs):
                     return ...
 
-                result.log('log_prob', log_probs, reduce_fx=some_fancy_reduction)
+                result.log_metric('log_prob', log_probs, reduce_fx=some_fancy_reduction)
 
                 # same thing for the progress bar
-                result.to_pbar(train_nce_loss', loss)
-                result.to_pbar('train_nce_loss', loss, on_batch_end=True, on_epoch_end=True)
+                result.pbar_metric(train_nce_loss', loss)
+                result.pbar_metric('train_nce_loss', loss, on_batch_end=True, on_epoch_end=True)
 
             In previous lightning versions `validation_epoch_end` or `test_epoch_end` was used to do
             aggregations for batches across an epoch. Unless you need more functionality,
@@ -390,30 +391,31 @@ class EvalResult(Result):
             """
         super().__init__(None, early_stop_on, checkpoint_on, hiddens)
 
-    def log(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def log_metric(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         # no graph pointers for logs
         value = value.detach()
-        super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
+        super().log_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
-    def to_pbar(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def pbar_metric(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         # no graph pointers for progress bar
         value = value.detach()
-        super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
+        super().pbar_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
-    def log(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def log_metrics(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         # no graph pointers for logs
         for name, value in values.items():
             value = value.detach()
-            super().log(name, value, on_batch_end, on_epoch_end, reduce_fx)
+            super().log_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
-    def to_pbar(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
+    def pbar_metrics(self, values: dict, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         # no graph pointers for progress bar
         for name, value in values.items():
             value = value.detach()
-            super().to_pbar(name, value, on_batch_end, on_epoch_end, reduce_fx)
+            super().pbar_metric(name, value, on_batch_end, on_epoch_end, reduce_fx)
 
 
 if __name__ == '__main__':
     import torch
-    result = Result()
+    result = EvalResult()
+    result.log_metric({'a': 2})
     result.minimize = torch.tensor(1)
