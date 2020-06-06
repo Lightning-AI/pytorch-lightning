@@ -100,15 +100,22 @@ class AttributeDict(dict):
     1
     >>> ad.update({'my-key': 3.14})
     >>> ad.update(mew_key=42)
+    >>> ad.key1 = 2
     >>> ad
-    "key1":    1
+    "key1":    2
     "key2":    abc
     "mew_key": 42
     "my-key":  3.14
     """
 
-    __getattr__ = dict.__getitem__
-    __setattr__ = dict.__setitem__
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(f'Missing attribute "{key}"')
+
+    def __setattr__(self, key, val):
+        self[key] = val
 
     def __repr__(self):
         if not len(self):

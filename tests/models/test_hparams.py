@@ -7,6 +7,7 @@ import torch
 from omegaconf import OmegaConf, DictConfig
 
 from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning.utilities import AttributeDict
 from tests.base import EvalModelTemplate
 import pickle, cloudpickle
 
@@ -538,3 +539,8 @@ def test_single_config_models_fail(tmpdir, cls, config):
     """ Test fail on passing unsupported config type. """
     with pytest.raises(ValueError):
         _ = cls(**config)
+
+
+def test_hparams_pickle(tmpdir):
+    ad = AttributeDict({'key1': 1, 'key2': 'abc'})
+    pickle.dumps(ad)

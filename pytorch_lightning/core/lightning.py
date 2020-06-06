@@ -1624,10 +1624,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         "arg3": 3.14
 
         >>> class SingleArgModel(LightningModule):
-        ...     def __init__(self, hparams):
+        ...     def __init__(self, params):
         ...         super().__init__()
         ...         # manually assign single argument
-        ...         self.save_hyperparameters(hparams)
+        ...         self.save_hyperparameters(params)
         ...     def forward(self, *args, **kwargs):
         ...         ...
         >>> model = SingleArgModel(Namespace(p1=1, p2='abc', p3=3.14))
