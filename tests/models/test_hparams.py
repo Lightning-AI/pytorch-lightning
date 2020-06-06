@@ -457,9 +457,9 @@ class LocalVariableModel2(EvalModelTemplate):
 def test_collect_init_arguments_with_local_vars(cls):
     """ Tests that only the arguments are collected and not local variables. """
     model = cls(arg1=1, arg2=2)
-    assert 'local_var' not in model.module_arguments
-    assert model.module_arguments['arg1'] == 'overwritten'
-    assert model.module_arguments['arg2'] == 2
+    assert 'local_var' not in model.hparams
+    assert model.hparams['arg1'] == 'overwritten'
+    assert model.hparams['arg2'] == 2
 
 
 class NamespaceArgModel(EvalModelTemplate):
@@ -516,7 +516,7 @@ def test_single_config_models(tmpdir, cls, config):
     # verify that model loads correctly
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert model.module_arguments == config
+    assert model.hparams == config
 
 
 class AnotherArgModel(EvalModelTemplate):

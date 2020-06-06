@@ -366,9 +366,9 @@ class TrainerIOMixin(ABC):
 
         checkpoint['state_dict'] = model.state_dict()
 
-        if hasattr(model, CHECKPOINT_KEY_HYPER_PARAMS) and model.module_arguments:
+        if hasattr(model, CHECKPOINT_KEY_HYPER_PARAMS) and model.hparams:
             # add arguments to the checkpoint
-            checkpoint[CHECKPOINT_KEY_HYPER_PARAMS] = {k: v for k, v in model.module_arguments.items()
+            checkpoint[CHECKPOINT_KEY_HYPER_PARAMS] = {k: v for k, v in model.hparams.items()
                                                        if isinstance(v, PRIMITIVE_TYPES)}
 
         # give the model a chance to add a few things

@@ -963,7 +963,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            self.logger.log_hyperparams(ref_model.module_arguments)
+            self.logger.log_hyperparams(ref_model.hparams)
 
             self.logger.save()
 
