@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import transfer_batch_to_device
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 UNKNOWN_SIZE = '?'
@@ -178,14 +177,13 @@ class ModelSummary(object):
         model = self._model
         trainer = self._model.trainer
 
-        input_ = self._model.example_input_array
-        input_ = transfer_batch_to_device(input_, self._model.device)
+        input_ = model.example_input_array
+        input_ = model.transfer_batch_to_device(input_, model.device)
+        input_ = apply_to_collection(input_, torch.Tensor, lambda x: x.type(model.dtype))
 
         if trainer is not None and trainer.use_amp:
             if model.use_native_amp:
                 model.forward = torch.cuda.amp.autocast()(model.forward)
-
-        input_ = apply_to_collection(input_, torch.Tensor, lambda x: x.type(model.dtype))
 
         mode = model.training
         model.eval()
