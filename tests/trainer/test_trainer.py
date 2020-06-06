@@ -1,9 +1,11 @@
 import glob
 import math
 import os
+import pickle
 import types
 from argparse import Namespace
 
+import cloudpickle
 import pytest
 import torch
 
@@ -824,3 +826,12 @@ def test_trainer_subclassing():
     # when we pass in an unknown arg, the base class should complain
     with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'"):
         TrainerSubclass(abcdefg='unknown_arg')
+
+
+def test_trainer_pickle(tmpdir):
+    # verify we can train
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+
+    # pickle test
+    pickle.dumps(trainer)
+    cloudpickle.dumps(trainer)

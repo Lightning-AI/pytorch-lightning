@@ -26,12 +26,6 @@ def _run_standard_hparams_test(tmpdir, model, cls):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
     trainer.fit(model)
 
-    # pickle test
-    pickle.dumps(trainer)
-    pickle.dumps(model)
-    cloudpickle.dumps(trainer)
-    cloudpickle.dumps(model)
-
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
