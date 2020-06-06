@@ -76,9 +76,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: device reference
         self._device = torch.device('cpu')
 
-        self._module_self_arguments = {}
-        self._module_parents_arguments = {}
-
     @property
     def on_gpu(self):
         """
@@ -1564,11 +1561,19 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                        " and this method will be removed in v1.0.0", DeprecationWarning)
         return self.get_progress_bar_dict()
 
-    def _auto_collect_arguments(self, frame=None) -> None:
+    @classmethod
+    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
         """
         Collect all module arguments in the current constructor and all child constructors.
         The child constructors are all the ``__init__`` methods that reach the current class through
         (chained) ``super().__init__()`` calls.
+
+        Args:
+            frame: instance frame
+
+        Returns:
+            self_arguments: arguments dictionary of the first instance
+            parents_arguments: arguments dictionary of the parent's instances
         """
         if not frame:
             frame = inspect.currentframe()
@@ -1577,12 +1582,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self_arguments = frame_args[-1]
 
         # set module_arguments in child
-        self._module_self_arguments = self_arguments
-        self._module_parents_arguments = {}
+        self_arguments = self_arguments
+        parents_arguments = {}
 
         # add all arguments from parents
         for args in frame_args[:-1]:
-            self._module_parents_arguments.update(args)
+            parents_arguments.update(args)
+        return self_arguments, parents_arguments
 
     def save_hyperparameters(self, *args) -> None:
         """Save all model arguments.
