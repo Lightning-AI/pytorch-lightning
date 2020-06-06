@@ -41,7 +41,8 @@ else:
     ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (DictConfig, OmegaConf)
 
 
-CHECKPOINT_KEY_MODULE_ARGS = 'module_arguments'
+CHECKPOINT_KEY_HYPER_PARAMS = 'hyper_parameters'
+CHECKPOINT_NAME_HYPER_PARAMS = 'hparams_type'
 
 
 class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
@@ -1586,10 +1587,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             hparams['on_gpu'] = False
 
             # overwrite hparams by the given file
-            checkpoint[CHECKPOINT_KEY_MODULE_ARGS] = hparams
+            checkpoint[CHECKPOINT_KEY_HYPER_PARAMS] = hparams
 
         # override the module_arguments with values that were passed in
-        checkpoint[CHECKPOINT_KEY_MODULE_ARGS].update(kwargs)
+        checkpoint[CHECKPOINT_KEY_HYPER_PARAMS].update(kwargs)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
@@ -1598,9 +1599,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs) -> 'LightningModule':
 
         # pass in the values we saved automatically
-        if CHECKPOINT_KEY_MODULE_ARGS in checkpoint:
-            model_args = checkpoint[CHECKPOINT_KEY_MODULE_ARGS]
-            kwargs.update(**model_args)
+        if CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
+            # todo add some back compatibility
+            model_args = checkpoint[CHECKPOINT_KEY_HYPER_PARAMS]
+            args_name = checkpoint[CHECKPOINT_NAME_HYPER_PARAMS]
+            if args_name:
+                kwargs.update(args_name=model_args)
+            else:
+                kwargs.update(**model_args)
 
         # load the state_dict on the model automatically
         model = cls(*args, **kwargs)
@@ -1794,15 +1800,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         "p2": abc
         "p3": 3.14
         """
+        self._hparams_name = None
+        init_args = get_init_args(inspect.currentframe().f_back)
         if not args:
-            hp = get_init_args(inspect.currentframe().f_back)
+            hp = init_args
         else:
+            hp = {}
             isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
             if len(isx_non_str) == 1:
                 hp = args[isx_non_str[0]]
+                self._hparams_name = [k for k, v in init_args.items() if v == hp][0]
             if len(args) > len(isx_non_str):
-                hp = {} if not hp else hp
-                init_args = get_init_args(inspect.currentframe().f_back)
                 hp.update({arg: init_args[arg] for arg in args if isinstance(arg, str)})
 
         self.hparams = hp

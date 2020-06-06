@@ -7,7 +7,7 @@ import torch
 from omegaconf import OmegaConf, DictConfig
 
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
+from pytorch_lightning.core.lightning import CHECKPOINT_KEY_HYPER_PARAMS
 from tests.base import EvalModelTemplate
 import pickle, cloudpickle
 
@@ -35,8 +35,8 @@ def _run_standard_hparams_test(tmpdir, model, cls):
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
-    assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['test_arg'] == 14
+    assert CHECKPOINT_KEY_HYPER_PARAMS in raw_checkpoint
+    assert raw_checkpoint[CHECKPOINT_KEY_HYPER_PARAMS]['test_arg'] == 14
 
     # verify that model loads correctly
     model = cls.load_from_checkpoint(raw_checkpoint_path)
@@ -274,8 +274,8 @@ def test_explicit_missing_args_hparams(tmpdir):
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
-    assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['test_arg'] == 14
+    assert CHECKPOINT_KEY_HYPER_PARAMS in raw_checkpoint
+    assert raw_checkpoint[CHECKPOINT_KEY_HYPER_PARAMS]['test_arg'] == 14
 
     # verify that model loads correctly
     model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
@@ -301,12 +301,12 @@ def test_class_nesting():
 
     def test_outside():
         a = MyModule()
-        print(a.module_arguments)
+        _ = a.hparams
 
     class A:
         def test(self):
             a = MyModule()
-            print(a.module_arguments)
+            _ = a.hparams
 
         def test2(self):
             test_outside()
@@ -403,8 +403,8 @@ def test_collect_init_arguments(tmpdir, cls):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
 
     raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert CHECKPOINT_KEY_MODULE_ARGS in raw_checkpoint
-    assert raw_checkpoint[CHECKPOINT_KEY_MODULE_ARGS]['batch_size'] == 179
+    assert CHECKPOINT_KEY_HYPER_PARAMS in raw_checkpoint
+    assert raw_checkpoint[CHECKPOINT_KEY_HYPER_PARAMS]['batch_size'] == 179
 
     # verify that model loads correctly
     model = cls.load_from_checkpoint(raw_checkpoint_path)

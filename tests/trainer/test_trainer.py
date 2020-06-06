@@ -11,7 +11,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.core.lightning import CHECKPOINT_KEY_MODULE_ARGS
+from pytorch_lightning.core.lightning import CHECKPOINT_KEY_HYPER_PARAMS
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
@@ -43,7 +43,7 @@ def test_no_val_module(tmpdir):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert CHECKPOINT_KEY_MODULE_ARGS in ckpt.keys(), 'module_arguments missing from checkpoints'
+    assert CHECKPOINT_KEY_HYPER_PARAMS in ckpt.keys(), 'module_arguments missing from checkpoints'
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
