@@ -121,7 +121,7 @@ class ModelSummary(object):
         ...         return self.net(x)
         ...
         >>> model = LitModel()
-        >>> ModelSummary(model)  # doctest: +NORMALIZE_WHITESPACE
+        >>> ModelSummary(model, mode='full')  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | In sizes  | Out sizes
         --------------------------------------------------------------
         0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
