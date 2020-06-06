@@ -96,8 +96,8 @@ class ModelSummary(object):
         model: The model to summarize (also referred to as the root module)
         mode: Can be one of
 
-             - `full` (default): summarizes all layers and their submodules in the root module
-             - `top`: Only the top-level modules will be recorded (the children of the root module)
+             - `top` (default): only the top-level modules will be recorded (the children of the root module)
+             - `full`: summarizes all layers and their submodules in the root module
 
     The string representation of this summary prints a table with columns containing
     the name, type and number of parameters for each layer.
@@ -129,17 +129,22 @@ class ModelSummary(object):
         2 | net.1 | BatchNorm1d | 1 K    | [10, 512] | [10, 512]
     """
 
-    def __init__(self, model: 'pl.LightningModule', mode: str = 'full'):
+    MODE_TOP = 'top'
+    MODE_FULL = 'full'
+    MODE_DEFAULT = MODE_TOP
+    MODES = [MODE_FULL, MODE_TOP]
+
+    def __init__(self, model: 'pl.LightningModule', mode: str = MODE_DEFAULT):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
 
     @property
     def named_modules(self) -> List[Tuple[str, nn.Module]]:
-        if self._mode == 'full':
+        if self._mode == ModelSummary.MODE_FULL:
             mods = self._model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
-        elif self._mode == 'top':
+        elif self._mode == ModelSummary.MODE_FULL:
             # the children are the top-level modules
             mods = self._model.named_children()
         else:

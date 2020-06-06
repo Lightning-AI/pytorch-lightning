@@ -10,11 +10,11 @@ import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback, ProgressBarBase
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.seed import seed_everything
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
@@ -118,7 +118,7 @@ class Trainer(
             distributed_backend: Optional[str] = None,
             precision: int = 32,
             print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'top',
+            weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
             weights_save_path: Optional[str] = None,
             num_sanity_val_steps: int = 2,
             truncated_bptt_steps: Optional[int] = None,
@@ -985,10 +985,12 @@ class Trainer(
 
         # print model summary
         if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ['full', 'top']:
+            if self.weights_summary in ModelSummary.MODES:
                 ref_model.summarize(mode=self.weights_summary)
             else:
-                raise MisconfigurationException("weights_summary can be None, 'full' or 'top'")
+                raise MisconfigurationException(
+                    "weights_summary can be None, " + ", ".join(ModelSummary.MODES)
+                )
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights

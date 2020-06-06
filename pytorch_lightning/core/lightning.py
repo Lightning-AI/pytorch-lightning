@@ -1598,7 +1598,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         return model
 
-    def summarize(self, mode: str = 'top') -> ModelSummary:
+    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
         model_summary = ModelSummary(self, mode=mode)
         log.info('\n' + str(model_summary))
         return model_summary

@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from benchmarks.test_rnn_parity import ParityRNN
 from pytorch_lightning import LightningModule
-from pytorch_lightning.core.memory import UNKNOWN_SIZE
+from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
 
 
 class EmptyModule(LightningModule):
@@ -45,7 +45,7 @@ class UnorderedModel(LightningModule):
 def test_empty_model_summary_shapes():
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
-    summary = model.summarize()
+    summary = model.summarize(mode=ModelSummary.MODE_FULL)
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
@@ -61,7 +61,7 @@ def test_linear_model_summary_shapes(device, dtype):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().type(dtype).to(device)
     model.train()
-    summary = model.summarize()
+    summary = model.summarize(mode=ModelSummary.MODE_FULL)
     assert summary.in_sizes == [
         [2, 10],    # layer 2
         [2, 7],     # combine
@@ -93,7 +93,7 @@ def test_rnn_summary_shapes():
 
     model.example_input_array = torch.zeros(b, t, 10)
 
-    summary = model.summarize()
+    summary = model.summarize(mode=ModelSummary.MODE_FULL)
     assert summary.in_sizes == [
         [b, t, i],  # rnn
         [b, t, h],  # linear
@@ -107,7 +107,7 @@ def test_rnn_summary_shapes():
 def test_summary_parameter_count():
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
-    summary = model.summarize()
+    summary = model.summarize(mode=ModelSummary.MODE_FULL)
     assert summary.param_nums == [
         model.layer2.weight.numel() + model.layer2.bias.numel(),
         model.combine.weight.numel() + model.combine.bias.numel(),
@@ -120,7 +120,7 @@ def test_summary_parameter_count():
 def test_summary_layer_types():
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
-    summary = model.summarize()
+    summary = model.summarize(mode=ModelSummary.MODE_FULL)
     assert summary.layer_types == [
         'Linear',
         'Linear',
@@ -157,5 +157,5 @@ def test_example_input_array_types(example_input, expected_size):
 
     model = DummyLightningModule()
     model.example_input_array = example_input
-    summary = model.summarize()
+    summary = model.summarize(mode=ModelSummary.MODE_FULL)
     assert summary.in_sizes == [expected_size]
