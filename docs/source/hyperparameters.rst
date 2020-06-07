@@ -182,7 +182,7 @@ In that case, choose only a few
             self.layer_2 = torch.nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
             self.layer_3 = torch.nn.Linear(self.hparams.layer_2_dim, 10)
 
-    conf = OmegaConf(...)
+    conf = OmegaConf.create(...)
     model = LitMNIST(conf)
 
     # this works
