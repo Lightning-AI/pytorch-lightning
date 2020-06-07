@@ -132,7 +132,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -267,7 +267,7 @@ class TrainerEvaluationLoopMixin(ABC):
                     break
 
                 # run the dataloader step
-                # eval_step_result is an EvalResult object
+                # eval_step_result is an Result object
                 eval_step_result = self._dataloader_eval_step(model, batch, batch_idx, dataloader_idx, test_mode)
                 dataloader_outputs.append(eval_step_result)
 
@@ -295,7 +295,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # -----------------------------
         # RUN XXX_EPOCH_END
         # -----------------------------
-        # eval_epoch_end_result = EvalResult()
+        # eval_epoch_end_result = Result()
         eval_key = 'test' if test_mode else 'validation'
         eval_epoch_end_result = None
         if self.is_overridden(f'{eval_key}_end', model=model_ref):
@@ -314,14 +314,14 @@ class TrainerEvaluationLoopMixin(ABC):
         # -------------------------------------------
         epoch_end_fx_used = eval_epoch_end_result is not None
         if epoch_end_fx_used:
-            # user returned EvalResult which we use as final output
-            if isinstance(eval_epoch_end_result, EvalResult):
+            # user returned Result which we use as final output
+            if isinstance(eval_epoch_end_result, Result):
                 eval_loop_result = eval_epoch_end_result
 
-            # user return a dict which we map to EvalResult
+            # user return a dict which we map to Result
             else:
                 assert eval_epoch_end_result is dict, f'{eval_key}_epoch_end return must be a dict'
-                eval_loop_result = EvalResult()
+                eval_loop_result = Result()
 
                 # TODO: pull key from callbacks
                 callback_key = 'val_loss'
@@ -427,7 +427,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # -----------------------------
         # format response
         # -----------------------------
-        eval_result = EvalResult(
+        eval_result = Result(
             early_stop_on=early_stop_on,
             checkpoint_on=checkpoint_on
         )
@@ -435,7 +435,7 @@ class TrainerEvaluationLoopMixin(ABC):
         eval_result.pbar_on_epoch_end = eval_loop_result.get('pbar_on_epoch_end', {})
         return eval_result
 
-    def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode) -> EvalResult:
+    def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode) -> Result:
         """
         Runs through the following sequence
         - on_xxx_batch_start
@@ -451,7 +451,7 @@ class TrainerEvaluationLoopMixin(ABC):
             dataloader_idx:
             test_mode:
 
-        Returns: EvalResult
+        Returns: Result
         """
         # -------------------------------------
         # ON_XXX_BATCH_START CALLBACK
@@ -471,8 +471,8 @@ class TrainerEvaluationLoopMixin(ABC):
             eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
         # init the eval step result for this dataloader
-        eval_step_result = EvalResult()
-        if isinstance(eval_step_output, EvalResult):
+        eval_step_result = Result()
+        if isinstance(eval_step_output, Result):
             eval_step_result = eval_step_output
         else:
             # -------------------------------
@@ -500,7 +500,7 @@ class TrainerEvaluationLoopMixin(ABC):
             # -------------------------------------
             # map simple dict to what batch end needs
             # -------------------------------------
-            if not isinstance(eval_step_output, EvalResult):
+            if not isinstance(eval_step_output, Result):
                 eval_step_result.to_batch_end = eval_step_output
 
             # TODO: add warning if user overrode this method and did not pass in a `to_xxx_step_end` key
@@ -516,7 +516,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 batch_step_end_output = callback_fx(eval_step_output.to_batch_end)
 
             # if step_end returned a Result use this as the new output
-            if isinstance(batch_step_end_output, EvalResult):
+            if isinstance(batch_step_end_output, Result):
                 eval_step_result = batch_step_end_output
 
             # dict result, pass to epoch end in that case
@@ -568,7 +568,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
-        if isinstance(eval_results, EvalResult):
+        if isinstance(eval_results, Result):
             eval_results = self.process_step_result(eval_results)
         else:
             eval_results = self.process_output(eval_results)
