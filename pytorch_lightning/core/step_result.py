@@ -107,20 +107,6 @@ class Result(Dict):
         metrics = self[key]
         metrics[name] = reduce_fx
 
-    def pass_to_epoch_end(self, name, metric):
-        if 'to_epoch_end' not in self:
-            self['to_epoch_end'] = {}
-
-        metrics = self['to_epoch_end']
-        metrics[name] = metric
-
-    def pass_to_batch_end(self, name, metric):
-        if 'to_batch_end' not in self:
-            self['to_batch_end'] = {}
-
-        metrics = self['to_batch_end']
-        metrics[name] = metric
-
     def pbar_metric(self, name: str, value: Tensor, on_batch_end=False, on_epoch_end=True, reduce_fx=torch.mean):
         if on_batch_end:
             self.__reduce_on_callback('on_batch_end', name, value, log=False, pbar=True, reduce_fx=reduce_fx)
@@ -186,26 +172,6 @@ class Result(Dict):
         if x is not None:
             assert isinstance(x, dict), 'pbar_on_epoch_end must be a dict'
             self.__setitem__('pbar_on_epoch_end', x)
-
-    @property
-    def to_batch_end(self):
-        return self.__getitem__('to_batch_end')
-
-    @to_batch_end.setter
-    def to_batch_end(self, x):
-        if x is not None:
-            assert isinstance(x, dict), 'to_batch_end must be a dict'
-            self.__setitem__('to_batch_end', x)
-
-    @property
-    def to_epoch_end(self):
-        return self.__getitem__('to_epoch_end')
-
-    @to_epoch_end.setter
-    def to_epoch_end(self, x):
-        if x is not None:
-            assert isinstance(x, dict), 'to_epoch_end must be a dict'
-            self.__setitem__('to_epoch_end', x)
 
     @property
     def progress_bar(self):
