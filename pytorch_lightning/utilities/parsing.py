@@ -46,7 +46,7 @@ def clean_namespace(hparams):
             del hparams[k]
 
 
-def get_init_args(frame):
+def get_init_args(frame) -> dict:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if '__class__' not in local_vars:
         return

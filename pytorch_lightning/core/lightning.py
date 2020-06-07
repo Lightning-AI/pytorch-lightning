@@ -75,8 +75,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: device reference
         self._device = torch.device('cpu')
 
-        self._hparams_name = 'hparams'
-
     @property
     def on_gpu(self):
         """
@@ -1591,7 +1589,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             parents_arguments.update(args)
         return self_arguments, parents_arguments
 
-    def save_hyperparameters(self, *args) -> None:
+    def save_hyperparameters(self, *args, frame=None) -> None:
         """Save all model arguments.
 
         Args:
@@ -1637,7 +1635,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         "p2": abc
         "p3": 3.14
         """
-        init_args = get_init_args(inspect.currentframe().f_back)
+        if not frame:
+            frame = inspect.currentframe().f_back
+        init_args = get_init_args(frame)
+        assert init_args, 'failed to ismpect the self init'
         if not args:
             hp = init_args
             self._hparams_name = 'kwargs' if hp else None
@@ -1646,15 +1647,28 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             if len(isx_non_str) == 1:
                 hp = args[isx_non_str[0]]
                 cand_names = [k for k, v in init_args.items() if v == hp]
-                self._hparams_name = cand_names[0]
+                self._hparams_name = cand_names[0] if cand_names else None
             else:
                 hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
                 self._hparams_name = 'kwargs'
 
+        assert hp, 'empty hparams are not expected here'
+        self._set_hparams(hp)
+
+    def _set_hparams(self, hp: Union[dict, Namespace, Any]) -> None:
+        if isinstance(hp, Namespace):
+            hp = vars(hp)
+        if isinstance(hp, dict):
+            hp = AttributeDict(hp)
+        if isinstance(hp, PRIMITIVE_TYPES):
+            raise ValueError(f'Primitives {PRIMITIVE_TYPES} are not allowed.')
+        if not isinstance(hp, ALLOWED_CONFIG_TYPES):
+            raise ValueError(f'Unsupported config type of {type(hp)}.')
+
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
             self.hparams.update(hp)
         else:
-            self.hparams = hp
+            self._hparams = hp
 
     @property
     def hparams(self) -> Union[AttributeDict, Any]:
@@ -1664,12 +1678,4 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
-        if isinstance(hp, Namespace):
-            hp = vars(hp)
-        if isinstance(hp, dict):
-            hp = AttributeDict(hp)
-        if isinstance(hp, PRIMITIVE_TYPES):
-            raise ValueError(f'Primitives {PRIMITIVE_TYPES} are not allowed.')
-        if not isinstance(hp, ALLOWED_CONFIG_TYPES):
-            raise ValueError(f'Unsupported config type of {type(hp)}.')
-        self._hparams = hp
+        self.save_hyperparameters(hp, frame=inspect.currentframe().f_back.f_back)
