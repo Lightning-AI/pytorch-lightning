@@ -54,7 +54,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: Pointer to the logger object
         self.logger = None
-        self.example_input_array = None
 
         #: True if using dp
         self.use_dp = False
@@ -76,6 +75,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: device reference
         self._device = torch.device('cpu')
+
+        # optionally can be set by user
+        self._example_input_array = None
+
+    @property
+    def example_input_array(self) -> Any:
+        return self._example_input_array
+
+    @example_input_array.setter
+    def example_input_array(self, example: Any) -> None:
+        self._example_input_array = example
 
     @property
     def on_gpu(self):
