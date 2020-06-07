@@ -433,6 +433,7 @@ class DictArgModel(EvalModelTemplate):
         super().__init__()
         self.save_hyperparameters(some_dict)
 
+
 class DictArgModelProperty(EvalModelTemplate):
     def __init__(self, some_dict: dict):
         super().__init__()
@@ -464,19 +465,19 @@ def test_single_config_models(tmpdir, cls, config):
     # verify that model loads correctly
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert model.hparams == config
+    assert model.hparams.my_arg == 42
 
 
 class AnotherArgModel(EvalModelTemplate):
     def __init__(self, arg1):
         super().__init__()
-        self.save_hyperparameters(['arg1'])
+        self.save_hyperparameters(arg1)
 
 
 class OtherArgsModel(EvalModelTemplate):
     def __init__(self, arg1, arg2):
         super().__init__()
-        self.save_hyperparameters(['arg1', 'arg2'])
+        self.save_hyperparameters(arg1, arg2)
 
 
 @pytest.mark.parametrize("cls,config", [
