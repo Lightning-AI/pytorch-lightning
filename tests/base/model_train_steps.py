@@ -1,7 +1,7 @@
 import math
 from abc import ABC
 from collections import OrderedDict
-from pytorch_lightning.core.step_result import EvalResult, TrainResult
+from pytorch_lightning.core.step_result import Result
 
 import torch
 
@@ -44,7 +44,7 @@ class TrainingStepVariations(ABC):
         # calculate loss
         loss_val = self.loss(y, y_hat)
 
-        return TrainResult(loss_val)
+        return Result(loss_val)
 
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
         output = self.training_step(batch, batch_idx, optimizer_idx)

@@ -1,6 +1,6 @@
 import torch
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import TrainResult, EvalResult
+from pytorch_lightning.core.step_result import Result
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 
@@ -21,16 +21,16 @@ class DeterministicModel(LightningModule):
 
     def base_train_result(self, acc):
         x = acc
-        result = TrainResult(
+        result = Result(
             minimize=acc,
             early_stop_on=torch.tensor(1.4).type_as(x),
             checkpoint_on=torch.tensor(1.5).type_as(x)
         )
 
-        result.log('log_acc1', torch.tensor(12).type_as(x))
-        result.log('log_acc2', torch.tensor(7).type_as(x))
-        result.to_pbar('pbar_acc1', torch.tensor(17).type_as(x))
-        result.to_pbar('pbar_acc2', torch.tensor(19).type_as(x))
+        result.log_metric('log_acc1', torch.tensor(12).type_as(x))
+        result.log_metrics({'log_acc2': torch.tensor(7).type_as(x)})
+        result.pbar_metric('pbar_acc1', torch.tensor(17).type_as(x))
+        result.pbar_metrics({'pbar_acc2': torch.tensor(19).type_as(x)})
 
         # make sure minimize is the only thing with a graph
         self.assert_graph_count(result, 1)
