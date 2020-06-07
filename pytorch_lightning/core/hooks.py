@@ -252,7 +252,7 @@ class DistributedStateHooks(torch.nn.Module):
 
     def on_after_model_replicate(
         self,
-        replicas: List[LightningModule],
+        replicas: List[Module],
         distributed_buffer: List[DistributedState],
         device_ids: List[int]
     ) -> None:
@@ -263,7 +263,7 @@ class DistributedStateHooks(torch.nn.Module):
         distributed_state object within distributed_buffer.
 
         Args:
-            replicas: A list containing replica objects of LightningModule class.
+            replicas: A list containing replica objects of model's base class.
             distributed_buffer: A list containing persistent copies of DistributedStateHooks.DistributedState objects.
             device_ids: A list containing integer IDs of GPUs being used by the DataParallel class.
 
@@ -277,7 +277,7 @@ class DistributedStateHooks(torch.nn.Module):
 
     def on_after_dp_parallel_apply(
         self,
-        replicas: List[LightningModule],
+        replicas: List[Module],
         distributed_buffer: List[DistributedState],
         device_ids: List[int]
     ) -> None:
@@ -289,7 +289,7 @@ class DistributedStateHooks(torch.nn.Module):
         distributed_buffer.
 
         Args:
-            replicas: A list containing replica objects of LightningModule class.
+            replicas: A list containing replica objects of model's base class.
             distributed_buffer: A list containing persistent copies of DistributedStateHooks.DistributedState objects.
             device_ids: A list containing integer IDs of GPUs being used by the DataParallel class.
 
