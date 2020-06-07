@@ -93,10 +93,7 @@ class SuperLitModel(pl.LightningModule):
         result.log_metric('val_loss', val_loss)
         result.pbar_metric('pbar_loss', val_loss)
 
-        return {'val_loss': val_loss, 'log':{'aa': val_loss}, 'progress_bar': {'aa': val_loss}}
-
-    def validation_step_end(self, outputs):
-        return outputs
+        return {'val_loss': val_loss, 'log': {'aa': val_loss}, 'progress_bar': {'aa': val_loss}}
 
     def validation_epoch_end(self, outputs):
         return outputs[0]

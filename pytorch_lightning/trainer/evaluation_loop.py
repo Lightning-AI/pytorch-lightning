@@ -298,7 +298,6 @@ class TrainerEvaluationLoopMixin(ABC):
         # epoch_end takes the list of results for all dataloaders and the user needs to return a dict or Result
         # eval_epoch_end_result = Result()
         eval_key = 'test' if test_mode else 'validation'
-        eval_epoch_end_output = None
         if self.is_overridden(f'{eval_key}_end', model=model_ref):
             # TODO: remove in v1.0.0
             test_end_fx = getattr(model, f'{eval_key}_end')
@@ -308,10 +307,6 @@ class TrainerEvaluationLoopMixin(ABC):
             m = f'{eval_key}_end must return a dict or Result object'
             assert isinstance(eval_epoch_end_output, (dict, Result)), m
 
-            # make sure the result is always a Result
-            if isinstance(eval_epoch_end_output, dict):
-                eval_epoch_end_output = Result.from_result_dict(eval_epoch_end_output, self)
-
             eval_loop_result = [eval_epoch_end_output]
 
         elif self.is_overridden(f'{eval_key}_epoch_end', model=model_ref):
@@ -319,10 +314,6 @@ class TrainerEvaluationLoopMixin(ABC):
             eval_epoch_end_output = test_epoch_end_fx(epoch_end_inputs)
             m = f'{eval_key}_epoch_end must return a dict or Result object'
             assert isinstance(eval_epoch_end_output, (dict, Result)), m
-
-            # make sure the result is always a Result
-            if isinstance(eval_epoch_end_output, dict):
-                eval_epoch_end_output = Result.from_result_dict(eval_epoch_end_output, self)
 
             eval_loop_result = [eval_epoch_end_output]
 
@@ -385,6 +376,13 @@ class TrainerEvaluationLoopMixin(ABC):
         # -----------------------
         model.train()
         torch.set_grad_enabled(True)
+
+        # make sure everything is a Result object
+        for i in range(len(eval_loop_result)):
+            output = eval_loop_result[i]
+            if isinstance(output, dict):
+                output = Result.from_result_dict(output, self)
+                eval_loop_result[i] = output
 
         # merge all results of all dataloaders
         # [dl_results_dict, dl_results-dict] -> dl_results_dict

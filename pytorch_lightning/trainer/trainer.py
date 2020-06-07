@@ -1026,10 +1026,8 @@ class Trainer(
                                           self.val_dataloaders,
                                           self.num_sanity_val_steps,
                                           False)
-            if isinstance(eval_results, Result):
-                _, _, _, callback_metrics, _ = self.process_step_result(eval_results)
-            else:
-                _, _, _, callback_metrics, _ = self.process_output(eval_results)
+            # TODO: _evaluate always returns Result
+            _, _, _, callback_metrics, _ = self.process_step_result(eval_results)
 
             self.on_sanity_check_end()
 
