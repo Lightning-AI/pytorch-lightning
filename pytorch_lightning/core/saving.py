@@ -9,7 +9,6 @@ from argparse import Namespace
 from typing import Union, Dict, Any, Optional, Callable
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
 
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -48,7 +47,7 @@ class ModelIO(object):
             hparams_file: Optional[str] = None,
             tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
             **kwargs
-    ) -> 'LightningModule':
+    ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
@@ -162,7 +161,7 @@ class ModelIO(object):
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs) -> 'LightningModule':
+    def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs):
 
         # pass in the values we saved automatically
         if cls.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
