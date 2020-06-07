@@ -3,6 +3,7 @@ import logging as log
 import os
 import pickle
 
+import cloudpickle
 import pytest
 import torch
 
@@ -273,3 +274,4 @@ def test_model_saving_loading(tmpdir):
 def test_model_pickle(tmpdir):
     model = EvalModelTemplate()
     pickle.dumps(model)
+    cloudpickle.dumps(model)
