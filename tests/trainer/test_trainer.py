@@ -782,22 +782,23 @@ def test_gpu_choice(tmpdir):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
 
 
-@pytest.mark.parametrize(['tpu_cores', 'error_expected'], [
-    pytest.param(1, False),
-    pytest.param(8, False),
-    pytest.param([1], False),
-    pytest.param([8], False),
-    pytest.param([9], True),
-    pytest.param([0], True),
-    pytest.param(2, True),
-    pytest.param(10, True),
+@pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id', 'error_expected'], [
+    pytest.param(1, None, False),
+    pytest.param(8, None, False),
+    pytest.param([1], 1, False),
+    pytest.param([8], 8, False),
+    pytest.param([9], 9, True),
+    pytest.param([0], 0, True),
+    pytest.param(2, None, True),
+    pytest.param(10, None, True),
 ])
-def test_tpu_choice(tmpdir, tpu_cores, error_expected):
+def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     if error_expected:
         with pytest.raises(AssertionError, match=r'.*tpu_cores` can only be 1, 8 or [<1-8>]*'):
             Trainer(default_save_path=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
     else:
-        Trainer(default_save_path=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+        trainer = Trainer(default_save_path=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+        assert trainer.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id', 'error_expected'], [
