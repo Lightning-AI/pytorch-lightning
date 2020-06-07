@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, List
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.core.lightning import LightningModule
 
 
 try:
@@ -249,15 +250,54 @@ class DistributedStateHooks(torch.nn.Module):
 
         setattr(self, 'distributed_state', self.DistributedState())
 
-    def on_after_model_replicate(self, replicas, distributed_buffer, device_ids) -> None:
+    def on_after_model_replicate(
+        self,
+        replicas: List[LightningModule],
+        distributed_buffer: List[DistributedStateHooks.DistributedState],
+        device_ids: List[int]
+    ) -> None:
         """
-        TODO: add documentation
+        Called in forward of DataParallel after replicas are created and populated with state.
+        Good place to inspect if the distributed_state objects within distributed_buffer contain
+        the right tensors on the right GPUs. Also, whether or not replicas point to the correct
+        distributed_state object within distributed_buffer.
+
+        Args:
+            replicas: A list containing replica objects of LightningModule class.
+            distributed_buffer: A list containing persistent copies of DistributedStateHooks.DistributedState objects.
+            device_ids: A list containing integer IDs of GPUs being used by the DataParallel class.
+
+        Note:
+            replicas[0].distributed_state points to the copy of self.module.distributed_state
+            within the DataParallel class. Hence, any change made to tensors/state contained
+            within self.distributed_state, anywhere in the LightningModule, will reflect in
+            replicas[0].distributed_state and distributed_buffer[0].
         """
         pass
 
-    def on_after_dp_parallel_apply(self, replicas, distributed_buffer, device_ids) -> None:
+    def on_after_dp_parallel_apply(
+        self,
+        replicas: List[LightningModule],
+        distributed_buffer: List[DistributedStateHooks.DistributedState],
+        device_ids: List[int]
+    ) -> None:
         """
-        TODO: add documentation
+        Called in forward of DataParallel after parallel_apply.
+        Good place to inspect if distributed_state objects within replicas are updated with
+        changes from the forward call within parallel_apply. Also, distributed_state objects
+        within replicas must remain in sync with the distributed_state objects within
+        distributed_buffer.
+
+        Args:
+            replicas: A list containing replica objects of LightningModule class.
+            distributed_buffer: A list containing persistent copies of DistributedStateHooks.DistributedState objects.
+            device_ids: A list containing integer IDs of GPUs being used by the DataParallel class.
+
+        Note:
+            replicas[0].distributed_state points to the copy of self.module.distributed_state
+            within the DataParallel class. Hence, any change made to tensors/state contained
+            within self.distributed_state, anywhere in the LightningModule, will reflect in
+            replicas[0].distributed_state and distributed_buffer[0].
         """
         pass
 
