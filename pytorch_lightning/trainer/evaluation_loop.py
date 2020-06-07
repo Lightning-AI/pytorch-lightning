@@ -474,6 +474,8 @@ class TrainerEvaluationLoopMixin(ABC):
         eval_step_result = Result()
         if isinstance(eval_step_output, Result):
             eval_step_result = eval_step_output
+            m = 'the minimize key can only be specified in the training loop (ie: training_step, _step_end, _epoch_end)'
+            assert eval_step_result.minimize is None, m
         else:
             # -------------------------------
             # map dict to structured results
