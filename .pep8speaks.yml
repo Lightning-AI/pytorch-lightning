@@ -15,6 +15,7 @@ pycodestyle:  # Same as scanner.linter value. Other option is flake8
         - F401
         - F841
         - E203 # whitespace before ':'. Opposite convention enforced by black
+        - E231 # whitespace after ':'. Opposite convention enforced by black
         - E501 # line too long. Handled by black
         - W503 # line break before binary operator, need for black
 
