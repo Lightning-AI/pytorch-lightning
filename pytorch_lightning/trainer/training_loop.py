@@ -598,6 +598,13 @@ class TrainerTrainLoopMixin(ABC):
                     self.hiddens
                 )
 
+                # ------------------------------
+                # track metrics
+                # ------------------------------
+                batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
+                self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
+                to_log_on_batch_end.append(opt_closure_result.training_step_output.log_on_batch_end)
+
                 # loss, training_step_output, training_step_output_for_epoch_end, hiddens
                 self.hiddens = opt_closure_result.hiddens
 
@@ -722,13 +729,6 @@ class TrainerTrainLoopMixin(ABC):
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
             training_step_output.batch_loss = training_step_output.batch_loss.detach()
-
-        # track metrics for callbacks
-        batch_callback_metrics.append(training_step_output.callback_metrics)
-
-        # track progress bar metrics
-        self.add_progress_bar_metrics(training_step_output.pbar_on_batch_end)
-        to_log_on_batch_end.append(training_step_output.log_on_batch_end)
 
         if self.use_horovod:
             # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
