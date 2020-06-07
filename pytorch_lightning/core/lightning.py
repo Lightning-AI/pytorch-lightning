@@ -1650,7 +1650,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
                 self._hparams_name = 'kwargs'
 
-        if isinstance(hp, dict) and isinstance(self.hparams, AttributeDict):
+        if isinstance(hp, dict) and isinstance(self.hparams, dict):
             self.hparams.update(hp)
         else:
             self.hparams = hp
@@ -1658,9 +1658,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @property
     def hparams(self) -> Union[AttributeDict, Any]:
-        if hasattr(self, '_hparams'):
-            return self._hparams
-        return AttributeDict()
+        if not hasattr(self, '_hparams'):
+            self._hparams = AttributeDict()
+        return self._hparams
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
