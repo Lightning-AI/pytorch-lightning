@@ -72,17 +72,14 @@ class SuperLitModel(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
 
         # structure the return from the training loop
-        step_result = pl.TrainResult(
+        step_result = pl.Result(
             minimize=loss,
             checkpoint_on=loss,
             early_stop_on=loss,
         )
 
-        step_result.log('train_loss', loss)
-        step_result.to_pbar('pbar_loss', loss)
-        step_result.pass_to_epoch_end('epoch_end_metric', loss)
-        # step_result.to_pbar('on_epoch_end_pbar', loss, on_epoch_end=True)
-        # step_result.log('on_epoch_end_log', loss, on_epoch_end=True)
+        step_result.log_metric('train_loss', loss)
+        step_result.pbar_metric('pbar_loss', loss)
 
         return step_result
 
@@ -92,12 +89,9 @@ class SuperLitModel(pl.LightningModule):
         y_hat = self(x)
         val_loss = F.cross_entropy(y_hat, y)
 
-        result = pl.EvalResult()
-        result.log('val_loss', val_loss)
-        result.to_pbar('pbar_loss', val_loss)
-        result.pass_to_epoch_end('epoch_end_metric', val_loss)
-        result.pass_to_batch_end('batch_end_metric', val_loss)
-        result.pass_to_batch_end('batch_end_metric2', val_loss)
+        result = pl.Result()
+        result.log_metric('val_loss', val_loss)
+        result.pbar_metric('pbar_loss', val_loss)
 
         return result
 
