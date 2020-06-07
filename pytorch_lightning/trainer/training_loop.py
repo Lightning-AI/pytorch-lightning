@@ -574,7 +574,6 @@ class TrainerTrainLoopMixin(ABC):
         self.hiddens = None
 
         # in TBPTT we will only pass the last step output to epoch_end
-        training_step_output_for_epoch_end = None
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
@@ -624,32 +623,8 @@ class TrainerTrainLoopMixin(ABC):
                 # gradient update with accumulated gradients
                 if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
 
-                    # track gradient norms when requested
-                    if batch_idx % self.row_log_interval == 0:
-                        if float(self.track_grad_norm) > 0:
-                            model = self.get_model()
-                            grad_norm_dic = model.grad_norm(
-                                self.track_grad_norm)
-
-                    # clip gradients
-                    if self.use_amp and self.use_native_amp:
-                        self.scaler.unscale_(optimizer)
-                    self.clip_gradients()
-
-                    # calls .step(), .zero_grad()
-                    # override function to modify this behavior
-                    model = self.get_model()
-                    with self.profiler.profile('optimizer_step'):
-                        lambda_closure = lambda: self.optimizer_closure(
-                            split_batch,
-                            batch_idx,
-                            opt_idx,
-                            optimizer,
-                            self.hiddens
-                        )[0]
-                        model.optimizer_step(self.current_epoch, batch_idx,
-                                             optimizer, opt_idx,
-                                             lambda: lambda_closure)
+                    # backward
+                    grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value.mean())
@@ -680,11 +655,47 @@ class TrainerTrainLoopMixin(ABC):
             signal=0,
             grad_norm_dic=grad_norm_dic,
             to_log_on_batch_end=to_log_on_batch_end,
-            training_step_output=training_step_output,
+            training_step_output=opt_closure_result.training_step_output,
             to_pbar_on_epoch_end=to_pbar_on_epoch_end,
             to_log_on_epoch_end=to_log_on_epoch_end
         )
-        return result, training_step_output_for_epoch_end
+        return result, opt_closure_result.training_step_output_for_epoch_end
+
+    def run_batch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
+        # ------------------
+        # GRAD NORMS
+        # ------------------
+        # track gradient norms when requested
+        if batch_idx % self.row_log_interval == 0:
+            if float(self.track_grad_norm) > 0:
+                model = self.get_model()
+                grad_norm_dic = model.grad_norm(
+                    self.track_grad_norm)
+
+        # ------------------
+        # CLIP GRADS
+        # ------------------
+        if self.use_amp and self.use_native_amp:
+            self.scaler.unscale_(optimizer)
+        self.clip_gradients()
+
+        # ------------------
+        # .STEP + ZERO_GRAD
+        # ------------------
+        model = self.get_model()
+        with self.profiler.profile('optimizer_step'):
+            lambda_closure = lambda: self.optimizer_closure(
+                split_batch,
+                batch_idx,
+                opt_idx,
+                optimizer,
+                self.hiddens
+            )[0]
+            model.optimizer_step(self.current_epoch, batch_idx,
+                                 optimizer, opt_idx,
+                                 lambda: lambda_closure)
+
+        return grad_norm_dic
 
     def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
