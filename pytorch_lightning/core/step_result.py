@@ -242,6 +242,7 @@ class Result(Dict):
     def minimize(self, x):
         if x is not None:
             assert isinstance(x, Tensor), 'metric to minimize must be a torch.Tensor'
+            assert x.grad_fn is not None, 'the metric to minimize must have a computational graph.'
             self.__setitem__('minimize', x)
 
 
