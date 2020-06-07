@@ -601,6 +601,7 @@ class TrainerTrainLoopMixin(ABC):
                 # ------------------------------
                 # track metrics
                 # ------------------------------
+                # TODO: track the outputs to the loggers and pbar
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
                 to_log_on_batch_end.append(opt_closure_result.training_step_output.log_on_batch_end)
