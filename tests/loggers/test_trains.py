@@ -22,7 +22,7 @@ def test_trains_logger(tmpdir):
     )
     result = trainer.fit(model)
 
-    print('result finished')
+    # print('result finished')
     logger.finalize()
     assert result == 1, "Training failed"
 

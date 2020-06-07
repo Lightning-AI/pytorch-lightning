@@ -177,13 +177,8 @@ class ModelIO(object):
                     kwargs.update({args_name: model_args})
             else:
                 args = (model_args, ) + args
-            # print (args_name)
-            # print (init_args_name)
-            # print (model_args)
 
         # load the state_dict on the model automatically
-        print(args)
-        print(kwargs)
         model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
