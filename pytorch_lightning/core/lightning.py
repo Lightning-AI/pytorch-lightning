@@ -1655,7 +1655,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @property
     def hparams(self) -> Union[AttributeDict, Any]:
-        return self._hparams
+        if hasattr(self, '_hparams'):
+            return self._hparams
+        return AttributeDict()
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):

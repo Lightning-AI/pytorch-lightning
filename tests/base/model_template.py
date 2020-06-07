@@ -51,8 +51,7 @@ class EvalModelTemplate(
                  **kwargs) -> object:
         # init superclass
         super().__init__()
-        # todo: think about this inherit calls how to handle and if support
-        # self.save_hyperparameters()
+        self.save_hyperparameters()
 
         self.drop_prob = drop_prob
         self.batch_size = batch_size
