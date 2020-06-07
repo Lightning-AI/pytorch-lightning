@@ -78,6 +78,13 @@ class LightningDataParallel(DataParallel):
         :class:`~torch.nn.BatchNorm2d` and :func:`~torch.nn.utils.spectral_norm`
         rely on this behavior to update the buffers.
 
+    .. note::
+        There is a subtlety in using the
+        ``pack sequence -> recurrent network -> unpack sequence`` pattern in a
+        :class:`~torch.nn.Module` wrapped in :class:`~torch.nn.DataParallel`.
+        See :ref:`pack-rnn-unpack-with-data-parallelism` section in FAQ for
+        details.
+
     .. warning::
         Forward and backward hooks defined on :attr:`module` and its submodules
         will be invoked ``len(device_ids)`` times, each with inputs located on
@@ -110,11 +117,6 @@ class LightningDataParallel(DataParallel):
 
     Attributes:
         module (Module): the module to be parallelized
-
-    Example::
-
-        >>> net = torch.nn.DataParallel(model, device_ids=[0, 1, 2])
-        >>> output = net(input_var)  # input_var can be on any device, including CPU
     """
 
     def __init__(self, module, device_ids=None, output_device=None, dim=0):

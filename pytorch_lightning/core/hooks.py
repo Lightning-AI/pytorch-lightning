@@ -253,7 +253,7 @@ class DistributedStateHooks(torch.nn.Module):
     def on_after_model_replicate(
         self,
         replicas: List[LightningModule],
-        distributed_buffer: List[DistributedStateHooks.DistributedState],
+        distributed_buffer: List[DistributedState],
         device_ids: List[int]
     ) -> None:
         """
@@ -278,7 +278,7 @@ class DistributedStateHooks(torch.nn.Module):
     def on_after_dp_parallel_apply(
         self,
         replicas: List[LightningModule],
-        distributed_buffer: List[DistributedStateHooks.DistributedState],
+        distributed_buffer: List[DistributedState],
         device_ids: List[int]
     ) -> None:
         """
