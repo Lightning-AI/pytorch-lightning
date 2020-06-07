@@ -8,7 +8,7 @@ from tests.base import EvalModelTemplate
 
 try:
     import torch_xla
-    device = torch_xla.core.xla_model.xla_device(1)
+    device = torch_xla.core.xla_model.xla_device()
     device_type = torch_xla.core.xla_model.xla_device_hw(device)
     TPU_AVAILABLE = device_type == 'TPU'
 except ImportError:
