@@ -11,6 +11,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
+PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
 
 
@@ -347,7 +348,7 @@ def get_human_readable_count(number: int) -> str:
 
     """
     assert number >= 0
-    labels = [" ", "K", "M", "B", "T"]
+    labels = PARAMETER_NUM_UNITS
     num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
