@@ -2,18 +2,24 @@ import os
 from unittest.mock import patch
 
 import pytest
-import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
-
-XLA_AVAILABLE = pytorch_lightning.trainer.trainer.XLA_AVAILABLE
+try:
+    import torch_xla
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 @pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.parametrize('tpu_cores', [[1], [8]])
-def test_single_tpu_core_model(tmpdir, tpu_cores):
+@pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
+    pytest.param([1], 'xla:1'),
+    pytest.param([8], 'xla:8'),
+])
+def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
     """Test if single TPU core training works"""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -26,8 +32,8 @@ def test_single_tpu_core_model(tmpdir, tpu_cores):
 
     model = EvalModelTemplate()
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
 
 @pytest.mark.spawn
@@ -45,8 +51,8 @@ def test_multi_core_tpu_model(tmpdir, tpu_cores):
 
     model = EvalModelTemplate()
     trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
+    trainer.fit(model)
+    assert trainer.tpu_id is None
 
 
 @pytest.mark.spawn
