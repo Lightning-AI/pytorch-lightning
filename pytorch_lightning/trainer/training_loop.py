@@ -540,6 +540,7 @@ class TrainerTrainLoopMixin(ABC):
                 model.on_epoch_end()
 
     def run_training_batch(self, batch, batch_idx):
+        # TODO: verify new refactor
         # track grad norms
         grad_norm_dic = {}
 
