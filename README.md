@@ -409,7 +409,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 conda install pytorch-lightning -c conda-forge
 ```
 
-### Lightning team
+## Lightning team
 
 #### Leads
 - William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
