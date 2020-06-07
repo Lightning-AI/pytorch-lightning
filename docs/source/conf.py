@@ -141,6 +141,7 @@ exclude_patterns = [
     'api/modules.rst',
 
     # deprecated/renamed:
+    'api/pytorch_lightning.logging.*',  # TODO: remove in v0.9.0
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
