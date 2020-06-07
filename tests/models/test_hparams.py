@@ -72,7 +72,6 @@ def test_namespace_assign_hparams(tmpdir):
         def __init__(self, hparams: Namespace, arg1=15, arg2='abc'):
             super().__init__()
             self.hparams = hparams
-            self._hparams_name = 'hparams'
 
     model = TestModel(hparams=Namespace(test_arg=14))
 
@@ -107,7 +106,6 @@ def test_dict_assign_hparams(tmpdir):
         def __init__(self, hparams: dict):
             super().__init__()
             self.hparams = hparams
-            self._hparams_name = 'hparams'
 
     model = TestModel(hparams={'test_arg': 14})
 
@@ -148,7 +146,6 @@ def test_omega_assign_hparams(tmpdir):
         def __init__(self, hparams: Container):
             super().__init__()
             self.hparams = hparams
-            self._hparams_name = 'hparams'
 
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
     model = TestModel(hparams=conf)
