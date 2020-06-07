@@ -403,6 +403,12 @@ You can also install any past release `0.X.Y` from this repository:
 pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
 
+### Conda
+
+```bash 
+conda install pytorch-lightning -c conda-forge
+```
+
 ### Lightning team
 
 #### Leads
