@@ -82,6 +82,28 @@ class Result(Dict):
         self.minimize = minimize
 
     @classmethod
+    def union(cls, outputs, result=None):
+        if result is None:
+            result = Result()
+
+        for out in outputs:
+            for k, v in out.items():
+                if k in ['reduce_fx_on_epoch_end']:
+                    continue
+
+                if k not in result and isinstance(v, (dict, Result)):
+                    result[k] = Result()
+
+                if isinstance(v, dict):
+                    v = cls.union([v], result[k])
+
+                if isinstance(v, list) and len(v) == 1:
+                    v = v[0]
+                result[k] = v
+
+        return result
+
+    @classmethod
     def from_result_dict(cls, dict_result, trainer):
         result = Result()
 

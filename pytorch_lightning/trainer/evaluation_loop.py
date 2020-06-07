@@ -289,6 +289,9 @@ class TrainerEvaluationLoopMixin(ABC):
         # get model from parallel wrapper
         model_ref = self.get_model()
 
+        # output of evaluate
+        eval_loop_result = None
+
         # -----------------------------
         # RUN XXX_EPOCH_END
         # -----------------------------
@@ -309,6 +312,8 @@ class TrainerEvaluationLoopMixin(ABC):
             if isinstance(eval_epoch_end_output, dict):
                 eval_epoch_end_output = Result.from_result_dict(eval_epoch_end_output, self)
 
+            eval_loop_result = [eval_epoch_end_output]
+
         elif self.is_overridden(f'{eval_key}_epoch_end', model=model_ref):
             test_epoch_end_fx = getattr(model, f'{eval_key}_epoch_end')
             eval_epoch_end_output = test_epoch_end_fx(epoch_end_inputs)
@@ -319,11 +324,12 @@ class TrainerEvaluationLoopMixin(ABC):
             if isinstance(eval_epoch_end_output, dict):
                 eval_epoch_end_output = Result.from_result_dict(eval_epoch_end_output, self)
 
+            eval_loop_result = [eval_epoch_end_output]
+
         # -------------------------------------------
-        # auto reduce or use the output of epoch_end
+        # auto reduce since user skipped epoch_end
         # -------------------------------------------
-        user_skipped_epoch_end = eval_epoch_end_output is None
-        if user_skipped_epoch_end:
+        if eval_loop_result is None:
             def gather_map(outputs, result=None):
                 if result is None:
                     result = {}
@@ -341,27 +347,6 @@ class TrainerEvaluationLoopMixin(ABC):
                             result[k] = v
                         else:
                             result[k].append(v)
-
-                return result
-
-            def dicts_union(outputs, result=None):
-                if result is None:
-                    result = {}
-
-                for out in outputs:
-                    for k, v in out.items():
-                        if k in ['reduce_fx_on_epoch_end', 'to_batch_end', 'to_epoch_end']:
-                            continue
-
-                        if k not in result and isinstance(v, dict):
-                            result[k] = {}
-
-                        if isinstance(v, dict):
-                            v = dicts_union([v], result[k])
-
-                        if isinstance(v, list) and len(v) == 1:
-                            v = v[0]
-                        result[k] = v
 
                 return result
 
@@ -403,29 +388,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # merge all results of all dataloaders
         # [dl_results_dict, dl_results-dict] -> dl_results_dict
-        eval_loop_result = dicts_union(eval_loop_result)
+        eval_loop_result = Result.union(eval_loop_result)
 
-        # -----------------------------
-        # use 1 value as representative
-        # -----------------------------
-        early_stop_on = eval_loop_result.get('early_stop_on')
-        if isinstance(early_stop_on, list) and len(early_stop_on) > 1:
-            early_stop_on = early_stop_on[0]
-
-        checkpoint_on = eval_loop_result.get('checkpoint_on')
-        if isinstance(checkpoint_on, list) and len(checkpoint_on) > 1:
-            checkpoint_on = checkpoint_on[0]
-
-        # -----------------------------
-        # format response
-        # -----------------------------
-        eval_result = Result(
-            early_stop_on=early_stop_on,
-            checkpoint_on=checkpoint_on
-        )
-        eval_result.log_on_epoch_end = eval_loop_result.get('log_on_epoch_end', {})
-        eval_result.pbar_on_epoch_end = eval_loop_result.get('pbar_on_epoch_end', {})
-        return eval_result
+        return eval_loop_result
 
     def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode) -> Result:
         """
