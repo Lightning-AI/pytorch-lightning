@@ -1664,6 +1664,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
+        # make this the default unless the user changes it
+        self._hparams_name = 'hparams'
+
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
