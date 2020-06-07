@@ -552,7 +552,7 @@ class TrainerTrainLoopMixin(ABC):
         to_log_on_epoch_end = []
 
         if batch is None:
-            return 0, grad_norm_dic, {}, {}, {}, {}
+            return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
         # Batch start events
         with self.profiler.profile('on_batch_start'):
@@ -562,7 +562,7 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
                 if response == -1:
-                    return -1, grad_norm_dic, {}, {}, {}, {}
+                    return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
