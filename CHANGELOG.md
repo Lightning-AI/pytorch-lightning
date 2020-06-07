@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Allow users to maintain state in `DataParallel` mode using `self.distributed_state` container within `LightningModule`; solves ([#1895](https://github.com/PyTorchLightning/pytorch-lightning/pull/1895))
 
 ### Deprecated
 
