@@ -194,8 +194,13 @@ class TrainerLoggingMixin(ABC):
         callback_metrics = dict()
         if 'checkpoint_on' in step_result:
             callback_metrics['checkpoint_on'] = step_result.checkpoint_on
+        elif 'minimize' in step_result:
+            callback_metrics['checkpoint_on'] = step_result.get('minimize').detach()
+
         if 'early_stop_on' in step_result:
             callback_metrics['early_stop_on'] = step_result.early_stop_on
+        elif 'minimize' in step_result:
+            callback_metrics['early_stop_on'] = step_result.get('minimize').detach()
 
         if train and (self.use_dp or self.use_ddp2):
             # {val: [x1, x2], ...} -> {val: x1_2_mean}

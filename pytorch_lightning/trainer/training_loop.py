@@ -161,6 +161,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 import subprocess
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.memory import recursive_detach
 
 try:
     from apex import amp
@@ -424,9 +425,8 @@ class TrainerTrainLoopMixin(ABC):
 
         # bookkeeping
         epoch_outputs = []
-        to_log_on_epoch_end = []
         to_pbar_on_epoch_end = []
-        to_log_pbar_reduce_fxs = []
+        to_log_on_epoch_end = []
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -440,10 +440,10 @@ class TrainerTrainLoopMixin(ABC):
 
             model.global_step = self.global_step
 
-            # ---------------
-            # RUN TRAIN STEP
-            # ---------------
-            batch_output = self.run_training_batch(batch, batch_idx)
+            # ------------------------------------
+            # TRAINING_STEP + TRAINING_STEP_END
+            # ------------------------------------
+            batch_output, training_step_output_for_epoch_end = self.run_training_batch(batch, batch_idx)
 
             # log or add these metrics to the pbar when the epoch completes
             to_log_on_epoch_end.append(batch_output.to_log_on_epoch_end)
@@ -455,7 +455,7 @@ class TrainerTrainLoopMixin(ABC):
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
-                epoch_outputs.append(batch_output.training_step_output)
+                epoch_outputs.append(training_step_output_for_epoch_end)
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_output.signal == -1
@@ -518,6 +518,8 @@ class TrainerTrainLoopMixin(ABC):
         model = self.get_model()
         if self.is_overridden('training_epoch_end', model=model):
             epoch_output = model.training_epoch_end(epoch_outputs)
+
+            # TODO: create a result object from here, process then put in correct areas
             _processed_outputs = self.process_output(epoch_output)
             log_epoch_metrics = _processed_outputs[2]
             callback_epoch_metrics = _processed_outputs[3]
@@ -570,6 +572,9 @@ class TrainerTrainLoopMixin(ABC):
 
         # apply TBPTT. normal training meanst TBPTT = 1 (ie: don't split the batch across time)
         self.hiddens = None
+
+        # in TBPTT we will only pass the last step output to epoch_end
+        training_step_output_for_epoch_end = None
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
@@ -586,7 +591,9 @@ class TrainerTrainLoopMixin(ABC):
 
                 # wrap the forward step in a closure so second order methods work
                 def optimizer_closure():
-                    # forward pass
+                    # ---------------------------
+                    # FORWARD
+                    # ---------------------------
                     with self.profiler.profile('model_forward'):
                         if self.use_amp and self.use_native_amp:
                             with torch.cuda.amp.autocast():
@@ -596,12 +603,19 @@ class TrainerTrainLoopMixin(ABC):
                             training_step_output = self.training_forward(split_batch, batch_idx, opt_idx,
                                                                          self.hiddens)
 
+                        # ----------------------------
+                        # PROCESS THE RESULT
+                        # ----------------------------
+                        # support returning a simple tensor to mimimize
+                        if isinstance(training_step_output, torch.Tensor):
+                            training_step_output = Result(minimize=training_step_output)
+
+                        # if the user decides to finally reduce things in epoch_end, save raw output without graphs
+                        training_step_output_for_epoch_end = recursive_detach(training_step_output)
+
                         # format and reduce outputs accordingly
                         if isinstance(training_step_output, Result):
                             training_step_output = self.process_step_result(training_step_output, train=True)
-                            to_pbar_on_epoch_end.append(training_step_output.pbar_on_epoch_end)
-                            to_log_on_epoch_end.append(training_step_output.log_on_epoch_end)
-
                         else:
                             training_step_output = self.process_output(training_step_output, train=True)
 
@@ -621,9 +635,9 @@ class TrainerTrainLoopMixin(ABC):
                         # do backward pass
                         model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
-                    # once backward has been applied, release graph
-                    closure_loss = closure_loss.detach()
-                    training_step_output.batch_loss = training_step_output.batch_loss.detach()
+                        # once backward has been applied, release graph
+                        closure_loss = closure_loss.detach()
+                        training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
                     # track metrics for callbacks
                     batch_callback_metrics.append(training_step_output.callback_metrics)
@@ -642,10 +656,10 @@ class TrainerTrainLoopMixin(ABC):
                         with self.profiler.profile('on_after_backward'):
                             model_ref.on_after_backward()
 
-                    return closure_loss, training_step_output
+                    return closure_loss, training_step_output, training_step_output_for_epoch_end
 
                 # calculate loss
-                loss, training_step_output = optimizer_closure()
+                loss, training_step_output, training_step_output_for_epoch_end = optimizer_closure()
 
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:
@@ -710,7 +724,7 @@ class TrainerTrainLoopMixin(ABC):
             to_pbar_on_epoch_end=to_pbar_on_epoch_end,
             to_log_on_epoch_end=to_log_on_epoch_end
         )
-        return result
+        return result, training_step_output_for_epoch_end
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
@@ -746,6 +760,7 @@ class TrainerTrainLoopMixin(ABC):
         self._teardown_already_run = True
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
+        # TODO: add test to make sure training_step and training_step_end were called
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param batch:
@@ -829,7 +844,7 @@ class TrainerTrainLoopMixin(ABC):
             rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
                            ' Use training_epoch_end instead', DeprecationWarning)
 
-        return train_step_end_output
+        return train_fwd_result
 
     def update_learning_rates(self, interval: str):
         """Update learning rates.

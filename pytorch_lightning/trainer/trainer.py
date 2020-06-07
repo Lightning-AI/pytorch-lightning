@@ -1026,14 +1026,16 @@ class Trainer(
                                          self.val_dataloaders,
                                          self.num_sanity_val_steps,
                                          False)
+
             # TODO: _evaluate always returns Result
             eval_result = self.process_step_result(eval_result)
 
             self.on_sanity_check_end()
 
             # verify that early stop has conditioned on a metric that exists
+            # TODO: fix the early stopping condition
             if self.enable_early_stop:
-                self.early_stop_callback._validate_condition_metric(callback_metrics)
+                self.early_stop_callback._validate_condition_metric(eval_result.callback_metrics)
 
         # clear cache before training
         if self.on_gpu:

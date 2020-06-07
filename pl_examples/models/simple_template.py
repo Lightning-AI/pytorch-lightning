@@ -81,10 +81,9 @@ class SuperLitModel(pl.LightningModule):
         step_result.log_metric('train_loss', loss)
         step_result.pbar_metric('pbar_loss', loss)
 
-        return step_result
-
-    def training_step_end(self, outputs):
-        return outputs
+        # return loss
+        # return step_result
+        return {'loss': loss, 'log':{'something': 1}, 'random': 'af'}
 
     def validation_step(self, batch: Tensor, batch_idx: int):
         # forward pass
