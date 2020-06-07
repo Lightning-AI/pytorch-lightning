@@ -186,7 +186,7 @@ In that case, choose only a few
     model = LitMNIST(conf)
 
     # this works
-    model.
+    model.hparams.anything
 
 
 Trainer args

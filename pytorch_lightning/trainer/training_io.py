@@ -119,18 +119,6 @@ except ImportError:
 else:
     HOROVOD_AVAILABLE = True
 
-PRIMITIVE_TYPES = (
-    bool, int, float, str,
-    list, tuple, set, dict,
-    Namespace,  # for back compatibility
-)
-try:
-    from omegaconf import DictConfig, OmegaConf
-except ImportError:
-    pass
-else:
-    PRIMITIVE_TYPES = PRIMITIVE_TYPES + (DictConfig, OmegaConf)
-
 
 class TrainerIOMixin(ABC):
 

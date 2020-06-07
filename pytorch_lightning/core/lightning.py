@@ -1656,14 +1656,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if hp:
             self._set_hparams(hp)
 
-    def _set_hparams(self, hp: Union[dict, Namespace, Any]) -> None:
+    def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
             hp = AttributeDict(hp)
-        if isinstance(hp, PRIMITIVE_TYPES):
+        elif isinstance(hp, PRIMITIVE_TYPES):
             raise ValueError(f'Primitives {PRIMITIVE_TYPES} are not allowed.')
-        if not isinstance(hp, ALLOWED_CONFIG_TYPES):
+        elif not isinstance(hp, ALLOWED_CONFIG_TYPES):
             raise ValueError(f'Unsupported config type of {type(hp)}.')
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
@@ -1672,7 +1672,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             self._hparams = hp
 
     @property
-    def hparams(self) -> Union[AttributeDict, Any]:
+    def hparams(self) -> Union[AttributeDict, str]:
         if not hasattr(self, '_hparams'):
             self._hparams = AttributeDict()
         return self._hparams
