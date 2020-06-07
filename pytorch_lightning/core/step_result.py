@@ -81,6 +81,29 @@ class Result(Dict):
         self.hiddens = hiddens
         self.minimize = minimize
 
+    @classmethod
+    def from_result_dict(cls, dict_result, trainer):
+        result = Result()
+
+        if 'log' in dict_result:
+            result.log_metrics(dict_result['log'])
+        if 'progress_bar' in dict_result:
+            result.pbar_metrics(dict_result['progress_bar'])
+
+        # add the early stop metric
+        if trainer.early_stop_callback is not None:
+            early_stop_metric = trainer.early_stop_callback.monitor
+            if early_stop_metric in dict_result:
+                result.early_stop_on = dict_result[early_stop_metric]
+
+        # add the checkpoint metric
+        if trainer.checkpoint_callback is not None:
+            checkpoint_metric = trainer.checkpoint_callback.monitor
+            if checkpoint_metric in dict_result:
+                result.checkpoint_on = dict_result[checkpoint_metric]
+
+        return result
+
     def __reduce_on_callback(self, callback_name, name, metric, log, pbar, reduce_fx):
         assert isinstance(metric, torch.Tensor), f'{name} must be a torch.Tensor'
 
