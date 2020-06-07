@@ -8,7 +8,8 @@ from tests.base import EvalModelTemplate
 
 try:
     import torch_xla
-    device_type = torch_xla.core.xla_model.xla_device_hw('xla:1')
+    device = torch_xla.core.xla_model.xla_device()
+    device_type = torch_xla.core.xla_model.xla_device_hw(device)
     TPU_AVAILABLE = device_type == 'TPU'
 except ImportError:
     TPU_AVAILABLE = False
@@ -36,6 +37,7 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
 
+@pytest.mark.spawn
 @pytest.mark.parametrize("tpu_cores", [1, 8])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_multi_core_tpu_model(tmpdir, tpu_cores):
@@ -54,6 +56,7 @@ def test_multi_core_tpu_model(tmpdir, tpu_cores):
     assert trainer.tpu_id is None
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
@@ -71,6 +74,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
 
+@pytest.mark.spawn
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_mixed_precision_with_tpu(tmpdir, tpu_cores):
