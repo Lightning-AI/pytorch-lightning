@@ -745,7 +745,7 @@ class TrainerTrainLoopMixin(ABC):
 
         self._teardown_already_run = True
 
-    def training_forward(self, batch, batch_idx, opt_idx, hiddens, step_result):
+    def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
         :param batch:
@@ -805,6 +805,8 @@ class TrainerTrainLoopMixin(ABC):
         else:
             training_step_output = self.model.training_step(*args)
 
+        train_fwd_result = training_step_output
+
         # ------------------------------------------
         # TRAINING_STEP_END
         # ------------------------------------------
@@ -816,15 +818,12 @@ class TrainerTrainLoopMixin(ABC):
             model_ref = self.get_model()
             with self.profiler.profile(callback_name):
                 # format the inputs to the callback
-                train_step_end_input = training_step_output.to_batch_end
-                train_step_end_input.update({'minimize': training_step_output.minimize})
+                train_step_end_input = training_step_output
 
                 # apply the callback
                 callback_fx = getattr(model_ref, callback_name)
                 train_step_end_output = callback_fx(train_step_end_input)
-
-                # TODO: pass on to test output (could be dict or Result)
-                # add as update to to_epoch_end
+                train_fwd_result = train_step_end_output
 
         if call_train_end:
             rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'

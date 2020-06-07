@@ -83,6 +83,9 @@ class SuperLitModel(pl.LightningModule):
 
         return step_result
 
+    def training_step_end(self, outputs):
+        return outputs
+
     def validation_step(self, batch: Tensor, batch_idx: int):
         # forward pass
         x, y = batch
@@ -94,9 +97,6 @@ class SuperLitModel(pl.LightningModule):
         result.pbar_metric('pbar_loss', val_loss)
 
         return {'val_loss': val_loss, 'log': {'aa': val_loss}, 'progress_bar': {'aa': val_loss}}
-
-    def validation_epoch_end(self, outputs):
-        return outputs[0]
 
     def configure_optimizers(self):
         """

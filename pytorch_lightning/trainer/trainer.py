@@ -1022,12 +1022,12 @@ class Trainer(
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
-            eval_results = self._evaluate(model,
-                                          self.val_dataloaders,
-                                          self.num_sanity_val_steps,
-                                          False)
+            eval_result = self._evaluate(model,
+                                         self.val_dataloaders,
+                                         self.num_sanity_val_steps,
+                                         False)
             # TODO: _evaluate always returns Result
-            _, _, _, callback_metrics, _ = self.process_step_result(eval_results)
+            eval_result = self.process_step_result(eval_result)
 
             self.on_sanity_check_end()
 

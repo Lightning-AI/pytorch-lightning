@@ -45,7 +45,7 @@ def test_train_val_step_only(tmpdir):
     assert out['checkpoint_on'] == 1.5
 
     # ---------------------
-    # test dic return only
+    # test when a user uses dict returns throughout
     # ---------------------
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
@@ -63,6 +63,7 @@ def test_train_val_step_only(tmpdir):
     assert out['early_stop_on'] == 171.0
     assert out['checkpoint_on'] == 171.0
 
+test_train_val_step_only('')
 
 def test_train_val_step_end(tmpdir):
     """

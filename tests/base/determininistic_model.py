@@ -38,7 +38,7 @@ class DeterministicModel(LightningModule):
 
     def base_eval_result(self, acc):
         x = acc
-        result = EvalResult(
+        result = Result(
             early_stop_on=torch.tensor(1.4).type_as(x),
             checkpoint_on=torch.tensor(1.5).type_as(x)
         )
@@ -63,7 +63,7 @@ class DeterministicModel(LightningModule):
         counts = self.count_num_graphs(result)
         assert counts == count
 
-    def count_num_graphs(self, result: TrainResult, num_graphs=0):
+    def count_num_graphs(self, result: Result, num_graphs=0):
         for k, v in result.items():
             if isinstance(v, torch.Tensor) and v.grad_fn is not None:
                 num_graphs += 1
@@ -115,7 +115,7 @@ class DeterministicModel(LightningModule):
         keys = set(outputs.keys())
         assert keys == {'to_batch_end_1', 'minimize'}
 
-        result = TrainResult()
+        result = Result()
         result.pass_to_epoch_end('from_train_step_end', torch.tensor(19))
         return result
 
