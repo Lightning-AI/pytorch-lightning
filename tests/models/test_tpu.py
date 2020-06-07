@@ -8,11 +8,14 @@ from tests.base import EvalModelTemplate
 
 try:
     import torch_xla
-    device = torch_xla.core.xla_model.xla_device()
-    device_type = torch_xla.core.xla_model.xla_device_hw(device)
-    TPU_AVAILABLE = device_type == 'TPU'
+    # TODO: The tests are aborted if the following lines are uncommented. Must be resolved with XLA team
+    # device = torch_xla.core.xla_model.xla_device()
+    # device_type = torch_xla.core.xla_model.xla_device_hw(device)
+    # TPU_AVAILABLE = device_type == 'TPU'
 except ImportError:
     TPU_AVAILABLE = False
+else:
+    TPU_AVAILABLE = True
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
