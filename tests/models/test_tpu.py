@@ -8,13 +8,14 @@ from tests.base import EvalModelTemplate
 
 try:
     import torch_xla
+    device = torch_xla.core.xla_model.xla_device(1)
+    device_type = torch_xla.core.xla_model.xla_device_hw(device)
+    TPU_AVAILABLE = device_type == 'TPU'
 except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
+    TPU_AVAILABLE = False
 
 
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
     pytest.param([1], 'xla:1'),
     pytest.param([8], 'xla:8'),
@@ -36,9 +37,8 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("tpu_cores", [1, 8])
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_multi_core_tpu_model(tmpdir, tpu_cores):
     """Test if distributed TPU core training works"""
     trainer_options = dict(
@@ -55,8 +55,7 @@ def test_multi_core_tpu_model(tmpdir, tpu_cores):
     assert trainer.tpu_id is None
 
 
-@pytest.mark.spawn
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
     trainer_options = dict(default_root_dir=tmpdir,
@@ -73,9 +72,8 @@ def test_dataloaders_passed_to_fit(tmpdir):
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
-@pytest.mark.skipif(not XLA_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_mixed_precision_with_tpu(tmpdir, tpu_cores):
     """Test if FP16 TPU core training works"""
     trainer_options = dict(
