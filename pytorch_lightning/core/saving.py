@@ -1,5 +1,6 @@
 import ast
 import csv
+import inspect
 import os
 
 import torch
@@ -167,12 +168,18 @@ class ModelIO(object):
             # todo add some back compatibility
             model_args = checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS]
             args_name = checkpoint.get(cls.CHECKPOINT_NAME_HYPER_PARAMS)
+            init_args_name = inspect.signature(cls).parameters.keys()
             if args_name == 'kwargs':
-                kwargs.update(**model_args)
+                cls_kwargs = {k: v for k, v in model_args.items() if k in init_args_name}
+                kwargs.update(**cls_kwargs)
             elif args_name:
-                kwargs.update({args_name: model_args})
+                if args_name in init_args_name:
+                    kwargs.update({args_name: model_args})
             else:
                 args = (model_args, ) + args
+            # print (args_name)
+            # print (init_args_name)
+            # print (model_args)
 
         # load the state_dict on the model automatically
         print(args)
