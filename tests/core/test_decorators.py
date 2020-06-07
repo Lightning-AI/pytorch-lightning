@@ -15,13 +15,10 @@ from pytorch_lightning.core.decorators import auto_move_data
 def test_auto_move_data(src_device, dest_device):
     """ Test that the decorator moves the data to the device the model is on. """
 
-    class CurrentModel(EvalModelTemplate):
-        pass
-
     # apply the decorator
-    CurrentModel.forward = auto_move_data(CurrentModel.forward)
+    EvalModelTemplate.forward = auto_move_data(EvalModelTemplate.forward)
 
-    model = CurrentModel()
+    model = EvalModelTemplate()
     model = model.to(dest_device)
     model.prepare_data()
     loader = model.train_dataloader()
