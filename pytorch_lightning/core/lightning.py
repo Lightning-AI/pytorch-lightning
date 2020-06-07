@@ -1611,7 +1611,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         "arg1": 1
         "arg3": 3.14
 
-        >>> from collections import OrderedDict
         >>> class AutomaticArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
@@ -1656,7 +1655,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             self.hparams.update(hp)
         else:
             self.hparams = hp
-
 
     @property
     def hparams(self) -> Union[AttributeDict, Any]:

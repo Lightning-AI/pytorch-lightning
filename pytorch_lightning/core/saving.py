@@ -9,6 +9,7 @@ from argparse import Namespace
 from typing import Union, Dict, Any, Optional, Callable
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
 
 PRIMITIVE_TYPES = (bool, int, float, str)
