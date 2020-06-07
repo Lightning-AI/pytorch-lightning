@@ -1650,7 +1650,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
                 self._hparams_name = 'kwargs'
 
-        self.hparams = hp
+        if isinstance(hp, dict) and isinstance(self.hparams, AttributeDict):
+            self.hparams.update(hp)
+        else:
+            self.hparams = hp
 
 
     @property
