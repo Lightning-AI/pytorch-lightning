@@ -3,7 +3,6 @@ import logging as log
 import os
 import pickle
 
-import cloudpickle
 import pytest
 import torch
 
