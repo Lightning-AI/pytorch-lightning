@@ -589,7 +589,9 @@ class TrainerTrainLoopMixin(ABC):
                         for param in group['params']:
                             param.requires_grad = True
 
+                # -------------------
                 # calculate loss
+                # -------------------
                 opt_closure_result = self.optimizer_closure(
                     split_batch,
                     batch_idx,
@@ -599,7 +601,7 @@ class TrainerTrainLoopMixin(ABC):
                 )
 
                 # ------------------------------
-                # track metrics
+                # POST forward bookkeeping
                 # ------------------------------
                 # TODO: track the outputs to the loggers and pbar
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
@@ -616,6 +618,9 @@ class TrainerTrainLoopMixin(ABC):
                 # track total loss for logging (avoid mem leaks)
                 self.batch_loss_value.append(opt_closure_result.loss)
 
+                # ------------------------------
+                # BACKWARD PASS
+                # ------------------------------
                 # gradient update with accumulated gradients
                 if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
 
