@@ -589,84 +589,24 @@ class TrainerTrainLoopMixin(ABC):
                         for param in group['params']:
                             param.requires_grad = True
 
-                # wrap the forward step in a closure so second order methods work
-                def optimizer_closure():
-                    # ---------------------------
-                    # FORWARD
-                    # ---------------------------
-                    with self.profiler.profile('model_forward'):
-                        if self.use_amp and self.use_native_amp:
-                            with torch.cuda.amp.autocast():
-                                training_step_output = self.training_forward(split_batch, batch_idx,
-                                                                             opt_idx, self.hiddens)
-                        else:
-                            training_step_output = self.training_forward(split_batch, batch_idx, opt_idx,
-                                                                         self.hiddens)
-
-                        # ----------------------------
-                        # PROCESS THE RESULT
-                        # ----------------------------
-                        # support returning a simple tensor to mimimize
-                        if isinstance(training_step_output, torch.Tensor):
-                            training_step_output = Result(minimize=training_step_output)
-
-                        # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-                        training_step_output_for_epoch_end = recursive_detach(training_step_output)
-
-                        # format and reduce outputs accordingly
-                        if isinstance(training_step_output, Result):
-                            training_step_output = self.process_step_result(training_step_output, train=True)
-                        else:
-                            training_step_output = self.process_output(training_step_output, train=True)
-
-                    self.hiddens = training_step_output.hiddens
-
-                    # accumulate loss
-                    # (if accumulate_grad_batches = 1 no effect)
-                    closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
-
-                    # backward pass
-                    model_ref = self.get_model()
-                    with self.profiler.profile('model_backward'):
-                        # scale loss for 16 bit
-                        if self.precision == 16 and not self.on_tpu:
-                            closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
-
-                        # do backward pass
-                        model_ref.backward(self, closure_loss, optimizer, opt_idx)
-
-                        # once backward has been applied, release graph
-                        closure_loss = closure_loss.detach()
-                        training_step_output.batch_loss = training_step_output.batch_loss.detach()
-
-                    # track metrics for callbacks
-                    batch_callback_metrics.append(training_step_output.callback_metrics)
-
-                    # track progress bar metrics
-                    self.add_progress_bar_metrics(training_step_output.pbar_on_batch_end)
-                    to_log_on_batch_end.append(training_step_output.log_on_batch_end)
-
-                    if self.use_horovod:
-                        # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
-                        optimizer.synchronize()
-
-                    # insert after step hook
-                    if self.is_function_implemented('on_after_backward'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_after_backward'):
-                            model_ref.on_after_backward()
-
-                    return closure_loss, training_step_output, training_step_output_for_epoch_end
-
                 # calculate loss
-                loss, training_step_output, training_step_output_for_epoch_end = optimizer_closure()
+                opt_closure_result = self.optimizer_closure(
+                    split_batch,
+                    batch_idx,
+                    opt_idx,
+                    optimizer,
+                    self.hiddens
+                )
+
+                # loss, training_step_output, training_step_output_for_epoch_end, hiddens
+                self.hiddens = opt_closure_result.hiddens
 
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:
-                    self.detect_nan_tensors(loss)
+                    self.detect_nan_tensors(opt_closure_result.loss)
 
                 # track total loss for logging (avoid mem leaks)
-                self.batch_loss_value.append(loss)
+                self.batch_loss_value.append(opt_closure_result.loss)
 
                 # gradient update with accumulated gradients
                 if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -687,9 +627,16 @@ class TrainerTrainLoopMixin(ABC):
                     # override function to modify this behavior
                     model = self.get_model()
                     with self.profiler.profile('optimizer_step'):
+                        lambda_closure = lambda: self.optimizer_closure(
+                            split_batch,
+                            batch_idx,
+                            opt_idx,
+                            optimizer,
+                            self.hiddens
+                        )[0]
                         model.optimizer_step(self.current_epoch, batch_idx,
                                              optimizer, opt_idx,
-                                             lambda: optimizer_closure()[0])
+                                             lambda: lambda_closure)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value.mean())
@@ -725,6 +672,81 @@ class TrainerTrainLoopMixin(ABC):
             to_log_on_epoch_end=to_log_on_epoch_end
         )
         return result, training_step_output_for_epoch_end
+
+    def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # ---------------------------
+        # FORWARD
+        # ---------------------------
+        with self.profiler.profile('model_forward'):
+            if self.use_amp and self.use_native_amp:
+                with torch.cuda.amp.autocast():
+                    training_step_output = self.training_forward(split_batch, batch_idx,
+                                                                 opt_idx, hiddens)
+            else:
+                training_step_output = self.training_forward(split_batch, batch_idx, opt_idx,
+                                                             hiddens)
+
+            # ----------------------------
+            # PROCESS THE RESULT
+            # ----------------------------
+            # support returning a simple tensor to mimimize
+            if isinstance(training_step_output, torch.Tensor):
+                training_step_output = Result(minimize=training_step_output)
+
+            # if the user decides to finally reduce things in epoch_end, save raw output without graphs
+            training_step_output_for_epoch_end = recursive_detach(training_step_output)
+
+            # format and reduce outputs accordingly
+            if isinstance(training_step_output, Result):
+                training_step_output = self.process_step_result(training_step_output, train=True)
+            else:
+                training_step_output = self.process_output(training_step_output, train=True)
+
+        # accumulate loss
+        # (if accumulate_grad_batches = 1 no effect)
+        closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
+
+        # backward pass
+        model_ref = self.get_model()
+        with self.profiler.profile('model_backward'):
+            # scale loss for 16 bit
+            if self.precision == 16 and not self.on_tpu:
+                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
+
+            # do backward pass
+            model_ref.backward(self, closure_loss, optimizer, opt_idx)
+
+            # once backward has been applied, release graph
+            closure_loss = closure_loss.detach()
+            training_step_output.batch_loss = training_step_output.batch_loss.detach()
+
+        # track metrics for callbacks
+        batch_callback_metrics.append(training_step_output.callback_metrics)
+
+        # track progress bar metrics
+        self.add_progress_bar_metrics(training_step_output.pbar_on_batch_end)
+        to_log_on_batch_end.append(training_step_output.log_on_batch_end)
+
+        if self.use_horovod:
+            # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
+            optimizer.synchronize()
+
+        # insert after step hook
+        if self.is_function_implemented('on_after_backward'):
+            model_ref = self.get_model()
+            with self.profiler.profile('on_after_backward'):
+                model_ref.on_after_backward()
+
+        result = AttributeDict(
+            loss=closure_loss,
+            training_step_output=training_step_output,
+            training_step_output_for_epoch_end=training_step_output_for_epoch_end,
+            hiddens=training_step_output.hiddens,
+        )
+        return result
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
