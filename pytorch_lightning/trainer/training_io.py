@@ -370,7 +370,7 @@ class TrainerIOMixin(ABC):
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_NAME_HYPER_PARAMS] = model._hparams_name
             # add arguments to the checkpoint
-            # todo: how to interpret OmegaConf
+            # todo: add some recursion in case of OmegaConf
             checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS] = dict(model.hparams)
 
         # give the model a chance to add a few things

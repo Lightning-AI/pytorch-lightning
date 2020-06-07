@@ -167,10 +167,12 @@ class ModelIO(object):
             # todo add some back compatibility
             model_args = checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS]
             args_name = checkpoint.get(cls.CHECKPOINT_NAME_HYPER_PARAMS)
-            if args_name:
+            if args_name == 'kwargs':
+                kwargs.update(**model_args)
+            elif args_name:
                 kwargs.update({args_name: model_args})
             else:
-                kwargs.update(**model_args)
+                args = (model_args, ) + args
 
         # load the state_dict on the model automatically
         print(args)

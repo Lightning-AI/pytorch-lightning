@@ -167,7 +167,7 @@ def test_explicit_args_hparams(tmpdir):
     class TestModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
-            self.save_hyperparameters(['test_arg', 'test_arg2'])
+            self.save_hyperparameters('test_arg', 'test_arg2')
 
     model = TestModel(test_arg=14, test_arg2=90)
 
@@ -197,7 +197,7 @@ def test_implicit_args_hparams(tmpdir):
     model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
 
     # config specific tests
-    assert model.test_arg2 == 120
+    assert model.hparams.test_arg2 == 120
 
 
 def test_explicit_missing_args_hparams(tmpdir):
@@ -209,7 +209,7 @@ def test_explicit_missing_args_hparams(tmpdir):
     class TestModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
-            self.save_hyperparameters(['test_arg'])
+            self.save_hyperparameters('test_arg')
 
     model = TestModel(test_arg=14, test_arg2=90)
 
@@ -220,12 +220,6 @@ def test_explicit_missing_args_hparams(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
     trainer.fit(model)
 
-    # pickle test
-    pickle.dumps(trainer)
-    pickle.dumps(model)
-    cloudpickle.dumps(trainer)
-    cloudpickle.dumps(model)
-
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
@@ -234,8 +228,8 @@ def test_explicit_missing_args_hparams(tmpdir):
 
     # verify that model loads correctly
     model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
-    assert model.test_arg == 14
-    assert model.test_arg2 == 123
+    assert model.hparams.test_arg == 14
+    assert 'test_arg2' not in model.hparams  # test_arg2 is not registered in class init
 
     return raw_checkpoint_path
 
@@ -248,7 +242,7 @@ def test_class_nesting():
 
     class MyModule(LightningModule):
         def forward(self):
-            return 0
+            ...
 
     # make sure PL modules are always nn.Module
     a = MyModule()

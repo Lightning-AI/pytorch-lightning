@@ -75,8 +75,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: device reference
         self._device = torch.device('cpu')
 
-        self._hparams_name = None
-
     @property
     def on_gpu(self):
         """
@@ -1638,19 +1636,19 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         "p2": abc
         "p3": 3.14
         """
-        self._hparams_name = None
         init_args = get_init_args(inspect.currentframe().f_back)
         if not args:
             hp = init_args
+            self._hparams_name = 'kwargs' if hp else None
         else:
-            hp = {}
             isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
             if len(isx_non_str) == 1:
                 hp = args[isx_non_str[0]]
                 cand_names = [k for k, v in init_args.items() if v == hp]
                 self._hparams_name = cand_names[0]
             else:
-                hp.update({arg: init_args[arg] for arg in args if isinstance(arg, str)})
+                hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
+                self._hparams_name = 'kwargs'
 
         self.hparams = hp
 
@@ -1670,10 +1668,3 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if not isinstance(hp, ALLOWED_CONFIG_TYPES):
             raise ValueError(f'Unsupported config type of {type(hp)}.')
         self._hparams = hp
-
-        # todo: think about this as it a way around to register the hparams name
-        init_args = get_init_args(inspect.currentframe().f_back)
-        if init_args:
-            cand_names = [k for k, v in init_args.items() if v == hp]
-            if cand_names:
-                self._hparams_name = cand_names[0]
