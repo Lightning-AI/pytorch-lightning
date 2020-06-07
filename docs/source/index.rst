@@ -117,6 +117,7 @@ Indices and tables
    api/pytorch_lightning.core
    api/pytorch_lightning.callbacks
    api/pytorch_lightning.loggers
+   api/pytorch_lightning.logging
    api/pytorch_lightning.metrics
    api/pytorch_lightning.overrides
    api/pytorch_lightning.profiler
