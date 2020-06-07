@@ -99,7 +99,7 @@ class SuperLitModel(pl.LightningModule):
         return outputs
 
     def validation_epoch_end(self, outputs):
-        return {'val_loss': 2}
+        return outputs
 
     def configure_optimizers(self):
         """
