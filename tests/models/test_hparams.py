@@ -13,6 +13,20 @@ import pickle
 import cloudpickle
 
 
+class SaveHparamsModel(EvalModelTemplate):
+    """ Tests that a model can take an object """
+    def __init__(self, hparams):
+        super().__init__()
+        self.save_hyperparameters(hparams)
+
+
+class AssignHparamsModel(EvalModelTemplate):
+    """ Tests that a model can take an object with explicit setter """
+    def __init__(self, hparams):
+        super().__init__()
+        self.hparams = hparams
+
+
 # -------------------------
 # STANDARD TESTS
 # -------------------------
@@ -37,122 +51,41 @@ def _run_standard_hparams_test(tmpdir, model, cls):
     model = cls.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams.test_arg == 14
 
-    # verify that we can overwrite the property
     # todo
+    # verify that we can overwrite the property
     # model = cls.load_from_checkpoint(raw_checkpoint_path, test_arg=78)
     # assert model.hparams.test_arg == 78
 
     return raw_checkpoint_path
 
 
-def test_namespace_hparams(tmpdir):
-    """
-    Tests that a model can take a Namespace object
-    """
-
-    # define model
-    class TestModel(EvalModelTemplate):
-        def __init__(self, hparams: Namespace):
-            super().__init__()
-            self.save_hyperparameters(hparams)
-
-    model = TestModel(hparams=Namespace(test_arg=14))
+@pytest.mark.parametrize("cls", [SaveHparamsModel, AssignHparamsModel])
+def test_namespace_hparams(tmpdir, cls):
+    # init model
+    model = cls(hparams=Namespace(test_arg=14))
 
     # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, TestModel)
+    _run_standard_hparams_test(tmpdir, model, cls)
 
 
-def test_namespace_assign_hparams(tmpdir):
-    """
-    Tests that a model can take a Namespace object with explicit setter
-    """
-
-    # define model
-    class TestModel(EvalModelTemplate):
-        def __init__(self, hparams: Namespace, arg1=15, arg2='abc'):
-            super().__init__()
-            self.hparams = hparams
-
-    model = TestModel(hparams=Namespace(test_arg=14))
+@pytest.mark.parametrize("cls", [SaveHparamsModel, AssignHparamsModel])
+def test_dict_hparams(tmpdir, cls):
+    # init model
+    model = cls(hparams={'test_arg': 14})
 
     # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, TestModel)
+    _run_standard_hparams_test(tmpdir, model, cls)
 
 
-def test_dict_hparams(tmpdir):
-    """
-    Tests that a model can take a dict object
-    """
-
-    # define model
-    class TestModel(EvalModelTemplate):
-        def __init__(self, hparams: dict):
-            super().__init__()
-            self.save_hyperparameters(hparams)
-
-    model = TestModel(hparams={'test_arg': 14})
-
-    # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, TestModel)
-
-
-def test_dict_assign_hparams(tmpdir):
-    """
-    Tests that a model can take a dict object with explicit setter
-    """
-
-    # define model
-    class TestModel(EvalModelTemplate):
-        def __init__(self, hparams: dict):
-            super().__init__()
-            self.hparams = hparams
-
-    model = TestModel(hparams={'test_arg': 14})
-
-    # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, TestModel)
-
-
-def test_omega_conf_hparams(tmpdir):
-    """
-    Tests that a model can take OmegaConf object
-    """
-
-    # define model
-    class TestModel(EvalModelTemplate):
-        def __init__(self, hparams: Container):
-            super().__init__()
-            self.save_hyperparameters(hparams)
-
+@pytest.mark.parametrize("cls", [SaveHparamsModel, AssignHparamsModel])
+def test_omega_conf_hparams(tmpdir, cls):
+    # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
-    model = TestModel(hparams=conf)
+    model = cls(hparams=conf)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, TestModel)
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path)
-
-    # config specific tests
-    assert model.hparams.test_arg == 14
-    assert model.hparams.mylist[0] == 15.4
-
-
-def test_omega_assign_hparams(tmpdir):
-    """
-    Tests that a model can take Omegaconf and assign
-    """
-
-    # define model
-    class TestModel(EvalModelTemplate):
-        def __init__(self, hparams: Container):
-            super().__init__()
-            self.hparams = hparams
-
-    conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
-    model = TestModel(hparams=conf)
-
-    # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, TestModel)
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path)
+    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, cls)
+    model = cls.load_from_checkpoint(raw_checkpoint_path)
 
     # config specific tests
     assert model.hparams.test_arg == 14
@@ -381,7 +314,7 @@ def _raw_checkpoint_path(trainer) -> str:
     return raw_checkpoint_path
 
 
-class LocalVariableModel1(EvalModelTemplate):
+class LocalVariableModelSuperLast(EvalModelTemplate):
     """ This model has the super().__init__() call at the end. """
 
     def __init__(self, arg1, arg2, *args, **kwargs):
@@ -391,7 +324,7 @@ class LocalVariableModel1(EvalModelTemplate):
         super().__init__(*args, **kwargs)  # this is intentionally here at the end
 
 
-class LocalVariableModel2(EvalModelTemplate):
+class LocalVariableModelSuperFirst(EvalModelTemplate):
     """ This model has the _auto_collect_arguments() call at the end. """
 
     def __init__(self, arg1, arg2, *args, **kwargs):
@@ -403,8 +336,8 @@ class LocalVariableModel2(EvalModelTemplate):
 
 
 @pytest.mark.parametrize("cls", [
-    LocalVariableModel1,
-    LocalVariableModel2,
+    LocalVariableModelSuperFirst,
+    # LocalVariableModelSuperLast,
 ])
 def test_collect_init_arguments_with_local_vars(cls):
     """ Tests that only the arguments are collected and not local variables. """
@@ -414,56 +347,29 @@ def test_collect_init_arguments_with_local_vars(cls):
     assert model.hparams['arg2'] == 2
 
 
-class NamespaceArgModel(EvalModelTemplate):
-    def __init__(self, hparams: Namespace):
-        super().__init__()
-        self.save_hyperparameters(hparams)
-
-
-class HparamsPropertyModel(EvalModelTemplate):
-    def __init__(self, hparams: Namespace):
-        super().__init__()
-        self.hparams = hparams
-
-
-class DictArgModel(EvalModelTemplate):
-    def __init__(self, some_dict: dict):
-        super().__init__()
-        self.save_hyperparameters(some_dict)
-
-
-class DictArgModelProperty(EvalModelTemplate):
-    def __init__(self, some_dict: dict):
-        super().__init__()
-        self.save_hyperparameters(some_dict)
-
-
-class OmegaConfArgModel(EvalModelTemplate):
-    def __init__(self, conf: OmegaConf):
-        super().__init__()
-        self.save_hyperparameters(conf)
-
-
-@pytest.mark.parametrize("cls,config", [
-    (NamespaceArgModel, Namespace(my_arg=42)),
-    (DictArgModel, dict(my_arg=42)),
-    (OmegaConfArgModel, OmegaConf.create(dict(my_arg=42))),
-])
-def test_single_config_models(tmpdir, cls, config):
-    """ Test that the model automatically saves the arguments passed into the constructor """
-    model = cls(config)
-
-    # no matter how you do it, it should be assigned
-    assert model.hparams.my_arg == 42
-
-    # verify that the checkpoint saved the correct values
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
-    trainer.fit(model)
-
-    # verify that model loads correctly
-    raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    model = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert model.hparams.my_arg == 42
+# @pytest.mark.parametrize("cls,config", [
+#     (SaveHparamsModel, Namespace(my_arg=42)),
+#     (SaveHparamsModel, dict(my_arg=42)),
+#     (SaveHparamsModel, OmegaConf.create(dict(my_arg=42))),
+#     (AssignHparamsModel, Namespace(my_arg=42)),
+#     (AssignHparamsModel, dict(my_arg=42)),
+#     (AssignHparamsModel, OmegaConf.create(dict(my_arg=42))),
+# ])
+# def test_single_config_models(tmpdir, cls, config):
+#     """ Test that the model automatically saves the arguments passed into the constructor """
+#     model = cls(config)
+#
+#     # no matter how you do it, it should be assigned
+#     assert model.hparams.my_arg == 42
+#
+#     # verify that the checkpoint saved the correct values
+#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+#     trainer.fit(model)
+#
+#     # verify that model loads correctly
+#     raw_checkpoint_path = _raw_checkpoint_path(trainer)
+#     model = cls.load_from_checkpoint(raw_checkpoint_path)
+#     assert model.hparams.my_arg == 42
 
 
 class AnotherArgModel(EvalModelTemplate):
@@ -480,7 +386,7 @@ class OtherArgsModel(EvalModelTemplate):
 
 @pytest.mark.parametrize("cls,config", [
     (AnotherArgModel, dict(arg1=42)),
-    (OtherArgsModel, dict(arg1=42, arg2='abc')),
+    (OtherArgsModel, dict(arg1=3.14, arg2='abc')),
 ])
 def test_single_config_models_fail(tmpdir, cls, config):
     """ Test fail on passing unsupported config type. """

@@ -1638,7 +1638,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if not frame:
             frame = inspect.currentframe().f_back
         init_args = get_init_args(frame)
-        assert init_args, 'failed to ismpect the self init'
+        assert init_args, 'failed to inspect the self init'
         if not args:
             hp = init_args
             self._hparams_name = 'kwargs' if hp else None
@@ -1652,8 +1652,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
                 self._hparams_name = 'kwargs'
 
-        assert hp, 'empty hparams are not expected here'
-        self._set_hparams(hp)
+        # `hparams` are expected here
+        if hp:
+            self._set_hparams(hp)
 
     def _set_hparams(self, hp: Union[dict, Namespace, Any]) -> None:
         if isinstance(hp, Namespace):
