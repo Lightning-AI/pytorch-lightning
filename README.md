@@ -436,7 +436,7 @@ have gone on to fund operations through things like support and special help for
 
 If you are one of these corporations, please feel free to reach out to will@pytorchlightning.ai!
 
-## Bibtex
+## BibTeX
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
 
 ```bibtex
