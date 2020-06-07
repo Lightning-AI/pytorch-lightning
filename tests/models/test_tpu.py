@@ -112,5 +112,5 @@ def test_exception_when_no_tpu_found(tmpdir):
     model = EvalModelTemplate()
     trainer = Trainer(**trainer_options)
 
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match='No TPU devices found.'):
         trainer.fit(model)
