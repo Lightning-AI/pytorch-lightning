@@ -492,10 +492,8 @@ class TrainerEvaluationLoopMixin(ABC):
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
-        if isinstance(eval_results, Result):
-            eval_results = self.process_step_result(eval_results)
-        else:
-            eval_results = self.process_output(eval_results)
+        # TODO: verify
+        eval_results = self.process_step_result(eval_results)
 
         # add metrics to prog bar
         self.add_progress_bar_metrics(eval_results.pbar_on_epoch_end)
