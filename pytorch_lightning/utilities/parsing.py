@@ -48,7 +48,8 @@ def clean_namespace(hparams):
 
 def get_init_args(frame):
     _, _, _, local_vars = inspect.getargvalues(frame)
-    assert '__class__' in local_vars
+    if not '__class__' in local_vars:
+        return
     cls = local_vars['__class__']
     spec = inspect.getfullargspec(cls.__init__)
     init_parameters = inspect.signature(cls.__init__).parameters

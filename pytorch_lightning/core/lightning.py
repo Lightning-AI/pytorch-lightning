@@ -1672,7 +1672,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self._hparams = hp
 
         # todo: think about this as it a way around to register the hparams name
-        init_args = get_init_args(inspect.currentframe())
-        cand_names = [k for k, v in init_args.items() if v == hp]
-        if cand_names:
-            self._hparams_name = cand_names[0]
+        init_args = get_init_args(inspect.currentframe().f_back)
+        if init_args:
+            cand_names = [k for k, v in init_args.items() if v == hp]
+            if cand_names:
+                self._hparams_name = cand_names[0]
