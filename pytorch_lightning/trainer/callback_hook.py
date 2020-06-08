@@ -87,8 +87,6 @@ class TrainerCallbackHookMixin(ABC):
             callback.on_validation_start(self, self.get_model())
 
     def on_validation_end(self):
-        import pdb; pdb.set_trace()
-        print('on val end hook')
         """Called when the validation loop ends."""
         for callback in self.callbacks:
             callback.on_validation_end(self, self.get_model())
