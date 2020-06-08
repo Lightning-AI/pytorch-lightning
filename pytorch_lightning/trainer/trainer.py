@@ -888,6 +888,7 @@ class Trainer(
                 self.ddp_train(process_idx=self.num_processes, is_master=True)
 
             elif self.distributed_backend == 'ddp':
+                print('starting spawn children')
                 self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module

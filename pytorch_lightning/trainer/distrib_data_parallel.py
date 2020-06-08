@@ -378,6 +378,7 @@ class TrainerDDPMixin(ABC):
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.num_processes):
+            print('launching local_rank', local_rank)
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
 
