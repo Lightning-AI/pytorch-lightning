@@ -139,7 +139,7 @@ class GAN(LightningModule):
             return output
 
         # train discriminator
-        if optimizer_idx == 1:
+        elif optimizer_idx == 1:
             # Measure discriminator's ability to classify real from generated samples
 
             # how well can it label as real?

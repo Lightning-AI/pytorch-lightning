@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a PSNR metric: peak signal-to-noise ratio ([#2483](https://github.com/PyTorchLightning/pytorch-lightning/pull/2483))
 
+- Added `DistributedStateHooks` class with methods `on_after_model_replicate()` and `on_after_dp_parallel_apply()` ([#1895](https://github.com/PyTorchLightning/pytorch-lightning/pull/1895))
+
 ### Changed
 
 - Allow users to maintain state in `DataParallel` mode using `self.distributed_state` container within `LightningModule`; solves ([#1895](https://github.com/PyTorchLightning/pytorch-lightning/pull/1895))
