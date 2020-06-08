@@ -107,12 +107,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         r"""
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define
         the operations you want to use for prediction (i.e.: on a server or as a feature extractor).
-        LightningModule will also automatically copy data to the same device as the model if the model
-        is on CPU or a single GPU for inference.
 
         Normally you'd call ``self()`` from your :meth:`training_step` method.
         This makes it easy to write a complex system for training with the outputs
         you'd want in a prediction setting.
+
+        You may also find the :func:`pytorch_lightning.core.decorators.auto_move_data` decorator useful
+        when using the module outside Lightning in a production setting.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
