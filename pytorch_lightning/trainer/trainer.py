@@ -885,6 +885,8 @@ class Trainer(
                 mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1))
 
                 # stay in context for main proc
+                print('*'*100)
+                print('main proc start')
                 self.ddp_train(process_idx=0, model=model, is_master=True)
 
             elif self.distributed_backend == 'ddp':
