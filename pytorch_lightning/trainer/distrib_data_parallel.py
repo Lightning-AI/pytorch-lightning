@@ -221,7 +221,7 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus > 1:
                 self.use_dp = True
 
-        elif distributed_backend == "ddp":
+        elif distributed_backend in ['ddp', 'ddp_spawn']:
             if self.num_gpus == 0:
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
@@ -378,6 +378,7 @@ class TrainerDDPMixin(ABC):
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.num_processes):
+            print('launching local_rank', local_rank)
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
 
@@ -394,7 +395,7 @@ class TrainerDDPMixin(ABC):
         local_rank = 0
         self.ddp_train(local_rank, model, is_master=True)
 
-    def ddp_train(self, process_idx, model, is_master=False):
+    def ddp_train(self, process_idx, model, is_master=False, proc_offset=0):
         """
         Entry point into a DP thread
         :param gpu_idx:
@@ -402,6 +403,9 @@ class TrainerDDPMixin(ABC):
         :param cluster_obj:
         :return:
         """
+        # offset the process id if requested
+        process_idx = process_idx + proc_offset
+
         # show progressbar only on progress_rank 0
         if (self.node_rank != 0 or process_idx != 0) and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
@@ -454,7 +458,7 @@ class TrainerDDPMixin(ABC):
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
 
         # DDP2 uses all GPUs on the machine
-        if self.distributed_backend == 'ddp':
+        if self.distributed_backend == 'ddp' or self.distributed_backend == 'ddp_spawn':
             device_ids = [self.root_gpu]
         elif self.use_ddp2:
             device_ids = self.data_parallel_device_ids

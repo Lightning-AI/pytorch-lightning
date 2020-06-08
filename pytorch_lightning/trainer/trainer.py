@@ -246,7 +246,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use.
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
@@ -876,8 +876,15 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
+                self.__set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+
+            elif self.distributed_backend == 'ddp_spawn':
+                model.share_memory()
+
+                # spin up peers
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
                 self.spawn_ddp_children(model)
