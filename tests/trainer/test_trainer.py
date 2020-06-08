@@ -21,7 +21,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-def test_no_val_module(monkeypatch, tmpdir, tmpdir_server):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv('TORCH_HOME', tmpdir)
@@ -52,21 +53,16 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
+        checkpoint_path=ckpt_path,
         hparams_file=hparams_path
     )
     model_2.eval()
 
-    # load new model from url
-    model_3 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/save_test.ckpt',
-        hparams_file=hparams_path
-    )
-    model_3.eval()
 
-
-def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv('TORCH_HOME', tmpdir)
@@ -94,18 +90,12 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
+        checkpoint_path=ckpt_path,
         hparams_file=hparams_path
     )
     model_2.eval()
-
-    # load new model from url
-    model_3 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/save_test.ckpt',
-        hparams_file=hparams_path
-    )
-    model_3.eval()
 
 
 def test_gradient_accumulation_scheduling(tmpdir):
