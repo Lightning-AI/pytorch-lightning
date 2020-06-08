@@ -20,7 +20,7 @@ from tests.base import EvalModelTemplate
 from tests.base.determininistic_model import DeterministicModel
 
 
-def test_train_val_step_only(tmpdir):
+def test_trainingstep_evalstep_result_return(tmpdir):
     """
     Verifies training_step and validation_step functionality
     when a Result is used
@@ -46,7 +46,7 @@ def test_train_val_step_only(tmpdir):
     assert out.checkpoint_on == 1.5
 
 
-def test_dict_return_train_val_step_only(tmpdir):
+def test_trainingstep_evalstep_dict_return(tmpdir):
     """
     Verify training_step and validation_step functionality when dict is used
     """
@@ -84,8 +84,8 @@ def test_dict_return_train_val_step_only(tmpdir):
     assert out.checkpoint_on == 171.0
 
 
-test_train_val_step_only('')
-test_dict_return_train_val_step_only('')
+test_trainingstep_evalstep_result_return('')
+test_trainingstep_evalstep_dict_return('')
 
 
 def test_train_val_step_end(tmpdir):
