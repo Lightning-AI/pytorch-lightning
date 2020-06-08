@@ -397,19 +397,3 @@ def test_tbptt_cpu_model(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_single_gpu_model(tmpdir):
-    """Make sure single GPU works (DP mode)."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
-        gpus=1
-    )
-
-    model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model)
