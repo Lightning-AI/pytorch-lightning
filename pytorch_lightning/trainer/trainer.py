@@ -876,8 +876,16 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
+                self.__set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+
+            elif self.distributed_backend == 'ddp_spawn':
+                # spin up peers
+                mp.spawn(self.ddp_train, nprocs=self.num_processes-1, args=(model, False, 1), join=False)
+
+                # stay in context for main proc
+                self.ddp_train(process_idx=self.num_processes, is_master=True)
 
             elif self.distributed_backend == 'ddp':
                 self.spawn_ddp_children(model)

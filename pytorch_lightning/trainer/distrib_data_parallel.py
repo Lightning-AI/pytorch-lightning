@@ -394,7 +394,7 @@ class TrainerDDPMixin(ABC):
         local_rank = 0
         self.ddp_train(local_rank, model, is_master=True)
 
-    def ddp_train(self, process_idx, model, is_master=False):
+    def ddp_train(self, process_idx, model, is_master=False, proc_offset=0):
         """
         Entry point into a DP thread
         :param gpu_idx:
@@ -402,6 +402,9 @@ class TrainerDDPMixin(ABC):
         :param cluster_obj:
         :return:
         """
+        # offset the process id if requested
+        process_idx = process_idx + proc_offset
+
         # show progressbar only on progress_rank 0
         if (self.node_rank != 0 or process_idx != 0) and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
@@ -466,6 +469,10 @@ class TrainerDDPMixin(ABC):
 
         # continue training routine
         self.run_pretrain_routine(model)
+
+        # spawn removed the memory from the model
+        if self.distributed_backend == 'ddp_spawn':
+            self.save_spawn_weights(model)
 
     def save_spawn_weights(self, model):
         """
