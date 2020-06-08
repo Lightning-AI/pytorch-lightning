@@ -880,11 +880,11 @@ class Trainer(
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
-            elif self.distributed_backend == 'ddp_spawn':
+            elif self.distributed_backend == 'ddp_fork':
                 model.share_memory()
 
                 # spin up peers
-                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
+                mp.start_processes(self.ddp_train, nprocs=self.num_processes, args=(model, ), start_method='fork')
 
             elif self.distributed_backend == 'ddp':
                 self.spawn_ddp_children(model)
