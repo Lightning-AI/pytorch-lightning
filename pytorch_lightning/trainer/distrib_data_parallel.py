@@ -427,7 +427,13 @@ class TrainerDDPMixin(ABC):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self
+        print('-'*100)
+        print('starting ddp')
+        print('-'*100)
         model.init_ddp_connection(self.proc_rank, self.world_size, self.is_slurm_managing_tasks)
+        print('-'*100)
+        print('ddp started')
+        print('-'*100)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
