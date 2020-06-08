@@ -40,6 +40,11 @@ Simple installation from PyPI
 pip install pytorch-lightning
 ```
 
+From Conda
+```bash
+conda install pytorch-lightning -c conda-forge
+```
+
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
@@ -401,12 +406,6 @@ If you can't wait for the next release, install the most up to date code with:
 You can also install any past release `0.X.Y` from this repository:
 ```bash
 pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
-```
-
-### Conda
-
-```bash 
-conda install pytorch-lightning -c conda-forge
 ```
 
 ## Lightning team
