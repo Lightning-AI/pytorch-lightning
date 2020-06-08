@@ -392,7 +392,6 @@ class TrainerDDPMixin(ABC):
             sleep(delay)
 
         local_rank = 0
-        import pdb; pdb.set_trace()
         self.ddp_train(local_rank, model, is_master=True)
 
     def ddp_train(self, process_idx, model, is_master=False, proc_offset=0):
@@ -466,9 +465,11 @@ class TrainerDDPMixin(ABC):
             device_ids = None
 
         # allow user to configure ddp
+        print('configuring ddp')
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
+        print('training')
         self.run_pretrain_routine(model)
 
     def save_spawn_weights(self, model):
