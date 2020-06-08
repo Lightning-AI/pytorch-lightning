@@ -403,7 +403,6 @@ class TrainerDDPMixin(ABC):
         :param cluster_obj:
         :return:
         """
-        print('ddp_train', process_idx)
         # offset the process id if requested
         process_idx = process_idx + proc_offset
 
@@ -427,13 +426,7 @@ class TrainerDDPMixin(ABC):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self
-        print('-'*100)
-        print('starting ddp')
-        print('-'*100)
         model.init_ddp_connection(self.proc_rank, self.world_size, self.is_slurm_managing_tasks)
-        print('-'*100)
-        print('ddp started')
-        print('-'*100)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -473,14 +466,9 @@ class TrainerDDPMixin(ABC):
             device_ids = None
 
         # allow user to configure ddp
-        print('-'*100)
-        print('configuring ddp', device_ids, self.root_gpu)
-        print('-'*100)
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        print('-'*100)
-        print('training')
         self.run_pretrain_routine(model)
 
     def save_spawn_weights(self, model):
