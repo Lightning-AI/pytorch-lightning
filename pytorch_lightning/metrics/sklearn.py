@@ -65,7 +65,7 @@ class SklearnMetric(NumpyMetric):
             *args: Positional arguments forwarded to metric call (should be already converted to numpy)
             **kwargs: keyword arguments forwarded to metric call (should be already converted to numpy)
 
-        Returns:
+        Return:
             the metric value (will be converted to tensor by baseclass)
 
         """
@@ -76,7 +76,7 @@ class Accuracy(SklearnMetric):
     """
     Calculates the Accuracy Score
 
-    .. warning::
+    Warning:
         Every metric call will cause a GPU synchronization, which may slow down your code
     """
     def __init__(self, normalize: bool = True,
@@ -106,7 +106,7 @@ class Accuracy(SklearnMetric):
             y_true: the array containing the targets (in categorical form)
             sample_weight:  Sample weights.
 
-        Returns:
+        Return:
             Accuracy Score
 
         """
@@ -145,7 +145,7 @@ class AUC(SklearnMetric):
             x: x coordinates.
             y: y coordinates.
 
-        Returns:
+        Return:
             AUC calculated with trapezoidal rule
 
         """
@@ -192,7 +192,7 @@ class AveragePrecision(SklearnMetric):
             y_true: True binary labels in binary label indicators.
             sample_weight: Sample weights.
 
-        Returns:
+        Return:
             average precision score
         """
         return super().forward(y_score=y_score, y_true=y_true,
@@ -232,7 +232,7 @@ class ConfusionMatrix(SklearnMetric):
             y_pred: Estimated targets as returned by a classifier.
             y_true: Ground truth (correct) target values.
 
-        Returns:
+        Return:
             Confusion matrix (array of shape [n_classes, n_classes])
 
         """
@@ -314,7 +314,7 @@ class F1(SklearnMetric):
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-        Returns:
+        Return:
             F1 score of the positive class in binary classification or weighted
             average of the F1 scores of each class for the multiclass task.
 
@@ -394,9 +394,9 @@ class FBeta(SklearnMetric):
             sample_weight: Sample weights.
 
 
-        Returns:
+        Return:
             FBeta score of the positive class in binary classification or weighted
-            average of the FBeta scores of each class for the multiclass task.
+                average of the FBeta scores of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -467,9 +467,9 @@ class Precision(SklearnMetric):
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-        Returns:
+        Return:
             Precision of the positive class in binary classification or weighted
-            average of the precision of each class for the multiclass task.
+                average of the precision of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -539,9 +539,9 @@ class Recall(SklearnMetric):
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-        Returns:
+        Return:
             Recall of the positive class in binary classification or weighted
-            average of the recall of each class for the multiclass task.
+                average of the recall of each class for the multiclass task.
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
@@ -708,7 +708,7 @@ class AUROC(SklearnMetric):
             y_true: True binary labels in binary label indicators.
             sample_weight: Sample weights.
 
-        Returns:
+        Return:
             Area Under Receiver Operating Characteristic Curve
         """
         return super().forward(y_score=y_score, y_true=y_true,
