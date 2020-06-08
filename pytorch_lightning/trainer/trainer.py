@@ -882,7 +882,7 @@ class Trainer(
 
             elif self.distributed_backend == 'ddp_spawn':
                 # spin up peers
-                mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1), join=False)
+                mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1))
 
                 # stay in context for main proc
                 self.ddp_train(process_idx=0, model=model, is_master=True)
