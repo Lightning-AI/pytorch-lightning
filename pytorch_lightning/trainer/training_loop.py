@@ -369,19 +369,20 @@ class TrainerTrainLoopMixin(ABC):
                 # update LR schedulers
                 self.update_learning_rates(interval='epoch')
 
-                # # early stopping
-                # met_min_epochs = epoch >= self.min_epochs - 1
-                # met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-                #
-                # # TODO wrap this logic into the callback
-                # if self.enable_early_stop:
-                #     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
-                #         should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
-                #         # stop training
-                #         stop = should_stop and met_min_epochs
-                #         if stop:
-                #             self.run_training_teardown()
-                #             return
+                # early stopping
+                met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+
+                # TODO wrap this logic into the callback
+                import pdb; pdb.set_trace()
+                if self.enable_early_stop:
+                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
+                        should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
+                        # stop training
+                        stop = should_stop and met_min_epochs
+                        if stop:
+                            self.run_training_teardown()
+                            return
 
             self.run_training_teardown()
 

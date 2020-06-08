@@ -100,14 +100,12 @@ class TrainerCallbackConfigMixin(ABC):
                 mode='min'
             )
             self.enable_early_stop = True
-            self.callbacks.append(self.early_stop_callback)
         elif not early_stop_callback:
             self.early_stop_callback = None
             self.enable_early_stop = False
         else:
             self.early_stop_callback = early_stop_callback
             self.enable_early_stop = True
-            self.callbacks.append(self.early_stop_callback)
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         progress_bars = [c for c in self.callbacks if isinstance(c, ProgressBarBase)]
