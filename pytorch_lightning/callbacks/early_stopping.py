@@ -132,6 +132,7 @@ class EarlyStopping(Callback):
                 stop_training = True
                 self.on_train_end(trainer, pl_module)
 
+        print(self.wait, self.patience)
         return stop_training
 
     def on_train_end(self, trainer, pl_module):
