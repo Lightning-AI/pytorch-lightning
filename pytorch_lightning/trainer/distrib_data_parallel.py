@@ -471,6 +471,7 @@ class TrainerDDPMixin(ABC):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
+        print('-'*100)
         print('training')
         self.run_pretrain_routine(model)
 
