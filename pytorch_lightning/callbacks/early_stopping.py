@@ -124,7 +124,7 @@ class EarlyStopping(Callback):
 
         import pdb; pdb.set_trace()
         import time
-        print(time.time(), current, self.best, self.wait)
+        # print(time.time(), current, self.best, self.wait)
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
             self.wait = 0
