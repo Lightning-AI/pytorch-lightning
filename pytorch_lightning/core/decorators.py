@@ -34,15 +34,24 @@ def auto_move_data(fn: Callable) -> Callable:
 
     Example:
 
-        >>> class LitModel(LightningModule):
-        ...     @auto_move_data
-        ...     def forward(self, x):
-        ...         return x
-        >>> LitModel.forward = auto_move_data(LitModel.forward)
-        >>> model = LitModel()
-        >>> model = model.to('cuda')
-        >>> model(torch.zeros(1, 3))
-        tensor([[0., 0., 0.]], device='cuda:0')
+        .. code-block:: python
+
+            # directly in the source code
+            class LitModel(LightningModule):
+
+                @auto_move_data
+                def forward(self, x):
+                    return x
+
+            # or outside
+            LitModel.forward = auto_move_data(LitModel.forward)
+
+            model = LitModel()
+            model = model.to('cuda')
+            model(torch.zeros(1, 3))
+
+            # input gets moved to device
+            # tensor([[0., 0., 0.]], device='cuda:0')
 
     """
     @wraps(fn)
