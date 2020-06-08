@@ -15,7 +15,7 @@ class TrainerLoggingMixin(ABC):
     current_epoch: int
     on_gpu: bool
     log_gpu_memory: ...
-    logger: Union[LightningLoggerBase, bool]
+    logger: LightningLoggerBase
     progress_bar_metrics: ...
     global_step: int
     proc_rank: int

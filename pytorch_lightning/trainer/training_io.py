@@ -89,7 +89,6 @@ import signal
 from abc import ABC
 from argparse import Namespace
 from subprocess import call
-from typing import Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -134,7 +133,7 @@ class TrainerIOMixin(ABC):
     checkpoint_callback: ...
     proc_rank: int
     weights_save_path: str
-    logger: Union[LightningLoggerBase, bool]
+    logger: LightningLoggerBase
     early_stop_callback: ...
     lr_schedulers: ...
     optimizers: ...

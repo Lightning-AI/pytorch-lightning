@@ -545,7 +545,7 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def slurm_job_id(self) -> int:
+    def slurm_job_id(self) -> Optional[int]:
         try:
             job_id = os.environ['SLURM_JOB_ID']
             job_id = int(job_id)

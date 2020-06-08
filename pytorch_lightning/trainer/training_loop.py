@@ -237,6 +237,7 @@ class TrainerTrainLoopMixin(ABC):
     checkpoint_callback: ...
     terminate_on_nan: bool
     tpu_id: int
+    interactive_ddp_procs: List
 
     # Callback system
     callbacks: List[Callback]
@@ -249,7 +250,7 @@ class TrainerTrainLoopMixin(ABC):
     on_validation_end: Callable
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod

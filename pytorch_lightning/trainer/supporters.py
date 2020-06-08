@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 
 
@@ -25,7 +27,7 @@ class TensorRunningAccum(object):
         self.window_length = window_length
         self.memory = torch.Tensor(self.window_length)
         self.current_idx: int = 0
-        self.last_idx: int = None
+        self.last_idx: Optional[int] = None
         self.rotated: bool = False
 
     def reset(self) -> None:
