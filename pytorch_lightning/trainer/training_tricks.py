@@ -136,9 +136,10 @@ class TrainerTrainingTricksMixin(ABC):
 
         """
         if not hasattr(model, batch_arg_name):
-            if not hasattr(model, 'hparams') or not hasattr(model.hparams, batch_arg_name):
-                raise MisconfigurationException(f'Neither of `model.batch_size` and'
-                                                f' `model.hparams.batch_size` found.')
+            if not hasattr(model.hparams, batch_arg_name):
+                raise MisconfigurationException(
+                    'Neither of `model.batch_size` and `model.hparams.batch_size` found.'
+                )
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
