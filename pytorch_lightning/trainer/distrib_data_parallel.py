@@ -470,10 +470,6 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         self.run_pretrain_routine(model)
 
-        # spawn removed the memory from the model
-        if self.distributed_backend == 'ddp_spawn':
-            self.save_spawn_weights(model)
-
     def save_spawn_weights(self, model):
         """
         Dump a temporary checkpoint after ddp ends to get weights out of the process
