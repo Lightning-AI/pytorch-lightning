@@ -457,7 +457,7 @@ class TrainerDDPMixin(ABC):
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
 
         # DDP2 uses all GPUs on the machine
-        if self.distributed_backend == 'ddp':
+        if self.distributed_backend == 'ddp' or self.distributed_backend == 'ddp_spawn':
             device_ids = [self.root_gpu]
         elif self.use_ddp2:
             device_ids = self.data_parallel_device_ids

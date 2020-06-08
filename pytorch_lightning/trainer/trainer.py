@@ -246,7 +246,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use.
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
