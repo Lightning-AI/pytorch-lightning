@@ -112,7 +112,6 @@ def test_early_stopping_cpu_model(tmpdir):
                      version_parse(torch.__version__) < version_parse("1.3.0")),
                     reason="Distributed training is not supported on MacOS before Torch 1.3.0")
 def test_multi_cpu_model_ddp(tmpdir):
-    print('in ddp test')
     """Make sure DDP works."""
     tutils.set_random_master_port()
 
