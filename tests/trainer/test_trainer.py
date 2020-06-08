@@ -22,7 +22,8 @@ from tests.base.determininistic_model import DeterministicModel
 
 def test_train_val_step_only(tmpdir):
     """
-    Verifies trainining_step and validation_step functionality
+    Verifies training_step and validation_step functionality
+    when a Result is used
     """
     # ------------------
     # test EvalReturn
@@ -45,7 +46,10 @@ def test_train_val_step_only(tmpdir):
     assert out.checkpoint_on == 1.5
 
 
-def test_dict_return_train_val_step_only(self):
+def test_dict_return_train_val_step_only(tmpdir):
+    """
+    Verify training_step and validation_step functionality when dict is used
+    """
 
     # Test 1:
     # dict returned. Use the metric to track as early_stopping, etc...
@@ -80,6 +84,7 @@ def test_dict_return_train_val_step_only(self):
     assert out.checkpoint_on == 171.0
 
 
+test_train_val_step_only('')
 test_dict_return_train_val_step_only('')
 
 

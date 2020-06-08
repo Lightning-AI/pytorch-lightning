@@ -86,7 +86,6 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch, batch_idx)
 
         result = self.base_train_result(acc)
-        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(acc))
 
         return result
 

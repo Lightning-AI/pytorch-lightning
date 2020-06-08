@@ -110,16 +110,20 @@ class EarlyStopping(Callback):
         self.best = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def on_validation_end(self, trainer, pl_module):
-        self._run_early_stopping_check(trainer, pl_module)
+        return self._run_early_stopping_check(trainer, pl_module)
 
     def _run_early_stopping_check(self, trainer, pl_module):
-        # TODO: use the metric from result and update this whole class
         logs = trainer.callback_metrics
         stop_training = False
-        if not self._validate_condition_metric(logs):
-            return stop_training
 
-        current = logs.get(self.monitor)
+        used_structured_result = 'early_stop_on' in logs
+        if not used_structured_result:
+            if not self._validate_condition_metric(logs):
+                return stop_training
+            current = logs.get(self.monitor)
+        else:
+            current = logs['early_stop_on']
+
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
 
