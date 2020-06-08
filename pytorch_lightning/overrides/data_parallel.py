@@ -8,7 +8,7 @@ from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel.replicate import _broadcast_coalesced_reshape
-from core import LightningModule
+from pytorch_lightning.core import LightningModule
 
 
 def _find_tensors(obj):  # pragma: no-cover
