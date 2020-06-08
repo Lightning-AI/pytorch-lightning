@@ -345,6 +345,7 @@ class Trainer(
                 "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
+        import pdb; pdb.set_trace()
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
