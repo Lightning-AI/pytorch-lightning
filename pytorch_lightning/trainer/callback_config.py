@@ -91,7 +91,6 @@ class TrainerCallbackConfigMixin(ABC):
             self.weights_save_path = self.default_root_dir
 
     def configure_early_stopping(self, early_stop_callback):
-        import pdb; pdb.set_trace()
         if early_stop_callback is True or None:
             self.early_stop_callback = EarlyStopping(
                 monitor='val_loss',
