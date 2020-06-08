@@ -290,32 +290,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model_ref = self.get_model()
 
         # output of evaluate
-        eval_loop_result = None
-
-        # -----------------------------
-        # RUN XXX_EPOCH_END
-        # -----------------------------
-        # epoch_end takes the list of results for all dataloaders and the user needs to return a dict or Result
-        # eval_epoch_end_result = Result()
-        eval_key = 'test' if test_mode else 'validation'
-        if self.is_overridden(f'{eval_key}_end', model=model_ref):
-            # TODO: remove in v1.0.0
-            test_end_fx = getattr(model, f'{eval_key}_end')
-            eval_epoch_end_output = test_end_fx(epoch_end_inputs)
-            rank_zero_warn(f'Method `{eval_key}_end` was deprecated in v0.7 and will be removed v1.0.'
-                           f' Use `{eval_key}_epoch_end` instead.', DeprecationWarning)
-            m = f'{eval_key}_end must return a dict or Result object'
-            assert isinstance(eval_epoch_end_output, (dict, Result)), m
-
-            eval_loop_result = [eval_epoch_end_output]
-
-        elif self.is_overridden(f'{eval_key}_epoch_end', model=model_ref):
-            test_epoch_end_fx = getattr(model, f'{eval_key}_epoch_end')
-            eval_epoch_end_output = test_epoch_end_fx(epoch_end_inputs)
-            m = f'{eval_key}_epoch_end must return a dict or Result object'
-            assert isinstance(eval_epoch_end_output, (dict, Result)), m
-
-            eval_loop_result = [eval_epoch_end_output]
+        eval_loop_result = self.__run_eval_epoch_end(epoch_end_inputs, test_mode, model_ref)
 
         # -------------------------------------------
         # auto reduce since user skipped epoch_end
@@ -390,6 +365,29 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_loop_result
 
+    def __run_eval_epoch_end(self, epoch_end_inputs, test_mode, model_ref):
+        eval_key = 'test' if test_mode else 'validation'
+
+        used_eval_end = self.is_overridden(f'{eval_key}_end', model=model_ref)
+        used_eval_epoch_end = self.is_overridden(f'{eval_key}_epoch_end', model=model_ref)
+
+        if used_eval_end:
+            rank_zero_warn(f'Method `{eval_key}_end` was deprecated in v0.7 and will be removed v1.0.'
+                           f' Use `{eval_key}_epoch_end` instead.', DeprecationWarning)
+
+        # run eval_epoch_end or eval_end
+        if used_eval_end or used_eval_epoch_end:
+            fx_name = f'{eval_key}_end' if used_eval_end else f'{eval_key}_epoch_end'
+            test_end_fx = getattr(model_ref, fx_name)
+            eval_epoch_end_output = test_end_fx(epoch_end_inputs)
+
+            m = f'{fx_name} must return a dict or Result object'
+            assert isinstance(eval_epoch_end_output, (dict, Result)), m
+
+            return [eval_epoch_end_output]
+        else:
+            return None
+
     def _dataloader_eval_step(self, model, batch, batch_idx, dataloader_idx, test_mode) -> Result:
         """
         Runs through the following sequence
@@ -426,7 +424,7 @@ class TrainerEvaluationLoopMixin(ABC):
             eval_step_output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
         # make sure minimize not passed by the user in eval mode
-        if isinstance(eval_step_output, Result):
+        if isinstance(eval_step_output, Result) and 'minimize' in eval_step_output:
             m = 'the minimize key can only be specified in the training loop (ie: training_step, _step_end, _epoch_end)'
             assert 'minimize' not in eval_step_output, m
 

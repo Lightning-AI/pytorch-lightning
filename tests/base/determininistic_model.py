@@ -42,10 +42,14 @@ class DeterministicModel(LightningModule):
             early_stop_on=torch.tensor(1.4).type_as(x),
             checkpoint_on=torch.tensor(1.5).type_as(x)
         )
-        result.log('log_acc1', torch.tensor(12).type_as(x))
-        result.log('log_acc2', torch.tensor(7).type_as(x))
-        result.to_pbar('pbar_acc1', torch.tensor(17).type_as(x))
-        result.to_pbar('pbar_acc2', torch.tensor(19).type_as(x))
+        result.log_metrics({
+            'log_acc1': torch.tensor(12).type_as(x),
+            'log_acc2': torch.tensor(7).type_as(x)
+        })
+        result.pbar_metrics({
+            'pbar_acc1': torch.tensor(17).type_as(x),
+            'pbar_acc2': torch.tensor(19).type_as(x)
+        })
         return result
 
     def step(self, batch, batch_idx):
