@@ -826,6 +826,8 @@ class Trainer(
         model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
+        import pdb; pdb.set_trace()
+
         # clean hparams
         if hasattr(model, 'hparams'):
             parsing.clean_namespace(model.hparams)
