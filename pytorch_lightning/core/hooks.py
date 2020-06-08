@@ -243,12 +243,16 @@ class ModelHooks(Module):
         return move_data_to_device(batch, device)
 
 
+class DistributedState:
+    pass
+
+
 class DistributedStateHooks(torch.nn.Module):
 
     def __init__(self):
         super(DistributedStateHooks, self).__init__()
 
-        setattr(self, 'distributed_state', self.DistributedState())
+        setattr(self, 'distributed_state', DistributedState())
 
     def on_after_model_replicate(
         self,
@@ -299,7 +303,4 @@ class DistributedStateHooks(torch.nn.Module):
             within self.distributed_state, anywhere in the LightningModule, will reflect in
             replicas[0].distributed_state and distributed_buffer[0].
         """
-        pass
-
-    class DistributedState:
         pass

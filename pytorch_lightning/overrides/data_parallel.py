@@ -8,6 +8,7 @@ from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel.replicate import _broadcast_coalesced_reshape
+from core import LightningModule
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -39,16 +40,7 @@ def get_a_var(obj):  # pragma: no-cover
 
 
 class LightningDataParallel(DataParallel):
-    r"""Implements data parallelism at the module level.
-
-    This container parallelizes the application of the given :attr:`module` by
-    splitting the input across the specified devices by chunking in the batch
-    dimension (other objects will be copied once per device). In the forward
-    pass, the module is replicated on each device, and each replica handles a
-    portion of the input. During the backwards pass, gradients from each replica
-    are summed into the original module.
-
-    The batch size should be larger than the number of GPUs used.
+    r"""Overrides DataParallel's `forward` and `parallel_apply` methods.
 
     .. warning::
         It is recommended to use :class:`~torch.nn.parallel.DistributedDataParallel`,
@@ -65,6 +57,18 @@ class LightningDataParallel(DataParallel):
     ``device_ids[0]`` before running this :class:`~torch.nn.DataParallel`
     module.
 
+    .. note::
+        :class:`~LightningDataParallel` adds state maintenance to :class:`~DataParallel`,
+        an issue which is explained in the next warning. A container attribute
+        :attr:`distributed_state` is added to :class:`~LightningModule` and a persistent
+        copy of this state is stored in :attr:`distributed_buffer` for all replicas.
+        At the beginning of each forward pass, the replicas are populated with state
+        contained within the :attr:`distributed_buffer`. Also, the :attr:`distributed_state`
+        of :attr:`module` and the replica on ``device[0]`` points to the same copy of state at
+        :attr:`distributed_buffer[0]`. This implies that any changes made to variables in
+        :attr:`self.distributed_state` within :class:`~LightningModule` will also be
+        reflected in the :attr:`distributed_state` of the replica on ``device[0]``.
+
     .. warning::
         In each forward, :attr:`module` is **replicated** on each device, so any
         updates to the running module in ``forward`` will be lost. For example,
@@ -77,13 +81,6 @@ class LightningDataParallel(DataParallel):
         parameters or buffers on ``device[0]`` will be recorded. E.g.,
         :class:`~torch.nn.BatchNorm2d` and :func:`~torch.nn.utils.spectral_norm`
         rely on this behavior to update the buffers.
-
-    .. note::
-        There is a subtlety in using the
-        ``pack sequence -> recurrent network -> unpack sequence`` pattern in a
-        :class:`~torch.nn.Module` wrapped in :class:`~torch.nn.DataParallel`.
-        See :ref:`pack-rnn-unpack-with-data-parallelism` section in FAQ for
-        details.
 
     .. warning::
         Forward and backward hooks defined on :attr:`module` and its submodules
