@@ -881,7 +881,7 @@ class Trainer(
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
-                model.share_memory()
+                # model.share_memory()
 
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
