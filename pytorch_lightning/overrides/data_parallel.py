@@ -8,7 +8,6 @@ from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel.replicate import _broadcast_coalesced_reshape
-from pytorch_lightning.core import LightningModule
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -58,15 +57,15 @@ class LightningDataParallel(DataParallel):
     module.
 
     .. note::
-        :class:`~LightningDataParallel` adds state maintenance to :class:`~DataParallel`,
+        LightningDataParallel adds state maintenance to :class:`~DataParallel`,
         an issue which is explained in the next warning. A container attribute
-        :attr:`distributed_state` is added to :class:`~LightningModule` and a persistent
+        :attr:`distributed_state` is added to :class:`LightningModule` and a persistent
         copy of this state is stored in :attr:`distributed_buffer` for all replicas.
         At the beginning of each forward pass, the replicas are populated with state
         contained within the :attr:`distributed_buffer`. Also, the :attr:`distributed_state`
         of :attr:`module` and the replica on ``device[0]`` points to the same copy of state at
         :attr:`distributed_buffer[0]`. This implies that any changes made to variables in
-        :attr:`self.distributed_state` within :class:`~LightningModule` will also be
+        :attr:`self.distributed_state` within :class:`LightningModule` will also be
         reflected in the :attr:`distributed_state` of the replica on ``device[0]``.
 
     .. warning::
