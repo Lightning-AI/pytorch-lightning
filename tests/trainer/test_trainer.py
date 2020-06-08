@@ -44,9 +44,11 @@ def test_train_val_step_only(tmpdir):
     assert out.early_stop_on == 1.4
     assert out.checkpoint_on == 1.5
 
-    # ---------------------
-    # test when a user uses dict returns throughout
-    # ---------------------
+
+def test_dict_return_train_val_step_only(self):
+
+    # Test 1:
+    # dict returned. Use the metric to track as early_stopping, etc...
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -60,10 +62,26 @@ def test_train_val_step_only(tmpdir):
     assert out.log_on_epoch_end['log_acc2'] == 7.0
     assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
     assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
+    assert 'early_stop_on' not in out
+    assert out.checkpoint_on == 171.0
+
+    # Test 2:
+    # when user defines early stopping, the loss returned in the dict should be used for that
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_dict_return
+
+    loaders = [model.train_dataloader()]
+    trainer = Trainer(fast_dev_run=True, weights_summary=None, early_stop_callback=True)
+    trainer.fit(model)
+
+    out = trainer._evaluate(model, loaders, max_batches=2, test_mode=False)
     assert out.early_stop_on == 171.0
     assert out.checkpoint_on == 171.0
 
-test_train_val_step_only('')
+
+test_dict_return_train_val_step_only('')
+
 
 def test_train_val_step_end(tmpdir):
     """
