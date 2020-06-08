@@ -41,8 +41,8 @@ def test_train_val_step_only(tmpdir):
     assert out.log_on_epoch_end['log_acc2'] == 7.0
     assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
     assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
-    assert out['early_stop_on'] == 1.4
-    assert out['checkpoint_on'] == 1.5
+    assert out.early_stop_on == 1.4
+    assert out.checkpoint_on == 1.5
 
     # ---------------------
     # test when a user uses dict returns throughout
@@ -60,8 +60,8 @@ def test_train_val_step_only(tmpdir):
     assert out.log_on_epoch_end['log_acc2'] == 7.0
     assert out.pbar_on_epoch_end['pbar_acc1'] == 17.0
     assert out.pbar_on_epoch_end['pbar_acc2'] == 19.0
-    assert out['early_stop_on'] == 171.0
-    assert out['checkpoint_on'] == 171.0
+    assert out.early_stop_on == 171.0
+    assert out.checkpoint_on == 171.0
 
 test_train_val_step_only('')
 

@@ -353,15 +353,22 @@ class TrainerEvaluationLoopMixin(ABC):
         torch.set_grad_enabled(True)
 
         # make sure everything is a Result object
-        for i in range(len(eval_loop_result)):
-            output = eval_loop_result[i]
-            if isinstance(output, dict):
+        used_result_obj = isinstance(all_dataloader_outputs[0][0], Result)
+        if not used_result_obj:
+            for i in range(len(eval_loop_result)):
+                output = eval_loop_result[i]
                 output = Result.from_result_dict(output, self)
                 eval_loop_result[i] = output
 
         # merge all results of all dataloaders
         # [dl_results_dict, dl_results-dict] -> dl_results_dict
         eval_loop_result = Result.union(eval_loop_result)
+
+        # for these keys pull out a single result since they are duplicates
+        dedup_list = ['early_stop_on', 'checkpoint_on']
+        for key in dedup_list:
+            if key in eval_loop_result and isinstance(eval_loop_result[key], list):
+                eval_loop_result[key] = eval_loop_result[key][0]
 
         return eval_loop_result
 
