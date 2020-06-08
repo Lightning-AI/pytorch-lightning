@@ -881,13 +881,10 @@ class Trainer(
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
-                # spin up peers
-                mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1))
+                model.share_memory()
 
-                # stay in context for main proc
-                print('*'*100)
-                print('main proc start')
-                self.ddp_train(process_idx=0, model=model, is_master=True)
+                # spin up peers
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
                 print('starting spawn children')
