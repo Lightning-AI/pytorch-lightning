@@ -238,10 +238,10 @@ Example::
     from pytorch_lightning.callbacks import Callback
 
     class PrintCallback(Callback):
-        def on_train_start(self):
+        def on_train_start(self, trainer, pl_module):
             print("Training is started!")
-        def on_train_end(self):
-            print(f"Training is done. The logs are: {self.trainer.logs}")
+        def on_train_end(self, trainer, pl_module):
+            print("Training is done.")
 
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
