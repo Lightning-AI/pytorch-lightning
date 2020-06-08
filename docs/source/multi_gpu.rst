@@ -268,8 +268,9 @@ use `dp` or `ddp_spawn`
 The reason we use ddp this way is because `ddp_spawn` has a few limitations (because of Python and PyTorch):
 
 1. Since `.spawn()` trains the model in subprocesses, the model on the main process does not get updated.
-2. Dataloader(num_workers=N) where N is large bottlenecks training with ddp...
-  ie: it will be VERY slow or not work at all. This is a PyTorch limitation.
+
+2. Dataloader(num_workers=N) where N is large bottlenecks training with ddp... ie: it will be VERY slow or not work at all. This is a PyTorch limitation.
+
 3. Forces everything to be picklable.
 
 However, if you don't mind these limitations, please use `ddp_spawn`.
