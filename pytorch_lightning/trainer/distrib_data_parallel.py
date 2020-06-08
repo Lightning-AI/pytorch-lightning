@@ -467,7 +467,9 @@ class TrainerDDPMixin(ABC):
             device_ids = None
 
         # allow user to configure ddp
+        print('-'*100)
         print('configuring ddp', device_ids, self.root_gpu)
+        print('-'*100)
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
