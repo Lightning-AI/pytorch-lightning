@@ -402,6 +402,7 @@ class TrainerDDPMixin(ABC):
         :param cluster_obj:
         :return:
         """
+        print('ddp_train', process_idx)
         # offset the process id if requested
         process_idx = process_idx + proc_offset
 
