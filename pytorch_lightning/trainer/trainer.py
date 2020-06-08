@@ -1034,7 +1034,7 @@ class Trainer(
                 self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # clear cache before training
-        if self.on_gpu:
+        if self.on_gpu and self.root_gpu is not None:
             # use context because of:
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
