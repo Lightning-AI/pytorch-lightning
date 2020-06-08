@@ -270,6 +270,7 @@ The reason we use ddp this way is because `ddp_spawn` has a few limitations (bec
 1. Since `.spawn()` trains the model in subprocesses, the model on the main process does not get updated.
 2. Dataloader(num_workers=N) where N is large bottlenecks training with ddp...
   ie: it will be VERY slow or not work at all. This is a PyTorch limitation.
+3. Forces everything to be picklable.
 
 However, if you don't mind these limitations, please use `ddp_spawn`.
 
@@ -610,3 +611,18 @@ Jupyter Notebooks
 -----------------
 Unfortunately any `ddp_` is not supported in jupyter notebooks. Please use `dp` for multiple GPUs. This is a known
 Jupyter issue. If you feel like taking a stab at adding this support, feel free to submit a PR!
+
+Pickle Errors
+--------------
+Multi-GPU training sometimes requires your model to be pickled. If you run into an issue with pickling
+try the following to figure out the issue
+
+.. code-block:: python
+
+    import pickle
+
+    model = YourModel()
+    pickle.dumps(model)
+
+However, if you use `ddp` the pickling requirement is not there and you should be fine. If you use `ddp_spawn` the
+pickling requirement remains. This is a limitation of Python.
