@@ -392,6 +392,7 @@ class TrainerDDPMixin(ABC):
             sleep(delay)
 
         local_rank = 0
+        import pdb; pdb.set_trace()
         self.ddp_train(local_rank, model, is_master=True)
 
     def ddp_train(self, process_idx, model, is_master=False, proc_offset=0):
