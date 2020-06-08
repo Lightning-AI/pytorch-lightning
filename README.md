@@ -40,6 +40,11 @@ Simple installation from PyPI
 pip install pytorch-lightning
 ```
 
+From Conda
+```bash
+conda install pytorch-lightning -c conda-forge
+```
+
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
@@ -403,7 +408,7 @@ You can also install any past release `0.X.Y` from this repository:
 pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
 
-### Lightning team
+## Lightning team
 
 #### Leads
 - William Falcon [(williamFalcon)](https://github.com/williamFalcon) (Lightning founder)
@@ -430,7 +435,7 @@ have gone on to fund operations through things like support and special help for
 
 If you are one of these corporations, please feel free to reach out to will@pytorchlightning.ai!
 
-## Bibtex
+## BibTeX
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
 
 ```bibtex
