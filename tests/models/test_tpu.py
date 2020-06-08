@@ -25,7 +25,8 @@ else:
 ])
 def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
     """Test if single TPU core training works"""
-    trainer_options = dict(
+    model = EvalModelTemplate()
+    trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
@@ -33,9 +34,6 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
         val_percent_check=0.1,
         tpu_cores=tpu_cores
     )
-
-    model = EvalModelTemplate()
-    trainer = Trainer(**trainer_options)
     trainer.fit(model)
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
@@ -45,16 +43,14 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_multi_core_tpu_model(tmpdir, tpu_cores):
     """Test if distributed TPU core training works"""
-    trainer_options = dict(
+    model = EvalModelTemplate()
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
         tpu_cores=tpu_cores,
     )
-
-    model = EvalModelTemplate()
-    trainer = Trainer(**trainer_options)
     trainer.fit(model)
     assert trainer.tpu_id is None
 
