@@ -1,8 +1,17 @@
 name: CI testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the master branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 # Trigger the workflow on push or pull request
-on: [push, pull_request]
+# on: [push, pull_request]
 
 jobs:
   build:
@@ -19,6 +28,9 @@ jobs:
           # excludes PT 1.3 as it is missing on pypi
           - python-version: 3.8
             requires: 'minimal'
+          # TODO: temporary fix till hanging jobs on macOS for py38 is resolved
+          - python-version: 3.8
+            os: macOS-10.15
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
@@ -109,7 +121,7 @@ jobs:
       run: |
         # tox --sitepackages
         # flake8 .
-        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --doctest-modules --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         coverage report
 
     - name: Upload pytest test results

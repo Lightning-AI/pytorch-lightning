@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-import tests.base.utils as tutils
 from pytorch_lightning import Trainer, HyperTuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -141,6 +140,7 @@ def test_call_to_tuner_method(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
+@pytest.mark.skip('TODO: speed up this test')
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """

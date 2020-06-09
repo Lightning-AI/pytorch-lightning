@@ -374,6 +374,10 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 # TODO wrap this logic into the callback
+                # DO NOT DELETE
+                # early stopping as a (new Callback) class doesn't yet work because we have to know these
+                # trainer flags including the current epoch stuff
+                # all of this needs to go into the early stopping to clean up better
                 if self.enable_early_stop:
                     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
                         should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
@@ -415,8 +419,8 @@ class TrainerTrainLoopMixin(ABC):
         train_dataloader = self.train_dataloader
 
         # on TPU we have to wrap it under the ParallelLoader
-        if self.use_tpu and self.tpu_id is None:
-            device = xm.xla_device()
+        if self.use_tpu:
+            device = xm.xla_device(self.tpu_id)
             train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
             train_dataloader = train_dataloader.per_device_loader(device)
 
@@ -628,7 +632,7 @@ class TrainerTrainLoopMixin(ABC):
 
                     # track gradient norms when requested
                     if batch_idx % self.row_log_interval == 0:
-                        if self.track_grad_norm > 0:
+                        if float(self.track_grad_norm) > 0:
                             model = self.get_model()
                             grad_norm_dic = model.grad_norm(
                                 self.track_grad_norm)
@@ -753,7 +757,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # TPU support
         elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch)
+            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
             args[0] = batch
             output = self.model.training_step(*args)
 

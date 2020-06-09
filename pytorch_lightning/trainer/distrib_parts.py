@@ -1,339 +1,6 @@
 """
-Lightning makes multi-gpu training and 16 bit training trivial.
-
-.. note:: None of the flags below require changing anything about your lightningModel definition.
-
-Choosing a backend
-==================
-
-Lightning supports two backends. DataParallel and DistributedDataParallel.
- Both can be used for single-node multi-GPU training.
- For multi-node training you must use DistributedDataParallel.
-
-DataParallel (dp)
------------------
-
-Splits a batch across multiple GPUs on the same node. Cannot be used for multi-node training.
-
-DistributedDataParallel (ddp)
------------------------------
-
-Trains a copy of the model on each GPU and only syncs gradients. If used with DistributedSampler, each GPU trains
-on a subset of the full dataset.
-
-DistributedDataParallel-2 (ddp2)
---------------------------------
-
-Works like DDP, except each node trains a single copy of the model using ALL GPUs on that node.
- Very useful when dealing with negative samples, etc...
-
-You can toggle between each mode by setting this flag.
-
-.. code-block:: python
-
-    # DEFAULT (when using single GPU or no GPUs)
-    trainer = Trainer(distributed_backend=None)
-
-    # Change to DataParallel (gpus > 1)
-    trainer = Trainer(distributed_backend='dp')
-
-    # change to distributed data parallel (gpus > 1)
-    trainer = Trainer(distributed_backend='ddp')
-
-    # change to distributed data parallel (gpus > 1)
-    trainer = Trainer(distributed_backend='ddp2')
-
-If you request multiple nodes, the back-end will auto-switch to ddp.
- We recommend you use DistributedDataparallel even for single-node multi-GPU training.
- It is MUCH faster than DP but *may* have configuration issues depending on your cluster.
-
-For a deeper understanding of what lightning is doing, feel free to read this
- `guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
-
-Distributed and 16-bit precision
---------------------------------
-
-Due to an issue with apex and DistributedDataParallel (PyTorch and NVIDIA issue), Lightning does
- not allow 16-bit and DP training. We tried to get this to work, but it's an issue on their end.
-
-Below are the possible configurations we support.
-
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DP | DDP | 16-bit  | command                                                    |
-+=======+=========+====+=====+=========+============================================================+
-| Y     |         |    |     |         | `Trainer(gpus=1)`                                          |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-| Y     |         |    |     | Y       | `Trainer(gpus=1, use_amp=True)`                            |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       | Y  |     |         | `Trainer(gpus=k, distributed_backend='dp')`                |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   |         | `Trainer(gpus=k, distributed_backend='ddp')`               |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-|       | Y       |    | Y   | Y       | `Trainer(gpus=k, distributed_backend='ddp', use_amp=True)` |
-+-------+---------+----+-----+---------+------------------------------------------------------------+
-
-You also have the option of specifying which GPUs to use by passing a list:
-
-.. code-block:: python
-
-    # DEFAULT (int) specifies how many GPUs to use.
-    Trainer(gpus=k)
-
-    # Above is equivalent to
-    Trainer(gpus=list(range(k)))
-
-    # You specify which GPUs (don't use if running on cluster)
-    Trainer(gpus=[0, 1])
-
-    # can also be a string
-    Trainer(gpus='0, 1')
-
-    # can also be -1 or '-1', this uses all available GPUs
-    # this is equivalent to list(range(torch.cuda.available_devices()))
-    Trainer(gpus=-1)
-
-
-CUDA flags
-----------
-
-CUDA flags make certain GPUs visible to your script.
- Lightning sets these for you automatically, there's NO NEED to do this yourself.
-
-.. code-block:: python
-
-    # lightning will set according to what you give the trainer
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-
-However, when using a cluster, Lightning will NOT set these flags (and you should not either).
- SLURM will set these for you.
-
-16-bit mixed precision
-----------------------
-
-16 bit precision can cut your memory footprint by half. If using volta architecture GPUs
- it can give a dramatic training speed-up as well.
- First, install apex (if install fails, look `here <https://github.com/NVIDIA/apex>`__)::
-
-    $ git clone https://github.com/NVIDIA/apex
-    $ cd apex
-
-    # ------------------------
-    # OPTIONAL: on your cluster you might need to load cuda 10 or 9
-    # depending on how you installed PyTorch
-
-    # see available modules
-    module avail
-
-    # load correct cuda before install
-    module load cuda-10.0
-    # ------------------------
-
-    # make sure you've loaded a cuda version > 4.0 and < 7.0
-    module load gcc-6.1.0
-
-    $ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
-
-
-then set this use_amp to True.::
-
-    # DEFAULT
-    trainer = Trainer(amp_level='O2', use_amp=False)
-
-
-Single-gpu
-----------
-
-Make sure you're on a GPU machine.::
-
-    # DEFAULT
-    trainer = Trainer(gpus=1)
-
-Multi-gpu
----------
-
-Make sure you're on a GPU machine. You can set as many GPUs as you want.
- In this setting, the model will run on all 8 GPUs at once using DataParallel under the hood.
-
-.. code-block:: python
-
-    # to use DataParallel
-    trainer = Trainer(gpus=8, distributed_backend='dp')
-
-    # RECOMMENDED use DistributedDataParallel
-    trainer = Trainer(gpus=8, distributed_backend='ddp')
-
-Custom device selection
------------------------
-
-The number of GPUs can also be selected with a list of indices or a string containing
-a comma separated list of GPU ids.
-The table below lists examples of possible input formats and how they are interpreted by Lightning.
-Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
-
-+---------------+-----------+---------------------+---------------------------------+
-| `gpus`        | Type      | Parsed              | Meaning                         |
-+===============+===========+=====================+=================================+
-| None          | NoneType  | None                | CPU                             |
-+---------------+-----------+---------------------+---------------------------------+
-| 0             | int       | None                | CPU                             |
-+---------------+-----------+---------------------+---------------------------------+
-| 3             | int       | [0, 1, 2]           | first 3 GPUs                    |
-+---------------+-----------+---------------------+---------------------------------+
-| -1            | int       | [0, 1, 2, ...]      | all available GPUs              |
-+---------------+-----------+---------------------+---------------------------------+
-| [0]           | list      | [0]                 | GPU 0                           |
-+---------------+-----------+---------------------+---------------------------------+
-| [1, 3]        | list      | [1, 3]              | GPUs 1 and 3                    |
-+---------------+-----------+---------------------+---------------------------------+
-| "0"           | str       | [0]                 | GPU 0                           |
-+---------------+-----------+---------------------+---------------------------------+
-| "3"           | str       | [3]                 | GPU 3                           |
-+---------------+-----------+---------------------+---------------------------------+
-| "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
-+---------------+-----------+---------------------+---------------------------------+
-| "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
-+---------------+-----------+---------------------+---------------------------------+
-
-
-Multi-node
-----------
-
-Multi-node training is easily done by specifying these flags.
-
-.. code-block:: python
-
-    # train on 12*8 GPUs
-    trainer = Trainer(gpus=8, num_nodes=12, distributed_backend='ddp')
-
-
-You must configure your job submission script correctly for the trainer to work.
- Here is an example script for the above trainer configuration.
-
-.. code-block:: bash
-
-    #!/bin/bash -l
-
-    # SLURM SUBMIT SCRIPT
-    #SBATCH --nodes=12
-    #SBATCH --gres=gpu:8
-    #SBATCH --ntasks-per-node=8
-    #SBATCH --mem=0
-    #SBATCH --time=0-02:00:00
-
-    # activate conda env
-    conda activate my_env
-
-    # -------------------------
-    # OPTIONAL
-    # -------------------------
-    # debugging flags (optional)
-    # export NCCL_DEBUG=INFO
-    # export PYTHONFAULTHANDLER=1
-
-    # PyTorch comes with prebuilt NCCL support... but if you have issues with it
-    # you might need to load the latest version from your  modules
-    # module load NCCL/2.4.7-1-cuda.10.0
-
-    # on your cluster you might need these:
-    # set the network interface
-    # export NCCL_SOCKET_IFNAME=^docker0,lo
-    # -------------------------
-
-    # random port between 12k and 20k
-    export MASTER_PORT=$((12000 + RANDOM % 20000))
-
-    # run script from above
-    python my_main_file.py
-
-.. note:: When running in DDP mode, any errors in your code will show up as an NCCL issue.
- Set the `NCCL_DEBUG=INFO` flag to see the ACTUAL error.
-
-Normally now you would need to add a distributed sampler to your dataset, however
-Lightning automates this for you. But if you still need to set a sampler Lightning will
-not interfere nor automate it.
-
-Here's an example of how to add your own sampler (again no need with Lightning).
-
-.. code-block:: python
-
-    # ie: this:
-    dataset = myDataset()
-    dataloader = Dataloader(dataset)
-
-    # becomes:
-    dataset = myDataset()
-    dist_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-    dataloader = Dataloader(dataset, sampler=dist_sampler)
-
-
-Auto-slurm-job-submission
--------------------------
-
-Instead of manually building SLURM scripts, you can use the
-`SlurmCluster object <https://williamfalcon.github.io/test-tube/hpc/SlurmCluster>`_
-to do this for you. The SlurmCluster can also run a grid search if you pass
-in a `HyperOptArgumentParser
-<https://williamfalcon.github.io/test-tube/hyperparameter_optimization/HyperOptArgumentParser>`_.
-
-Here is an example where you run a grid search of 9 combinations of hyperparams.
-The full examples are
-`here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/multi_node_examples>`__.
-
-.. code-block:: python
-
-    # grid search 3 values of learning rate and 3 values of number of layers for your net
-    # this generates 9 experiments (lr=1e-3, layers=16), (lr=1e-3, layers=32),
-    #  (lr=1e-3, layers=64), ... (lr=1e-1, layers=64)
-    parser = HyperOptArgumentParser(strategy='grid_search', add_help=False)
-    parser.opt_list('--learning_rate', default=0.001, type=float,
-                    options=[1e-3, 1e-2, 1e-1], tunable=True)
-    parser.opt_list('--layers', default=1, type=float, options=[16, 32, 64], tunable=True)
-    hyperparams = parser.parse_args()
-
-    # Slurm cluster submits 9 jobs, each with a set of hyperparams
-    cluster = SlurmCluster(
-        hyperparam_optimizer=hyperparams,
-        log_path='/some/path/to/save',
-    )
-
-    # OPTIONAL FLAGS WHICH MAY BE CLUSTER DEPENDENT
-    # which interface your nodes use for communication
-    cluster.add_command('export NCCL_SOCKET_IFNAME=^docker0,lo')
-
-    # see output of the NCCL connection process
-    # NCCL is how the nodes talk to each other
-    cluster.add_command('export NCCL_DEBUG=INFO')
-
-    # setting a master port here is a good idea.
-    cluster.add_command('export MASTER_PORT=%r' % PORT)
-
-    # ************** DON'T FORGET THIS ***************
-    # MUST load the latest NCCL version
-    cluster.load_modules(['NCCL/2.4.7-1-cuda.10.0'])
-
-    # configure cluster
-    cluster.per_experiment_nb_nodes = 12
-    cluster.per_experiment_nb_gpus = 8
-
-    cluster.add_slurm_cmd(cmd='ntasks-per-node', value=8, comment='1 task per gpu')
-
-    # submit a script with 9 combinations of hyper params
-    # (lr=1e-3, layers=16), (lr=1e-3, layers=32), (lr=1e-3, layers=64), ... (lr=1e-1, layers=64)
-    cluster.optimize_parallel_cluster_gpu(
-        main,
-        nb_trials=9, # how many permutations of the grid search to run
-        job_name='name_for_squeue'
-    )
-
-
-The other option is that you generate scripts on your own via a bash command or use another library...
-
-Self-balancing architecture
----------------------------
-
-Here lightning distributes parts of your module across available GPUs to optimize for speed and memory.
+Root module for all distributed operations in Lightning.
+Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 
 """
 
@@ -343,7 +10,7 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
-from typing import Union, Callable
+from typing import Union, Callable, Any, List, Optional
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -351,6 +18,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
+from pytorch_lightning.utilities import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -432,58 +100,50 @@ class TrainerDPMixin(ABC):
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
 
-    def transfer_batch_to_tpu(self, batch):
-        return self.__transfer_data_to_device(batch, device='tpu')
+    def transfer_batch_to_tpu(self, batch: Any, tpu_id: Optional[int] = None):
+        """
+        Transfers the data to the TPU.
 
-    def transfer_batch_to_gpu(self, batch, gpu_id):
-        return self.__transfer_data_to_device(batch, device='gpu', gpu_id=gpu_id)
+        Args:
+            batch: A tensor or collection of tensors.
+            tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
 
-    def __transfer_data_to_device(self, batch, device, gpu_id=None):
-        if device == 'tpu' and XLA_AVAILABLE:
-            # base case: object can be directly moved using `to`
-            if callable(getattr(batch, 'to', None)):
-                xla_device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
-                return batch.to(xla_device)
+        Return:
+            the tensor on the TPU device.
 
-        if device == 'gpu':
-            # base case: object can be directly moved using `cuda` or `to`
-            if callable(getattr(batch, 'cuda', None)):
-                # non_blocking will be ignored if tensor is not pinned.
-                # so we can always set it to True
-                return batch.cuda(gpu_id, non_blocking=True)
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
+        """
+        if not XLA_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested to transfer batch to TPU but XLA is not available.'
+                ' Are you sure this machine has TPUs?'
+            )
+        device = xm.xla_device(tpu_id)
+        return self.__transfer_batch_to_device(batch, device)
 
-            if callable(getattr(batch, 'to', None)):
-                # non_blocking will be ignored if tensor is not pinned.
-                # so we can always set it to True
-                return batch.to(torch.device('cuda', gpu_id), non_blocking=True)
+    def transfer_batch_to_gpu(self, batch: Any, gpu_id: Optional[int] = None):
+        """
+        Transfers the data to the GPU.
 
-        # when list
-        if isinstance(batch, list):
-            for i, x in enumerate(batch):
-                batch[i] = self.__transfer_data_to_device(x, device, gpu_id)
-            return batch
+        Args:
+            batch: A tensor or collection of tensors.
+            gpu_id: The id of the GPU device. If omitted, the first available GPU is chosen.
 
-        # when tuple
-        if isinstance(batch, tuple):
-            # when namedtuple
-            if hasattr(batch, '_fields'):
-                elem_type = type(batch)
-                return elem_type(*(self.__transfer_data_to_device(x, device, gpu_id) for x in batch))
-            else:
-                batch = list(batch)
-                for i, x in enumerate(batch):
-                    batch[i] = self.__transfer_data_to_device(x, device, gpu_id)
-                return tuple(batch)
+        Return:
+            the tensor on the GPU device.
 
-        # when dict
-        if isinstance(batch, dict):
-            for k, v in batch.items():
-                batch[k] = self.__transfer_data_to_device(v, device, gpu_id)
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
+        """
+        device = torch.device('cuda', gpu_id)
+        return self.__transfer_batch_to_device(batch, device)
 
-            return batch
-
-        # nothing matches, return the value as is without transform
-        return batch
+    def __transfer_batch_to_device(self, batch: Any, device: torch.device):
+        model = self.get_model()
+        if model is not None:
+            return model.transfer_batch_to_device(batch, device)
+        return move_data_to_device(batch, device)
 
     def single_gpu_train(self, model):
         model.cuda(self.root_gpu)
@@ -644,26 +304,27 @@ def normalize_parse_gpu_string_input(s):
         return s
 
 
-def get_all_available_gpus():
+def get_all_available_gpus() -> List[int]:
     """
-    :return: a list of all available gpus
+    Returns:
+         a list of all available gpus
     """
     return list(range(torch.cuda.device_count()))
 
 
-def check_gpus_data_type(gpus):
+def check_gpus_data_type(gpus: Any) -> None:
     """
-    :param gpus: gpus parameter as passed to the Trainer
-        Function checks that it is one of: None, Int, String or List
-        Throws otherwise
-    :return: return unmodified gpus variable
-    """
+    Checks that the gpus argument is one of: None, Int, String or List.
+    Raises a MisconfigurationException otherwise.
 
+    Args:
+        gpus: parameter as passed to the Trainer
+    """
     if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
         raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
 
 
-def normalize_parse_gpu_input_to_list(gpus):
+def normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
     assert gpus is not None
     if isinstance(gpus, list):
         return gpus
@@ -677,12 +338,16 @@ def normalize_parse_gpu_input_to_list(gpus):
     return list(range(gpus))
 
 
-def sanitize_gpu_ids(gpus):
+def sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     """
-    :param gpus: list of ints corresponding to GPU indices
-        Checks that each of the GPUs in the list is actually available.
-        Throws if any of the GPUs is not available.
-    :return: unmodified gpus variable
+    Checks that each of the GPUs in the list is actually available.
+    Raises a MisconfigurationException if any of the GPUs is not available.
+
+    Args:
+        gpus: list of ints corresponding to GPU indices
+
+    Returns:
+        unmodified gpus variable
     """
     all_available_gpus = get_all_available_gpus()
     misconfig = False
@@ -704,18 +369,23 @@ def sanitize_gpu_ids(gpus):
     return gpus
 
 
-def parse_gpu_ids(gpus):
+def parse_gpu_ids(gpus: Union[int, str, List]) -> Optional[List[int]]:
     """
-    :param gpus: Int, string or list
-        An int -1 or string '-1' indicate that all available GPUs should be used.
-        A list of ints or a string containing list of comma separated integers
-        indicates specific GPUs to use
-        An int 0 means that no GPUs should be used
-        Any int N > 0 indicates that GPUs [0..N) should be used.
-    :return: List of gpus to be used
+    Parses the GPU ids given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer`.
 
-        If no GPUs are available but the value of gpus variable indicates request for GPUs
-        then a misconfiguration exception is raised.
+    Args:
+        gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
+            A list of ints or a string containing list of comma separated integers
+            indicates specific GPUs to use.
+            An int 0 means that no GPUs should be used.
+            Any int N > 0 indicates that GPUs [0..N) should be used.
+
+    Returns:
+        a list of gpus to be used or ``None`` if no GPUs were requested
+
+    If no GPUs are available but the value of gpus variable indicates request for GPUs
+    then a MisconfigurationException is raised.
     """
 
     # nothing was passed into the GPUs argument
@@ -741,10 +411,13 @@ def parse_gpu_ids(gpus):
     return gpus
 
 
-def determine_root_gpu_device(gpus):
+def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     """
-    :param gpus: non empty list of ints representing which gpus to use
-    :return: designated root GPU device
+    Args:
+        gpus: non-empty list of ints representing which gpus to use
+
+    Returns:
+        designated root GPU device id
     """
     if gpus is None:
         return None

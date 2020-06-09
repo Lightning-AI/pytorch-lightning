@@ -46,8 +46,8 @@ Please copy and paste the output from our
 You can get the script and run it with:
 ```
 wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/tests/collect_env_details.py
-# For security purposes, please check the contents of collect_env.py before running it.
-python collect_env.py
+# For security purposes, please check the contents of collect_env_details.py before running it.
+python collect_env_details.py
 ```
 
  - PyTorch Version (e.g., 1.0):

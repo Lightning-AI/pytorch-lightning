@@ -1,5 +1,4 @@
 import os
-from argparse import Namespace
 
 import numpy as np
 import torch
@@ -12,20 +11,25 @@ from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
 
 
-def assert_speed_parity(pl_times, pt_times, num_epochs):
-
+def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
     # assert speeds
-    max_diff_per_epoch = 0.65
-    pl_times = np.asarray(pl_times)
-    pt_times = np.asarray(pt_times)
-    diffs = pl_times - pt_times
-    diffs = diffs / num_epochs
-
-    assert np.alltrue(diffs < max_diff_per_epoch), \
-        f"lightning was slower than PT (threshold {max_diff_per_epoch})"
+    diffs = np.asarray(pl_times) - np.asarray(pt_times)
+    # norm by vanila time
+    diffs = diffs / np.asarray(pt_times)
+    assert np.alltrue(diffs < max_diff), \
+        f"lightning {diffs} was slower than PT (threshold {max_diff})"
 
 
-def run_model_test_without_loggers(trainer_options, model, min_acc=0.30):
+def assert_speed_parity_absolute(pl_times, pt_times, nb_epochs, max_diff: float = 0.6):
+    # assert speeds
+    diffs = np.asarray(pl_times) - np.asarray(pt_times)
+    # norm by vanila time
+    diffs = diffs / nb_epochs
+    assert np.alltrue(diffs < max_diff), \
+        f"lightning {diffs} was slower than PT (threshold {max_diff})"
+
+
+def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50):
     reset_seed()
 
     # fit model
@@ -54,7 +58,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc=0.30):
         trainer.optimizers, trainer.lr_schedulers = pretrained_model.configure_optimizers()
 
 
-def run_model_test(trainer_options, model, on_gpu=True, version=None, with_hpc=True):
+def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
@@ -155,7 +159,7 @@ def load_model_from_checkpoint(root_weights_dir, module_class=EvalModelTemplate)
     return trained_model
 
 
-def run_prediction(dataloader, trained_model, dp=False, min_acc=0.3):
+def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     # run prediction on 1 batch
     for batch in dataloader:
         break

@@ -249,8 +249,8 @@ class TrainerEvaluationLoopMixin(ABC):
             dl_outputs = []
 
             # on TPU we have to wrap it under the ParallelLoader
-            if self.use_tpu and self.tpu_id is None:
-                device = xm.xla_device()
+            if self.use_tpu:
+                device = xm.xla_device(self.tpu_id)
                 dataloader = xla_pl.ParallelLoader(dataloader, [device])
                 dataloader = dataloader.per_device_loader(device)
 
@@ -434,7 +434,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # TPU data  transfer
         if self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch)
+            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
             args[0] = batch
 
         # CPU, TPU or gpu step

@@ -1,6 +1,5 @@
 import inspect
 import os
-import logging as python_logging
 from argparse import ArgumentParser, Namespace
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -98,7 +97,7 @@ class Trainer(
             log_gpu_memory: Optional[str] = None,
             progress_bar_refresh_rate: int = 1,
             overfit_pct: float = 0.0,
-            track_grad_norm: int = -1,
+            track_grad_norm: Union[int, float, str] = -1,
             check_val_every_n_epoch: int = 1,
             fast_dev_run: bool = False,
             accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
@@ -202,7 +201,7 @@ class Trainer(
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
-            track_grad_norm: -1 no tracking. Otherwise tracks that norm
+            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
@@ -245,7 +244,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use.
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
@@ -339,7 +338,12 @@ class Trainer(
             self.gradient_clip = gradient_clip
 
         self.check_val_every_n_epoch = check_val_every_n_epoch
-        self.track_grad_norm = track_grad_norm
+
+        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+            raise MisconfigurationException(
+                "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+        self.track_grad_norm = float(track_grad_norm)
+
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
@@ -691,7 +695,7 @@ class Trainer(
                 if len(arg_types) == 1:
                     # redefine the type for ArgParser needed
                     def use_type(x):
-                        return bool(parsing.strtobool(x))
+                        return bool(parsing.str_to_bool(x))
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
@@ -821,7 +825,7 @@ class Trainer(
             train, val = DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
-            trainer.fit(model, train_dataloader=train, val_dataloader=val)
+            trainer.fit(model, train_dataloader=train, val_dataloaders=val)
 
             # Option 1 & 2 can be mixed, for example the training set can be
             # defined as part of the model, and validation can then be feed to .fit()
@@ -869,8 +873,15 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
+                self.__set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+
+            elif self.distributed_backend == 'ddp_spawn':
+                model.share_memory()
+
+                # spin up peers
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
                 self.spawn_ddp_children(model)
@@ -968,7 +979,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            self.logger.log_hyperparams(ref_model.module_arguments)
+            self.logger.log_hyperparams(ref_model.hparams)
 
             self.logger.save()
 
@@ -1038,7 +1049,7 @@ class Trainer(
                 self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # clear cache before training
-        if self.on_gpu:
+        if self.on_gpu and self.root_gpu is not None:
             # use context because of:
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):

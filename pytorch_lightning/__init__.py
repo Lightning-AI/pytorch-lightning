@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.8.0-dev'
+__version__ = '0.8.0rc1'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -62,8 +62,8 @@ else:
         'HyperTuner'
         'LightningModule',
         'Callback',
-        'data_loader'
-        'seed_everything'
+        'data_loader',
+        'seed_everything',
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed

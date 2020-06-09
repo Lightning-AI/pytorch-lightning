@@ -248,9 +248,8 @@ def test_mixing_of_dataloader_options(tmpdir):
         f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
+@pytest.mark.skip('TODO: speed up this test')
 def test_train_inf_dataloader_error(tmpdir):
-    pytest.skip('TODO: fix speed of this test')
-
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
@@ -261,9 +260,8 @@ def test_train_inf_dataloader_error(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skip('TODO: speed up this test')
 def test_val_inf_dataloader_error(tmpdir):
-    pytest.skip('TODO: fix speed of this test')
-
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__infinite
@@ -274,9 +272,8 @@ def test_val_inf_dataloader_error(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.skip('TODO: speed up this test')
 def test_test_inf_dataloader_error(tmpdir):
-    pytest.skip('TODO: fix speed of this test')
-
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__infinite
@@ -288,9 +285,8 @@ def test_test_inf_dataloader_error(tmpdir):
 
 
 @pytest.mark.parametrize('check_interval', [50, 1.0])
+@pytest.mark.skip('TODO: speed up this test')
 def test_inf_train_dataloader(tmpdir, check_interval):
-    pytest.skip('TODO: fix speed of this test')
-
     """Test inf train data loader (e.g. IterableDataset)"""
 
     model = EvalModelTemplate()
@@ -307,9 +303,8 @@ def test_inf_train_dataloader(tmpdir, check_interval):
 
 
 @pytest.mark.parametrize('check_interval', [1.0])
+@pytest.mark.skip('TODO: speed up this test')
 def test_inf_val_dataloader(tmpdir, check_interval):
-    pytest.skip('TODO: fix speed of this test')
-
     """Test inf val data loader (e.g. IterableDataset)"""
 
     model = EvalModelTemplate()
@@ -415,6 +410,20 @@ def test_dataloader_reinit_for_subclass():
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
+
+    # Shuffled DataLoader should also work
+    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), train=True)
+    assert isinstance(result, torch.utils.data.DataLoader)
+    assert isinstance(result, CustomDataLoader)
+    assert hasattr(result, 'dummy_kwarg')
+
+    class CustomSampler(torch.utils.data.Sampler):
+        pass
+
+    # Should raise an error if existing sampler is being replaced
+    with pytest.raises(MisconfigurationException, match='DistributedSampler'):
+        trainer.auto_add_sampler(
+            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
