@@ -26,7 +26,7 @@ class ValidationEpochEndVariations(ABC):
         val_acc_mean = _mean(outputs, 'val_acc')
 
         # alternate between tensor and scalar
-        if self.current_epoch % 2:
+        if self.current_epoch % 2 == 0:
             metrics_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
         else:
             metrics_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
