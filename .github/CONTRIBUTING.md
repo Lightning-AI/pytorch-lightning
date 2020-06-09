@@ -60,7 +60,7 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 We are currently looking for help implementing new features or adding bug fixes.
 
-A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
+A lot of good work has already been done in project mechanics (requirements/default.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
 
@@ -137,8 +137,8 @@ formatting errors. In certain cases, a missing blank line or a wrong indent can 
 Run these commands
 
 ```bash
+pip install -r requirements/docs.txt
 cd docs
-pip install -r requirements.txt
 make html
 ```
 
@@ -153,9 +153,8 @@ Testing your work locally will help you speed up the process since it allows you
 To setup a local development environment, install both local and test dependencies:
 
 ```bash
-python -m pip install -r requirements.txt
-python -m pip install -r tests/requirements-devel.txt
-python -m pip install -r pl_examples/requirements.txt
+python -m pip install -r requirements/devel.txt
+python -m pip install -r requirements/examples.txt
 python -m pip pre-commit install
 ```
 
