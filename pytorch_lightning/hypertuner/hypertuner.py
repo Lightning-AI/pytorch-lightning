@@ -5,18 +5,19 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.tuner.lr_finder import TunerLRFinderMixin
-from pytorch_lightning.tuner.batch_scaler import TunerBatchScalerMixin
+from pytorch_lightning.hypertuner.lr_finder import HyperTunerLRFinderMixin
+from pytorch_lightning.hypertuner.batch_scaler import HyperTunerBatchScalerMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.warnings import ExperimentalWarning
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 
 
-class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
+class HyperTuner(HyperTunerLRFinderMixin, HyperTunerBatchScalerMixin):
     r"""
-    Flags for enabling and disabling automatic tuner algorithms. For manual control
-    call each tuner algorithm by its own method.
+    HyperTuner class can help tuning hyperparameters before fitting your model.
+    Currently the class support tuning the learning rate and batch size of your
+    model.
 
     Args:
         auto_lr_find: If set to True, will run a learning rate finder,
@@ -45,7 +46,7 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
         self._scale_batch_size_called = False
         self._lr_find_called = False
 
-        rank_zero_warn('Tuner class is `experimental`, meaning that some of'
+        rank_zero_warn('HyperTuner class is `experimental`, meaning that some of'
                        ' its functionality is under tested and its interface may'
                        ' change drastically within the next few releases',
                        ExperimentalWarning)
@@ -71,7 +72,17 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
 
         Example::
 
-            # TODO example
+            # Automatically tune hyperparameters
+            from pytorch_lightning import Trainer, HyperTuner
+            model = ModelClass(...)
+            trainer = Trainer(...)
+
+            tuner = HyperTuner(trainer, 
+                               auto_scale_batch_size=True,
+                               auto_lr_find=True)
+            tuner.tune(model)  # automatically tunes hyperparameters
+
+            trainer.fit(model)
 
         """
         # Bind train_dataloader and val_dataloader to trainer
@@ -81,17 +92,13 @@ class Tuner(TunerLRFinderMixin, TunerBatchScalerMixin):
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
-            self._call_internally(model,
-                                  self.scale_batch_size,
-                                  self.auto_scale_batch_size,
-                                  'batch_size')
+            self._call_internally(model, self.scale_batch_size,
+                                  self.auto_scale_batch_size, 'batch_size')
 
         # Run learning rate finder:
         if self.auto_lr_find:
-            self._call_internally(model,
-                                  self.lr_find,
-                                  self.auto_lr_find,
-                                  'learning_rate')
+            self._call_internally(model, self.lr_find,
+                                  self.auto_lr_find, 'learning_rate')
 
         # Reset model logger
         model.logger = self.trainer.logger

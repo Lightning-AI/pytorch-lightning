@@ -2,7 +2,7 @@ import pytest
 import torch
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer, Tuner
+from pytorch_lightning import Trainer, HyperTuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -21,7 +21,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = model.state_dict()
 
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
     tuner.scale_batch_size(model, max_trials=5)
 
     after_state_dict = model.state_dict()
@@ -42,7 +42,7 @@ def test_trainer_reset_correctly(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     changed_attributes = ['max_steps',
                           'weights_summary',
@@ -90,7 +90,7 @@ def test_tuner_arg(tmpdir, tuner_arg):
         max_epochs=1,
     )
     model.__dict__['my_batch_arg'] = 2
-    tuner = Tuner(trainer, auto_scale_batch_size=tuner_arg)
+    tuner = HyperTuner(trainer, auto_scale_batch_size=tuner_arg)
 
     tuner.tune(model)
     after_batch_size = model.batch_size
@@ -112,7 +112,7 @@ def test_call_to_tuner_method(tmpdir, scale_method):
         default_save_path=tmpdir,
         max_epochs=1,
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     batch_scaler = tuner.scale_batch_size(model, mode=scale_method, max_trials=8)
     after_batch_size = batch_scaler.suggestion()
@@ -135,7 +135,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         val_percent_check=0.1,
         train_percent_check=0.2,
     )
-    tuner = Tuner(trainer, auto_scale_batch_size=True)
+    tuner = HyperTuner(trainer, auto_scale_batch_size=True)
     tune_options = dict(train_dataloader=model.dataloader(train=True))
 
     with pytest.raises(MisconfigurationException):

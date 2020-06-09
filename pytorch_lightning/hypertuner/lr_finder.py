@@ -16,7 +16,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 
-class TunerLRFinderMixin(ABC):
+class HyperTunerLRFinderMixin(ABC):
     def _lr_finder_call_order(self):
         pass  # nothing to check
 

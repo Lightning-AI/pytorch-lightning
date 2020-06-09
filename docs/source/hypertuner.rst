@@ -1,7 +1,7 @@
 .. role:: hidden
     :class: hidden-section
 
-Tuner
+HyperTuner
 =====
-.. automodule:: pytorch_lightning.tuner   
+.. automodule:: pytorch_lightning.hypertuner   
    :noindex:   

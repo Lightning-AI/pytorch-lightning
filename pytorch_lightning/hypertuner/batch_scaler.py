@@ -20,7 +20,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr, lightning_getattr
 
 
-class TunerBatchScalerMixin(ABC):
+class HyperTunerBatchScalerMixin(ABC):
     def _batch_scaler_call_order(self):
         if self._lr_find_called:
             rank_zero_warn(
@@ -96,10 +96,11 @@ class TunerBatchScalerMixin(ABC):
         garbage_collection_cuda()
 
         # Convert times to work on same data amount
-        max_batch_size = max(bs for bs, suc in
-                             zip(batch_scaler.results['batch_size'], batch_scaler.results['fits_in_memory']) if suc)
+        max_batch_size = max(bs for bs, suc in zip(batch_scaler.results['batch_size'], 
+                                                   batch_scaler.results['fits_in_memory']) if suc)
         batch_scaler.results['time'] = [t * max_batch_size / bs for t, bs in
-                                        zip(batch_scaler.results['time'], batch_scaler.results['batch_size'])]
+                                        zip(batch_scaler.results['time'], 
+                                            batch_scaler.results['batch_size'])]
 
         # Restore initial state of model
         self.trainer.restore(str(save_path), on_gpu=self.trainer.on_gpu)

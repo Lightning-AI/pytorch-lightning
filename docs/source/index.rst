@@ -25,7 +25,7 @@ PyTorch Lightning Documentation
    loggers
    metrics
    trainer
-   tuner
+   hypertuner
 
 .. toctree::
    :maxdepth: 1

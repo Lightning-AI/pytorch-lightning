@@ -53,13 +53,13 @@ else:
     from pytorch_lightning.core import LightningModule
     from pytorch_lightning.trainer import Trainer
     from pytorch_lightning.trainer.seed import seed_everything
-    from pytorch_lightning.tuner import Tuner
+    from pytorch_lightning.hypertuner import HyperTuner
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.core import data_loader
 
     __all__ = [
         'Trainer',
-        'Tuner'
+        'HyperTuner'
         'LightningModule',
         'Callback',
         'data_loader'

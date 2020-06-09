@@ -2,7 +2,7 @@ import pytest
 import torch
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer, Tuner
+from pytorch_lightning import Trainer, HyperTuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -18,7 +18,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     with pytest.raises(MisconfigurationException):
         tuner.lr_find(model)
@@ -34,7 +34,7 @@ def test_model_reset_correctly(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     before_state_dict = model.state_dict()
 
@@ -57,7 +57,7 @@ def test_trainer_reset_correctly(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     changed_attributes = ['callbacks', 'logger', 'val_check_interval',
                           'max_steps', 'checkpoint_callback', 'early_stop_callback',
@@ -91,7 +91,7 @@ def test_tuner_arg_bool(tmpdir):
         max_epochs=2,
         auto_lr_find=True
     )
-    tuner = Tuner(trainer, auto_lr_find=True)
+    tuner = HyperTuner(trainer, auto_lr_find=True)
 
     tuner.tune(model)
     after_lr = model.learning_rate
@@ -111,7 +111,7 @@ def test_tuner_arg_str(tmpdir):
         max_epochs=2,
         auto_lr_find='my_fancy_lr'
     )
-    tuner = Tuner(trainer, auto_lr_find='my_fancy_lr')
+    tuner = HyperTuner(trainer, auto_lr_find='my_fancy_lr')
 
     tuner.tune(model)
     after_lr = model.my_fancy_lr
@@ -131,7 +131,7 @@ def test_call_to_tuner_method(tmpdir):
         default_save_path=tmpdir,
         max_epochs=2,
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     lrfinder = tuner.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
@@ -156,7 +156,7 @@ def test_accumulation_and_early_stopping(tmpdir):
         default_save_path=tmpdir,
         accumulate_grad_batches=2,
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     lrfinder = tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
@@ -180,7 +180,7 @@ def test_suggestion_parameters_work(tmpdir):
         default_save_path=tmpdir,
         max_epochs=3,
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     lrfinder = tuner.lr_find(model)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
@@ -201,7 +201,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
         default_save_path=tmpdir,
         max_epochs=3
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     lrfinder = tuner.lr_find(model)
     before_lr = lrfinder.suggestion()

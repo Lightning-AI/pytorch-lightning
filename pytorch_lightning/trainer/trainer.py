@@ -127,8 +127,8 @@ class Trainer(
             reload_dataloaders_every_epoch: bool = False,
             replace_sampler_ddp: bool = True,
             terminate_on_nan: bool = False,
-            auto_lr_find: Optional[Union[bool, str]] = None,  # backward compatible, todo: remove in v0.9.0
-            auto_scale_batch_size: Optional[Union[str, bool]] = None,  # backward compatible, todo: remove in v0.9.0
+            auto_lr_find: Optional[Union[bool, str]] = None,  # backward comp todo: remove in v0.9.0
+            auto_scale_batch_size: Optional[Union[str, bool]] = None,  # backward comp. todo: remove in v0.9.0
             num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
             amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
             default_save_path=None,  # backward compatible, todo: remove in v0.8.0
