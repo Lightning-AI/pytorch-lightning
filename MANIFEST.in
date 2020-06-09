@@ -29,8 +29,7 @@ recursive-include docs/source/_images/logos/ *
 recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_*
 
 # Include the Requirements
-include requirements/default.txt
-include requirements/extra.txt
+recursive-include requirements *.txt
 
 # Exclude build configs
 exclude *.yml
