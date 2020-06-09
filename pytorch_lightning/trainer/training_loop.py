@@ -145,7 +145,7 @@ import atexit
 import signal
 from abc import ABC, abstractmethod
 from typing import Callable
-from typing import Union, List
+from typing import Union, List, Optional
 
 import numpy as np
 import torch
@@ -236,7 +236,7 @@ class TrainerTrainLoopMixin(ABC):
     total_batch_idx: int
     checkpoint_callback: ...
     terminate_on_nan: bool
-    tpu_id: int
+    tpu_id: Optional[int]
     interactive_ddp_procs: List
 
     # Callback system

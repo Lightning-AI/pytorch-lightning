@@ -64,8 +64,9 @@ class TrainerDPMixin(ABC):
     use_native_amp: bool
     data_parallel_device_ids: ...
     progress_bar_callback: ...
-    tpu_id: int
+    tpu_id: Optional[int]
     on_colab_kaggle: str
+    save_spawn_weights: Callable
 
     @property
     @abstractmethod
@@ -86,10 +87,6 @@ class TrainerDPMixin(ABC):
 
     @abstractmethod
     def reinit_scheduler_properties(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def save_spawn_weights(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def copy_trainer_model_properties(self, model):

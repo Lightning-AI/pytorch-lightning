@@ -124,7 +124,7 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 from torch.utils.data import DataLoader
@@ -177,7 +177,7 @@ class TrainerEvaluationLoopMixin(ABC):
     val_dataloaders: DataLoader
     use_tpu: bool
     reload_dataloaders_every_epoch: ...
-    tpu_id: int
+    tpu_id: Optional[int]
     profiler: BaseProfiler
 
     # Callback system
