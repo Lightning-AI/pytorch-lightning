@@ -77,7 +77,7 @@ class HyperTuner(HyperTunerLRFinderMixin, HyperTunerBatchScalerMixin):
             model = ModelClass(...)
             trainer = Trainer(...)
 
-            tuner = HyperTuner(trainer, 
+            tuner = HyperTuner(trainer,
                                auto_scale_batch_size=True,
                                auto_lr_find=True)
             tuner.tune(model)  # automatically tunes hyperparameters

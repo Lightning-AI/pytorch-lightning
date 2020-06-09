@@ -170,7 +170,7 @@ class HyperTunerLRFinderMixin(ABC):
 
 
 class LRFinderCallback(Callback):
-    """ 
+    """
     LR finder callback. This object stores the results of HyperTuner.lr_find().
     The logged lr and loss can be round `.results` field.
 
@@ -184,6 +184,7 @@ class LRFinderCallback(Callback):
         num_training: number of steps to take between lr_min and lr_max
 
     """
+
     def __init__(self, mode: str, lr_min: float, lr_max: float, monitor_val: str,
                  num_training: int, early_stop_threshold: float = 4.0,
                  beta: float = 0.98, progress_bar_refresh_rate: bool = True):
@@ -242,7 +243,7 @@ class LRFinderCallback(Callback):
         return fig
 
     def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
-        """ 
+        """
         This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
 

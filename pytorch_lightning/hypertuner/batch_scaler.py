@@ -96,10 +96,10 @@ class HyperTunerBatchScalerMixin(ABC):
         garbage_collection_cuda()
 
         # Convert times to work on same data amount
-        max_batch_size = max(bs for bs, suc in zip(batch_scaler.results['batch_size'], 
+        max_batch_size = max(bs for bs, suc in zip(batch_scaler.results['batch_size'],
                                                    batch_scaler.results['fits_in_memory']) if suc)
         batch_scaler.results['time'] = [t * max_batch_size / bs for t, bs in
-                                        zip(batch_scaler.results['time'], 
+                                        zip(batch_scaler.results['time'],
                                             batch_scaler.results['batch_size'])]
 
         # Restore initial state of model
@@ -156,18 +156,18 @@ class BatchScaler(object):
     def __init__(self):
         """ Simple object for interacting with the results of the batch
             size scaler. The results are stored in `.results` field.
-        
+
         """
         self.results = {'batch_size': [], 'time': [], 'fits_in_memory': []}
 
     def plot(self, suggest=True, show=False):
         """ Plot results from batch_size_scaler run
-        
+
         Args:
             suggest: if True, will mark suggested lr to use with a red point
 
             show: if True, will show figure
-            
+
         """
         import matplotlib.pyplot as plt
 
@@ -201,14 +201,14 @@ class BatchScaler(object):
         return fig
 
     def suggestion(self, condition='size'):
-        r""" 
-        This will propose a suggestion for choice of batch size either base 
-        on choosing the largest batch that fits in memory (default) or the 
+        r"""
+        This will propose a suggestion for choice of batch size either base
+        on choosing the largest batch that fits in memory (default) or the
         batch size that approximately give the fastest training time.
-            
+
         Args:
             condition: either `size` or `speed`
-            
+
         """
         assert condition in ['size', 'speed'], \
             'condition needs to be either `size` or `speed`'

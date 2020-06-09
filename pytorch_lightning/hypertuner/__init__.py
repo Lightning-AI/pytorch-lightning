@@ -15,14 +15,14 @@ tuner algorithms implemented
     * Learning Rate Finder
 
 .. note::
-    
+
     The `HyperTuner` class is **experimental**. This means that some of its
     functionality is under tested and its interface *may* change drastically
     within the next few releases
 
-.. warning:: 
-    
-    HyperTuner is not supported for DDP or 16-bit precision yet, 
+.. warning::
+
+    HyperTuner is not supported for DDP or 16-bit precision yet,
     it is coming soon.
 
 *************************************
@@ -32,17 +32,17 @@ Automatic hyperparameter optimization
 Most users should be able to use the `HyperTuner` class with their existing
 lightning implementation to automatically optimize some of their hyperparameters.
 This can be done by:
-    
+
 .. code-block:: python
-    
+
     from pytorch_lightning import Trainer, HyperTuner
-    
+
     # Instanciate model and trainer
     model = ModelClass(...)
     trainer = Trainer(...)
-    
+
     # Automatically tune hyperparameters
-    tuner = HyperTuner(trainer, 
+    tuner = HyperTuner(trainer,
                        auto_scale_batch_size=True,
                        auto_lr_find=True)
     tuner.tune(model)  # automatically tunes hyperparameters
@@ -52,7 +52,7 @@ This can be done by:
 
 The main method of the `HyperTuner` class is the `.tune` method. This method
 works similar to `.fit` of the trainer class. This will automatically run
-the hyperparameter search using default search parameters. 
+the hyperparameter search using default search parameters.
 
 .. autoclass:: pytorch_lightning.hypertuner.hypertuner.HyperTuner
    :members: tune
@@ -103,8 +103,8 @@ a binary search.
 
     This feature does *NOT* work when passing dataloaders directly to `.fit()`. This
     is due to your dataloader needs to depend on field `batch_size` that can be adjusted
-    during the search i.e. your `train_dataloader()` should look something like this 
-    
+    during the search i.e. your `train_dataloader()` should look something like this
+
     .. code-block:: python
 
         def train_dataloader(self):
@@ -118,13 +118,13 @@ invoking the tuner method `.scale_batch_size` themself (see description below).
     # Construct trainer and default hypertuner
     trainer = Trainer(...)
     tuner = HyperTuner(trianer, ...)
-    
+
     # Invoke method
     batch_size_obj = tuner.scale_batch_size(model, ...)
-    
+
     # Plot results
     batch_size_obj.plot(suggest=True, show=True)
-    
+
     # Get suggestion
     new_batch_size = batch_size_obj.suggestion()
 
@@ -167,9 +167,9 @@ This feature supports both monitoring the learning rate vs the training loss and
 monitoring the learning rate vs the validation loss. While monitoring the validation
 loss normally give better estimates of the learning rate than monitoring the training
 loss, it comes at the severe computationally expense since we have to evaluate the
-full validation set after each gradient step. 
+full validation set after each gradient step.
 
-The parameters of the learning rate finder can be adjusted by invoking the 
+The parameters of the learning rate finder can be adjusted by invoking the
 tuner method `lr_find`. A typical example of this would look like
 
 .. code-block:: python
@@ -177,7 +177,7 @@ tuner method `lr_find`. A typical example of this would look like
     model = MyModelClass(hparams)
     trainer = Trainer()
     tuner = HyperTuner(trainer)
-    
+
     # Run learning rate finder
     lr_finder = tuner.lr_find(model)
 
