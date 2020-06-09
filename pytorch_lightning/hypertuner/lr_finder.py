@@ -170,23 +170,20 @@ class HyperTunerLRFinderMixin(ABC):
 
 
 class LRFinderCallback(Callback):
-    """ LR finder callback. This object stores the results of Trainer.lr_find().
+    """ 
+    LR finder callback. This object stores the results of HyperTuner.lr_find().
+    The logged lr and loss can be round `.results` field.
+
     Args:
         mode: either `linear` or `exponential`, how to increase lr after each step
-        lr_min: lr to start search from
-        lr_max: lr to stop search
-        num_training: number of steps to take between lr_min and lr_max
-    Example::
-        # Run lr finder
-        lr_finder = trainer.lr_find(model)
-        # Results stored in
-        lr_finder.results
-        # Plot using
-        lr_finder.plot()
-        # Get suggestion
-        lr = lr_finder.suggestion()
-    """
 
+        lr_min: lr to start search from
+
+        lr_max: lr to stop search
+
+        num_training: number of steps to take between lr_min and lr_max
+
+    """
     def __init__(self, mode: str, lr_min: float, lr_max: float, monitor_val: str,
                  num_training: int, early_stop_threshold: float = 4.0,
                  beta: float = 0.98, progress_bar_refresh_rate: bool = True):
@@ -211,9 +208,12 @@ class LRFinderCallback(Callback):
 
     def plot(self, suggest: bool = False, show: bool = False):
         """ Plot results from lr_find run
+
         Args:
             suggest: if True, will mark suggested lr to use with a red point
+
             show: if True, will show figure
+
         """
         import matplotlib.pyplot as plt
 
@@ -242,13 +242,15 @@ class LRFinderCallback(Callback):
         return fig
 
     def suggestion(self, skip_begin: int = 10, skip_end: int = 1):
-        """ This will propose a suggestion for choice of initial learning rate
+        """ 
+        This will propose a suggestion for choice of initial learning rate
         as the point with the steepest negative gradient.
+
         Args:
             skip_begin: how many samples to skip in the beginning. Prevent too naive estimates
+
             skip_end: how many samples to skip in the end. Prevent too optimistic estimates
-        Returns:
-            lr: suggested initial learning rate to use
+
         """
         try:
             loss = self.results["loss"][skip_begin:-skip_end]

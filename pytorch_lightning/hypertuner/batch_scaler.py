@@ -154,14 +154,20 @@ class HyperTunerBatchScalerMixin(ABC):
 
 class BatchScaler(object):
     def __init__(self):
+        """ Simple object for interacting with the results of the batch
+            size scaler. The results are stored in `.results` field.
+        
+        """
         self.results = {'batch_size': [], 'time': [], 'fits_in_memory': []}
 
     def plot(self, suggest=True, show=False):
         """ Plot results from batch_size_scaler run
+        
         Args:
             suggest: if True, will mark suggested lr to use with a red point
 
             show: if True, will show figure
+            
         """
         import matplotlib.pyplot as plt
 
@@ -195,13 +201,14 @@ class BatchScaler(object):
         return fig
 
     def suggestion(self, condition='size'):
-        """ This will propose a suggestion for choice of batch size either base
-            on choosing the largest batch that fits in memory (default) or the
-            batch size that approximately give the fastest training time.
+        r""" 
+        This will propose a suggestion for choice of batch size either base 
+        on choosing the largest batch that fits in memory (default) or the 
+        batch size that approximately give the fastest training time.
+            
         Args:
             condition: either `size` or `speed`
-        Returns:
-            lr: suggested batch size to use
+            
         """
         assert condition in ['size', 'speed'], \
             'condition needs to be either `size` or `speed`'
@@ -209,12 +216,11 @@ class BatchScaler(object):
             bs = np.array(self.results["batch_size"]).astype('int')
             suc = np.array(self.results["fits_in_memory"]).astype('int')
             self._optimal_idx = np.argmax(bs * suc)
-            return self.results["batch_size"][self._optimal_idx]
         else:
             time = np.array(self.results["time"]).astype('float')
             suc = np.array(self.results["fits_in_memory"]).astype('float')
             self._optimal_idx = np.argmin(time * (1 - suc) * 10**6)
-            return self.results["batch_size"][self._optimal_idx]
+        return self.results["batch_size"][self._optimal_idx]
 
 
 def _adjust_batch_size(trainer,
