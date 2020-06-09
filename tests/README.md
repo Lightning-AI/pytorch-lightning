@@ -20,7 +20,7 @@ cd pytorch-lightning
 bash tests/install_AMP.sh
 
 # install dev deps
-pip install -r tests/requirements-devel.txt
+pip install -r requirements/devel.txt
 
 # run tests
 py.test -v

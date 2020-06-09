@@ -14,7 +14,7 @@ references:
         pip install "$TORCH_VERSION"
         pip install -r requirements/default.txt -q
         sudo pip install pytest -q
-        pip install -r ./tests/requirements-devel.txt -q
+        pip install -r requirements/devel.txt -q
 
   tests: &tests
    run:
