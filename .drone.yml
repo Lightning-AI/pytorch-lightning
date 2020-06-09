@@ -33,7 +33,7 @@ steps:
     - nvidia-smi
     #- bash ./tests/install_AMP.sh
     - apt-get update && apt-get install -y cmake
-    - pip install -r ./requirements/default.txt --user -q
+    - pip install -r ./requirements/base.txt --user -q
     - pip install -r ./requirements/devel.txt --user -q
     #- pip install -r ./requirements/docs.txt --user -q
     - pip list
