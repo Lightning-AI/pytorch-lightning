@@ -271,7 +271,7 @@ class LRFinderCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
-        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].get_last_lr()[0])
+        self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
     @rank_zero_only
     def on_batch_end(self, trainer, pl_module):
@@ -355,7 +355,12 @@ class LinearLearningRateScheduler(_LRScheduler):
             val = [base_lr + r * (self.end_lr - base_lr) for base_lr in self.base_lrs]
         else:
             val = [base_lr for base_lr in self.base_lrs]
+        self._lr = val
         return val
+
+    @property
+    def lr(self):
+        return self._lr
 
 
 class ExponentialLearningRateScheduler(_LRScheduler):
@@ -387,4 +392,9 @@ class ExponentialLearningRateScheduler(_LRScheduler):
             val = [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
         else:
             val = [base_lr for base_lr in self.base_lrs]
+        self._lr = val
         return val
+
+    @property
+    def lr(self):
+        return self._lr
