@@ -1,7 +1,7 @@
 import pytest
 
 import tests.base.utils as tutils
-from pytorch_lightning import Trainer, Tuner
+from pytorch_lightning import Trainer, HyperTuner
 from tests.base import EvalModelTemplate
 
 
@@ -17,7 +17,7 @@ def test_call_order(tmpdir):
         default_save_path=tmpdir,
         max_epochs=1
     )
-    tuner = Tuner(trainer)
+    tuner = HyperTuner(trainer)
 
     # Wrong call order, should give warning
     with pytest.warns(UserWarning):

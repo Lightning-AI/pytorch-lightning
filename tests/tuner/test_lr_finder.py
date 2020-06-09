@@ -142,8 +142,6 @@ def test_call_to_tuner_method(tmpdir):
 
 
 def test_accumulation_and_early_stopping(tmpdir):
-    pytest.skip('TODO: speed up this test')
-
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
 
@@ -158,14 +156,14 @@ def test_accumulation_and_early_stopping(tmpdir):
     )
     tuner = HyperTuner(trainer)
 
-    lrfinder = tuner.lr_find(model, early_stop_threshold=None)
+    lrfinder = tuner.lr_find(model, num_training=10, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 100, \
+    assert len(lrfinder.results['lr']) == 10, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 101 * 2, \
+    assert lrfinder._total_batch_idx == 11 * 2, \
         'Accumulation parameter did not work'
 
 
