@@ -44,7 +44,6 @@ def _convert_to_tensor(data: Any) -> Any:
     """
     if isinstance(data, numbers.Number):
         return torch.tensor([data])
-
     else:
         return default_convert(data)
 
