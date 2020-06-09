@@ -93,12 +93,8 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
 
 # todo: add also testing for "gpus"
 @pytest.mark.parametrize(['cli_args', 'expected'], [
-    pytest.param('--auto_lr_find --auto_scale_batch_size power',
-                 {'auto_lr_find': True, 'auto_scale_batch_size': 'power', 'early_stop_callback': False}),
-    pytest.param('--auto_lr_find any_string --auto_scale_batch_size',
-                 {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
-    pytest.param('--early_stop_callback',
-                 {'auto_lr_find': False, 'early_stop_callback': True, 'auto_scale_batch_size': False}),
+    pytest.param(None, {'early_stop_callback': False}),
+    pytest.param('--early_stop_callback', {'early_stop_callback': True}),
 ])
 def test_argparse_args_parsing(cli_args, expected):
     """Test multi type argument with bool."""
