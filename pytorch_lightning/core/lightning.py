@@ -32,7 +32,7 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
