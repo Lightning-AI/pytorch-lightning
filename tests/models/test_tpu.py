@@ -68,9 +68,9 @@ def test_dataloaders_passed_to_fit(tmpdir):
         tpu_cores=8,
     )
     result = trainer.fit(
-        model, 
+        model,
         train_dataloader=model.train_dataloader(),
-        val_dataloaders=model.val_dataloader()
+        val_dataloaders=model.val_dataloader(),
     )
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
