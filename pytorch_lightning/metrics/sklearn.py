@@ -49,8 +49,9 @@ class SklearnMetric(NumpyMetric):
 
         self.metric_kwargs = kwargs
 
-        lightning_logger.debug(
-            'Every metric call will cause a GPU synchronization, which may slow down your code')
+            f'Metric {self.__class__.__name__} is using Sklearn as backend, meaning that'
+            ' every metric call will cause a GPU synchronization, which may slow down your code'
+            
 
     @property
     def metric_fn(self):
