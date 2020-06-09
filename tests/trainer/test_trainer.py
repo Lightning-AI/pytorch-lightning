@@ -669,7 +669,6 @@ def test_trainer_interrupted_flag(tmpdir):
         def on_interrupted(self, trainer, pl_module):
             self.exc_info = sys.exc_info()
 
-
     interrupt_callback = InterruptCallback()
     handle_interrupt_callback = HandleInterruptCallback()
 
@@ -687,7 +686,6 @@ def test_trainer_interrupted_flag(tmpdir):
     trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
-
 
 
 def test_gradient_clipping(tmpdir):
