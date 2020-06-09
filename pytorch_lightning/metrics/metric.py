@@ -12,7 +12,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 __all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
 
 
-class Metric(ABC, DeviceDtypeModuleMixin):
+class Metric(ABC, DeviceDtypeModuleMixin, Module):
     """
     Abstract base class for metric implementation.
 

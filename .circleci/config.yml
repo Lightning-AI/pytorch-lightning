@@ -66,7 +66,7 @@ references:
        # First run the same pipeline as Read-The-Docs
        # apt-get update && apt-get install -y cmake
        # using: https://hub.docker.com/r/readthedocs/build
-       pyenv global 3.6.8
+       pyenv global 3.7.3
        python --version
        pip install -r docs/requirements.txt
        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
