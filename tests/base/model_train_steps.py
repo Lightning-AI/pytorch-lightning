@@ -22,12 +22,21 @@ class TrainingStepVariations(ABC):
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
+        loss_scalar = loss_val.item()
 
         # alternate possible outputs to test
+        if batch_idx % 2 == 0:
+            output = OrderedDict({
+                'loss': loss_val,
+                'progress_bar': {'some_val': loss_val * loss_val},
+                'log': {'train_some_val': loss_val * loss_val},
+            })
+
+        # return scalars for "log" and "progress_bar"
         output = OrderedDict({
             'loss': loss_val,
-            'progress_bar': {'some_val': loss_val * loss_val},
-            'log': {'train_some_val': loss_val * loss_val},
+            'progress_bar': {'some_val': loss_scalar * loss_scalar},
+            'log': {'train_some_val': loss_scalar * loss_scalar},
         })
         return output
 
