@@ -100,3 +100,8 @@ class TrainerCallbackHookMixin(ABC):
         """Called when the test ends."""
         for callback in self.callbacks:
             callback.on_test_end(self, self.get_model())
+
+    def on_interrupted(self):
+        """Called when the training is interrupted by KeyboardInterrupt."""
+        for callback in self.callbacks:
+            callback.on_interrupted(self, self.get_model())

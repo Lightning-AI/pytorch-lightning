@@ -247,6 +247,7 @@ class TrainerTrainLoopMixin(ABC):
     on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
+    on_interrupted: Callable
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -395,6 +396,7 @@ class TrainerTrainLoopMixin(ABC):
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
+                self.on_interrupted()
 
                 for proc in self.interactive_ddp_procs:
                     subprocess.Popen.kill(proc)
