@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import torch
 import torch.distributed
+from torch.nn import Module
 
 from pytorch_lightning.metrics.converters import tensor_metric, numpy_metric
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -11,7 +12,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 __all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
 
 
-class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
+class Metric(ABC, DeviceDtypeModuleMixin, Module):
     """
     Abstract base class for metric implementation.
 

@@ -26,6 +26,10 @@ dependencies:
     - autopep8
     - check-manifest
     - twine==1.13.0
+    - pillow<7.0.0
+    - scipy>=0.13.3
+    - scikit-learn>=0.20.0
+
 
     - pip:
         - test-tube>=0.7.5
