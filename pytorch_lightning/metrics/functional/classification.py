@@ -29,14 +29,31 @@ def to_onehot(tensor: torch.Tensor,
 
 
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
-    """ Converts a tensor of probabilities to a dense label tensor """
+    """ Converts a tensor of probabilities to a dense label tensor
+
+    Args:
+        tensor: probabilities to get the categorical label [N, d1, d2, ...]
+
+        argmax_dim: dimension to apply (default: 1)
+
+    Output:
+        A tensor with categorical labels [N, d2, ...]
+    """
     return torch.argmax(tensor, dim=argmax_dim)
 
 
 def get_num_classes(pred: torch.Tensor, target: torch.Tensor,
                     num_classes: Optional[int]) -> int:
     """ Returns the number of classes for a given prediction and
-        target tensor
+        target tensor,
+
+        Args:
+            pred: predicted values
+            target: true labels
+            num_classes: number of classes if known (default: None)
+
+        Output:
+            An integer that represents the number of classes.
     """
     if num_classes is None:
         if pred.ndim > target.ndim:
@@ -62,6 +79,9 @@ def stat_scores(pred: torch.Tensor, target: torch.Tensor,
 
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
+
+    Output:
+        Tensors in the following order: True Positive, False Positive, True Negative, False Negative
 
     """
     if pred.ndim == target.ndim + 1:
@@ -94,6 +114,9 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
 
+    Output:
+        Returns tensors for: tp, fp, tn, fn
+
     """
     num_classes = get_num_classes(pred=pred, target=target,
                                   num_classes=num_classes)
@@ -116,6 +139,24 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
 def accuracy(pred: torch.Tensor, target: torch.Tensor,
              num_classes: Optional[int] = None,
              reduction='elementwise_mean') -> torch.Tensor:
+    '''
+    Computes the accuracy classification score
+
+    Args:
+        pred: predicted labels
+        target: ground truth labels
+        num_classes: number of classes
+        reduction: method for reducing accuracies over labels (default: takes the mean)
+
+           Available reduction methods:
+
+           - elementwise_mean: takes the mean
+           - none: pass array
+           - sum: add elements
+
+    Output:
+         A Tensor with the classification score.
+    '''
     tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred, target=target,
                                                       num_classes=num_classes)
 
