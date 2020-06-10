@@ -1,7 +1,7 @@
 # the default package dependencies
 
+numpy>=1.15  # because some BLAS compilation issues
 tqdm>=4.41.0
-numpy>=1.16.4
 torch>=1.3
 tensorboard>=1.14
 future>=0.17.1  # required for builtins in setup.py
