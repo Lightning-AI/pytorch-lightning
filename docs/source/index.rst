@@ -21,12 +21,12 @@ PyTorch Lightning Documentation
 
    callbacks
    hooks
+   hypertuner
    lightning-module
    loggers
    metrics
    trainer
-   hypertuner
-
+   
 .. toctree::
    :maxdepth: 1
    :name: Community Examples
@@ -113,8 +113,9 @@ Indices and tables
 .. toctree::
    :hidden:
 
-   api/pytorch_lightning.core
    api/pytorch_lightning.callbacks
+   api/pytorch_lightning.core
+   api/pytorch_lightning.hypertuner
    api/pytorch_lightning.loggers
    api/pytorch_lightning.metrics
    api/pytorch_lightning.overrides
