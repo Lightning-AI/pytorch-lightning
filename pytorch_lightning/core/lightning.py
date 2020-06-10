@@ -924,7 +924,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             self,
             global_rank: int,
             world_size: int,
-            is_slurm_managing_tasks: bool = True
+            is_slurm_managing_tasks: bool = True,
+            retries: int = 20
     ) -> None:
         """
         Override to define your custom way of setting up a distributed environment.
@@ -957,7 +958,16 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
-        torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
+        while True:
+            try:
+                torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
+                break
+            except RuntimeError:
+                # port is taken; we increment the port and try again
+                if retries <= 0:
+                    raise
+                retries -= 1
+                os.environ['MASTER_PORT'] = str(int(os.environ['MASTER_PORT']) + 1)
 
     def configure_apex(
             self,
