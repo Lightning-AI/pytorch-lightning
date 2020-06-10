@@ -14,7 +14,7 @@ ENV PATH: "$PATH:/root/.local/bin"
 ENV MAKEFLAGS: "-j$(nproc)"
 
 COPY ./tests/install_AMP.sh install_AMP.sh
-COPY ./requirements/default.txt requirements.txt
+COPY ./requirements/base.txt requirements.txt
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-tests.txt
 

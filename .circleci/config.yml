@@ -12,7 +12,7 @@ references:
       command: |
         sudo apt-get update && sudo apt-get install -y cmake
         pip install "$TORCH_VERSION"
-        pip install -r requirements/default.txt -q
+        pip install -r requirements/base.txt -q
         sudo pip install pytest -q
         pip install -r requirements/devel.txt -q
 
