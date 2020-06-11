@@ -185,13 +185,13 @@ class TrainerLoggingMixin(ABC):
         hiddens = output.get('hiddens')
 
         # iterate over log_metric and progress_bar metric values
-        # and add it to the callback metric dict because every 
-        # metric value of logging or progressbar could be a candidate 
+        # and add it to the callback metric dict because every
+        # metric value of logging or progressbar could be a candidate
         # for early stopping or similar
-        # 
+        #
         # NOTE: through the dict looping sequence a priority is defined
         # so first log metrics values will be added if not existing and
-        # then progress bar values if not existing in callback and log metric 
+        # then progress bar values if not existing in callback and log metric
         for metric_dict in [log_metrics, progress_bar_metrics]:
             for key in metric_dict.keys():
                 if key not in callback_metrics.keys():
