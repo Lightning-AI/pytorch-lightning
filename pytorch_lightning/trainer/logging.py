@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Union, Iterable
+from typing import Iterable, Optional
 
 import torch
 
@@ -15,7 +15,7 @@ class TrainerLoggingMixin(ABC):
     current_epoch: int
     on_gpu: bool
     log_gpu_memory: ...
-    logger: LightningLoggerBase
+    logger: Optional[LightningLoggerBase]
     progress_bar_metrics: ...
     global_step: int
     proc_rank: int
