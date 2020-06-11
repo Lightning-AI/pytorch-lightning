@@ -388,9 +388,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     if url_ckpt:
         # transform local paths into url checkpoints
         ip, port = tmpdir_server
-        checkpoints = [
-            f'http://{ip}:{port}/' + os.path.basename(check) for check in checkpoints
-        ]
+        checkpoints = [f'http://{ip}:{port}/' + os.path.basename(check) for check in checkpoints]
 
     for check in checkpoints:
         next_model = _new_model()
