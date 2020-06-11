@@ -45,6 +45,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed test metrics not being logged with `LoggerCollection` ([#2723](https://github.com/PyTorchLightning/pytorch-lightning/pull/2723))
 
+- Fixed training end with max-step after loaded from checkpoint ([#2146](https://github.com/PyTorchLightning/pytorch-lightning/pull/2146))
+
 ## [0.8.5] - 2020-07-09
 
 ### Added
