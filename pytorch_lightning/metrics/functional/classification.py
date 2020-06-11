@@ -33,10 +33,9 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 
     Args:
         tensor: probabilities to get the categorical label [N, d1, d2, ...]
-
         argmax_dim: dimension to apply (default: 1)
 
-    Output:
+    Return:
         A tensor with categorical labels [N, d2, ...]
     """
     return torch.argmax(tensor, dim=argmax_dim)
@@ -52,7 +51,7 @@ def get_num_classes(pred: torch.Tensor, target: torch.Tensor,
             target: true labels
             num_classes: number of classes if known (default: None)
 
-        Output:
+        Return:
             An integer that represents the number of classes.
     """
     if num_classes is None:
@@ -80,7 +79,7 @@ def stat_scores(pred: torch.Tensor, target: torch.Tensor,
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
 
-    Output:
+    Return:
         Tensors in the following order: True Positive, False Positive, True Negative, False Negative
 
     """
@@ -114,7 +113,7 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
 
-    Output:
+    Return:
         Returns tensors for: tp, fp, tn, fn
 
     """
@@ -144,22 +143,16 @@ def accuracy(pred: torch.Tensor, target: torch.Tensor,
 
     Args:
         pred: predicted labels
-
         target: ground truth labels
-
         num_classes: number of classes
-
-        reduction: method for reducing accuracies over labels (default: takes the mean)
-
+        reduction: a method for reducing accuracies over labels (default: takes the mean)
            Available reduction methods:
 
            - elementwise_mean: takes the mean
-
            - none: pass array
-
            - sum: add elements
 
-    Output:
+    Return:
          A Tensor with the classification score.
     '''
     tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred, target=target,
@@ -181,12 +174,10 @@ def confusion_matrix(pred: torch.Tensor, target: torch.Tensor,
 
     Args:
         pred: estimated targets
-
-        target: groud truth labels
-
+        target: ground truth labels
         normalize: normalizes confusion matrix
 
-    Output:
+    Return:
         Tensor, confusion matrix C [num_classes, num_classes ]
     '''
     num_classes = get_num_classes(pred, target, None)
@@ -213,24 +204,17 @@ def precision_recall(pred: torch.Tensor, target: torch.Tensor,
     Computes precision and recall for different thresholds
 
     Args:
-
         pred: estimated probabilities
-
         target: ground-truth labels
-
         num_classes: number of classes
-
         reduction: method for reducing precision-recall values (default: takes the mean)
-
            Available reduction methods:
 
            - elementwise_mean: takes the mean
-
            - none: pass array
-
            - sum: add elements
 
-    Output:
+    Return:
         Tensor with precision and recall
     '''
     tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred,
@@ -256,24 +240,17 @@ def precision(pred: torch.Tensor, target: torch.Tensor,
     Computes precision score.
 
     Args:
-
         pred: estimated probabilities
-
         target: ground-truth labels
-
         num_classes: number of classes
-
         reduction: method for reducing precision values (default: takes the mean)
-
            Available reduction methods:
 
            - elementwise_mean: takes the mean
-
            - none: pass array
-
            - sum: add elements
 
-    Output:
+    Return:
         Tensor with precision.
     '''
     return precision_recall(pred=pred, target=target,
@@ -287,24 +264,17 @@ def recall(pred: torch.Tensor, target: torch.Tensor,
     Computes recall score.
 
     Args:
-
         pred: estimated probabilities
-
         target: ground-truth labels
-
         num_classes: number of classes
-
         reduction: method for reducing recall values (default: takes the mean)
-
            Available reduction methods:
 
            - elementwise_mean: takes the mean
-
            - none: pass array
-
            - sum: add elements
 
-    Output:
+    Return:
         Tensor with recall.
     '''
     return precision_recall(pred=pred, target=target,
