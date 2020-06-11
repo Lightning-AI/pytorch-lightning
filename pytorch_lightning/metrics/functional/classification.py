@@ -9,7 +9,8 @@ from pytorch_lightning.metrics.functional.reduction import reduce
 
 def to_onehot(tensor: torch.Tensor,
               n_classes: Optional[int] = None) -> torch.Tensor:
-    """ Converts a dense label tensor to one-hot format
+    """
+    Converts a dense label tensor to one-hot format
 
     Args:
         tensor: dense label tensor, with shape [N, d1, d2, ...]
@@ -29,7 +30,8 @@ def to_onehot(tensor: torch.Tensor,
 
 
 def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
-    """ Converts a tensor of probabilities to a dense label tensor
+    """
+    Converts a tensor of probabilities to a dense label tensor
 
     Args:
         tensor: probabilities to get the categorical label [N, d1, d2, ...]
@@ -43,8 +45,8 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 
 def get_num_classes(pred: torch.Tensor, target: torch.Tensor,
                     num_classes: Optional[int]) -> int:
-    """ Returns the number of classes for a given prediction and
-        target tensor,
+    """
+    Returns the number of classes for a given prediction and target tensor.
 
         Args:
             pred: predicted values
@@ -66,8 +68,9 @@ def stat_scores(pred: torch.Tensor, target: torch.Tensor,
                 class_index: int, argmax_dim: int = 1
                 ) -> Tuple[torch.Tensor, torch.Tensor,
                            torch.Tensor, torch.Tensor]:
-    """ Calculates the number of true postive, false postive, true negative
-    and false negative for a specfic class
+    """
+    Calculates the number of true positive, falsepositivee, true negative
+    and false negative for a specific class
 
     Args:
         pred: prediction tensor
@@ -99,17 +102,15 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
                                  argmax_dim: int = 1
                                  ) -> Tuple[torch.Tensor, torch.Tensor,
                                             torch.Tensor, torch.Tensor]:
-    """ Calls the stat_scores function iteratively for all classes, thus
-        calculating the number of true postive, false postive, true negative
-        and false negative for each class
+    """
+    Calls the stat_scores function iteratively for all classes, thus
+    calculating the number of true postive, false postive, true negative
+    and false negative for each class
 
     Args:
         pred: prediction tensor
-
         target: target tensor
-
         class_index: class to calculate over
-
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
 
@@ -138,7 +139,7 @@ def stat_scores_multiple_classes(pred: torch.Tensor, target: torch.Tensor,
 def accuracy(pred: torch.Tensor, target: torch.Tensor,
              num_classes: Optional[int] = None,
              reduction='elementwise_mean') -> torch.Tensor:
-    '''
+    """
     Computes the accuracy classification score
 
     Args:
@@ -154,7 +155,7 @@ def accuracy(pred: torch.Tensor, target: torch.Tensor,
 
     Return:
          A Tensor with the classification score.
-    '''
+    """
     tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred, target=target,
                                                       num_classes=num_classes)
 
@@ -168,7 +169,7 @@ def accuracy(pred: torch.Tensor, target: torch.Tensor,
 
 def confusion_matrix(pred: torch.Tensor, target: torch.Tensor,
                      normalize: bool = False) -> torch.Tensor:
-    '''
+    """
     Computes the confusion matrix C where each entry C_{i,j} is the number of observations
     in group i that were predicted in group j.
 
@@ -179,7 +180,7 @@ def confusion_matrix(pred: torch.Tensor, target: torch.Tensor,
 
     Return:
         Tensor, confusion matrix C [num_classes, num_classes ]
-    '''
+    """
     num_classes = get_num_classes(pred, target, None)
 
     d = target.size(-1)
@@ -200,7 +201,7 @@ def precision_recall(pred: torch.Tensor, target: torch.Tensor,
                      num_classes: Optional[int] = None,
                      reduction: str = 'elementwise_mean'
                      ) -> Tuple[torch.Tensor, torch.Tensor]:
-    '''
+    """
     Computes precision and recall for different thresholds
 
     Args:
@@ -216,7 +217,7 @@ def precision_recall(pred: torch.Tensor, target: torch.Tensor,
 
     Return:
         Tensor with precision and recall
-    '''
+    """
     tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred,
                                                       target=target,
                                                       num_classes=num_classes)
@@ -236,7 +237,7 @@ def precision_recall(pred: torch.Tensor, target: torch.Tensor,
 def precision(pred: torch.Tensor, target: torch.Tensor,
               num_classes: Optional[int] = None,
               reduction: str = 'elementwise_mean') -> torch.Tensor:
-    '''
+    """
     Computes precision score.
 
     Args:
@@ -252,7 +253,7 @@ def precision(pred: torch.Tensor, target: torch.Tensor,
 
     Return:
         Tensor with precision.
-    '''
+    """
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, reduction=reduction)[0]
 
@@ -260,7 +261,7 @@ def precision(pred: torch.Tensor, target: torch.Tensor,
 def recall(pred: torch.Tensor, target: torch.Tensor,
            num_classes: Optional[int] = None,
            reduction: str = 'elementwise_mean') -> torch.Tensor:
-    '''
+    """
     Computes recall score.
 
     Args:
@@ -276,7 +277,7 @@ def recall(pred: torch.Tensor, target: torch.Tensor,
 
     Return:
         Tensor with recall.
-    '''
+    """
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, reduction=reduction)[1]
 
@@ -512,7 +513,6 @@ def average_precision(pred: torch.Tensor, target: torch.Tensor,
     precision, recall, _ = precision_recall_curve(pred=pred, target=target,
                                                   sample_weight=sample_weight,
                                                   pos_label=pos_label)
-
     # Return the step function integral
     # The following works because the last entry of precision is
     # guaranteed to be 1, as returned by precision_recall_curve
