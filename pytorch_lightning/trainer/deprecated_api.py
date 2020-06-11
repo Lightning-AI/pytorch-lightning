@@ -37,17 +37,3 @@ class TrainerDeprecatedAPITillVer0_9(ABC):
         """Back compatibility, will be removed in v0.9.0"""
         rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
                        " and this argument will be removed in v0.9.0", DeprecationWarning)
-
-    @property
-    def amp_level(self) -> str:
-        """Back compatibility, will be removed in v0.9.0"""
-        rank_zero_warn("Argument `amp_level` is deprecated since v0.7.6"
-                       " and this argument will be removed in v0.9.0", DeprecationWarning)
-        return self._amp_level
-
-    @amp_level.setter
-    def amp_level(self, amp_lvl: str):
-        """Back compatibility, will be removed in v0.9.0"""
-        rank_zero_warn("Argument `amp_level` is deprecated since v0.7.6"
-                       " and this method will be removed in v0.9.0", DeprecationWarning)
-        self._amp_level = amp_lvl
