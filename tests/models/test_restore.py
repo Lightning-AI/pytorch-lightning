@@ -190,6 +190,15 @@ def test_load_model_from_checkpoint(tmpdir):
     # test we have good test accuracy
     tutils.assert_ok_model_acc(new_trainer)
 
+    # test edited max nb steps
+    trainer_options['max_epochs'] -= 1
+    another_trainer = Trainer(**trainer_options)
+
+    start_step = model.global_step
+    result = another_trainer.fit(model)
+    assert result == 1
+    assert model.global_step == start_step, 'not wanted training'
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_resume(tmpdir):
