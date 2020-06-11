@@ -36,6 +36,9 @@ include requirements-extra.txt
 exclude *.yml
 exclude *.yaml
 
+# Exclude pyright config
+exclude pyrightconfig.json
+
 prune .git
 prune .github
 prune .circleci
