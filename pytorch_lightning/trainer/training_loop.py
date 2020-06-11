@@ -524,7 +524,7 @@ class TrainerTrainLoopMixin(ABC):
             self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
-            if self.max_steps is not None and self.max_steps == self.global_step:
+            if self.max_steps is not None and self.max_steps >= self.global_step:
                 break
 
             # end epoch early
