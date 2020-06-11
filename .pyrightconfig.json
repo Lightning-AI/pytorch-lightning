@@ -2,6 +2,7 @@
   "include": [
     "pytorch_lightning"
   ],
+
   "ignore": [
     "pytorch_lightning/__init__.py",
     "pytorch_lightning/callbacks",

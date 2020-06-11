@@ -37,7 +37,7 @@ exclude *.yml
 exclude *.yaml
 
 # Exclude pyright config
-exclude pyrightconfig.json
+exclude .pyrightconfig.json
 
 prune .git
 prune .github

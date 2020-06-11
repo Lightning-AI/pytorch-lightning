@@ -18,7 +18,6 @@ jobs:
       matrix:
         os: [ubuntu-18.04]
         python-version: [3.7]
-        requires: ['latest']
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
@@ -41,9 +40,9 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-extra.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-extra.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-
 
       - name: Install dependencies
         run: |
@@ -56,17 +55,6 @@ jobs:
           pip list
         shell: bash
 
-      - name: Reinstall Horovod if necessary
-        if: runner.os != 'windows' && matrix.python-version != '3.8'
-        run: |
-          HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
-          if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-            pip uninstall -y horovod
-            HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements-extra.txt)
-          fi
-          horovodrun --check-build
-        shell: bash
-
       - name: Set up node
         uses: actions/setup-node@v1
 
@@ -76,4 +64,4 @@ jobs:
 
       - name: Run type checking
         run: |
-          $(npm bin)/pyright
+          $(npm bin)/pyright --project .pyrightconfig.json
