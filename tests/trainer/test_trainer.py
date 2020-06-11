@@ -16,12 +16,16 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-def test_no_val_module(tmpdir):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     model = EvalModelTemplate()
 
@@ -49,15 +53,19 @@ def test_no_val_module(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
+        checkpoint_path=ckpt_path,
         hparams_file=hparams_path
     )
     model_2.eval()
 
 
-def test_no_val_end_module(tmpdir):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     model = EvalModelTemplate()
 
@@ -82,8 +90,9 @@ def test_no_val_end_module(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
+        checkpoint_path=ckpt_path,
         hparams_file=hparams_path
     )
     model_2.eval()
@@ -320,8 +329,11 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint_epoch_restored(tmpdir):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs"""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     hparams = EvalModelTemplate.get_default_hparams()
 
@@ -373,10 +385,14 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
     checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
+    if url_ckpt:
+        # transform local paths into url checkpoints
+        ip, port = tmpdir_server
+        checkpoints = [f'http://{ip}:{port}/' + os.path.basename(check) for check in checkpoints]
 
     for check in checkpoints:
         next_model = _new_model()
-        state = torch.load(check)
+        state = pl_load(check)
 
         # Resume training
         trainer_options['max_epochs'] = 2
