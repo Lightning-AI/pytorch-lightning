@@ -184,9 +184,9 @@ def test_multiclass_roc(num_classes):
             assert isinstance(_tmp, torch.Tensor)
 
 
-@pytest.mark.parametrize('num_classes', [4, None])
+@pytest.mark.parametrize('num_classes', [5, None])
 def test_multiclass_pr(num_classes):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
+    pred, target = torch.tensor([0, 1, 2, 3, 4]), torch.tensor([0, 1, 2, 4, 3])
 
     multi_pr = MulticlassPrecisionRecall(num_classes=num_classes)
 
