@@ -23,6 +23,7 @@ class DummyNumpyMetric(NumpyMetric):
         assert isinstance(input2, np.ndarray)
         return 1.
 
+
 class DummyTensorCollectionMetric(TensorCollectionMetric):
     def __init__(self):
         super().__init__('dummy')
@@ -31,6 +32,7 @@ class DummyTensorCollectionMetric(TensorCollectionMetric):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
         return 1., 2., 3., 4.
+
 
 def _test_collection_metric(metric: Metric):
         input1, input2 = torch.tensor([1.]), torch.tensor([2.])
@@ -137,6 +139,7 @@ def test_tensor_metric():
 
 def test_numpy_metric():
     _test_metric(DummyNumpyMetric())
+
 
 def test_tensor_collection():
     _test_collection_metric(DummyTensorCollectionMetric())

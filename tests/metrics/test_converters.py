@@ -5,9 +5,17 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 import tests.base.utils as tutils
-from pytorch_lightning.metrics.converters import _apply_to_inputs, _apply_to_outputs, \
-    _convert_to_tensor, _convert_to_numpy, _numpy_metric_conversion, \
-    _tensor_metric_conversion, _sync_ddp_if_available, tensor_metric, numpy_metric
+from pytorch_lightning.metrics.converters import (
+    _apply_to_inputs,
+    _apply_to_outputs,
+    _convert_to_tensor,
+    _convert_to_numpy,
+    _numpy_metric_conversion,
+    _tensor_metric_conversion,
+    _sync_ddp_if_available,
+    tensor_metric,
+    numpy_metric
+)
 
 
 def test_apply_to_inputs():
@@ -134,8 +142,8 @@ def test_sync_reduce_simple():
 
     reduced_tensor = _sync_ddp_if_available(tensor)
 
-    assert torch.allclose(tensor,
-                          reduced_tensor), 'Sync-Reduce does not work properly without DDP and Tensors'
+    assert torch.allclose(tensor, reduced_tensor), \
+        'Sync-Reduce does not work properly without DDP and Tensors'
 
 
 def _test_tensor_metric(is_ddp: bool):

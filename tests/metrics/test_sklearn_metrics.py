@@ -5,13 +5,24 @@ from functools import partial
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import (accuracy_score, average_precision_score, auc, confusion_matrix, f1_score,
-                             fbeta_score, precision_score, recall_score, precision_recall_curve, roc_curve,
-                             roc_auc_score)
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    auc,
+    confusion_matrix,
+    f1_score,
+    fbeta_score,
+    precision_score,
+    recall_score,
+    precision_recall_curve,
+    roc_curve,
+    roc_auc_score
+)
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
-from pytorch_lightning.metrics.sklearn import (Accuracy, AveragePrecision, AUC, ConfusionMatrix, F1, FBeta,
-                                               Precision, Recall, PrecisionRecallCurve, ROC, AUROC)
+from pytorch_lightning.metrics.sklearn import (
+    Accuracy, AveragePrecision, AUC, ConfusionMatrix, F1, FBeta,
+    Precision, Recall, PrecisionRecallCurve, ROC, AUROC)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 

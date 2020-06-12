@@ -6,7 +6,21 @@ import pytest
 
 import torch
 
-from pytorch_lightning.metrics.classification import *
+from pytorch_lightning.metrics.classification import (
+    Accuracy,
+    ConfusionMatrix,
+    PrecisionRecall,
+    Precision,
+    Recall,
+    AveragePrecision,
+    AUROC,
+    FBeta,
+    F1,
+    ROC,
+    MulticlassROC,
+    MulticlassPrecisionRecall,
+    DiceCoefficient,
+)
 
 
 @pytest.fixture
