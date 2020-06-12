@@ -123,6 +123,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
+        prepare_data_per_node: bool = False,
         amp_level: str = 'O1',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
@@ -282,6 +283,9 @@ class Trainer(
                 The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
+
+            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
         """
         super().__init__()
 
@@ -293,6 +297,7 @@ class Trainer(
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         # Init callbacks
+        self.prepare_data_per_node = prepare_data_per_node
         self.callbacks = callbacks or []
         self.on_init_start()
 
@@ -777,16 +782,7 @@ class Trainer(
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
         # for slurm or torchelastic, prepare the data once per node
-        if (
-            not (self.use_ddp or self.use_ddp2)
-            or (self.is_slurm_managing_tasks and int(os.environ["SLURM_LOCALID"]) == 0)
-            # torchelastic or general non_slurm ddp
-            or (
-                "WORLD_SIZE" in os.environ
-                and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
-                and int(os.environ["LOCAL_RANK"]) == 0
-            )
-        ):
+        if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
             
@@ -802,8 +798,110 @@ class Trainer(
             self._run_lr_finder_internally(model)
             model.logger = self.logger  # reset logger binding
 
-        # route to appropriate start method
-        # when using multi-node or DDP within a node start each module in a separate process
+        # ----------------------------------
+        # TORCH ELASTIC
+        # ----------------------------------
+        is_torchelastic = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        if is_torchelastic:
+            task = int(os.environ['LOCAL_RANK'])
+            self.ddp_train(task, model)
+
+        # ----------------------------------
+        # SLURM
+        # ----------------------------------
+        elif self.is_slurm_managing_tasks:
+            task = int(os.environ['SLURM_LOCALID'])
+            self.ddp_train(task, model)
+
+        # ----------------------------------
+        # DDP ON CPUS
+        # ----------------------------------
+        elif self.distributed_backend == 'cpu_ddp':
+            self.__set_random_port()
+            self.model = model
+            mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+
+        # ----------------------------------
+        # DDP USING SPAWN
+        # ----------------------------------
+        elif self.distributed_backend == 'ddp_spawn':
+            model.share_memory()
+
+            # spin up peers
+            mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
+
+        # ----------------------------------
+        # DDP USING SUBPROCESS SCRIPT CALLS
+        # ----------------------------------
+        elif self.distributed_backend == 'ddp':
+            self.spawn_ddp_children(model)
+
+        # ----------------------------------
+        # DP
+        # ----------------------------------
+        elif self.use_dp:
+            self.dp_train(model)
+
+        # ----------------------------------
+        # HOROVOD
+        # ----------------------------------
+        elif self.use_horovod:
+            self.horovod_train(model)
+
+        # ----------------------------------
+        # SINGLE GPU
+        # ----------------------------------
+        elif self.single_gpu:
+            self.single_gpu_train(model)
+
+        # ----------------------------------
+        # TPU
+        # ----------------------------------
+        elif self.use_tpu:  # pragma: no-cover
+            log.info(f'training on {self.tpu_cores} TPU cores')
+
+            #  COLAB_GPU is an env var available by default in Colab environments.
+            start_method = 'fork' if self.on_colab_kaggle else 'spawn'
+
+            # track for predict
+            self.model = model
+
+            # train
+            if self.tpu_id is not None:
+                self.tpu_train(self.tpu_id, model)
+            else:
+                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
+
+            # load weights if not interrupted
+            self.load_spawn_weights(model)
+            self.model = model
+
+        # ----------------------------------
+        # CPU
+        # ----------------------------------
+        else:
+            # run through amp wrapper
+            if self.use_amp:
+                raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
+
+            # CHOOSE OPTIMIZER
+            # allow for lr schedulers as well
+            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
+
+            self.run_pretrain_routine(model)
+
+        # return 1 when finished
+        # used for testing or when we need to know that training succeeded
+        return 1
+
+    def can_prepare_data(self):
+        is_torchelastic_root_zero = "WORLD_SIZE" in os.environ \
+                                    and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ) \
+                                    and int(os.environ["LOCAL_RANK"]) == 0
+        ddp = self.use_ddp or self.use_ddp2
+        is_slurm_root = (self.is_slurm_managing_tasks and int(os.environ["SLURM_LOCALID"]) == 0)
+
+
         if self.use_ddp2:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
@@ -811,6 +909,7 @@ class Trainer(
             # torchelastic or general non_slurm ddp2
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
+
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
@@ -836,51 +935,34 @@ class Trainer(
             elif self.distributed_backend == 'ddp':
                 self.spawn_ddp_children(model)
 
+        # on ddp2
+            # slurm
+            # torchelastic
+
+        # on slurm
+
+        # on torchelastic
+
+        # or regular ddp
+
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.dp_train(model)
+            # no need to worry
 
         elif self.use_horovod:
-            self.horovod_train(model)
+            # either a0 b0 or a0
 
         elif self.single_gpu:
-            self.single_gpu_train(model)
+            # no need to worry
 
         elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.tpu_cores} TPU cores')
-
-            #  COLAB_GPU is an env var available by default in Colab environments.
-            start_method = 'fork' if self.on_colab_kaggle else 'spawn'
-
-            # track for predict
-            self.model = model
-
-            # train
-            if self.tpu_id is not None:
-                self.tpu_train(self.tpu_id, model)
-            else:
-                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
-
-            # load weights if not interrupted
-            self.load_spawn_weights(model)
-            self.model = model
+            # either a0 b0 or a0
 
         # ON CPU
         else:
-            # run through amp wrapper
-            if self.use_amp:
-                raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
+            # no need to worry
 
-            # CHOOSE OPTIMIZER
-            # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-            self.run_pretrain_routine(model)
-
-        # return 1 when finished
-        # used for testing or when we need to know that training succeeded
-        return 1
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
