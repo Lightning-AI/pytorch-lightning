@@ -87,12 +87,12 @@ import os
 import re
 import signal
 from abc import ABC
-from argparse import Namespace
 from subprocess import call
 
 import torch
 import torch.distributed as torch_distrib
 
+import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -100,7 +100,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.io import load as pl_load
 
 try:
@@ -320,6 +320,7 @@ class TrainerIOMixin(ABC):
         checkpoint = {
             'epoch': self.current_epoch + 1,
             'global_step': self.global_step + 1,
+            'pytorch-ligthning_version': pytorch_lightning.__version__,
         }
 
         if not weights_only:
