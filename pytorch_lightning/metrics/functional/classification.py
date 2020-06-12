@@ -673,15 +673,14 @@ def dice_score(
 ) -> torch.Tensor:
     n_classes = pred.shape[1]
     bg = (1 - int(bool(bg)))
-    scores = torch.zeros(n_classes - bg, device=pred.device, dtype=pred.dtype)
+    scores = torch.zeros(n_classes - bg, device=pred.device, dtype=torch.float32)
     for i in range(bg, n_classes):
         if not (target == i).any():
             # no foreground class
-            scores[i] += no_fg_score
+            scores[i-bg] += no_fg_score
             continue
 
-        tp, fp, tn, fn = stat_scores(pred=pred[:, i], target=target,
-                                     class_index=i)
+        tp, fp, tn, fn = stat_scores(pred=pred, target=target, class_index=i)
 
         denom = (2 * tp + fp + fn).to(torch.float)
 
@@ -691,5 +690,5 @@ def dice_score(
         else:
             score_cls = (2 * tp).to(torch.float) / denom
 
-        scores[i] += score_cls
+        scores[i-bg] += score_cls
     return reduce(scores, reduction=reduction)
