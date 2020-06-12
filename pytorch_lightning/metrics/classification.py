@@ -42,12 +42,13 @@ class Accuracy(TensorMetric):
 
     """
 
-    def __init__(self,
-                 num_classes: Optional[int] = None,
-                 reduction: str = 'elementwise_mean',
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            num_classes: Optional[int] = None,
+            reduction: str = 'elementwise_mean',
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+        ):
         """
         Args:
             num_classes: number of classes
@@ -66,9 +67,7 @@ class Accuracy(TensorMetric):
         self.num_classes = num_classes
         self.reduction = reduction
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -90,11 +89,12 @@ class ConfusionMatrix(TensorMetric):
 
     """
 
-    def __init__(self,
-                 normalize: bool = False,
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            normalize: bool = False,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             normalize: whether to compute a normalized confusion matrix
@@ -106,9 +106,7 @@ class ConfusionMatrix(TensorMetric):
                          reduce_op=reduce_op)
         self.normalize = normalize
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -128,10 +126,12 @@ class PrecisionRecall(TensorCollectionMetric):
     Computes the precision recall curve
     """
 
-    def __init__(self, pos_label: int = 1,
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            pos_label: int = 1,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             pos_label: positive label indicator
@@ -141,16 +141,16 @@ class PrecisionRecall(TensorCollectionMetric):
         """
         super().__init__(name='precision_recall_curve',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.pos_label = pos_label
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor,
-                sample_weight: Optional[Sequence] = None
-                ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_weight: Optional[Sequence] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Actual metric computation
 
@@ -174,11 +174,13 @@ class Precision(TensorMetric):
     Computes the precision score
     """
 
-    def __init__(self,
-                 num_classes: Optional[int] = None,
-                 reduction: str = 'elementwise_mean',
-                 reduce_group: Any = None,
-                 reduce_op: Any = None):
+    def __init__(
+            self,
+            num_classes: Optional[int] = None,
+            reduction: str = 'elementwise_mean',
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             num_classes: number of classes
@@ -193,15 +195,12 @@ class Precision(TensorMetric):
         """
         super().__init__(name='precision',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.num_classes = num_classes
         self.reduction = reduction
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -222,11 +221,13 @@ class Recall(TensorMetric):
     Computes the recall score
     """
 
-    def __init__(self,
-                 num_classes: Optional[int] = None,
-                 reduction: str = 'elementwise_mean',
-                 reduce_group: Any = None,
-                 reduce_op: Any = None):
+    def __init__(
+            self,
+            num_classes: Optional[int] = None,
+            reduction: str = 'elementwise_mean',
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             num_classes: number of classes
@@ -241,14 +242,12 @@ class Recall(TensorMetric):
         """
         super().__init__(name='recall',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.num_classes = num_classes
         self.reduction = reduction
 
-    def forward(self, pred: torch.Tensor,
-                target: torch.Tensor) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -259,7 +258,8 @@ class Recall(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return recall(pred=pred, target=target,
+        return recall(pred=pred,
+                      target=target,
                       num_classes=self.num_classes,
                       reduction=self.reduction)
 
@@ -269,11 +269,12 @@ class AveragePrecision(TensorMetric):
     Computes the average precision score
     """
 
-    def __init__(self,
-                 pos_label: int = 1,
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            pos_label: int = 1,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             pos_label: positive label indicator
@@ -283,15 +284,16 @@ class AveragePrecision(TensorMetric):
         """
         super().__init__(name='AP',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.pos_label = pos_label
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor,
-                sample_weight: Optional[Sequence] = None) -> torch.Tensor:
+    def forward(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_weight: Optional[Sequence] = None
+    ) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -313,11 +315,12 @@ class AUROC(TensorMetric):
     Computes the area under curve (AUC) of the receiver operator characteristic (ROC)
     """
 
-    def __init__(self,
-                 pos_label: int = 1,
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            pos_label: int = 1,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             pos_label: positive label indicator
@@ -327,15 +330,16 @@ class AUROC(TensorMetric):
         """
         super().__init__(name='auroc',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.pos_label = pos_label
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor,
-                sample_weight: Optional[Sequence] = None) -> torch.Tensor:
+    def forward(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_weight: Optional[Sequence] = None
+    ) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -355,11 +359,14 @@ class AUROC(TensorMetric):
 class FBeta(TensorMetric):
     """Computes the FBeta Score"""
 
-    def __init__(self, beta: float,
-                 num_classes: Optional[int] = None,
-                 reduction: str = 'elementwise_mean',
-                 reduce_group: Any = None,
-                 reduce_op: Any = None):
+    def __init__(
+            self,
+            beta: float,
+            num_classes: Optional[int] = None,
+            reduction: str = 'elementwise_mean',
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             beta: determines the weight of recall in the combined score.
@@ -375,16 +382,13 @@ class FBeta(TensorMetric):
         """
         super().__init__(name='fbeta',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.beta = beta
         self.num_classes = num_classes
         self.reduction = reduction
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -403,11 +407,13 @@ class FBeta(TensorMetric):
 class F1(TensorMetric):
     """Computes the F1 score"""
 
-    def __init__(self,
-                 num_classes: Optional[int] = None,
-                 reduction: str = 'elementwise_mean',
-                 reduce_group: Any = None,
-                 reduce_op: Any = None):
+    def __init__(
+            self,
+            num_classes: Optional[int] = None,
+            reduction: str = 'elementwise_mean',
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             num_classes: number of classes
@@ -422,15 +428,12 @@ class F1(TensorMetric):
         """
         super().__init__(name='f1',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.num_classes = num_classes
         self.reduction = reduction
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Actual metric computation
 
@@ -451,10 +454,12 @@ class ROC(TensorCollectionMetric):
     Computes the Receiver Operator Characteristic (ROC)
     """
 
-    def __init__(self, pos_label: int = 1,
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            pos_label: int = 1,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             pos_label: positive label indicator
@@ -464,16 +469,16 @@ class ROC(TensorCollectionMetric):
         """
         super().__init__(name='roc',
                          reduce_group=reduce_group,
-                         reduce_op=reduce_op
-                         )
+                         reduce_op=reduce_op)
 
         self.pos_label = pos_label
 
-    def forward(self,
-                pred: torch.Tensor,
-                target: torch.Tensor,
-                sample_weight: Optional[Sequence] = None
-                ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_weight: Optional[Sequence] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Actual metric computation
 
@@ -497,10 +502,12 @@ class MulticlassROC(TensorCollectionMetric):
     Computes the multiclass ROC
     """
 
-    def __init__(self, num_classes: Optional[int] = None,
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            num_classes: Optional[int] = None,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             num_classes: number of classes
@@ -519,12 +526,11 @@ class MulticlassROC(TensorCollectionMetric):
 
         self.num_classes = num_classes
 
-    def forward(self, pred: torch.Tensor,
-                target: torch.Tensor,
-                sample_weight: Optional[Sequence] = None
-                ) -> Tuple[Tuple[torch.Tensor,
-                                 torch.Tensor,
-                                 torch.Tensor]]:
+    def forward(
+            self, pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_weight: Optional[Sequence] = None,
+    ) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """
         Actual metric computation
 
@@ -546,10 +552,12 @@ class MulticlassROC(TensorCollectionMetric):
 class MulticlassPrecisionRecall(TensorCollectionMetric):
     """Computes the multiclass PR Curve"""
 
-    def __init__(self, num_classes: Optional[int] = None,
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            num_classes: Optional[int] = None,
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             num_classes: number of classes
@@ -568,12 +576,12 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
 
         self.num_classes = num_classes
 
-    def forward(self, pred: torch.Tensor,
-                target: torch.Tensor,
-                sample_weight: Optional[Sequence] = None
-                ) -> Tuple[Tuple[torch.Tensor,
-                                 torch.Tensor,
-                                 torch.Tensor]]:
+    def forward(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_weight: Optional[Sequence] = None,
+    ) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """
         Actual metric computation
 
@@ -595,12 +603,14 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
 class DiceCoefficient(TensorMetric):
     """Computes the dice coefficient"""
 
-    def __init__(self, include_background: bool = False,
-                 nan_score: float = 0.0, no_fg_score: float = 0.0,
-                 reduction: str = 'elementwise_mean',
-                 reduce_group: Any = None,
-                 reduce_op: Any = None
-                 ):
+    def __init__(
+            self,
+            include_background: bool = False,
+            nan_score: float = 0.0, no_fg_score: float = 0.0,
+            reduction: str = 'elementwise_mean',
+            reduce_group: Any = None,
+            reduce_op: Any = None,
+    ):
         """
         Args:
             include_background: whether to also compute dice for the background

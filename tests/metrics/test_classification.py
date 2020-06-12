@@ -153,11 +153,11 @@ def test_roc(pos_label):
     roc = ROC(pos_label=pos_label)
     assert roc.name == 'roc'
 
-    r = roc(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
+    res = roc(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
 
-    assert isinstance(r, tuple)
-    assert len(r) == 3
-    for tmp in r:
+    assert isinstance(res, tuple)
+    assert len(res) == 3
+    for tmp in res:
         assert isinstance(tmp, torch.Tensor)
 
 
@@ -169,14 +169,14 @@ def test_multiclass_roc(num_classes):
 
     assert multi_roc.name == 'multiclass_roc'
 
-    r = multi_roc(pred, target)
+    res = multi_roc(pred, target)
 
-    assert isinstance(r, tuple)
+    assert isinstance(res, tuple)
 
     if num_classes is not None:
-        assert len(r) == num_classes
+        assert len(res) == num_classes
 
-    for tmp in r:
+    for tmp in res:
         assert isinstance(tmp, tuple)
         assert len(tmp) == 3
 
