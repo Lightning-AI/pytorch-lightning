@@ -14,10 +14,7 @@ def random():
     torch.manual_seed(0)
 
 
-@pytest.mark.parametrize(['num_classes'], [
-    pytest.param(1),
-    pytest.param(None)
-])
+@pytest.mark.parametrize('num_classes', [1, None])
 def test_accuracy(num_classes):
     acc = Accuracy(num_classes=num_classes)
 
@@ -29,10 +26,7 @@ def test_accuracy(num_classes):
     assert isinstance(result, torch.Tensor)
 
 
-@pytest.mark.parametrize(['normalize'], [
-    pytest.param(False),
-    pytest.param(True)
-])
+@pytest.mark.parametrize('normalize', [False, True])
 def test_confusion_matrix(normalize):
     conf_matrix = ConfusionMatrix(normalize=normalize)
     assert conf_matrix.name == 'confusion_matrix'
@@ -45,10 +39,7 @@ def test_confusion_matrix(normalize):
     assert isinstance(cm, torch.Tensor)
 
 
-@pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1),
-    pytest.param(2.)
-])
+@pytest.mark.parametrize('pos_label', [1, 2.])
 def test_precision_recall(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
 
@@ -63,10 +54,7 @@ def test_precision_recall(pos_label):
         assert isinstance(tmp, torch.Tensor)
 
 
-@pytest.mark.parametrize(['num_classes'], [
-    pytest.param(1),
-    pytest.param(None)
-])
+@pytest.mark.parametrize('num_classes', [1, None])
 def test_precision(num_classes):
     precision = Precision(num_classes=num_classes)
 
@@ -78,10 +66,7 @@ def test_precision(num_classes):
     assert isinstance(prec, torch.Tensor)
 
 
-@pytest.mark.parametrize(['num_classes'], [
-    pytest.param(1),
-    pytest.param(None)
-])
+@pytest.mark.parametrize('num_classes', [1, None])
 def test_recall(num_classes):
     recall = Recall(num_classes=num_classes)
 
@@ -93,10 +78,7 @@ def test_recall(num_classes):
     assert isinstance(rec, torch.Tensor)
 
 
-@pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1),
-    pytest.param(2)
-])
+@pytest.mark.parametrize('pos_label', [1, 2])
 def test_average_precision(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
 
@@ -108,10 +90,7 @@ def test_average_precision(pos_label):
     assert isinstance(ap, torch.Tensor)
 
 
-@pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1),
-    pytest.param(2)
-])
+@pytest.mark.parametrize('pos_label', [1, 2])
 def test_auroc(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
 
@@ -143,10 +122,7 @@ def test_fbeta(beta, num_classes):
     assert isinstance(score, torch.Tensor)
 
 
-@pytest.mark.parametrize(['num_classes'], [
-    pytest.param(1),
-    pytest.param(None),
-])
+@pytest.mark.parametrize('num_classes', [1, None])
 def test_f1(num_classes):
     f1 = F1(num_classes=num_classes)
     assert f1.name == 'f1'
@@ -157,10 +133,7 @@ def test_f1(num_classes):
     assert isinstance(score, torch.Tensor)
 
 
-@pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1),
-    pytest.param(2)
-])
+@pytest.mark.parametrize('pos_label', [1, 2])
 def test_roc(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
 
@@ -175,11 +148,7 @@ def test_roc(pos_label):
         assert isinstance(tmp, torch.Tensor)
 
 
-@pytest.mark.parametrize(['num_classes'], [
-    pytest.param(4),
-    pytest.param(None),
-
-])
+@pytest.mark.parametrize('num_classes', [4, None])
 def test_multiclass_roc(num_classes):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
 
@@ -202,10 +171,7 @@ def test_multiclass_roc(num_classes):
             assert isinstance(_tmp, torch.Tensor)
 
 
-@pytest.mark.parametrize(['num_classes'], [
-    pytest.param(4),
-    pytest.param(None),
-])
+@pytest.mark.parametrize('num_classes', [4, None])
 def test_multiclass_pr(num_classes):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
 
@@ -228,10 +194,7 @@ def test_multiclass_pr(num_classes):
             assert isinstance(_tmp, torch.Tensor)
 
 
-@pytest.mark.parametrize(['include_background'], [
-    pytest.param(True),
-    pytest.param(False),
-])
+@pytest.mark.parametrize('include_background', [True, False])
 def test_dice_coefficient(include_background):
     dice_coeff = DiceCoefficient(include_background=include_background)
 
