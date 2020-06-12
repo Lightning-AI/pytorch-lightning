@@ -192,7 +192,7 @@ def test_precision_recall(pred, target, expected_prec, expected_rec):
 def test_fbeta_score(pred, target, beta, exp_score):
     score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
-    
+
     score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
@@ -203,7 +203,7 @@ def test_fbeta_score(pred, target, beta, exp_score):
 def test_f1_score(pred, target, exp_score):
     score = f1_score(torch.tensor(pred), torch.tensor(target), reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
-    
+
     score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 

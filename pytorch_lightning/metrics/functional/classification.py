@@ -402,8 +402,7 @@ def _binary_clf_curve(
                                 torch.tensor([target.size(0) - 1])])
 
     target = (target == pos_label).to(torch.long)
-    tps = torch.cumsum((target == pos_label).to(torch.long) * weight,
-                       dim=0)[threshold_idxs]
+    tps = torch.cumsum(target * weight, dim=0)[threshold_idxs]
 
     if sample_weight is not None:
         # express fps as a cumsum to ensure fps is increasing even in
@@ -443,7 +442,7 @@ def roc(
     tps = torch.cat([torch.zeros(1, dtype=tps.dtype, device=tps.device), tps])
     fps = torch.cat([torch.zeros(1, dtype=fps.dtype, device=fps.device), fps])
     thresholds = torch.cat([thresholds[0][None] + 1, thresholds])
-
+    
     if fps[-1] <= 0:
         raise ValueError("No negative samples in targets, "
                          "false positive value should be meaningless")
@@ -481,7 +480,6 @@ def multiclass_roc(
     num_classes = get_num_classes(pred, target, num_classes)
 
     class_roc_vals = []
-
     for c in range(num_classes):
         pred_c = pred[:, c]
 
@@ -557,7 +555,6 @@ def multiclass_precision_recall_curve(
     num_classes = get_num_classes(pred, target, num_classes)
 
     class_pr_vals = []
-
     for c in range(num_classes):
         pred_c = pred[:, c]
 

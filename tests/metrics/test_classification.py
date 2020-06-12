@@ -163,7 +163,11 @@ def test_roc(pos_label):
 
 @pytest.mark.parametrize('num_classes', [4, None])
 def test_multiclass_roc(num_classes):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
+    pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+                         [0.05, 0.85, 0.05, 0.05],
+                         [0.05, 0.05, 0.85, 0.05],
+                         [0.05, 0.05, 0.05, 0.85]])
+    target = torch.tensor([0, 1, 3, 2])
 
     multi_roc = MulticlassROC(num_classes=num_classes)
 
@@ -186,7 +190,11 @@ def test_multiclass_roc(num_classes):
 
 @pytest.mark.parametrize('num_classes', [5, None])
 def test_multiclass_pr(num_classes):
-    pred, target = torch.tensor([0, 1, 2, 3, 4]), torch.tensor([0, 1, 2, 4, 3])
+    pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+                         [0.05, 0.85, 0.05, 0.05],
+                         [0.05, 0.05, 0.85, 0.05],
+                         [0.05, 0.05, 0.05, 0.85]])
+    target = torch.tensor([0, 1, 3, 2])
 
     multi_pr = MulticlassPrecisionRecall(num_classes=num_classes)
 
