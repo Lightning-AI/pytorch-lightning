@@ -3,3 +3,5 @@
 
 # extended list of dependencies dor development and run lint and tests
 -r ./requirements.txt
+
+cloudpickle>=1.2

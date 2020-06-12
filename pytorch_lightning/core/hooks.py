@@ -2,6 +2,7 @@ from typing import Any
 
 import torch
 from torch import Tensor
+from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from pytorch_lightning.utilities import move_data_to_device
 
@@ -14,7 +15,7 @@ else:
     APEX_AVAILABLE = True
 
 
-class ModelHooks(torch.nn.Module):
+class ModelHooks(Module):
 
     # TODO: remove in v0.9.0
     def on_sanity_check_start(self):

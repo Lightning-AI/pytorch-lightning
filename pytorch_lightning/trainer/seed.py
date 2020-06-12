@@ -1,7 +1,7 @@
 """Helper functions to help with reproducibility of models. """
 
 import os
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 import random
@@ -18,7 +18,10 @@ def seed_everything(seed: Optional[int] = None) -> int:
     min_seed_value = np.iinfo(np.uint32).min
 
     try:
-        seed = int(seed)
+        if seed is None:
+            seed = _select_seed_randomly(min_seed_value, max_seed_value)
+        else:
+            seed = int(seed)
     except (TypeError, ValueError):
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 

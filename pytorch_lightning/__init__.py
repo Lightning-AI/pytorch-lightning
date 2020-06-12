@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.8.0-dev'
+__version__ = '0.8.0rc1'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'

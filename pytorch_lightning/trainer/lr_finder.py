@@ -2,7 +2,7 @@
 Trainer Learning Rate Finder
 """
 from abc import ABC, abstractmethod
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple, List, Union
 
 import numpy as np
 import torch
@@ -20,7 +20,14 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 
 class TrainerLRFinderMixin(ABC):
+
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
     default_root_dir: str
+    progress_bar_callback: ...
+    global_step: int
+    total_batch_idx: int
+    on_gpu: bool
 
     @abstractmethod
     def save_checkpoint(self, *args):
@@ -28,6 +35,14 @@ class TrainerLRFinderMixin(ABC):
 
     @abstractmethod
     def restore(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def init_optimizers(self, *args) -> Tuple[List, List, List]:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def fit(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def _run_lr_finder_internally(self, model: LightningModule):
@@ -57,7 +72,7 @@ class TrainerLRFinderMixin(ABC):
     def lr_find(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
-                val_dataloaders: Optional[DataLoader] = None,
+                val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
                 min_lr: float = 1e-8,
                 max_lr: float = 1,
                 num_training: int = 100,

@@ -10,10 +10,10 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
-from typing import Union, Callable, Any, List, Optional
+from typing import Union, Callable, Any, List, Optional, Tuple
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
@@ -63,9 +63,10 @@ class TrainerDPMixin(ABC):
     use_tpu: bool
     use_native_amp: bool
     data_parallel_device_ids: ...
-    logger: Union[LightningLoggerBase, bool]
     progress_bar_callback: ...
-    tpu_id: int
+    tpu_id: Optional[int]
+    on_colab_kaggle: str
+    save_spawn_weights: Callable
 
     @property
     @abstractmethod
@@ -77,7 +78,15 @@ class TrainerDPMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def init_optimizers(self, *args):
+    def init_optimizers(self, *args) -> Tuple[List, List, List]:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def get_model(self) -> LightningModule:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def reinit_scheduler_properties(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def copy_trainer_model_properties(self, model):
@@ -294,7 +303,7 @@ class TrainerDPMixin(ABC):
         hvd.join()
 
 
-def normalize_parse_gpu_string_input(s):
+def normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
     if isinstance(s, str):
         if s == '-1':
             return -1
@@ -369,7 +378,7 @@ def sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     return gpus
 
 
-def parse_gpu_ids(gpus: Union[int, str, List]) -> Optional[List[int]]:
+def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[int]]:
     """
     Parses the GPU ids given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
@@ -404,10 +413,10 @@ def parse_gpu_ids(gpus: Union[int, str, List]) -> Optional[List[int]]:
 
     gpus = normalize_parse_gpu_string_input(gpus)
     gpus = normalize_parse_gpu_input_to_list(gpus)
-    gpus = sanitize_gpu_ids(gpus)
-
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
+    gpus = sanitize_gpu_ids(gpus)
+
     return gpus
 
 

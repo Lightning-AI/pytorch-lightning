@@ -1,6 +1,5 @@
 import inspect
 import os
-import logging as python_logging
 from argparse import ArgumentParser, Namespace
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -247,7 +246,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use.
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
@@ -280,6 +279,7 @@ class Trainer(
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
+                This can be a URL.
 
             profiler:  To profile individual steps during training and assist in
 
@@ -546,7 +546,7 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def slurm_job_id(self) -> int:
+    def slurm_job_id(self) -> Optional[int]:
         try:
             job_id = os.environ['SLURM_JOB_ID']
             job_id = int(job_id)
@@ -687,7 +687,7 @@ class Trainer(
                 if len(arg_types) == 1:
                     # redefine the type for ArgParser needed
                     def use_type(x):
-                        return bool(parsing.strtobool(x))
+                        return bool(parsing.str_to_bool(x))
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
@@ -877,8 +877,15 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
+                self.__set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+
+            elif self.distributed_backend == 'ddp_spawn':
+                model.share_memory()
+
+                # spin up peers
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
                 self.spawn_ddp_children(model)
@@ -964,7 +971,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            self.logger.log_hyperparams(ref_model.module_arguments)
+            self.logger.log_hyperparams(ref_model.hparams)
 
             self.logger.save()
 
@@ -1035,7 +1042,7 @@ class Trainer(
                 self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # clear cache before training
-        if self.on_gpu:
+        if self.on_gpu and self.root_gpu is not None:
             # use context because of:
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):

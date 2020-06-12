@@ -145,7 +145,7 @@ import atexit
 import signal
 from abc import ABC, abstractmethod
 from typing import Callable
-from typing import Union, List
+from typing import Union, List, Optional
 
 import numpy as np
 import torch
@@ -236,7 +236,8 @@ class TrainerTrainLoopMixin(ABC):
     total_batch_idx: int
     checkpoint_callback: ...
     terminate_on_nan: bool
-    tpu_id: int
+    tpu_id: Optional[int]
+    interactive_ddp_procs: List
 
     # Callback system
     callbacks: List[Callback]
@@ -249,7 +250,7 @@ class TrainerTrainLoopMixin(ABC):
     on_validation_end: Callable
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -374,6 +375,10 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 # TODO wrap this logic into the callback
+                # DO NOT DELETE
+                # early stopping as a (new Callback) class doesn't yet work because we have to know these
+                # trainer flags including the current epoch stuff
+                # all of this needs to go into the early stopping to clean up better
                 if self.enable_early_stop:
                     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
                         should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
