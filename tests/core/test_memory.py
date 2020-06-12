@@ -2,9 +2,9 @@ import pytest
 import torch
 import torch.nn as nn
 
-from benchmarks.parity_modules import ParityModuleRNN
 from pytorch_lightning import LightningModule
 from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
+from tests.base.models import ParityModuleRNN
 
 
 class EmptyModule(LightningModule):
