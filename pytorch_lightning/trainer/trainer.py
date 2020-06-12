@@ -776,10 +776,20 @@ class Trainer(
         # download the data and do whatever transforms we need
         # do before any spawn calls so that the model can assign properties
         # only on proc 0 because no spawn has happened yet
-        if not self._is_data_prepared:
+        # for slurm or torchelastic, prepare the data once per node
+        if (
+            not (self.use_ddp or self.use_ddp2)
+            or (self.is_slurm_managing_tasks and int(os.environ["SLURM_LOCALID"]) == 0)
+            # torchelastic or general non_slurm ddp
+            or (
+                "WORLD_SIZE" in os.environ
+                and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ)
+                and int(os.environ["LOCAL_RANK"]) == 0
+            )
+        ):
             model.prepare_data()
             self._is_data_prepared = True
-
+            
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
