@@ -35,7 +35,7 @@ class DummyTensorCollectionMetric(TensorCollectionMetric):
 
 
 def _test_collection_metric(metric: Metric):
-    ''' Test that metric.device, metric.dtype works for metric collection '''
+    """ Test that metric.device, metric.dtype works for metric collection """
     input1, input2 = torch.tensor([1.]), torch.tensor([2.])
 
     def change_and_check_device_dtype(device, dtype):
@@ -82,7 +82,7 @@ def _test_collection_metric(metric: Metric):
 
 
 def _test_metric(metric: Metric):
-    ''' Test that metric.device, metric.dtype works for single metric'''
+    """ Test that metric.device, metric.dtype works for single metric"""
     input1, input2 = torch.tensor([1.]), torch.tensor([2.])
 
     def change_and_check_device_dtype(device, dtype):
