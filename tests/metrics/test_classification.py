@@ -188,7 +188,7 @@ def test_multiclass_roc(num_classes):
             assert isinstance(_tmp, torch.Tensor)
 
 
-@pytest.mark.parametrize('num_classes', [5, None])
+@pytest.mark.parametrize('num_classes', [4, None])
 def test_multiclass_pr(num_classes):
     pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
                          [0.05, 0.85, 0.05, 0.05],
