@@ -109,7 +109,7 @@ def test_logger_reset_correctly(tmpdir, extra_params):
     model = EvalModelTemplate()
 
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         **extra_params
     )
     logger1 = trainer.logger

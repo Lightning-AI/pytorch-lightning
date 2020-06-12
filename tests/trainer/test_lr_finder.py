@@ -14,7 +14,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -29,7 +29,7 @@ def test_model_reset_correctly(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -51,7 +51,7 @@ def test_trainer_reset_correctly(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -81,7 +81,7 @@ def test_trainer_arg_bool(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=2,
         auto_lr_find=True
     )
@@ -100,7 +100,7 @@ def test_trainer_arg_str(tmpdir):
     before_lr = model.my_fancy_lr
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=2,
         auto_lr_find='my_fancy_lr'
     )
@@ -120,7 +120,7 @@ def test_call_to_trainer_method(tmpdir):
     before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=2,
     )
 
@@ -144,7 +144,7 @@ def test_accumulation_and_early_stopping(tmpdir):
     before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         accumulate_grad_batches=2,
     )
 
@@ -167,7 +167,7 @@ def test_suggestion_parameters_work(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=3,
     )
 
@@ -187,7 +187,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=3
     )
 

@@ -61,7 +61,7 @@ The trainer restores:
 You can even change the logic of your model as long as the weights and "architecture" of
 the system isn't different. If you add a layer, for instance, it might not work.
 
-At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.base_module.model_saving.py`:
+At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.base_module.saving.py`:
 
 .. code-block:: python
 
