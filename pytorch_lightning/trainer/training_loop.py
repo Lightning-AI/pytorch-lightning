@@ -306,13 +306,14 @@ class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         # add signal handlers for process kills
-        # def _signal_kill_handler(*args):
-        #     return TrainerTrainLoopMixin.run_training_teardown(self)
-        #
-        # orig_signal_handlers = {}
-        # for sig_name in SIGNAL_TERMINATE:
-        #     orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
-        #                                                    _signal_kill_handler)
+        def _signal_kill_handler():
+            return self.run_training_teardown()
+
+        orig_signal_handlers = {}
+        for sig_name in SIGNAL_TERMINATE:
+            orig_signal_handlers[sig_name] = signal.signal(
+                getattr(signal, sig_name), _signal_kill_handler
+            )
 
         # get model
         model = self.get_model()
@@ -685,25 +686,29 @@ class TrainerTrainLoopMixin(ABC):
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.optimizers[opt_idx])]
 
-    # @atexit.register
     def run_training_teardown(self):
-        if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
-            return
-        # Train end events
-        with self.profiler.profile('on_train_end'):
-            # callbacks
-            self.on_train_end()
-            # model hooks
-            if self.is_function_implemented('on_train_end'):
-                self.get_model().on_train_end()
 
-        if self.logger is not None:
-            self.logger.finalize("success")
+        @atexit.register
+        def teardown_closure():
+            if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
+                return
+            # Train end events
+            with self.profiler.profile('on_train_end'):
+                # callbacks
+                self.on_train_end()
+                # model hooks
+                if self.is_function_implemented('on_train_end'):
+                    self.get_model().on_train_end()
 
-        # summarize profile results
-        self.profiler.describe()
+            if self.logger is not None:
+                self.logger.finalize("success")
 
-        self._teardown_already_run = True
+            # summarize profile results
+            self.profiler.describe()
+
+            self._teardown_already_run = True
+
+        teardown_closure()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
