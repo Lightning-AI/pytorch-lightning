@@ -124,12 +124,13 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.profiler.profilers import BaseProfiler
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
@@ -159,6 +160,8 @@ class TrainerEvaluationLoopMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     use_horovod: bool
+    use_amp: bool
+    use_native_amp: bool
     single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
@@ -174,7 +177,8 @@ class TrainerEvaluationLoopMixin(ABC):
     val_dataloaders: DataLoader
     use_tpu: bool
     reload_dataloaders_every_epoch: ...
-    tpu_id: int
+    tpu_id: Optional[int]
+    profiler: BaseProfiler
 
     # Callback system
     on_validation_batch_start: Callable
@@ -191,7 +195,7 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod

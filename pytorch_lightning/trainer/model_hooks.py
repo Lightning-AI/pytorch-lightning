@@ -41,5 +41,5 @@ class TrainerModelHooksMixin(ABC):
         return arg_name in inspect.signature(f_op).parameters
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
