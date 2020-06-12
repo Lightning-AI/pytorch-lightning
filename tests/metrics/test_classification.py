@@ -46,7 +46,7 @@ def test_confusion_matrix(normalize):
 
 
 @pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1.),
+    pytest.param(1),
     pytest.param(2.)
 ])
 def test_precision_recall(pos_label):
@@ -94,11 +94,11 @@ def test_recall(num_classes):
 
 
 @pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1.),
-    pytest.param(2.)
+    pytest.param(1),
+    pytest.param(2)
 ])
 def test_average_precision(pos_label):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
 
     avg_prec = AveragePrecision(pos_label=pos_label)
     assert avg_prec.name == 'AP'
@@ -109,11 +109,11 @@ def test_average_precision(pos_label):
 
 
 @pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1.),
-    pytest.param(2.)
+    pytest.param(1),
+    pytest.param(2)
 ])
 def test_auroc(pos_label):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
 
     auroc = AUROC(pos_label=pos_label)
     assert auroc.name == 'auroc'
@@ -124,10 +124,10 @@ def test_auroc(pos_label):
 
 
 @pytest.mark.parametrize(['beta', 'num_classes'], [
-    pytest.param(0., 1.),
-    pytest.param(0.5, 1.),
-    pytest.param(1., 1.),
-    pytest.param(2., 1.),
+    pytest.param(0., 1),
+    pytest.param(0.5, 1),
+    pytest.param(1., 1),
+    pytest.param(2., 1),
     pytest.param(0., None),
     pytest.param(0.5, None),
     pytest.param(1., None),
@@ -144,7 +144,7 @@ def test_fbeta(beta, num_classes):
 
 
 @pytest.mark.parametrize(['num_classes'], [
-    pytest.param(1.),
+    pytest.param(1),
     pytest.param(None),
 ])
 def test_f1(num_classes):
@@ -158,11 +158,11 @@ def test_f1(num_classes):
 
 
 @pytest.mark.parametrize(['pos_label'], [
-    pytest.param(1.),
-    pytest.param(2.)
+    pytest.param(1),
+    pytest.param(2)
 ])
 def test_roc(pos_label):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
 
     roc = ROC(pos_label=pos_label)
     assert roc.name == 'roc'
@@ -176,12 +176,12 @@ def test_roc(pos_label):
 
 
 @pytest.mark.parametrize(['num_classes'], [
-    pytest.param(4.),
+    pytest.param(4),
     pytest.param(None),
 
 ])
 def test_multiclass_roc(num_classes):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
 
     multi_roc = MulticlassROC(num_classes=num_classes)
 
@@ -203,12 +203,12 @@ def test_multiclass_roc(num_classes):
 
 
 @pytest.mark.parametrize(['num_classes'], [
-    pytest.param(4.),
+    pytest.param(4),
     pytest.param(None),
 
 ])
 def test_multiclass_pr(num_classes):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
 
     multi_pr = MulticlassPrecisionRecall(num_classes=num_classes)
 
