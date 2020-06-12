@@ -507,7 +507,7 @@ Validation and test step also have the same option when using dp
 Distributed and 16-bit precision
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Due to an issue with apex and DistributedDataParallel (PyTorch and NVIDIA issue), Lightning does
+Due to an issue with apex and DataParallel (PyTorch and NVIDIA issue), Lightning does
 not allow 16-bit and DP training. We tried to get this to work, but it's an issue on their end.
 
 Below are the possible configurations we support.
