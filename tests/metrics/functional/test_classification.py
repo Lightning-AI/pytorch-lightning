@@ -262,11 +262,11 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([0, 1], [0, 1], 1.),
-    pytest.param([1, 0], [0, 1], 0.),
-    pytest.param([1, 1], [1, 0], 0.5),
-    pytest.param([1, 0], [1, 0], 1.),
-    pytest.param([0.5, 0.5], [1, 0], 0.5),
+    pytest.param([0, 0, 1, 1], [0, 0, 1, 1], 1.),
+    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
+    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
+    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.),
+    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.5),
 ])
 def test_auroc(pred, target, expected):
     score = auroc(torch.tensor(pred), torch.tensor(target)).item()
@@ -299,10 +299,15 @@ def test_average_precision_constant_values():
     assert average_precision(pred, target).item() == .25
 
 
-@pytest.mark.skip
-# TODO
-def test_dice_score():
-    dice_score()
+@pytest.mark.parametrize(['pred', 'target', 'expected'], [
+    pytest.param([[0, 0], [1, 1]], [[0, 0], [1, 1]], 1.),
+    pytest.param([[1, 1], [0, 0]], [[0, 0], [1, 1]], 0.),
+    pytest.param([[1, 1], [1, 1]], [[1, 1], [0, 0]], 2 / 3),
+    pytest.param([[1, 1], [0, 0]], [[1, 1], [0, 0]], 1.),
+])
+def test_dice_score(pred, target, expected):
+    score = dice_score(torch.tensor(pred), torch.tensor(target))
+    assert score == expected
 
 # example data taken from
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py
