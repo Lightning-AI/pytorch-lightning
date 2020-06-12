@@ -1,9 +1,26 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics.functional.classification import (to_onehot, to_categorical, get_num_classes,
-    stat_scores, stat_scores_multiple_classes, accuracy, confusion_matrix, precision, recall, fbeta_score,
-    f1_score, _binary_clf_curve, dice_score, average_precision, auroc, precision_recall_curve, roc, auc)
+from pytorch_lightning.metrics.functional.classification import (
+    to_onehot,
+    to_categorical,
+    get_num_classes,
+    stat_scores,
+    stat_scores_multiple_classes,
+    accuracy,
+    confusion_matrix,
+    precision,
+    recall,
+    fbeta_score,
+    f1_score,
+    _binary_clf_curve,
+    dice_score,
+    average_precision,
+    auroc,
+    precision_recall_curve,
+    roc,
+    auc,
+)
 
 
 @pytest.fixture

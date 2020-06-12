@@ -1,6 +1,6 @@
 from collections import Sequence
-from typing import Optional, Tuple, Callable
 from functools import wraps
+from typing import Optional, Tuple, Callable
 
 import torch
 

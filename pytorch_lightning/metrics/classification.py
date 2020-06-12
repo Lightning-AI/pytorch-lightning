@@ -2,7 +2,6 @@ from typing import Any, Optional, Sequence, Tuple
 
 import torch
 
-from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
 from pytorch_lightning.metrics.functional.classification import (
     accuracy,
     confusion_matrix,
@@ -18,6 +17,7 @@ from pytorch_lightning.metrics.functional.classification import (
     multiclass_precision_recall_curve,
     dice_score
 )
+from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
 
 __all__ = [
     'Accuracy',

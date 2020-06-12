@@ -3,7 +3,6 @@
 #   Especially reduction and reducing across processes won't be tested here!
 
 import pytest
-
 import torch
 
 from pytorch_lightning.metrics.classification import (

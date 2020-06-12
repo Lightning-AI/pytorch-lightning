@@ -4,7 +4,6 @@ conversion to/from :class:`numpy.ndarray` and :class:`torch.Tensor` as well as u
 sync tensors between different processes in a DDP scenario, when needed.
 """
 
-import sys
 import numbers
 from typing import Union, Any, Callable, Optional
 
