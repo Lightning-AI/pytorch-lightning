@@ -27,8 +27,9 @@ CHECKPOINT_PAST_HPARAMS_KEYS = (
 
 
 class ModelIO(object):
-    CHECKPOINT_KEY_HYPER_PARAMS = 'hyper_parameters'
-    CHECKPOINT_NAME_HYPER_PARAMS = 'hparams_name'
+    CHECKPOINT_HYPER_PARAMS_KEY = 'hyper_parameters'
+    CHECKPOINT_HYPER_PARAMS_NAME = 'hparams_name'
+    CHECKPOINT_HYPER_PARAMS_TYPE = 'hparams_type'
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
@@ -157,10 +158,10 @@ class ModelIO(object):
             hparams['on_gpu'] = False
 
             # overwrite hparams by the given file
-            checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS] = hparams
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
 
         # override the hparams with values that were passed in
-        checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS].update(kwargs)
+        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
@@ -168,13 +169,15 @@ class ModelIO(object):
     @classmethod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs):
         # pass in the values we saved automatically
-        if cls.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
+        if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
             model_args = {}
             # add some back compatibility, the actual one shall be last
-            for past_param_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_KEY_HYPER_PARAMS, ):
+            for past_param_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
                 if past_param_key in checkpoint:
-                    model_args.update(checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS])
-            args_name = checkpoint.get(cls.CHECKPOINT_NAME_HYPER_PARAMS)
+                    model_args.update(checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY])
+            if cls.CHECKPOINT_HYPER_PARAMS_TYPE in checkpoint:
+                model_args = checkpoint[cls.CHECKPOINT_HYPER_PARAMS_TYPE](model_args)
+            args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
             init_args_name = inspect.signature(cls).parameters.keys()
             if args_name == 'kwargs':
                 cls_kwargs = {k: v for k, v in model_args.items() if k in init_args_name}
