@@ -205,7 +205,6 @@ def test_multiclass_roc(num_classes):
 @pytest.mark.parametrize(['num_classes'], [
     pytest.param(4),
     pytest.param(None),
-
 ])
 def test_multiclass_pr(num_classes):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])

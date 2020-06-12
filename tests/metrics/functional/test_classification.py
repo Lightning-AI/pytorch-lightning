@@ -1,9 +1,9 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics.functional.classification import to_onehot, to_categorical, get_num_classes, \
-    stat_scores, stat_scores_multiple_classes, accuracy, confusion_matrix, precision, recall, fbeta_score, \
-    f1_score, _binary_clf_curve, dice_score, average_precision, auroc, precision_recall_curve, roc, auc
+from pytorch_lightning.metrics.functional.classification import (to_onehot, to_categorical, get_num_classes,
+    stat_scores, stat_scores_multiple_classes, accuracy, confusion_matrix, precision, recall, fbeta_score,
+    f1_score, _binary_clf_curve, dice_score, average_precision, auroc, precision_recall_curve, roc, auc)
 
 
 @pytest.fixture
@@ -95,7 +95,6 @@ def test_to_categorical():
     pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), 10, 10),
     pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
     pytest.param(torch.rand(32, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
-
 ])
 def test_get_num_classes(pred, target, num_classes, expected_num_classes):
     assert get_num_classes(pred, target, num_classes) == expected_num_classes
@@ -115,20 +114,16 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn'], [
-    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]),
-                 torch.tensor([1, 0, 0, 0, 1]), torch.tensor([0, 0, 1, 0, 1]), torch.tensor([3, 4, 3, 3, 1]),
-                 torch.tensor([0, 0, 0, 1, 1])),
-    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]),
-                 torch.tensor([1, 0, 0, 0, 1]), torch.tensor([0, 0, 1, 0, 1]), torch.tensor([3, 4, 3, 3, 1]),
-                 torch.tensor([0, 0, 0, 1, 1]))
+    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1]),
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1])
 ])
 def test_stat_scores_multiclass(pred, target, expected_tp, expected_fp, expected_tn, expected_fn):
     tp, fp, tn, fn = stat_scores_multiple_classes(pred, target)
 
-    assert torch.allclose(expected_tp.to(tp), tp)
-    assert torch.allclose(expected_fp.to(fp), fp)
-    assert torch.allclose(expected_tn.to(tn), tn)
-    assert torch.allclose(expected_fn.to(fn), fn)
+    assert torch.allclose(torch.tensor(expected_tp).to(tp), tp)
+    assert torch.allclose(torch.tensor(expected_fp).to(fp), fp)
+    assert torch.allclose(torch.tensor(expected_tn).to(tn), tn)
+    assert torch.allclose(torch.tensor(expected_fn).to(fn), fn)
 
 
 def test_multilabel_accuracy():
@@ -159,17 +154,15 @@ def test_confusion_matrix():
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
-    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]),
-                 torch.tensor([0.5, 0.5]), torch.tensor([0.5, 0.5])),
-    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]),
-                 torch.tensor([0.5, 0.5]), torch.tensor([0.5, 0.5]))
+    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5]),
+    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5])
 ])
 def test_precision_recall(pred, target, expected_prec, expected_rec):
     prec = precision(pred, target, reduction='none')
     rec = recall(pred, target, reduction='none')
 
-    assert torch.allclose(expected_prec.to(prec), prec)
-    assert torch.allclose(expected_rec.to(rec), rec)
+    assert torch.allclose(torch.tensor(expected_prec).to(prec), prec)
+    assert torch.allclose(torch.tensor(expected_rec).to(rec), rec)
 
 
 @pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [
