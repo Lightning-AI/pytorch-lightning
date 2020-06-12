@@ -688,11 +688,11 @@ class TrainerTrainLoopMixin(ABC):
 
     def run_training_teardown(self):
 
-        @atexit.register
         def teardown_closure():
             if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
                 return
-            # Train end events
+
+            # train end events
             with self.profiler.profile('on_train_end'):
                 # callbacks
                 self.on_train_end()
@@ -708,6 +708,7 @@ class TrainerTrainLoopMixin(ABC):
 
             self._teardown_already_run = True
 
+        teardown_closure = atexit.register(teardown_closure)
         teardown_closure()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
