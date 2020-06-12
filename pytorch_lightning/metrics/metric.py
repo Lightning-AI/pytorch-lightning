@@ -4,7 +4,8 @@ from typing import Any, Optional, Union
 import torch
 import torch.distributed
 
-from pytorch_lightning.metrics.converters import tensor_metric, numpy_metric
+from pytorch_lightning.metrics.converters import (
+    tensor_metric, numpy_metric, tensor_collection_metric)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
@@ -19,6 +20,7 @@ class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
     1. Return multiple Outputs
     2. Handle their own DDP sync
     """
+
     def __init__(self, name: str):
         """
         Args:
@@ -48,6 +50,7 @@ class TensorMetric(Metric):
     All inputs and outputs will be casted to tensors if necessary.
     Already handles DDP sync and input/output conversions.
     """
+
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = None,
                  reduce_op: Optional[Any] = None):
@@ -72,6 +75,47 @@ class TensorMetric(Metric):
                                    _to_device_dtype)
 
 
+class TensorCollectionMetric(Metric):
+    """
+    Base class for metric implementation operating directly on tensors.
+    All inputs will be casted to tensors if necessary. Outputs won't be casted.
+    Already handles DDP sync and input conversions.
+
+    This class differs from :class:`TensorMetric`, as it assumes all outputs to
+    be collections of tensors and does not explicitly convert them. This is
+    necessary, since some collections (like for ROC, Precision-Recall Curve etc.)
+    cannot be converted to tensors at the highest level.
+    All numpy arrays and numbers occuring in these outputs will still be converted.
+
+    Use this class as a baseclass, whenever you want to ensure inputs are
+    tensors and outputs cannot be converted to tensors automatically
+
+    """
+
+    def __init__(self, name: str,
+                 reduce_group: Optional[Any] = None,
+                 reduce_op: Optional[Any] = None):
+        """
+
+        Args:
+            name: the metric's name
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        """
+        super().__init__(name)
+        self._orig_call = tensor_collection_metric(group=reduce_group,
+                                                   reduce_op=reduce_op)(super().__call__)
+
+    def __call__(self, *args, **kwargs) -> torch.Tensor:
+        def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
+            return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
+
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
+                                   _to_device_dtype)
+
+
 class NumpyMetric(Metric):
     """
     Base class for metric implementation operating on numpy arrays.
@@ -79,6 +123,7 @@ class NumpyMetric(Metric):
     be casted to tensors if necessary.
     Already handles DDP sync and input/output conversions.
     """
+
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = None,
                  reduce_op: Optional[Any] = None):
