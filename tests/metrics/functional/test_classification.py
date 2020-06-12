@@ -131,8 +131,10 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn'], [
-    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1]),
-    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1])
+    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]),
+                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1]),
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]),
+                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1])
 ])
 def test_stat_scores_multiclass(pred, target, expected_tp, expected_fp, expected_tn, expected_fn):
     tp, fp, tn, fn = stat_scores_multiple_classes(pred, target)
@@ -183,33 +185,27 @@ def test_precision_recall(pred, target, expected_prec, expected_rec):
 
 
 @pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [
-    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]),
-                 0.5, torch.tensor([0.5, 0.5])),
-    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]),
-                 0.5, torch.tensor([0.5, 0.5])),
-    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]),
-                 1, torch.tensor([0.5, 0.5])),
-    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]),
-                 1, torch.tensor([0.5, 0.5])),
-    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]),
-                 2, torch.tensor([0.5, 0.5])),
-    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]),
-                 2, torch.tensor([0.5, 0.5])),
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 0.5, [0.5, 0.5]),
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 1, [0.5, 0.5]),
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 2, [0.5, 0.5]),
 ])
 def test_fbeta_score(pred, target, beta, exp_score):
-    score = fbeta_score(pred, target, beta, reduction='none')
-    assert torch.allclose(score, exp_score)
+    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, reduction='none')
+    assert torch.allclose(score, torch.tensor(exp_score))
+    
+    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, reduction='none')
+    assert torch.allclose(score, torch.tensor(exp_score))
 
 
 @pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
-    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]),
-                 torch.tensor([0.5, 0.5])),
-    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]),
-                 torch.tensor([0.5, 0.5]))
+    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], [0.5, 0.5]),
 ])
 def test_f1_score(pred, target, exp_score):
-    score = f1_score(pred, target, reduction='none')
-    assert torch.allclose(score, exp_score)
+    score = f1_score(torch.tensor(pred), torch.tensor(target), reduction='none')
+    assert torch.allclose(score, torch.tensor(exp_score))
+    
+    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), reduction='none')
+    assert torch.allclose(score, torch.tensor(exp_score))
 
 
 @pytest.mark.parametrize(
@@ -221,7 +217,7 @@ def test_f1_score(pred, target, exp_score):
         pytest.param(torch.randint(low=51, high=99, size=(100,), dtype=torch.float) / 100,
                      torch.tensor([int(bool(idx % 2)) for idx in range(100)]),
                      None, 1., 39
-                     )
+                     ),
     ]
 )
 @pytest.mark.usefixtures("random")
@@ -236,63 +232,56 @@ def test_binary_clf_curve(pred, target, sample_weight, pos_label, exp_shape):
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_p', 'expected_r', 'expected_t'], [
-    pytest.param(torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1]),
-                 torch.tensor([0.5, 1 / 3, 0.5, 1., 1.]), torch.tensor([1, 0.5, 0.5, 0.5, 0.]),
-                 torch.tensor([1, 2, 3, 4]))
+    pytest.param([1, 2, 3, 4], [1, 0, 0, 1], [0.5, 1 / 3, 0.5, 1., 1.], [1, 0.5, 0.5, 0.5, 0.], [1, 2, 3, 4])
 ])
 def test_pr_curve(pred, target, expected_p, expected_r, expected_t):
-    p, r, t = precision_recall_curve(pred, target)
+    p, r, t = precision_recall_curve(torch.tensor(pred), torch.tensor(target))
     assert p.size() == r.size()
     assert p.size(0) == t.size(0) + 1
 
-    assert torch.allclose(p, expected_p.to(p))
-    assert torch.allclose(r, expected_r.to(r))
-    assert torch.allclose(t, expected_t.to(t))
+    assert torch.allclose(p, torch.tensor(expected_p).to(p))
+    assert torch.allclose(r, torch.tensor(expected_r).to(r))
+    assert torch.allclose(t, torch.tensor(expected_t).to(t))
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_tpr', 'expected_fpr'], [
-    pytest.param(torch.tensor([0, 1]), torch.tensor([0, 1]), torch.tensor([0, 1, 1]),
-                 torch.tensor([0, 0, 1])),
-    pytest.param(torch.tensor([1, 0]), torch.tensor([0, 1]), torch.tensor([0, 0, 1]),
-                 torch.tensor([0, 1, 1])),
-    pytest.param(torch.tensor([1, 1]), torch.tensor([1, 0]), torch.tensor([0, 1]),
-                 torch.tensor([0, 1])),
-    pytest.param(torch.tensor([1, 0]), torch.tensor([1, 0]), torch.tensor([0, 1, 1]),
-                 torch.tensor([0, 0, 1])),
-    pytest.param(torch.tensor([0.5, 0.5]), torch.tensor([0, 1]), torch.tensor([0, 1]),
-                 torch.tensor([0, 1]))
+    pytest.param([0, 1], [0, 1], [0, 1, 1], [0, 0, 1]),
+    pytest.param([1, 0], [0, 1], [0, 0, 1], [0, 1, 1]),
+    pytest.param([1, 1], [1, 0], [0, 1], [0, 1]),
+    pytest.param([1, 0], [1, 0], [0, 1, 1], [0, 0, 1]),
+    pytest.param([0.5, 0.5], [0, 1], [0, 1], [0, 1]),
 ])
 def test_roc_curve(pred, target, expected_tpr, expected_fpr):
-    fpr, tpr, thresh = roc(pred, target)
+    fpr, tpr, thresh = roc(torch.tensor(pred), torch.tensor(target))
 
     assert fpr.shape == tpr.shape
     assert fpr.size(0) == thresh.size(0)
-    assert torch.allclose(fpr, expected_fpr.to(fpr))
-    assert torch.allclose(tpr, expected_tpr.to(tpr))
+    assert torch.allclose(fpr, torch.tensor(expected_fpr).to(fpr))
+    assert torch.allclose(tpr, torch.tensor(expected_tpr).to(tpr))
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param(torch.tensor([0, 1]), torch.tensor([0, 1]), 1.),
-    pytest.param(torch.tensor([1, 0]), torch.tensor([0, 1]), 0.),
-    pytest.param(torch.tensor([1, 1]), torch.tensor([1, 0]), 0.5),
-    pytest.param(torch.tensor([1, 0]), torch.tensor([1, 0]), 1.),
-    pytest.param(torch.tensor([0.5, 0.5]), torch.tensor([1, 0]), 0.5)
+    pytest.param([0, 1], [0, 1], 1.),
+    pytest.param([1, 0], [0, 1], 0.),
+    pytest.param([1, 1], [1, 0], 0.5),
+    pytest.param([1, 0], [1, 0], 1.),
+    pytest.param([0.5, 0.5], [1, 0], 0.5),
 ])
 def test_auroc(pred, target, expected):
-    score = auroc(pred, target).item()
+    score = auroc(torch.tensor(pred), torch.tensor(target)).item()
     assert score == expected
 
 
 @pytest.mark.parametrize(['x', 'y', 'expected'], [
-    pytest.param(torch.tensor([0, 1]), torch.tensor([0, 1]), 0.5),
-    pytest.param(torch.tensor([1, 0]), torch.tensor([0, 1]), 0.5),
-    pytest.param(torch.tensor([1, 0, 0]), torch.tensor([0, 1, 1]), 0.5),
-    pytest.param(torch.tensor([0, 1]), torch.tensor([1, 1]), 1),
-    pytest.param(torch.tensor([0, 0.5, 1]), torch.tensor([0, 0.5, 1]), 0.5)
+    pytest.param([0, 1], [0, 1], 0.5),
+    pytest.param([1, 0], [0, 1], 0.5),
+    pytest.param([1, 0, 0], [0, 1, 1], 0.5),
+    pytest.param([0, 1], [1, 1], 1),
+    pytest.param([0, 0.5, 1], [0, 0.5, 1], 0.5),
 ])
 def test_auc(x, y, expected):
     # Test Area Under Curve (AUC) computation
-    assert auc(x, y) == expected
+    assert auc(torch.tensor(x), torch.tensor(y)) == expected
 
 
 def test_average_precision_constant_values():
