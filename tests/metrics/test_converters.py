@@ -215,4 +215,4 @@ def test_numpy_metric_ddp():
 
 
 def test_numpy_metric_simple():
-    _test_tensor_metric(False)
+    _test_numpy_metric(False)
