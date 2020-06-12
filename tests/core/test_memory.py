@@ -42,26 +42,34 @@ class UnorderedModel(LightningModule):
         return out
 
 
-def test_empty_model_summary_shapes():
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_empty_model_summary_shapes(mode):
     """ Test that the summary works for models that have no submodules. """
     model = EmptyModule()
-    summary = model.summarize(mode=ModelSummary.MODE_FULL)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
 
 
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
 @pytest.mark.parametrize(['device', 'dtype'], [
     pytest.param(torch.device('cpu'), torch.double),
     pytest.param(torch.device('cuda', 0), torch.float),
     pytest.param(torch.device('cuda', 0), torch.float16),
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
-def test_linear_model_summary_shapes(device, dtype):
+def test_linear_model_summary_shapes(device, dtype, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
     model = UnorderedModel().type(dtype).to(device)
     model.train()
-    summary = model.summarize(mode=ModelSummary.MODE_FULL)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == [
         [2, 10],    # layer 2
         [2, 7],     # combine
@@ -81,7 +89,11 @@ def test_linear_model_summary_shapes(device, dtype):
     assert model.device == device
 
 
-def test_rnn_summary_shapes():
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_rnn_summary_shapes(mode):
     """ Test that the model summary works for RNNs. """
     model = ParityModuleRNN()
 
@@ -93,7 +105,7 @@ def test_rnn_summary_shapes():
 
     model.example_input_array = torch.zeros(b, t, 10)
 
-    summary = model.summarize(mode=ModelSummary.MODE_FULL)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == [
         [b, t, i],  # rnn
         [b, t, h],  # linear
@@ -104,10 +116,14 @@ def test_rnn_summary_shapes():
     ]
 
 
-def test_summary_parameter_count():
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_summary_parameter_count(mode):
     """ Test that the summary counts the number of parameters in every submodule. """
     model = UnorderedModel()
-    summary = model.summarize(mode=ModelSummary.MODE_FULL)
+    summary = model.summarize(mode=mode)
     assert summary.param_nums == [
         model.layer2.weight.numel() + model.layer2.bias.numel(),
         model.combine.weight.numel() + model.combine.bias.numel(),
@@ -117,10 +133,14 @@ def test_summary_parameter_count():
     ]
 
 
-def test_summary_layer_types():
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
+def test_summary_layer_types(mode):
     """ Test that the summary displays the layer names correctly. """
     model = UnorderedModel()
-    summary = model.summarize(mode=ModelSummary.MODE_FULL)
+    summary = model.summarize(mode=mode)
     assert summary.layer_types == [
         'Linear',
         'Linear',
@@ -130,6 +150,10 @@ def test_summary_layer_types():
     ]
 
 
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
 @pytest.mark.parametrize(['example_input', 'expected_size'], [
     pytest.param([], UNKNOWN_SIZE),
     pytest.param((1, 2, 3), [UNKNOWN_SIZE] * 3),
@@ -139,8 +163,9 @@ def test_summary_layer_types():
     pytest.param([torch.zeros(2, 3), torch.zeros(4, 5)], [[2, 3], [4, 5]]),
     pytest.param((torch.zeros(2, 3), torch.zeros(4, 5)), [[2, 3], [4, 5]]),
 ])
-def test_example_input_array_types(example_input, expected_size):
+def test_example_input_array_types(example_input, expected_size, mode):
     """ Test the types of example inputs supported for display in the summary. """
+
     class DummyModule(nn.Module):
         def forward(self, *args, **kwargs):
             return None
@@ -157,5 +182,5 @@ def test_example_input_array_types(example_input, expected_size):
 
     model = DummyLightningModule()
     model.example_input_array = example_input
-    summary = model.summarize(mode=ModelSummary.MODE_FULL)
+    summary = model.summarize(mode=mode)
     assert summary.in_sizes == [expected_size]
