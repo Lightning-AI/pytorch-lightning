@@ -156,6 +156,7 @@ def test_f1(num_classes):
 
     assert isinstance(score, torch.Tensor)
 
+
 @pytest.mark.parametrize(['pos_label'], [
     pytest.param(1.),
     pytest.param(2.)
@@ -228,7 +229,7 @@ def test_multiclass_pr(num_classes):
             assert isinstance(_tmp, torch.Tensor)
 
 
-@pytest.mark.parametrize(['include_background'],[
+@pytest.mark.parametrize(['include_background'], [
     pytest.param(True),
     pytest.param(False),
 ])
