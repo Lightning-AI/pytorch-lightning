@@ -371,13 +371,15 @@ def f1_score(
                        num_classes=num_classes, reduction=reduction)
 
 
-# adapted from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/_ranking.py
 def _binary_clf_curve(
         pred: torch.Tensor,
         target: torch.Tensor,
         sample_weight: Optional[Sequence] = None,
         pos_label: int = 1.,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    adapted from https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/_ranking.py
+    """
     if sample_weight is not None and not isinstance(sample_weight, torch.Tensor):
         sample_weight = torch.tensor(sample_weight, device=pred.device, dtype=torch.float)
 

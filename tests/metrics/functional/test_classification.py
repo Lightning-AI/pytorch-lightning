@@ -24,11 +24,6 @@ from pytorch_lightning.metrics.functional.classification import (
 )
 
 
-@pytest.fixture
-def random():
-    seed_everything(0)
-
-
 def test_onehot():
     test_tensor = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
     expected = torch.tensor([
@@ -209,21 +204,18 @@ def test_f1_score(pred, target, exp_score):
     assert torch.allclose(score, torch.tensor(exp_score))
 
 
-@pytest.mark.parametrize(
-    ['pred', 'target', 'sample_weight', 'pos_label', "exp_shape"], [
-        pytest.param(torch.randint(low=51, high=99, size=(100,), dtype=torch.float) / 100,
-                     torch.tensor([int(bool(idx % 2)) for idx in range(100)]),
-                     torch.ones(100), 1., 40
-                     ),
-        pytest.param(torch.randint(low=51, high=99, size=(100,), dtype=torch.float) / 100,
-                     torch.tensor([int(bool(idx % 2)) for idx in range(100)]),
-                     None, 1., 39
-                     ),
-    ]
-)
-@pytest.mark.usefixtures("random")
-def test_binary_clf_curve(pred, target, sample_weight, pos_label, exp_shape):
+@pytest.mark.parametrize(['sample_weight', 'pos_label', "exp_shape"], [
+    pytest.param(1, 1., 40),
+    pytest.param(None, 1., 39),
+])
+def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
+    seed_everything(0)
+    pred = torch.randint(low=51, high=99, size=(100,), dtype=torch.float) / 100
+    target = torch.tensor([int(bool(idx % 2)) for idx in range(100)])
+    sample_weight = torch.ones_like(pred) * sample_weight if sample_weight is not None else None
+
     fps, tps, thresh = _binary_clf_curve(pred, target, sample_weight, pos_label)
+
     assert isinstance(tps, torch.Tensor)
     assert isinstance(fps, torch.Tensor)
     assert isinstance(thresh, torch.Tensor)
