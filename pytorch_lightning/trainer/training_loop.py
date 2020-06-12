@@ -309,6 +309,8 @@ class TrainerTrainLoopMixin(ABC):
         def _signal_kill_handler():
             return self.run_training_teardown()
 
+        atexit.register(self.run_training_teardown)
+
         orig_signal_handlers = {}
         for sig_name in SIGNAL_TERMINATE:
             orig_signal_handlers[sig_name] = signal.signal(
@@ -687,29 +689,24 @@ class TrainerTrainLoopMixin(ABC):
         return [(opt_idx, self.optimizers[opt_idx])]
 
     def run_training_teardown(self):
+        if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
+            return
 
-        def teardown_closure():
-            if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
-                return
+        # train end events
+        with self.profiler.profile('on_train_end'):
+            # callbacks
+            self.on_train_end()
+            # model hooks
+            if self.is_function_implemented('on_train_end'):
+                self.get_model().on_train_end()
 
-            # train end events
-            with self.profiler.profile('on_train_end'):
-                # callbacks
-                self.on_train_end()
-                # model hooks
-                if self.is_function_implemented('on_train_end'):
-                    self.get_model().on_train_end()
+        if self.logger is not None:
+            self.logger.finalize("success")
 
-            if self.logger is not None:
-                self.logger.finalize("success")
+        # summarize profile results
+        self.profiler.describe()
 
-            # summarize profile results
-            self.profiler.describe()
-
-            self._teardown_already_run = True
-
-        teardown_closure = atexit.register(teardown_closure)
-        teardown_closure()
+        self._teardown_already_run = True
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
