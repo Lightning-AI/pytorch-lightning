@@ -28,7 +28,7 @@ class ValidationEpochEndVariations(ABC):
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
-    def validation_epoch_end_multiple_dataloaders(self, outputs):
+    def validation_epoch_end__multiple_dataloaders(self, outputs):
         """
         Called at the end of validation to aggregate outputs
 
@@ -57,39 +57,3 @@ class ValidationEpochEndVariations(ABC):
             'log': logs
         }
         return results
-
-    def validation_epoch_end__multiple_dataloaders(self, outputs):
-        """
-        Called at the end of validation to aggregate outputs
-        :param outputs: list of individual outputs of each validation step
-        :return:
-        """
-        # if returned a scalar from validation_step, outputs is a list of tensor scalars
-        # we return just the average in this case (if we want)
-        # return torch.stack(outputs).mean()
-        val_loss_mean = 0
-        val_acc_mean = 0
-        i = 0
-        for dl_output in outputs:
-            for output in dl_output:
-                val_loss = output['val_loss']
-
-                # reduce manually when using dp
-                if self.trainer.use_dp:
-                    val_loss = torch.mean(val_loss)
-                val_loss_mean += val_loss
-
-                # reduce manually when using dp
-                val_acc = output['val_acc']
-                if self.trainer.use_dp:
-                    val_acc = torch.mean(val_acc)
-
-                val_acc_mean += val_acc
-                i += 1
-
-        val_loss_mean /= i
-        val_acc_mean /= i
-
-        tqdm_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
-        result = {'progress_bar': tqdm_dict}
-        return result
