@@ -1,6 +1,6 @@
 import platform
 from abc import ABC, abstractmethod
-from typing import Union, List, Tuple, Callable
+from typing import Union, List, Tuple, Callable, Optional
 
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
@@ -76,6 +76,9 @@ class TrainerDataLoadingMixin(ABC):
     val_percent_check: float
     test_percent_check: float
     replace_sampler_ddp: bool
+    num_nodes: int
+    num_processes: int
+    distributed_backend: Optional[str]
 
     @abstractmethod
     def is_overridden(self, *args):
@@ -143,6 +146,7 @@ class TrainerDataLoadingMixin(ABC):
                 'ddp2': self.num_nodes,
                 'ddp_cpu': self.num_processes * self.num_nodes
             }
+            assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.proc_rank)
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
@@ -197,7 +201,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-    def _reset_eval_dataloader(self, model: LightningModule, mode: str) -> Tuple[int, List[DataLoader]]:
+    def _reset_eval_dataloader(self, model: LightningModule, mode: str) -> Tuple[Union[int, float], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:

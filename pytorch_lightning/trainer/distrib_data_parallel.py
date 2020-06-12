@@ -116,7 +116,7 @@ When the script starts again, Lightning will:
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, List, Optional, Callable, Tuple
 import subprocess
 import sys
 from time import sleep
@@ -151,16 +151,19 @@ class TrainerDDPMixin(ABC):
     #  the proper values/initialisation should be done in child class
     on_gpu: bool
     num_gpu_nodes: int
+    gpus: List[int]
     logger: Union[LightningLoggerBase, bool]
     checkpoint_callback: Union[ModelCheckpoint, bool]
     data_parallel_device_ids: ...
-    distributed_backend: str
+    distributed_backend: Optional[str]
     amp_level: str
     use_tpu: bool
     default_root_dir: str
     use_native_amp: bool
     progress_bar_callback: ...
     num_processes: int
+    num_nodes: int
+    node_rank: int
 
     @property
     @abstractmethod
@@ -181,7 +184,15 @@ class TrainerDDPMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def init_optimizers(self, *args):
+    def init_optimizers(self, *args) -> Tuple[List, List, List]:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def reinit_scheduler_properties(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def save_checkpoint(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
