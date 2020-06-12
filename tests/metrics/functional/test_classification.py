@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import (
     to_onehot,
     to_categorical,
@@ -25,7 +26,7 @@ from pytorch_lightning.metrics.functional.classification import (
 
 @pytest.fixture
 def random():
-    torch.manual_seed(0)
+    seed_everything(0)
 
 
 def test_onehot():
