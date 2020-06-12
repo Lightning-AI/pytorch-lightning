@@ -48,7 +48,7 @@ class Accuracy(TensorMetric):
             reduction: str = 'elementwise_mean',
             reduce_group: Any = None,
             reduce_op: Any = None,
-        ):
+    ):
         """
         Args:
             num_classes: number of classes

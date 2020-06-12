@@ -442,16 +442,14 @@ def roc(
     tps = torch.cat([torch.zeros(1, dtype=tps.dtype, device=tps.device), tps])
     fps = torch.cat([torch.zeros(1, dtype=fps.dtype, device=fps.device), fps])
     thresholds = torch.cat([thresholds[0][None] + 1, thresholds])
-    
+
     if fps[-1] <= 0:
-        raise ValueError("No negative samples in targets, "
-                         "false positive value should be meaningless")
+        raise ValueError("No negative samples in targets, false positive value should be meaningless")
 
     fpr = fps / fps[-1]
 
     if tps[-1] <= 0:
-        raise ValueError("No positive samples in targets, "
-                         "true positive value should be meaningless")
+        raise ValueError("No positive samples in targets, true positive value should be meaningless")
 
     tpr = tps / tps[-1]
 
@@ -624,7 +622,6 @@ def multiclass_auc_decorator(reorder: bool = True) -> Callable:
     return wrapper
 
 
-@auc_decorator(reorder=True)
 def auroc(
         pred: torch.Tensor,
         target: torch.Tensor,
@@ -640,9 +637,12 @@ def auroc(
         sample_weight: sample weights
         pos_label: the label for the positive class (default: 1.)
     """
-    # fixme
-    return roc(pred=pred, target=target, sample_weight=sample_weight,
-               pos_label=pos_label)
+
+    @auc_decorator(reorder=True)
+    def _auroc(pred, target, sample_weight, pos_label):
+        return roc(pred, target, sample_weight, pos_label)
+
+    return _auroc(pred=pred, target=target, sample_weight=sample_weight, pos_label=pos_label)
 
 
 def average_precision(
@@ -674,7 +674,7 @@ def dice_score(
     for i in range(bg, n_classes):
         if not (target == i).any():
             # no foreground class
-            scores[i-bg] += no_fg_score
+            scores[i - bg] += no_fg_score
             continue
 
         tp, fp, tn, fn = stat_scores(pred=pred, target=target, class_index=i)
@@ -687,5 +687,5 @@ def dice_score(
         else:
             score_cls = (2 * tp).to(torch.float) / denom
 
-        scores[i-bg] += score_cls
+        scores[i - bg] += score_cls
     return reduce(scores, reduction=reduction)
