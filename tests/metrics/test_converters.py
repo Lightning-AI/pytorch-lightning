@@ -105,7 +105,7 @@ def test_tensor_metric_conversion():
     assert result.item() == 5.
 
 
-def setup_ddp(rank, worldsize, ):
+def _setup_ddp(rank, worldsize):
     import os
 
     os.environ['MASTER_ADDR'] = 'localhost'
@@ -114,8 +114,8 @@ def setup_ddp(rank, worldsize, ):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def ddp_test_fn(rank, worldsize):
-    setup_ddp(rank, worldsize)
+def _ddp_test_fn(rank, worldsize):
+    _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.], device='cuda:0')
 
     reduced_tensor = _sync_ddp_if_available(tensor)
@@ -124,6 +124,7 @@ def ddp_test_fn(rank, worldsize):
         'Sync-Reduce does not work properly with DDP and Tensors'
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_reduce_ddp():
     """Make sure sync-reduce works with DDP"""
@@ -131,9 +132,9 @@ def test_sync_reduce_ddp():
     tutils.set_random_master_port()
 
     worldsize = 2
-    mp.spawn(ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
 
-    dist.destroy_process_group()
+    # dist.destroy_process_group()
 
 
 def test_sync_reduce_simple():
@@ -168,7 +169,7 @@ def _test_tensor_metric(is_ddp: bool):
 
 
 def _ddp_test_tensor_metric(rank, worldsize):
-    setup_ddp(rank, worldsize)
+    _setup_ddp(rank, worldsize)
     _test_tensor_metric(True)
 
 
@@ -179,8 +180,7 @@ def test_tensor_metric_ddp():
 
     world_size = 2
     mp.spawn(_ddp_test_tensor_metric, args=(world_size,), nprocs=world_size)
-
-    dist.destroy_process_group()
+    # dist.destroy_process_group()
 
 
 def test_tensor_metric_simple():
@@ -209,17 +209,18 @@ def _test_numpy_metric(is_ddp: bool):
 
 
 def _ddp_test_numpy_metric(rank, worldsize):
-    setup_ddp(rank, worldsize)
+    _setup_ddp(rank, worldsize)
     _test_numpy_metric(True)
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_numpy_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
     world_size = 2
     mp.spawn(_ddp_test_numpy_metric, args=(world_size,), nprocs=world_size)
-    dist.destroy_process_group()
+    # dist.destroy_process_group()
 
 
 def test_numpy_metric_simple():
