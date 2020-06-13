@@ -9,4 +9,3 @@
 
 cloudpickle>=1.2
 boto3
-botocore
