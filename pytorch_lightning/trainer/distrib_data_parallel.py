@@ -166,6 +166,10 @@ class TrainerDDPMixin(ABC):
     node_rank: int
 
     @property
+    def is_global_zero(self) -> int:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @property
     @abstractmethod
     def num_gpus(self) -> int:
         """Warning: this is just empty shell for code implemented in other class."""
