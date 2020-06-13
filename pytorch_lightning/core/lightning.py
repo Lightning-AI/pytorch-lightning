@@ -942,17 +942,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             self._init_slurm_connection()
 
         if 'MASTER_ADDR' not in os.environ:
-            log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
+            rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ['MASTER_ADDR'] = '127.0.0.1'
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
         if 'MASTER_PORT' not in os.environ:
-            log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
+            rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ['MASTER_PORT'] = '12910'
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         if 'WORLD_SIZE' in os.environ and int(os.environ['WORLD_SIZE']) != world_size:
-            log.warning(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
+            rank_zero_warn(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
                         f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
