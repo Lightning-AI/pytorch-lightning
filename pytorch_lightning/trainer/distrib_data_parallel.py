@@ -300,6 +300,13 @@ class TrainerDDPMixin(ABC):
         if self.is_slurm_managing_tasks:
             log.info('Multi-processing is handled by Slurm.')
 
+    def determin_local_rank(self):
+        if self.is_slurm_managing_tasks:
+            return int(os.environ['SLURM_LOCALID'])
+
+        else:
+            return int(os.environ.get('LOCAL_RANK', 0))
+
     def determine_ddp_node_rank(self):
         if self.is_slurm_managing_tasks:
             return int(os.environ['SLURM_NODEID'])
