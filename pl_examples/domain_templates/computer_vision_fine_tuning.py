@@ -203,7 +203,7 @@ class TransferLearningModel(pl.LightningModule):
 
         return x
 
-    def loss(self, labels, logits):
+    def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
 
     def train(self, mode=True):
@@ -243,7 +243,7 @@ class TransferLearningModel(pl.LightningModule):
         y_bin = torch.ge(y_logits, 0)
 
         # 2. Compute loss & accuracy:
-        train_loss = self.loss(y_true, y_logits)
+        train_loss = self.loss(y_logits, y_true)
         num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
 
         # 3. Outputs:
