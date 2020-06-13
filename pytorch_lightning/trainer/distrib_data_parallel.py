@@ -455,6 +455,7 @@ class TrainerDDPMixin(ABC):
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero:
             log.info('-' * 100)
+            log.info(f'distributed_backend={self.distributed_backend}')
             log.info(f'All DDP processes registered. Starting ddp with {self.world_size} processes')
             log.info('-' * 100)
 
