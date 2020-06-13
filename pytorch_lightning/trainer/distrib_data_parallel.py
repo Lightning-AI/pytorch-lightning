@@ -449,7 +449,7 @@ class TrainerDDPMixin(ABC):
         model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # on world_size=0 let everyone know training is starting
-        if self.global_rank == 0:
+        if self.is_global_zero:
             log.info('-'*100)
             log.info(f'All DDP processes registered. Starting ddp with {self.world_size} processes')
             log.info('-'*100)
@@ -502,7 +502,7 @@ class TrainerDDPMixin(ABC):
         :param model:
         :return:
         """
-        if self.global_rank == 0:
+        if self.is_global_zero:
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
 
@@ -516,7 +516,7 @@ class TrainerDDPMixin(ABC):
 
         loaded_model = original_model
 
-        if self.global_rank == 0:
+        if self.is_global_zero:
             # load weights saved in ddp
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             loaded_model = original_model.__class__.load_from_checkpoint(path)

@@ -213,7 +213,7 @@ class TrainerIOMixin(ABC):
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):  # pragma: no-cover
-        if self.global_rank == 0:
+        if self.is_global_zero:
             # save weights
             log.info('handling SIGUSR1')
             self.hpc_save(self.weights_save_path, self.logger)
@@ -262,7 +262,7 @@ class TrainerIOMixin(ABC):
     def save_checkpoint(self, filepath, weights_only: bool = False):
         checkpoint = self.dump_checkpoint(weights_only)
 
-        if self.global_rank == 0:
+        if self.is_global_zero:
             # do the actual save
             try:
                 self._atomic_save(checkpoint, filepath)

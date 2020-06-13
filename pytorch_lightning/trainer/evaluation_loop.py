@@ -375,7 +375,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self.add_progress_bar_metrics(prog_bar_metrics)
 
         # log results of test
-        if test_mode and self.global_rank == 0:
+        if test_mode and self.is_global_zero:
             print('-' * 80)
             print('TEST RESULTS')
             pprint(callback_metrics)

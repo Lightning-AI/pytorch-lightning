@@ -488,6 +488,10 @@ class Trainer(
         self.on_init_end()
 
     @property
+    def is_global_zero(self):
+        return self.is_global_zero
+
+    @property
     def slurm_job_id(self) -> Optional[int]:
         try:
             job_id = os.environ['SLURM_JOB_ID']
@@ -942,7 +946,7 @@ class Trainer(
 
         # print model summary
         # TODO: remove self.testing condition because model.summarize() is wiping out the weights
-        if self.global_rank == 0 and self.weights_summary is not None and not self.testing:
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:

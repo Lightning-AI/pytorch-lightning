@@ -480,7 +480,7 @@ class TrainerTrainLoopMixin(ABC):
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
             if should_save_log or self.fast_dev_run:
-                if self.global_rank == 0 and self.logger is not None:
+                if self.is_global_zero and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged

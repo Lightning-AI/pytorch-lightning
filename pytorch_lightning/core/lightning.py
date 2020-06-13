@@ -99,7 +99,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     self.print(x, 'in forward')
 
         """
-        if self.trainer.global_rank == 0:
+        if self.trainer.is_global_zero:
             print(*args, **kwargs)
 
     @abstractmethod
