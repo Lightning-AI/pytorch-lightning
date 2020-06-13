@@ -99,7 +99,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     self.print(x, 'in forward')
 
         """
-        if self.trainer.proc_rank == 0:
+        if self.trainer.is_global_zero:
             print(*args, **kwargs)
 
     @abstractmethod
@@ -922,7 +922,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def init_ddp_connection(
             self,
-            proc_rank: int,
+            global_rank: int,
             world_size: int,
             is_slurm_managing_tasks: bool = True
     ) -> None:
@@ -933,7 +933,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         for SLURM managed cluster.
 
         Args:
-            proc_rank: The current process rank within the node.
+            global_rank: The global process idx.
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
@@ -956,8 +956,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                            f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-        log.info(f"initializing ddp: LOCAL_RANK: {proc_rank}/{world_size - 1} WORLD_SIZE:{world_size}")
-        torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
+        log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
+        torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
     def configure_apex(
             self,
