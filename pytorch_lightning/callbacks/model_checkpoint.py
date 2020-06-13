@@ -16,6 +16,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
+import pytorch_lightning.utilities.cloud_io as cloud_io
 
 
 class ModelCheckpoint(Callback):
@@ -95,7 +96,7 @@ class ModelCheckpoint(Callback):
 
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
-                 mode: str = 'auto', period: int = 1, prefix: str = ''):
+                 mode: str = 'auto', period: int = 1, prefix: str = '', remove_non_top_k_s3_files: bool = True):
         super().__init__()
         if save_top_k > 0 and filepath is not None and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:
             rank_zero_warn(
@@ -109,6 +110,10 @@ class ModelCheckpoint(Callback):
         if filepath is None:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
         else:
+            if cloud_io.is_s3_path(filepath):
+                self.save_to_s3 = True
+                self.bucket, filepath = cloud_io.parse_s3_path(filepath)
+
             if os.path.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
             else:
@@ -127,6 +132,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = 0
         self.best_model_path = ''
         self.save_function = None
+        self.remove_non_top_k_s3_files = remove_non_top_k_s3_files
 
         torch_inf = torch.tensor(np.Inf)
         mode_dict = {
@@ -158,6 +164,9 @@ class ModelCheckpoint(Callback):
     def _del_model(self, filepath):
         if os.path.isfile(filepath):
             os.remove(filepath)
+        if self.save_to_s3:
+            if self.remove_non_top_k_s3_files:
+                cloud_io.remove_checkpoint_from_s3(self.bucket, filepath)
 
     def _save_model(self, filepath):
         # make paths
@@ -168,6 +177,8 @@ class ModelCheckpoint(Callback):
             self.save_function(filepath, self.save_weights_only)
         else:
             raise ValueError(".save_function() not set")
+        if self.save_to_s3:
+            cloud_io.save_checkpoint_to_s3(self.bucket, filepath)
 
     def check_monitor_top_k(self, current):
         less_than_k_models = len(self.best_k_models) < self.save_top_k

@@ -8,4 +8,5 @@
 -r ./test.txt
 
 cloudpickle>=1.2
-s3fs
+boto3
+botocore
