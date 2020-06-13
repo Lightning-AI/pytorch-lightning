@@ -96,10 +96,19 @@ class TrainerDataLoadingMixin(ABC):
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         on_windows = platform.system() == 'Windows'
 
-        if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2 and not on_windows:
+        is_dataloader = isinstance(dataloader, DataLoader)
+        if is_dataloader and dataloader.num_workers <= 2 and not on_windows:
             rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
                            ' Consider increasing the value of the `num_workers` argument`'
                            ' in the `DataLoader` init to improve performance.')
+
+        # ddp_spawn + num_workers > 0 don't mix! tell the user
+        if is_dataloader and dataloader.num_workers > 0 and not on_windows and self.distributed_backend == 'ddp_spawn':
+            rank_zero_warn(f'Dataloader(num_workers>0) and ddp_spawn do not mix well! '
+                           f'Your performance might suffer dramatically. '
+                           f'Please consider setting distributed_backend=ddp to use num_workers > 0 '
+                           f'(this is a bottleneck of Python .spawn() and PyTorch')
+
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
