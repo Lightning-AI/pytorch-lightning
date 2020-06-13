@@ -444,7 +444,6 @@ class Trainer(
             self.init_tpu()
 
         # init flags for SLURM+ddp to work
-        self.global_rank = 0
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
