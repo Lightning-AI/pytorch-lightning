@@ -448,7 +448,7 @@ class Trainer(
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
-        self.local_rank = self.determin_local_rank()
+        self.local_rank = self.determine_local_rank()
         self.global_rank = 0
 
         # nvidia setup
