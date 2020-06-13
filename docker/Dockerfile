@@ -34,7 +34,7 @@ ENV PATH /home/containeruser/conda/bin:$PATH
 RUN pip install torch==$PYTORCH_VERSION
 RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git --single-branch --branch $LIGHTNING_VERSION && \
     pip install ./pytorch-lightning && \
-    pip install -r pytorch-lightning/requirements-extra.txt && \
+    pip install -r pytorch-lightning/requirements/extra.txt && \
     rm -rf pytorch-lightning
 
 RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"

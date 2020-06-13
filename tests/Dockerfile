@@ -14,9 +14,9 @@ ENV PATH: "$PATH:/root/.local/bin"
 ENV MAKEFLAGS: "-j$(nproc)"
 
 COPY ./tests/install_AMP.sh install_AMP.sh
-COPY ./requirements.txt requirements.txt
-COPY ./requirements-extra.txt requirements-extra.txt
-COPY ./tests/requirements.txt requirements-tests.txt
+COPY ./requirements/base.txt requirements.txt
+COPY ./requirements/extra.txt requirements-extra.txt
+COPY ./requirements/test.txt requirements-tests.txt
 
 # Install AMP
 RUN apt-get update && apt-get install -y cmake && \
