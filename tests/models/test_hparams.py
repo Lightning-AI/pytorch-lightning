@@ -30,10 +30,11 @@ class AssignHparamsModel(EvalModelTemplate):
 # -------------------------
 # STANDARD TESTS
 # -------------------------
-def _run_standard_hparams_test(tmpdir, model, cls):
+def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     """
     Tests for the existence of an arg 'test_arg=14'
     """
+    hparam_type = type(model.hparams)
     # test proper property assignments
     assert model.hparams.test_arg == 14
 
@@ -48,13 +49,15 @@ def _run_standard_hparams_test(tmpdir, model, cls):
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]['test_arg'] == 14
 
     # verify that model loads correctly
-    model = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert model.hparams.test_arg == 14
+    model2 = cls.load_from_checkpoint(raw_checkpoint_path)
+    assert model2.hparams.test_arg == 14
 
-    # todo
-    # verify that we can overwrite the property
-    # model = cls.load_from_checkpoint(raw_checkpoint_path, test_arg=78)
-    # assert model.hparams.test_arg == 78
+    assert isinstance(model2.hparams, hparam_type)
+
+    if try_overwrite:
+        # verify that we can overwrite the property
+        model3 = cls.load_from_checkpoint(raw_checkpoint_path, test_arg=78)
+        assert model3.hparams.test_arg == 78
 
     return raw_checkpoint_path
 
@@ -82,14 +85,16 @@ def test_omega_conf_hparams(tmpdir, cls):
     # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
     model = cls(hparams=conf)
+    assert isinstance(model.hparams, Container)
 
     # run standard test suite
     raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, cls)
-    model = cls.load_from_checkpoint(raw_checkpoint_path)
+    model2 = cls.load_from_checkpoint(raw_checkpoint_path)
+    assert isinstance(model2.hparams, Container)
 
     # config specific tests
-    assert model.hparams.test_arg == 14
-    assert model.hparams.mylist[0] == 15.4
+    assert model2.hparams.test_arg == 14
+    assert model2.hparams.mylist[0] == 15.4
 
 
 def test_explicit_args_hparams(tmpdir):
@@ -197,26 +202,6 @@ def test_class_nesting():
     test_outside()
     A().test2()
     A().test()
-
-
-@pytest.mark.xfail(sys.version_info >= (3, 6), reason='OmegaConf only for Python >= 3.8')
-def test_omegaconf(tmpdir):
-    class OmegaConfModel(EvalModelTemplate):
-        def __init__(self, ogc):
-            super().__init__()
-            self.ogc = ogc
-            self.size = ogc.list[0]
-
-    conf = OmegaConf.create({"k": "v", "list": [15.4, {"a": "1", "b": "2"}]})
-    model = OmegaConfModel(conf)
-
-    # ensure ogc passed values correctly
-    assert model.size == 15.4
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
-    result = trainer.fit(model)
-
-    assert result == 1
 
 
 # class SubClassEvalModel(EvalModelTemplate):
