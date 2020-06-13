@@ -21,7 +21,9 @@ except ImportError:
 else:
     ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
 
+# the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
+    'hparams',
     'module_arguments',  # used in 0.7.6
 )
 
@@ -160,6 +162,9 @@ class ModelIO(object):
             # overwrite hparams by the given file
             checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
 
+        # for past checkpoint need to add the new key
+        if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
         # override the hparams with values that were passed in
         checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
@@ -172,9 +177,9 @@ class ModelIO(object):
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
             model_args = {}
             # add some back compatibility, the actual one shall be last
-            for past_param_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
-                if past_param_key in checkpoint:
-                    model_args.update(checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY])
+            for hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
+                if hparam_key in checkpoint:
+                    model_args.update(checkpoint[hparam_key])
             if cls.CHECKPOINT_HYPER_PARAMS_TYPE in checkpoint:
                 model_args = checkpoint[cls.CHECKPOINT_HYPER_PARAMS_TYPE](model_args)
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)

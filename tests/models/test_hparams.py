@@ -39,7 +39,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     assert model.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_pct=0.5)
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -378,6 +378,28 @@ def test_single_config_models_fail(tmpdir, cls, config):
     """ Test fail on passing unsupported config type. """
     with pytest.raises(ValueError):
         _ = cls(**config)
+
+
+@pytest.mark.parametrize("past_key", ['module_arguments'])
+def test_load_past_checkpoint(tmpdir, past_key):
+    model = EvalModelTemplate()
+
+    # verify we can train
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+
+    # make sure the raw checkpoint saved the properties
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    raw_checkpoint[past_key] = raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+    raw_checkpoint[past_key]['batch_size'] = -17
+    del raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+    # save back the checkpoint
+    torch.save(raw_checkpoint, raw_checkpoint_path)
+
+    # verify that model loads correctly
+    model2 = EvalModelTemplate.load_from_checkpoint(raw_checkpoint_path)
+    assert model2.hparams.batch_size == -17
 
 
 def test_hparams_pickle(tmpdir):
