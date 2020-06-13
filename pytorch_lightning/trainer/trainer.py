@@ -888,8 +888,7 @@ class Trainer(
             return self.local_rank == 0
 
         else:
-            if self.node_rank == 0 and self.local_rank == 0:
-                return
+            return self.node_rank == 0 and self.local_rank == 0
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
