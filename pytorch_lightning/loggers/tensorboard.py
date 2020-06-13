@@ -159,7 +159,7 @@ class TensorBoardLogger(LightningLoggerBase):
         if Container is not None:
             if isinstance(self.hparams, Container):
                 from omegaconf import OmegaConf
-                OmegaConf.save(self.hparams, hparams_file)
+                OmegaConf.save(self.hparams, hparams_file, resolve=True)
             else:
                 save_hparams_to_yaml(hparams_file, self.hparams)
         else:
