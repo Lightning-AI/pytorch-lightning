@@ -32,7 +32,7 @@ Delete any calls to .cuda() or .to(device).
         x_hat = layer_1(x)
 
 Init tensors using type_as
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 When you need to create a new tensor, use `type_as`.
 This will make your code scale to any arbitrary number of GPUs or TPUs with Lightning.
 
