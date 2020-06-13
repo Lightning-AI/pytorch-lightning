@@ -183,7 +183,7 @@ else:
     HOROVOD_AVAILABLE = True
 
 # constant which signals should be catched for graceful trainer shutdown
-SIGNAL_TERMINATE = ('SIGTERM', 'SIGSEGV', 'SIGINT')
+FATAL_SIGNALS = ('SIGTERM', 'SIGSEGV', 'SIGINT')
 
 
 class TrainerTrainLoopMixin(ABC):
@@ -821,7 +821,7 @@ class TrainerTrainLoopMixin(ABC):
         atexit.register(self.run_training_teardown)
 
         orig_signal_handlers = {}
-        for sig_name in SIGNAL_TERMINATE:
+        for sig_name in FATAL_SIGNALS:
             orig_signal_handlers[sig_name] = signal.signal(
                 getattr(signal, sig_name), _signal_kill_handler
             )
