@@ -177,7 +177,7 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 +---------------+-----------+---------------------+---------------------------------+
 
 Remove CUDA flags
-^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 CUDA flags make certain GPUs visible to your script.
 Lightning sets these for you automatically, there's NO NEED to do this yourself.
