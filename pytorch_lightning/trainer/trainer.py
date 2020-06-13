@@ -31,7 +31,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info
 
 try:
     from apex import amp
@@ -362,7 +362,7 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
-            log.info('Running in fast_dev_run mode: will run a full train,'
+            rank_zero_info('Running in fast_dev_run mode: will run a full train,'
                      ' val and test loop using a single batch')
 
         # set default save path if user didn't provide one
@@ -838,7 +838,7 @@ class Trainer(
             self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.tpu_cores} TPU cores')
+            rank_zero_info(f'training on {self.tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
