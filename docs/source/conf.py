@@ -90,7 +90,7 @@ extensions = [
     'sphinx.ext.linkcode',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
-    'sphinx.ext.jsmath',
+    'sphinx.ext.imgmath',
     'recommonmark',
     'sphinx.ext.autosectionlabel',
     # 'm2r',
