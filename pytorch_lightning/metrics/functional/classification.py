@@ -80,11 +80,8 @@ def stat_scores(
 
     Args:
         pred: prediction tensor
-
         target: target tensor
-
         class_index: class to calculate over
-
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
 
