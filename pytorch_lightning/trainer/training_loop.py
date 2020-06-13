@@ -143,6 +143,7 @@ in your model.
 
 import atexit
 import signal
+import sys
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
@@ -816,15 +817,12 @@ class TrainerTrainLoopMixin(ABC):
     def _configure_kill_signals(self):
         """ Sets up training teardown signal handlers that run on interpreter exit and other POSIX signals. """
         def _signal_kill_handler(sig, frame):
-            return self.run_training_teardown()
+            self.run_training_teardown()
+            sys.exit()
 
         atexit.register(self.run_training_teardown)
-
-        orig_signal_handlers = {}
         for sig_name in FATAL_SIGNALS:
-            orig_signal_handlers[sig_name] = signal.signal(
-                getattr(signal, sig_name), _signal_kill_handler
-            )
+            signal.signal(getattr(signal, sig_name), _signal_kill_handler)
 
 
 def _with_is_last(iterable):
