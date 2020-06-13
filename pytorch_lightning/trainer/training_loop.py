@@ -359,7 +359,6 @@ class TrainerTrainLoopMixin(ABC):
                 self.run_training_epoch()
 
                 if self.max_steps and self.max_steps == self.global_step:
-                    self.run_training_teardown()
                     return
 
                 # update LR schedulers
@@ -380,10 +379,7 @@ class TrainerTrainLoopMixin(ABC):
                         # stop training
                         stop = should_stop and met_min_epochs
                         if stop:
-                            self.run_training_teardown()
                             return
-
-            self.run_training_teardown()
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -394,8 +390,8 @@ class TrainerTrainLoopMixin(ABC):
 
                 for proc in self.interactive_ddp_procs:
                     subprocess.Popen.kill(proc)
-
-                self.run_training_teardown()
+        finally:
+            self.run_training_teardown()
 
     def run_training_epoch(self):
 
