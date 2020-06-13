@@ -123,6 +123,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
+        prepare_data_per_node: bool = True,
         amp_level: str = 'O1',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
@@ -282,6 +283,9 @@ class Trainer(
                 The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
+
+            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
         """
         super().__init__()
 
@@ -293,6 +297,7 @@ class Trainer(
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         # Init callbacks
+        self.prepare_data_per_node = prepare_data_per_node
         self.callbacks = callbacks or []
         self.on_init_start()
 
@@ -439,11 +444,12 @@ class Trainer(
             self.init_tpu()
 
         # init flags for SLURM+ddp to work
-        self.proc_rank = 0
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
+        self.local_rank = self.determine_local_rank()
+        self.global_rank = 0
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -480,6 +486,10 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def is_global_zero(self):
+        return self.global_rank == 0
 
     @property
     def slurm_job_id(self) -> Optional[int]:
@@ -532,6 +542,7 @@ class Trainer(
              ('max_epochs', (<class 'int'>,), 1000),
              ...
              ('precision', (<class 'int'>,), 32),
+             ('prepare_data_per_node', (<class 'bool'>,), True),
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
@@ -773,10 +784,9 @@ class Trainer(
         # check that model is configured correctly
         self.check_model_configuration(model)
 
-        # download the data and do whatever transforms we need
-        # do before any spawn calls so that the model can assign properties
-        # only on proc 0 because no spawn has happened yet
-        if not self._is_data_prepared:
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+        if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
 
@@ -801,6 +811,7 @@ class Trainer(
             # torchelastic or general non_slurm ddp2
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
+
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
@@ -872,6 +883,13 @@ class Trainer(
         # used for testing or when we need to know that training succeeded
         return 1
 
+    def can_prepare_data(self):
+        if self.prepare_data_per_node:
+            return self.local_rank == 0
+
+        else:
+            return self.node_rank == 0 and self.local_rank == 0
+
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
         # functions to overwrite with these implementations
@@ -928,7 +946,7 @@ class Trainer(
 
         # print model summary
         # TODO: remove self.testing condition because model.summarize() is wiping out the weights
-        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:
