@@ -81,7 +81,7 @@ Lightning adds the correct samplers when needed, so no need to explicitly add sa
 .. note:: For iterable datasets, we don't do this automatically.
 
 Make models pickleable
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 It's very likely your code is already `pickleable <https://docs.python.org/3/library/pickle.html>`_,
 in that case no change in necessary.
 However, if you run a distributed model and get the following error:
