@@ -40,19 +40,20 @@ class ModelIO(object):
         """
         rank_zero_warn(
             "`load_from_metrics` method has been unified with `load_from_checkpoint` in v0.7.0."
-            " The deprecated method will be removed in v0.9.0.", DeprecationWarning
+            " The deprecated method will be removed in v0.9.0.",
+            DeprecationWarning,
         )
         return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
 
     @classmethod
     def load_from_checkpoint(
-            cls,
-            checkpoint_path: str,
-            *args,
-            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-            hparams_file: Optional[str] = None,
-            tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
-            **kwargs
+        cls,
+        checkpoint_path: str,
+        *args,
+        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        hparams_file: Optional[str] = None,
+        tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
+        **kwargs,
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
@@ -136,10 +137,12 @@ class ModelIO(object):
                 pretrained_model.freeze()
                 y_hat = pretrained_model(x)
         """
-        if map_location is not None:
-            checkpoint = pl_load(checkpoint_path, map_location=map_location)
-        else:
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        if not map_location:
+
+            def map_location(storage, loc):
+                return storage
+
+        checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
@@ -193,7 +196,7 @@ class ModelIO(object):
                 if args_name in init_args_name:
                     kwargs.update({args_name: model_args})
             else:
-                args = (model_args, ) + args
+                args = (model_args,) + args
 
         # load the state_dict on the model automatically
         model = cls(*args, **kwargs)
