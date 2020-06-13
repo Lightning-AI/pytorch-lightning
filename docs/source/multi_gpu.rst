@@ -121,7 +121,7 @@ which cannot be pickled.
 
 
 Select GPU devices
---------------------
+------------------
 
 You can select the GPU devices using ranges, a list of indices or a string containing
 a comma separated list of GPU ids:
