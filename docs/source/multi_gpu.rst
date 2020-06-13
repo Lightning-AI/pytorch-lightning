@@ -52,7 +52,7 @@ The LightningModule knows what device it is on. You can access the reference via
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In Pytorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training in PyTorch. The
+In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training in PyTorch. The
 sampler makes sure each GPU sees the appropriate part of your data.
 
 .. testcode::
