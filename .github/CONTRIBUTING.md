@@ -144,6 +144,12 @@ make html
 
 and open `docs/build/html/index.html` in your browser.
 
+Notes:
+ - you need to have installed latex for rendering math equations. To do so you install TeXLive, you can do one of following:
+    * on linux run `apt install texlive`
+    * use [RTD docker image](https://hub.docker.com/r/readthedocs/build)
+- with PL used class meta you need to use python 3.7 or higher
+
 When you send a PR the continuous integration will run tests and build the docs. You can access a preview of the html pages in the
 _Artifacts_ tab in CircleCI when you click on the task named _ci/circleci: Build-Docs_ at the bottom of the PR page.
 
