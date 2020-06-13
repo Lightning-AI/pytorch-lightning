@@ -788,7 +788,7 @@ class Trainer(
         if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
-            
+
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
