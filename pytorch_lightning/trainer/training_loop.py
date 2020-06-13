@@ -305,17 +305,9 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
+
         # add signal handlers for process kills
-        def _signal_kill_handler(sig, frame):
-            return self.run_training_teardown()
-
-        atexit.register(self.run_training_teardown)
-
-        orig_signal_handlers = {}
-        for sig_name in SIGNAL_TERMINATE:
-            orig_signal_handlers[sig_name] = signal.signal(
-                getattr(signal, sig_name), _signal_kill_handler
-            )
+        self._configure_kill_signals()
 
         # get model
         model = self.get_model()
@@ -820,6 +812,19 @@ class TrainerTrainLoopMixin(ABC):
     def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
+
+    def _configure_kill_signals(self):
+        """ Sets up training teardown signal handlers that run on interpreter exit and other POSIX signals. """
+        def _signal_kill_handler(sig, frame):
+            return self.run_training_teardown()
+
+        atexit.register(self.run_training_teardown)
+
+        orig_signal_handlers = {}
+        for sig_name in SIGNAL_TERMINATE:
+            orig_signal_handlers[sig_name] = signal.signal(
+                getattr(signal, sig_name), _signal_kill_handler
+            )
 
 
 def _with_is_last(iterable):
