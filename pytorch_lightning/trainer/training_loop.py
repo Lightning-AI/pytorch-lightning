@@ -306,7 +306,7 @@ class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         # add signal handlers for process kills
-        def _signal_kill_handler():
+        def _signal_kill_handler(sig, name):
             return self.run_training_teardown()
 
         atexit.register(self.run_training_teardown)
