@@ -220,9 +220,9 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus > 1:
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
-                               ' Setting distributed_backend=ddp for you.')
-                self.distributed_backend = 'ddp'
-                distributed_backend = 'ddp'
+                               ' Setting distributed_backend=ddp_spawn for you.')
+                self.distributed_backend = 'ddp_spawn'
+                distributed_backend = 'ddp_spawn'
 
         if distributed_backend == "dp":
             # do nothing if num_gpus == 0
