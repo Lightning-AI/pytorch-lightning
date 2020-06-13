@@ -444,11 +444,13 @@ class Trainer(
             self.init_tpu()
 
         # init flags for SLURM+ddp to work
-        self.proc_rank = 0
+        self.global_rank = 0
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
+        self.local_rank = int(os.environ.get('LOCAL_RANK', 0))
+        self.global_rank = 0
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -778,10 +780,8 @@ class Trainer(
         # check that model is configured correctly
         self.check_model_configuration(model)
 
-        # download the data and do whatever transforms we need
-        # do before any spawn calls so that the model can assign properties
-        # only on proc 0 because no spawn has happened yet
-        # for slurm or torchelastic, prepare the data once per node
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
@@ -798,110 +798,8 @@ class Trainer(
             self._run_lr_finder_internally(model)
             model.logger = self.logger  # reset logger binding
 
-        # ----------------------------------
-        # TORCH ELASTIC
-        # ----------------------------------
-        is_torchelastic = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        if is_torchelastic:
-            task = int(os.environ['LOCAL_RANK'])
-            self.ddp_train(task, model)
-
-        # ----------------------------------
-        # SLURM
-        # ----------------------------------
-        elif self.is_slurm_managing_tasks:
-            task = int(os.environ['SLURM_LOCALID'])
-            self.ddp_train(task, model)
-
-        # ----------------------------------
-        # DDP ON CPUS
-        # ----------------------------------
-        elif self.distributed_backend == 'cpu_ddp':
-            self.__set_random_port()
-            self.model = model
-            mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-
-        # ----------------------------------
-        # DDP USING SPAWN
-        # ----------------------------------
-        elif self.distributed_backend == 'ddp_spawn':
-            model.share_memory()
-
-            # spin up peers
-            mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
-
-        # ----------------------------------
-        # DDP USING SUBPROCESS SCRIPT CALLS
-        # ----------------------------------
-        elif self.distributed_backend == 'ddp':
-            self.spawn_ddp_children(model)
-
-        # ----------------------------------
-        # DP
-        # ----------------------------------
-        elif self.use_dp:
-            self.dp_train(model)
-
-        # ----------------------------------
-        # HOROVOD
-        # ----------------------------------
-        elif self.use_horovod:
-            self.horovod_train(model)
-
-        # ----------------------------------
-        # SINGLE GPU
-        # ----------------------------------
-        elif self.single_gpu:
-            self.single_gpu_train(model)
-
-        # ----------------------------------
-        # TPU
-        # ----------------------------------
-        elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.tpu_cores} TPU cores')
-
-            #  COLAB_GPU is an env var available by default in Colab environments.
-            start_method = 'fork' if self.on_colab_kaggle else 'spawn'
-
-            # track for predict
-            self.model = model
-
-            # train
-            if self.tpu_id is not None:
-                self.tpu_train(self.tpu_id, model)
-            else:
-                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
-
-            # load weights if not interrupted
-            self.load_spawn_weights(model)
-            self.model = model
-
-        # ----------------------------------
-        # CPU
-        # ----------------------------------
-        else:
-            # run through amp wrapper
-            if self.use_amp:
-                raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
-
-            # CHOOSE OPTIMIZER
-            # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-            self.run_pretrain_routine(model)
-
-        # return 1 when finished
-        # used for testing or when we need to know that training succeeded
-        return 1
-
-    def can_prepare_data(self):
-        is_torchelastic_root_zero = "WORLD_SIZE" in os.environ \
-                                    and ("GROUP_RANK" in os.environ or "NODE_RANK" in os.environ) \
-                                    and int(os.environ["LOCAL_RANK"]) == 0
-        ddp = self.use_ddp or self.use_ddp2
-        is_slurm_root = (self.is_slurm_managing_tasks and int(os.environ["SLURM_LOCALID"]) == 0)
-
-
+        # route to appropriate start method
+        # when using multi-node or DDP within a node start each module in a separate process
         if self.use_ddp2:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
@@ -935,34 +833,59 @@ class Trainer(
             elif self.distributed_backend == 'ddp':
                 self.spawn_ddp_children(model)
 
-        # on ddp2
-            # slurm
-            # torchelastic
-
-        # on slurm
-
-        # on torchelastic
-
-        # or regular ddp
-
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            # no need to worry
+            self.dp_train(model)
 
         elif self.use_horovod:
-            # either a0 b0 or a0
+            self.horovod_train(model)
 
         elif self.single_gpu:
-            # no need to worry
+            self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
-            # either a0 b0 or a0
+            log.info(f'training on {self.tpu_cores} TPU cores')
+
+            #  COLAB_GPU is an env var available by default in Colab environments.
+            start_method = 'fork' if self.on_colab_kaggle else 'spawn'
+
+            # track for predict
+            self.model = model
+
+            # train
+            if self.tpu_id is not None:
+                self.tpu_train(self.tpu_id, model)
+            else:
+                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
+
+            # load weights if not interrupted
+            self.load_spawn_weights(model)
+            self.model = model
 
         # ON CPU
         else:
-            # no need to worry
+            # run through amp wrapper
+            if self.use_amp:
+                raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
+            # CHOOSE OPTIMIZER
+            # allow for lr schedulers as well
+            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
+
+            self.run_pretrain_routine(model)
+
+        # return 1 when finished
+        # used for testing or when we need to know that training succeeded
+        return 1
+
+    def can_prepare_data(self):
+        if self.prepare_data_per_node:
+            return self.local_rank == 0
+
+        else:
+            if self.node_rank == 0 and self.local_rank == 0:
+                return
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -1020,7 +943,7 @@ class Trainer(
 
         # print model summary
         # TODO: remove self.testing condition because model.summarize() is wiping out the weights
-        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
+        if self.global_rank == 0 and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ['full', 'top']:
                 ref_model.summarize(mode=self.weights_summary)
             else:

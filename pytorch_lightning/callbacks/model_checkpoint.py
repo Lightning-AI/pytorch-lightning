@@ -228,7 +228,7 @@ class ModelCheckpoint(Callback):
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
-        if trainer.proc_rank != 0:
+        if trainer.global_rank != 0:
             return
 
         metrics = trainer.callback_metrics

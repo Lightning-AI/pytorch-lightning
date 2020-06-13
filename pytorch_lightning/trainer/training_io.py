@@ -132,7 +132,7 @@ class TrainerIOMixin(ABC):
     use_ddp2: bool
     use_horovod: bool
     checkpoint_callback: ...
-    proc_rank: int
+    global_rank: int
     weights_save_path: str
     logger: LightningLoggerBase
     early_stop_callback: ...
@@ -213,7 +213,7 @@ class TrainerIOMixin(ABC):
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):  # pragma: no-cover
-        if self.proc_rank == 0:
+        if self.global_rank == 0:
             # save weights
             log.info('handling SIGUSR1')
             self.hpc_save(self.weights_save_path, self.logger)
@@ -262,7 +262,7 @@ class TrainerIOMixin(ABC):
     def save_checkpoint(self, filepath, weights_only: bool = False):
         checkpoint = self.dump_checkpoint(weights_only)
 
-        if self.proc_rank == 0:
+        if self.global_rank == 0:
             # do the actual save
             try:
                 self._atomic_save(checkpoint, filepath)

@@ -423,21 +423,29 @@ class TrainerDDPMixin(ABC):
 
         # determine which process we are and world size
         if self.use_ddp:
-            self.proc_rank = self.node_rank * self.num_processes + process_idx
+            self.local_rank = process_idx
+            self.global_rank = self.node_rank * self.num_processes + process_idx
             self.world_size = self.num_nodes * self.num_processes
 
         elif self.use_ddp2:
-            self.proc_rank = self.node_rank
+            self.local_rank = self.node_rank
+            self.global_rank = self.node_rank
             self.world_size = self.num_nodes
 
         # set warning rank
-        rank_zero_only.rank = self.proc_rank
+        rank_zero_only.rank = self.global_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self
-        model.init_ddp_connection(self.proc_rank, self.world_size, self.is_slurm_managing_tasks)
+        model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
+
+        # on world_size=0 let everyone know training is starting
+        if self.global_rank == 0:
+            log.info('-'*100)
+            log.info(f'All DDP processes registered. Starting ddp with {self.world_size} processes')
+            log.info('-'*100)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -450,8 +458,7 @@ class TrainerDDPMixin(ABC):
             if is_master:
                 # source of truth is cuda for gpu idx
                 gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-                local_rank = int(os.environ['LOCAL_RANK'])
-                gpu_idx = int(gpus[local_rank])
+                gpu_idx = int(gpus[self.local_rank])
 
             self.root_gpu = gpu_idx
             torch.cuda.set_device(self.root_gpu)
@@ -488,7 +495,7 @@ class TrainerDDPMixin(ABC):
         :param model:
         :return:
         """
-        if self.proc_rank == 0:
+        if self.global_rank == 0:
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
 
@@ -502,7 +509,7 @@ class TrainerDDPMixin(ABC):
 
         loaded_model = original_model
 
-        if self.proc_rank == 0:
+        if self.global_rank == 0:
             # load weights saved in ddp
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             loaded_model = original_model.__class__.load_from_checkpoint(path)

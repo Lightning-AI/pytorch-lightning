@@ -57,7 +57,7 @@ class TrainerDataLoadingMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    proc_rank: int
+    global_rank: int
     use_ddp: bool
     use_ddp2: bool
     use_horovod: bool
@@ -147,7 +147,7 @@ class TrainerDataLoadingMixin(ABC):
                 'ddp_cpu': self.num_processes * self.num_nodes
             }
             assert self.distributed_backend is not None
-            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.proc_rank)
+            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 

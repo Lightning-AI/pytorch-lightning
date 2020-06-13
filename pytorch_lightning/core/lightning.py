@@ -99,7 +99,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     self.print(x, 'in forward')
 
         """
-        if self.trainer.proc_rank == 0:
+        if self.trainer.global_rank == 0:
             print(*args, **kwargs)
 
     @abstractmethod
@@ -933,7 +933,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         for SLURM managed cluster.
 
         Args:
-            proc_rank: The current process rank within the node.
+            proc_rank: The current process rank within the node (local_rank).
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
@@ -990,7 +990,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     return model, optimizers
         """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
+        model, optimizers = amp.initialize(
+            model, optimizers, opt_level=amp_level,
+        )
 
         return model, optimizers
 
