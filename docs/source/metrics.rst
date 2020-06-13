@@ -50,5 +50,88 @@ asd
 
 SKLearn Metrics
 ---------------
-    .. automodule:: pytorch_lightning.metrics.sklearn
+
+SklearnMetric
+^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.SklearnMetric
         :noindex:
+
+Accuracy
+^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.Accuracy
+            :noindex:
+
+AveragePrecision
+^^^^^^^^^^^^^^^^
+Metric
+
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.AveragePrecision
+            :noindex:
+
+AUC
+^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.AUC
+            :noindex:
+
+ConfusionMatrix
+^^^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.ConfusionMatrix
+            :noindex:
+
+F1
+^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.F1
+            :noindex:
+
+FBeta
+^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.FBeta
+            :noindex:
+
+Precision
+^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.Precision
+            :noindex:
+
+Recall
+^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.Recall
+            :noindex:
+
+PrecisionRecallCurve
+^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.PrecisionRecallCurve
+            :noindex:
+ROC
+^^^
+
+Metric
+    .. autoclass:: pytorch_lightning.metrics.sklearn.ROC
+            :noindex:
+
+AUROC
+^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.AUROC
+            :noindex:
+
