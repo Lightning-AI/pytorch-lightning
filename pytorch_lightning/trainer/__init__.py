@@ -590,6 +590,14 @@ prepare_data_per_node
 If True will call `prepare_data()` on LOCAL_RANK=0 for every node.
 If False will only call from NODE_RANK=0, LOCAL_RANK=0
 
+Example::
+
+    # default
+    Trainer(prepare_data_per_node=True)
+
+    # use only NODE_RANK=0, LOCAL_RANK=0
+    Trainer(prepare_data_per_node=False)
+
 tpu_cores
 ^^^^^^^^^
 - How many TPU cores to train on (1 or 8).
