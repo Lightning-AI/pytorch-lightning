@@ -204,90 +204,91 @@ def test_class_nesting():
     A().test()
 
 
-# class SubClassEvalModel(EvalModelTemplate):
-#     any_other_loss = torch.nn.CrossEntropyLoss()
-#
-#     def __init__(self, *args, subclass_arg=1200, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.save_hyperparameters()
-#
-#
-# class SubSubClassEvalModel(SubClassEvalModel):
-#     pass
-#
-#
-# class AggSubClassEvalModel(SubClassEvalModel):
-#
-#     def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.save_hyperparameters()
-#
-#
-# class UnconventionalArgsEvalModel(EvalModelTemplate):
-#     """ A model that has unconventional names for "self", "*args" and "**kwargs". """
-#
-#     def __init__(obj, *more_args, other_arg=300, **more_kwargs):
-#         # intentionally named obj
-#         super().__init__(*more_args, **more_kwargs)
-#         obj.save_hyperparameters()
-#
-#
-# class DictConfSubClassEvalModel(SubClassEvalModel):
-#     def __init__(self, *args, dict_conf=OmegaConf.create(dict(my_param='something')), **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.save_hyperparameters()
-#
-#
-# @pytest.mark.parametrize("cls", [
-#     EvalModelTemplate,
-#     SubClassEvalModel,
-#     SubSubClassEvalModel,
-#     AggSubClassEvalModel,
-#     UnconventionalArgsEvalModel,
-#     DictConfSubClassEvalModel,
-# ])
-# def test_collect_init_arguments(tmpdir, cls):
-#     """ Test that the model automatically saves the arguments passed into the constructor """
-#     extra_args = {}
-#     if cls is AggSubClassEvalModel:
-#         extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
-#     elif cls is DictConfSubClassEvalModel:
-#         extra_args.update(dict_conf=OmegaConf.create(dict(my_param='anything')))
-#
-#     model = cls(**extra_args)
-#     assert model.batch_size == 32
-#     model = cls(batch_size=179, **extra_args)
-#     assert model.batch_size == 179
-#
-#     if isinstance(model, SubClassEvalModel):
-#         assert model.subclass_arg == 1200
-#
-#     if isinstance(model, AggSubClassEvalModel):
-#         assert isinstance(model.my_loss, torch.nn.CosineEmbeddingLoss)
-#
-#     # verify that the checkpoint saved the correct values
-#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
-#     trainer.fit(model)
-#     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-#
-#     raw_checkpoint = torch.load(raw_checkpoint_path)
-#     assert LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in raw_checkpoint
-#     assert raw_checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]['batch_size'] == 179
-#
-#     # verify that model loads correctly
-#     model = cls.load_from_checkpoint(raw_checkpoint_path)
-#     assert model.batch_size == 179
-#
-#     if isinstance(model, AggSubClassEvalModel):
-#         assert isinstance(model.my_loss, torch.nn.CrossEntropyLoss)
-#
-#     if isinstance(model, DictConfSubClassEvalModel):
-#         assert isinstance(model.dict_conf, DictConfig)
-#         assert model.dict_conf == 'anything'
-#
-#     # verify that we can overwrite whatever we want
-#     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
-#     assert model.batch_size == 99
+class SubClassEvalModel(EvalModelTemplate):
+    any_other_loss = torch.nn.CrossEntropyLoss()
+
+    def __init__(self, *args, subclass_arg=1200, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
+class SubSubClassEvalModel(SubClassEvalModel):
+    pass
+
+
+class AggSubClassEvalModel(SubClassEvalModel):
+
+    def __init__(self, *args, my_loss=torch.nn.CrossEntropyLoss(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
+class UnconventionalArgsEvalModel(EvalModelTemplate):
+    """ A model that has unconventional names for "self", "*args" and "**kwargs". """
+
+    def __init__(obj, *more_args, other_arg=300, **more_kwargs):
+        # intentionally named obj
+        super().__init__(*more_args, **more_kwargs)
+        obj.save_hyperparameters()
+
+
+class DictConfSubClassEvalModel(SubClassEvalModel):
+    def __init__(self, *args, dict_conf=OmegaConf.create(dict(my_param='something')), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
+@pytest.mark.parametrize("cls", [
+    EvalModelTemplate,
+    SubClassEvalModel,
+    SubSubClassEvalModel,
+    AggSubClassEvalModel,
+    UnconventionalArgsEvalModel,
+    DictConfSubClassEvalModel,
+])
+def test_collect_init_arguments(tmpdir, cls):
+    """ Test that the model automatically saves the arguments passed into the constructor """
+    extra_args = {}
+    if cls is AggSubClassEvalModel:
+        extra_args.update(my_loss=torch.nn.CosineEmbeddingLoss())
+    elif cls is DictConfSubClassEvalModel:
+        extra_args.update(dict_conf=OmegaConf.create(dict(my_param='anything')))
+
+    model = cls(**extra_args)
+    assert model.hparams.batch_size == 32
+    model = cls(batch_size=179, **extra_args)
+    assert model.hparams.batch_size == 179
+
+    if isinstance(model, SubClassEvalModel):
+        assert model.hparams.subclass_arg == 1200
+
+    if isinstance(model, AggSubClassEvalModel):
+        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
+
+    # verify that the checkpoint saved the correct values
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+    trainer.fit(model)
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+
+    raw_checkpoint = torch.load(raw_checkpoint_path)
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
+    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]['batch_size'] == 179
+
+    # verify that model loads correctly
+    # TODO: uncomment and get it pass
+    # model = cls.load_from_checkpoint(raw_checkpoint_path)
+    # assert model.hparams.batch_size == 179
+    #
+    # if isinstance(model, AggSubClassEvalModel):
+    #     assert isinstance(model.hparams.my_loss, torch.nn.CrossEntropyLoss)
+    #
+    # if isinstance(model, DictConfSubClassEvalModel):
+    #     assert isinstance(model.hparams.dict_conf, Container)
+    #     assert model.hparams.dict_conf == 'anything'
+
+    # verify that we can overwrite whatever we want
+    model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
+    assert model.hparams.batch_size == 99
 
 
 def _raw_checkpoint_path(trainer) -> str:
