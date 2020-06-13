@@ -528,7 +528,7 @@ class Trainer(
         Examples:
             >>> args = Trainer.get_init_arguments_and_types()
             >>> import pprint
-            >>> pprint.pprint(sorted(args))
+            >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
             [('accumulate_grad_batches',
               (<class 'int'>, typing.Dict[int, int], typing.List[list]),
               1),
