@@ -542,6 +542,7 @@ class Trainer(
              ('max_epochs', (<class 'int'>,), 1000),
              ...
              ('precision', (<class 'int'>,), 32),
+             ('prepare_data_per_node', (<class 'bool'>,), True),
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
