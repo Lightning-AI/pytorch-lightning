@@ -112,6 +112,7 @@ class ModelCheckpoint(Callback):
             if os.path.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
             else:
+                filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
             os.makedirs(self.dirpath, exist_ok=True)
         self.save_last = save_last
