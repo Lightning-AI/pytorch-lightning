@@ -110,6 +110,10 @@ class TrainerDataLoadingMixin(ABC):
                            ' Consider increasing the value of the `num_workers` argument`'
                            ' in the `DataLoader` init to improve performance.')
 
+        elif is_dataloader and dataloader.num_workers == 0 and not on_windows and using_spawn:
+            rank_zero_warn('You are using `distributed_backend=ddp_spawn` with num_workers=0. '
+                           'For much faster performance, switch to `distributed_backend=ddp` and set `num_workers>0`')
+
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
