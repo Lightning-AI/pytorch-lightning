@@ -15,10 +15,10 @@ def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
     Raise:
         ValueError if an invalid reduction parameter was given
     """
-    if reduction == 'elementwise_mean':
+    if reduction == "elementwise_mean":
         return torch.mean(to_reduce)
-    if reduction == 'none':
+    if reduction == "none":
         return to_reduce
-    if reduction == 'sum':
+    if reduction == "sum":
         return torch.sum(to_reduce)
-    raise ValueError('Reduction parameter unknown.')
+    raise ValueError("Reduction parameter unknown.")

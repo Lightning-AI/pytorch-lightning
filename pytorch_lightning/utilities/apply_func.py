@@ -27,9 +27,8 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
 
     # Recursively apply to collection items
     elif isinstance(data, Mapping):
-        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs)
-                          for k, v in data.items()})
-    elif isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
+        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs) for k, v in data.items()})
+    elif isinstance(data, tuple) and hasattr(data, "_fields"):  # named tuple
         return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
     elif isinstance(data, Sequence) and not isinstance(data, str):
         return elem_type([apply_to_collection(d, dtype, function, *args, **kwargs) for d in data])
@@ -54,6 +53,8 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
     """
+
     def to(tensor):
         return tensor.to(device, non_blocking=True)
+
     return apply_to_collection(batch, dtype=torch.Tensor, function=to)

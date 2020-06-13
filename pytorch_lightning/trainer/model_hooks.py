@@ -5,7 +5,6 @@ from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerModelHooksMixin(ABC):
-
     def is_function_implemented(self, f_name):
         model = self.get_model()
         f_op = getattr(model, f_name, None)
@@ -26,7 +25,7 @@ class TrainerModelHooksMixin(ABC):
         super_attr = getattr(super_object, method_name)
 
         # when code pointers are different, it was implemented
-        if hasattr(instance_attr, 'patch_loader_code'):
+        if hasattr(instance_attr, "patch_loader_code"):
             # cannot pickle __code__ so cannot verify if PatchDataloader
             # exists which shows dataloader methods have been overwritten.
             # so, we hack it by using the string representation

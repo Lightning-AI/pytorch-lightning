@@ -39,8 +39,9 @@ class KITTI(Dataset):
     encoded using `encode_segmap`, and given `transform` (if any) are applied to the image only
     (mask does not usually require transforms, but they can be implemented in a similar way).
     """
-    IMAGE_PATH = os.path.join('training', 'image_2')
-    MASK_PATH = os.path.join('training', 'semantic')
+
+    IMAGE_PATH = os.path.join("training", "image_2")
+    MASK_PATH = os.path.join("training", "semantic")
 
     def __init__(
         self,
@@ -49,7 +50,7 @@ class KITTI(Dataset):
         img_size: tuple = (1242, 376),
         void_labels: list = DEFAULT_VOID_LABELS,
         valid_labels: list = DEFAULT_VALID_LABELS,
-        transform=None
+        transform=None,
     ):
         self.img_size = img_size
         self.void_labels = void_labels
@@ -69,7 +70,7 @@ class KITTI(Dataset):
         random_inst = random.Random(12345)  # for repeatability
         n_items = len(self.img_list)
         idxs = random_inst.sample(range(n_items), n_items // 5)
-        if self.split == 'train':
+        if self.split == "train":
             idxs = [idx for idx in range(n_items) if idx not in idxs]
         self.img_list = [self.img_list[i] for i in idxs]
         self.mask_list = [self.mask_list[i] for i in idxs]
@@ -82,7 +83,7 @@ class KITTI(Dataset):
         img = img.resize(self.img_size)
         img = np.array(img)
 
-        mask = Image.open(self.mask_list[idx]).convert('L')
+        mask = Image.open(self.mask_list[idx]).convert("L")
         mask = mask.resize(self.img_size)
         mask = np.array(mask)
         mask = self.encode_segmap(mask)
@@ -128,13 +129,9 @@ class SegModel(pl.LightningModule):
     Adam optimizer is used along with Cosine Annealing learning rate scheduler.
     """
 
-    def __init__(self,
-                 data_path: str,
-                 batch_size: int,
-                 lr: float,
-                 num_layers: int,
-                 features_start: int,
-                 bilinear: bool, **kwargs):
+    def __init__(
+        self, data_path: str, batch_size: int, lr: float, num_layers: int, features_start: int, bilinear: bool, **kwargs
+    ):
         super().__init__()
         self.data_path = data_path
         self.batch_size = batch_size
@@ -143,15 +140,19 @@ class SegModel(pl.LightningModule):
         self.features_start = features_start
         self.bilinear = bilinear
 
-        self.net = UNet(num_classes=19, num_layers=self.num_layers,
-                        features_start=self.features_start, bilinear=self.bilinear)
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753],
-                                 std=[0.32064945, 0.32098866, 0.32325324])
-        ])
-        self.trainset = KITTI(self.data_path, split='train', transform=self.transform)
-        self.validset = KITTI(self.data_path, split='valid', transform=self.transform)
+        self.net = UNet(
+            num_classes=19, num_layers=self.num_layers, features_start=self.features_start, bilinear=self.bilinear
+        )
+        self.transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324]
+                ),
+            ]
+        )
+        self.trainset = KITTI(self.data_path, split="train", transform=self.transform)
+        self.validset = KITTI(self.data_path, split="valid", transform=self.transform)
 
     def forward(self, x):
         return self.net(x)
@@ -162,8 +163,8 @@ class SegModel(pl.LightningModule):
         mask = mask.long()
         out = self(img)
         loss_val = F.cross_entropy(out, mask, ignore_index=250)
-        log_dict = {'train_loss': loss_val}
-        return {'loss': loss_val, 'log': log_dict, 'progress_bar': log_dict}
+        log_dict = {"train_loss": loss_val}
+        return {"loss": loss_val, "log": log_dict, "progress_bar": log_dict}
 
     def validation_step(self, batch, batch_idx):
         img, mask = batch
@@ -171,12 +172,12 @@ class SegModel(pl.LightningModule):
         mask = mask.long()
         out = self(img)
         loss_val = F.cross_entropy(out, mask, ignore_index=250)
-        return {'val_loss': loss_val}
+        return {"val_loss": loss_val}
 
     def validation_epoch_end(self, outputs):
-        loss_val = torch.stack([x['val_loss'] for x in outputs]).mean()
-        log_dict = {'val_loss': loss_val}
-        return {'log': log_dict, 'val_loss': log_dict['val_loss'], 'progress_bar': log_dict}
+        loss_val = torch.stack([x["val_loss"] for x in outputs]).mean()
+        log_dict = {"val_loss": loss_val}
+        return {"log": log_dict, "val_loss": log_dict["val_loss"], "progress_bar": log_dict}
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
@@ -224,22 +225,28 @@ def main(hparams: Namespace):
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--data_path", type=str, help="path where dataset is stored")
     parser.add_argument("--gpus", type=int, default=-1, help="number of available GPUs")
-    parser.add_argument('--distributed-backend', type=str, default='dp', choices=('dp', 'ddp', 'ddp2'),
-                        help='supports three options dp, ddp, ddp2')
-    parser.add_argument('--use_amp', action='store_true', help='if true uses 16 bit precision')
+    parser.add_argument(
+        "--distributed-backend",
+        type=str,
+        default="dp",
+        choices=("dp", "ddp", "ddp2"),
+        help="supports three options dp, ddp, ddp2",
+    )
+    parser.add_argument("--use_amp", action="store_true", help="if true uses 16 bit precision")
     parser.add_argument("--batch_size", type=int, default=4, help="size of the batches")
     parser.add_argument("--lr", type=float, default=0.001, help="adam: learning rate")
     parser.add_argument("--num_layers", type=int, default=5, help="number of layers on u-net")
     parser.add_argument("--features_start", type=float, default=64, help="number of features in first layer")
-    parser.add_argument("--bilinear", action='store_true', default=False,
-                        help="whether to use bilinear interpolation or transposed")
+    parser.add_argument(
+        "--bilinear", action="store_true", default=False, help="whether to use bilinear interpolation or transposed"
+    )
     parser.add_argument("--grad_batches", type=int, default=1, help="number of batches to accumulate")
     parser.add_argument("--epochs", type=int, default=20, help="number of epochs to train")
-    parser.add_argument("--log_wandb", action='store_true', help="log training on Weights & Biases")
+    parser.add_argument("--log_wandb", action="store_true", help="log training on Weights & Biases")
 
     hparams = parser.parse_args()
 

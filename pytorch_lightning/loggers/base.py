@@ -30,9 +30,9 @@ class LightningLoggerBase(ABC):
     """
 
     def __init__(
-            self,
-            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        self,
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
     ):
         self._rank = 0
         self._prev_step: int = -1
@@ -41,9 +41,9 @@ class LightningLoggerBase(ABC):
         self._agg_default_func = agg_default_func
 
     def update_agg_funcs(
-            self,
-            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+        self,
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
     ):
         """
         Update aggregation methods.
@@ -68,7 +68,7 @@ class LightningLoggerBase(ABC):
         """Return the experiment object associated with this logger."""
 
     def _aggregate_metrics(
-            self, metrics: Dict[str, float], step: Optional[int] = None
+        self, metrics: Dict[str, float], step: Optional[int] = None
     ) -> Tuple[int, Optional[Dict[str, float]]]:
         """
         Aggregates metrics.
@@ -154,7 +154,7 @@ class LightningLoggerBase(ABC):
         return params
 
     @staticmethod
-    def _flatten_dict(params: Dict[str, Any], delimiter: str = '/') -> Dict[str, Any]:
+    def _flatten_dict(params: Dict[str, Any], delimiter: str = "/") -> Dict[str, Any]:
         """
         Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
@@ -285,15 +285,16 @@ class LoggerCollection(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return '_'.join([str(logger.name) for logger in self._logger_iterable])
+        return "_".join([str(logger.name) for logger in self._logger_iterable])
 
     @property
     def version(self) -> str:
-        return '_'.join([str(logger.version) for logger in self._logger_iterable])
+        return "_".join([str(logger.version) for logger in self._logger_iterable])
 
 
 class DummyExperiment(object):
     """ Dummy experiment """
+
     def nop(*args, **kw):
         pass
 
@@ -304,6 +305,7 @@ class DummyExperiment(object):
 class DummyLogger(LightningLoggerBase):
     """ Dummy logger for internal use. Is usefull if we want to disable users
         logger for a feature, but still secure that users code can run """
+
     def __init__(self):
         super().__init__()
         self._experiment = DummyExperiment()
@@ -328,9 +330,9 @@ class DummyLogger(LightningLoggerBase):
 
 
 def merge_dicts(
-        dicts: Sequence[Mapping],
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        default_func: Callable[[Sequence[float]], float] = np.mean
+    dicts: Sequence[Mapping],
+    agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+    default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
     """
     Merge a sequence with dictionaries into one dictionary by aggregating the

@@ -9,17 +9,11 @@ class ModelTemplateData:
     def dataloader(self, train):
         dataset = TrialMNIST(root=self.data_root, train=train, download=True)
 
-        loader = DataLoader(
-            dataset=dataset,
-            batch_size=self.batch_size,
-            num_workers=3,
-            shuffle=train,
-        )
+        loader = DataLoader(dataset=dataset, batch_size=self.batch_size, num_workers=3, shuffle=train,)
         return loader
 
 
 class ModelTemplateUtils:
-
     def get_output_metric(self, output, name):
         if isinstance(output, dict):
             val = output[name]

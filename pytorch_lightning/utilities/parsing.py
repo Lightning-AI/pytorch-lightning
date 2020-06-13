@@ -16,12 +16,12 @@ def str_to_bool(val):
     0
     """
     val = val.lower()
-    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+    if val in ("y", "yes", "t", "true", "on", "1"):
         return 1
-    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+    elif val in ("n", "no", "f", "false", "off", "0"):
         return 0
     else:
-        raise ValueError(f'invalid truth value {val}')
+        raise ValueError(f"invalid truth value {val}")
 
 
 def clean_namespace(hparams):
@@ -48,17 +48,15 @@ def clean_namespace(hparams):
 
 def get_init_args(frame) -> dict:
     _, _, _, local_vars = inspect.getargvalues(frame)
-    if '__class__' not in local_vars:
+    if "__class__" not in local_vars:
         return
-    cls = local_vars['__class__']
+    cls = local_vars["__class__"]
     spec = inspect.getfullargspec(cls.__init__)
     init_parameters = inspect.signature(cls.__init__).parameters
     self_identifier = spec.args[0]  # "self" unless user renames it (always first arg)
     varargs_identifier = spec.varargs  # by convention this is named "*args"
     kwargs_identifier = spec.varkw  # by convention this is named "**kwargs"
-    exclude_argnames = (
-        varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
-    )
+    exclude_argnames = (varargs_identifier, kwargs_identifier, self_identifier, "__class__", "frame", "frame_args")
 
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
@@ -82,7 +80,7 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
           most specific class in the hierarchy.
     """
     _, _, _, local_vars = inspect.getargvalues(frame)
-    if '__class__' in local_vars:
+    if "__class__" in local_vars:
         local_args = get_init_args(frame)
         # recursive update
         path_args.append(local_args)
@@ -122,7 +120,7 @@ class AttributeDict(dict):
         if not len(self):
             return ""
         max_key_length = max([len(str(k)) for k in self])
-        tmp_name = '{:' + str(max_key_length + 3) + 's} {}'
+        tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
         rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
-        out = '\n'.join(rows)
+        out = "\n".join(rows)
         return out

@@ -8,7 +8,7 @@ def ignore_scalar_return_in_dp():
     input tensors were scalars; will instead unsqueeze
     and return a vector.
     """
-    warnings.filterwarnings('ignore', message=m_1)
+    warnings.filterwarnings("ignore", message=m_1)
 
 
 ignore_scalar_return_in_dp()

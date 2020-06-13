@@ -113,24 +113,20 @@ class SimpleProfiler(BaseProfiler):
         self.recorded_durations = defaultdict(list)
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = open(self.output_fname, "w") if self.output_fname else None
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
 
     def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
-            raise ValueError(
-                f"Attempted to start {action_name} which has already started."
-            )
+            raise ValueError(f"Attempted to start {action_name} which has already started.")
         self.current_actions[action_name] = time.monotonic()
 
     def stop(self, action_name: str) -> None:
         end_time = time.monotonic()
         if action_name not in self.current_actions:
-            raise ValueError(
-                f"Attempting to stop recording an action ({action_name}) which was never started."
-            )
+            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         start_time = self.current_actions.pop(action_name)
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
@@ -144,9 +140,7 @@ class SimpleProfiler(BaseProfiler):
         output_string += log_row("Action", "Mean duration (s)", "Total time (s)")
         output_string += f"{os.linesep}{'-' * 65}"
         for action, durations in self.recorded_durations.items():
-            output_string += log_row(
-                action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",
-            )
+            output_string += log_row(action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",)
         output_string += os.linesep
         return output_string
 
@@ -182,7 +176,7 @@ class AdvancedProfiler(BaseProfiler):
         self.line_count_restriction = line_count_restriction
 
         self.output_fname = output_filename
-        self.output_file = open(self.output_fname, 'w') if self.output_fname else None
+        self.output_file = open(self.output_fname, "w") if self.output_fname else None
 
         streaming_out = [self.output_file.write] if self.output_file else [log.info]
         super().__init__(output_streams=streaming_out)
@@ -204,7 +198,7 @@ class AdvancedProfiler(BaseProfiler):
         recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
             s = io.StringIO()
-            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats('cumulative')
+            ps = pstats.Stats(pr, stream=s).strip_dirs().sort_stats("cumulative")
             ps.print_stats(self.line_count_restriction)
             recorded_stats[action_name] = s.getvalue()
 

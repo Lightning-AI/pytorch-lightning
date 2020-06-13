@@ -9,10 +9,7 @@ from benchmarks.parity_modules import ParityModuleRNN, ParityModuleMNIST
 from pytorch_lightning import Trainer, seed_everything
 
 
-@pytest.mark.parametrize('cls_model,max_diff', [
-    (ParityModuleRNN, 0.05),
-    (ParityModuleMNIST, 0.5)
-])
+@pytest.mark.parametrize("cls_model,max_diff", [(ParityModuleRNN, 0.05), (ParityModuleMNIST, 0.5)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(tmpdir, cls_model, max_diff):
     """
@@ -28,15 +25,14 @@ def test_pytorch_parity(tmpdir, cls_model, max_diff):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
     # the fist run initialize dataset (download & filter)
-    tutils.assert_speed_parity_absolute(pl_times[1:], pt_times[1:],
-                                        nb_epochs=num_epochs, max_diff=max_diff)
+    tutils.assert_speed_parity_absolute(pl_times[1:], pt_times[1:], nb_epochs=num_epochs, max_diff=max_diff)
 
 
 def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
     """
     Returns an array with the last loss from each epoch for each run
     """
-    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     errors = []
     times = []
 
@@ -64,7 +60,7 @@ def vanilla_loop(cls_model, num_runs=10, num_epochs=10):
             for j, batch in enumerate(dl):
                 batch = [x.to(device) for x in batch]
                 loss_dict = model.training_step(batch, j)
-                loss = loss_dict['loss']
+                loss = loss_dict["loss"]
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()

@@ -15,7 +15,7 @@ class DeviceDtypeModuleMixin(Module):
     @dtype.setter
     def dtype(self, new_dtype: Union[str, torch.dtype]):
         # necessary to avoid infinite recursion
-        raise RuntimeError('Cannot set the dtype explicitly. Please use module.to(new_dtype).')
+        raise RuntimeError("Cannot set the dtype explicitly. Please use module.to(new_dtype).")
 
     @property
     def device(self) -> Union[str, torch.device]:
@@ -24,7 +24,7 @@ class DeviceDtypeModuleMixin(Module):
     @device.setter
     def device(self, new_device: Union[str, torch.device]):
         # Necessary to avoid infinite recursion
-        raise RuntimeError('Cannot set the device explicitly. Please use module.to(new_device).')
+        raise RuntimeError("Cannot set the device explicitly. Please use module.to(new_device).")
 
     def to(self, *args, **kwargs) -> Module:
         """Moves and/or casts the parameters and buffers.
@@ -106,7 +106,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
 
-        self._device = torch.device('cuda', index=device)
+        self._device = torch.device("cuda", index=device)
         return super().cuda(device=device)
 
     def cpu(self) -> Module:
@@ -114,7 +114,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._device = torch.device('cpu')
+        self._device = torch.device("cpu")
         return super().cpu()
 
     def type(self, dst_type: Union[str, torch.dtype]) -> Module:

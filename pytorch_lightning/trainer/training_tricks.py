@@ -66,11 +66,11 @@ class TrainerTrainingTricksMixin(ABC):
                 for p in parameters:
                     param_norm = p.grad.data.pow(norm_type).sum()
                     total_norm.add_(param_norm)
-                total_norm = (total_norm ** (1. / norm_type))
+                total_norm = total_norm ** (1.0 / norm_type)
             eps = EPSILON_FP16 if self.precision == 16 else EPSILON
             clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
             for p in parameters:
-                p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
+                p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1.0, device=device)))
 
     def print_nan_gradients(self) -> None:
         model = self.get_model()
@@ -83,16 +83,14 @@ class TrainerTrainingTricksMixin(ABC):
 
         # check if loss is nan
         if not torch.isfinite(loss).all():
-            raise ValueError(
-                'The loss returned in `training_step` is nan or inf.'
-            )
+            raise ValueError("The loss returned in `training_step` is nan or inf.")
         # check if a network weight is nan
         for name, param in model.named_parameters():
             if not torch.isfinite(param).all():
                 self.print_nan_gradients()
                 raise ValueError(
-                    f'Detected nan and/or inf values in `{name}`.'
-                    ' Check your forward pass for numerically unstable operations.'
+                    f"Detected nan and/or inf values in `{name}`."
+                    " Check your forward pass for numerically unstable operations."
                 )
 
     def configure_accumulated_gradients(self, accumulate_grad_batches):
@@ -104,13 +102,15 @@ class TrainerTrainingTricksMixin(ABC):
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
 
-    def scale_batch_size(self,
-                         model: LightningModule,
-                         mode: str = 'power',
-                         steps_per_trial: int = 3,
-                         init_val: int = 2,
-                         max_trials: int = 25,
-                         batch_arg_name: str = 'batch_size'):
+    def scale_batch_size(
+        self,
+        model: LightningModule,
+        mode: str = "power",
+        steps_per_trial: int = 3,
+        init_val: int = 2,
+        max_trials: int = 25,
+        batch_arg_name: str = "batch_size",
+    ):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -136,12 +136,14 @@ class TrainerTrainingTricksMixin(ABC):
 
         """
         if not hasattr(model, batch_arg_name):
-            raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
+            raise MisconfigurationException(f"Field {batch_arg_name} not found in `model.hparams`")
 
-        if hasattr(model.train_dataloader, 'patch_loader_code'):
-            raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
-                                            ' passed directly to `.fit()`. Please disable the feature or'
-                                            ' incorporate the dataloader into the model.')
+        if hasattr(model.train_dataloader, "patch_loader_code"):
+            raise MisconfigurationException(
+                "The batch scaling feature cannot be used with dataloaders"
+                " passed directly to `.fit()`. Please disable the feature or"
+                " incorporate the dataloader into the model."
+            )
 
         # Arguments we adjust during the batch size finder, save for restoring
         self.__scale_batch_dump_params()
@@ -150,7 +152,7 @@ class TrainerTrainingTricksMixin(ABC):
         self.__scale_batch_reset_params(model, steps_per_trial)
 
         # Save initial model, that is loaded after batch size is found
-        save_path = os.path.join(self.default_root_dir, 'temp_model.ckpt')
+        save_path = os.path.join(self.default_root_dir, "temp_model.ckpt")
         self.save_checkpoint(str(save_path))
 
         if self.progress_bar_callback:
@@ -158,15 +160,15 @@ class TrainerTrainingTricksMixin(ABC):
 
         # Initially we just double in size until an OOM is encountered
         new_size = _adjust_batch_size(self, value=init_val)  # initially set to init_val
-        if mode == 'power':
+        if mode == "power":
             new_size = _run_power_scaling(self, model, new_size, batch_arg_name, max_trials)
-        elif mode == 'binsearch':
+        elif mode == "binsearch":
             new_size = _run_binsearch_scaling(self, model, new_size, batch_arg_name, max_trials)
         else:
-            raise ValueError('mode in method `scale_batch_size` can only be `power` or `binsearch')
+            raise ValueError("mode in method `scale_batch_size` can only be `power` or `binsearch")
 
         garbage_collection_cuda()
-        log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
+        log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
         # Restore initial state of model
         self.restore(str(save_path), on_gpu=self.on_gpu)
@@ -182,16 +184,16 @@ class TrainerTrainingTricksMixin(ABC):
     def __scale_batch_dump_params(self):
         # Prevent going into infinite loop
         self.__dumped_params = {
-            'max_steps': self.max_steps,
-            'weights_summary': self.weights_summary,
-            'logger': self.logger,
-            'callbacks': self.callbacks,
-            'checkpoint_callback': self.checkpoint_callback,
-            'early_stop_callback': self.early_stop_callback,
-            'enable_early_stop': self.enable_early_stop,
-            'auto_scale_batch_size': self.auto_scale_batch_size,
-            'train_percent_check': self.train_percent_check,
-            'model': self.model,
+            "max_steps": self.max_steps,
+            "weights_summary": self.weights_summary,
+            "logger": self.logger,
+            "callbacks": self.callbacks,
+            "checkpoint_callback": self.checkpoint_callback,
+            "early_stop_callback": self.early_stop_callback,
+            "enable_early_stop": self.enable_early_stop,
+            "auto_scale_batch_size": self.auto_scale_batch_size,
+            "train_percent_check": self.train_percent_check,
+            "model": self.model,
         }
 
     def __scale_batch_reset_params(self, model, steps_per_trial):
@@ -208,24 +210,22 @@ class TrainerTrainingTricksMixin(ABC):
         self.model = model  # required for saving
 
     def __scale_batch_restore_params(self):
-        self.max_steps = self.__dumped_params['max_steps']
-        self.weights_summary = self.__dumped_params['weights_summary']
-        self.logger = self.__dumped_params['logger']
-        self.callbacks = self.__dumped_params['callbacks']
-        self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
-        self.auto_scale_batch_size = self.__dumped_params['auto_scale_batch_size']
-        self.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.enable_early_stop = self.__dumped_params['enable_early_stop']
-        self.train_percent_check = self.__dumped_params['train_percent_check']
-        self.model = self.__dumped_params['model']
+        self.max_steps = self.__dumped_params["max_steps"]
+        self.weights_summary = self.__dumped_params["weights_summary"]
+        self.logger = self.__dumped_params["logger"]
+        self.callbacks = self.__dumped_params["callbacks"]
+        self.checkpoint_callback = self.__dumped_params["checkpoint_callback"]
+        self.auto_scale_batch_size = self.__dumped_params["auto_scale_batch_size"]
+        self.early_stop_callback = self.__dumped_params["early_stop_callback"]
+        self.enable_early_stop = self.__dumped_params["enable_early_stop"]
+        self.train_percent_check = self.__dumped_params["train_percent_check"]
+        self.model = self.__dumped_params["model"]
         del self.__dumped_params
 
 
-def _adjust_batch_size(trainer,
-                       batch_arg_name: str = 'batch_size',
-                       factor: float = 1.0,
-                       value: Optional[int] = None,
-                       desc: str = None):
+def _adjust_batch_size(
+    trainer, batch_arg_name: str = "batch_size", factor: float = 1.0, value: Optional[int] = None, desc: str = None
+):
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist.
@@ -250,11 +250,11 @@ def _adjust_batch_size(trainer,
         setattr(model, batch_arg_name, value)
         new_size = value
         if desc:
-            log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
+            log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
     else:
         new_size = int(batch_size * factor)
         if desc:
-            log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
+            log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
         setattr(model, batch_arg_name, new_size)
     return new_size
 
@@ -269,13 +269,13 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
             # Try fit
             trainer.fit(model)
             # Double in size
-            new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+            new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
-                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
+                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
                 break
             else:
                 raise  # some other error not memory related
@@ -303,9 +303,9 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
                 if high - low <= 1:
                     break
                 midval = (high + low) // 2
-                new_size = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='succeeded')
+                new_size = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc="succeeded")
             else:
-                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc="succeeded")
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
@@ -313,7 +313,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
                 garbage_collection_cuda()
                 high = new_size
                 midval = (high + low) // 2
-                new_size = _adjust_batch_size(trainer, value=midval, desc='failed')
+                new_size = _adjust_batch_size(trainer, value=midval, desc="failed")
                 if high - low <= 1:
                     break
             else:

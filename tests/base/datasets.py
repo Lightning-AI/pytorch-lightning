@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 from tests import PACKAGE_ROOT
 
 #: local path to test datasets
-PATH_DATASETS = os.path.join(PACKAGE_ROOT, 'Datasets')
+PATH_DATASETS = os.path.join(PACKAGE_ROOT, "Datasets")
 
 
 class MNIST(Dataset):
@@ -44,12 +44,13 @@ class MNIST(Dataset):
         "https://pl-public-data.s3.amazonaws.com/MNIST/processed/test.pt",
     )
 
-    TRAIN_FILE_NAME = 'training.pt'
-    TEST_FILE_NAME = 'test.pt'
-    cache_folder_name = 'complete'
+    TRAIN_FILE_NAME = "training.pt"
+    TEST_FILE_NAME = "test.pt"
+    cache_folder_name = "complete"
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = True):
+    def __init__(
+        self, root: str = PATH_DATASETS, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = True
+    ):
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -58,7 +59,7 @@ class MNIST(Dataset):
         self.prepare_data(download)
 
         if not self._check_exists(self.cached_folder_path):
-            raise RuntimeError('Dataset not found.')
+            raise RuntimeError("Dataset not found.")
 
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = torch.load(os.path.join(self.cached_folder_path, data_file))
@@ -77,7 +78,7 @@ class MNIST(Dataset):
 
     @property
     def cached_folder_path(self) -> str:
-        return os.path.join(self.root, 'MNIST', self.cache_folder_name)
+        return os.path.join(self.root, "MNIST", self.cache_folder_name)
 
     def _check_exists(self, data_folder: str) -> bool:
         existing = True
@@ -98,7 +99,7 @@ class MNIST(Dataset):
         os.makedirs(data_folder, exist_ok=True)
 
         for url in self.RESOURCES:
-            logging.info(f'Downloading {url}')
+            logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
             urllib.request.urlretrieve(url, fpath)
 
@@ -136,33 +137,32 @@ class TrialMNIST(MNIST):
         tensor([100, 100, 100])
     """
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2)):
+    def __init__(
+        self,
+        root: str = PATH_DATASETS,
+        train: bool = True,
+        normalize: tuple = (0.5, 1.0),
+        download: bool = False,
+        num_samples: int = 100,
+        digits: Optional[Sequence] = (0, 1, 2),
+    ):
 
         # number of examples per class
         self.num_samples = num_samples
         # take just a subset of MNIST dataset
         self.digits = digits if digits else list(range(10))
 
-        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) \
-                                 + f'_nb-{self.num_samples}'
+        self.cache_folder_name = "digits-" + "-".join(str(d) for d in sorted(self.digits)) + f"_nb-{self.num_samples}"
 
-        super().__init__(
-            root,
-            train=train,
-            normalize=normalize,
-            download=download
-        )
+        super().__init__(root, train=train, normalize=normalize, download=download)
 
     @staticmethod
-    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor,
-                        num_samples: int, digits: Sequence):
+    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
         classes = {d: 0 for d in digits}
         indexes = []
         for idx, target in enumerate(full_targets):
             label = target.item()
-            if classes.get(label, float('inf')) >= num_samples:
+            if classes.get(label, float("inf")) >= num_samples:
                 continue
             indexes.append(idx)
             classes[label] += 1
@@ -180,7 +180,7 @@ class TrialMNIST(MNIST):
 
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
             path_fname = os.path.join(super().cached_folder_path, fname)
-            assert os.path.isfile(path_fname), 'Missing cached file: %s' % path_fname
+            assert os.path.isfile(path_fname), "Missing cached file: %s" % path_fname
             data, targets = torch.load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))

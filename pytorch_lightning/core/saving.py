@@ -19,12 +19,12 @@ try:
 except ImportError:
     pass
 else:
-    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
+    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container,)
 
 
 class ModelIO(object):
-    CHECKPOINT_KEY_HYPER_PARAMS = 'hyper_parameters'
-    CHECKPOINT_NAME_HYPER_PARAMS = 'hparams_name'
+    CHECKPOINT_KEY_HYPER_PARAMS = "hyper_parameters"
+    CHECKPOINT_NAME_HYPER_PARAMS = "hparams_name"
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
@@ -35,19 +35,20 @@ class ModelIO(object):
         """
         rank_zero_warn(
             "`load_from_metrics` method has been unified with `load_from_checkpoint` in v0.7.0."
-            " The deprecated method will be removed in v0.9.0.", DeprecationWarning
+            " The deprecated method will be removed in v0.9.0.",
+            DeprecationWarning,
         )
         return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
 
     @classmethod
     def load_from_checkpoint(
-            cls,
-            checkpoint_path: str,
-            *args,
-            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-            hparams_file: Optional[str] = None,
-            tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
-            **kwargs
+        cls,
+        checkpoint_path: str,
+        *args,
+        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        hparams_file: Optional[str] = None,
+        tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
+        **kwargs,
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
@@ -131,26 +132,28 @@ class ModelIO(object):
                 pretrained_model.freeze()
                 y_hat = pretrained_model(x)
         """
-        if map_location is not None:
-            checkpoint = pl_load(checkpoint_path, map_location=map_location)
-        else:
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        if not map_location:
+
+            def map_location(storage, loc):
+                return storage
+
+        checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
             hparams_file = tags_csv
-            rank_zero_warn('`tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0', DeprecationWarning)
+            rank_zero_warn("`tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0", DeprecationWarning)
 
         if hparams_file is not None:
-            extension = hparams_file.split('.')[-1]
-            if extension.lower() in ('csv'):
+            extension = hparams_file.split(".")[-1]
+            if extension.lower() in ("csv"):
                 hparams = load_hparams_from_tags_csv(hparams_file)
-            elif extension.lower() in ('yml', 'yaml'):
+            elif extension.lower() in ("yml", "yaml"):
                 hparams = load_hparams_from_yaml(hparams_file)
             else:
-                raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
+                raise ValueError(".csv, .yml or .yaml is required for `hparams_file`")
 
-            hparams['on_gpu'] = False
+            hparams["on_gpu"] = False
 
             # overwrite hparams by the given file
             checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS] = hparams
@@ -169,18 +172,18 @@ class ModelIO(object):
             model_args = checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS]
             args_name = checkpoint.get(cls.CHECKPOINT_NAME_HYPER_PARAMS)
             init_args_name = inspect.signature(cls).parameters.keys()
-            if args_name == 'kwargs':
+            if args_name == "kwargs":
                 cls_kwargs = {k: v for k, v in model_args.items() if k in init_args_name}
                 kwargs.update(**cls_kwargs)
             elif args_name:
                 if args_name in init_args_name:
                     kwargs.update({args_name: model_args})
             else:
-                args = (model_args, ) + args
+                args = (model_args,) + args
 
         # load the state_dict on the model automatically
         model = cls(*args, **kwargs)
-        model.load_state_dict(checkpoint['state_dict'])
+        model.load_state_dict(checkpoint["state_dict"])
 
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
@@ -270,11 +273,11 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     >>> os.remove(path_csv)
     """
     if not os.path.isfile(tags_csv):
-        rank_zero_warn(f'Missing Tags: {tags_csv}.', RuntimeWarning)
+        rank_zero_warn(f"Missing Tags: {tags_csv}.", RuntimeWarning)
         return {}
 
     with open(tags_csv) as fp:
-        csv_reader = csv.reader(fp, delimiter=',')
+        csv_reader = csv.reader(fp, delimiter=",")
         tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
 
     return tags
@@ -282,17 +285,17 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
 
 def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> None:
     if not os.path.isdir(os.path.dirname(tags_csv)):
-        raise RuntimeError(f'Missing folder: {os.path.dirname(tags_csv)}.')
+        raise RuntimeError(f"Missing folder: {os.path.dirname(tags_csv)}.")
 
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
 
-    with open(tags_csv, 'w') as fp:
-        fieldnames = ['key', 'value']
+    with open(tags_csv, "w") as fp:
+        fieldnames = ["key", "value"]
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
-        writer.writerow({'key': 'key', 'value': 'value'})
+        writer.writerow({"key": "key", "value": "value"})
         for k, v in hparams.items():
-            writer.writerow({'key': k, 'value': v})
+            writer.writerow({"key": k, "value": v})
 
 
 def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
@@ -307,7 +310,7 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
     >>> os.remove(path_yaml)
     """
     if not os.path.isfile(config_yaml):
-        rank_zero_warn(f'Missing Tags: {config_yaml}.', RuntimeWarning)
+        rank_zero_warn(f"Missing Tags: {config_yaml}.", RuntimeWarning)
         return {}
 
     with open(config_yaml) as fp:
@@ -318,12 +321,12 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
 
 def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not os.path.isdir(os.path.dirname(config_yaml)):
-        raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
+        raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
 
-    with open(config_yaml, 'w', newline='') as fp:
+    with open(config_yaml, "w", newline="") as fp:
         yaml.dump(hparams, fp)
 
 

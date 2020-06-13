@@ -6,11 +6,11 @@ from pytorch_lightning.callbacks.lr_logger import LearningRateLogger
 from pytorch_lightning.callbacks.progress import ProgressBarBase, ProgressBar
 
 __all__ = [
-    'Callback',
-    'EarlyStopping',
-    'ModelCheckpoint',
-    'GradientAccumulationScheduler',
-    'LearningRateLogger',
-    'ProgressBarBase',
-    'ProgressBar',
+    "Callback",
+    "EarlyStopping",
+    "ModelCheckpoint",
+    "GradientAccumulationScheduler",
+    "LearningRateLogger",
+    "ProgressBarBase",
+    "ProgressBar",
 ]

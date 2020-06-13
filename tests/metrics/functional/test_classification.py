@@ -26,31 +26,34 @@ from pytorch_lightning.metrics.functional.classification import (
 
 def test_onehot():
     test_tensor = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
-    expected = torch.tensor([
+    expected = torch.tensor(
         [
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
-        ], [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1]
+            [
+                [1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ],
+            [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 1],
+            ],
         ]
-    ])
+    )
 
     assert test_tensor.shape == (2, 5)
     assert expected.shape == (2, 10, 5)
@@ -68,31 +71,34 @@ def test_onehot():
 
 
 def test_to_categorical():
-    test_tensor = torch.tensor([
+    test_tensor = torch.tensor(
         [
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
-        ], [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1]
+            [
+                [1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ],
+            [
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 1],
+            ],
         ]
-    ]).to(torch.float)
+    ).to(torch.float)
 
     expected = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
     assert expected.shape == (2, 5)
@@ -104,19 +110,25 @@ def test_to_categorical():
     assert torch.allclose(result, expected.to(result.dtype))
 
 
-@pytest.mark.parametrize(['pred', 'target', 'num_classes', 'expected_num_classes'], [
-    pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), 10, 10),
-    pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
-    pytest.param(torch.rand(32, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "num_classes", "expected_num_classes"],
+    [
+        pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), 10, 10),
+        pytest.param(torch.rand(32, 10, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
+        pytest.param(torch.rand(32, 28, 28), torch.randint(10, (32, 28, 28)), None, 10),
+    ],
+)
 def test_get_num_classes(pred, target, num_classes, expected_num_classes):
     assert get_num_classes(pred, target, num_classes) == expected_num_classes
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn'], [
-    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1),
-    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1)
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "expected_tp", "expected_fp", "expected_tn", "expected_fn"],
+    [
+        pytest.param(torch.tensor([0.0, 2.0, 4.0, 4.0]), torch.tensor([0.0, 4.0, 3.0, 4.0]), 1, 1, 1, 1),
+        pytest.param(to_onehot(torch.tensor([0.0, 2.0, 4.0, 4.0])), torch.tensor([0.0, 4.0, 3.0, 4.0]), 1, 1, 1, 1),
+    ],
+)
 def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expected_fn):
     tp, fp, tn, fn = stat_scores(pred, target, class_index=4)
 
@@ -126,12 +138,27 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
     assert fn.item() == expected_fn
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn'], [
-    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]),
-                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1]),
-    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]),
-                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1])
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "expected_tp", "expected_fp", "expected_tn", "expected_fn"],
+    [
+        pytest.param(
+            torch.tensor([0.0, 2.0, 4.0, 4.0]),
+            torch.tensor([0.0, 4.0, 3.0, 4.0]),
+            [1, 0, 0, 0, 1],
+            [0, 0, 1, 0, 1],
+            [3, 4, 3, 3, 1],
+            [0, 0, 0, 1, 1],
+        ),
+        pytest.param(
+            to_onehot(torch.tensor([0.0, 2.0, 4.0, 4.0])),
+            torch.tensor([0.0, 4.0, 3.0, 4.0]),
+            [1, 0, 0, 0, 1],
+            [0, 0, 1, 0, 1],
+            [3, 4, 3, 3, 1],
+            [0, 0, 0, 1, 1],
+        ),
+    ],
+)
 def test_stat_scores_multiclass(pred, target, expected_tp, expected_fp, expected_tn, expected_fn):
     tp, fp, tn, fn = stat_scores_multiple_classes(pred, target)
 
@@ -146,14 +173,14 @@ def test_multilabel_accuracy():
     y1 = torch.tensor([[0, 1, 1], [1, 0, 1]])
     y2 = torch.tensor([[0, 0, 1], [1, 0, 1]])
 
-    assert torch.allclose(accuracy(y1, y2, reduction='none'), torch.tensor([0.8333333134651184] * 2))
-    assert torch.allclose(accuracy(y1, y1, reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, y2, reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, torch.logical_not(y2), reduction='none'), torch.tensor([0., 0.]))
-    assert torch.allclose(accuracy(y1, torch.logical_not(y1), reduction='none'), torch.tensor([0., 0.]))
+    assert torch.allclose(accuracy(y1, y2, reduction="none"), torch.tensor([0.8333333134651184] * 2))
+    assert torch.allclose(accuracy(y1, y1, reduction="none"), torch.tensor([1.0, 1.0]))
+    assert torch.allclose(accuracy(y2, y2, reduction="none"), torch.tensor([1.0, 1.0]))
+    assert torch.allclose(accuracy(y2, torch.logical_not(y2), reduction="none"), torch.tensor([0.0, 0.0]))
+    assert torch.allclose(accuracy(y1, torch.logical_not(y1), reduction="none"), torch.tensor([0.0, 0.0]))
 
     with pytest.raises(RuntimeError):
-        accuracy(y2, torch.zeros_like(y2), reduction='none')
+        accuracy(y2, torch.zeros_like(y2), reduction="none")
 
 
 def test_confusion_matrix():
@@ -161,53 +188,60 @@ def test_confusion_matrix():
     pred = target.clone()
     cm = confusion_matrix(pred, target, normalize=True)
 
-    assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]]))
+    assert torch.allclose(cm, torch.tensor([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]))
 
     pred = torch.zeros_like(pred)
     cm = confusion_matrix(pred, target, normalize=True)
-    assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [1., 0., 0.], [1., 0., 0.]]))
+    assert torch.allclose(cm, torch.tensor([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]))
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
-    pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5]),
-    pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5])
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "expected_prec", "expected_rec"],
+    [
+        pytest.param(torch.tensor([1.0, 0.0, 1.0, 0.0]), torch.tensor([0.0, 1.0, 1.0, 0.0]), [0.5, 0.5], [0.5, 0.5]),
+        pytest.param(
+            to_onehot(torch.tensor([1.0, 0.0, 1.0, 0.0])), torch.tensor([0.0, 1.0, 1.0, 0.0]), [0.5, 0.5], [0.5, 0.5]
+        ),
+    ],
+)
 def test_precision_recall(pred, target, expected_prec, expected_rec):
-    prec = precision(pred, target, reduction='none')
-    rec = recall(pred, target, reduction='none')
+    prec = precision(pred, target, reduction="none")
+    rec = recall(pred, target, reduction="none")
 
     assert torch.allclose(torch.tensor(expected_prec).to(prec), prec)
     assert torch.allclose(torch.tensor(expected_rec).to(rec), rec)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'beta', 'exp_score'], [
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 0.5, [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 1, [0.5, 0.5]),
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 2, [0.5, 0.5]),
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "beta", "exp_score"],
+    [
+        pytest.param([1.0, 0.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0], 0.5, [0.5, 0.5]),
+        pytest.param([1.0, 0.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0], 1, [0.5, 0.5]),
+        pytest.param([1.0, 0.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0], 2, [0.5, 0.5]),
+    ],
+)
 def test_fbeta_score(pred, target, beta, exp_score):
-    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, reduction='none')
+    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, reduction="none")
     assert torch.allclose(score, torch.tensor(exp_score))
 
-    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, reduction='none')
+    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, reduction="none")
     assert torch.allclose(score, torch.tensor(exp_score))
 
 
-@pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
-    pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], [0.5, 0.5]),
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "exp_score"], [pytest.param([1.0, 0.0, 1.0, 0.0], [0.0, 1.0, 1.0, 0.0], [0.5, 0.5]),]
+)
 def test_f1_score(pred, target, exp_score):
-    score = f1_score(torch.tensor(pred), torch.tensor(target), reduction='none')
+    score = f1_score(torch.tensor(pred), torch.tensor(target), reduction="none")
     assert torch.allclose(score, torch.tensor(exp_score))
 
-    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), reduction='none')
+    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), reduction="none")
     assert torch.allclose(score, torch.tensor(exp_score))
 
 
-@pytest.mark.parametrize(['sample_weight', 'pos_label', "exp_shape"], [
-    pytest.param(1, 1., 42),
-    pytest.param(None, 1., 42),
-])
+@pytest.mark.parametrize(
+    ["sample_weight", "pos_label", "exp_shape"], [pytest.param(1, 1.0, 42), pytest.param(None, 1.0, 42),]
+)
 def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     # TODO: move back the pred and target to test func arguments
     #  if you fix the array inside the function, you'd also have fix the shape,
@@ -228,9 +262,10 @@ def test_binary_clf_curve(sample_weight, pos_label, exp_shape):
     assert thresh.shape == (exp_shape,)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_p', 'expected_r', 'expected_t'], [
-    pytest.param([1, 2, 3, 4], [1, 0, 0, 1], [0.5, 1 / 3, 0.5, 1., 1.], [1, 0.5, 0.5, 0.5, 0.], [1, 2, 3, 4])
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "expected_p", "expected_r", "expected_t"],
+    [pytest.param([1, 2, 3, 4], [1, 0, 0, 1], [0.5, 1 / 3, 0.5, 1.0, 1.0], [1, 0.5, 0.5, 0.5, 0.0], [1, 2, 3, 4])],
+)
 def test_pr_curve(pred, target, expected_p, expected_r, expected_t):
     p, r, t = precision_recall_curve(torch.tensor(pred), torch.tensor(target))
     assert p.size() == r.size()
@@ -241,13 +276,16 @@ def test_pr_curve(pred, target, expected_p, expected_r, expected_t):
     assert torch.allclose(t, torch.tensor(expected_t).to(t))
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tpr', 'expected_fpr'], [
-    pytest.param([0, 1], [0, 1], [0, 1, 1], [0, 0, 1]),
-    pytest.param([1, 0], [0, 1], [0, 0, 1], [0, 1, 1]),
-    pytest.param([1, 1], [1, 0], [0, 1], [0, 1]),
-    pytest.param([1, 0], [1, 0], [0, 1, 1], [0, 0, 1]),
-    pytest.param([0.5, 0.5], [0, 1], [0, 1], [0, 1]),
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "expected_tpr", "expected_fpr"],
+    [
+        pytest.param([0, 1], [0, 1], [0, 1, 1], [0, 0, 1]),
+        pytest.param([1, 0], [0, 1], [0, 0, 1], [0, 1, 1]),
+        pytest.param([1, 1], [1, 0], [0, 1], [0, 1]),
+        pytest.param([1, 0], [1, 0], [0, 1, 1], [0, 0, 1]),
+        pytest.param([0.5, 0.5], [0, 1], [0, 1], [0, 1]),
+    ],
+)
 def test_roc_curve(pred, target, expected_tpr, expected_fpr):
     fpr, tpr, thresh = roc(torch.tensor(pred), torch.tensor(target))
 
@@ -257,25 +295,31 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
     assert torch.allclose(tpr, torch.tensor(expected_tpr).to(tpr))
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([0, 0, 1, 1], [0, 0, 1, 1], 1.),
-    pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
-    pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
-    pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.),
-    pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.5),
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "expected"],
+    [
+        pytest.param([0, 0, 1, 1], [0, 0, 1, 1], 1.0),
+        pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.0),
+        pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
+        pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.0),
+        pytest.param([0.5, 0.5, 0.5, 0.5], [1, 1, 0, 0], 0.5),
+    ],
+)
 def test_auroc(pred, target, expected):
     score = auroc(torch.tensor(pred), torch.tensor(target)).item()
     assert score == expected
 
 
-@pytest.mark.parametrize(['x', 'y', 'expected'], [
-    pytest.param([0, 1], [0, 1], 0.5),
-    pytest.param([1, 0], [0, 1], 0.5),
-    pytest.param([1, 0, 0], [0, 1, 1], 0.5),
-    pytest.param([0, 1], [1, 1], 1),
-    pytest.param([0, 0.5, 1], [0, 0.5, 1], 0.5),
-])
+@pytest.mark.parametrize(
+    ["x", "y", "expected"],
+    [
+        pytest.param([0, 1], [0, 1], 0.5),
+        pytest.param([1, 0], [0, 1], 0.5),
+        pytest.param([1, 0, 0], [0, 1, 1], 0.5),
+        pytest.param([0, 1], [1, 1], 1),
+        pytest.param([0, 0.5, 1], [0, 0.5, 1], 0.5),
+    ],
+)
 def test_auc(x, y, expected):
     # Test Area Under Curve (AUC) computation
     assert auc(torch.tensor(x), torch.tensor(y)) == expected
@@ -292,18 +336,22 @@ def test_average_precision_constant_values():
     pred = torch.ones(100)
     # The precision is then the fraction of positive whatever the recall
     # is, as there is only one threshold:
-    assert average_precision(pred, target).item() == .25
+    assert average_precision(pred, target).item() == 0.25
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([[0, 0], [1, 1]], [[0, 0], [1, 1]], 1.),
-    pytest.param([[1, 1], [0, 0]], [[0, 0], [1, 1]], 0.),
-    pytest.param([[1, 1], [1, 1]], [[1, 1], [0, 0]], 2 / 3),
-    pytest.param([[1, 1], [0, 0]], [[1, 1], [0, 0]], 1.),
-])
+@pytest.mark.parametrize(
+    ["pred", "target", "expected"],
+    [
+        pytest.param([[0, 0], [1, 1]], [[0, 0], [1, 1]], 1.0),
+        pytest.param([[1, 1], [0, 0]], [[0, 0], [1, 1]], 0.0),
+        pytest.param([[1, 1], [1, 1]], [[1, 1], [0, 0]], 2 / 3),
+        pytest.param([[1, 1], [0, 0]], [[1, 1], [0, 0]], 1.0),
+    ],
+)
 def test_dice_score(pred, target, expected):
     score = dice_score(torch.tensor(pred), torch.tensor(target))
     assert score == expected
+
 
 # example data taken from
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py

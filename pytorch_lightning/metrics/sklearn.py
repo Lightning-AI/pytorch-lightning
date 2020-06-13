@@ -7,18 +7,18 @@ from pytorch_lightning import _logger as lightning_logger
 from pytorch_lightning.metrics.metric import NumpyMetric
 
 __all__ = [
-    'SklearnMetric',
-    'Accuracy',
-    'AveragePrecision',
-    'AUC',
-    'ConfusionMatrix',
-    'F1',
-    'FBeta',
-    'Precision',
-    'Recall',
-    'PrecisionRecallCurve',
-    'ROC',
-    'AUROC'
+    "SklearnMetric",
+    "Accuracy",
+    "AveragePrecision",
+    "AUC",
+    "ConfusionMatrix",
+    "F1",
+    "FBeta",
+    "Precision",
+    "Recall",
+    "PrecisionRecallCurve",
+    "ROC",
+    "AUROC",
 ]
 
 
@@ -32,9 +32,14 @@ class SklearnMetric(NumpyMetric):
     Note:
         The order of targets and predictions may be different from the order typically used in PyTorch
     """
-    def __init__(self, metric_name: str,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM, **kwargs):
+
+    def __init__(
+        self,
+        metric_name: str,
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+        **kwargs,
+    ):
         """
         Args:
             metric_name: the metric name to import and compute from scikit-learn.metrics
@@ -44,18 +49,18 @@ class SklearnMetric(NumpyMetric):
                 Defaults to sum.
             **kwargs: additonal keyword arguments (will be forwarded to metric call)
         """
-        super().__init__(name=metric_name, reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(name=metric_name, reduce_group=reduce_group, reduce_op=reduce_op)
 
         self.metric_kwargs = kwargs
         lightning_logger.debug(
-            f'Metric {self.__class__.__name__} is using Sklearn as backend, meaning that'
-            ' every metric call will cause a GPU synchronization, which may slow down your code'
+            f"Metric {self.__class__.__name__} is using Sklearn as backend, meaning that"
+            " every metric call will cause a GPU synchronization, which may slow down your code"
         )
 
     @property
     def metric_fn(self):
         import sklearn.metrics
+
         return getattr(sklearn.metrics, self.name)
 
     def forward(self, *args, **kwargs) -> Union[np.ndarray, int, float]:
@@ -80,9 +85,13 @@ class Accuracy(SklearnMetric):
     Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
     """
-    def __init__(self, normalize: bool = True,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+
+    def __init__(
+        self,
+        normalize: bool = True,
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             normalize: If ``False``, return the number of correctly classified samples.
@@ -92,13 +101,11 @@ class Accuracy(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__(metric_name='accuracy_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         normalize=normalize)
+        super().__init__(
+            metric_name="accuracy_score", reduce_group=reduce_group, reduce_op=reduce_op, normalize=normalize
+        )
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> float:
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Computes the accuracy
 
@@ -121,10 +128,10 @@ class AUC(SklearnMetric):
     Warning:
         Every metric call will cause a GPU synchronization, which may slow down your code
     """
-    def __init__(self,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM
-                 ):
+
+    def __init__(
+        self, reduce_group: Any = torch.distributed.group.WORLD, reduce_op: Any = torch.distributed.ReduceOp.SUM
+    ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
@@ -133,10 +140,9 @@ class AUC(SklearnMetric):
                 Defaults to sum.
         """
 
-        super().__init__(metric_name='auc',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         )
+        super().__init__(
+            metric_name="auc", reduce_group=reduce_group, reduce_op=reduce_op,
+        )
 
     def forward(self, x: np.ndarray, y: np.ndarray) -> float:
         """
@@ -157,10 +163,13 @@ class AveragePrecision(SklearnMetric):
     """
     Calculates the average precision (AP) score.
     """
-    def __init__(self, average: Optional[str] = 'macro',
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM
-                 ):
+
+    def __init__(
+        self,
+        average: Optional[str] = "macro",
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             average: If None, the scores for each class are returned. Otherwise, this determines the type of
@@ -179,13 +188,9 @@ class AveragePrecision(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('average_precision_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         average=average)
+        super().__init__("average_precision_score", reduce_group=reduce_group, reduce_op=reduce_op, average=average)
 
-    def forward(self, y_score: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> float:
+    def forward(self, y_score: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Args:
             y_score: Target scores, can either be probability estimates of the positive class,
@@ -196,8 +201,7 @@ class AveragePrecision(SklearnMetric):
         Return:
             average precision score
         """
-        return super().forward(y_score=y_score, y_true=y_true,
-                               sample_weight=sample_weight)
+        return super().forward(y_score=y_score, y_true=y_true, sample_weight=sample_weight)
 
 
 class ConfusionMatrix(SklearnMetric):
@@ -207,10 +211,13 @@ class ConfusionMatrix(SklearnMetric):
     is equal to the number of observations known to be in group :math:`i` but
     predicted to be in group :math:`j`.
     """
-    def __init__(self, labels: Optional[Sequence] = None,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM
-                 ):
+
+    def __init__(
+        self,
+        labels: Optional[Sequence] = None,
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             labels: List of labels to index the matrix. This may be used to reorder
@@ -222,10 +229,7 @@ class ConfusionMatrix(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('confusion_matrix',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels)
+        super().__init__("confusion_matrix", reduce_group=reduce_group, reduce_op=reduce_op, labels=labels)
 
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray) -> np.ndarray:
         """
@@ -260,11 +264,14 @@ class F1(SklearnMetric):
           <http://en.wikipedia.org/wiki/F1_score>`_
     """
 
-    def __init__(self, labels: Optional[Sequence] = None,
-                 pos_label: Union[str, int] = 1,
-                 average: Optional[str] = 'binary',
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+    def __init__(
+        self,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "binary",
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             labels: Integer array of labels.
@@ -300,15 +307,18 @@ class F1(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('f1_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__(
+            "f1_score",
+            reduce_group=reduce_group,
+            reduce_op=reduce_op,
+            labels=labels,
+            pos_label=pos_label,
+            average=average,
+        )
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+    def forward(
+        self, y_pred: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None
+    ) -> Union[np.ndarray, float]:
         """
         Args:
             y_pred : Estimated targets as returned by a classifier.
@@ -337,11 +347,15 @@ class FBeta(SklearnMetric):
           <http://en.wikipedia.org/wiki/F1_score>`_
     """
 
-    def __init__(self, beta: float, labels: Optional[Sequence] = None,
-                 pos_label: Union[str, int] = 1,
-                 average: Optional[str] = 'binary',
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+    def __init__(
+        self,
+        beta: float,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "binary",
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             beta: Weight of precision in harmonic mean.
@@ -378,16 +392,19 @@ class FBeta(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('fbeta_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         beta=beta,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__(
+            "fbeta_score",
+            reduce_group=reduce_group,
+            reduce_op=reduce_op,
+            beta=beta,
+            labels=labels,
+            pos_label=pos_label,
+            average=average,
+        )
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+    def forward(
+        self, y_pred: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None
+    ) -> Union[np.ndarray, float]:
         """
         Args:
             y_pred : Estimated targets as returned by a classifier.
@@ -413,11 +430,14 @@ class Precision(SklearnMetric):
     The best value is 1 and the worst value is 0.
     """
 
-    def __init__(self, labels: Optional[Sequence] = None,
-                 pos_label: Union[str, int] = 1,
-                 average: Optional[str] = 'binary',
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+    def __init__(
+        self,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "binary",
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             labels: Integer array of labels.
@@ -453,15 +473,18 @@ class Precision(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('precision_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__(
+            "precision_score",
+            reduce_group=reduce_group,
+            reduce_op=reduce_op,
+            labels=labels,
+            pos_label=pos_label,
+            average=average,
+        )
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+    def forward(
+        self, y_pred: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None
+    ) -> Union[np.ndarray, float]:
         """
         Args:
             y_pred : Estimated targets as returned by a classifier.
@@ -485,11 +508,14 @@ class Recall(SklearnMetric):
     The best value is 1 and the worst value is 0.
     """
 
-    def __init__(self, labels: Optional[Sequence] = None,
-                 pos_label: Union[str, int] = 1,
-                 average: Optional[str] = 'binary',
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+    def __init__(
+        self,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "binary",
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             labels: Integer array of labels.
@@ -525,15 +551,18 @@ class Recall(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('recall_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__(
+            "recall_score",
+            reduce_group=reduce_group,
+            reduce_op=reduce_op,
+            labels=labels,
+            pos_label=pos_label,
+            average=average,
+        )
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+    def forward(
+        self, y_pred: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None
+    ) -> Union[np.ndarray, float]:
         """
         Args:
             y_pred : Estimated targets as returned by a classifier.
@@ -567,10 +596,12 @@ class PrecisionRecallCurve(SklearnMetric):
     x axis.
     """
 
-    def __init__(self,
-                 pos_label: Union[str, int] = 1,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+    def __init__(
+        self,
+        pos_label: Union[str, int] = 1,
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             pos_label: The class to report if ``average='binary'``.
@@ -579,13 +610,11 @@ class PrecisionRecallCurve(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('precision_recall_curve',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         pos_label=pos_label)
+        super().__init__("precision_recall_curve", reduce_group=reduce_group, reduce_op=reduce_op, pos_label=pos_label)
 
-    def forward(self, probas_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+    def forward(
+        self, probas_pred: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None
+    ) -> Union[np.ndarray, float]:
         """
         Args:
             probas_pred : Estimated probabilities or decision function.
@@ -606,8 +635,7 @@ class PrecisionRecallCurve(SklearnMetric):
         """
         # only return x and y here, since for now we cannot auto-convert elements of multiple length.
         # Will be fixed in native implementation
-        return np.array(
-            super().forward(probas_pred=probas_pred, y_true=y_true, sample_weight=sample_weight)[:2])
+        return np.array(super().forward(probas_pred=probas_pred, y_true=y_true, sample_weight=sample_weight)[:2])
 
 
 class ROC(SklearnMetric):
@@ -618,10 +646,12 @@ class ROC(SklearnMetric):
         this implementation is restricted to the binary classification task.
     """
 
-    def __init__(self,
-                 pos_label: Union[str, int] = 1,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+    def __init__(
+        self,
+        pos_label: Union[str, int] = 1,
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             pos_labels: The class to report if ``average='binary'``.
@@ -634,13 +664,11 @@ class ROC(SklearnMetric):
             - [1] `Wikipedia entry for the Receiver operating characteristic
               <http://en.wikipedia.org/wiki/Receiver_operating_characteristic>`_
         """
-        super().__init__('roc_curve',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         pos_label=pos_label)
+        super().__init__("roc_curve", reduce_group=reduce_group, reduce_op=reduce_op, pos_label=pos_label)
 
-    def forward(self, y_score: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+    def forward(
+        self, y_score: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None
+    ) -> Union[np.ndarray, float]:
         """
         Args:
             y_score : Target scores, can either be probability estimates of the positive
@@ -673,10 +701,12 @@ class AUROC(SklearnMetric):
         or multilabel classification task in label indicator format.
     """
 
-    def __init__(self, average: Optional[str] = 'macro',
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM
-                 ):
+    def __init__(
+        self,
+        average: Optional[str] = "macro",
+        reduce_group: Any = torch.distributed.group.WORLD,
+        reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             average: If None, the scores for each class are returned. Otherwise, this determines the type of
@@ -695,13 +725,9 @@ class AUROC(SklearnMetric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__('roc_auc_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         average=average)
+        super().__init__("roc_auc_score", reduce_group=reduce_group, reduce_op=reduce_op, average=average)
 
-    def forward(self, y_score: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> float:
+    def forward(self, y_score: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Args:
             y_score: Target scores, can either be probability estimates of the positive class,
@@ -712,5 +738,4 @@ class AUROC(SklearnMetric):
         Return:
             Area Under Receiver Operating Characteristic Curve
         """
-        return super().forward(y_score=y_score, y_true=y_true,
-                               sample_weight=sample_weight)
+        return super().forward(y_score=y_score, y_true=y_true, sample_weight=sample_weight)

@@ -10,8 +10,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 
 
-@mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=Namespace(**Trainer.default_attributes()))
+@mock.patch("argparse.ArgumentParser.parse_args", return_value=Namespace(**Trainer.default_attributes()))
 def test_default_args(tmpdir):
     """Tests default argument parser for Trainer"""
 
@@ -29,11 +28,9 @@ def test_default_args(tmpdir):
     assert trainer.max_epochs == 5
 
 
-@pytest.mark.parametrize('cli_args', [
-    ['--accumulate_grad_batches=22'],
-    ['--print_nan_grads', '--weights_save_path=./'],
-    []
-])
+@pytest.mark.parametrize(
+    "cli_args", [["--accumulate_grad_batches=22"], ["--print_nan_grads", "--weights_save_path=./"], []]
+)
 def test_add_argparse_args_redefined(cli_args):
     """Redefines some default Trainer arguments via the cli and
     tests the Trainer initialization correctness.
@@ -47,7 +44,7 @@ def test_add_argparse_args_redefined(cli_args):
     pickle.dumps(args)
 
     # Check few deprecated args are not in namespace:
-    for depr_name in ('gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs'):
+    for depr_name in ("gradient_clip", "nb_gpu_nodes", "max_nb_epochs"):
         assert depr_name not in args
 
     trainer = Trainer.from_argparse_args(args=args)
@@ -69,10 +66,7 @@ def test_get_init_arguments_and_types():
     assert isinstance(trainer, Trainer)
 
 
-@pytest.mark.parametrize('cli_args', [
-    ['--callbacks=1', '--logger'],
-    ['--foo', '--bar=1']
-])
+@pytest.mark.parametrize("cli_args", [["--callbacks=1", "--logger"], ["--foo", "--bar=1"]])
 def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     """Asserts thar an error raised in case of passing not default cli arguments."""
 
@@ -85,24 +79,33 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parent_parser=parser)
 
-    monkeypatch.setattr(parser, 'exit', lambda *args: _raise(), raising=True)
+    monkeypatch.setattr(parser, "exit", lambda *args: _raise(), raising=True)
 
     with pytest.raises(_UnkArgError):
         parser.parse_args(cli_args)
 
 
 # todo: add also testing for "gpus"
-@pytest.mark.parametrize(['cli_args', 'expected'], [
-    pytest.param('--auto_lr_find --auto_scale_batch_size power',
-                 {'auto_lr_find': True, 'auto_scale_batch_size': 'power', 'early_stop_callback': False}),
-    pytest.param('--auto_lr_find any_string --auto_scale_batch_size',
-                 {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
-    pytest.param('--early_stop_callback',
-                 {'auto_lr_find': False, 'early_stop_callback': True, 'auto_scale_batch_size': False}),
-])
+@pytest.mark.parametrize(
+    ["cli_args", "expected"],
+    [
+        pytest.param(
+            "--auto_lr_find --auto_scale_batch_size power",
+            {"auto_lr_find": True, "auto_scale_batch_size": "power", "early_stop_callback": False},
+        ),
+        pytest.param(
+            "--auto_lr_find any_string --auto_scale_batch_size",
+            {"auto_lr_find": "any_string", "auto_scale_batch_size": True},
+        ),
+        pytest.param(
+            "--early_stop_callback",
+            {"auto_lr_find": False, "early_stop_callback": True, "auto_scale_batch_size": False},
+        ),
+    ],
+)
 def test_argparse_args_parsing(cli_args, expected):
     """Test multi type argument with bool."""
-    cli_args = cli_args.split(' ') if cli_args else []
+    cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
         parser = Trainer.add_argparse_args(parent_parser=parser)
@@ -115,19 +118,22 @@ def test_argparse_args_parsing(cli_args, expected):
 
 @pytest.mark.skipif(
     sys.version_info < (3, 7),
-    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec"
+    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec",
 )
-@pytest.mark.parametrize(['cli_args', 'extra_args'], [
-    pytest.param({}, {}),
-    pytest.param({'logger': False}, {}),
-    pytest.param({'logger': False}, {'logger': True}),
-    pytest.param({'logger': False}, {'checkpoint_callback': True}),
-])
+@pytest.mark.parametrize(
+    ["cli_args", "extra_args"],
+    [
+        pytest.param({}, {}),
+        pytest.param({"logger": False}, {}),
+        pytest.param({"logger": False}, {"logger": True}),
+        pytest.param({"logger": False}, {"checkpoint_callback": True}),
+    ],
+)
 def test_init_from_argparse_args(cli_args, extra_args):
     unknown_args = dict(unknown_arg=0)
 
     # unkown args in the argparser/namespace should be ignored
-    with mock.patch('pytorch_lightning.Trainer.__init__', autospec=True, return_value=None) as init:
+    with mock.patch("pytorch_lightning.Trainer.__init__", autospec=True, return_value=None) as init:
         trainer = Trainer.from_argparse_args(Namespace(**cli_args, **unknown_args), **extra_args)
         expected = dict(cli_args)
         expected.update(extra_args)  # extra args should override any cli arg

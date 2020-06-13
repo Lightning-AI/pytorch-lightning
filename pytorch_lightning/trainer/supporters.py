@@ -60,19 +60,19 @@ class TensorRunningAccum(object):
 
     def mean(self):
         """Get mean value from stored elements."""
-        return self._agg_memory('mean')
+        return self._agg_memory("mean")
 
     def max(self):
         """Get maximal value from stored elements."""
-        return self._agg_memory('max')
+        return self._agg_memory("max")
 
     def min(self):
         """Get minimal value from stored elements."""
-        return self._agg_memory('min')
+        return self._agg_memory("min")
 
     def _agg_memory(self, how: str):
         if self.last_idx is not None:
             if self.rotated:
                 return getattr(self.memory, how)()
             else:
-                return getattr(self.memory[:self.current_idx], how)()
+                return getattr(self.memory[: self.current_idx], how)()

@@ -22,7 +22,7 @@ else:
 
 
 # This script will run the actual test model training in parallel
-TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_default_model.py')
+TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_default_model.py")
 
 
 def _nccl_available():
@@ -41,14 +41,17 @@ def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
     tutils.reset_seed()
     cmdline = [
-        'horovodrun',
-        '-np', '2',
-        sys.executable, TEST_SCRIPT,
-        '--trainer-options', shlex.quote(json.dumps(trainer_options))
+        "horovodrun",
+        "-np",
+        "2",
+        sys.executable,
+        TEST_SCRIPT,
+        "--trainer-options",
+        shlex.quote(json.dumps(trainer_options)),
     ]
     if on_gpu:
-        cmdline += ['--on-gpu']
-    exit_code = subprocess.call(' '.join(cmdline), shell=True, env=os.environ.copy())
+        cmdline += ["--on-gpu"]
+    exit_code = subprocess.call(" ".join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
 
 
@@ -63,7 +66,7 @@ def test_horovod_cpu(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        distributed_backend='horovod',
+        distributed_backend="horovod",
         deterministic=True,
     )
     _run_horovod(trainer_options)
@@ -100,7 +103,7 @@ def test_horovod_multi_gpu(tmpdir):
         val_percent_check=0.2,
         gpus=1,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend="horovod",
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -110,18 +113,17 @@ def test_horovod_multi_gpu(tmpdir):
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
-
     class TestTrainingStepModel(EvalModelTemplate):
         def training_step(self, batch, *args, **kwargs):
             x, y = batch
-            assert str(x.device) != 'cpu'
-            assert str(y.device) != 'cpu'
+            assert str(x.device) != "cpu"
+            assert str(y.device) != "cpu"
             return super(TestTrainingStepModel, self).training_step(batch, *args, **kwargs)
 
         def validation_step(self, batch, *args, **kwargs):
             x, y = batch
-            assert str(x.device) != 'cpu'
-            assert str(y.device) != 'cpu'
+            assert str(x.device) != "cpu"
+            assert str(y.device) != "cpu"
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -135,7 +137,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         val_percent_check=0.2,
         gpus=1,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend="horovod",
     )
     tutils.run_model_test_without_loggers(trainer_options, model)
 
@@ -152,23 +154,23 @@ def test_horovod_multi_optimizer(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend="horovod",
     )
 
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    assert result == 1, 'model failed to complete'
+    assert result == 1, "model failed to complete"
 
     assert len(trainer.optimizers) == 2
     for i, optimizer in enumerate(trainer.optimizers):
-        assert hasattr(optimizer, 'synchronize'), 'optimizer has not been wrapped into DistributedOptimizer'
+        assert hasattr(optimizer, "synchronize"), "optimizer has not been wrapped into DistributedOptimizer"
 
     def get_model_params(model):
         return set([p for p in model.parameters()])
 
     def get_optimizer_params(optimizer):
-        return set([p for group in optimizer.param_groups for p in group.get('params', [])])
+        return set([p for group in optimizer.param_groups for p in group.get("params", [])])
 
     assert get_model_params(model.generator) != get_model_params(model.discriminator)
     assert get_model_params(model.generator) == get_optimizer_params(trainer.optimizers[0])

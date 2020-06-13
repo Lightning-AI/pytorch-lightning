@@ -6,37 +6,37 @@ from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric, 
 
 class DummyTensorMetric(TensorMetric):
     def __init__(self):
-        super().__init__('dummy')
+        super().__init__("dummy")
 
     def forward(self, input1, input2):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
-        return 1.
+        return 1.0
 
 
 class DummyNumpyMetric(NumpyMetric):
     def __init__(self):
-        super().__init__('dummy')
+        super().__init__("dummy")
 
     def forward(self, input1, input2):
         assert isinstance(input1, np.ndarray)
         assert isinstance(input2, np.ndarray)
-        return 1.
+        return 1.0
 
 
 class DummyTensorCollectionMetric(TensorCollectionMetric):
     def __init__(self):
-        super().__init__('dummy')
+        super().__init__("dummy")
 
     def forward(self, input1, input2):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
-        return 1., 2., 3., 4.
+        return 1.0, 2.0, 3.0, 4.0
 
 
 def _test_collection_metric(metric: Metric):
     """ Test that metric.device, metric.dtype works for metric collection """
-    input1, input2 = torch.tensor([1.]), torch.tensor([2.])
+    input1, input2 = torch.tensor([1.0]), torch.tensor([2.0])
 
     def change_and_check_device_dtype(device, dtype):
         metric.to(device=device, dtype=dtype)
@@ -50,9 +50,9 @@ def _test_collection_metric(metric: Metric):
         if dtype is not None:
             assert metric.dtype == dtype
 
-    devices = [None, 'cpu']
+    devices = [None, "cpu"]
     if torch.cuda.is_available():
-        devices += ['cuda:0']
+        devices += ["cuda:0"]
 
     for device in devices:
         for dtype in [None, torch.float32, torch.float64]:
@@ -60,10 +60,10 @@ def _test_collection_metric(metric: Metric):
 
     if torch.cuda.is_available():
         metric.cuda(0)
-        assert metric.device == torch.device('cuda', index=0)
+        assert metric.device == torch.device("cuda", index=0)
 
     metric.cpu()
-    assert metric.device == torch.device('cpu')
+    assert metric.device == torch.device("cpu")
 
     metric.type(torch.int8)
     assert metric.dtype == torch.int8
@@ -83,7 +83,7 @@ def _test_collection_metric(metric: Metric):
 
 def _test_metric(metric: Metric):
     """ Test that metric.device, metric.dtype works for single metric"""
-    input1, input2 = torch.tensor([1.]), torch.tensor([2.])
+    input1, input2 = torch.tensor([1.0]), torch.tensor([2.0])
 
     def change_and_check_device_dtype(device, dtype):
         metric.to(device=device, dtype=dtype)
@@ -99,9 +99,9 @@ def _test_metric(metric: Metric):
             assert metric.dtype == dtype
             assert metric_val.dtype == dtype
 
-    devices = [None, 'cpu']
+    devices = [None, "cpu"]
     if torch.cuda.is_available():
-        devices += ['cuda:0']
+        devices += ["cuda:0"]
 
     for device in devices:
         for dtype in [None, torch.float32, torch.float64]:
@@ -109,12 +109,12 @@ def _test_metric(metric: Metric):
 
     if torch.cuda.is_available():
         metric.cuda(0)
-        assert metric.device == torch.device('cuda', index=0)
-        assert metric(input1, input2).device == torch.device('cuda', index=0)
+        assert metric.device == torch.device("cuda", index=0)
+        assert metric(input1, input2).device == torch.device("cuda", index=0)
 
     metric.cpu()
-    assert metric.device == torch.device('cpu')
-    assert metric(input1, input2).device == torch.device('cpu')
+    assert metric.device == torch.device("cpu")
+    assert metric(input1, input2).device == torch.device("cpu")
 
     metric.type(torch.int8)
     assert metric.dtype == torch.int8

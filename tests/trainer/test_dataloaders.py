@@ -47,22 +47,21 @@ def test_fit_val_loader_only(tmpdir):
     trainer.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloader)
 
 
-@pytest.mark.parametrize("dataloader_options", [
-    dict(train_percent_check=-0.1),
-    dict(train_percent_check=1.1),
-    dict(val_check_interval=1.1),
-    dict(val_check_interval=10000),
-])
+@pytest.mark.parametrize(
+    "dataloader_options",
+    [
+        dict(train_percent_check=-0.1),
+        dict(train_percent_check=1.1),
+        dict(val_check_interval=1.1),
+        dict(val_check_interval=10000),
+    ],
+)
 def test_dataloader_config_errors(tmpdir, dataloader_options):
 
     model = EvalModelTemplate()
 
     # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        **dataloader_options,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options,)
 
     with pytest.raises(ValueError):
         trainer.fit(model)
@@ -77,20 +76,14 @@ def test_multiple_val_dataloader(tmpdir):
     model.validation_epoch_end = model.validation_epoch_end_multiple_dataloaders
 
     # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=1.0,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=1.0,)
     result = trainer.fit(model)
 
     # verify training completed
     assert result == 1
 
     # verify there are 2 val loaders
-    assert len(trainer.val_dataloaders) == 2, \
-        'Multiple val_dataloaders not initiated properly'
+    assert len(trainer.val_dataloaders) == 2, "Multiple val_dataloaders not initiated properly"
 
     # make sure predictions are good for each val set
     for dataloader in trainer.val_dataloaders:
@@ -105,18 +98,12 @@ def test_multiple_test_dataloader(tmpdir):
     model.test_step = model.test_step__multiple_dataloaders
 
     # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.2)
     trainer.fit(model)
     trainer.test()
 
     # verify there are 2 test loaders
-    assert len(trainer.test_dataloaders) == 2, \
-        'Multiple test_dataloaders not initiated properly'
+    assert len(trainer.test_dataloaders) == 2, "Multiple test_dataloaders not initiated properly"
 
     # make sure predictions are good for each test set
     for dataloader in trainer.test_dataloaders:
@@ -131,12 +118,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
 
     # only train passed to fit
     model = EvalModelTemplate()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.2)
     fit_options = dict(train_dataloader=model.dataloader(train=True))
     result = trainer.fit(model, **fit_options)
 
@@ -148,19 +130,12 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
 
     # train, val passed to fit
     model = EvalModelTemplate()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-    fit_options = dict(train_dataloader=model.dataloader(train=True),
-                       val_dataloaders=model.dataloader(train=False))
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.2)
+    fit_options = dict(train_dataloader=model.dataloader(train=True), val_dataloaders=model.dataloader(train=False))
 
     result = trainer.fit(model, **fit_options)
     assert result == 1
-    assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
 
 
 def test_all_dataloaders_passed_to_fit(tmpdir):
@@ -169,24 +144,18 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     model = EvalModelTemplate()
 
     # train, val and test passed to fit
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
-    fit_options = dict(train_dataloader=model.dataloader(train=True),
-                       val_dataloaders=model.dataloader(train=False))
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.2)
+    fit_options = dict(train_dataloader=model.dataloader(train=True), val_dataloaders=model.dataloader(train=False))
     test_options = dict(test_dataloaders=model.dataloader(train=False))
 
     result = trainer.fit(model, **fit_options)
     trainer.test(**test_options)
 
     assert result == 1
-    assert len(trainer.val_dataloaders) == 1, \
-        f'val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 1, \
-        f'test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+    assert len(trainer.val_dataloaders) == 1, f"val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+    assert (
+        len(trainer.test_dataloaders) == 1
+    ), f"test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
 
 
 def test_multiple_dataloaders_passed_to_fit(tmpdir):
@@ -198,25 +167,22 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     model.test_step = model.test_step__multiple_dataloaders
 
     # train, multiple val and multiple test passed to fit
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.2)
+    fit_options = dict(
+        train_dataloader=model.dataloader(train=True),
+        val_dataloaders=[model.dataloader(train=False), model.dataloader(train=False)],
     )
-    fit_options = dict(train_dataloader=model.dataloader(train=True),
-                       val_dataloaders=[model.dataloader(train=False),
-                                        model.dataloader(train=False)])
-    test_options = dict(test_dataloaders=[model.dataloader(train=False),
-                                          model.dataloader(train=False)])
+    test_options = dict(test_dataloaders=[model.dataloader(train=False), model.dataloader(train=False)])
 
     trainer.fit(model, **fit_options)
     trainer.test(**test_options)
 
-    assert len(trainer.val_dataloaders) == 2, \
-        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 2, \
-        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+    assert (
+        len(trainer.val_dataloaders) == 2
+    ), f"Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+    assert (
+        len(trainer.test_dataloaders) == 2
+    ), f"Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
 
 
 def test_mixing_of_dataloader_options(tmpdir):
@@ -224,12 +190,7 @@ def test_mixing_of_dataloader_options(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
+    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.2)
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -242,13 +203,13 @@ def test_mixing_of_dataloader_options(tmpdir):
     assert results
     trainer.test(test_dataloaders=model.dataloader(train=False))
 
-    assert len(trainer.val_dataloaders) == 1, \
-        f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 1, \
-        f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+    assert len(trainer.val_dataloaders) == 1, f"`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}"
+    assert (
+        len(trainer.test_dataloaders) == 1
+    ), f"`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}"
 
 
-@pytest.mark.skip('TODO: speed up this test')
+@pytest.mark.skip("TODO: speed up this test")
 def test_train_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
@@ -256,11 +217,11 @@ def test_train_inf_dataloader_error(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
 
-    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+    with pytest.raises(MisconfigurationException, match="infinite DataLoader"):
         trainer.fit(model)
 
 
-@pytest.mark.skip('TODO: speed up this test')
+@pytest.mark.skip("TODO: speed up this test")
 def test_val_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
@@ -268,11 +229,11 @@ def test_val_inf_dataloader_error(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
 
-    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+    with pytest.raises(MisconfigurationException, match="infinite DataLoader"):
         trainer.fit(model)
 
 
-@pytest.mark.skip('TODO: speed up this test')
+@pytest.mark.skip("TODO: speed up this test")
 def test_test_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
@@ -280,30 +241,26 @@ def test_test_inf_dataloader_error(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, test_percent_check=0.5)
 
-    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+    with pytest.raises(MisconfigurationException, match="infinite DataLoader"):
         trainer.test(model)
 
 
-@pytest.mark.parametrize('check_interval', [50, 1.0])
-@pytest.mark.skip('TODO: speed up this test')
+@pytest.mark.parametrize("check_interval", [50, 1.0])
+@pytest.mark.skip("TODO: speed up this test")
 def test_inf_train_dataloader(tmpdir, check_interval):
     """Test inf train data loader (e.g. IterableDataset)"""
 
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_check_interval=check_interval
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=check_interval)
     result = trainer.fit(model)
     # verify training completed
     assert result == 1
 
 
-@pytest.mark.parametrize('check_interval', [1.0])
-@pytest.mark.skip('TODO: speed up this test')
+@pytest.mark.parametrize("check_interval", [1.0])
+@pytest.mark.skip("TODO: speed up this test")
 def test_inf_val_dataloader(tmpdir, check_interval):
     """Test inf val data loader (e.g. IterableDataset)"""
 
@@ -311,11 +268,7 @@ def test_inf_val_dataloader(tmpdir, check_interval):
     model.val_dataloader = model.val_dataloader__infinite
 
     # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_check_interval=check_interval,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=check_interval,)
     result = trainer.fit(model)
 
     # verify training completed
@@ -335,24 +288,19 @@ def test_error_on_zero_len_dataloader(tmpdir):
             max_epochs=1,
             train_percent_check=0.1,
             val_percent_check=0.1,
-            test_percent_check=0.1
+            test_percent_check=0.1,
         )
         trainer.fit(model)
 
 
-@pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
+@pytest.mark.skipif(platform.system() == "Windows", reason="Does not apply to Windows platform.")
 def test_warning_with_few_workers(tmpdir):
     """ Test that error is raised if dataloader with only a few workers is used """
 
     model = EvalModelTemplate()
 
     # logger file to get meta
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
-    )
+    trainer_options = dict(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.1, train_percent_check=0.2)
 
     train_dl = model.dataloader(train=True)
     train_dl.num_workers = 0
@@ -363,42 +311,57 @@ def test_warning_with_few_workers(tmpdir):
     train_dl = model.dataloader(train=False)
     train_dl.num_workers = 0
 
-    fit_options = dict(train_dataloader=train_dl,
-                       val_dataloaders=val_dl)
+    fit_options = dict(train_dataloader=train_dl, val_dataloaders=val_dl)
     test_options = dict(test_dataloaders=train_dl)
 
     trainer = Trainer(**trainer_options)
 
     # fit model
-    with pytest.warns(UserWarning, match='train'):
+    with pytest.warns(UserWarning, match="train"):
         trainer.fit(model, **fit_options)
 
-    with pytest.warns(UserWarning, match='val'):
+    with pytest.warns(UserWarning, match="val"):
         trainer.fit(model, **fit_options)
 
-    with pytest.warns(UserWarning, match='test'):
+    with pytest.warns(UserWarning, match="test"):
         trainer.test(**test_options)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Test requires multiple GPUs")
 def test_dataloader_reinit_for_subclass():
-
     class CustomDataLoader(torch.utils.data.DataLoader):
-        def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
-                     batch_sampler=None, num_workers=0, collate_fn=None,
-                     pin_memory=False, drop_last=False, timeout=0,
-                     worker_init_fn=None, dummy_kwarg=None):
-            super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
-                             num_workers, collate_fn, pin_memory, drop_last, timeout,
-                             worker_init_fn)
+        def __init__(
+            self,
+            dataset,
+            batch_size=1,
+            shuffle=False,
+            sampler=None,
+            batch_sampler=None,
+            num_workers=0,
+            collate_fn=None,
+            pin_memory=False,
+            drop_last=False,
+            timeout=0,
+            worker_init_fn=None,
+            dummy_kwarg=None,
+        ):
+            super().__init__(
+                dataset,
+                batch_size,
+                shuffle,
+                sampler,
+                batch_sampler,
+                num_workers,
+                collate_fn,
+                pin_memory,
+                drop_last,
+                timeout,
+                worker_init_fn,
+            )
 
             self.dummy_kwarg = dummy_kwarg
 
-    trainer = Trainer(
-        gpus=[0, 1],
-        num_nodes=1,
-        distributed_backend='ddp',
-    )
+    trainer = Trainer(gpus=[0, 1], num_nodes=1, distributed_backend="ddp",)
 
     class CustomDummyObj:
         sampler = None
@@ -409,31 +372,31 @@ def test_dataloader_reinit_for_subclass():
     result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
-    assert hasattr(result, 'dummy_kwarg')
+    assert hasattr(result, "dummy_kwarg")
 
     # Shuffled DataLoader should also work
     result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000)), shuffle=True), train=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
-    assert hasattr(result, 'dummy_kwarg')
+    assert hasattr(result, "dummy_kwarg")
 
     class CustomSampler(torch.utils.data.Sampler):
         pass
 
     # Should raise an error if existing sampler is being replaced
-    with pytest.raises(MisconfigurationException, match='DistributedSampler'):
+    with pytest.raises(MisconfigurationException, match="DistributedSampler"):
         trainer.auto_add_sampler(
-            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
+            CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True
+        )
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
+@pytest.mark.skipif(torch.cuda.device_count() < 3, reason="Test requires multiple GPUs")
 def test_batch_size_smaller_than_num_gpus():
     # we need at least 3 gpus for this test
     num_gpus = 3
     batch_size = 3
 
     class CurrentTestModel(EvalModelTemplate):
-
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             # batch norm doesn't work with batch size 1, we replace it
@@ -441,10 +404,10 @@ def test_batch_size_smaller_than_num_gpus():
 
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            loss = output['loss']
+            loss = output["loss"]
             # we make sure to add some metrics to the output dict,
             # this is essential for this test
-            output['progress_bar'] = {'train_loss': loss}
+            output["progress_bar"] = {"train_loss": loss}
             return output
 
         def train_dataloader(self):
@@ -453,23 +416,14 @@ def test_batch_size_smaller_than_num_gpus():
             # therefore the last batch will have a size < num_gpus
             size = num_gpus * batch_size + (num_gpus - 1)
             dataset = Subset(dataloader.dataset, range(size))
-            dataloader = DataLoader(
-                dataset,
-                batch_size=self.batch_size,
-                drop_last=False,
-            )
+            dataloader = DataLoader(dataset, batch_size=self.batch_size, drop_last=False,)
             return dataloader
 
     hparams = EvalModelTemplate.get_default_hparams()
-    hparams['batch_size'] = batch_size
+    hparams["batch_size"] = batch_size
     model = CurrentTestModel(**hparams)
 
-    trainer = Trainer(
-        max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0,
-        gpus=num_gpus,
-    )
+    trainer = Trainer(max_epochs=1, train_percent_check=0.1, val_percent_check=0, gpus=num_gpus,)
 
     # we expect the reduction for the metrics also to happen on the last batch
     # where we will get fewer metrics than gpus

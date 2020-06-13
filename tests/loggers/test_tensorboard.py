@@ -45,7 +45,7 @@ def test_tensorboard_named_version(tmpdir):
     # in the "minimum requirements" test setup
 
 
-@pytest.mark.parametrize("name", ['', None])
+@pytest.mark.parametrize("name", ["", None])
 def test_tensorboard_no_name(tmpdir, name):
     """Verify that None or empty name works"""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
@@ -55,12 +55,7 @@ def test_tensorboard_no_name(tmpdir, name):
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_metrics(tmpdir, step_idx):
     logger = TensorBoardLogger(tmpdir)
-    metrics = {
-        "float": 0.3,
-        "int": 1,
-        "FloatTensor": torch.tensor(0.1),
-        "IntTensor": torch.tensor(1)
-    }
+    metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
 
 
@@ -71,10 +66,10 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {'a': {'b': 'c'}},
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
-        "namespace": Namespace(foo=Namespace(bar='buzz')),
-        "layer": torch.nn.BatchNorm1d
+        "namespace": Namespace(foo=Namespace(bar="buzz")),
+        "layer": torch.nn.BatchNorm1d,
     }
     logger.log_hyperparams(hparams)
 
@@ -86,10 +81,10 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {'a': {'b': 'c'}},
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
-        "namespace": Namespace(foo=Namespace(bar='buzz')),
-        "layer": torch.nn.BatchNorm1d
+        "namespace": Namespace(foo=Namespace(bar="buzz")),
+        "layer": torch.nn.BatchNorm1d,
     }
-    metrics = {'abc': torch.tensor([0.54])}
+    metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)

@@ -25,11 +25,7 @@ def main(hparams):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer(
-        gpus=2,
-        num_nodes=2,
-        distributed_backend='ddp'
-    )
+    trainer = pl.Trainer(gpus=2, num_nodes=2, distributed_backend="ddp")
 
     # ------------------------
     # 3 START TRAINING
@@ -37,7 +33,7 @@ def main(hparams):
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.realpath(__file__))
     parent_parser = ArgumentParser(add_help=False)
 

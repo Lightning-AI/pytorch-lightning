@@ -39,6 +39,7 @@ class ProgressBarBase(Callback):
         trainer = Trainer(callbacks=[bar])
 
     """
+
     def __init__(self):
 
         self._trainer = None
@@ -202,6 +203,7 @@ class ProgressBar(ProgressBarBase):
             :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
     """
+
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
         self._refresh_rate = refresh_rate
@@ -214,9 +216,9 @@ class ProgressBar(ProgressBarBase):
     def __getstate__(self):
         # can't pickle the tqdm objects
         state = self.__dict__.copy()
-        state['main_progress_bar'] = None
-        state['val_progress_bar'] = None
-        state['test_progress_bar'] = None
+        state["main_progress_bar"] = None
+        state["val_progress_bar"] = None
+        state["test_progress_bar"] = None
         return state
 
     @property
@@ -244,7 +246,7 @@ class ProgressBar(ProgressBarBase):
     def init_sanity_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for the validation sanity run. """
         bar = tqdm(
-            desc='Validation sanity check',
+            desc="Validation sanity check",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=False,
@@ -256,7 +258,7 @@ class ProgressBar(ProgressBarBase):
     def init_train_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for training. """
         bar = tqdm(
-            desc='Training',
+            desc="Training",
             initial=self.train_batch_idx,
             position=(2 * self.process_position),
             disable=self.is_disabled,
@@ -270,24 +272,24 @@ class ProgressBar(ProgressBarBase):
     def init_validation_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for validation. """
         bar = tqdm(
-            desc='Validating',
+            desc="Validating",
             position=(2 * self.process_position + 1),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
-            file=sys.stdout
+            file=sys.stdout,
         )
         return bar
 
     def init_test_tqdm(self) -> tqdm:
         """ Override this to customize the tqdm bar for testing. """
         bar = tqdm(
-            desc='Testing',
+            desc="Testing",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout
+            file=sys.stdout,
         )
         return bar
 
@@ -310,14 +312,14 @@ class ProgressBar(ProgressBarBase):
         super().on_epoch_start(trainer, pl_module)
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
-        if total_train_batches != float('inf') and not trainer.fast_dev_run:
+        if total_train_batches != float("inf") and not trainer.fast_dev_run:
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(total_batches))
-        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch + 1}')
+        self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch + 1}")
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
@@ -362,6 +364,6 @@ class ProgressBar(ProgressBarBase):
 
 def convert_inf(x):
     """ The tqdm doesn't support inf values. We have to convert it to None. """
-    if x == float('inf'):
+    if x == float("inf"):
         return None
     return x

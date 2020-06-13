@@ -22,7 +22,7 @@ class OnlyMetricsListLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
-        return 'test'
+        return "test"
 
     @rank_zero_only
     def log_hyperparams(self, params):
@@ -34,11 +34,11 @@ class OnlyMetricsListLogger(LightningLoggerBase):
 
     @property
     def name(self):
-        return 'name'
+        return "name"
 
     @property
     def version(self):
-        return '1'
+        return "1"
 
 
 class ModelWithManualGradTracker(EvalModelTemplate):
@@ -54,11 +54,11 @@ class ModelWithManualGradTracker(EvalModelTemplate):
         # just return a loss, no log or progress bar meta
         x, y = batch
         loss_val = self.loss(y, self(x.flatten(1, -1)))
-        return {'loss': loss_val}
+        return {"loss": loss_val}
 
     def on_after_backward(self):
         out, norms = {}, []
-        prefix = f'grad_{self.norm_type}_norm_'
+        prefix = f"grad_{self.norm_type}_norm_"
         for name, p in self.named_parameters():
             if p.grad is None:
                 continue
@@ -72,11 +72,11 @@ class ModelWithManualGradTracker(EvalModelTemplate):
 
         # handle total norm
         norm = np.linalg.norm(norms, self.norm_type)
-        out[prefix + 'total'] = round(norm, 3)
+        out[prefix + "total"] = round(norm, 3)
         self.stored_grad_norms.append(out)
 
 
-@pytest.mark.parametrize("norm_type", [1., 1.25, 1.5, 2, 3, 5, 10, 'inf'])
+@pytest.mark.parametrize("norm_type", [1.0, 1.25, 1.5, 2, 3, 5, 10, "inf"])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     # rtol=5e-3 respects the 3 decmials rounding in `.grad_norms` and above
 
@@ -87,10 +87,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     logger = OnlyMetricsListLogger()
 
     trainer = Trainer(
-        max_epochs=3,
-        logger=logger,
-        track_grad_norm=norm_type,
-        row_log_interval=1,  # request grad_norms every batch
+        max_epochs=3, logger=logger, track_grad_norm=norm_type, row_log_interval=1,  # request grad_norms every batch
     )
     result = trainer.fit(model)
 

@@ -41,7 +41,7 @@ def main(hparams):
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # ------------------------
     # TRAINING ARGUMENTS
     # ------------------------
@@ -51,23 +51,12 @@ if __name__ == '__main__':
     parent_parser = ArgumentParser(add_help=False)
 
     # gpu args
+    parent_parser.add_argument("--gpus", type=int, default=2, help="how many gpus")
     parent_parser.add_argument(
-        '--gpus',
-        type=int,
-        default=2,
-        help='how many gpus'
+        "--distributed_backend", type=str, default="dp", help="supports three options dp, ddp, ddp2"
     )
     parent_parser.add_argument(
-        '--distributed_backend',
-        type=str,
-        default='dp',
-        help='supports three options dp, ddp, ddp2'
-    )
-    parent_parser.add_argument(
-        '--use_16bit',
-        dest='use_16bit',
-        action='store_true',
-        help='if true uses 16 bit precision'
+        "--use_16bit", dest="use_16bit", action="store_true", help="if true uses 16 bit precision"
     )
 
     # each LightningModule defines arguments relevant to it

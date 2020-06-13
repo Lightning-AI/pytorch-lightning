@@ -14,7 +14,7 @@ from tests.base import EvalModelTemplate
 
 
 @pytest.mark.spawn
-@pytest.mark.parametrize("backend", ['dp', 'ddp'])
+@pytest.mark.parametrize("backend", ["dp", "ddp"])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_distrib(tmpdir, backend):
     """Verify `test()` on pretrained model."""
@@ -46,10 +46,8 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
     log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
 
     # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.dirpath,
-                                         module_class=EvalModelTemplate)
+    assert result == 1, "training failed to complete"
+    pretrained_model = tutils.load_model(logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -82,7 +80,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
     )
 
     # fit model
@@ -90,10 +88,8 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     result = trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(
-        logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate
-    )
+    assert result == 1, "training failed to complete"
+    pretrained_model = tutils.load_model(logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -122,7 +118,7 @@ def test_load_model_from_checkpoint(tmpdir):
     trainer.test()
 
     # correct result and ok accuracy
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
@@ -134,7 +130,7 @@ def test_load_model_from_checkpoint(tmpdir):
 
     # assert weights are the same
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
-        assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
+        assert torch.all(torch.eq(old_p, new_p)), "loaded weights are not the same as the saved weights"
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -149,11 +145,7 @@ def test_dp_resume(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    trainer_options = dict(
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='dp',
-    )
+    trainer_options = dict(max_epochs=1, gpus=2, distributed_backend="dp",)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)
@@ -163,8 +155,8 @@ def test_dp_resume(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     # add these to the trainer options
-    trainer_options['logger'] = logger
-    trainer_options['checkpoint_callback'] = checkpoint
+    trainer_options["logger"] = logger
+    trainer_options["checkpoint_callback"] = checkpoint
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -175,7 +167,7 @@ def test_dp_resume(tmpdir):
     real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + dp model failed to complete'
+    assert result == 1, "amp + dp model failed to complete"
 
     # ---------------------------
     # HPC LOAD/SAVE
@@ -185,11 +177,11 @@ def test_dp_resume(tmpdir):
 
     # init new trainer
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
-    trainer_options['logger'] = new_logger
-    trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
-    trainer_options['train_percent_check'] = 0.5
-    trainer_options['val_percent_check'] = 0.2
-    trainer_options['max_epochs'] = 1
+    trainer_options["logger"] = new_logger
+    trainer_options["checkpoint_callback"] = ModelCheckpoint(tmpdir)
+    trainer_options["train_percent_check"] = 0.5
+    trainer_options["val_percent_check"] = 0.2
+    trainer_options["max_epochs"] = 1
     new_trainer = Trainer(**trainer_options)
 
     # set the epoch start hook so we can predict before the model does the full training
@@ -223,18 +215,14 @@ def test_model_saving_loading(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
-    )
+    trainer_options = dict(max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir))
 
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, "amp + ddp model failed to complete"
 
     # make a prediction
     dataloaders = model.test_dataloader()
@@ -253,16 +241,13 @@ def test_model_saving_loading(tmpdir):
     pred_before_saving = model(x)
 
     # save model
-    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
+    new_weights_path = os.path.join(tmpdir, "save_test.ckpt")
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
-        hparams_file=hparams_path
-    )
+    hparams_path = os.path.join(hparams_path, "hparams.yaml")
+    model_2 = EvalModelTemplate.load_from_checkpoint(checkpoint_path=new_weights_path, hparams_file=hparams_path)
     model_2.eval()
 
     # make prediction

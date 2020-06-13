@@ -11,6 +11,7 @@ try:
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml import BaseExperiment as CometBaseExperiment
+
     try:
         from comet_ml.api import API
     except ImportError:  # pragma: no-cover
@@ -90,19 +91,23 @@ class CometLogger(LightningLoggerBase):
         experiment_key: Optional. If set, restores from existing experiment.
     """
 
-    def __init__(self,
-                 api_key: Optional[str] = None,
-                 save_dir: Optional[str] = None,
-                 workspace: Optional[str] = None,
-                 project_name: Optional[str] = None,
-                 rest_api_key: Optional[str] = None,
-                 experiment_name: Optional[str] = None,
-                 experiment_key: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        workspace: Optional[str] = None,
+        project_name: Optional[str] = None,
+        rest_api_key: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        **kwargs,
+    ):
 
         if not _COMET_AVAILABLE:
-            raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
-                              ' install it with `pip install comet-ml`.')
+            raise ImportError(
+                "You want to use `comet_ml` logger which is not installed yet,"
+                " install it with `pip install comet-ml`."
+            )
         super().__init__()
         self._experiment = None
 
@@ -156,10 +161,7 @@ class CometLogger(LightningLoggerBase):
         if self.mode == "online":
             if self.experiment_key is None:
                 self._experiment = CometExperiment(
-                    api_key=self.api_key,
-                    workspace=self.workspace,
-                    project_name=self.project_name,
-                    **self._kwargs
+                    api_key=self.api_key, workspace=self.workspace, project_name=self.project_name, **self._kwargs
                 )
                 self.experiment_key = self._experiment.get_key()
             else:
@@ -168,14 +170,14 @@ class CometLogger(LightningLoggerBase):
                     workspace=self.workspace,
                     project_name=self.project_name,
                     previous_experiment=self.experiment_key,
-                    **self._kwargs
+                    **self._kwargs,
                 )
         else:
             self._experiment = CometOfflineExperiment(
                 offline_directory=self.save_dir,
                 workspace=self.workspace,
                 project_name=self.project_name,
-                **self._kwargs
+                **self._kwargs,
             )
 
         return self._experiment
@@ -187,11 +189,7 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_parameters(params)
 
     @rank_zero_only
-    def log_metrics(
-            self,
-            metrics: Dict[str, Union[torch.Tensor, float]],
-            step: Optional[int] = None
-    ) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):

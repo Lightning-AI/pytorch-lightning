@@ -12,26 +12,20 @@ import torch
 
 
 def test_early_stopping_functionality(tmpdir):
-
     class CurrentModel(EvalModelTemplate):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
             val_loss = torch.tensor(val_loss)
-            return {'val_loss': val_loss}
+            return {"val_loss": val_loss}
 
     model = CurrentModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        overfit_pct=0.20,
-        max_epochs=20,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, early_stop_callback=True, overfit_pct=0.20, max_epochs=20,)
     result = trainer.fit(model)
     print(trainer.current_epoch)
 
-    assert trainer.current_epoch == 5, 'early_stopping failed'
+    assert trainer.current_epoch == 5, "early_stopping failed"
 
 
 def test_trainer_callback_system(tmpdir):
@@ -232,28 +226,24 @@ def test_early_stopping_no_val_step(tmpdir):
     class CurrentModel(EvalModelTemplate):
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            output.update({'my_train_metric': output['loss']})  # could be anything else
+            output.update({"my_train_metric": output["loss"]})  # could be anything else
             return output
 
     model = CurrentModel()
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=stopping,
-        overfit_pct=0.20,
-        max_epochs=2,
-    )
+    stopping = EarlyStopping(monitor="my_train_metric", min_delta=0.1)
+    trainer = Trainer(default_root_dir=tmpdir, early_stop_callback=stopping, overfit_pct=0.20, max_epochs=2,)
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
     assert trainer.current_epoch < trainer.max_epochs
 
 
 def test_pickling(tmpdir):
     import pickle
+
     early_stopping = EarlyStopping()
     ckpt = ModelCheckpoint(tmpdir)
 
@@ -267,7 +257,7 @@ def test_pickling(tmpdir):
     assert vars(ckpt) == vars(ckpt_loaded)
 
 
-@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+@pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
@@ -275,11 +265,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(default_root_dir=tmpdir,
-                      checkpoint_callback=checkpoint,
-                      overfit_pct=0.20,
-                      max_epochs=2
-                      )
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_pct=0.20, max_epochs=2)
     trainer.fit(model)
 
     # These should be different if the dirpath has be overridden
@@ -287,8 +273,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
 
 @pytest.mark.parametrize(
-    'logger_version,expected',
-    [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+    "logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")],
 )
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
@@ -296,12 +281,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        overfit_pct=0.2,
-        max_epochs=2,
-        logger=logger
-    )
+    trainer = Trainer(default_root_dir=tmpdir, overfit_pct=0.2, max_epochs=2, logger=logger)
     trainer.fit(model)
 
     ckpt_version = Path(trainer.ckpt_path).parent.name

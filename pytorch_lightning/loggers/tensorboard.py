@@ -43,13 +43,11 @@ class TensorBoardLogger(LightningLoggerBase):
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
-    NAME_HPARAMS_FILE = 'hparams.yaml'
+    NAME_HPARAMS_FILE = "hparams.yaml"
 
-    def __init__(self,
-                 save_dir: str,
-                 name: Optional[str] = "default",
-                 version: Optional[Union[int, str]] = None,
-                 **kwargs):
+    def __init__(
+        self, save_dir: str, name: Optional[str] = "default", version: Optional[Union[int, str]] = None, **kwargs
+    ):
         super().__init__()
         self.save_dir = save_dir
         self._name = name
@@ -102,8 +100,9 @@ class TensorBoardLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
-                        metrics: Optional[Dict[str, Any]] = None) -> None:
+    def log_hyperparams(
+        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+    ) -> None:
         params = self._convert_params(params)
 
         # store params to output
@@ -172,7 +171,7 @@ class TensorBoardLogger(LightningLoggerBase):
         root_dir = os.path.join(self.save_dir, self.name)
 
         if not os.path.isdir(root_dir):
-            log.warning('Missing logger folder: %s', root_dir)
+            log.warning("Missing logger folder: %s", root_dir)
             return 0
 
         existing_versions = []

@@ -38,6 +38,7 @@ class LearningRateLogger(Callback):
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
     """
+
     def __init__(self):
         self.lrs = None
         self.lr_sch_names = []
@@ -48,14 +49,14 @@ class LearningRateLogger(Callback):
             the case of multiple parameter groups
         """
         if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use LearningRateLogger callback with Trainer that has no logger.')
+            raise MisconfigurationException("Cannot use LearningRateLogger callback with Trainer that has no logger.")
 
         if not trainer.lr_schedulers:
             rank_zero_warn(
-                'You are using LearningRateLogger callback with models that'
-                ' have no learning rate schedulers. Please see documentation'
-                ' for `configure_optimizers` method.', RuntimeWarning
+                "You are using LearningRateLogger callback with models that"
+                " have no learning rate schedulers. Please see documentation"
+                " for `configure_optimizers` method.",
+                RuntimeWarning,
             )
 
         # Find names for schedulers
@@ -65,12 +66,12 @@ class LearningRateLogger(Callback):
         self.lrs = {name: [] for name in names}
 
     def on_batch_start(self, trainer, pl_module):
-        latest_stat = self._extract_lr(trainer, 'step')
+        latest_stat = self._extract_lr(trainer, "step")
         if trainer.logger and latest_stat:
             trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_epoch_start(self, trainer, pl_module):
-        latest_stat = self._extract_lr(trainer, 'epoch')
+        latest_stat = self._extract_lr(trainer, "epoch")
         if trainer.logger and latest_stat:
             trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
@@ -79,16 +80,16 @@ class LearningRateLogger(Callback):
             into dict structure. """
         latest_stat = {}
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
-            if scheduler['interval'] == interval:
-                param_groups = scheduler['scheduler'].optimizer.param_groups
+            if scheduler["interval"] == interval:
+                param_groups = scheduler["scheduler"].optimizer.param_groups
                 if len(param_groups) != 1:
                     for i, pg in enumerate(param_groups):
-                        lr, key = pg['lr'], f'{name}/pg{i + 1}'
+                        lr, key = pg["lr"], f"{name}/pg{i + 1}"
                         self.lrs[key].append(lr)
                         latest_stat[key] = lr
                 else:
-                    self.lrs[name].append(param_groups[0]['lr'])
-                    latest_stat[name] = param_groups[0]['lr']
+                    self.lrs[name].append(param_groups[0]["lr"])
+                    latest_stat[name] = param_groups[0]["lr"]
         return latest_stat
 
     def _find_names(self, lr_schedulers):
@@ -96,23 +97,23 @@ class LearningRateLogger(Callback):
         # rate schduler + multiple parameter groups
         names = []
         for scheduler in lr_schedulers:
-            sch = scheduler['scheduler']
-            if 'name' in scheduler:
-                name = scheduler['name']
+            sch = scheduler["scheduler"]
+            if "name" in scheduler:
+                name = scheduler["name"]
             else:
-                opt_name = 'lr-' + sch.optimizer.__class__.__name__
+                opt_name = "lr-" + sch.optimizer.__class__.__name__
                 i, name = 1, opt_name
                 # Multiple schduler of the same type
                 while True:
                     if name not in names:
                         break
-                    i, name = i + 1, f'{opt_name}-{i}'
+                    i, name = i + 1, f"{opt_name}-{i}"
 
             # Multiple param groups for the same schduler
             param_groups = sch.optimizer.param_groups
             if len(param_groups) != 1:
                 for i, pg in enumerate(param_groups):
-                    temp = f'{name}/pg{i + 1}'
+                    temp = f"{name}/pg{i + 1}"
                     names.append(temp)
             else:
                 names.append(name)

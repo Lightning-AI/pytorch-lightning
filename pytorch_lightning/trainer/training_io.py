@@ -146,8 +146,7 @@ class TrainerIOMixin(ABC):
     scaler: ...
 
     def get_model(self):
-        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
-                                               LightningDataParallel))
+        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel, LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
         return model
 
@@ -201,36 +200,36 @@ class TrainerIOMixin(ABC):
         # see if we're using slurm (not interactive)
         on_slurm = False
         try:
-            job_name = os.environ['SLURM_JOB_NAME']
-            if job_name != 'bash':
+            job_name = os.environ["SLURM_JOB_NAME"]
+            if job_name != "bash":
                 on_slurm = True
         except Exception:
             pass
 
         if on_slurm:
-            log.info('Set SLURM handle signals.')
+            log.info("Set SLURM handle signals.")
             signal.signal(signal.SIGUSR1, self.sig_handler)
             signal.signal(signal.SIGTERM, self.term_handler)
 
     def sig_handler(self, signum, frame):  # pragma: no-cover
         if self.proc_rank == 0:
             # save weights
-            log.info('handling SIGUSR1')
+            log.info("handling SIGUSR1")
             self.hpc_save(self.weights_save_path, self.logger)
 
             # find job id
-            job_id = os.environ['SLURM_JOB_ID']
-            cmd = 'scontrol requeue {}'.format(job_id)
+            job_id = os.environ["SLURM_JOB_ID"]
+            cmd = "scontrol requeue {}".format(job_id)
 
             # requeue job
-            log.info(f'requeing job {job_id}...')
+            log.info(f"requeing job {job_id}...")
             result = call(cmd, shell=True)
 
             # print result text
             if result == 0:
-                log.info(f'requeued exp {job_id}')
+                log.info(f"requeued exp {job_id}")
             else:
-                log.warning('requeue failed...')
+                log.warning("requeue failed...")
 
             # close experiment to avoid issues
             self.logger.close()
@@ -269,8 +268,9 @@ class TrainerIOMixin(ABC):
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]
-                rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
-                               f' An attribute is not picklable {err}')
+                rank_zero_warn(
+                    "Warning, `module_arguments` dropped from checkpoint." f" An attribute is not picklable {err}"
+                )
                 self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
@@ -293,7 +293,7 @@ class TrainerIOMixin(ABC):
         model = self.get_model()
 
         # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
+        model.load_state_dict(checkpoint["state_dict"])
 
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
@@ -302,8 +302,8 @@ class TrainerIOMixin(ABC):
             model.cuda(self.root_gpu)
 
         # restore amp scaling
-        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
-            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        if self.use_amp and self.use_native_amp and "native_amp_scaling_state" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
@@ -318,44 +318,44 @@ class TrainerIOMixin(ABC):
              structured dictionary
         """
         checkpoint = {
-            'epoch': self.current_epoch + 1,
-            'global_step': self.global_step + 1,
+            "epoch": self.current_epoch + 1,
+            "global_step": self.global_step + 1,
         }
 
         if not weights_only:
             if self.checkpoint_callback:
-                checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
-                checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
+                checkpoint["checkpoint_callback_best_model_score"] = self.checkpoint_callback.best_model_score
+                checkpoint["checkpoint_callback_best_model_path"] = self.checkpoint_callback.best_model_path
 
             if self.early_stop_callback:
-                checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
-                checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
+                checkpoint["early_stop_callback_wait"] = self.early_stop_callback.wait
+                checkpoint["early_stop_callback_patience"] = self.early_stop_callback.patience
 
             # save optimizers
             optimizer_states = []
             for i, optimizer in enumerate(self.optimizers):
                 optimizer_states.append(optimizer.state_dict())
 
-            checkpoint['optimizer_states'] = optimizer_states
+            checkpoint["optimizer_states"] = optimizer_states
 
             # save lr schedulers
             lr_schedulers = []
             for scheduler in self.lr_schedulers:
-                lr_schedulers.append(scheduler['scheduler'].state_dict())
+                lr_schedulers.append(scheduler["scheduler"].state_dict())
 
-            checkpoint['lr_schedulers'] = lr_schedulers
+            checkpoint["lr_schedulers"] = lr_schedulers
 
             # save native amp scaling
             if self.use_amp and self.use_native_amp:
-                checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
+                checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()
 
         # add the module_arguments and state_dict from the model
         model = self.get_model()
 
-        checkpoint['state_dict'] = model.state_dict()
+        checkpoint["state_dict"] = model.state_dict()
 
         if model.hparams:
-            if hasattr(model, '_hparams_name'):
+            if hasattr(model, "_hparams_name"):
                 checkpoint[LightningModule.CHECKPOINT_NAME_HYPER_PARAMS] = model._hparams_name
             # add arguments to the checkpoint
             # todo: add some recursion in case of OmegaConf
@@ -377,7 +377,7 @@ class TrainerIOMixin(ABC):
         folderpath = self.weights_save_path
         if os.path.exists(folderpath):
             files = os.listdir(folderpath)
-            hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
+            hpc_weight_paths = [x for x in files if "hpc_ckpt" in x]
 
             # if hpc weights exist restore model
             if len(hpc_weight_paths) > 0:
@@ -392,30 +392,30 @@ class TrainerIOMixin(ABC):
         :param checkpoint:
         :return:
         """
-        if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
+        if "optimizer_states" not in checkpoint or "lr_schedulers" not in checkpoint:
             raise KeyError(
-                'Trying to restore training state but checkpoint contains only the model.'
-                ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
+                "Trying to restore training state but checkpoint contains only the model."
+                " This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`."
             )
 
         if self.checkpoint_callback:
-            if 'checkpoint_callback_best_model_score' in checkpoint:
-                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best_model_score']
+            if "checkpoint_callback_best_model_score" in checkpoint:
+                self.checkpoint_callback.best_model_score = checkpoint["checkpoint_callback_best_model_score"]
             else:
                 # Old naming until version 0.7.6
                 rank_zero_warn(
-                    'Loading a checkpoint created with an old version of Lightning; '
-                    'this will not be supported in the future.'
+                    "Loading a checkpoint created with an old version of Lightning; "
+                    "this will not be supported in the future."
                 )
-                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
-            self.checkpoint_callback.best_model_path = checkpoint['checkpoint_callback_best_model_path']
+                self.checkpoint_callback.best_model_score = checkpoint["checkpoint_callback_best"]
+            self.checkpoint_callback.best_model_path = checkpoint["checkpoint_callback_best_model_path"]
 
         if self.early_stop_callback:
-            self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
-            self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
+            self.early_stop_callback.wait = checkpoint["early_stop_callback_wait"]
+            self.early_stop_callback.patience = checkpoint["early_stop_callback_patience"]
 
-        self.global_step = checkpoint['global_step']
-        self.current_epoch = checkpoint['epoch']
+        self.global_step = checkpoint["global_step"]
+        self.current_epoch = checkpoint["epoch"]
 
         # Division deals with global step stepping once per accumulated batch
         # Inequality deals with different global step for odd vs even num_training_batches
@@ -429,7 +429,7 @@ class TrainerIOMixin(ABC):
             )
 
         # restore the optimizers
-        optimizer_states = checkpoint['optimizer_states']
+        optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
 
@@ -442,9 +442,9 @@ class TrainerIOMixin(ABC):
                             state[k] = v.cuda(self.root_gpu)
 
         # restore the lr schedulers
-        lr_schedulers = checkpoint['lr_schedulers']
+        lr_schedulers = checkpoint["lr_schedulers"]
         for scheduler, lrs_state in zip(self.lr_schedulers, lr_schedulers):
-            scheduler['scheduler'].load_state_dict(lrs_state)
+            scheduler["scheduler"].load_state_dict(lrs_state)
 
     # ----------------------------------
     # PRIVATE OPS
@@ -460,7 +460,7 @@ class TrainerIOMixin(ABC):
 
         if not os.path.exists(folderpath):
             os.makedirs(folderpath, exist_ok=True)
-        filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
+        filepath = os.path.join(folderpath, f"hpc_ckpt_{ckpt_number}.ckpt")
 
         # give model a chance to do something on hpc_save
         model = self.get_model()
@@ -475,14 +475,15 @@ class TrainerIOMixin(ABC):
         except AttributeError as err:
             if LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]
-            rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
-                           f' An attribute is not picklable {err}')
+            rank_zero_warn(
+                "warning, `module_arguments` dropped from checkpoint." f" An attribute is not picklable {err}"
+            )
             self._atomic_save(checkpoint, filepath)
 
         return filepath
 
     def hpc_load(self, folderpath, on_gpu):
-        filepath = '{}/hpc_ckpt_{}.ckpt'.format(folderpath, self.max_ckpt_in_folder(folderpath))
+        filepath = "{}/hpc_ckpt_{}.ckpt".format(folderpath, self.max_ckpt_in_folder(folderpath))
 
         # load on CPU first
         checkpoint = torch.load(filepath, map_location=lambda storage, loc: storage)
@@ -491,11 +492,11 @@ class TrainerIOMixin(ABC):
         model = self.get_model()
 
         # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
+        model.load_state_dict(checkpoint["state_dict"])
 
         # restore amp scaling
-        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
-            self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        if self.use_amp and self.use_native_amp and "native_amp_scaling_state" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
 
         if self.root_gpu is not None:
             model.cuda(self.root_gpu)
@@ -506,9 +507,9 @@ class TrainerIOMixin(ABC):
         # call model hook
         model.on_hpc_load(checkpoint)
 
-        log.info(f'restored hpc model from: {filepath}')
+        log.info(f"restored hpc model from: {filepath}")
 
-    def max_ckpt_in_folder(self, path, name_key='ckpt_'):
+    def max_ckpt_in_folder(self, path, name_key="ckpt_"):
         files = os.listdir(path)
         files = [x for x in files if name_key in x]
         if len(files) == 0:
@@ -517,7 +518,7 @@ class TrainerIOMixin(ABC):
         ckpt_vs = []
         for name in files:
             name = name.split(name_key)[-1]
-            name = re.sub('[^0-9]', '', name)
+            name = re.sub("[^0-9]", "", name)
             ckpt_vs.append(int(name))
 
         return max(ckpt_vs)

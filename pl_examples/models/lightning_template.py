@@ -36,17 +36,18 @@ class LightningTemplateModel(LightningModule):
         >>> model = LightningTemplateModel(**params)
     """
 
-    def __init__(self,
-                 drop_prob: float = 0.2,
-                 batch_size: int = 2,
-                 in_features: int = 28 * 28,
-                 learning_rate: float = 0.001 * 8,
-                 optimizer_name: str = 'adam',
-                 data_root: str = './datasets',
-                 out_features: int = 10,
-                 hidden_dim: int = 1000,
-                 **kwargs
-                 ) -> 'LightningTemplateModel':
+    def __init__(
+        self,
+        drop_prob: float = 0.2,
+        batch_size: int = 2,
+        in_features: int = 28 * 28,
+        learning_rate: float = 0.001 * 8,
+        optimizer_name: str = "adam",
+        data_root: str = "./datasets",
+        out_features: int = 10,
+        hidden_dim: int = 1000,
+        **kwargs,
+    ) -> "LightningTemplateModel":
         # init superclass
         super().__init__()
         self.drop_prob = drop_prob
@@ -58,13 +59,11 @@ class LightningTemplateModel(LightningModule):
         self.out_features = out_features
         self.hidden_dim = hidden_dim
 
-        self.c_d1 = nn.Linear(in_features=self.in_features,
-                              out_features=self.hidden_dim)
+        self.c_d1 = nn.Linear(in_features=self.in_features, out_features=self.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
         self.c_d1_drop = nn.Dropout(self.drop_prob)
 
-        self.c_d2 = nn.Linear(in_features=self.hidden_dim,
-                              out_features=self.out_features)
+        self.c_d2 = nn.Linear(in_features=self.hidden_dim, out_features=self.out_features)
 
     def forward(self, x):
         """
@@ -87,8 +86,8 @@ class LightningTemplateModel(LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
+        tensorboard_logs = {"train_loss": loss}
+        return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         """
@@ -100,7 +99,7 @@ class LightningTemplateModel(LightningModule):
         val_loss = F.cross_entropy(y_hat, y)
         labels_hat = torch.argmax(y_hat, dim=1)
         n_correct_pred = torch.sum(y == labels_hat).item()
-        return {'val_loss': val_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
+        return {"val_loss": val_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -108,23 +107,23 @@ class LightningTemplateModel(LightningModule):
         test_loss = F.cross_entropy(y_hat, y)
         labels_hat = torch.argmax(y_hat, dim=1)
         n_correct_pred = torch.sum(y == labels_hat).item()
-        return {'test_loss': test_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
+        return {"test_loss": test_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
 
     def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs.
         :param outputs: list of individual outputs of each validation step.
         """
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        val_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
-        tensorboard_logs = {'val_loss': avg_loss, 'val_acc': val_acc}
-        return {'val_loss': avg_loss, 'log': tensorboard_logs}
+        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+        val_acc = sum([x["n_correct_pred"] for x in outputs]) / sum(x["n_pred"] for x in outputs)
+        tensorboard_logs = {"val_loss": avg_loss, "val_acc": val_acc}
+        return {"val_loss": avg_loss, "log": tensorboard_logs}
 
     def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        test_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
-        tensorboard_logs = {'test_loss': avg_loss, 'test_acc': test_acc}
-        return {'test_loss': avg_loss, 'log': tensorboard_logs}
+        avg_loss = torch.stack([x["test_loss"] for x in outputs]).mean()
+        test_acc = sum([x["n_correct_pred"] for x in outputs]) / sum(x["n_pred"] for x in outputs)
+        tensorboard_logs = {"test_loss": avg_loss, "test_acc": test_acc}
+        return {"test_loss": avg_loss, "log": tensorboard_logs}
 
     # ---------------------
     # TRAINING SETUP
@@ -139,21 +138,20 @@ class LightningTemplateModel(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
         self.mnist_train = MNIST(self.data_root, train=True, download=True, transform=transform)
         self.mnist_test = MNIST(self.data_root, train=False, download=True, transform=transform)
 
     def train_dataloader(self):
-        log.info('Training data loader called.')
+        log.info("Training data loader called.")
         return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)
 
     def val_dataloader(self):
-        log.info('Validation data loader called.')
+        log.info("Validation data loader called.")
         return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     def test_dataloader(self):
-        log.info('Test data loader called.')
+        log.info("Test data loader called.")
         return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     @staticmethod
@@ -167,18 +165,18 @@ class LightningTemplateModel(LightningModule):
         # parser.set_defaults(gradient_clip_val=5.0)
 
         # network params
-        parser.add_argument('--in_features', default=28 * 28, type=int)
-        parser.add_argument('--out_features', default=10, type=int)
+        parser.add_argument("--in_features", default=28 * 28, type=int)
+        parser.add_argument("--out_features", default=10, type=int)
         # use 500 for CPU, 50000 for GPU to see speed difference
-        parser.add_argument('--hidden_dim', default=50000, type=int)
-        parser.add_argument('--drop_prob', default=0.2, type=float)
-        parser.add_argument('--learning_rate', default=0.001, type=float)
+        parser.add_argument("--hidden_dim", default=50000, type=int)
+        parser.add_argument("--drop_prob", default=0.2, type=float)
+        parser.add_argument("--learning_rate", default=0.001, type=float)
 
         # data
-        parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
+        parser.add_argument("--data_root", default=os.path.join(root_dir, "mnist"), type=str)
 
         # training params (opt)
-        parser.add_argument('--epochs', default=20, type=int)
-        parser.add_argument('--optimizer_name', default='adam', type=str)
-        parser.add_argument('--batch_size', default=64, type=int)
+        parser.add_argument("--epochs", default=20, type=int)
+        parser.add_argument("--optimizer_name", default="adam", type=str)
+        parser.add_argument("--batch_size", default=64, type=int)
         return parser

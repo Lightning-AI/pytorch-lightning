@@ -2,7 +2,6 @@
 
 
 class CustomInfDataloader:
-
     def __init__(self, dataloader):
         self.dataloader = dataloader
         self.iter = iter(dataloader)

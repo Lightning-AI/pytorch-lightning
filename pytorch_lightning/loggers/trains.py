@@ -14,13 +14,16 @@ from PIL.Image import Image
 try:
     import trains
     from trains import Task
+
     _TRAINS_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     trains = None
     Task = None
     _TRAINS_AVAILABLE = False
-    raise ImportError('You want to use `TRAINS` logger which is not installed yet,'  # pragma: no-cover
-                      ' install it with `pip install trains`.')
+    raise ImportError(
+        "You want to use `TRAINS` logger which is not installed yet,"  # pragma: no-cover
+        " install it with `pip install trains`."
+    )
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase
@@ -85,32 +88,34 @@ class TrainsLogger(LightningLoggerBase):
     _bypass = None
 
     def __init__(
-            self,
-            project_name: Optional[str] = None,
-            task_name: Optional[str] = None,
-            task_type: str = 'training',
-            reuse_last_task_id: bool = True,
-            output_uri: Optional[str] = None,
-            auto_connect_arg_parser: bool = True,
-            auto_connect_frameworks: bool = True,
-            auto_resource_monitoring: bool = True
+        self,
+        project_name: Optional[str] = None,
+        task_name: Optional[str] = None,
+        task_type: str = "training",
+        reuse_last_task_id: bool = True,
+        output_uri: Optional[str] = None,
+        auto_connect_arg_parser: bool = True,
+        auto_connect_frameworks: bool = True,
+        auto_resource_monitoring: bool = True,
     ) -> None:
         if not _TRAINS_AVAILABLE:
-            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
-                              ' install it with `pip install test-tube`.')
+            raise ImportError(
+                "You want to use `test_tube` logger which is not installed yet,"
+                " install it with `pip install test-tube`."
+            )
         super().__init__()
         if self.bypass_mode():
             self._trains = None
-            print('TRAINS Task: running in bypass mode')
-            print('TRAINS results page: disabled')
+            print("TRAINS Task: running in bypass mode")
+            print("TRAINS results page: disabled")
 
             class _TaskStub(object):
                 def __call__(self, *args, **kwargs):
                     return self
 
                 def __getattr__(self, attr):
-                    if attr in ('name', 'id'):
-                        return ''
+                    if attr in ("name", "id"):
+                        return ""
                     return self
 
                 def __setattr__(self, attr, val):
@@ -126,7 +131,7 @@ class TrainsLogger(LightningLoggerBase):
                 output_uri=output_uri,
                 auto_connect_arg_parser=auto_connect_arg_parser,
                 auto_connect_frameworks=auto_connect_frameworks,
-                auto_resource_monitoring=auto_resource_monitoring
+                auto_resource_monitoring=auto_resource_monitoring,
             )
 
     @property
@@ -193,14 +198,13 @@ class TrainsLogger(LightningLoggerBase):
                 continue
             if isinstance(v, torch.Tensor):
                 v = v.item()
-            parts = k.split('/')
+            parts = k.split("/")
             if len(parts) <= 1:
                 series = title = k
             else:
                 title = parts[0]
-                series = '/'.join(parts[1:])
-            self._trains.get_logger().report_scalar(
-                title=title, series=series, value=v, iteration=step)
+                series = "/".join(parts[1:])
+            self._trains.get_logger().report_scalar(title=title, series=series, value=v, iteration=step)
 
     @rank_zero_only
     def log_metric(self, title: str, series: str, value: float, step: Optional[int] = None) -> None:
@@ -222,8 +226,7 @@ class TrainsLogger(LightningLoggerBase):
 
         if isinstance(value, torch.Tensor):
             value = value.item()
-        self._trains.get_logger().report_scalar(
-            title=title, series=series, value=value, iteration=step)
+        self._trains.get_logger().report_scalar(title=title, series=series, value=value, iteration=step)
 
     @rank_zero_only
     def log_text(self, text: str) -> None:
@@ -243,9 +246,8 @@ class TrainsLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_image(
-            self, title: str, series: str,
-            image: Union[str, np.ndarray, Image, torch.Tensor],
-            step: Optional[int] = None) -> None:
+        self, title: str, series: str, image: Union[str, np.ndarray, Image, torch.Tensor], step: Optional[int] = None
+    ) -> None:
         """
         Log Debug image in TRAINS experiment
 
@@ -268,21 +270,22 @@ class TrainsLogger(LightningLoggerBase):
             step = self._trains.get_last_iteration()
 
         if isinstance(image, str):
-            self._trains.get_logger().report_image(
-                title=title, series=series, local_path=image, iteration=step)
+            self._trains.get_logger().report_image(title=title, series=series, local_path=image, iteration=step)
         else:
             if isinstance(image, torch.Tensor):
                 image = image.cpu().numpy()
             if isinstance(image, np.ndarray):
                 image = image.transpose(1, 2, 0)
-            self._trains.get_logger().report_image(
-                title=title, series=series, image=image, iteration=step)
+            self._trains.get_logger().report_image(title=title, series=series, image=image, iteration=step)
 
     @rank_zero_only
     def log_artifact(
-            self, name: str,
-            artifact: Union[str, Path, Dict[str, Any], np.ndarray, Image],
-            metadata: Optional[Dict[str, Any]] = None, delete_after_upload: bool = False) -> None:
+        self,
+        name: str,
+        artifact: Union[str, Path, Dict[str, Any], np.ndarray, Image],
+        metadata: Optional[Dict[str, Any]] = None,
+        delete_after_upload: bool = False,
+    ) -> None:
         """
         Save an artifact (file/object) in TRAINS experiment storage.
 
@@ -309,8 +312,7 @@ class TrainsLogger(LightningLoggerBase):
             return
 
         self._trains.upload_artifact(
-            name=name, artifact_object=artifact, metadata=metadata,
-            delete_after_upload=delete_after_upload
+            name=name, artifact_object=artifact, metadata=metadata, delete_after_upload=delete_after_upload
         )
 
     @rank_zero_only
@@ -328,7 +330,7 @@ class TrainsLogger(LightningLoggerBase):
         Name is a human readable non-unique name (str) of the experiment.
         """
         if not self._trains:
-            return ''
+            return ""
 
         return self._trains.name
 
@@ -340,8 +342,9 @@ class TrainsLogger(LightningLoggerBase):
         return self._trains.id
 
     @classmethod
-    def set_credentials(cls, api_host: str = None, web_host: str = None, files_host: str = None,
-                        key: str = None, secret: str = None) -> None:
+    def set_credentials(
+        cls, api_host: str = None, web_host: str = None, files_host: str = None, key: str = None, secret: str = None
+    ) -> None:
         """
         Set new default TRAINS-server host and credentials.
         These configurations could be overridden by either OS environment variables
@@ -357,8 +360,7 @@ class TrainsLogger(LightningLoggerBase):
             key: user key/secret pair, example: ``key='thisisakey123'``
             secret: user key/secret pair, example: ``secret='thisisseceret123'``
         """
-        Task.set_credentials(api_host=api_host, web_host=web_host, files_host=files_host,
-                             key=key, secret=secret)
+        Task.set_credentials(api_host=api_host, web_host=web_host, files_host=files_host, key=key, secret=secret)
 
     @classmethod
     def set_bypass_mode(cls, bypass: bool) -> None:
@@ -383,11 +385,11 @@ class TrainsLogger(LightningLoggerBase):
         Return:
             If True, all outside communication is skipped.
         """
-        return cls._bypass if cls._bypass is not None else bool(environ.get('CI'))
+        return cls._bypass if cls._bypass is not None else bool(environ.get("CI"))
 
     def __getstate__(self) -> Union[str, None]:
         if self.bypass_mode() or not self._trains:
-            return ''
+            return ""
 
         return self._trains.id
 

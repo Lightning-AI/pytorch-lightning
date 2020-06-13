@@ -35,7 +35,7 @@ class CustomLogger(LightningLoggerBase):
 
     @property
     def experiment(self):
-        return 'test'
+        return "test"
 
     @rank_zero_only
     def log_hyperparams(self, params):
@@ -64,12 +64,7 @@ def test_custom_logger(tmpdir):
 
     logger = CustomLogger()
 
-    trainer = Trainer(
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=logger,
-        default_root_dir=tmpdir
-    )
+    trainer = Trainer(max_epochs=1, train_percent_check=0.05, logger=logger, default_root_dir=tmpdir)
     result = trainer.fit(model)
     assert result == 1, "Training failed"
     assert logger.hparams_logged == hparams
@@ -84,12 +79,7 @@ def test_multiple_loggers(tmpdir):
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer = Trainer(
-        max_epochs=1,
-        train_percent_check=0.05,
-        logger=[logger1, logger2],
-        default_root_dir=tmpdir
-    )
+    trainer = Trainer(max_epochs=1, train_percent_check=0.05, logger=[logger1, logger2], default_root_dir=tmpdir)
     result = trainer.fit(model)
     assert result == 1, "Training failed"
 
@@ -148,8 +138,7 @@ def test_adding_step_key(tmpdir):
         val_percent_check=0.01,
         num_sanity_val_steps=0,
     )
-    trainer.logger.log_metrics = _log_metrics_decorator(
-        trainer.logger.log_metrics)
+    trainer.logger.log_metrics = _log_metrics_decorator(trainer.logger.log_metrics)
     trainer.fit(model)
 
 
@@ -171,8 +160,8 @@ def test_with_accumulate_grad_batches():
 
     np.random.seed(42)
     for i, loss in enumerate(np.random.random(10)):
-        logger.agg_and_log_metrics({'loss': loss}, step=int(i / 5))
+        logger.agg_and_log_metrics({"loss": loss}, step=int(i / 5))
 
-    assert logger.history == {0: {'loss': 0.5623850983416314}}
+    assert logger.history == {0: {"loss": 0.5623850983416314}}
     logger.close()
-    assert logger.history == {0: {'loss': 0.5623850983416314}, 1: {'loss': 0.4778883735637184}}
+    assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}

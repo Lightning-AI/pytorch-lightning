@@ -18,8 +18,7 @@ from pytorch_lightning import _logger as log
 
 
 class ModelSummary(object):
-
-    def __init__(self, model: 'pl.LightningModule', mode: str = 'full'):
+    def __init__(self, model: "pl.LightningModule", mode: str = "full"):
         """ Generates summaries of model layers and dimensions. """
         self.model = model
         self.mode = mode
@@ -35,10 +34,10 @@ class ModelSummary(object):
         return self.summary.__str__()
 
     def named_modules(self) -> List[Tuple[str, Module]]:
-        if self.mode == 'full':
+        if self.mode == "full":
             mods = self.model.named_modules()
             mods = list(mods)[1:]  # do not include root module (LightningModule)
-        elif self.mode == 'top':
+        elif self.mode == "top":
             # the children are the top-level modules
             mods = self.model.named_children()
         else:
@@ -56,16 +55,14 @@ class ModelSummary(object):
             device = next(self.model.parameters()).get_device()
             # test if input is a list or a tuple
             if isinstance(input_, (list, tuple)):
-                input_ = [input_i.cuda(device) if torch.is_tensor(input_i) else input_i
-                          for input_i in input_]
+                input_ = [input_i.cuda(device) if torch.is_tensor(input_i) else input_i for input_i in input_]
             else:
                 input_ = input_.cuda(device)
 
         if self.model.trainer.use_amp:
             # test if it is not a list or a tuple
             if isinstance(input_, (list, tuple)):
-                input_ = [input_i.half() if torch.is_tensor(input_i) else input_i
-                          for input_i in input_]
+                input_ = [input_i.half() if torch.is_tensor(input_i) else input_i for input_i in input_]
             else:
                 input_ = input_.half()
 
@@ -110,7 +107,7 @@ class ModelSummary(object):
             names += [name]
             layers += [str(m.__class__)]
 
-        layer_types = [x.split('.')[-1][:-2] for x in layers]
+        layer_types = [x.split(".")[-1][:-2] for x in layers]
 
         self.layer_names = names
         self.layer_types = layer_types
@@ -142,12 +139,14 @@ class ModelSummary(object):
 
         Layer Name, Layer Type, Input Size, Output Size, Number of Parameters
         """
-        arrays = [['Name', self.layer_names],
-                  ['Type', self.layer_types],
-                  ['Params', list(map(get_human_readable_count, self.param_nums))]]
+        arrays = [
+            ["Name", self.layer_names],
+            ["Type", self.layer_types],
+            ["Params", list(map(get_human_readable_count, self.param_nums))],
+        ]
         if self.model.example_input_array is not None:
-            arrays.append(['In sizes', self.in_sizes])
-            arrays.append(['Out sizes', self.out_sizes])
+            arrays.append(["In sizes", self.in_sizes])
+            arrays.append(["Out sizes", self.out_sizes])
 
         self.summary = _format_summary_table(*arrays)
 
@@ -180,28 +179,28 @@ def _format_summary_table(*cols) -> str:
         str_l = len(c[0])  # default length is header length
         for a in c[1]:
             if isinstance(a, np.ndarray):
-                array_string = '[' + ', '.join([str(j) for j in a]) + ']'
+                array_string = "[" + ", ".join([str(j) for j in a]) + "]"
                 str_l = max(len(array_string), str_l)
             else:
                 str_l = max(len(a), str_l)
         length.append(str_l)
 
     # Formatting
-    s = '{:<{}}'
+    s = "{:<{}}"
     full_length = sum(length) + 3 * n_cols
-    header = [s.format(' ', counter_len)] + [s.format(c[0], l) for c, l in zip(cols, length)]
+    header = [s.format(" ", counter_len)] + [s.format(c[0], l) for c, l in zip(cols, length)]
 
     # Summary = header + divider + Rest of table
-    summary = ' | '.join(header) + '\n' + '-' * full_length
+    summary = " | ".join(header) + "\n" + "-" * full_length
     for i in range(n_rows):
         line = s.format(counter[i], counter_len)
         for c, l in zip(cols, length):
             if isinstance(c[1][i], np.ndarray):
-                array_string = '[' + ', '.join([str(j) for j in c[1][i]]) + ']'
-                line += ' | ' + array_string + ' ' * (l - len(array_string))
+                array_string = "[" + ", ".join([str(j) for j in c[1][i]]) + "]"
+                line += " | " + array_string + " " * (l - len(array_string))
             else:
-                line += ' | ' + s.format(c[1][i], l)
-        summary += '\n' + line
+                line += " | " + s.format(c[1][i], l)
+        summary += "\n" + line
 
     return summary
 
@@ -209,7 +208,7 @@ def _format_summary_table(*cols) -> str:
 def print_mem_stack() -> None:  # pragma: no-cover
     for obj in gc.get_objects():
         try:
-            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+            if torch.is_tensor(obj) or (hasattr(obj, "data") and torch.is_tensor(obj.data)):
                 log.info(type(obj), obj.size())
         except Exception:
             pass
@@ -220,9 +219,9 @@ def count_mem_items() -> Tuple[int, int]:  # pragma: no-cover
     num_tensors = 0
     for obj in gc.get_objects():
         try:
-            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+            if torch.is_tensor(obj) or (hasattr(obj, "data") and torch.is_tensor(obj.data)):
                 obj_type = str(type(obj))
-                if 'parameter' in obj_type:
+                if "parameter" in obj_type:
                     num_params += 1
                 else:
                     num_tensors += 1
@@ -251,11 +250,11 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
     """
     memory_map = get_gpu_memory_map()
 
-    if mode == 'min_max':
+    if mode == "min_max":
         min_index, min_memory = min(memory_map.items(), key=lambda item: item[1])
         max_index, max_memory = max(memory_map.items(), key=lambda item: item[1])
 
-        memory_map = {'min_gpu_mem': min_memory, 'max_gpu_mem': max_memory}
+        memory_map = {"min_gpu_mem": min_memory, "max_gpu_mem": max_memory}
 
     return memory_map
 
@@ -268,18 +267,16 @@ def get_gpu_memory_map() -> Dict[str, int]:
         values are memory usage as integers in MB.
     """
     result = subprocess.run(
-        [
-            'nvidia-smi',
-            '--query-gpu=memory.used',
-            '--format=csv,nounits,noheader',
-        ],
-        encoding='utf-8',
+        ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader",],
+        encoding="utf-8",
         # capture_output=True,          # valid for python version >=3.7
-        stdout=PIPE, stderr=PIPE,       # for backward compatibility with python version 3.6
-        check=True)
+        stdout=PIPE,
+        stderr=PIPE,  # for backward compatibility with python version 3.6
+        check=True,
+    )
     # Convert lines into a dictionary
     gpu_memory = [int(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {f'gpu_{index}': memory for index, memory in enumerate(gpu_memory)}
+    gpu_memory_map = {f"gpu_{index}": memory for index, memory in enumerate(gpu_memory)}
     return gpu_memory_map
 
 
@@ -310,11 +307,11 @@ def get_human_readable_count(number: int) -> str:
 
     """
     assert number >= 0
-    labels = [' ', 'K', 'M', 'B', 'T']
+    labels = [" ", "K", "M", "B", "T"]
     num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
     number = number * (10 ** shift)
     index = num_groups - 1
-    return f'{int(number):,d} {labels[index]}'
+    return f"{int(number):,d} {labels[index]}"

@@ -29,9 +29,7 @@ class TrainerLoggingMixin(ABC):
         if logger is True:
             # default logger
             self.logger = TensorBoardLogger(
-                save_dir=self.default_root_dir,
-                version=self.slurm_job_id,
-                name='lightning_logs'
+                save_dir=self.default_root_dir, version=self.slurm_job_id, name="lightning_logs"
             )
         elif logger is False:
             self.logger = None
@@ -66,7 +64,7 @@ class TrainerLoggingMixin(ABC):
             step = scalar_metrics.pop("step")
         else:
             # added metrics by Lightning for convenience
-            scalar_metrics['epoch'] = self.current_epoch
+            scalar_metrics["epoch"] = self.current_epoch
             step = step if step is not None else self.global_step
         # log actual metrics
         if self.proc_rank == 0 and self.logger is not None:
@@ -104,7 +102,7 @@ class TrainerLoggingMixin(ABC):
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
         for k, v in output.items():
-            if k not in ['progress_bar', 'log', 'hiddens']:
+            if k not in ["progress_bar", "log", "hiddens"]:
                 callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
@@ -115,7 +113,7 @@ class TrainerLoggingMixin(ABC):
         # EXTRACT PROGRESS BAR KEYS
         # ---------------
         try:
-            progress_output = output['progress_bar']
+            progress_output = output["progress_bar"]
 
             # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
@@ -131,7 +129,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # extract metrics to log to experiment
         try:
-            log_output = output['log']
+            log_output = output["log"]
 
             # reduce progress metrics for progress bar when using dp
             if train and (self.use_dp or self.use_ddp2):
@@ -150,14 +148,12 @@ class TrainerLoggingMixin(ABC):
         loss = None
         if train:
             try:
-                loss = output['loss']
+                loss = output["loss"]
             except Exception:
                 if isinstance(output, torch.Tensor):
                     loss = output
                 else:
-                    raise RuntimeError(
-                        'No `loss` value in the dictionary returned from `model.training_step()`.'
-                    )
+                    raise RuntimeError("No `loss` value in the dictionary returned from `model.training_step()`.")
 
             # when using dp need to reduce the loss
             if self.use_dp or self.use_ddp2:
@@ -166,7 +162,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        hiddens = output.get('hiddens')
+        hiddens = output.get("hiddens")
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)

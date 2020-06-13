@@ -1,14 +1,16 @@
 """Root package info."""
 
-__version__ = '0.8.0rc1'
-__author__ = 'William Falcon et al.'
-__author_email__ = 'waf2107@columbia.edu'
-__license__ = 'Apache-2.0'
-__copyright__ = 'Copyright (c) 2018-2020, %s.' % __author__
-__homepage__ = 'https://github.com/PyTorchLightning/pytorch-lightning'
+__version__ = "0.8.0rc1"
+__author__ = "William Falcon et al."
+__author_email__ = "waf2107@columbia.edu"
+__license__ = "Apache-2.0"
+__copyright__ = "Copyright (c) 2018-2020, %s." % __author__
+__homepage__ = "https://github.com/PyTorchLightning/pytorch-lightning"
 # this has to be simple string, see: https://github.com/pypa/twine/issues/522
-__docs__ = "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers." \
-           " Scale your models. Write less boilerplate."
+__docs__ = (
+    "PyTorch Lightning is the lightweight PyTorch wrapper for ML researchers."
+    " Scale your models. Write less boilerplate."
+)
 __long_docs__ = """
 Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
  It's more of a style-guide than a framework.
@@ -47,7 +49,8 @@ except NameError:
 
 if __LIGHTNING_SETUP__:
     import sys  # pragma: no-cover
-    sys.stdout.write(f'Partial import of `{__name__}` during the build process.\n')  # pragma: no-cover
+
+    sys.stdout.write(f"Partial import of `{__name__}` during the build process.\n")  # pragma: no-cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:
     from pytorch_lightning.core import LightningModule
@@ -57,11 +60,11 @@ else:
     from pytorch_lightning.core import data_loader
 
     __all__ = [
-        'Trainer',
-        'LightningModule',
-        'Callback',
-        'data_loader',
-        'seed_everything',
+        "Trainer",
+        "LightningModule",
+        "Callback",
+        "data_loader",
+        "seed_everything",
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed
@@ -72,4 +75,4 @@ else:
     # __call__ = __all__
 
 # for compatibility with namespace packages
-__import__('pkg_resources').declare_namespace(__name__)
+__import__("pkg_resources").declare_namespace(__name__)

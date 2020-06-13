@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any, Union
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
+
     _MLFLOW_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     mlflow = None
@@ -57,18 +58,21 @@ class MLFlowLogger(LightningLoggerBase):
 
     """
 
-    def __init__(self,
-                 experiment_name: str = 'default',
-                 tracking_uri: Optional[str] = None,
-                 tags: Optional[Dict[str, Any]] = None,
-                 save_dir: Optional[str] = None):
+    def __init__(
+        self,
+        experiment_name: str = "default",
+        tracking_uri: Optional[str] = None,
+        tags: Optional[Dict[str, Any]] = None,
+        save_dir: Optional[str] = None,
+    ):
 
         if not _MLFLOW_AVAILABLE:
-            raise ImportError('You want to use `mlflow` logger which is not installed yet,'
-                              ' install it with `pip install mlflow`.')
+            raise ImportError(
+                "You want to use `mlflow` logger which is not installed yet," " install it with `pip install mlflow`."
+            )
         super().__init__()
         if not tracking_uri and save_dir:
-            tracking_uri = f'file:{os.sep * 2}{save_dir}'
+            tracking_uri = f"file:{os.sep * 2}{save_dir}"
         self._mlflow_client = MlflowClient(tracking_uri)
         self.experiment_name = experiment_name
         self._run_id = None
@@ -97,7 +101,7 @@ class MLFlowLogger(LightningLoggerBase):
         if expt:
             self._expt_id = expt.experiment_id
         else:
-            log.warning(f'Experiment with name {self.experiment_name} not found. Creating it.')
+            log.warning(f"Experiment with name {self.experiment_name} not found. Creating it.")
             self._expt_id = self._mlflow_client.create_experiment(name=self.experiment_name)
 
         run = self._mlflow_client.create_run(experiment_id=self._expt_id, tags=self.tags)
@@ -116,15 +120,15 @@ class MLFlowLogger(LightningLoggerBase):
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
             if isinstance(v, str):
-                log.warning(f'Discarding metric with string value {k}={v}.')
+                log.warning(f"Discarding metric with string value {k}={v}.")
                 continue
             self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
 
     @rank_zero_only
-    def finalize(self, status: str = 'FINISHED') -> None:
+    def finalize(self, status: str = "FINISHED") -> None:
         super().finalize(status)
-        if status == 'success':
-            status = 'FINISHED'
+        if status == "success":
+            status = "FINISHED"
         self.experiment.set_terminated(self.run_id, status)
 
     @property

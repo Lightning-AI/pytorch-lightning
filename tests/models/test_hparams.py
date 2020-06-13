@@ -15,6 +15,7 @@ import cloudpickle
 
 class SaveHparamsModel(EvalModelTemplate):
     """ Tests that a model can take an object """
+
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
@@ -22,6 +23,7 @@ class SaveHparamsModel(EvalModelTemplate):
 
 class AssignHparamsModel(EvalModelTemplate):
     """ Tests that a model can take an object with explicit setter """
+
     def __init__(self, hparams):
         super().__init__()
         self.hparams = hparams
@@ -45,7 +47,7 @@ def _run_standard_hparams_test(tmpdir, model, cls):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
     assert LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in raw_checkpoint
-    assert raw_checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]['test_arg'] == 14
+    assert raw_checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]["test_arg"] == 14
 
     # verify that model loads correctly
     model = cls.load_from_checkpoint(raw_checkpoint_path)
@@ -71,7 +73,7 @@ def test_namespace_hparams(tmpdir, cls):
 @pytest.mark.parametrize("cls", [SaveHparamsModel, AssignHparamsModel])
 def test_dict_hparams(tmpdir, cls):
     # init model
-    model = cls(hparams={'test_arg': 14})
+    model = cls(hparams={"test_arg": 14})
 
     # run standard test suite
     _run_standard_hparams_test(tmpdir, model, cls)
@@ -101,7 +103,7 @@ def test_explicit_args_hparams(tmpdir):
     class TestModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
-            self.save_hyperparameters('test_arg', 'test_arg2')
+            self.save_hyperparameters("test_arg", "test_arg2")
 
     model = TestModel(test_arg=14, test_arg2=90)
 
@@ -143,7 +145,7 @@ def test_explicit_missing_args_hparams(tmpdir):
     class TestModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
-            self.save_hyperparameters('test_arg')
+            self.save_hyperparameters("test_arg")
 
     model = TestModel(test_arg=14, test_arg2=90)
 
@@ -158,14 +160,15 @@ def test_explicit_missing_args_hparams(tmpdir):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
     assert LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in raw_checkpoint
-    assert raw_checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]['test_arg'] == 14
+    assert raw_checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]["test_arg"] == 14
 
     # verify that model loads correctly
     model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
     assert model.hparams.test_arg == 14
-    assert 'test_arg2' not in model.hparams  # test_arg2 is not registered in class init
+    assert "test_arg2" not in model.hparams  # test_arg2 is not registered in class init
 
     return raw_checkpoint_path
+
 
 # -------------------------
 # SPECIFIC TESTS
@@ -173,7 +176,6 @@ def test_explicit_missing_args_hparams(tmpdir):
 
 
 def test_class_nesting():
-
     class MyModule(LightningModule):
         def forward(self):
             ...
@@ -199,7 +201,7 @@ def test_class_nesting():
     A().test()
 
 
-@pytest.mark.xfail(sys.version_info >= (3, 6), reason='OmegaConf only for Python >= 3.8')
+@pytest.mark.xfail(sys.version_info >= (3, 6), reason="OmegaConf only for Python >= 3.8")
 def test_omegaconf(tmpdir):
     class OmegaConfModel(EvalModelTemplate):
         def __init__(self, ogc):
@@ -307,7 +309,7 @@ def test_omegaconf(tmpdir):
 
 def _raw_checkpoint_path(trainer) -> str:
     raw_checkpoint_paths = os.listdir(trainer.checkpoint_callback.dirpath)
-    raw_checkpoint_paths = [x for x in raw_checkpoint_paths if '.ckpt' in x]
+    raw_checkpoint_paths = [x for x in raw_checkpoint_paths if ".ckpt" in x]
     assert raw_checkpoint_paths
     raw_checkpoint_path = raw_checkpoint_paths[0]
     raw_checkpoint_path = os.path.join(trainer.checkpoint_callback.dirpath, raw_checkpoint_path)
@@ -319,7 +321,7 @@ class LocalVariableModelSuperLast(EvalModelTemplate):
 
     def __init__(self, arg1, arg2, *args, **kwargs):
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
+        arg1 = "overwritten"
         local_var = 1234
         super().__init__(*args, **kwargs)  # this is intentionally here at the end
 
@@ -330,21 +332,24 @@ class LocalVariableModelSuperFirst(EvalModelTemplate):
     def __init__(self, arg1, arg2, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.argument1 = arg1  # arg2 intentionally not set
-        arg1 = 'overwritten'
+        arg1 = "overwritten"
         local_var = 1234
         self.save_hyperparameters()  # this is intentionally here at the end
 
 
-@pytest.mark.parametrize("cls", [
-    LocalVariableModelSuperFirst,
-    # LocalVariableModelSuperLast,
-])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        LocalVariableModelSuperFirst,
+        # LocalVariableModelSuperLast,
+    ],
+)
 def test_collect_init_arguments_with_local_vars(cls):
     """ Tests that only the arguments are collected and not local variables. """
     model = cls(arg1=1, arg2=2)
-    assert 'local_var' not in model.hparams
-    assert model.hparams['arg1'] == 'overwritten'
-    assert model.hparams['arg2'] == 2
+    assert "local_var" not in model.hparams
+    assert model.hparams["arg1"] == "overwritten"
+    assert model.hparams["arg2"] == 2
 
 
 # @pytest.mark.parametrize("cls,config", [
@@ -384,10 +389,9 @@ class OtherArgsModel(EvalModelTemplate):
         self.save_hyperparameters(arg1, arg2)
 
 
-@pytest.mark.parametrize("cls,config", [
-    (AnotherArgModel, dict(arg1=42)),
-    (OtherArgsModel, dict(arg1=3.14, arg2='abc')),
-])
+@pytest.mark.parametrize(
+    "cls,config", [(AnotherArgModel, dict(arg1=42)), (OtherArgsModel, dict(arg1=3.14, arg2="abc")),]
+)
 def test_single_config_models_fail(tmpdir, cls, config):
     """ Test fail on passing unsupported config type. """
     with pytest.raises(ValueError):
@@ -395,7 +399,7 @@ def test_single_config_models_fail(tmpdir, cls, config):
 
 
 def test_hparams_pickle(tmpdir):
-    ad = AttributeDict({'key1': 1, 'key2': 'abc'})
+    ad = AttributeDict({"key1": 1, "key2": "abc"})
     pkl = pickle.dumps(ad)
     assert ad == pickle.loads(pkl)
     pkl = cloudpickle.dumps(ad)

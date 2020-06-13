@@ -11,6 +11,7 @@ import torch.nn as nn
 try:
     import wandb
     from wandb.wandb_run import Run
+
     _WANDB_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     wandb = None
@@ -56,26 +57,30 @@ class WandbLogger(LightningLoggerBase):
 
     """
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 save_dir: Optional[str] = None,
-                 offline: bool = False,
-                 id: Optional[str] = None,
-                 anonymous: bool = False,
-                 version: Optional[str] = None,
-                 project: Optional[str] = None,
-                 tags: Optional[List[str]] = None,
-                 log_model: bool = False,
-                 experiment=None,
-                 entity=None,
-                 group: Optional[str] = None):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        offline: bool = False,
+        id: Optional[str] = None,
+        anonymous: bool = False,
+        version: Optional[str] = None,
+        project: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        log_model: bool = False,
+        experiment=None,
+        entity=None,
+        group: Optional[str] = None,
+    ):
         if not _WANDB_AVAILABLE:
-            raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
-                              ' install it with `pip install wandb`.')
+            raise ImportError(
+                "You want to use `wandb` logger which is not installed yet,"  # pragma: no-cover
+                " install it with `pip install wandb`."
+            )
         super().__init__()
         self._name = name
         self._save_dir = save_dir
-        self._anonymous = 'allow' if anonymous else None
+        self._anonymous = "allow" if anonymous else None
         self._id = version or id
         self._tags = tags
         self._project = project
@@ -88,10 +93,10 @@ class WandbLogger(LightningLoggerBase):
     def __getstate__(self):
         state = self.__dict__.copy()
         # args needed to reload correct experiment
-        state['_id'] = self._experiment.id if self._experiment is not None else None
+        state["_id"] = self._experiment.id if self._experiment is not None else None
 
         # cannot be pickled
-        state['_experiment'] = None
+        state["_experiment"] = None
         return state
 
     @property
@@ -108,17 +113,25 @@ class WandbLogger(LightningLoggerBase):
         """
         if self._experiment is None:
             if self._offline:
-                os.environ['WANDB_MODE'] = 'dryrun'
+                os.environ["WANDB_MODE"] = "dryrun"
             self._experiment = wandb.init(
-                name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                reinit=True, id=self._id, resume='allow', tags=self._tags, entity=self._entity,
-                group=self._group)
+                name=self._name,
+                dir=self._save_dir,
+                project=self._project,
+                anonymous=self._anonymous,
+                reinit=True,
+                id=self._id,
+                resume="allow",
+                tags=self._tags,
+                entity=self._entity,
+                group=self._group,
+            )
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self.save_dir = self._experiment.dir
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
+    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100):
         self.experiment.watch(model, log=log, log_freq=log_freq)
 
     @rank_zero_only
@@ -128,7 +141,7 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
+        self.experiment.log({"global_step": step, **metrics} if step is not None else metrics)
 
     @property
     def name(self) -> str:

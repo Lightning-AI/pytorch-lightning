@@ -283,15 +283,15 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
-                    if self.is_overridden('test_step_end'):
+                    if self.is_overridden("test_step_end"):
                         model_ref = self.get_model()
-                        with self.profiler.profile('test_step_end'):
+                        with self.profiler.profile("test_step_end"):
                             output = model_ref.test_step_end(output)
                     self.on_test_batch_end()
                 else:
-                    if self.is_overridden('validation_step_end'):
+                    if self.is_overridden("validation_step_end"):
                         model_ref = self.get_model()
-                        with self.profiler.profile('validation_step_end'):
+                        with self.profiler.profile("validation_step_end"):
                             output = model_ref.validation_step_end(output)
                     self.on_validation_batch_end()
 
@@ -311,23 +311,29 @@ class TrainerEvaluationLoopMixin(ABC):
             model = model.module
 
         if test_mode:
-            if self.is_overridden('test_end', model=model):
+            if self.is_overridden("test_end", model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
-                               ' Use `test_epoch_end` instead.', DeprecationWarning)
+                rank_zero_warn(
+                    "Method `test_end` was deprecated in v0.7 and will be removed v1.0."
+                    " Use `test_epoch_end` instead.",
+                    DeprecationWarning,
+                )
 
-            elif self.is_overridden('test_epoch_end', model=model):
+            elif self.is_overridden("test_epoch_end", model=model):
                 eval_results = model.test_epoch_end(outputs)
 
         else:
-            if self.is_overridden('validation_end', model=model):
+            if self.is_overridden("validation_end", model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
-                               ' Use `validation_epoch_end` instead.', DeprecationWarning)
+                rank_zero_warn(
+                    "Method `validation_end` was deprecated in v0.7 and will be removed v1.0."
+                    " Use `validation_epoch_end` instead.",
+                    DeprecationWarning,
+                )
 
-            elif self.is_overridden('validation_epoch_end', model=model):
+            elif self.is_overridden("validation_epoch_end", model=model):
                 eval_results = model.validation_epoch_end(outputs)
 
         # enable train mode again
@@ -380,10 +386,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # log results of test
         if test_mode and self.proc_rank == 0:
-            print('-' * 80)
-            print('TEST RESULTS')
+            print("-" * 80)
+            print("TEST RESULTS")
             pprint(callback_metrics)
-            print('-' * 80)
+            print("-" * 80)
 
         # log metrics
         self.log_metrics(log_metrics, {})
@@ -413,8 +419,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if (test_mode and len(self.test_dataloaders) > 1) \
-                or (not test_mode and len(self.val_dataloaders) > 1):
+        if (test_mode and len(self.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):
             args.append(dataloader_idx)
 
         # handle DP, DDP forward

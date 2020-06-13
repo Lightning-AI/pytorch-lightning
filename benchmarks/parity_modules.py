@@ -36,7 +36,7 @@ class ParityModuleRNN(LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.mse_loss(y_hat, y)
-        return {'loss': loss}
+        return {"loss": loss}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
@@ -46,7 +46,6 @@ class ParityModuleRNN(LightningModule):
 
 
 class ParityModuleMNIST(LightningModule):
-
     def __init__(self):
         super().__init__()
         self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
@@ -67,11 +66,10 @@ class ParityModuleMNIST(LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        return {'loss': loss}
+        return {"loss": loss}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(train=True, download=True,),
-                          batch_size=128)
+        return DataLoader(MNIST(train=True, download=True,), batch_size=128)
