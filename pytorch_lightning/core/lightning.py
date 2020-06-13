@@ -953,7 +953,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         if 'WORLD_SIZE' in os.environ and int(os.environ['WORLD_SIZE']) != world_size:
             rank_zero_warn(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                        f"is not equal to the computed world size ({world_size}). Ignored.")
+                           f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         log.info(f"initializing ddp: LOCAL_RANK: {proc_rank}/{world_size - 1} WORLD_SIZE:{world_size}")

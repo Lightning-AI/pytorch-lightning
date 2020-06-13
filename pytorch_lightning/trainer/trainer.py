@@ -363,7 +363,7 @@ class Trainer(
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
             rank_zero_info('Running in fast_dev_run mode: will run a full train,'
-                     ' val and test loop using a single batch')
+                           ' val and test loop using a single batch')
 
         # set default save path if user didn't provide one
         self.default_root_dir = default_root_dir
