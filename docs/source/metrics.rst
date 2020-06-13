@@ -121,10 +121,11 @@ Metric
 
     .. autoclass:: pytorch_lightning.metrics.sklearn.PrecisionRecallCurve
             :noindex:
+
 ROC
 ^^^
-
 Metric
+
     .. autoclass:: pytorch_lightning.metrics.sklearn.ROC
             :noindex:
 
@@ -133,5 +134,99 @@ AUROC
 Metric
 
     .. autoclass:: pytorch_lightning.metrics.sklearn.AUROC
+            :noindex:
+
+PyTorch Metrics
+---------------
+
+Accuracy
+^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.AUROC
+            :noindex:
+
+ConfusionMatrix
+^^^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.sklearn.AUROC
+            :noindex:
+
+PrecisionRecall
+^^^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecall
+            :noindex:
+
+Precision
+^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.Precision
+            :noindex:
+
+Recall
+^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.Recall
+            :noindex:
+
+AveragePrecision
+^^^^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+            :noindex:
+
+AUROC
+^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.AUROC
+            :noindex:
+
+FBeta
+^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.FBeta
+            :noindex:
+
+F1
+^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.F1
+            :noindex:
+
+ROC
+^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.ROC
+            :noindex:
+
+MulticlassROC
+^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.MulticlassROC
+            :noindex:
+
+MulticlassPrecisionRecall
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
+            :noindex:
+
+DiceCoefficient
+^^^^^^^^^^^^^^^
+Metric
+
+    .. autoclass:: pytorch_lightning.metrics.classification.DiceCoefficient
             :noindex:
 
