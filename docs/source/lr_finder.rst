@@ -59,7 +59,7 @@ To use an arbitrary value set it as auto_lr_find
     # to set to your own hparams.my_value
     trainer = Trainer(auto_lr_find='my_value')
 
-Under the hood, when you call fit it runs the leqarning rate finder before actually calling fit.
+Under the hood, when you call fit it runs the learning rate finder before actually calling fit.
 
 .. code-block:: python
         
