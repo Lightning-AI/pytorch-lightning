@@ -157,7 +157,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 import subprocess
 
@@ -329,69 +329,57 @@ class TrainerTrainLoopMixin(ABC):
             # model hooks
             model.on_train_start()
 
-        try:
-            # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
-                # reset train dataloader
-                if self.reload_dataloaders_every_epoch:
-                    self.reset_train_dataloader(model)
-                # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_horovod) \
-                        and hasattr(self.train_dataloader, 'sampler') \
-                        and hasattr(self.train_dataloader.sampler, 'set_epoch'):
-                    self.train_dataloader.sampler.set_epoch(epoch)
 
-                # update training progress in trainer and model
-                model.current_epoch = epoch
-                self.current_epoch = epoch
+        # run all epochs
+        for epoch in range(self.current_epoch, self.max_epochs):
+            # reset train dataloader
+            if self.reload_dataloaders_every_epoch:
+                self.reset_train_dataloader(model)
+            # set seed for distributed sampler (enables shuffling for each epoch)
+            if (self.use_ddp or self.use_horovod) \
+                    and hasattr(self.train_dataloader, 'sampler') \
+                    and hasattr(self.train_dataloader.sampler, 'set_epoch'):
+                self.train_dataloader.sampler.set_epoch(epoch)
 
-                # changing gradient according accumulation_scheduler
-                self.accumulation_scheduler.on_epoch_start(self, self.get_model())
+            # update training progress in trainer and model
+            model.current_epoch = epoch
+            self.current_epoch = epoch
 
-                # stores accumulated grad fractions per batch
-                self.batch_loss_value = TensorRunningAccum(
-                    window_length=self.accumulate_grad_batches
-                )
+            # changing gradient according accumulation_scheduler
+            self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
-                # -----------------
-                # RUN TNG EPOCH
-                # -----------------
-                self.run_training_epoch()
+            # stores accumulated grad fractions per batch
+            self.batch_loss_value = TensorRunningAccum(
+                window_length=self.accumulate_grad_batches
+            )
 
-                if self.max_steps and self.max_steps == self.global_step:
-                    return
+            # -----------------
+            # RUN TNG EPOCH
+            # -----------------
+            self.run_training_epoch()
 
-                # update LR schedulers
-                self.update_learning_rates(interval='epoch')
+            if self.max_steps and self.max_steps == self.global_step:
+                return
 
-                # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1
-                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+            # update LR schedulers
+            self.update_learning_rates(interval='epoch')
 
-                # TODO wrap this logic into the callback
-                # DO NOT DELETE
-                # early stopping as a (new Callback) class doesn't yet work because we have to know these
-                # trainer flags including the current epoch stuff
-                # all of this needs to go into the early stopping to clean up better
-                if self.enable_early_stop:
-                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
-                        should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
-                        # stop training
-                        stop = should_stop and met_min_epochs
-                        if stop:
-                            return
+            # early stopping
+            met_min_epochs = epoch >= self.min_epochs - 1
+            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
-        except KeyboardInterrupt:
-            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-
-            # user could press ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.interrupted = True
-
-                for proc in self.interactive_ddp_procs:
-                    subprocess.Popen.kill(proc)
-        finally:
-            self.run_training_teardown()
+            # TODO wrap this logic into the callback
+            # DO NOT DELETE
+            # early stopping as a (new Callback) class doesn't yet work because we have to know these
+            # trainer flags including the current epoch stuff
+            # all of this needs to go into the early stopping to clean up better
+            if self.enable_early_stop:
+                if (met_min_epochs and met_min_steps) or self.fast_dev_run:
+                    should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
+                    # stop training
+                    stop = should_stop and met_min_epochs
+                    if stop:
+                        return
 
     def run_training_epoch(self):
 
@@ -812,7 +800,17 @@ class TrainerTrainLoopMixin(ABC):
 
     def _configure_kill_signals(self):
         """ Sets up training teardown signal handlers that run on interpreter exit and other POSIX signals. """
+
         def _signal_kill_handler(sig, frame):
+            if sig == signal.SIGINT:
+                rank_zero_info('Detected KeyboardInterrupt, attempting graceful shutdown...')
+
+            if not self.interrupted:
+                self.interrupted = True
+
+            for proc in self.interactive_ddp_procs:
+                subprocess.Popen.kill(proc)
+
             self.run_training_teardown()
             sys.exit()
 
