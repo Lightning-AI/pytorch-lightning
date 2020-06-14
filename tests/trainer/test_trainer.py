@@ -48,7 +48,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in ckpt.keys(), 'module_arguments missing from checkpoints'
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'module_arguments missing from checkpoints'
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
