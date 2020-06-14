@@ -86,5 +86,5 @@ class Callback(abc.ABC):
         """Called when the test ends."""
         pass
 
-    def on_interrupt(self, trainer, pl_module):
+    def on_keyboard_interrupt(self, trainer, pl_module):
         """Called when the training is interrupted by KeyboardInterrupt."""

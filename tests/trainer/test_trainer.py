@@ -666,7 +666,7 @@ def test_trainer_interrupted_flag(tmpdir):
             super().__init__()
             self.exc_info = None
 
-        def on_interrupt(self, trainer, pl_module):
+        def on_keyboard_interrupt(self, trainer, pl_module):
             self.exc_info = sys.exc_info()
 
     interrupt_callback = InterruptCallback()
