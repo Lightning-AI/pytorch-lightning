@@ -7,7 +7,6 @@ from pytorch_lightning.metrics.functional.classification import (
     dice_score,
     f1_score,
     fbeta_score,
-    get_num_classes,
     multiclass_precision_recall_curve,
     multiclass_roc,
     precision,

@@ -151,3 +151,66 @@ Metric
 
     .. autofunction:: pytorch_lightning.metrics.functional.accuracy
         :noindex:
+
+auc (F)
+^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.auc
+        :noindex:
+
+auroc (F)
+^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.auroc
+        :noindex:
+
+average_precision (F)
+^^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.average_precision
+        :noindex:
+
+confusion_matrix (F)
+^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
+        :noindex:
+
+dice_score (F)
+^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.dice_score
+        :noindex:
+
+f1_score (F)
+^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.f1_score
+        :noindex:
+
+fbeta_score (F)
+^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.fbeta_score
+        :noindex:
+
+multiclass_precision_recall_curve (F)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.multiclass_precision_recall_curve
+        :noindex:
+
+multiclass_roc (F)
+^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.multiclass_roc
+        :noindex:
