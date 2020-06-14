@@ -21,7 +21,7 @@ from pytorch_lightning.trainer.deprecated_api import (
     TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus, parse_tpu_cores)
+    TrainerDPMixin, _parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus, _parse_tpu_cores)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -362,7 +362,7 @@ class Trainer(
             tpu_cores = num_tpu_cores
         self.on_tpu = tpu_cores is not None
 
-        self.tpu_cores = parse_tpu_cores(tpu_cores)
+        self.tpu_cores = _parse_tpu_cores(tpu_cores)
         self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
@@ -457,7 +457,7 @@ class Trainer(
         else:
             self.gpus = gpus
 
-        self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
+        self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
 
