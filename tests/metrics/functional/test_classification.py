@@ -188,6 +188,20 @@ def test_multilabel_accuracy():
         accuracy(y2, torch.zeros_like(y2), reduction='none')
 
 
+def test_accuracy():
+    pred = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 2, 2])
+    acc = accuracy(pred, target)
+
+    assert acc.item() == 0.75
+
+    pred = torch.tensor([0, 1, 2, 2])
+    target = torch.tensor([0, 1, 1, 3])
+    acc = accuracy(pred, target)
+
+    assert acc.item() == 0.50
+
+
 def test_confusion_matrix():
     target = (torch.arange(120) % 3).view(-1, 1)
     pred = target.clone()
