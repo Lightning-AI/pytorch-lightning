@@ -351,5 +351,20 @@ def test_dice_score(pred, target, expected):
     score = dice_score(torch.tensor(pred), torch.tensor(target))
     assert score == expected
 
+
+def test_accuracy():
+    pred = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 2, 2])
+    acc = accuracy(pred, target)
+
+    assert acc.item() == 0.75
+
+    pred = torch.tensor([0, 1, 2, 2])
+    target = torch.tensor([0, 1, 1, 3])
+    acc = accuracy(pred, target)
+
+    assert acc.item() == 0.50
+
+
 # example data taken from
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py
