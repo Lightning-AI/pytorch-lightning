@@ -493,6 +493,45 @@ def retry_jittered_backoff(func: Callable, num_retries: int = 5, cap_delay: floa
         sleep_delay = min(cap_delay, random.uniform(base_delay, sleep_delay * 3))
 
 
+def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int], int]]:
+    """
+    Parses the tpu_cores given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer`.
+
+    Args:
+        tpu_cores: An int 1 or string '1' indicate that 1 core with multi-processing should be used
+            An int 8 or string '8' indicate that all 8 cores with multi-processing should be used
+            A list of int or a string containing list of comma separated integer
+            indicates specific TPU core to use.
+
+    Returns:
+        a list of tpu_cores to be used or ``None`` if no TPU cores were requested
+    """
+
+    if callable(tpu_cores):
+        return None
+
+    if isinstance(tpu_cores, str):
+        tpu_cores = tpu_cores.strip()
+        tpu_cores = parse_tpu_cores_str(tpu_cores)
+
+    assert tpu_cores in (1, 8, None) or (
+            isinstance(tpu_cores, (list, tuple, set)) and
+            len(tpu_cores) == 1 and
+            tpu_cores[0] in range(1, 9)
+    ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
+
+    return tpu_cores
+
+
+def parse_tpu_cores_str(tpu_cores):
+    if tpu_cores == '1' or tpu_cores == '8':
+        tpu_cores = int(tpu_cores)
+    else:
+        tpu_cores = [int(x.strip()) for x in tpu_cores.split(',') if len(x) > 0]
+    return tpu_cores
+
+
 def pick_single_gpu(exclude_gpus: list):
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:

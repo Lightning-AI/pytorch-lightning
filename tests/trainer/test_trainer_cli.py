@@ -100,7 +100,9 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     pytest.param('--early_stop_callback',
                  {'auto_lr_find': False, 'early_stop_callback': True, 'auto_scale_batch_size': False}),
     pytest.param('--tpu_cores=8',
-                 {'tpu_cores': 8})
+                 {'tpu_cores': 8}),
+    pytest.param("--tpu_cores=1,",
+                 {'tpu_cores': '1,'})
 ])
 def test_argparse_args_parsing(cli_args, expected):
     """Test multi type argument with bool."""
