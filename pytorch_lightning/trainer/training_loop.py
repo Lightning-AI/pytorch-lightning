@@ -798,25 +798,25 @@ class TrainerTrainLoopMixin(ABC):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
 
+    def _signal_kill_handler(self, sig, frame):
+        if sig == signal.SIGINT:
+            rank_zero_info('Detected KeyboardInterrupt, attempting graceful shutdown...')
+
+        if not self.interrupted:
+            self.interrupted = True
+
+        for proc in self.interactive_ddp_procs:
+            subprocess.Popen.kill(proc)
+
+        self.run_training_teardown()
+        sys.exit()
+
     def _configure_kill_signals(self):
         """ Sets up training teardown signal handlers that run on interpreter exit and other POSIX signals. """
 
-        def _signal_kill_handler(sig, frame):
-            if sig == signal.SIGINT:
-                rank_zero_info('Detected KeyboardInterrupt, attempting graceful shutdown...')
-
-            if not self.interrupted:
-                self.interrupted = True
-
-            for proc in self.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
-
-            self.run_training_teardown()
-            sys.exit()
-
         atexit.register(self.run_training_teardown)
         for sig_name in FATAL_SIGNALS:
-            signal.signal(getattr(signal, sig_name), _signal_kill_handler)
+            signal.signal(getattr(signal, sig_name), self._signal_kill_handler)
 
 
 def _with_is_last(iterable):
