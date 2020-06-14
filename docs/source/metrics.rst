@@ -173,13 +173,6 @@ Metric
     .. autofunction:: pytorch_lightning.metrics.functional.average_precision
         :noindex:
 
-confusion_matrix (F)
-^^^^^^^^^^^^^^^^^^^^
-Metric
-
-    .. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
-        :noindex:
-
 dice_score (F)
 ^^^^^^^^^^^^^^
 Metric
@@ -264,6 +257,17 @@ Metric
     .. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
         :noindex:
 
+Metric pre-processing
+---------------------
+Metric
+
+confusion_matrix (F)
+^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
+        :noindex:
+
 to_categorical (F)
 ^^^^^^^^^^^^^^^^^^
 Metric
@@ -277,3 +281,4 @@ Metric
 
     .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
         :noindex:
+
