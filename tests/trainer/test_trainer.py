@@ -798,9 +798,9 @@ def test_gpu_choice(tmpdir):
 def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     if error_expected:
         with pytest.raises(AssertionError, match=r'.*tpu_cores` can only be 1, 8 or [<1-8>]*'):
-            Trainer(default_save_path=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
     else:
-        trainer = Trainer(default_save_path=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
         assert trainer.tpu_id == expected_tpu_id
 
 
