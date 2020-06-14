@@ -524,9 +524,9 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
 
 def tpu_cores_valid(tpu_cores):
     return tpu_cores in (1, 8, None) or (
-            isinstance(tpu_cores, (list, tuple, set)) and
-            len(tpu_cores) == 1 and
-            tpu_cores[0] in range(1, 9)
+        isinstance(tpu_cores, (list, tuple, set)) and
+        len(tpu_cores) == 1 and
+        tpu_cores[0] in range(1, 9)
     )
 
 
