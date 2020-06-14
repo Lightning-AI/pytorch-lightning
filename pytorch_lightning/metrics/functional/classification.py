@@ -171,7 +171,7 @@ def accuracy(
     if not (target > 0).any() and num_classes is None:
         raise RuntimeError("cannot infer num_classes when target is all zero")
 
-    if reduction == 'elementwise_mean' or reduction == 'sum':
+    if reduction in ('elementwise_mean', 'sum'):
         return reduce(sum(tps) / sum(sups), reduction=reduction)
     if reduction == 'none':
         return reduce(tps / sups, reduction=reduction)
