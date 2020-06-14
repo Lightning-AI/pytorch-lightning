@@ -50,8 +50,8 @@ Here's an example of implementing a TensorMetric
         def forward(self, x, y):
             return torch.mean()
 
-    .. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
+    :noindex:
 
 NumpyMetric
 ^^^^^^^^^^^
