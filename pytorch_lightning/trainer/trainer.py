@@ -1003,6 +1003,7 @@ class Trainer(
 
         # CORE TRAINING LOOP
         self.train()
+        self.run_training_teardown()
 
     def test(
             self,
