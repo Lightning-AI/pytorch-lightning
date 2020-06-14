@@ -27,24 +27,17 @@ Example:
 
 Implement a metric
 ------------------
-For native PyTorch implementations of metrics, it is recommended to use
-the :class:`TensorMetric` which handles automated DDP syncing and conversions
-to tensors for all inputs and outputs.
+You can implement metrics as either a PyTorch metric or a Numpy metric. Numpy metrics
+will slow down training, use PyTorch metrics when possible.
 
-If your metrics implementation works on numpy, just use the
-:class:`NumpyMetric`, which handles the automated conversion of
-inputs to and outputs from numpy as well as automated ddp syncing.
+Use :class:`TensorMetric` to implement native PyTorch metrics. This class
+handles automated DDP syncing and converts all inputs and outputs to tensors.
 
-.. warning:: Employing numpy in your metric calculation might slow
-    down your training substantially, since every metric computation
-    requires a GPU sync to convert tensors to numpy.
+Use :class:`NumpyMetric` to implement numpy metrics. This class
+handles automated DDP syncing and converts all inputs and outputs to tensors.
 
-Metric
-^^^^^^
-asdf
-
-    .. autoclass:: pytorch_lightning.metrics.metric.Metric
-        :noindex:
+.. warning:: Numpy metrics might slow down your training substantially,
+    since every metric computation requires a GPU sync to convert tensors to numpy.
 
 TensorMetric
 ^^^^^^^^^^^^
