@@ -135,7 +135,8 @@ def test_get_num_classes(pred, target, num_classes, expected_num_classes):
     assert get_num_classes(pred, target, num_classes) == expected_num_classes
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn', 'expected_support'], [
+@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp',
+                          'expected_tn', 'expected_fn', 'expected_support'], [
     pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1, 2),
     pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 1, 1, 1, 1, 2)
 ])
@@ -149,7 +150,8 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
     assert sup.item() == expected_support
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp', 'expected_tn', 'expected_fn', 'expected_support'], [
+@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp',
+                          'expected_tn', 'expected_fn', 'expected_support'], [
     pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]),
                  torch.tensor([1, 0, 0, 0, 1]), torch.tensor([0, 0, 1, 0, 1]), torch.tensor([3, 4, 3, 3, 1]),
                  torch.tensor([0, 0, 0, 1, 1]), torch.tensor([1, 0, 0, 1, 2])),
