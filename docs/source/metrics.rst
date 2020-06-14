@@ -1,12 +1,32 @@
 Metrics
 =======
 
-Metrics are generally used to monitor model performance.
+Metrics are used to monitor model performance.
 
-The following package aims to provide the most convenient ones as well
-as a structure to implement your custom metrics for all the fancy research
-you want to do.
+In this package we provide two major pieces of functionality.
 
+    1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
+    2. A collection of popular metrics already implemented for you.
+
+Example:
+
+.. code-block:: python
+
+    from pytorch_lightning.metrics.functional import accuracy
+
+    pred = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 2, 2])
+
+    # calculates accuracy across all GPUs and all Nodes used in training
+    accuracy(pred, target)
+
+    # tensor(0.9167)
+
+
+--------------
+
+Implement a metric
+------------------
 For native PyTorch implementations of metrics, it is recommended to use
 the :class:`TensorMetric` which handles automated DDP syncing and conversions
 to tensors for all inputs and outputs.
@@ -18,14 +38,6 @@ inputs to and outputs from numpy as well as automated ddp syncing.
 .. warning:: Employing numpy in your metric calculation might slow
     down your training substantially, since every metric computation
     requires a GPU sync to convert tensors to numpy.
-
-
-Implement a metric
-------------------
-.. role:: hidden
-    :class: hidden-section
-
-asdfasd
 
 Metric
 ^^^^^^
