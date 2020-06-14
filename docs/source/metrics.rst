@@ -214,3 +214,66 @@ Metric
 
     .. autofunction:: pytorch_lightning.metrics.functional.multiclass_roc
         :noindex:
+
+precision (F)
+^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.precision
+        :noindex:
+
+precision_recall (F)
+^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.precision_recall
+        :noindex:
+
+precision_recall_curve (F)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
+        :noindex:
+
+recall (F)
+^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.recall
+        :noindex:
+
+roc (F)
+^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.roc
+        :noindex:
+
+stat_scores (F)
+^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.stat_scores
+        :noindex:
+
+stat_scores_multiple_classes (F)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
+        :noindex:
+
+to_categorical (F)
+^^^^^^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.to_categorical
+        :noindex:
+
+to_onehot (F)
+^^^^^^^^^^^^^
+Metric
+
+    .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
+        :noindex:
