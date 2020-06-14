@@ -348,7 +348,7 @@ def get_all_available_gpus() -> List[int]:
     return list(range(torch.cuda.device_count()))
 
 
-def check_data_type(device_ids: Any) -> None:
+def _check_data_type(device_ids: Any) -> None:
     """
     Checks that the device_ids argument is one of: None, Int, String or List.
     Raises a MisconfigurationException otherwise.
@@ -429,7 +429,7 @@ def _parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[
         return None
 
     # Check that gpus param is None, Int, String or List
-    check_data_type(gpus)
+    _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
     if gpus is None or isinstance(gpus, int) and gpus == 0:
@@ -511,7 +511,7 @@ def _parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[in
     if callable(tpu_cores):
         return None
 
-    check_data_type(tpu_cores)
+    _check_data_type(tpu_cores)
 
     if isinstance(tpu_cores, str):
         tpu_cores = _parse_tpu_cores_str(tpu_cores.strip())
