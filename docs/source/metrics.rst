@@ -41,7 +41,14 @@ handles automated DDP syncing and converts all inputs and outputs to tensors.
 
 TensorMetric
 ^^^^^^^^^^^^
-asd
+Here's an example of implementing a TensorMetric
+
+.. code-block:: python
+
+    class MyMetric(TensorMetric):
+
+        def forward(self, x, y):
+            return torch.mean()
 
     .. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
         :noindex:
