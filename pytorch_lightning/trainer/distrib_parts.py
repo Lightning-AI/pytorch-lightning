@@ -348,16 +348,16 @@ def get_all_available_gpus() -> List[int]:
     return list(range(torch.cuda.device_count()))
 
 
-def check_gpus_data_type(gpus: Any) -> None:
+def check_data_type(device_ids: Any) -> None:
     """
-    Checks that the gpus argument is one of: None, Int, String or List.
+    Checks that the device_ids argument is one of: None, Int, String or List.
     Raises a MisconfigurationException otherwise.
 
     Args:
-        gpus: parameter as passed to the Trainer
+        device_ids: gpus/tpu_cores parameter as passed to the Trainer
     """
-    if gpus is not None and (not isinstance(gpus, (int, str, MutableSequence)) or isinstance(gpus, bool)):
-        raise MisconfigurationException("GPUs must be int, string or sequence of ints or None.")
+    if device_ids is not None and (not isinstance(device_ids, (int, str, MutableSequence)) or isinstance(device_ids, bool)):
+        raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
 
 
 def normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
@@ -429,7 +429,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
         return None
 
     # Check that gpus param is None, Int, String or List
-    check_gpus_data_type(gpus)
+    check_data_type(gpus)
 
     # Handle the case when no gpus are requested
     if gpus is None or isinstance(gpus, int) and gpus == 0:
@@ -511,17 +511,23 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int
     if callable(tpu_cores):
         return None
 
-    if isinstance(tpu_cores, str):
-        tpu_cores = tpu_cores.strip()
-        tpu_cores = parse_tpu_cores_str(tpu_cores)
+    check_data_type(tpu_cores)
 
-    assert tpu_cores in (1, 8, None) or (
-        isinstance(tpu_cores, (list, tuple, set)) and
-        len(tpu_cores) == 1 and
-        tpu_cores[0] in range(1, 9)
-    ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
+    if isinstance(tpu_cores, str):
+        tpu_cores = parse_tpu_cores_str(tpu_cores.strip())
+
+    if not tpu_cores_valid(tpu_cores):
+        raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
     return tpu_cores
+
+
+def tpu_cores_valid(tpu_cores):
+    return tpu_cores in (1, 8, None) or (
+            isinstance(tpu_cores, (list, tuple, set)) and
+            len(tpu_cores) == 1 and
+            tpu_cores[0] in range(1, 9)
+    )
 
 
 def parse_tpu_cores_str(tpu_cores):
