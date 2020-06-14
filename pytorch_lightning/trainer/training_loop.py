@@ -678,7 +678,7 @@ class TrainerTrainLoopMixin(ABC):
         return [(opt_idx, self.optimizers[opt_idx])]
 
     def run_training_teardown(self):
-        if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
+        if getattr(self, '_teardown_already_run', False):
             return
 
         # train end events
