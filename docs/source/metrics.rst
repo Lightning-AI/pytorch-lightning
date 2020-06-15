@@ -41,27 +41,65 @@ handles automated DDP syncing and converts all inputs and outputs to tensors.
 
 TensorMetric
 ^^^^^^^^^^^^
-Here's an example of implementing a TensorMetric
+Here's an example showing how to implement a TensorMetric
 
 .. code-block:: python
 
-    class MyMetric(TensorMetric):
-
-        def forward(self, x, y):
-            return torch.mean()
+    # @justus TODO: Simple TensorMetric example
 
 .. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
     :noindex:
 
 NumpyMetric
 ^^^^^^^^^^^
-asd
+Here's an example showing how to implement a NumpyMetric
 
-    .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
-        :noindex:
+.. code-block:: python
+
+    # @justus TODO: Simple NumpyMetric example
+
+.. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
+    :noindex:
 
 Class Metrics
 -------------
+The following are metrics which can be instantiated as part of a module definition (even with just
+plain PyTorch).
+
+.. code-block:: python
+
+    from pytorch_lightning.metrics import Accuracy
+
+    # Plain PyTorch
+    class MyModule(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.accuracy = Accuracy()
+
+        def forward(self, x, labels):
+            preds = # ...
+            acc = self.accuracy(preds, labels)
+
+    # PyTorch Lightning
+    class MyModule(pl.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.accuracy = Accuracy()
+
+        def training_step(self, batch, batch_idx):
+            x, labels = batch
+            preds = # ...
+            acc = self.accuracy(preds, labels)
+
+These metrics even work when using distributed training:
+
+.. code-block:: python
+
+    model = MyModule()
+    trainer = Trainer(gpus=8, num_nodes=2)
+
+    # any metric automatically reduces across GPUs (even the ones you implement using Lightning)
+    trainer.fit(model)
 
 Accuracy
 ^^^^^^^^
