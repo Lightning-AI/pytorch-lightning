@@ -986,7 +986,7 @@ class Trainer(
 
             eval_results = self._evaluate(model=model,
                                           dataloaders=self.val_dataloaders,
-                                          max_batches=[self.num_sanity_val_steps] * len(self.val_dataloaders),
+                                          max_batches=self.num_sanity_val_steps,
                                           test_mode=False)
 
             _, _, _, callback_metrics, _ = self.process_output(eval_results)

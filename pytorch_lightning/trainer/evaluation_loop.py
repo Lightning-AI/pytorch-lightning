@@ -124,7 +124,7 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -226,7 +226,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self,
         model: LightningModule,
         dataloaders: List[DataLoader],
-        max_batches: List[int],
+        max_batches: Union[int, List[int]],
         test_mode: bool = False
     ):
         """Run evaluation code.
@@ -234,7 +234,7 @@ class TrainerEvaluationLoopMixin(ABC):
         Args:
             model: The model to evaluate.
             dataloaders: A list of PyTorch dataloaders.
-            max_batches: A list of integers with length of the number of dataloaders. Each
+            max_batches: An integer or list of integers with length of the number of dataloaders. Each
                 entry is the number of batches to process in the corresponding dataloader.
             test_mode:
         """
@@ -250,6 +250,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # bookkeeping
         outputs = []
+
+        # convert max_batches to list
+        if isinstance(max_batches, int):
+            max_batches = [max_batches] * len(dataloaders)
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -366,7 +370,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # cap max batches to 1 when using fast_dev_run
         if self.fast_dev_run:
-            max_batches = [1] * len(dataloaders)
+            max_batches = 1
 
         # Validation/Test begin callbacks
         if test_mode:
