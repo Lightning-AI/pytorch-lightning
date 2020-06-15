@@ -22,7 +22,7 @@ def to_onehot(
     Output:
         A sparse label tensor with shape [N, C, d1, d2, ...]
 
-    Example::
+    Example:
 
         >>> x = torch.tensor([1, 2, 3])
         >>> to_onehot(x)
@@ -50,6 +50,13 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 
     Return:
         A tensor with categorical labels [N, d2, ...]
+
+    Example:
+
+        >>> x = torch.tensor([[0.2, 0.5], [0.9, 0.1]])
+        >>> to_categorical(x)
+        tensor([1, 0])
+
     """
     return torch.argmax(tensor, dim=argmax_dim)
 
@@ -97,6 +104,14 @@ def stat_scores(
     Return:
         Tensors in the following order: True Positive, False Positive, True Negative, False Negative
 
+    Example:
+
+        >>> x = torch.tensor([1, 2, 3])
+        >>> y = torch.tensor([0, 2, 3])
+        >>> tp, fp, tn, fn, sup = stat_scores(x, y, class_index=1)
+        >>> stat_scores(x, y, class_index=1)
+        (tensor(0), tensor(1), tensor(2), tensor(0), tensor(0))
+
     """
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
@@ -131,6 +146,13 @@ def stat_scores_multiple_classes(
     Return:
         Returns tensors for: tp, fp, tn, fn
 
+    Example:
+
+        >>> x = torch.tensor([1, 2, 3])
+        >>> y = torch.tensor([0, 2, 3])
+        >>> tps, fps, tns, fns, sups = stat_scores_multiple_classes(x, y)
+        >>> stat_scores_multiple_classes(x, y)
+        (tensor([0., 0., 1., 1.]), tensor([0., 1., 0., 0.]), tensor([2., 2., 2., 2.]), tensor([1., 0., 0., 0.]), tensor([1., 0., 1., 1.]))
     """
     num_classes = get_num_classes(pred=pred, target=target,
                                   num_classes=num_classes)
