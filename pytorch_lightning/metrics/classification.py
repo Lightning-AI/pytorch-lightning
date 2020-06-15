@@ -607,12 +607,24 @@ class MulticlassROC(TensorCollectionMetric):
 
         Example:
 
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = MulticlassROC()
-            >>> classes_roc = metric(pred, target)
+        .. testcode::
 
-            # TODO: fix bug - @nicki skafte
+            pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+                                 [0.05, 0.85, 0.05, 0.05],
+                                 [0.05, 0.05, 0.85, 0.05],
+                                 [0.05, 0.05, 0.05, 0.85]])
+            target = torch.tensor([0, 1, 3, 2])
+            metric = MulticlassROC()
+            classes_roc = metric(pred, target)
+
+        Out:
+
+        .. testoutput::
+
+            ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+             (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+             (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+             (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
 
         """
         super().__init__(name='multiclass_roc',
@@ -630,7 +642,7 @@ class MulticlassROC(TensorCollectionMetric):
         Actual metric computation
 
         Args:
-            pred: predicted labels
+            pred: predicted probability for each label
             target: groundtruth labels
             sample_weight: Weights for each sample defining the sample's impact on the score
 
@@ -666,12 +678,24 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
 
         Example:
 
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = MulticlassPrecisionRecall()
-            >>> classes_pr = metric(pred, target)
+        .. testcode::
 
-            # TODO: fix bug - @nicki skafte
+            pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+                                 [0.05, 0.85, 0.05, 0.05],
+                                 [0.05, 0.05, 0.85, 0.05],
+                                 [0.05, 0.05, 0.05, 0.85]])
+            target = torch.tensor([0, 1, 3, 2])
+            metric = MulticlassPrecisionRecall()
+            classes_pr = metric(pred, target)
+
+        Out:
+
+        .. testoutput::
+
+            ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
+             (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
+             (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])),
+             (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])))
 
         """
         super().__init__(name='multiclass_precision_recall_curve',
@@ -690,7 +714,7 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
         Actual metric computation
 
         Args:
-            pred: predicted labels
+            pred: predicted probability for each label
             target: groundtruth labels
             sample_weight: Weights for each sample defining the sample's impact on the score
 
@@ -730,12 +754,21 @@ class DiceCoefficient(TensorMetric):
 
         Example:
 
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = DiceCoefficient()
-            >>> classes_pr = metric(pred, target)
+        .. testcode:
 
-            # TODO: fix bug - @nicki skafte
+            pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+                                 [0.05, 0.85, 0.05, 0.05],
+                                 [0.05, 0.05, 0.85, 0.05],
+                                 [0.05, 0.05, 0.05, 0.85]])
+            target = torch.tensor([0, 1, 3, 2])
+            metric = DiceCoefficient()
+            classes_pr = metric(pred, target)
+
+        Out:
+
+        .. testoutput:
+
+            tensor(0.3333)
         """
         super().__init__(name='dice',
                          reduce_group=reduce_group,
@@ -751,7 +784,7 @@ class DiceCoefficient(TensorMetric):
         Actual metric computation
 
         Args:
-            pred: predicted labels
+            pred: predicted probability for each label
             target: groundtruth labels
 
         Return:
