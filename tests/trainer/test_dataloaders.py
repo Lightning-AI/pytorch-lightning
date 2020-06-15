@@ -273,7 +273,7 @@ def test_dataloaders_with_percent_check(tmpdir, train_percent_check, val_percent
     assert trainer.num_val_batches == expected_val_batches, \
         f'val_percent_check not working with val_dataloaders, got {trainer.num_val_batches}'
 
-    trainer.test()
+    trainer.test(ckpt_path=None)
     expected_test_batches = [
         int(len(dataloader) * test_percent_check) for dataloader in trainer.test_dataloaders
     ]
