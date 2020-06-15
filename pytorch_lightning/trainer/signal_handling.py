@@ -80,17 +80,19 @@ class SignalHandler:
     def _teardown_handler(self, signum, frame):  # pragma: no-cover
         """ Handles training teardown for certain signals that interrupt training. """
         trainer = self.trainer
-        if signum == signal.SIGINT:
-            rank_zero_info('Detected KeyboardInterrupt, attempting graceful shutdown ...')
-
         if not trainer.interrupted:
             trainer.interrupted = True
+            trainer.on_keyboard_interrupt()
 
             for proc in trainer.interactive_ddp_procs:
                 subprocess.Popen.kill(proc)
 
             trainer.run_training_teardown()
-        sys.exit()
+
+        if signum == signal.SIGINT:
+            raise KeyboardInterrupt
+        else:
+            sys.exit()
 
 
 def on_slurm() -> bool:

@@ -1003,11 +1003,14 @@ class Trainer(
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
 
-        # CORE TRAINING LOOP
-        self.train()
-        self.run_training_teardown()
-
-        signal_handler.restore()
+        try:
+            # CORE TRAINING LOOP
+            self.train()
+        except KeyboardInterrupt:
+            rank_zero_info('Detected KeyboardInterrupt, attempting graceful shutdown ...')
+        finally:
+            self.run_training_teardown()
+            signal_handler.restore()
 
     def test(
             self,
