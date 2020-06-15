@@ -60,14 +60,18 @@ class Accuracy(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
             metric = Accuracy()
             metric(pred, target)
 
-        Out::
+        Out:
+
+        .. testoutput::
 
             tensor([0.7500])
 
