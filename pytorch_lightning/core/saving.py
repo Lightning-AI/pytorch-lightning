@@ -10,6 +10,7 @@ from typing import Union, Dict, Any, Optional, Callable
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
+from pytorch_lightning.utilities.io import load as pl_load
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
@@ -20,10 +21,17 @@ except ImportError:
 else:
     ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
 
+# the older shall be on the top
+CHECKPOINT_PAST_HPARAMS_KEYS = (
+    'hparams',
+    'module_arguments',  # used in 0.7.6
+)
+
 
 class ModelIO(object):
-    CHECKPOINT_KEY_HYPER_PARAMS = 'hyper_parameters'
-    CHECKPOINT_NAME_HYPER_PARAMS = 'hparams_name'
+    CHECKPOINT_HYPER_PARAMS_KEY = 'hyper_parameters'
+    CHECKPOINT_HYPER_PARAMS_NAME = 'hparams_name'
+    CHECKPOINT_HYPER_PARAMS_TYPE = 'hparams_type'
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
@@ -52,10 +60,10 @@ class ModelIO(object):
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `module_arguments`.
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
 
         Args:
-            checkpoint_path: Path to checkpoint.
+            checkpoint_path: Path to checkpoint. This can also be a URL.
             args: Any positional args needed to init the model.
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
@@ -131,9 +139,9 @@ class ModelIO(object):
                 y_hat = pretrained_model(x)
         """
         if map_location is not None:
-            checkpoint = torch.load(checkpoint_path, map_location=map_location)
+            checkpoint = pl_load(checkpoint_path, map_location=map_location)
         else:
-            checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
@@ -152,22 +160,29 @@ class ModelIO(object):
             hparams['on_gpu'] = False
 
             # overwrite hparams by the given file
-            checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS] = hparams
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
 
-        # override the module_arguments with values that were passed in
-        checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS].update(kwargs)
+        # for past checkpoint need to add the new key
+        if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
+        # override the hparams with values that were passed in
+        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
 
     @classmethod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs):
-
         # pass in the values we saved automatically
-        if cls.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
-            # todo add some back compatibility
-            model_args = checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS]
-            args_name = checkpoint.get(cls.CHECKPOINT_NAME_HYPER_PARAMS)
+        if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+            model_args = {}
+            # add some back compatibility, the actual one shall be last
+            for hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
+                if hparam_key in checkpoint:
+                    model_args.update(checkpoint[hparam_key])
+            if cls.CHECKPOINT_HYPER_PARAMS_TYPE in checkpoint:
+                model_args = checkpoint[cls.CHECKPOINT_HYPER_PARAMS_TYPE](model_args)
+            args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
             init_args_name = inspect.signature(cls).parameters.keys()
             if args_name == 'kwargs':
                 cls_kwargs = {k: v for k, v in model_args.items() if k in init_args_name}

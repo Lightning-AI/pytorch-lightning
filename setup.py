@@ -20,7 +20,7 @@ import pytorch_lightning  # noqa: E402
 
 
 def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
-    with open(os.path.join(path_dir, 'requirements.txt'), 'r') as file:
+    with open(os.path.join(path_dir, 'requirements', 'base.txt'), 'r') as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []
     for ln in lines:
@@ -94,5 +94,6 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
 )

@@ -214,7 +214,7 @@ class TrainerTrainLoopMixin(ABC):
     global_step: int
     testing: bool
     log_save_interval: float
-    proc_rank: int
+    global_rank: int
     row_log_interval: float
     truncated_bptt_steps: ...
     optimizers: ...
@@ -237,6 +237,7 @@ class TrainerTrainLoopMixin(ABC):
     checkpoint_callback: ...
     terminate_on_nan: bool
     tpu_id: int
+    interactive_ddp_procs: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -247,9 +248,10 @@ class TrainerTrainLoopMixin(ABC):
     on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
+    on_keyboard_interrupt: Callable
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -374,6 +376,10 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 # TODO wrap this logic into the callback
+                # DO NOT DELETE
+                # early stopping as a (new Callback) class doesn't yet work because we have to know these
+                # trainer flags including the current epoch stuff
+                # all of this needs to go into the early stopping to clean up better
                 if self.enable_early_stop:
                     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
                         should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
@@ -391,6 +397,7 @@ class TrainerTrainLoopMixin(ABC):
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
+                self.on_keyboard_interrupt()
 
                 for proc in self.interactive_ddp_procs:
                     subprocess.Popen.kill(proc)
@@ -476,7 +483,7 @@ class TrainerTrainLoopMixin(ABC):
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
             if should_save_log or self.fast_dev_run:
-                if self.proc_rank == 0 and self.logger is not None:
+                if self.is_global_zero and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged

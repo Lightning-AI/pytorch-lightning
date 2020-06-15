@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import List, Callable, Optional
 
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
@@ -14,10 +14,10 @@ class TrainerCallbackConfigMixin(ABC):
     #  the proper values/initialisation should be done in child class
     callbacks: List[Callback]
     default_root_dir: str
-    logger: Union[LightningLoggerBase, bool]
-    weights_save_path: str
+    logger: LightningLoggerBase
+    weights_save_path: Optional[str]
     ckpt_path: str
-    checkpoint_callback: ModelCheckpoint
+    checkpoint_callback: Optional[ModelCheckpoint]
 
     @property
     @abstractmethod
@@ -26,6 +26,10 @@ class TrainerCallbackConfigMixin(ABC):
 
     @abstractmethod
     def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def configure_checkpoint_callback(self):

@@ -99,7 +99,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     self.print(x, 'in forward')
 
         """
-        if self.trainer.proc_rank == 0:
+        if self.trainer.is_global_zero:
             print(*args, **kwargs)
 
     @abstractmethod
@@ -925,7 +925,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def init_ddp_connection(
             self,
-            proc_rank: int,
+            global_rank: int,
             world_size: int,
             is_slurm_managing_tasks: bool = True
     ) -> None:
@@ -936,7 +936,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         for SLURM managed cluster.
 
         Args:
-            proc_rank: The current process rank within the node.
+            global_rank: The global process idx.
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
@@ -945,22 +945,22 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             self._init_slurm_connection()
 
         if 'MASTER_ADDR' not in os.environ:
-            log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
+            rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ['MASTER_ADDR'] = '127.0.0.1'
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
         if 'MASTER_PORT' not in os.environ:
-            log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
+            rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ['MASTER_PORT'] = '12910'
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         if 'WORLD_SIZE' in os.environ and int(os.environ['WORLD_SIZE']) != world_size:
-            log.warning(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                        f"is not equal to the computed world size ({world_size}). Ignored.")
+            rank_zero_warn(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
+                           f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-        log.info(f"initializing ddp: LOCAL_RANK: {proc_rank}/{world_size - 1} WORLD_SIZE:{world_size}")
-        torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
+        log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
+        torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
     def configure_apex(
             self,
@@ -993,9 +993,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     return model, optimizers
         """
-        model, optimizers = amp.initialize(
-            model, optimizers, opt_level=amp_level,
-        )
+        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
 
         return model, optimizers
 

@@ -9,4 +9,6 @@ trains>=0.14.1
 matplotlib>=3.1.1
 # no need to install with [pytorch] as pytorch is already installed and torchvision is required only for Horovod examples
 horovod>=0.19.1
-omegaconf==2.0.0
+omegaconf>=2.0.0
+# scipy>=0.13.3
+scikit-learn>=0.20.0
