@@ -259,6 +259,7 @@ class TrainerDDPMixin(ABC):
             self.data_parallel_device_ids = None
             self.on_gpu = False
         elif distributed_backend == 'horovod':
+            if gpus
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
@@ -564,11 +565,11 @@ class TrainerDDPMixin(ABC):
                 'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
             )
 
-        if self.num_gpus > 1 or self.num_nodes > 1:
-            raise MisconfigurationException(
-                'Horovod does not support setting num_nodes / num_gpus explicitly. Use '
-                'horovodrun / mpirun to configure the number of processes.'
-            )
+#         if self.num_gpus > 1 or self.num_nodes > 1:
+#             raise MisconfigurationException(
+#                 'Horovod does not support setting num_nodes / num_gpus explicitly. Use '
+#                 'horovodrun / mpirun to configure the number of processes.'
+#             )
 
     @staticmethod
     def has_horovodrun():
