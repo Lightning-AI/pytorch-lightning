@@ -10,7 +10,7 @@ In this package we provide two major pieces of functionality.
 
 Example:
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.metrics.functional import accuracy
 
@@ -20,8 +20,11 @@ Example:
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
 
-    # tensor(0.7500)
+Out:
 
+.. testoutput::
+
+    tensor(0.7500)
 
 --------------
 
