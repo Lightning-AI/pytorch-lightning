@@ -62,17 +62,10 @@ class Accuracy(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = Accuracy()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = Accuracy()
+            >>> metric(pred, target)
             tensor([0.7500])
 
         """
@@ -118,23 +111,14 @@ class ConfusionMatrix(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = ConfusionMatrix()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = ConfusionMatrix()
+            >>> metric(pred, target)
             tensor([[1., 0., 0., 0.],
                     [0., 1., 0., 0.],
                     [0., 0., 1., 1.],
                     [0., 0., 0., 0.]])
-
-
 
         """
         super().__init__(name='confusion_matrix',
@@ -176,17 +160,10 @@ class PrecisionRecall(TensorCollectionMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = PrecisionRecall()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = PrecisionRecall()
+            >>> metric(pred, target)
             (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1., 2., 3.]))
 
         """
@@ -245,17 +222,10 @@ class Precision(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = PrecisionRecall()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = PrecisionRecall()
+            >>> metric(pred, target)
             tensor(1.)
 
         """
@@ -307,17 +277,10 @@ class Recall(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = Recall()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = Recall()
+            >>> metric(pred, target)
             tensor(0.8333)
 
         """
@@ -364,17 +327,10 @@ class AveragePrecision(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = AveragePrecision()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = AveragePrecision()
+            >>> metric(pred, target)
             tensor(0.3333)
 
         """
@@ -425,17 +381,10 @@ class AUROC(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = AUROC()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = AUROC()
+            >>> metric(pred, target)
             tensor(0.3333)
 
         """
@@ -492,17 +441,10 @@ class FBeta(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = FBeta(0.25)
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = FBeta(0.25)
+            >>> metric(pred, target)
             tensor(0.9815)
 
         """
@@ -553,17 +495,10 @@ class F1(TensorMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = F1()
-            metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = F1()
+            >>> metric(pred, target)
             tensor(0.8889)
 
         """
@@ -609,17 +544,10 @@ class ROC(TensorCollectionMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = ROC()
-            fp, tp, thresholds = metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = ROC()
+            >>> fp, tp, thresholds = metric(pred, target)
             (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
             tensor([0., 0., 0., 1., 1.]),
             tensor([4., 3., 2., 1., 0.]))
@@ -679,16 +607,10 @@ class MulticlassROC(TensorCollectionMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = MulticlassROC()
-            classes_roc = metric(pred, target)
-
-        Out:
-
-        .. testoutput::
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = MulticlassROC()
+            >>> classes_roc = metric(pred, target)
 
             # TODO: fix bug - @nicki skafte
 
@@ -744,16 +666,10 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = MulticlassPrecisionRecall()
-            classes_pr = metric(pred, target)
-
-        Out:
-
-        .. testoutput::
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = MulticlassPrecisionRecall()
+            >>> classes_pr = metric(pred, target)
 
             # TODO: fix bug - @nicki skafte
 
@@ -814,16 +730,10 @@ class DiceCoefficient(TensorMetric):
 
         Example:
 
-        .. testcode:
-
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            metric = DiceCoefficient()
-            classes_pr = metric(pred, target)
-
-        Out:
-
-        .. testoutput:
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = DiceCoefficient()
+            >>> classes_pr = metric(pred, target)
 
             # TODO: fix bug - @nicki skafte
         """
