@@ -1,6 +1,7 @@
 import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable, Optional
+import multiprocessing
 
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
@@ -106,8 +107,10 @@ class TrainerDataLoadingMixin(ABC):
                            '(this is a bottleneck of Python .spawn() and PyTorch')
 
         elif is_dataloader and dataloader.num_workers <= 2 and not on_windows and not using_spawn:
+            num_cpus = multiprocessing.cpu_count()
             rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
-                           ' Consider increasing the value of the `num_workers` argument`'
+                           ' Consider increasing the value of the `num_workers` argument` '
+                           f'(try {num_cpus} which is the number of cpus on this machine)'
                            ' in the `DataLoader` init to improve performance.')
 
         elif is_dataloader and dataloader.num_workers == 0 and not on_windows and using_spawn:

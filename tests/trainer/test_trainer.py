@@ -3,17 +3,19 @@ import math
 import os
 import pickle
 import types
+import sys
 from argparse import Namespace
+from pathlib import Path
 
 import cloudpickle
 import pytest
 import torch
 
 import tests.base.utils as tutils
-from pytorch_lightning import Callback, LightningModule
-from pytorch_lightning import Trainer
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from pytorch_lightning.core.saving import (
+    load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.io import load as pl_load
@@ -539,6 +541,52 @@ def test_testpass_overrides(tmpdir):
     Trainer().test(model)
 
 
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    loaded_checkpoint_path = ''
+
+    class TestBestModel(EvalModelTemplate):
+        @classmethod
+        def load_from_checkpoint(cls, checkpoint_path, *args, **kwargs):
+            nonlocal loaded_checkpoint_path
+            loaded_checkpoint_path = checkpoint_path
+            return super().load_from_checkpoint(checkpoint_path, *args, **kwargs)
+
+    model = TestBestModel(**hparams)
+    trainer = Trainer(
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        default_root_dir=tmpdir,
+        checkpoint_callback=ModelCheckpoint(save_top_k=save_top_k),
+    )
+    trainer.fit(model)
+    if ckpt_path == 'best':
+        # ckpt_path is 'best', meaning we load the best weights
+        if save_top_k <= 0:
+            with pytest.raises(MisconfigurationException, match='.*is not configured to save the best.*'):
+                trainer.test(ckpt_path=ckpt_path)
+        else:
+            trainer.test(ckpt_path=ckpt_path)
+            assert loaded_checkpoint_path == trainer.checkpoint_callback.best_model_path
+    elif ckpt_path is None:
+        # ckpt_path is None, meaning we don't load any checkpoints and
+        # use the weights from the end of training
+        trainer.test(ckpt_path=ckpt_path)
+        assert loaded_checkpoint_path == ''
+    else:
+        # specific checkpoint, pick one from saved ones
+        if save_top_k == 0:
+            with pytest.raises(FileNotFoundError):
+                trainer.test(ckpt_path='random.ckpt')
+        else:
+            ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0])
+            trainer.test(ckpt_path=ckpt_path)
+            assert loaded_checkpoint_path == ckpt_path
+
+
 def test_disabled_validation():
     """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
 
@@ -660,10 +708,19 @@ def test_trainer_interrupted_flag(tmpdir):
         def on_batch_start(self, trainer, pl_module):
             raise KeyboardInterrupt
 
+    class HandleInterruptCallback(Callback):
+        def __init__(self):
+            super().__init__()
+            self.exc_info = None
+
+        def on_keyboard_interrupt(self, trainer, pl_module):
+            self.exc_info = sys.exc_info()
+
     interrupt_callback = InterruptCallback()
+    handle_interrupt_callback = HandleInterruptCallback()
 
     trainer = Trainer(
-        callbacks=[interrupt_callback],
+        callbacks=[interrupt_callback, handle_interrupt_callback],
         max_epochs=1,
         val_percent_check=0.1,
         train_percent_check=0.2,
@@ -672,8 +729,10 @@ def test_trainer_interrupted_flag(tmpdir):
         default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
+    assert handle_interrupt_callback.exc_info is None
     trainer.fit(model)
     assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
 
 
 def test_gradient_clipping(tmpdir):

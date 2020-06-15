@@ -13,6 +13,7 @@ PyTorch Lightning Documentation
 
    new-project
    introduction_guide
+   performance
 
 .. toctree::
    :maxdepth: 2

@@ -1012,7 +1012,8 @@ class Trainer(
     def test(
             self,
             model: Optional[LightningModule] = None,
-            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            ckpt_path: Optional[str] = 'best'
     ):
         r"""
 
@@ -1024,10 +1025,13 @@ class Trainer(
             test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
         Example::
 
             # Option 1
-            # run test after fitting
+            # run test with the best checkpoint from ``ModelCheckpoint`` after fitting.
             test = DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
@@ -1036,12 +1040,41 @@ class Trainer(
             trainer.test(test_dataloaders=test)
 
             # Option 2
-            # run test from a loaded model
+            # run test with the specified checkpoint after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path='path/to/checkpoint.ckpt')
+
+            # Option 3
+            # run test with the weights from the end of training after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path=None)
+
+            # Option 4
+            # run test from a loaded model. ``ckpt_path`` is ignored in this case.
             test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+            raise MisconfigurationException(
+                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
+
+        # if model is not given (None), ckpt_path is given,
+        # load the given checkpoint for testing
+        if model is None and ckpt_path is not None:
+            # ckpt_path is 'best' so load the best model
+            if ckpt_path == 'best':
+                ckpt_path = self.checkpoint_callback.best_model_path
+            model = self.get_model().load_from_checkpoint(ckpt_path)
 
         self.testing = True
 
