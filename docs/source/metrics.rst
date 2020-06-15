@@ -1,12 +1,12 @@
 Metrics
 =======
-
+This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.
 Metrics are used to monitor model performance.
 
 In this package we provide two major pieces of functionality.
 
-    1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
-    2. A collection of popular metrics already implemented for you.
+1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
+2. A collection of popular metrics already implemented for you.
 
 Example:
 
@@ -20,7 +20,7 @@ Example:
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
 
-    # tensor(0.9167)
+    # tensor(0.7500)
 
 
 --------------
@@ -66,6 +66,8 @@ Here's an example showing how to implement a NumpyMetric
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
 
+--------------
+
 Class Metrics
 -------------
 The following are metrics which can be instantiated as part of a module definition (even with just
@@ -79,22 +81,22 @@ plain PyTorch).
     class MyModule(nn.Module):
         def __init__(self):
             super().__init__()
-            self.accuracy = Accuracy()
+            self.rmse = RMSE()
 
-        def forward(self, x, labels):
-            preds = # ...
-            acc = self.accuracy(preds, labels)
+        def forward(self, x, y):
+            y_hat = # ...
+            acc = self.rmse(y_hat, y)
 
     # PyTorch Lightning
     class MyModule(pl.LightningModule):
         def __init__(self):
             super().__init__()
-            self.accuracy = Accuracy()
+            self.rmse = RMSE()
 
         def training_step(self, batch, batch_idx):
-            x, labels = batch
-            preds = # ...
-            acc = self.accuracy(preds, labels)
+            x, y = batch
+            y_hat = # ...
+            acc = self.rmse(y_hat, y)
 
 These metrics even work when using distributed training:
 
@@ -108,216 +110,190 @@ These metrics even work when using distributed training:
 
 Accuracy
 ^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.Accuracy
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.Accuracy
+    :noindex:
 
 AveragePrecision
 ^^^^^^^^^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.AveragePrecision
+    :noindex:
 
 AUROC
 ^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.AUROC
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.AUROC
+    :noindex:
 
 ConfusionMatrix
 ^^^^^^^^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.ConfusionMatrix
+    :noindex:
 
 DiceCoefficient
 ^^^^^^^^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.DiceCoefficient
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.DiceCoefficient
+    :noindex:
 
 F1
 ^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.F1
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.F1
+    :noindex:
 
 FBeta
 ^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.FBeta
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.FBeta
+    :noindex:
 
 PrecisionRecall
 ^^^^^^^^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecall
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecall
+    :noindex:
 
 Precision
 ^^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.Precision
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.Precision
+    :noindex:
 
 Recall
 ^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.Recall
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.Recall
+    :noindex:
 
 ROC
 ^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.ROC
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.ROC
+    :noindex:
 
 MulticlassROC
 ^^^^^^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.MulticlassROC
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.MulticlassROC
+    :noindex:
 
 MulticlassPrecisionRecall
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
-        :noindex:
+.. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
+    :noindex:
+
+--------------
 
 Functional Metrics
 ------------------
 
 accuracy (F)
 ^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.accuracy
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.accuracy
+    :noindex:
 
 auc (F)
 ^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.auc
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.auc
+    :noindex:
 
 auroc (F)
 ^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.auroc
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.auroc
+    :noindex:
 
 average_precision (F)
 ^^^^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.average_precision
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.average_precision
+    :noindex:
 
 confusion_matrix (F)
 ^^^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.confusion_matrix
+    :noindex:
 
 dice_score (F)
 ^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.dice_score
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.dice_score
+    :noindex:
 
 f1_score (F)
 ^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.f1_score
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.f1_score
+    :noindex:
 
 fbeta_score (F)
 ^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.fbeta_score
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.fbeta_score
+    :noindex:
 
 multiclass_precision_recall_curve (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.multiclass_precision_recall_curve
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.multiclass_precision_recall_curve
+    :noindex:
 
 multiclass_roc (F)
 ^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.multiclass_roc
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.multiclass_roc
+    :noindex:
 
 precision (F)
 ^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.precision
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.precision
+    :noindex:
 
 precision_recall (F)
 ^^^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.precision_recall
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall
+    :noindex:
 
 precision_recall_curve (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.precision_recall_curve
+    :noindex:
 
 recall (F)
 ^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.recall
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.recall
+    :noindex:
 
 roc (F)
 ^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.roc
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.roc
+    :noindex:
 
 stat_scores (F)
 ^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.stat_scores
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.stat_scores
+    :noindex:
 
 stat_scores_multiple_classes (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
+    :noindex:
+
+----------------
 
 Metric pre-processing
 ---------------------
@@ -325,14 +301,12 @@ Metric
 
 to_categorical (F)
 ^^^^^^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.to_categorical
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.to_categorical
+    :noindex:
 
 to_onehot (F)
 ^^^^^^^^^^^^^
-Metric
 
-    .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
-        :noindex:
+.. autofunction:: pytorch_lightning.metrics.functional.to_onehot
+    :noindex:
