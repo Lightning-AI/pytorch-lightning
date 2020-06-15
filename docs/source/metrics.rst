@@ -81,7 +81,7 @@ plain PyTorch).
     class MyModule(nn.Module):
         def __init__(self):
             super().__init__()
-            self.rmse = RMSE()
+            self.metric = Accuracy()
 
         def forward(self, x, y):
             y_hat = # ...
