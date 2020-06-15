@@ -226,15 +226,22 @@ class TrainerEvaluationLoopMixin(ABC):
         self,
         model: LightningModule,
         dataloaders: List[DataLoader],
-        max_batches: List[int],
+        max_batches: Union[int, List[int]],
         test_mode: bool = False
     ):
         """Run evaluation code.
 
         Args:
+<<<<<<< HEAD
             model: PT model
             dataloaders: list of PT dataloaders
             max_batches: List of scalars
+=======
+            model: The model to evaluate.
+            dataloaders: A list of PyTorch dataloaders.
+            max_batches: An integer or list of integers with length of the number of dataloaders. Each
+                entry is the number of batches to process in the corresponding dataloader.
+>>>>>>> max_batches can be int
             test_mode:
         """
         # enable eval mode
@@ -249,6 +256,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # bookkeeping
         outputs = []
+
+        # convert max_batches to list
+        if isinstance(max_batches, int):
+            max_batches = [max_batches] * len(dataloaders)
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
