@@ -166,9 +166,7 @@ def stat_scores_multiple_classes(
     fns = torch.zeros((num_classes,), device=pred.device)
     sups = torch.zeros((num_classes,), device=pred.device)
     for c in range(num_classes):
-        tps[c], fps[c], tns[c], fns[c], sups[c] = stat_scores(pred=pred,
-                                                              target=target,
-                                                              class_index=c)
+        tps[c], fps[c], tns[c], fns[c], sups[c] = stat_scores(pred=pred, target=target, class_index=c)
 
     return tps, fps, tns, fns, sups
 
