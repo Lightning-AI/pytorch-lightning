@@ -96,7 +96,7 @@ plain PyTorch).
         def training_step(self, batch, batch_idx):
             x, y = batch
             y_hat = # ...
-            acc = self.rmse(y_hat, y)
+            acc = self.metric(y_hat, y)
 
 These metrics even work when using distributed training:
 
