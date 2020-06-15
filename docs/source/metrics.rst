@@ -79,22 +79,22 @@ plain PyTorch).
     class MyModule(nn.Module):
         def __init__(self):
             super().__init__()
-            self.accuracy = Accuracy()
+            self.rmse = RMSE()
 
-        def forward(self, x, labels):
-            preds = # ...
-            acc = self.accuracy(preds, labels)
+        def forward(self, x, y):
+            y_hat = # ...
+            acc = self.rmse(y_hat, y)
 
     # PyTorch Lightning
     class MyModule(pl.LightningModule):
         def __init__(self):
             super().__init__()
-            self.accuracy = Accuracy()
+            self.rmse = RMSE()
 
         def training_step(self, batch, batch_idx):
-            x, labels = batch
-            preds = # ...
-            acc = self.accuracy(preds, labels)
+            x, y = batch
+            y_hat = # ...
+            acc = self.rmse(y_hat, y)
 
 These metrics even work when using distributed training:
 
