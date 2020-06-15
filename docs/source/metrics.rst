@@ -20,7 +20,7 @@ Example:
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
 
-    # tensor(0.9167)
+    # tensor(0.7500)
 
 
 --------------
