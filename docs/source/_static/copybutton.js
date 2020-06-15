@@ -1,3 +1,4 @@
+/* Copied from the official Python docs: https://docs.python.org/3/_static/copybutton.js */
 $(document).ready(function() {
     /* Add a [>>>] button on the top-right corner of code samples to hide
      * the >>> and ... prompts and the output and thus make the code
@@ -61,4 +62,3 @@ $(document).ready(function() {
         }
     });
 });
-
