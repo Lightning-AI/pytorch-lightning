@@ -91,7 +91,7 @@ plain PyTorch).
     class MyModule(pl.LightningModule):
         def __init__(self):
             super().__init__()
-            self.rmse = RMSE()
+            self.metric = Accuracy()
 
         def training_step(self, batch, batch_idx):
             x, y = batch
