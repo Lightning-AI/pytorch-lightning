@@ -7,6 +7,7 @@ class ValidationEpochEndVariations(ABC):
     """
     Houses all variations of validation_epoch_end steps
     """
+
     def validation_epoch_end(self, outputs):
         """
         Called at the end of validation to aggregate outputs
@@ -50,5 +51,9 @@ class ValidationEpochEndVariations(ABC):
                 pbar[key] = metric_out
                 logs[key] = metric_out
 
-        results = {'progress_bar': pbar, 'log': logs}
+        results = {
+            'val_loss': torch.stack([v for k, v in pbar.items() if k.startswith('val_loss')]).mean(),
+            'progress_bar': pbar,
+            'log': logs
+        }
         return results

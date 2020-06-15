@@ -97,12 +97,20 @@ def test_multiple_val_dataloader(tmpdir):
         tutils.run_prediction(dataloader, trainer.model)
 
 
-def test_multiple_test_dataloader(tmpdir):
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+def test_multiple_test_dataloader(tmpdir, ckpt_path):
     """Verify multiple test_dataloader."""
 
-    model = EvalModelTemplate()
-    model.test_dataloader = model.test_dataloader__multiple
-    model.test_step = model.test_step__multiple_dataloaders
+    model_template = EvalModelTemplate()
+
+    class MultipleTestDataloaderModel(EvalModelTemplate):
+        def test_dataloader(self):
+            return model_template.test_dataloader__multiple()
+
+        def test_step(self, batch, batch_idx, *args, **kwargs):
+            return model_template.test_step__multiple_dataloaders(batch, batch_idx, *args, **kwargs)
+
+    model = MultipleTestDataloaderModel()
 
     # fit model
     trainer = Trainer(
@@ -112,7 +120,9 @@ def test_multiple_test_dataloader(tmpdir):
         train_percent_check=0.2
     )
     trainer.fit(model)
-    trainer.test()
+    if ckpt_path == 'specific':
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+    trainer.test(ckpt_path=ckpt_path)
 
     # verify there are 2 test loaders
     assert len(trainer.test_dataloaders) == 2, \
@@ -123,7 +133,7 @@ def test_multiple_test_dataloader(tmpdir):
         tutils.run_prediction(dataloader, trainer.model)
 
     # run the test method
-    trainer.test()
+    trainer.test(ckpt_path=ckpt_path)
 
 
 def test_train_dataloader_passed_to_fit(tmpdir):
@@ -163,7 +173,8 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
 
 
-def test_all_dataloaders_passed_to_fit(tmpdir):
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+def test_all_dataloaders_passed_to_fit(tmpdir, ckpt_path):
     """Verify train, val & test dataloader(s) can be passed to fit and test method"""
 
     model = EvalModelTemplate()
@@ -177,9 +188,12 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True),
                        val_dataloaders=model.dataloader(train=False))
-    test_options = dict(test_dataloaders=model.dataloader(train=False))
-
     result = trainer.fit(model, **fit_options)
+
+    if ckpt_path == 'specific':
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+    test_options = dict(test_dataloaders=model.dataloader(train=False),
+                        ckpt_path=ckpt_path)
     trainer.test(**test_options)
 
     assert result == 1
@@ -189,7 +203,8 @@ def test_all_dataloaders_passed_to_fit(tmpdir):
         f'test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
-def test_multiple_dataloaders_passed_to_fit(tmpdir):
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
     """Verify that multiple val & test dataloaders can be passed to fit."""
 
     model = EvalModelTemplate()
@@ -207,10 +222,12 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model.dataloader(train=True),
                        val_dataloaders=[model.dataloader(train=False),
                                         model.dataloader(train=False)])
-    test_options = dict(test_dataloaders=[model.dataloader(train=False),
-                                          model.dataloader(train=False)])
-
     trainer.fit(model, **fit_options)
+    if ckpt_path == 'specific':
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+    test_options = dict(test_dataloaders=[model.dataloader(train=False),
+                                          model.dataloader(train=False)],
+                        ckpt_path=ckpt_path)
     trainer.test(**test_options)
 
     assert len(trainer.val_dataloaders) == 2, \
@@ -219,7 +236,8 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir):
         f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
-def test_mixing_of_dataloader_options(tmpdir):
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     """Verify that dataloaders can be passed to fit"""
 
     model = EvalModelTemplate()
@@ -240,7 +258,9 @@ def test_mixing_of_dataloader_options(tmpdir):
     trainer = Trainer(**trainer_options)
     results = trainer.fit(model, val_dataloaders=model.dataloader(train=False))
     assert results
-    trainer.test(test_dataloaders=model.dataloader(train=False))
+    if ckpt_path == 'specific':
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+    trainer.test(test_dataloaders=model.dataloader(train=False), ckpt_path=ckpt_path)
 
     assert len(trainer.val_dataloaders) == 1, \
         f'`val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
@@ -341,7 +361,8 @@ def test_error_on_zero_len_dataloader(tmpdir):
 
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
-def test_warning_with_few_workers(tmpdir):
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+def test_warning_with_few_workers(tmpdir, ckpt_path):
     """ Test that error is raised if dataloader with only a few workers is used """
 
     model = EvalModelTemplate()
@@ -365,8 +386,6 @@ def test_warning_with_few_workers(tmpdir):
 
     fit_options = dict(train_dataloader=train_dl,
                        val_dataloaders=val_dl)
-    test_options = dict(test_dataloaders=train_dl)
-
     trainer = Trainer(**trainer_options)
 
     # fit model
@@ -376,6 +395,9 @@ def test_warning_with_few_workers(tmpdir):
     with pytest.warns(UserWarning, match='val'):
         trainer.fit(model, **fit_options)
 
+    if ckpt_path == 'specific':
+        ckpt_path = trainer.checkpoint_callback.best_model_path
+    test_options = dict(test_dataloaders=train_dl, ckpt_path=ckpt_path)
     with pytest.warns(UserWarning, match='test'):
         trainer.test(**test_options)
 

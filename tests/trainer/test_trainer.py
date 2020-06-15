@@ -4,6 +4,7 @@ import os
 import pickle
 import types
 from argparse import Namespace
+from pathlib import Path
 
 import cloudpickle
 import pytest
@@ -537,6 +538,52 @@ def test_testpass_overrides(tmpdir):
 
     model = EvalModelTemplate(**hparams)
     Trainer().test(model)
+
+
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    loaded_checkpoint_path = ''
+
+    class TestBestModel(EvalModelTemplate):
+        @classmethod
+        def load_from_checkpoint(cls, checkpoint_path, *args, **kwargs):
+            nonlocal loaded_checkpoint_path
+            loaded_checkpoint_path = checkpoint_path
+            return super().load_from_checkpoint(checkpoint_path, *args, **kwargs)
+
+    model = TestBestModel(**hparams)
+    trainer = Trainer(
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        default_root_dir=tmpdir,
+        checkpoint_callback=ModelCheckpoint(save_top_k=save_top_k),
+    )
+    trainer.fit(model)
+    if ckpt_path == 'best':
+        # ckpt_path is 'best', meaning we load the best weights
+        if save_top_k <= 0:
+            with pytest.raises(MisconfigurationException, match='.*is not configured to save the best.*'):
+                trainer.test(ckpt_path=ckpt_path)
+        else:
+            trainer.test(ckpt_path=ckpt_path)
+            assert loaded_checkpoint_path == trainer.checkpoint_callback.best_model_path
+    elif ckpt_path is None:
+        # ckpt_path is None, meaning we don't load any checkpoints and
+        # use the weights from the end of training
+        trainer.test(ckpt_path=ckpt_path)
+        assert loaded_checkpoint_path == ''
+    else:
+        # specific checkpoint, pick one from saved ones
+        if save_top_k == 0:
+            with pytest.raises(FileNotFoundError):
+                trainer.test(ckpt_path='random.ckpt')
+        else:
+            ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0])
+            trainer.test(ckpt_path=ckpt_path)
+            assert loaded_checkpoint_path == ckpt_path
 
 
 def test_disabled_validation():
