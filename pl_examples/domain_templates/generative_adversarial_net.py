@@ -93,6 +93,8 @@ class GAN(LightningModule):
 
         self.validation_z = torch.randn(8, self.latent_dim)
 
+        self.example_input_array = torch.zeros(2, hparams.latent_dim)
+
     def forward(self, z):
         return self.generator(z)
 

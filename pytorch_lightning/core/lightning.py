@@ -52,7 +52,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: Pointer to the logger object
         self.logger = None
-        self.example_input_array = None
 
         #: True if using dp
         self.use_dp = False
@@ -74,6 +73,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: device reference
         self._device = torch.device('cpu')
+
+        # optionally can be set by user
+        self._example_input_array = None
+
+    @property
+    def example_input_array(self) -> Any:
+        return self._example_input_array
+
+    @example_input_array.setter
+    def example_input_array(self, example: Any) -> None:
+        self._example_input_array = example
 
     @property
     def on_gpu(self):
@@ -1445,9 +1455,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             will have an argument ``dataset_idx`` which matches the order here.
         """
 
-    def summarize(self, mode: str) -> None:
+    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
         model_summary = ModelSummary(self, mode=mode)
-        log.info('\n' + model_summary.__str__())
+        log.info('\n' + str(model_summary))
+        return model_summary
 
     def freeze(self) -> None:
         r"""
