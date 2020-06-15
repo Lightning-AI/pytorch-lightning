@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.signal_handling import SignalHandler
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
@@ -941,8 +942,9 @@ class Trainer(
             # wait for all processes to catch up
             hvd.join()
 
-        # register auto-resubmit when on SLURM
-        self.register_slurm_signal_handlers()
+        # handle POSIX signals that interrupt training
+        signal_handler = SignalHandler(self)
+        signal_handler.register()
 
         # print model summary
         # TODO: remove self.testing condition because model.summarize() is wiping out the weights
@@ -1004,6 +1006,8 @@ class Trainer(
         # CORE TRAINING LOOP
         self.train()
         self.run_training_teardown()
+
+        signal_handler.restore()
 
     def test(
             self,

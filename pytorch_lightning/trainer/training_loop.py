@@ -141,9 +141,6 @@ in your model.
 
 """
 
-import atexit
-import signal
-import sys
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
@@ -152,14 +149,12 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_info
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-import subprocess
 
 try:
     from apex import amp
@@ -182,9 +177,6 @@ except ImportError:
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
-
-# constant which signals should be catched for graceful trainer shutdown
-FATAL_SIGNALS = ('SIGTERM', 'SIGSEGV', 'SIGINT')
 
 
 class TrainerTrainLoopMixin(ABC):
@@ -306,10 +298,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
-
-        # add signal handlers for process kills
-        self._configure_signal_handlers()
-
         # get model
         model = self.get_model()
 
@@ -797,26 +785,6 @@ class TrainerTrainLoopMixin(ABC):
     def call_checkpoint_callback(self):
         if self.checkpoint_callback is not None:
             self.checkpoint_callback.on_validation_end(self, self.get_model())
-
-    def _signal_kill_handler(self, code, frame):
-        if code == signal.SIGINT:
-            rank_zero_info('Detected KeyboardInterrupt, attempting graceful shutdown ...')
-
-        if not self.interrupted:
-            self.interrupted = True
-
-        for proc in self.interactive_ddp_procs:
-            subprocess.Popen.kill(proc)
-
-        self.run_training_teardown()
-        sys.exit()
-
-    def _configure_signal_handlers(self):
-        """ Sets up training teardown signal handlers that run on interpreter exit and other POSIX signals. """
-
-        atexit.register(self.run_training_teardown)
-        for sig_name in FATAL_SIGNALS:
-            signal.signal(getattr(signal, sig_name), self._signal_kill_handler)
 
 
 def _with_is_last(iterable):
