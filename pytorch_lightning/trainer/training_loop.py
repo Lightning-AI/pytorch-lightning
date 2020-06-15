@@ -317,7 +317,6 @@ class TrainerTrainLoopMixin(ABC):
             # model hooks
             model.on_train_start()
 
-
         # run all epochs
         for epoch in range(self.current_epoch, self.max_epochs):
             # reset train dataloader
