@@ -116,7 +116,9 @@ class ConfusionMatrix(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -170,7 +172,9 @@ class PrecisionRecall(TensorCollectionMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -235,7 +239,9 @@ class Precision(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -293,7 +299,9 @@ class Recall(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -346,7 +354,9 @@ class AveragePrecision(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -403,7 +413,9 @@ class AUROC(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -466,7 +478,9 @@ class FBeta(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -523,7 +537,9 @@ class F1(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -575,7 +591,9 @@ class ROC(TensorCollectionMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -641,7 +659,9 @@ class MulticlassROC(TensorCollectionMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -702,7 +722,9 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode::
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
@@ -768,7 +790,9 @@ class DiceCoefficient(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
-        Example::
+        Example:
+
+        .. testcode:
 
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
