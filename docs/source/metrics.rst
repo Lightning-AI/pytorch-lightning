@@ -85,7 +85,7 @@ plain PyTorch).
 
         def forward(self, x, y):
             y_hat = # ...
-            acc = self.rmse(y_hat, y)
+            acc = self.metric(y_hat, y)
 
     # PyTorch Lightning
     class MyModule(pl.LightningModule):
