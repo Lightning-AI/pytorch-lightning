@@ -57,7 +57,7 @@ class TrainerDPMixin(ABC):
     root_gpu: ...
     amp_level: str
     precision: ...
-    proc_rank: int
+    global_rank: int
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
@@ -183,8 +183,8 @@ class TrainerDPMixin(ABC):
         if self.tpu_global_core_rank != 0 and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
 
-        self.proc_rank = self.tpu_local_core_rank
-        rank_zero_only.rank = self.proc_rank
+        self.global_rank = self.tpu_local_core_rank
+        rank_zero_only.rank = self.global_rank
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -289,8 +289,8 @@ class TrainerDPMixin(ABC):
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
-        self.proc_rank = hvd.rank()
-        rank_zero_only.rank = self.proc_rank
+        self.global_rank = hvd.rank()
+        rank_zero_only.rank = self.global_rank
 
         with ExitStack() as stack:
             for optimizer in self.optimizers:

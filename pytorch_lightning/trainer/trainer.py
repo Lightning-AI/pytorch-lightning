@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info
 
 try:
     from apex import amp
@@ -107,7 +107,7 @@ class Trainer(
         test_percent_check: float = 1.0,
         val_check_interval: float = 1.0,
         log_save_interval: int = 100,
-        row_log_interval: int = 10,
+        row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
         precision: int = 32,
         print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
@@ -124,6 +124,7 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
+        prepare_data_per_node: bool = True,
         amp_level: str = 'O1',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
@@ -283,6 +284,9 @@ class Trainer(
                 The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
+
+            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
         """
         super().__init__()
 
@@ -294,6 +298,7 @@ class Trainer(
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         # Init callbacks
+        self.prepare_data_per_node = prepare_data_per_node
         self.callbacks = callbacks or []
         self.on_init_start()
 
@@ -363,8 +368,8 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
-            log.info('Running in fast_dev_run mode: will run a full train,'
-                     ' val and test loop using a single batch')
+            rank_zero_info('Running in fast_dev_run mode: will run a full train,'
+                           ' val and test loop using a single batch')
 
         # set default save path if user didn't provide one
         self.default_root_dir = default_root_dir
@@ -440,11 +445,12 @@ class Trainer(
             self.init_tpu()
 
         # init flags for SLURM+ddp to work
-        self.proc_rank = 0
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
+        self.local_rank = self.determine_local_rank()
+        self.global_rank = 0
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -481,6 +487,10 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def is_global_zero(self):
+        return self.global_rank == 0
 
     @property
     def slurm_job_id(self) -> Optional[int]:
@@ -533,6 +543,7 @@ class Trainer(
              ('max_epochs', (<class 'int'>,), 1000),
              ...
              ('precision', (<class 'int'>,), 32),
+             ('prepare_data_per_node', (<class 'bool'>,), True),
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
@@ -774,10 +785,9 @@ class Trainer(
         # check that model is configured correctly
         self.check_model_configuration(model)
 
-        # download the data and do whatever transforms we need
-        # do before any spawn calls so that the model can assign properties
-        # only on proc 0 because no spawn has happened yet
-        if not self._is_data_prepared:
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+        if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
 
@@ -802,6 +812,7 @@ class Trainer(
             # torchelastic or general non_slurm ddp2
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
+
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
@@ -839,7 +850,7 @@ class Trainer(
             self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.tpu_cores} TPU cores')
+            rank_zero_info(f'training on {self.tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
@@ -872,6 +883,13 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
+
+    def can_prepare_data(self):
+        if self.prepare_data_per_node:
+            return self.local_rank == 0
+
+        else:
+            return self.node_rank == 0 and self.local_rank == 0
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -928,7 +946,7 @@ class Trainer(
         self.register_slurm_signal_handlers()
 
         # print model summary
-        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ModelSummary.MODES:
                 ref_model.summarize(mode=self.weights_summary)
             else:
@@ -991,7 +1009,8 @@ class Trainer(
     def test(
             self,
             model: Optional[LightningModule] = None,
-            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            ckpt_path: Optional[str] = 'best'
     ):
         r"""
 
@@ -1003,10 +1022,13 @@ class Trainer(
             test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
         Example::
 
             # Option 1
-            # run test after fitting
+            # run test with the best checkpoint from ``ModelCheckpoint`` after fitting.
             test = DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
@@ -1015,12 +1037,41 @@ class Trainer(
             trainer.test(test_dataloaders=test)
 
             # Option 2
-            # run test from a loaded model
+            # run test with the specified checkpoint after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path='path/to/checkpoint.ckpt')
+
+            # Option 3
+            # run test with the weights from the end of training after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path=None)
+
+            # Option 4
+            # run test from a loaded model. ``ckpt_path`` is ignored in this case.
             test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+            raise MisconfigurationException(
+                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
+
+        # if model is not given (None), ckpt_path is given,
+        # load the given checkpoint for testing
+        if model is None and ckpt_path is not None:
+            # ckpt_path is 'best' so load the best model
+            if ckpt_path == 'best':
+                ckpt_path = self.checkpoint_callback.best_model_path
+            model = self.get_model().load_from_checkpoint(ckpt_path)
 
         self.testing = True
 

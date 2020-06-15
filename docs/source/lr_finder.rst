@@ -18,16 +18,16 @@ after each processed batch and the corresponding loss is logged. The result of
 this is a `lr` vs. `loss` plot that can be used as guidance for choosing a optimal
 initial lr. 
 
-Warnings:
-- For the moment, this feature only works with models having a single optimizer.
-- LR support for DDP is not implemented yet, it is comming soon.
+.. warning:: 
+    For the moment, this feature only works with models having a single optimizer. 
+    LR support for DDP is not implemented yet, it is comming soon.
 
 Using Lightning's built-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the most basic use case, this feature can be enabled during trainer construction
 with ``Trainer(auto_lr_find=True)``. When ``.fit(model)`` is called, the LR finder
-will automatically be run before any training is done. The ``lr`` that is found
+will automatically run before any training is done. The ``lr`` that is found
 and used will be written to the console and logged together with all other
 hyperparameters of the model.
     
@@ -52,17 +52,14 @@ This flag sets your learning rate which can be accessed via ``self.lr`` or ``sel
     # sets hparams.lr or hparams.learning_rate to that learning rate
     trainer = Trainer(auto_lr_find=True)
 
-To use an arbitrary value set it in the parameter.
+To use an arbitrary value set it as auto_lr_find
 
 .. testcode::
 
     # to set to your own hparams.my_value
     trainer = Trainer(auto_lr_find='my_value')
 
-Under the hood, when you call fit, this is what happens.  
-
-1. Run learning rate finder.
-2. Run actual fit.   
+Under the hood, when you call fit it runs the learning rate finder before actually calling fit.
 
 .. code-block:: python
         

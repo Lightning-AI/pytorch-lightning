@@ -60,7 +60,7 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 We are currently looking for help implementing new features or adding bug fixes.
 
-A lot of good work has already been done in project mechanics (requirements.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
+A lot of good work has already been done in project mechanics (requirements/base.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
 
@@ -137,12 +137,18 @@ formatting errors. In certain cases, a missing blank line or a wrong indent can 
 Run these commands
 
 ```bash
+pip install -r requirements/docs.txt
 cd docs
-pip install -r requirements.txt
 make html
 ```
 
 and open `docs/build/html/index.html` in your browser.
+
+Notes:
+ - You need to have LaTeX installed for rendering math equations. You can for example install TeXLive by doing one of the following:
+    * on Ubuntu (Linux) run `apt-get install texlive` or otherwise follow the instructions on the TeXLive website
+    * use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
+- with PL used class meta you need to use python 3.7 or higher
 
 When you send a PR the continuous integration will run tests and build the docs. You can access a preview of the html pages in the
 _Artifacts_ tab in CircleCI when you click on the task named _ci/circleci: Build-Docs_ at the bottom of the PR page.
@@ -153,9 +159,8 @@ Testing your work locally will help you speed up the process since it allows you
 To setup a local development environment, install both local and test dependencies:
 
 ```bash
-python -m pip install -r requirements.txt
-python -m pip install -r tests/requirements-devel.txt
-python -m pip install -r pl_examples/requirements.txt
+python -m pip install -r requirements/devel.txt
+python -m pip install -r requirements/examples.txt
 python -m pip pre-commit install
 ```
 

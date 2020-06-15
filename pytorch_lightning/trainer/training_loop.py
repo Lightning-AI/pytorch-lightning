@@ -145,7 +145,7 @@ import atexit
 import signal
 from abc import ABC, abstractmethod
 from typing import Callable
-from typing import Union, List, Optional
+from typing import Union, List
 
 import numpy as np
 import torch
@@ -214,7 +214,7 @@ class TrainerTrainLoopMixin(ABC):
     global_step: int
     testing: bool
     log_save_interval: float
-    proc_rank: int
+    global_rank: int
     row_log_interval: float
     truncated_bptt_steps: ...
     optimizers: ...
@@ -236,8 +236,8 @@ class TrainerTrainLoopMixin(ABC):
     total_batch_idx: int
     checkpoint_callback: ...
     terminate_on_nan: bool
-    tpu_id: Optional[int]
-    interactive_ddp_procs: List
+    tpu_id: int
+    interactive_ddp_procs: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -248,6 +248,7 @@ class TrainerTrainLoopMixin(ABC):
     on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
+    on_keyboard_interrupt: Callable
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -396,6 +397,7 @@ class TrainerTrainLoopMixin(ABC):
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
+                self.on_keyboard_interrupt()
 
                 for proc in self.interactive_ddp_procs:
                     subprocess.Popen.kill(proc)
@@ -481,7 +483,7 @@ class TrainerTrainLoopMixin(ABC):
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
             if should_save_log or self.fast_dev_run:
-                if self.proc_rank == 0 and self.logger is not None:
+                if self.is_global_zero and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged

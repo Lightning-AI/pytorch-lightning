@@ -1,6 +1,7 @@
 import platform
 from abc import ABC, abstractmethod
 from typing import Union, List, Tuple, Callable, Optional
+import multiprocessing
 
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
@@ -57,7 +58,7 @@ class TrainerDataLoadingMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    proc_rank: int
+    global_rank: int
     use_ddp: bool
     use_ddp2: bool
     use_horovod: bool
@@ -96,10 +97,25 @@ class TrainerDataLoadingMixin(ABC):
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         on_windows = platform.system() == 'Windows'
 
-        if isinstance(dataloader, DataLoader) and dataloader.num_workers <= 2 and not on_windows:
+        # ddp_spawn + num_workers > 0 don't mix! tell the user
+        is_dataloader = isinstance(dataloader, DataLoader)
+        using_spawn = self.distributed_backend == 'ddp_spawn'
+        if is_dataloader and dataloader.num_workers > 0 and not on_windows and using_spawn:
+            rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well! '
+                           'Your performance might suffer dramatically. '
+                           'Please consider setting distributed_backend=ddp to use num_workers > 0 '
+                           '(this is a bottleneck of Python .spawn() and PyTorch')
+
+        elif is_dataloader and dataloader.num_workers <= 2 and not on_windows and not using_spawn:
+            num_cpus = multiprocessing.cpu_count()
             rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
-                           ' Consider increasing the value of the `num_workers` argument`'
+                           ' Consider increasing the value of the `num_workers` argument` '
+                           f'(try {num_cpus} which is the number of cpus on this machine)'
                            ' in the `DataLoader` init to improve performance.')
+
+        elif is_dataloader and dataloader.num_workers == 0 and not on_windows and using_spawn:
+            rank_zero_warn('You are using `distributed_backend=ddp_spawn` with num_workers=0. '
+                           'For much faster performance, switch to `distributed_backend=ddp` and set `num_workers>0`')
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
@@ -147,7 +163,7 @@ class TrainerDataLoadingMixin(ABC):
                 'ddp_cpu': self.num_processes * self.num_nodes
             }
             assert self.distributed_backend is not None
-            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.proc_rank)
+            kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 

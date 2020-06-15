@@ -112,6 +112,7 @@ class ModelCheckpoint(Callback):
             if os.path.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
             else:
+                filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
             os.makedirs(self.dirpath, exist_ok=True)
         self.save_last = save_last
@@ -228,7 +229,7 @@ class ModelCheckpoint(Callback):
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
-        if trainer.proc_rank != 0:
+        if trainer.global_rank != 0:
             return
 
         metrics = trainer.callback_metrics
@@ -259,7 +260,7 @@ class ModelCheckpoint(Callback):
             if not isinstance(current, torch.Tensor):
                 rank_zero_warn(
                     f'The metric you returned {current} must be a Torch.Tensor instance, checkpoint not saved '
-                    f'HINT: what is the value of {self.monitor} in validation_end()?', RuntimeWarning
+                    f'HINT: what is the value of {self.monitor} in validation_epoch_end()?', RuntimeWarning
                 )
 
             if current is None:
