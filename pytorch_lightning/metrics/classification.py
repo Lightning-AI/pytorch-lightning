@@ -576,7 +576,7 @@ class ROC(TensorCollectionMetric):
             pred = torch.tensor([0, 1, 2, 3])
             target = torch.tensor([0, 1, 2, 2])
             metric = ROC()
-            fp, tp, thresholds metric(pred, target)
+            fp, tp, thresholds = metric(pred, target)
 
         Out::
 
@@ -637,6 +637,17 @@ class MulticlassROC(TensorCollectionMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = MulticlassROC()
+            classes_roc = metric(pred, target)
+
+        Out::
+
+            # TODO: fix bug - @nicki skafte
+
         """
         super().__init__(name='multiclass_roc',
                          reduce_group=reduce_group,
@@ -686,6 +697,17 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = MulticlassPrecisionRecall()
+            classes_pr = metric(pred, target)
+
+        Out::
+
+            # TODO: fix bug - @nicki skafte
 
         """
         super().__init__(name='multiclass_precision_recall_curve',
@@ -741,6 +763,17 @@ class DiceCoefficient(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = DiceCoefficient()
+            classes_pr = metric(pred, target)
+
+        Out::
+
+            # TODO: fix bug - @nicki skafte
         """
         super().__init__(name='dice',
                          reduce_group=reduce_group,
