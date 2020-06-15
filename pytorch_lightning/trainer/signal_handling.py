@@ -96,4 +96,4 @@ class SignalHandler:
 def on_slurm() -> bool:
     """ Checks if we're using SLURM (not interactive). """
     job_name = os.environ.get('SLURM_JOB_NAME')
-    return job_name and job_name != 'bash'
+    return job_name is not None and job_name != 'bash'
