@@ -259,7 +259,7 @@ class TrainerDDPMixin(ABC):
             self.data_parallel_device_ids = None
             self.on_gpu = False
         elif distributed_backend == 'horovod':
-            if gpus
+            self.on_gpu = True if self.num_gpus >= 1 else False
             self._set_horovod_backend()
 
         # throw error to force user ddp or ddp2 choice
