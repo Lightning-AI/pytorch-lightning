@@ -318,6 +318,12 @@ class TrainerTrainLoopMixin(ABC):
 
         # get model
         model = self.get_model()
+        
+        # enable train mode 
+        model.train()
+
+        # enable gradients
+        torch.set_grad_enabled(True)
 
         # load data
         # if reload_dataloaders_every_epoch, this is moved to the epoch loop
