@@ -1,6 +1,6 @@
 Metrics
 =======
-
+This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.
 Metrics are used to monitor model performance.
 
 In this package we provide two major pieces of functionality.
