@@ -60,6 +60,13 @@ class Accuracy(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            acc = Accuracy()
+            acc(pred, target)
+
         """
         super().__init__(name='accuracy',
                          reduce_group=reduce_group,
