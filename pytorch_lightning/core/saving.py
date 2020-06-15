@@ -342,7 +342,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
 
     if Container is not None and isinstance(hparams, Container):
         from omegaconf import OmegaConf
-        OmegaConf.save(hparams, config_yaml)
+        OmegaConf.save(hparams, config_yaml, resolve=True)
         return
 
     # saving the standard way
