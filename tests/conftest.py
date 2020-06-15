@@ -1,9 +1,9 @@
+import sys
+import threading
 from functools import wraps, partial
 from http.server import SimpleHTTPRequestHandler
 
-import sys
 import pytest
-import threading
 import torch.multiprocessing as mp
 
 

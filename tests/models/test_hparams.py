@@ -1,7 +1,8 @@
 import os
-import sys
+import pickle
 from argparse import Namespace
 
+import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf, Container
@@ -9,8 +10,6 @@ from omegaconf import OmegaConf, Container
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities import AttributeDict
 from tests.base import EvalModelTemplate
-import pickle
-import cloudpickle
 
 
 class SaveHparamsModel(EvalModelTemplate):
