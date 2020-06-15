@@ -112,6 +112,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         This makes it easy to write a complex system for training with the outputs
         you'd want in a prediction setting.
 
+        You may also find the :func:`~pytorch_lightning.core.decorators.auto_move_data` decorator useful
+        when using the module outside Lightning in a production setting.
+
         Args:
             *args: Whatever you decide to pass into the forward method.
             **kwargs: Keyword arguments are also possible.
