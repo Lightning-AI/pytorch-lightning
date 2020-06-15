@@ -107,7 +107,7 @@ class Trainer(
         test_percent_check: float = 1.0,
         val_check_interval: float = 1.0,
         log_save_interval: int = 100,
-        row_log_interval: int = 10,
+        row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
         precision: int = 32,
         print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0

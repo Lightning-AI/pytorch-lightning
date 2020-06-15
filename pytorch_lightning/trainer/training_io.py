@@ -91,6 +91,7 @@ from abc import ABC
 import torch
 import torch.distributed as torch_distrib
 
+import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -98,7 +99,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.io import load as pl_load
 
 try:
@@ -116,6 +117,11 @@ except ImportError:
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
+
+try:
+    from omegaconf import Container
+except ImportError:
+    Container = None
 
 
 class TrainerIOMixin(ABC):
@@ -220,8 +226,8 @@ class TrainerIOMixin(ABC):
             try:
                 self._atomic_save(checkpoint, filepath)
             except AttributeError as err:
-                if LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
-                    del checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]
+                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
                                f' An attribute is not picklable {err}')
                 self._atomic_save(checkpoint, filepath)
@@ -273,6 +279,7 @@ class TrainerIOMixin(ABC):
         checkpoint = {
             'epoch': self.current_epoch + 1,
             'global_step': self.global_step + 1,
+            'pytorch-ligthning_version': pytorch_lightning.__version__,
         }
 
         if not weights_only:
@@ -309,10 +316,12 @@ class TrainerIOMixin(ABC):
 
         if model.hparams:
             if hasattr(model, '_hparams_name'):
-                checkpoint[LightningModule.CHECKPOINT_NAME_HYPER_PARAMS] = model._hparams_name
+                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # add arguments to the checkpoint
-            # todo: add some recursion in case of OmegaConf
-            checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS] = dict(model.hparams)
+            checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
+            if Container is not None:
+                if isinstance(model.hparams, Container):
+                    checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -426,8 +435,8 @@ class TrainerIOMixin(ABC):
         try:
             self._atomic_save(checkpoint, filepath)
         except AttributeError as err:
-            if LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
-                del checkpoint[LightningModule.CHECKPOINT_KEY_HYPER_PARAMS]
+            if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+                del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
                            f' An attribute is not picklable {err}')
             self._atomic_save(checkpoint, filepath)

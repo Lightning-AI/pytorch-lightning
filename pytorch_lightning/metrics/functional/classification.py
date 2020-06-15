@@ -96,8 +96,9 @@ def stat_scores(
     fp = ((pred == class_index) * (target != class_index)).to(torch.long).sum()
     tn = ((pred != class_index) * (target != class_index)).to(torch.long).sum()
     fn = ((pred != class_index) * (target == class_index)).to(torch.long).sum()
+    sup = (target == class_index).to(torch.long).sum()
 
-    return tp, fp, tn, fn
+    return tp, fp, tn, fn, sup
 
 
 def stat_scores_multiple_classes(
@@ -132,12 +133,13 @@ def stat_scores_multiple_classes(
     fps = torch.zeros((num_classes,), device=pred.device)
     tns = torch.zeros((num_classes,), device=pred.device)
     fns = torch.zeros((num_classes,), device=pred.device)
-
+    sups = torch.zeros((num_classes,), device=pred.device)
     for c in range(num_classes):
-        tps[c], fps[c], tns[c], fns[c] = stat_scores(pred=pred, target=target,
-                                                     class_index=c)
+        tps[c], fps[c], tns[c], fns[c], sups[c] = stat_scores(pred=pred,
+                                                              target=target,
+                                                              class_index=c)
 
-    return tps, fps, tns, fns
+    return tps, fps, tns, fns, sups
 
 
 def accuracy(
@@ -163,15 +165,16 @@ def accuracy(
     Return:
          A Tensor with the classification score.
     """
-    tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred, target=target,
-                                                      num_classes=num_classes)
+    tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target,
+                                                            num_classes=num_classes)
 
     if not (target > 0).any() and num_classes is None:
         raise RuntimeError("cannot infer num_classes when target is all zero")
 
-    accuracies = (tps + tns) / (tps + tns + fps + fns)
-
-    return reduce(accuracies, reduction=reduction)
+    if reduction in ('elementwise_mean', 'sum'):
+        return reduce(sum(tps) / sum(sups), reduction=reduction)
+    if reduction == 'none':
+        return reduce(tps / sups, reduction=reduction)
 
 
 def confusion_matrix(
@@ -193,13 +196,10 @@ def confusion_matrix(
     """
     num_classes = get_num_classes(pred, target, None)
 
-    d = target.size(-1)
-    batch_vec = torch.arange(target.size(-1))
-    # this will account for multilabel
-    unique_labels = batch_vec * num_classes ** 2 + target.view(-1) * num_classes + pred.view(-1)
+    unique_labels = target.view(-1) * num_classes + pred.view(-1)
 
-    bins = torch.bincount(unique_labels, minlength=d * num_classes ** 2)
-    cm = bins.reshape(d, num_classes, num_classes).squeeze().float()
+    bins = torch.bincount(unique_labels, minlength=num_classes ** 2)
+    cm = bins.reshape(num_classes, num_classes).squeeze().float()
 
     if normalize:
         cm = cm / cm.sum(-1)
@@ -230,9 +230,9 @@ def precision_recall(
     Return:
         Tensor with precision and recall
     """
-    tps, fps, tns, fns = stat_scores_multiple_classes(pred=pred,
-                                                      target=target,
-                                                      num_classes=num_classes)
+    tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred,
+                                                            target=target,
+                                                            num_classes=num_classes)
 
     tps = tps.to(torch.float)
     fps = fps.to(torch.float)
@@ -676,7 +676,7 @@ def dice_score(
             scores[i - bg] += no_fg_score
             continue
 
-        tp, fp, tn, fn = stat_scores(pred=pred, target=target, class_index=i)
+        tp, fp, tn, fn, sup = stat_scores(pred=pred, target=target, class_index=i)
 
         denom = (2 * tp + fp + fn).to(torch.float)
 
