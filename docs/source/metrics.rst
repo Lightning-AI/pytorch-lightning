@@ -45,7 +45,9 @@ Here's an example showing how to implement a TensorMetric
 
 .. code-block:: python
 
-    # @justus TODO: Simple TensorMetric example
+    class RMSE(TensorMetric):
+        def forward(self, x, y):
+            return torch.sqrt(torch.mean(torch.pow(x-y, 2.0)))
 
 .. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
     :noindex:
@@ -56,7 +58,10 @@ Here's an example showing how to implement a NumpyMetric
 
 .. code-block:: python
 
-    # @justus TODO: Simple NumpyMetric example
+    class RMSE(NumpyMetric):
+        def forward(self, x, y):
+            return np.sqrt(np.mean(np.power(x-y, 2.0)))
+        
 
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
@@ -331,4 +336,3 @@ Metric
 
     .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
         :noindex:
-
