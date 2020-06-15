@@ -174,7 +174,7 @@ html_logo = '_images/logos/lightning_logo-name.svg'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_images', '_templates']
+html_static_path = ['_images', '_templates', '_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -296,6 +296,9 @@ def run_apidoc(_):
 
 
 def setup(app):
+    # this for hide doctest decoration,
+    #  see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
+    app.add_javascript('copybutton.js')
     app.connect('builder-inited', run_apidoc)
 
 
