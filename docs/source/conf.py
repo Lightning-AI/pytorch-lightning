@@ -296,8 +296,8 @@ def run_apidoc(_):
 
 
 def setup(app):
-    # this for hide doctest decoration,
-    #  see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
+    # this is for hiding doctest decoration,
+    # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
     app.add_javascript('copybutton.js')
     app.connect('builder-inited', run_apidoc)
 
