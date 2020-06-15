@@ -21,6 +21,15 @@ def to_onehot(
 
     Output:
         A sparse label tensor with shape [N, C, d1, d2, ...]
+
+    Example::
+
+        >>> x = torch.tensor([1, 2, 3])
+        >>> to_onehot(x)
+        tensor([[0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]])
+
     """
     if n_classes is None:
         n_classes = int(tensor.max().detach().item() + 1)
