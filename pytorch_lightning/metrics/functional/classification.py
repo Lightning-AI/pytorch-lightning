@@ -193,6 +193,13 @@ def accuracy(
 
     Return:
          A Tensor with the classification score.
+
+    Example:
+
+        >>> x = torch.tensor([1, 2, 3])
+        >>> y = torch.tensor([0, 2, 3])
+        >>> accuracy(x, y)
+        tensor(0.6667)
     """
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target,
                                                             num_classes=num_classes)
