@@ -62,10 +62,11 @@ class Accuracy(TensorMetric):
 
         Example::
 
-            pred = torch.tensor([0, 1, 2, 3])
-            target = torch.tensor([0, 1, 2, 2])
-            acc = Accuracy()
-            acc(pred, target)
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> acc = Accuracy()
+            >>> acc(pred, target)
+            tensor([0.7500])
 
         """
         super().__init__(name='accuracy',
@@ -107,6 +108,20 @@ class ConfusionMatrix(TensorMetric):
             normalize: whether to compute a normalized confusion matrix
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example::
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> conf_mtx = ConfusionMatrix()
+            >>> conf_mtx(pred, target)
+            tensor([[1., 0., 0., 0.],
+                    [0., 1., 0., 0.],
+                    [0., 0., 1., 1.],
+                    [0., 0., 0., 0.]])
+
+
+
         """
         super().__init__(name='confusion_matrix',
                          reduce_group=reduce_group,
