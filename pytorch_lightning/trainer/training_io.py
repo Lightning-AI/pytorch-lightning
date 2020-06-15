@@ -101,7 +101,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.io import load as pl_load
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 try:
     import torch_xla

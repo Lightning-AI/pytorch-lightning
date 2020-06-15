@@ -10,14 +10,14 @@ from typing import Union, Dict, Any, Optional, Callable
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
-from pytorch_lightning.utilities.io import load as pl_load
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
 try:
     from omegaconf import Container
 except ImportError:
-    pass
+    Container = None
 else:
     ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
 
@@ -332,11 +332,25 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
 
 
 def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
+    """
+    Args:
+        config_yaml: path to new YAML file
+        hparams: parameters to be saved
+    """
     if not os.path.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
 
+    if Container is not None and isinstance(hparams, Container):
+        from omegaconf import OmegaConf
+        OmegaConf.save(hparams, config_yaml)
+        return
+
+    # saving the standard way
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
+    elif isinstance(hparams, AttributeDict):
+        hparams = dict(hparams)
+    assert isinstance(hparams, dict)
 
     with open(config_yaml, 'w', newline='') as fp:
         yaml.dump(hparams, fp)
