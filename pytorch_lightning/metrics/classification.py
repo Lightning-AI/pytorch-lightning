@@ -66,7 +66,7 @@ class Accuracy(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = Accuracy()
             >>> metric(pred, target)
-            tensor([0.7500])
+            tensor(0.7500)
 
         """
         super().__init__(name='accuracy',
@@ -111,14 +111,13 @@ class ConfusionMatrix(TensorMetric):
 
         Example:
 
-            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> pred = torch.tensor([0, 1, 2, 2])
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = ConfusionMatrix()
             >>> metric(pred, target)
-            tensor([[1., 0., 0., 0.],
-                    [0., 1., 0., 0.],
-                    [0., 0., 1., 1.],
-                    [0., 0., 0., 0.]])
+            tensor([[1., 0., 0.],
+                    [0., 1., 0.],
+                    [0., 0., 2.]])
 
         """
         super().__init__(name='confusion_matrix',
@@ -163,8 +162,11 @@ class PrecisionRecall(TensorCollectionMetric):
             >>> pred = torch.tensor([0, 1, 2, 3])
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = PrecisionRecall()
-            >>> metric(pred, target)
-            (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1., 2., 3.]))
+            >>> pr, rc, th = metric(pred, target)
+            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+            (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
+            tensor([1., 0., 0., 0.]),
+            tensor([1., 2., 3.]))
 
         """
         super().__init__(name='precision_recall_curve',
@@ -226,7 +228,7 @@ class Precision(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = PrecisionRecall()
             >>> metric(pred, target)
-            tensor(1.)
+            (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1., 2., 3.]))
 
         """
         super().__init__(name='precision',
@@ -548,6 +550,7 @@ class ROC(TensorCollectionMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = ROC()
             >>> fp, tp, thresholds = metric(pred, target)
+            >>> metric(pred, target)  # doctest: +NORMALIZE_WHITESPACE
             (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
             tensor([0., 0., 0., 1., 1.]),
             tensor([4., 3., 2., 1., 0.]))
@@ -607,25 +610,18 @@ class MulticlassROC(TensorCollectionMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-                                 [0.05, 0.85, 0.05, 0.05],
-                                 [0.05, 0.05, 0.85, 0.05],
-                                 [0.05, 0.05, 0.05, 0.85]])
-            target = torch.tensor([0, 1, 3, 2])
-            metric = MulticlassROC()
-            classes_roc = metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+            ...                     [0.05, 0.85, 0.05, 0.05],
+            ...                     [0.05, 0.05, 0.85, 0.05],
+            ...                     [0.05, 0.05, 0.05, 0.85]])
+            >>> target = torch.tensor([0, 1, 3, 2])
+            >>> metric = MulticlassROC()
+            >>> classes_roc = metric(pred, target)
+            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
             ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
              (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
              (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
              (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
-
         """
         super().__init__(name='multiclass_roc',
                          reduce_group=reduce_group,
@@ -678,20 +674,14 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
 
         Example:
 
-        .. testcode::
-
-            pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-                                 [0.05, 0.85, 0.05, 0.05],
-                                 [0.05, 0.05, 0.85, 0.05],
-                                 [0.05, 0.05, 0.05, 0.85]])
-            target = torch.tensor([0, 1, 3, 2])
-            metric = MulticlassPrecisionRecall()
-            classes_pr = metric(pred, target)
-
-        Out:
-
-        .. testoutput::
-
+            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+            ...                     [0.05, 0.85, 0.05, 0.05],
+            ...                     [0.05, 0.05, 0.85, 0.05],
+            ...                     [0.05, 0.05, 0.05, 0.85]])
+            >>> target = torch.tensor([0, 1, 3, 2])
+            >>> metric = MulticlassPrecisionRecall()
+            >>> classes_pr = metric(pred, target)
+            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
             ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
              (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
              (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])),
@@ -756,18 +746,14 @@ class DiceCoefficient(TensorMetric):
 
         .. testcode:
 
-            pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-                                 [0.05, 0.85, 0.05, 0.05],
-                                 [0.05, 0.05, 0.85, 0.05],
-                                 [0.05, 0.05, 0.05, 0.85]])
-            target = torch.tensor([0, 1, 3, 2])
-            metric = DiceCoefficient()
-            classes_pr = metric(pred, target)
-
-        Out:
-
-        .. testoutput:
-
+            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+            ...                     [0.05, 0.85, 0.05, 0.05],
+            ...                     [0.05, 0.05, 0.85, 0.05],
+            ...                     [0.05, 0.05, 0.05, 0.85]])
+            >>> target = torch.tensor([0, 1, 3, 2])
+            >>> metric = DiceCoefficient()
+            >>> classes_pr = metric(pred, target)
+            >>> metric(pred, target)
             tensor(0.3333)
         """
         super().__init__(name='dice',
