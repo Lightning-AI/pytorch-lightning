@@ -62,10 +62,13 @@ class Accuracy(TensorMetric):
 
         Example::
 
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> acc = Accuracy()
-            >>> acc(pred, target)
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = Accuracy()
+            metric(pred, target)
+
+        Out::
+
             tensor([0.7500])
 
         """
@@ -111,10 +114,13 @@ class ConfusionMatrix(TensorMetric):
 
         Example::
 
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> conf_mtx = ConfusionMatrix()
-            >>> conf_mtx(pred, target)
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = ConfusionMatrix()
+            metric(pred, target)
+
+        Out::
+
             tensor([[1., 0., 0., 0.],
                     [0., 1., 0., 0.],
                     [0., 0., 1., 1.],
@@ -159,6 +165,17 @@ class PrecisionRecall(TensorCollectionMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = PrecisionRecall()
+            metric(pred, target)
+
+        Out::
+
+            (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1., 2., 3.]))
 
         """
         super().__init__(name='precision_recall_curve',
@@ -214,6 +231,17 @@ class Precision(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = PrecisionRecall()
+            metric(pred, target)
+
+        Out::
+
+            tensor(1.)
+
         """
         super().__init__(name='precision',
                          reduce_group=reduce_group,
@@ -261,6 +289,17 @@ class Recall(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = Recall()
+            metric(pred, target)
+
+        Out::
+
+            tensor(0.8333)
+
         """
         super().__init__(name='recall',
                          reduce_group=reduce_group,
@@ -302,6 +341,17 @@ class AveragePrecision(TensorMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = AveragePrecision()
+            metric(pred, target)
+
+        Out::
+
+            tensor(0.3333)
 
         """
         super().__init__(name='AP',
@@ -348,6 +398,17 @@ class AUROC(TensorMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = AUROC()
+            metric(pred, target)
+
+        Out::
+
+            tensor(0.3333)
 
         """
         super().__init__(name='auroc',
@@ -401,6 +462,17 @@ class FBeta(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = FBeta(0.25)
+            metric(pred, target)
+
+        Out::
+
+            tensor(0.9815)
+
         """
         super().__init__(name='fbeta',
                          reduce_group=reduce_group,
@@ -447,6 +519,17 @@ class F1(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = F1()
+            metric(pred, target)
+
+        Out::
+
+            tensor(0.8889)
+
         """
         super().__init__(name='f1',
                          reduce_group=reduce_group,
@@ -487,6 +570,19 @@ class ROC(TensorCollectionMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example::
+
+            pred = torch.tensor([0, 1, 2, 3])
+            target = torch.tensor([0, 1, 2, 2])
+            metric = ROC()
+            fp, tp, thresholds metric(pred, target)
+
+        Out::
+
+            (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
+            tensor([0., 0., 0., 1., 1.]),
+            tensor([4., 3., 2., 1., 0.]))
 
         """
         super().__init__(name='roc',
