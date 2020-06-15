@@ -86,10 +86,10 @@ class SignalHandler:
         if not trainer.interrupted:
             trainer.interrupted = True
 
-        for proc in trainer.interactive_ddp_procs:
-            subprocess.Popen.kill(proc)
+            for proc in trainer.interactive_ddp_procs:
+                subprocess.Popen.kill(proc)
 
-        trainer.run_training_teardown()
+            trainer.run_training_teardown()
         sys.exit()
 
 
