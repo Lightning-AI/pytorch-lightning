@@ -1,7 +1,6 @@
 import os
-import threading
+import signal
 import time
-from signal import SIGINT, SIGTERM, SIGSEGV
 
 import pytest
 
@@ -9,7 +8,7 @@ from pytorch_lightning import Trainer, Callback
 from tests.base import EvalModelTemplate
 
 
-from torch.multiprocessing import Process, Queue
+from torch.multiprocessing import Process
 
 
 class KillCallback(Callback):
@@ -27,22 +26,20 @@ class KillCallback(Callback):
 
 
 def trigger_fatal_signal(trainer):
-
     model = EvalModelTemplate()
     trainer.fit(model)
-    # if trainer._teardown_already_run
 
 
 @pytest.mark.parametrize(['signal_code'], [
-    pytest.param(SIGINT), pytest.param(SIGTERM), pytest.param(SIGSEGV),
+    pytest.param(signal.SIGINT),
+    pytest.param(signal.SIGTERM),
+    pytest.param(signal.SIGSEGV),
 ])
 def test_graceful_training_shutdown(signal_code, ):
-
     trainer = Trainer(max_steps=3, distributed_backend='ddp', callbacks=[KillCallback(signal_code)])
-
     p = Process(target=trigger_fatal_signal, args=(trainer, ))
     start = time.time()
-    timeout = 15  # seconds
+    timeout = 50  # seconds
     p.start()
     # wait until Trainer gets killed
     while p.is_alive():
@@ -50,9 +47,4 @@ def test_graceful_training_shutdown(signal_code, ):
 
     assert p.exitcode == signal_code
     # assert trainer.global_step == 1
-    # p.join() # this blocks until the process terminates
-    # result = queue.get()
-    # print(result)
-
-if __name__ == '__main__':
-    test_graceful_training_shutdown()
+    assert trainer.interrupted
