@@ -229,6 +229,16 @@ def confusion_matrix(
 
     Return:
         Tensor, confusion matrix C [num_classes, num_classes ]
+
+    Example:
+
+        >>> x = torch.tensor([1, 2, 3])
+        >>> y = torch.tensor([0, 2, 3])
+        >>> confusion_matrix(x, y)
+        tensor([[0., 1., 0., 0.],
+                [0., 0., 0., 0.],
+                [0., 0., 1., 0.],
+                [0., 0., 0., 1.]])
     """
     num_classes = get_num_classes(pred, target, None)
 
@@ -265,6 +275,14 @@ def precision_recall(
 
     Return:
         Tensor with precision and recall
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> precision_recall(x, y)
+        (tensor(1.), tensor(0.8333))
+
     """
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred,
                                                             target=target,
@@ -304,6 +322,14 @@ def precision(
 
     Return:
         Tensor with precision.
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> precision(x, y)
+        tensor(1.)
+
     """
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, reduction=reduction)[0]
@@ -331,6 +357,13 @@ def recall(
 
     Return:
         Tensor with recall.
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> recall(x, y)
+        tensor(0.8333)
     """
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, reduction=reduction)[1]
@@ -365,6 +398,13 @@ def fbeta_score(
 
     Return:
         Tensor with the value of F-score. It is a value between 0-1.
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> fbeta_score(x, y, 0.2)
+        tensor(0.9877)
     """
     prec, rec = precision_recall(pred=pred, target=target,
                                  num_classes=num_classes,
@@ -399,6 +439,13 @@ def f1_score(
 
     Return:
          Tensor containing F1-score
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> f1_score(x, y)
+        tensor(0.8889)
     """
     return fbeta_score(pred=pred, target=target, beta=1.,
                        num_classes=num_classes, reduction=reduction)
@@ -467,6 +514,14 @@ def roc(
 
     Return:
         [Tensor, Tensor, Tensor]: false-positive rate (fpr), true-positive rate (tpr), thresholds
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> fpr, tpr, thresholds = roc(x,y)
+        >>> roc(x,y)
+        (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]), tensor([0., 0., 0., 1., 1.]), tensor([4, 3, 2, 1, 0]))
     """
     fps, tps, thresholds = _binary_clf_curve(pred=pred, target=target,
                                              sample_weight=sample_weight,
@@ -509,6 +564,19 @@ def multiclass_roc(
     Return:
         [num_classes, Tensor, Tensor, Tensor]: returns roc for each class.
         number of classes, false-positive rate (fpr), true-positive rate (tpr), thresholds
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> multiclass_roc(pred, target)
+        ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+        (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+        (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+        (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
     """
     num_classes = get_num_classes(pred, target, num_classes)
 
@@ -539,6 +607,16 @@ def precision_recall_curve(
 
     Return:
          [Tensor, Tensor, Tensor]: precision, recall, thresholds
+
+    Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> precision, recall, thresholds = precision_recall_curve(pred, target)
+            >>> precision_recall_curve(pred, target)
+            (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
+            tensor([1., 0., 0., 0.]),
+            tensor([1., 2., 3.]))
     """
     fps, tps, thresholds = _binary_clf_curve(pred=pred, target=target,
                                              sample_weight=sample_weight,
@@ -583,7 +661,20 @@ def multiclass_precision_recall_curve(
         num_classes: number of classes
 
     Return:
-         [num_classes, Tensor, Tensor, Tensor]: number of classes, precision, recall, thresholds
+        [num_classes, Tensor, Tensor, Tensor]: number of classes, precision, recall, thresholds
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> classes_pr = multiclass_precision_recall_curve(pred, target)
+        >>> classes_pr
+        ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])), (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
+        (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])),
+        (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])))
     """
     num_classes = get_num_classes(pred, target, num_classes)
 
@@ -610,6 +701,13 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True):
 
     Return:
         AUC score (float)
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> auc(x, y)
+        tensor(4.)
     """
     direction = 1.
 
@@ -671,6 +769,13 @@ def auroc(
         target: ground-truth labels
         sample_weight: sample weights
         pos_label: the label for the positive class (default: 1.)
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> auroc(x, y)
+        tensor(0.3333)
     """
 
     @auc_decorator(reorder=True)
@@ -686,6 +791,21 @@ def average_precision(
         sample_weight: Optional[Sequence] = None,
         pos_label: int = 1.,
 ) -> torch.Tensor:
+    """
+
+    Args:
+        pred: estimated probabilities
+        target: ground-truth labels
+        sample_weight: sample weights
+        pos_label: the label for the positive class (default: 1.)
+
+    Example:
+
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> average_precision(x, y)
+        tensor(0.3333)
+    """
     precision, recall, _ = precision_recall_curve(pred=pred, target=target,
                                                   sample_weight=sample_weight,
                                                   pos_label=pos_label)
@@ -703,6 +823,28 @@ def dice_score(
         no_fg_score: float = 0.0,
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
+    """
+    @nicki to finish
+
+    Args:
+        pred:
+        target:
+        bg:
+        nan_score:
+        no_fg_score:
+        reduction:
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> average_precision(pred, target)
+        tensor(0.2500)
+
+    """
     n_classes = pred.shape[1]
     bg = (1 - int(bool(bg)))
     scores = torch.zeros(n_classes - bg, device=pred.device, dtype=torch.float32)
