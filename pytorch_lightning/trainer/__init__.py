@@ -101,6 +101,11 @@ Use it to do whatever!
     out = pretrained_model(x)
     api_write({'response': out}
 
+
+You may wish to run the model on a variety of devices. Instead of moving the data
+manually to the correct device, decorate the forward method (or any other method you use for inference)
+with :func:`~pytorch_lightning.core.decorators.auto_move_data` and Lightning will take care of the rest.
+
 ------------
 
 Reproducibility
