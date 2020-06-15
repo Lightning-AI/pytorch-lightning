@@ -806,7 +806,7 @@ How often to add logging rows (does not write to disk)
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(row_log_interval=10)
+    trainer = Trainer(row_log_interval=50)
 
 use_amp:
 
