@@ -13,6 +13,7 @@ In this package we provide two major pieces of functionality.
 
 1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
 2. A collection of popular metrics already implemented for you.
+3. A interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
 
 Example::
 
@@ -27,6 +28,10 @@ Example::
 Out::
 
     tensor(0.7500)
+
+.. warning:: The metrics package is still in development, and is the moment limited 
+    to a few metrics. Please feel free to create an issue/PR if you have a proposed 
+    metric or have found a bug.
 
 --------------
 
@@ -315,4 +320,99 @@ to_onehot (F)
 ^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
+    :noindex:
+
+----------------
+
+Sklearn interface
+-----------------
+    
+Lightning supports `sklearns metrics module <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_ 
+as a backend for calculating metrics. Sklearns metrics are well tested and robust, 
+but requires conversion between pytorch and numpy thus may slow down your computations.
+
+To use the sklearn backend of metrics simply import as
+
+Example::
+    
+    import pytorch_lightning.metrics.sklearn import plm
+    metric = plm.Accuracy(normalize=True)
+    val = metric(pred, target)
+    
+Each converted sklearn metric comes has the precise same call interface as its 
+originally counterpart (e.g. accuracy takes the additional `normalize` keyword). 
+Like the native implemented metrics these converted sklearn metrics also comes 
+with build in distributed (ddp) support.
+
+SklearnMetric (S)
+^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+Accuracy (S)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+AUC (S)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+AveragePrecision (S)
+^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+    
+ConfusionMatrix (S)
+^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+F1 (S)
+^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+FBeta (S)
+^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+Precision (S)
+^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+Recall (S)
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+PrecisionRecallCurve (S)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+ROC (S)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+    :noindex:
+
+AUROC (S)
+^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
     :noindex:

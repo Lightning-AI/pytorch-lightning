@@ -230,7 +230,7 @@ class Precision(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = Precision()
             >>> metric(pred, target)
-            tensor(1.)
+            tensor(0.75)
 
         """
         super().__init__(name='precision',
