@@ -81,7 +81,9 @@ def get_num_classes(
         if pred.ndim > target.ndim:
             num_classes = pred.size(1)
         else:
-            num_classes = int(target.max().detach().item() + 1)
+            num_target_classes = int(target.max().detach().item() + 1)
+            num_pred_classes = int(pred.max().detach().item() + 1)
+            num_classes = max(num_target_classes, num_pred_classes)
     return num_classes
 
 
