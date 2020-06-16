@@ -236,7 +236,6 @@ class Precision(TensorMetric):
         super().__init__(name='precision',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
-        # Fixme: bug with result value
         self.num_classes = num_classes
         self.reduction = reduction
 

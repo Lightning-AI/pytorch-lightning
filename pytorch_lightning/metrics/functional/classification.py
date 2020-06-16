@@ -844,8 +844,6 @@ def dice_score(
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
-    @nicki to finish
-
     Args:
         pred: estimated probabilities
         target: ground-truth labels
