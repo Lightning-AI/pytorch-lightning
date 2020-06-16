@@ -370,6 +370,11 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             self.on_validation_start()
 
+        # enable disabling validation step with val_percent_check = 0
+        should_skip = sum(max_batches) == 0
+        if should_skip:
+            return
+
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
         _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
