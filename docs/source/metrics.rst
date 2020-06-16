@@ -1,3 +1,9 @@
+.. testsetup:: *
+
+    from torch.nn import Module
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.metrics import TensorMetric, NumpyMetric
+
 Metrics
 =======
 This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.
@@ -19,8 +25,6 @@ Example:
 
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
-
-Out:
 
 .. testoutput::
 
@@ -81,7 +85,7 @@ plain PyTorch).
     from pytorch_lightning.metrics import Accuracy
 
     # Plain PyTorch
-    class MyModule(nn.Module):
+    class MyModule(Module):
         def __init__(self):
             super().__init__()
             self.metric = Accuracy()
@@ -91,7 +95,7 @@ plain PyTorch).
             acc = self.metric(y_hat, y)
 
     # PyTorch Lightning
-    class MyModule(pl.LightningModule):
+    class MyModule(LightningModule):
         def __init__(self):
             super().__init__()
             self.metric = Accuracy()
