@@ -470,7 +470,6 @@ class TrainerTrainLoopMixin(ABC):
             # fast_dev_run always forces val checking after train batch
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=self.testing)
-                self.call_checkpoint_callback()
 
             # ---------------
             # CHECKPOINTING, EARLY STOPPING
