@@ -2,6 +2,7 @@
 import sys
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
@@ -58,16 +59,16 @@ class ModelVer0_6(EvalModelTemplate):
         return self.dataloader(train=False)
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        return {'val_loss': 0.6}
+        return {'val_loss': torch.tensor(0.6)}
 
     def validation_end(self, outputs):
-        return {'val_loss': 0.6}
+        return {'val_loss': torch.tensor(0.6)}
 
     def test_dataloader(self):
         return self.dataloader(train=False)
 
     def test_end(self, outputs):
-        return {'test_loss': 0.6}
+        return {'test_loss': torch.tensor(0.6)}
 
 
 class ModelVer0_7(EvalModelTemplate):
@@ -77,16 +78,16 @@ class ModelVer0_7(EvalModelTemplate):
         return self.dataloader(train=False)
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        return {'val_loss': 0.7}
+        return {'val_loss': torch.tensor(0.7)}
 
     def validation_end(self, outputs):
-        return {'val_loss': 0.7}
+        return {'val_loss': torch.tensor(0.7)}
 
     def test_dataloader(self):
         return self.dataloader(train=False)
 
     def test_end(self, outputs):
-        return {'test_loss': 0.7}
+        return {'test_loss': torch.tensor(0.7)}
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
@@ -97,23 +98,23 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         trainer.test(model)
-    assert trainer.callback_metrics == {'test_loss': 0.6}
+    assert trainer.callback_metrics == {'test_loss': torch.tensor(0.6)}
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         # TODO: why `dataloder` is required if it is not used
         result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
-    assert result == {'val_loss': 0.6}
+    assert result == {'val_loss': torch.tensor(0.6)}
 
     model = ModelVer0_7(hparams)
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         trainer.test(model)
-    assert trainer.callback_metrics == {'test_loss': 0.7}
+    assert trainer.callback_metrics == {'test_loss': torch.tensor(0.7)}
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         # TODO: why `dataloder` is required if it is not used
         result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
-    assert result == {'val_loss': 0.7}
+    assert result == {'val_loss': torch.tensor(0.7)}
