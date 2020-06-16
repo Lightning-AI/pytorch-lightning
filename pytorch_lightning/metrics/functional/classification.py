@@ -109,8 +109,12 @@ def stat_scores(
         >>> x = torch.tensor([1, 2, 3])
         >>> y = torch.tensor([0, 2, 3])
         >>> tp, fp, tn, fn, sup = stat_scores(x, y, class_index=1)
-        >>> stat_scores(x, y, class_index=1)
-        (tensor(0), tensor(1), tensor(2), tensor(0), tensor(0))
+        >>> stat_scores(x, y, class_index=1)   # doctest: +NORMALIZE_WHITESPACE
+        (tensor(0),
+        tensor(1),
+        tensor(2),
+        tensor(0),
+        tensor(0))
 
     """
     if pred.ndim == target.ndim + 1:
@@ -151,8 +155,12 @@ def stat_scores_multiple_classes(
         >>> x = torch.tensor([1, 2, 3])
         >>> y = torch.tensor([0, 2, 3])
         >>> tps, fps, tns, fns, sups = stat_scores_multiple_classes(x, y)
-        >>> stat_scores_multiple_classes(x, y)
-        (tensor([0., 0., 1., 1.]), tensor([0., 1., 0., 0.]), tensor([2., 2., 2., 2.]), tensor([1., 0., 0., 0.]), tensor([1., 0., 1., 1.]))
+        >>> stat_scores_multiple_classes(x, y)   # doctest: +NORMALIZE_WHITESPACE
+        (tensor([0., 0., 1., 1.]),
+        tensor([0., 1., 0., 0.]),
+        tensor([2., 2., 2., 2.]),
+        tensor([1., 0., 0., 0.]),
+        tensor([1., 0., 1., 1.]))
     """
     num_classes = get_num_classes(pred=pred, target=target,
                                   num_classes=num_classes)
@@ -520,8 +528,10 @@ def roc(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> fpr, tpr, thresholds = roc(x,y)
-        >>> roc(x,y)
-        (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]), tensor([0., 0., 0., 1., 1.]), tensor([4, 3, 2, 1, 0]))
+        >>> roc(x,y)   # doctest: +NORMALIZE_WHITESPACE
+        (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
+        tensor([0., 0., 0., 1., 1.]),
+        tensor([4, 3, 2, 1, 0]))
     """
     fps, tps, thresholds = _binary_clf_curve(pred=pred, target=target,
                                              sample_weight=sample_weight,
@@ -572,7 +582,7 @@ def multiclass_roc(
         ...                      [0.05, 0.05, 0.85, 0.05],
         ...                      [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> multiclass_roc(pred, target)
+        >>> multiclass_roc(pred, target)   # doctest: +NORMALIZE_WHITESPACE
         ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
         (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
         (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
@@ -613,7 +623,7 @@ def precision_recall_curve(
             >>> pred = torch.tensor([0, 1, 2, 3])
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> precision, recall, thresholds = precision_recall_curve(pred, target)
-            >>> precision_recall_curve(pred, target)
+            >>> precision_recall_curve(pred, target)   # doctest: +NORMALIZE_WHITESPACE
             (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
             tensor([1., 0., 0., 0.]),
             tensor([1., 2., 3.]))
@@ -671,7 +681,7 @@ def multiclass_precision_recall_curve(
         ...                      [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
         >>> classes_pr = multiclass_precision_recall_curve(pred, target)
-        >>> classes_pr
+        >>> classes_pr   # doctest: +NORMALIZE_WHITESPACE
         ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])), (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
         (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])),
         (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])))
