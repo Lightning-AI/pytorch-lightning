@@ -344,75 +344,75 @@ originally counterpart (e.g. accuracy takes the additional `normalize` keyword).
 Like the native Lightning metrics these converted sklearn metrics also come 
 with built-in distributed (ddp) support.
 
-SklearnMetric (S)
+SklearnMetric (sk)
 ^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
     :noindex:
 
-Accuracy (S)
+Accuracy (sk)
 ^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.Accuracy
     :noindex:
 
-AUC (S)
+AUC (sk)
 ^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.AUC
     :noindex:
 
-AveragePrecision (S)
+AveragePrecision (sk)
 ^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.AveragePrecision
     :noindex:
 
     
-ConfusionMatrix (S)
+ConfusionMatrix (sk)
 ^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.ConfusionMatrix
     :noindex:
 
-F1 (S)
+F1 (sk)
 ^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.F1
     :noindex:
 
-FBeta (S)
+FBeta (sk)
 ^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.FBeta
     :noindex:
 
-Precision (S)
+Precision (sk)
 ^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.Precision
     :noindex:
 
-Recall (S)
+Recall (sk)
 ^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.Recall
     :noindex:
 
-PrecisionRecallCurve (S)
+PrecisionRecallCurve (sk)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.PrecisionRecallCurve
     :noindex:
 
-ROC (S)
+ROC (sk)
 ^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.ROC
     :noindex:
 
-AUROC (S)
+AUROC (sk)
 ^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sklearn.AUROC
     :noindex:
