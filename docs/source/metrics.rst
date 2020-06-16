@@ -1,3 +1,9 @@
+.. testsetup:: *
+
+    from torch.nn import Module
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.metrics import TensorMetric, NumpyMetric
+
 Metrics
 =======
 This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.
@@ -20,8 +26,6 @@ Example:
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
 
-Out:
-
 .. testoutput::
 
     tensor(0.7500)
@@ -39,14 +43,15 @@ handles automated DDP syncing and converts all inputs and outputs to tensors.
 Use :class:`NumpyMetric` to implement numpy metrics. This class
 handles automated DDP syncing and converts all inputs and outputs to tensors.
 
-.. warning:: Numpy metrics might slow down your training substantially,
+.. warning::
+    Numpy metrics might slow down your training substantially,
     since every metric computation requires a GPU sync to convert tensors to numpy.
 
 TensorMetric
 ^^^^^^^^^^^^
 Here's an example showing how to implement a TensorMetric
 
-.. code-block:: python
+.. testcode::
 
     class RMSE(TensorMetric):
         def forward(self, x, y):
@@ -59,7 +64,7 @@ NumpyMetric
 ^^^^^^^^^^^
 Here's an example showing how to implement a NumpyMetric
 
-.. code-block:: python
+.. testcode::
 
     class RMSE(NumpyMetric):
         def forward(self, x, y):
@@ -76,29 +81,29 @@ Class Metrics
 The following are metrics which can be instantiated as part of a module definition (even with just
 plain PyTorch).
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.metrics import Accuracy
 
     # Plain PyTorch
-    class MyModule(nn.Module):
+    class MyModule(Module):
         def __init__(self):
             super().__init__()
             self.metric = Accuracy()
 
         def forward(self, x, y):
-            y_hat = # ...
+            y_hat = ...
             acc = self.metric(y_hat, y)
 
     # PyTorch Lightning
-    class MyModule(pl.LightningModule):
+    class MyModule(LightningModule):
         def __init__(self):
             super().__init__()
             self.metric = Accuracy()
 
         def training_step(self, batch, batch_idx):
             x, y = batch
-            y_hat = # ...
+            y_hat = ...
             acc = self.metric(y_hat, y)
 
 These metrics even work when using distributed training:

@@ -1,6 +1,15 @@
+from functools import partial
+
 import pytest
 import torch
-from functools import partial
+from sklearn.metrics import (
+    accuracy_score as sk_accuracy,
+    precision_score as sk_precision,
+    recall_score as sk_recall,
+    f1_score as sk_f1_score,
+    fbeta_score as sk_fbeta_score,
+    confusion_matrix as sk_confusion_matrix
+)
 
 from pytorch_lightning import seed_everything
 from pytorch_lightning.metrics.functional.classification import (
@@ -22,15 +31,6 @@ from pytorch_lightning.metrics.functional.classification import (
     precision_recall_curve,
     roc,
     auc,
-)
-
-from sklearn.metrics import (
-    accuracy_score as sk_accuracy,
-    precision_score as sk_precision,
-    recall_score as sk_recall,
-    f1_score as sk_f1_score,
-    fbeta_score as sk_fbeta_score,
-    confusion_matrix as sk_confusion_matrix
 )
 
 

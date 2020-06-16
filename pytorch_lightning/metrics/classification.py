@@ -162,11 +162,13 @@ class PrecisionRecall(TensorCollectionMetric):
             >>> pred = torch.tensor([0, 1, 2, 3])
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = PrecisionRecall()
-            >>> pr, rc, th = metric(pred, target)
-            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
-            (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
-            tensor([1., 0., 0., 0.]),
-            tensor([1., 2., 3.]))
+            >>> prec, recall, thr = metric(pred, target)
+            >>> prec
+            tensor([0.3333, 0.0000, 0.0000, 1.0000])
+            >>> recall
+            tensor([1., 0., 0., 0.])
+            >>> thr
+            tensor([1., 2., 3.])
 
         """
         super().__init__(name='precision_recall_curve',
@@ -226,15 +228,15 @@ class Precision(TensorMetric):
 
             >>> pred = torch.tensor([0, 1, 2, 3])
             >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = PrecisionRecall()
+            >>> metric = Precision()
             >>> metric(pred, target)
-            (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1., 2., 3.]))
+            tensor(0.75)
 
         """
         super().__init__(name='precision',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
-
+        # Fixme: bug with result value
         self.num_classes = num_classes
         self.reduction = reduction
 
@@ -550,10 +552,12 @@ class ROC(TensorCollectionMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = ROC()
             >>> fp, tp, thresholds = metric(pred, target)
-            >>> metric(pred, target)  # doctest: +NORMALIZE_WHITESPACE
-            (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
-            tensor([0., 0., 0., 1., 1.]),
-            tensor([4., 3., 2., 1., 0.]))
+            >>> fp
+            tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
+            >>> tp
+            tensor([0., 0., 0., 1., 1.])
+            >>> thresholds
+            tensor([4., 3., 2., 1., 0.])
 
         """
         super().__init__(name='roc',
@@ -747,9 +751,9 @@ class DiceCoefficient(TensorMetric):
         .. testcode:
 
             >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-            ...                     [0.05, 0.85, 0.05, 0.05],
-            ...                     [0.05, 0.05, 0.85, 0.05],
-            ...                     [0.05, 0.05, 0.05, 0.85]])
+            ...                      [0.05, 0.85, 0.05, 0.05],
+            ...                      [0.05, 0.05, 0.85, 0.05],
+            ...                      [0.05, 0.05, 0.05, 0.85]])
             >>> target = torch.tensor([0, 1, 3, 2])
             >>> metric = DiceCoefficient()
             >>> classes_pr = metric(pred, target)

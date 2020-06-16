@@ -2,8 +2,8 @@ import glob
 import math
 import os
 import pickle
-import types
 import sys
+import types
 from argparse import Namespace
 from pathlib import Path
 
@@ -18,8 +18,8 @@ from pytorch_lightning.core.saving import (
     load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.utilities.io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.io import load as pl_load
 from tests.base import EvalModelTemplate
 
 
