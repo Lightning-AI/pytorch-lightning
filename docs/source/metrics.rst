@@ -341,8 +341,8 @@ To use the sklearn backend of metrics simply import as
     
 Each converted sklearn metric comes has the same interface as its 
 originally counterpart (e.g. accuracy takes the additional `normalize` keyword). 
-Like the native implemented metrics these converted sklearn metrics also comes 
-with build in distributed (ddp) support.
+Like the native Lightning metrics these converted sklearn metrics also come 
+with built-in distributed (ddp) support.
 
 SklearnMetric (S)
 ^^^^^^^^^^^^^^^^^
