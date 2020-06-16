@@ -402,10 +402,7 @@ class TrainerDDPMixin(ABC):
         # if script called without a flag, pass in a flag anyhow
         if '--gpus' not in command:
             arg_gpus = len(self.gpus) if isinstance(self.gpus, list) else self.gpus
-
-            # support with commands with '=' in them
-            gpus_cmd = ['--gpus', arg_gpus] if '=' not in ''.join(command) else [f'\"gpus={arg_gpus}\"']
-            command += gpus_cmd
+            command += ['--gpus', arg_gpus]
 
         gpu_flag_idx = command.index('--gpus')
         command[gpu_flag_idx + 1] = f'{num_gpus}'
