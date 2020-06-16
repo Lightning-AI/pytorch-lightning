@@ -1,6 +1,5 @@
 import os
 import platform
-from collections import namedtuple
 
 import pytest
 import torch
@@ -9,8 +8,8 @@ from packaging.version import parse as version_parse
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
-from tests.base import EvalModelTemplate
 from pytorch_lightning.callbacks import ModelCheckpoint
+from tests.base import EvalModelTemplate
 
 
 def test_cpu_slurm_save_load(tmpdir):
@@ -229,53 +228,6 @@ def test_running_test_no_val(tmpdir):
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(trainer)
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_single_gpu_batch_parse():
-    trainer = Trainer()
-
-    # batch is just a tensor
-    batch = torch.rand(2, 3)
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch.device.index == 0 and batch.type() == 'torch.cuda.FloatTensor'
-
-    # tensor list
-    batch = [torch.rand(2, 3), torch.rand(2, 3)]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0].device.index == 0 and batch[0].type() == 'torch.cuda.FloatTensor'
-    assert batch[1].device.index == 0 and batch[1].type() == 'torch.cuda.FloatTensor'
-
-    # tensor list of lists
-    batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
-    assert batch[0][1].device.index == 0 and batch[0][1].type() == 'torch.cuda.FloatTensor'
-
-    # tensor dict
-    batch = [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)}]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
-    assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
-
-    # tuple of tensor list and list of tensor dict
-    batch = ([torch.rand(2, 3) for _ in range(2)],
-             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
-
-    assert batch[1][0]['a'].device.index == 0
-    assert batch[1][0]['a'].type() == 'torch.cuda.FloatTensor'
-
-    assert batch[1][0]['b'].device.index == 0
-    assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
-
-    # namedtuple of tensor
-    BatchType = namedtuple('BatchType', ['a', 'b'])
-    batch = [BatchType(a=torch.rand(2, 3), b=torch.rand(2, 3)) for _ in range(2)]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0].a.device.index == 0
-    assert batch[0].a.type() == 'torch.cuda.FloatTensor'
 
 
 def test_simple_cpu(tmpdir):
