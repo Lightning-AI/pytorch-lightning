@@ -632,7 +632,7 @@ def test_disabled_validation():
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.validation_step_invoked, \
         'did not run `validation_step` with `fast_dev_run=True`'
     assert model.validation_epoch_end_invoked, \
