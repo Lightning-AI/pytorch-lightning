@@ -17,9 +17,13 @@ class SklearnMetric(NumpyMetric):
     Note:
         The order of targets and predictions may be different from the order typically used in PyTorch
     """
-    def __init__(self, metric_name: str,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM, **kwargs):
+    def __init__(
+            self,
+            metric_name: str,
+            reduce_group: Any = torch.distributed.group.WORLD,
+            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            **kwargs,
+    ):
         """
         Args:
             metric_name: the metric name to import and compute from scikit-learn.metrics
@@ -75,9 +79,12 @@ class Accuracy(SklearnMetric):
         tensor([0.7500])
 
     """
-    def __init__(self, normalize: bool = True,
-                 reduce_group: Any = torch.distributed.group.WORLD,
-                 reduce_op: Any = torch.distributed.ReduceOp.SUM):
+    def __init__(
+            self,
+            normalize: bool = True,
+            reduce_group: Any = torch.distributed.group.WORLD,
+            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+    ):
         """
         Args:
             normalize: If ``False``, return the number of correctly classified samples.
@@ -125,7 +132,7 @@ class AUC(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = AUC()
         >>> metric(y_pred, y_true)
-        tensor(0.3333)
+        tensor([4.])
     """
     def __init__(
             self,
@@ -163,17 +170,10 @@ class AveragePrecision(SklearnMetric):
     """
     Calculates the average precision (AP) score.
 
-    Example:
-
-        >>> y_pred = torch.tensor([0, 1, 2, 3])
-        >>> y_true = torch.tensor([0, 1, 2, 2])
-        >>> metric = AveragePrecision()
-        >>> metric(y_pred, y_true)
-        tensor(0.3333)
-
     """
     def __init__(
-            self, average: Optional[str] = 'macro',
+            self,
+            average: Optional[str] = 'macro',
             reduce_group: Any = torch.distributed.group.WORLD,
             reduce_op: Any = torch.distributed.ReduceOp.SUM,
     ):
@@ -229,13 +229,13 @@ class ConfusionMatrix(SklearnMetric):
 
     Example:
 
-        >>> y_pred = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 1])
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = ConfusionMatrix()
         >>> metric(y_pred, y_true)
         tensor([[1., 0., 0.],
                 [0., 1., 0.],
-                [0., 0., 2.]])
+                [0., 1., 1.]])
 
     """
     def __init__(
@@ -293,7 +293,7 @@ class F1(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = F1()
         >>> metric(y_pred, y_true)
-        tensor(0.6667)
+        tensor([0.6667])
 
     References
         - [1] `Wikipedia entry for the F1-score
@@ -303,7 +303,7 @@ class F1(SklearnMetric):
     def __init__(
             self, labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'binary',
+            average: Optional[str] = 'macro',
             reduce_group: Any = torch.distributed.group.WORLD,
             reduce_op: Any = torch.distributed.ReduceOp.SUM,
     ):
@@ -380,9 +380,9 @@ class FBeta(SklearnMetric):
 
         >>> y_pred = torch.tensor([0, 1, 2, 3])
         >>> y_true = torch.tensor([0, 1, 2, 2])
-        >>> metric = FBeta(0.25)
+        >>> metric = FBeta(beta=0.25)
         >>> metric(y_pred, y_true)
-        tensor(0.7361)
+        tensor([0.7361])
 
     References:
         - [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
@@ -396,7 +396,7 @@ class FBeta(SklearnMetric):
             beta: float,
             labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'binary',
+            average: Optional[str] = 'macro',
             reduce_group: Any = torch.distributed.group.WORLD,
             reduce_op: Any = torch.distributed.ReduceOp.SUM,
     ):
@@ -477,9 +477,9 @@ class Precision(SklearnMetric):
 
         >>> y_pred = torch.tensor([0, 1, 2, 3])
         >>> y_true = torch.tensor([0, 1, 2, 2])
-        >>> metric = Precision(num_classes=4)
+        >>> metric = Precision()
         >>> metric(y_pred, y_true)
-        tensor(0.7500)
+        tensor([0.7500])
 
     """
 
@@ -487,7 +487,7 @@ class Precision(SklearnMetric):
             self,
             labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'binary',
+            average: Optional[str] = 'macro',
             reduce_group: Any = torch.distributed.group.WORLD,
             reduce_op: Any = torch.distributed.ReduceOp.SUM,
     ):
@@ -567,7 +567,7 @@ class Recall(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Recall()
         >>> metric(y_pred, y_true)
-        tensor(0.6250)
+        tensor([0.6250])
 
     """
 
@@ -575,7 +575,7 @@ class Recall(SklearnMetric):
             self,
             labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'binary',
+            average: Optional[str] = 'macro',
             reduce_group: Any = torch.distributed.group.WORLD,
             reduce_op: Any = torch.distributed.ReduceOp.SUM,
     ):
@@ -722,13 +722,11 @@ class ROC(SklearnMetric):
         >>> y_pred = torch.tensor([0, 1, 2, 3])
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = ROC()
-        >>> fp, tp, thresholds = metric(y_pred, y_true)
-        >>> fp
+        >>> fps, tps = metric(y_pred, y_true)
+        >>> fps
         tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
-        >>> tp
+        >>> tps
         tensor([0., 0., 0., 1., 1.])
-        >>> thresholds
-        tensor([4., 3., 2., 1., 0.])
 
     References:
         - [1] `Wikipedia entry for the Receiver operating characteristic
@@ -791,14 +789,6 @@ class AUROC(SklearnMetric):
     Note:
         this implementation is restricted to the binary classification task
         or multilabel classification task in label indicator format.
-
-    Example:
-
-        >>> y_pred = torch.tensor([0, 1, 2, 3])
-        >>> y_true = torch.tensor([0, 1, 2, 2])
-        >>> metric = AUROC()
-        >>> metric(y_pred, y_true)
-        tensor(0.3333)
 
     """
 

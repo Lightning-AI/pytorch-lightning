@@ -523,10 +523,10 @@ class ROC(TensorCollectionMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = ROC()
-        >>> fp, tp, thresholds = metric(pred, target)
-        >>> fp
+        >>> fps, tps, thresholds = metric(pred, target)
+        >>> fps
         tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
-        >>> tp
+        >>> tps
         tensor([0., 0., 0., 1., 1.])
         >>> thresholds
         tensor([4., 3., 2., 1., 0.])
