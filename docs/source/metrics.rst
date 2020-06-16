@@ -14,9 +14,7 @@ In this package we provide two major pieces of functionality.
 1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
 2. A collection of popular metrics already implemented for you.
 
-Example:
-
-.. testcode::
+Example::
 
     from pytorch_lightning.metrics.functional import accuracy
 
@@ -26,7 +24,7 @@ Example:
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
 
-.. testoutput::
+Out::
 
     tensor(0.7500)
 
