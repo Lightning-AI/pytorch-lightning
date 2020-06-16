@@ -27,7 +27,7 @@ from tests.base import EvalModelTemplate
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
-    monkeypatch.setenv('TORCH_HOME', tmpdir)
+    monkeypatch.setenv('TORCH_HOME', str(tmpdir))
 
     model = EvalModelTemplate()
 
