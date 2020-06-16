@@ -20,7 +20,7 @@ from sklearn.metrics import (
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
-from pytorch_lightning.metrics.sklearn import (
+from pytorch_lightning.metrics.sk_metrics import (
     Accuracy,
     AveragePrecision,
     AUC,
@@ -36,46 +36,46 @@ from pytorch_lightning.metrics.sklearn import (
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
-def xy_only(func):
+def _xy_only(func):
     def new_func(*args, **kwargs):
         return np.array(func(*args, **kwargs)[:2])
-
     return new_func
+
 
 @pytest.mark.parametrize(['metric_class', 'sklearn_func', 'inputs'], [
     pytest.param(Accuracy(), sk_accuracy,
-                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 {'pred': torch.randint(10, size=(128,)), 'target': torch.randint(10, size=(128,))},
                  id='Accuracy'),
     pytest.param(AUC(), sk_auc,
                  {'x': torch.arange(10, dtype=torch.float) / 10,
                   'y': torch.tensor([0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.5, 0.6, 0.7])},
                  id='AUC'),
     pytest.param(AveragePrecision(), sk_average_precision,
-                 {'y_score': torch.randint(2, size=(128,)), 'y_true': torch.randint(2, size=(128,))},
+                 {'y_score': torch.randint(2, size=(128,)), 'target': torch.randint(2, size=(128,))},
                  id='AveragePrecision'),
     pytest.param(ConfusionMatrix(), sk_confusion_matrix,
-                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 {'pred': torch.randint(10, size=(128,)), 'target': torch.randint(10, size=(128,))},
                  id='ConfusionMatrix'),
     pytest.param(F1(average='macro'), partial(sk_f1_score, average='macro'),
-                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 {'pred': torch.randint(10, size=(128,)), 'target': torch.randint(10, size=(128,))},
                  id='F1'),
     pytest.param(FBeta(beta=0.5, average='macro'), partial(sk_fbeta_score, beta=0.5, average='macro'),
-                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 {'pred': torch.randint(10, size=(128,)), 'target': torch.randint(10, size=(128,))},
                  id='FBeta'),
     pytest.param(Precision(average='macro'), partial(sk_precision, average='macro'),
-                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 {'pred': torch.randint(10, size=(128,)), 'target': torch.randint(10, size=(128,))},
                  id='Precision'),
     pytest.param(Recall(average='macro'), partial(sk_recall, average='macro'),
-                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 {'pred': torch.randint(10, size=(128,)), 'target': torch.randint(10, size=(128,))},
                  id='Recall'),
-    pytest.param(PrecisionRecallCurve(), xy_only(sk_precision_recall_curve),
-                 {'probas_pred': torch.rand(size=(128,)), 'y_true': torch.randint(2, size=(128,))},
+    pytest.param(PrecisionRecallCurve(), _xy_only(sk_precision_recall_curve),
+                 {'probas_pred': torch.rand(size=(128,)), 'target': torch.randint(2, size=(128,))},
                  id='PrecisionRecallCurve'),
-    pytest.param(ROC(), xy_only(sk_roc_curve),
-                 {'y_score': torch.rand(size=(128,)), 'y_true': torch.randint(2, size=(128,))},
+    pytest.param(ROC(), _xy_only(sk_roc_curve),
+                 {'y_score': torch.rand(size=(128,)), 'target': torch.randint(2, size=(128,))},
                  id='ROC'),
     pytest.param(AUROC(), sk_roc_auc_score,
-                 {'y_score': torch.rand(size=(128,)), 'y_true': torch.randint(2, size=(128,))},
+                 {'y_score': torch.rand(size=(128,)), 'target': torch.randint(2, size=(128,))},
                  id='AUROC'),
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
@@ -83,6 +83,7 @@ def test_sklearn_metric(metric_class, sklearn_func, inputs):
 
     sklearn_result = sklearn_func(**numpy_inputs)
     lightning_result = metric_class(**inputs)
+    assert np.allclose(sklearn_result, lightning_result, atol=1e-5)
 
     sklearn_result = apply_to_collection(
         sklearn_result, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
@@ -90,17 +91,5 @@ def test_sklearn_metric(metric_class, sklearn_func, inputs):
     lightning_result = apply_to_collection(
         lightning_result, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
 
+    assert np.allclose(sklearn_result, lightning_result, atol=1e-5)
     assert isinstance(lightning_result, type(sklearn_result))
-
-    if isinstance(lightning_result, np.ndarray):
-        assert np.allclose(lightning_result, sklearn_result)
-    elif isinstance(lightning_result, Mapping):
-        for key in lightning_result.keys():
-            assert np.allclose(lightning_result[key], sklearn_result[key])
-
-    elif isinstance(lightning_result, Sequence):
-        for val_lightning, val_sklearn in zip(lightning_result, sklearn_result):
-            assert np.allclose(val_lightning, val_sklearn)
-
-    else:
-        raise TypeError

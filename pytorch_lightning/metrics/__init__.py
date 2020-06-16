@@ -16,7 +16,7 @@ from pytorch_lightning.metrics.classification import (
     Precision,
     PrecisionRecall,
 )
-from pytorch_lightning.metrics.sklearn import (
+from pytorch_lightning.metrics.sk_metrics import (
     AUC,
     PrecisionRecallCurve,
     SklearnMetric,
