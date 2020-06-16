@@ -5,6 +5,7 @@ from typing import Optional, Tuple, Callable
 import torch
 
 from pytorch_lightning.metrics.functional.reduction import reduce
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def to_onehot(
@@ -77,13 +78,18 @@ def get_num_classes(
         Return:
             An integer that represents the number of classes.
     """
+    num_target_classes = int(target.max().detach().item() + 1)
+    num_pred_classes = int(pred.max().detach().item() + 1)
+    num_all_classes = max(num_target_classes, num_pred_classes)
+
+    if num_classes is not None and num_classes != num_all_classes:
+        return num_classes
+
     if num_classes is None:
-        if pred.ndim > target.ndim:
-            num_classes = pred.size(1)
-        else:
-            num_target_classes = int(target.max().detach().item() + 1)
-            num_pred_classes = int(pred.max().detach().item() + 1)
-            num_classes = max(num_target_classes, num_pred_classes)
+        num_classes = num_all_classes
+    elif num_classes != num_all_classes:
+        rank_zero_warn(f'You have set {num_classes} number of classes if different from'
+                       f' predicted ({num_pred_classes}) and target ({num_target_classes}) number of classes')
     return num_classes
 
 
