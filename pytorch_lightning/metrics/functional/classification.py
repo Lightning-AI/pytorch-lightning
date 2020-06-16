@@ -445,7 +445,7 @@ def f1_score(
     """
     Computes the F1-score (a.k.a F-measure), which is the harmonic mean of the precision and recall.
     It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
- 
+
     Args:
         pred: estimated probabilities
         target: ground-truth labels
@@ -864,7 +864,7 @@ def dice_score(
         no_fg_score: score to return, if no foreground pixel was found in target
         reduction: a method for reducing accuracies over labels (default: takes the mean)
                 Available reduction methods:
-   
+
                 - elementwise_mean: takes the mean
                 - none: pass array
                 - sum: add elements
