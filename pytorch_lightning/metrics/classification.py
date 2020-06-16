@@ -111,14 +111,13 @@ class ConfusionMatrix(TensorMetric):
 
         Example:
 
-            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> pred = torch.tensor([0, 1, 2, 2])
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = ConfusionMatrix()
             >>> metric(pred, target)
-            tensor([[1., 0., 0., 0.],
-                    [0., 1., 0., 0.],
-                    [0., 0., 1., 1.],
-                    [0., 0., 0., 0.]])
+            tensor([[1., 0., 0.],
+                    [0., 1., 0.],
+                    [0., 0., 2.]])
 
         """
         super().__init__(name='confusion_matrix',
