@@ -298,7 +298,7 @@ def precision_recall(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> precision_recall(x, y)
-        (tensor(1.), tensor(0.8333))
+        (tensor(0.7500), tensor(0.6250))
 
     """
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
@@ -309,6 +309,10 @@ def precision_recall(
 
     precision = tps / (tps + fps)
     recall = tps / (tps + fns)
+
+    # solution by justus, see https://discuss.pytorch.org/t/how-to-set-nan-in-tensor-to-0/3918/9
+    precision[precision != precision] = 0
+    recall[recall != recall] = 0
 
     precision = reduce(precision, reduction=reduction)
     recall = reduce(recall, reduction=reduction)
@@ -343,7 +347,7 @@ def precision(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> precision(x, y)
-        tensor(1.)
+        tensor(0.7500)
 
     """
     return precision_recall(pred=pred, target=target,
@@ -378,7 +382,7 @@ def recall(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> recall(x, y)
-        tensor(0.8333)
+        tensor(0.6250)
     """
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, reduction=reduction)[1]
@@ -419,7 +423,7 @@ def fbeta_score(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> fbeta_score(x, y, 0.2)
-        tensor(0.9877)
+        tensor(0.7407)
     """
     prec, rec = precision_recall(pred=pred, target=target,
                                  num_classes=num_classes,
@@ -428,6 +432,9 @@ def fbeta_score(
     nom = (1 + beta ** 2) * prec * rec
     denom = ((beta ** 2) * prec + rec)
     fbeta = nom / denom
+
+    # drop NaN after zero division
+    fbeta[fbeta != fbeta] = 0
 
     return reduce(fbeta, reduction=reduction)
 
@@ -460,7 +467,7 @@ def f1_score(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> f1_score(x, y)
-        tensor(0.8889)
+        tensor(0.6667)
     """
     return fbeta_score(pred=pred, target=target, beta=1.,
                        num_classes=num_classes, reduction=reduction)

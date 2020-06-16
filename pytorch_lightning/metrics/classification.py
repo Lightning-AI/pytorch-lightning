@@ -230,7 +230,7 @@ class Precision(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = Precision(num_classes=4)
             >>> metric(pred, target)
-            tensor(0.75)
+            tensor(0.7500)
 
         """
         super().__init__(name='precision',
@@ -284,7 +284,7 @@ class Recall(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = Recall()
             >>> metric(pred, target)
-            tensor(0.8333)
+            tensor(0.6250)
 
         """
         super().__init__(name='recall',
@@ -448,7 +448,7 @@ class FBeta(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = FBeta(0.25)
             >>> metric(pred, target)
-            tensor(0.9815)
+            tensor(0.7361)
 
         """
         super().__init__(name='fbeta',
@@ -502,7 +502,7 @@ class F1(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = F1()
             >>> metric(pred, target)
-            tensor(0.8889)
+            tensor(0.6667)
 
         """
         super().__init__(name='f1',
