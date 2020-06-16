@@ -114,16 +114,8 @@ def stat_scores(
         >>> x = torch.tensor([1, 2, 3])
         >>> y = torch.tensor([0, 2, 3])
         >>> tp, fp, tn, fn, sup = stat_scores(x, y, class_index=1)
-        >>> tp
-        tensor(0)
-        >>> fp
-        tensor(1)
-        >>> tn
-        tensor(2)
-        >>> fn
-        tensor(0)
-        >>> sup
-        tensor(0)
+        >>> tp, fp, tn, fn, sup
+        (tensor(0), tensor(1), tensor(2), tensor(0), tensor(0))
 
     """
     if pred.ndim == target.ndim + 1:
@@ -872,6 +864,7 @@ def dice_score(
         no_fg_score: score to return, if no foreground pixel was found in target
         reduction: a method for reducing accuracies over labels (default: takes the mean)
                 Available reduction methods:
+   
                 - elementwise_mean: takes the mean
                 - none: pass array
                 - sum: add elements
