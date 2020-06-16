@@ -259,7 +259,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_evaluation(self, *args):
+    def run_evaluation(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -377,9 +377,9 @@ class TrainerTrainLoopMixin(ABC):
                         self.run_training_teardown()
                         return
                     else:
-                        log.info(f'Trainer was signaled to stop but required minimum epochs '
-                                 f'({self.min_epochs}) or minimum steps ({self.min_steps}) has '
-                                 f'not been met. Training will continue...')
+                        log.info('Trainer was signaled to stop but required minimum epochs'
+                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                                 'not been met. Training will continue...')
 
             self.run_training_teardown()
 
