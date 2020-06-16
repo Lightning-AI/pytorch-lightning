@@ -626,9 +626,7 @@ def precision_recall_curve(
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> precision, recall, thresholds = precision_recall_curve(pred, target)
             >>> precision_recall_curve(pred, target) # doctest: +NORMALIZE_WHITESPACE
-            (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
-            tensor([1., 0., 0., 0.]),
-            tensor([1., 2., 3.]))
+            (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1., 2., 3.]))
     """
     fps, tps, thresholds = _binary_clf_curve(pred=pred, target=target,
                                              sample_weight=sample_weight,
