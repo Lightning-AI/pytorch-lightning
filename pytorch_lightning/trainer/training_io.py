@@ -323,7 +323,7 @@ class TrainerIOMixin(ABC):
              structured dictionary
         """
         checkpoint = {
-            'epoch': self.current_epoch + 1,
+            'epoch': self.current_epoch,
             'global_step': self.global_step + 1,
             'pytorch-ligthning_version': pytorch_lightning.__version__,
         }
