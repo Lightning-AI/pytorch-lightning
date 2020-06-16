@@ -31,7 +31,7 @@ class TrainerTrainingTricksMixin(ABC):
     on_gpu: bool
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod

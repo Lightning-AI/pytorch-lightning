@@ -10,6 +10,8 @@ Lightning offers 16-bit training for CPUs, GPUs and TPUs.
 GPU 16-bit
 -----------
 Lightning uses NVIDIA apex to handle 16-bit precision training.
+16 bit precision can cut your memory footprint by half.
+If using volta architecture GPUs it can give a dramatic training speed-up as well.
 
 To use 16-bit precision, do two things:
 
@@ -18,6 +20,7 @@ To use 16-bit precision, do two things:
 
 Install apex
 ^^^^^^^^^^^^
+
 .. code-block:: bash
 
     $ git clone https://github.com/NVIDIA/apex

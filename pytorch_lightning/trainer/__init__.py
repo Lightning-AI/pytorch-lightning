@@ -101,6 +101,11 @@ Use it to do whatever!
     out = pretrained_model(x)
     api_write({'response': out}
 
+
+You may wish to run the model on a variety of devices. Instead of moving the data
+manually to the correct device, decorate the forward method (or any other method you use for inference)
+with :func:`~pytorch_lightning.core.decorators.auto_move_data` and Lightning will take care of the rest.
+
 ------------
 
 Reproducibility
@@ -238,10 +243,10 @@ Example::
     from pytorch_lightning.callbacks import Callback
 
     class PrintCallback(Callback):
-        def on_train_start(self):
+        def on_train_start(self, trainer, pl_module):
             print("Training is started!")
-        def on_train_end(self):
-            print(f"Training is done. The logs are: {self.trainer.logs}")
+        def on_train_end(self, trainer, pl_module):
+            print("Training is done.")
 
 check_val_every_n_epoch
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -321,6 +326,10 @@ Example::
     trainer = Trainer(gpus=2, num_nodes=2, distributed_backend='ddp2')
 
 .. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
+
+See Also:
+    - `Multi-GPU training guide <multi_gpu.rst>`_
+    - `Multi-node (SLURM) guide <slurm.rst>`_
 
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
@@ -410,7 +419,8 @@ Example::
     # uses 8 gpus in total
     trainer = Trainer(gpus=2, num_nodes=4)
 
-.. note:: See the `multi-gpu computing guide <multi_gpu.rst>`_
+See Also:
+    - `Multi-GPU training guide <multi_gpu.rst>`_
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -422,13 +432,6 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
-
-
-gradient_clip:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `gradient_clip_val` instead. Will remove 0.8.0.
 
 log_gpu_memory
 ^^^^^^^^^^^^^^
@@ -490,12 +493,6 @@ Example::
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
 
-max_nb_epochs:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `max_epochs` instead. Will remove 0.8.0.
-
 min_epochs
 ^^^^^^^^^^
 Force training for at least these many epochs
@@ -504,11 +501,6 @@ Example::
 
     # default used by the Trainer
     trainer = Trainer(min_epochs=1)
-
-min_nb_epochs:
-
-.. warning:: deprecated:: 0.5.0
-    Use `min_epochs` instead. Will remove 0.8.0.
 
 max_steps
 ^^^^^^^^^
@@ -554,12 +546,6 @@ Example::
     # to train on 8 nodes
     trainer = Trainer(num_nodes=8)
 
-nb_gpu_nodes:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `num_nodes` instead. Will remove 0.8.0.
-
 num_processes
 ^^^^^^^^^^^^^
 
@@ -590,12 +576,6 @@ Example::
     # turn it off
     trainer = Trainer(num_sanity_val_steps=0)
 
-nb_sanity_val_steps:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `num_sanity_val_steps` instead. Will remove 0.8.0.
-
 num_tpu_cores
 ^^^^^^^^^^^^^
 .. warning:: .. deprecated:: 0.7.6
@@ -609,6 +589,19 @@ Example::
     --conda-env=torch-xla-nightly
     --env=XLA_USE_BF16=1
     -- python your_trainer_file.py
+
+prepare_data_per_node
+^^^^^^^^^^^^^^^^^^^^^
+If True will call `prepare_data()` on LOCAL_RANK=0 for every node.
+If False will only call from NODE_RANK=0, LOCAL_RANK=0
+
+Example::
+
+    # default
+    Trainer(prepare_data_per_node=True)
+
+    # use only NODE_RANK=0, LOCAL_RANK=0
+    Trainer(prepare_data_per_node=False)
 
 tpu_cores
 ^^^^^^^^^
@@ -818,14 +811,7 @@ How often to add logging rows (does not write to disk)
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(row_log_interval=10)
-
-
-add_row_log_interval:
-
-.. warning:: .. deprecated:: 0.5.0
-
-    Use `row_log_interval` instead. Will remove 0.8.0.
+    trainer = Trainer(row_log_interval=50)
 
 use_amp:
 
@@ -1013,11 +999,11 @@ Options: 'full', 'top', None.
 
 Example::
 
-    # default used by the Trainer (ie: print all weights)
-    trainer = Trainer(weights_summary='full')
-
-    # print only the top level modules
+    # default used by the Trainer (ie: print summary of top level modules)
     trainer = Trainer(weights_summary='top')
+
+    # print full summary of all modules and submodules
+    trainer = Trainer(weights_summary='full')
 
     # don't print a summary
     trainer = Trainer(weights_summary=None)

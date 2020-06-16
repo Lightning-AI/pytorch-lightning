@@ -1,6 +1,5 @@
 import inspect
 import os
-import logging as python_logging
 from argparse import ArgumentParser, Namespace
 from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
 
@@ -10,16 +9,16 @@ import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback, ProgressBarBase
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.seed import seed_everything
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_9
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
     TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
@@ -33,8 +32,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing
-
+from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info
 
 try:
     from apex import amp
@@ -75,73 +73,62 @@ class Trainer(
     TrainerCallbackConfigMixin,
     TrainerCallbackHookMixin,
     TrainerLRFinderMixin,
-    TrainerDeprecatedAPITillVer0_8,
     TrainerDeprecatedAPITillVer0_9,
 ):
-    DEPRECATED_IN_0_8 = (
-        'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
-        'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
-    )
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
-            self,
-            logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-            checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-            early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
-            callbacks: Optional[List[Callback]] = None,
-            default_root_dir: Optional[str] = None,
-            gradient_clip_val: float = 0,
-            process_position: int = 0,
-            num_nodes: int = 1,
-            num_processes: int = 1,
-            gpus: Optional[Union[List[int], str, int]] = None,
-            auto_select_gpus: bool = False,
-            tpu_cores: Optional[Union[List[int], int]] = None,
-            log_gpu_memory: Optional[str] = None,
-            progress_bar_refresh_rate: int = 1,
-            overfit_pct: float = 0.0,
-            track_grad_norm: int = -1,
-            check_val_every_n_epoch: int = 1,
-            fast_dev_run: bool = False,
-            accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-            max_epochs: int = 1000,
-            min_epochs: int = 1,
-            max_steps: Optional[int] = None,
-            min_steps: Optional[int] = None,
-            train_percent_check: float = 1.0,
-            val_percent_check: float = 1.0,
-            test_percent_check: float = 1.0,
-            val_check_interval: float = 1.0,
-            log_save_interval: int = 100,
-            row_log_interval: int = 10,
-            add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
-            distributed_backend: Optional[str] = None,
-            precision: int = 32,
-            print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'full',
-            weights_save_path: Optional[str] = None,
-            num_sanity_val_steps: int = 2,
-            truncated_bptt_steps: Optional[int] = None,
-            resume_from_checkpoint: Optional[str] = None,
-            profiler: Optional[Union[BaseProfiler, bool]] = None,
-            benchmark: bool = False,
-            deterministic: bool = False,
-            reload_dataloaders_every_epoch: bool = False,
-            auto_lr_find: Union[bool, str] = False,
-            replace_sampler_ddp: bool = True,
-            terminate_on_nan: bool = False,
-            auto_scale_batch_size: Union[str, bool] = False,
-            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
-            amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
-            default_save_path=None,  # backward compatible, todo: remove in v0.8.0
-            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
-            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
-            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            use_amp=None,  # backward compatible, todo: remove in v0.9.0
-            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
-            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
+        self,
+        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+        checkpoint_callback: Union[ModelCheckpoint, bool] = True,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        callbacks: Optional[List[Callback]] = None,
+        default_root_dir: Optional[str] = None,
+        gradient_clip_val: float = 0,
+        process_position: int = 0,
+        num_nodes: int = 1,
+        num_processes: int = 1,
+        gpus: Optional[Union[List[int], str, int]] = None,
+        auto_select_gpus: bool = False,
+        tpu_cores: Optional[Union[List[int], int]] = None,
+        log_gpu_memory: Optional[str] = None,
+        progress_bar_refresh_rate: int = 1,
+        overfit_pct: float = 0.0,
+        track_grad_norm: Union[int, float, str] = -1,
+        check_val_every_n_epoch: int = 1,
+        fast_dev_run: bool = False,
+        accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
+        max_epochs: int = 1000,
+        min_epochs: int = 1,
+        max_steps: Optional[int] = None,
+        min_steps: Optional[int] = None,
+        train_percent_check: float = 1.0,
+        val_percent_check: float = 1.0,
+        test_percent_check: float = 1.0,
+        val_check_interval: float = 1.0,
+        log_save_interval: int = 100,
+        row_log_interval: int = 50,
+        distributed_backend: Optional[str] = None,
+        precision: int = 32,
+        print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
+        weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
+        weights_save_path: Optional[str] = None,
+        num_sanity_val_steps: int = 2,
+        truncated_bptt_steps: Optional[int] = None,
+        resume_from_checkpoint: Optional[str] = None,
+        profiler: Optional[Union[BaseProfiler, bool]] = None,
+        benchmark: bool = False,
+        deterministic: bool = False,
+        reload_dataloaders_every_epoch: bool = False,
+        auto_lr_find: Union[bool, str] = False,
+        replace_sampler_ddp: bool = True,
+        terminate_on_nan: bool = False,
+        auto_scale_batch_size: Union[str, bool] = False,
+        prepare_data_per_node: bool = True,
+        amp_level: str = 'O1',  # backward compatible, todo: remove in v1.0.0
+        num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
+        use_amp=None,  # backward compatible, todo: remove in v0.9.0
+        show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
     ):
         r"""
 
@@ -157,11 +144,6 @@ class Trainer(
             callbacks: Add a list of callbacks.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed
-
-            default_save_path:
-                .. warning:: .. deprecated:: 0.7.3
-
-                    Use `default_root_dir` instead. Will remove 0.9.0.
 
             gradient_clip_val: 0 means don't clip.
 
@@ -205,7 +187,7 @@ class Trainer(
 
             overfit_pct: How much of training-, validation-, and test dataset to check.
 
-            track_grad_norm: -1 no tracking. Otherwise tracks that norm
+            track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
             check_val_every_n_epoch: Check val every n train epochs.
 
@@ -248,7 +230,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use.
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
@@ -273,14 +255,10 @@ class Trainer(
 
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
 
-            nb_sanity_val_steps:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `num_sanity_val_steps` instead. Will remove 0.8.0.
-
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
+                This can be a URL.
 
             profiler:  To profile individual steps during training and assist in
 
@@ -306,6 +284,9 @@ class Trainer(
                 The result will be stored in self.batch_size in the LightningModule.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
+
+            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
         """
         super().__init__()
 
@@ -343,11 +324,7 @@ class Trainer(
 
         # set default save path if user didn't provide one
         if default_root_dir is None or default_root_dir is True:
-            # Backward compatibility, TODO: remove default_save_path in v0.8.0
-            if default_save_path:
-                rank_zero_warn("Argument `default_save_path` has been replaced by `default_root_dir`"
-                               " and will be removed in v0.8.0", DeprecationWarning)
-            default_root_dir = default_save_path or os.getcwd()
+            default_root_dir = os.getcwd()
         self.default_root_dir = default_root_dir
 
         # configure logger
@@ -376,28 +353,24 @@ class Trainer(
 
         self.on_init_start()
 
+        self.prepare_data_per_node = prepare_data_per_node
+
         # benchmarking
         self.benchmark = benchmark
         torch.backends.cudnn.benchmark = self.benchmark
 
         # Transfer params
         self.num_nodes = num_nodes
-        # Backward compatibility, TODO: remove in v0.8.0
-        if nb_gpu_nodes is not None:
-            rank_zero_warn("Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.num_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
 
         self.gradient_clip_val = gradient_clip_val
-        # Backward compatibility, TODO: remove in v0.8.0
-        if gradient_clip is not None:
-            rank_zero_warn("Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.gradient_clip = gradient_clip
-
         self.check_val_every_n_epoch = check_val_every_n_epoch
-        self.track_grad_norm = track_grad_norm
+
+        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+            raise MisconfigurationException(
+                "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+        self.track_grad_norm = float(track_grad_norm)
+
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
@@ -422,30 +395,11 @@ class Trainer(
         self.weights_summary = weights_summary
 
         self.max_epochs = max_epochs
-        # Backward compatibility, TODO: remove in v0.8.0
-        if max_nb_epochs is not None:
-            rank_zero_warn("Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.max_nb_epochs = max_nb_epochs
-
         self.min_epochs = min_epochs
-        # Backward compatibility, TODO: remove in v0.8.0
-        if min_nb_epochs is not None:
-            rank_zero_warn("Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.min_nb_epochs = min_nb_epochs
-
         self.max_steps = max_steps
         self.min_steps = min_steps
 
         self.num_sanity_val_steps = num_sanity_val_steps
-        # Backward compatibility, TODO: remove in v0.8.0
-        if nb_sanity_val_steps is not None:
-            rank_zero_warn("Argument `nb_sanity_val_steps` has renamed to "
-                           "`num_sanity_val_steps` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.nb_sanity_val_steps = nb_sanity_val_steps
-
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
@@ -467,8 +421,8 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
-            log.info('Running in fast_dev_run mode: will run a full train,'
-                     ' val and test loop using a single batch')
+            rank_zero_info('Running in fast_dev_run mode: will run a full train,'
+                           ' val and test loop using a single batch')
 
         # configure profiler
         if profiler is True:
@@ -503,10 +457,12 @@ class Trainer(
             self.init_tpu()
 
         # init flags for SLURM+ddp to work
-        self.proc_rank = 0
         self.world_size = 1
+        self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
+        self.local_rank = self.determine_local_rank()
+        self.global_rank = 0
 
         # nvidia setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
@@ -521,12 +477,6 @@ class Trainer(
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
 
-        # backward compatibility
-        if add_row_log_interval is not None:
-            rank_zero_warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not row_log_interval:  # in case you did not set the proper value
-                row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -542,7 +492,6 @@ class Trainer(
         self.precision = precision
         self.scaler = None
 
-        # TODO: remove for v0.8.0
         self.amp_level = amp_level
         self.init_amp(use_amp)
 
@@ -552,7 +501,11 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def slurm_job_id(self) -> int:
+    def is_global_zero(self):
+        return self.global_rank == 0
+
+    @property
+    def slurm_job_id(self) -> Optional[int]:
         try:
             job_id = os.environ['SLURM_JOB_ID']
             job_id = int(job_id)
@@ -602,6 +555,7 @@ class Trainer(
              ('max_epochs', (<class 'int'>,), 1000),
              ...
              ('precision', (<class 'int'>,), 32),
+             ('prepare_data_per_node', (<class 'bool'>,), True),
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
@@ -693,7 +647,7 @@ class Trainer(
                 if len(arg_types) == 1:
                     # redefine the type for ArgParser needed
                     def use_type(x):
-                        return bool(parsing.strtobool(x))
+                        return bool(parsing.str_to_bool(x))
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
@@ -823,7 +777,7 @@ class Trainer(
             train, val = DataLoader(...), DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
-            trainer.fit(model, train_dataloader=train, val_dataloader=val)
+            trainer.fit(model, train_dataloader=train, val_dataloaders=val)
 
             # Option 1 & 2 can be mixed, for example the training set can be
             # defined as part of the model, and validation can then be feed to .fit()
@@ -843,10 +797,9 @@ class Trainer(
         # check that model is configured correctly
         self.check_model_configuration(model)
 
-        # download the data and do whatever transforms we need
-        # do before any spawn calls so that the model can assign properties
-        # only on proc 0 because no spawn has happened yet
-        if not self._is_data_prepared:
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+        if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
 
@@ -871,6 +824,7 @@ class Trainer(
             # torchelastic or general non_slurm ddp2
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
+
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
@@ -882,16 +836,19 @@ class Trainer(
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
 
-            else:
+            elif self.distributed_backend == 'cpu_ddp':
                 self.__set_random_port()
-                # track for predict
                 self.model = model
-                # train
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-                # load weights if not interrupted
-                if self.on_colab_kaggle:
-                    self.load_spawn_weights(model)
-                    self.model = model
+
+            elif self.distributed_backend == 'ddp_spawn':
+                model.share_memory()
+
+                # spin up peers
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
+
+            elif self.distributed_backend == 'ddp':
+                self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
@@ -905,7 +862,7 @@ class Trainer(
             self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.tpu_cores} TPU cores')
+            rank_zero_info(f'training on {self.tpu_cores} TPU cores')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
@@ -939,17 +896,12 @@ class Trainer(
         # used for testing or when we need to know that training succeeded
         return 1
 
-    def __set_random_port(self):
-        """
-        When running DDP NOT managed by SLURM, the ports might collide
-        :return:
-        """
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
-            os.environ['MASTER_PORT'] = str(default_port)
+    def can_prepare_data(self):
+        if self.prepare_data_per_node:
+            return self.local_rank == 0
+
+        else:
+            return self.node_rank == 0 and self.local_rank == 0
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -986,7 +938,7 @@ class Trainer(
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
-            self.logger.log_hyperparams(ref_model.module_arguments)
+            self.logger.log_hyperparams(ref_model.hparams)
 
             self.logger.save()
 
@@ -1006,12 +958,13 @@ class Trainer(
         self.register_slurm_signal_handlers()
 
         # print model summary
-        # TODO: remove self.testing condition because model.summarize() is wiping out the weights
-        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ['full', 'top']:
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
+            if self.weights_summary in ModelSummary.MODES:
                 ref_model.summarize(mode=self.weights_summary)
             else:
-                raise MisconfigurationException("weights_summary can be None, 'full' or 'top'")
+                raise MisconfigurationException(
+                    "weights_summary can be None, " + ", ".join(ModelSummary.MODES)
+                )
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -1050,8 +1003,11 @@ class Trainer(
             self.on_sanity_check_end()
 
         # clear cache before training
-        if self.on_gpu:
-            torch.cuda.empty_cache()
+        if self.on_gpu and self.root_gpu is not None:
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
 
         # CORE TRAINING LOOP
         self.train()
@@ -1059,7 +1015,8 @@ class Trainer(
     def test(
             self,
             model: Optional[LightningModule] = None,
-            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            ckpt_path: Optional[str] = 'best'
     ):
         r"""
 
@@ -1071,10 +1028,13 @@ class Trainer(
             test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
         Example::
 
             # Option 1
-            # run test after fitting
+            # run test with the best checkpoint from ``ModelCheckpoint`` after fitting.
             test = DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
@@ -1083,12 +1043,41 @@ class Trainer(
             trainer.test(test_dataloaders=test)
 
             # Option 2
-            # run test from a loaded model
+            # run test with the specified checkpoint after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path='path/to/checkpoint.ckpt')
+
+            # Option 3
+            # run test with the weights from the end of training after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path=None)
+
+            # Option 4
+            # run test from a loaded model. ``ckpt_path`` is ignored in this case.
             test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+            raise MisconfigurationException(
+                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
+
+        # if model is not given (None), ckpt_path is given,
+        # load the given checkpoint for testing
+        if model is None and ckpt_path is not None:
+            # ckpt_path is 'best' so load the best model
+            if ckpt_path == 'best':
+                ckpt_path = self.checkpoint_callback.best_model_path
+            model = self.get_model().load_from_checkpoint(ckpt_path)
 
         self.testing = True
 
@@ -1101,7 +1090,10 @@ class Trainer(
         if model is not None:
             self.model = model
             self.fit(model)
-        elif self.use_ddp or self.use_tpu:  # pragma: no-cover
+
+        # on tpu, .spawn means we don't have a trained model
+        # TODO: remove TPU spawn
+        elif self.use_tpu:  # pragma: no-cover
             # attempt to load weights from a spawn
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model

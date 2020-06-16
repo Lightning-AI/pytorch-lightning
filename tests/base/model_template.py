@@ -1,5 +1,3 @@
-from argparse import Namespace
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -53,7 +51,7 @@ class EvalModelTemplate(
                  **kwargs) -> object:
         # init superclass
         super().__init__()
-        self.auto_collect_arguments()
+        self.save_hyperparameters()
 
         self.drop_prob = drop_prob
         self.batch_size = batch_size

@@ -125,6 +125,9 @@ class EarlyStopping(Callback):
         self._validate_condition_metric(logs)
 
     def on_validation_end(self, trainer, pl_module):
+        self._run_early_stopping_check(trainer, pl_module)
+
+    def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present

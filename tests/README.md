@@ -9,6 +9,9 @@ run on a 2-GPU machine to validate the full test-suite.
 
 
 To run all tests do the following:
+
+Install [Open MPI](https://www.open-mpi.org/) or another MPI implementation. Learn how to install Open MPI [on this page](https://www.open-mpi.org/faq/?category=building#easy-build>).
+
 ```bash
 git clone https://github.com/PyTorchLightning/pytorch-lightning
 cd pytorch-lightning
@@ -17,7 +20,7 @@ cd pytorch-lightning
 bash tests/install_AMP.sh
 
 # install dev deps
-pip install -r tests/requirements-devel.txt
+pip install -r requirements/devel.txt
 
 # run tests
 py.test -v
@@ -36,8 +39,8 @@ Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex 
 ```bash
 cd pytorch-lightning
 
-# generate coverage (coverage is also installed as part of dev dependencies under tests/requirements-devel.txt)
-coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examples -v --doctest-modules
+# generate coverage (coverage is also installed as part of dev dependencies under requirements/devel.txt)
+coverage run --source pytorch_lightning -m py.test pytorch_lightning tests examples -v
 
 # print coverage stats
 coverage report -m

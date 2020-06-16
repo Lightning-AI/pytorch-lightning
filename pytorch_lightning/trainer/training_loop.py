@@ -159,6 +159,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+import subprocess
 
 try:
     from apex import amp
@@ -214,7 +215,7 @@ class TrainerTrainLoopMixin(ABC):
     global_step: int
     testing: bool
     log_save_interval: float
-    proc_rank: int
+    global_rank: int
     row_log_interval: float
     truncated_bptt_steps: ...
     optimizers: ...
@@ -236,6 +237,7 @@ class TrainerTrainLoopMixin(ABC):
     total_batch_idx: int
     terminate_on_nan: bool
     tpu_id: int
+    interactive_ddp_procs: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -246,9 +248,10 @@ class TrainerTrainLoopMixin(ABC):
     on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
+    on_keyboard_interrupt: Callable
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -305,13 +308,13 @@ class TrainerTrainLoopMixin(ABC):
 
     def train(self):
         # add signal handlers for process kills
-        def _signal_kill_handler(*args):
-            return TrainerTrainLoopMixin.run_training_teardown(self)
-
-        orig_signal_handlers = {}
-        for sig_name in SIGNAL_TERMINATE:
-            orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
-                                                           _signal_kill_handler)
+        # def _signal_kill_handler(*args):
+        #     return TrainerTrainLoopMixin.run_training_teardown(self)
+        #
+        # orig_signal_handlers = {}
+        # for sig_name in SIGNAL_TERMINATE:
+        #     orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
+        #                                                    _signal_kill_handler)
 
         # get model
         model = self.get_model()
@@ -380,15 +383,18 @@ class TrainerTrainLoopMixin(ABC):
 
             self.run_training_teardown()
 
-            # reset signal handlers
-            for sig_name in SIGNAL_TERMINATE:
-                signal.signal(getattr(signal, sig_name), orig_signal_handlers[sig_name])
-
         except KeyboardInterrupt:
-            if self.proc_rank == 0:
-                log.info('Detected KeyboardInterrupt, attempting graceful shutdown...')
-            self.interrupted = True
-            self.run_training_teardown()
+            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
+
+            # user could press ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.interrupted = True
+                self.on_keyboard_interrupt()
+
+                for proc in self.interactive_ddp_procs:
+                    subprocess.Popen.kill(proc)
+
+                self.run_training_teardown()
 
     def run_training_epoch(self):
 
@@ -408,8 +414,8 @@ class TrainerTrainLoopMixin(ABC):
         train_dataloader = self.train_dataloader
 
         # on TPU we have to wrap it under the ParallelLoader
-        if self.use_tpu and self.tpu_id is None:
-            device = xm.xla_device()
+        if self.use_tpu:
+            device = xm.xla_device(self.tpu_id)
             train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
             train_dataloader = train_dataloader.per_device_loader(device)
 
@@ -473,7 +479,7 @@ class TrainerTrainLoopMixin(ABC):
             # when logs should be saved
             should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or self.should_stop
             if should_save_log or self.fast_dev_run:
-                if self.proc_rank == 0 and self.logger is not None:
+                if self.is_global_zero and self.logger is not None:
                     self.logger.save()
 
             # when metrics should be logged
@@ -627,7 +633,7 @@ class TrainerTrainLoopMixin(ABC):
 
                     # track gradient norms when requested
                     if batch_idx % self.row_log_interval == 0:
-                        if self.track_grad_norm > 0:
+                        if float(self.track_grad_norm) > 0:
                             model = self.get_model()
                             grad_norm_dic = model.grad_norm(
                                 self.track_grad_norm)
@@ -680,7 +686,7 @@ class TrainerTrainLoopMixin(ABC):
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.optimizers[opt_idx])]
 
-    @atexit.register
+    # @atexit.register
     def run_training_teardown(self):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
@@ -752,7 +758,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # TPU support
         elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch)
+            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
             args[0] = batch
             output = self.model.training_step(*args)
 

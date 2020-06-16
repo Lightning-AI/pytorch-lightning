@@ -1,3 +1,4 @@
+import os
 import platform
 from collections import namedtuple
 
@@ -9,6 +10,77 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from tests.base import EvalModelTemplate
+from pytorch_lightning.callbacks import ModelCheckpoint
+
+
+def test_cpu_slurm_save_load(tmpdir):
+    """Verify model save/load/checkpoint on CPU."""
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    # logger file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+    version = logger.version
+
+    # fit model
+    trainer = Trainer(
+        max_epochs=1,
+        logger=logger,
+        train_percent_check=0.2,
+        val_percent_check=0.2,
+        checkpoint_callback=ModelCheckpoint(tmpdir)
+    )
+    result = trainer.fit(model)
+    real_global_step = trainer.global_step
+
+    # traning complete
+    assert result == 1, 'cpu model failed to complete'
+
+    # predict with trained model before saving
+    # make a prediction
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
+        for batch in dataloader:
+            break
+
+    x, y = batch
+    x = x.view(x.size(0), -1)
+
+    model.eval()
+    pred_before_saving = model(x)
+
+    # test HPC saving
+    # simulate snapshot on slurm
+    saved_filepath = trainer.hpc_save(tmpdir, logger)
+    assert os.path.exists(saved_filepath)
+
+    # new logger file to get meta
+    logger = tutils.get_default_logger(tmpdir, version=version)
+
+    trainer = Trainer(
+        max_epochs=1,
+        logger=logger,
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+    )
+    model = EvalModelTemplate(**hparams)
+
+    # set the epoch start hook so we can predict before the model does the full training
+    def assert_pred_same():
+        assert trainer.global_step == real_global_step and trainer.global_step > 0
+
+        # predict with loaded model to make sure answers are the same
+        trainer.model.eval()
+        new_pred = trainer.model(x)
+        assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+    model.on_epoch_start = assert_pred_same
+
+    # by calling fit again, we trigger training, loading weights from the cluster
+    # and our hook to predict using current model before any more weight updates
+    trainer.fit(model)
 
 
 def test_early_stopping_cpu_model(tmpdir):
@@ -17,6 +89,7 @@ def test_early_stopping_cpu_model(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
+        max_epochs=2,
         gradient_clip_val=1.0,
         overfit_pct=0.20,
         track_grad_norm=2,
@@ -61,19 +134,19 @@ def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        max_epochs=2,
+        max_epochs=1,
         progress_bar_refresh_rate=0,
         weights_summary='top',
-        train_percent_check=1.0,
+        train_percent_check=0.2,
         val_percent_check=0.2,
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
     hparams.update(optimizer_name='lbfgs',
-                   learning_rate=0.002)
+                   learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
-    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.5)
+    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -110,7 +183,7 @@ def test_running_test_after_fitting(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=8,
+        max_epochs=2,
         train_percent_check=0.4,
         val_percent_check=0.2,
         test_percent_check=0.2,
@@ -324,19 +397,3 @@ def test_tbptt_cpu_model(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_single_gpu_model(tmpdir):
-    """Make sure single GPU works (DP mode)."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
-        gpus=1
-    )
-
-    model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model)

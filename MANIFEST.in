@@ -11,7 +11,7 @@ include LICENSE
 
 exclude *.sh
 exclude *.toml
-exclude *.svg    
+exclude *.svg
 recursive-include pytorch_lightning *.py
 
 # include examples
@@ -29,11 +29,14 @@ recursive-include docs/source/_images/logos/ *
 recursive-include docs/source/_images/general/ pl_overview* tf_* tutorial_*
 
 # Include the Requirements
-include requirements.txt
-include requirements-extra.txt
+recursive-include requirements *.txt
 
 # Exclude build configs
 exclude *.yml
+exclude *.yaml
+
+# Exclude pyright config
+exclude .pyrightconfig.json
 
 prune .git
 prune .github

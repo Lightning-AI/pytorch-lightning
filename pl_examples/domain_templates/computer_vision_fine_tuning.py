@@ -27,6 +27,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional, Generator, Union
 
+from torch.nn import Module
+
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
@@ -47,7 +49,7 @@ DATA_URL = 'https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered
 #  --- Utility functions ---
 
 
-def _make_trainable(module: torch.nn.Module) -> None:
+def _make_trainable(module: Module) -> None:
     """Unfreezes a given module.
 
     Args:
@@ -58,7 +60,7 @@ def _make_trainable(module: torch.nn.Module) -> None:
     module.train()
 
 
-def _recursive_freeze(module: torch.nn.Module,
+def _recursive_freeze(module: Module,
                       train_bn: bool = True) -> None:
     """Freezes the layers of a given module.
 
@@ -80,7 +82,7 @@ def _recursive_freeze(module: torch.nn.Module,
             _recursive_freeze(module=child, train_bn=train_bn)
 
 
-def freeze(module: torch.nn.Module,
+def freeze(module: Module,
            n: Optional[int] = None,
            train_bn: bool = True) -> None:
     """Freezes the layers up to index n (if n is not None).
@@ -101,7 +103,7 @@ def freeze(module: torch.nn.Module,
         _make_trainable(module=child)
 
 
-def filter_params(module: torch.nn.Module,
+def filter_params(module: Module,
                   train_bn: bool = True) -> Generator:
     """Yields the trainable parameters of a given module.
 
@@ -124,7 +126,7 @@ def filter_params(module: torch.nn.Module,
                 yield param
 
 
-def _unfreeze_and_add_param_group(module: torch.nn.Module,
+def _unfreeze_and_add_param_group(module: Module,
                                   optimizer: Optimizer,
                                   lr: Optional[float] = None,
                                   train_bn: bool = True):
@@ -201,7 +203,7 @@ class TransferLearningModel(pl.LightningModule):
 
         return x
 
-    def loss(self, labels, logits):
+    def loss(self, logits, labels):
         return self.loss_func(input=logits, target=labels)
 
     def train(self, mode=True):
@@ -241,7 +243,7 @@ class TransferLearningModel(pl.LightningModule):
         y_bin = torch.ge(y_logits, 0)
 
         # 2. Compute loss & accuracy:
-        train_loss = self.loss(y_true, y_logits)
+        train_loss = self.loss(y_logits, y_true)
         num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
 
         # 3. Outputs:
@@ -274,7 +276,7 @@ class TransferLearningModel(pl.LightningModule):
         y_bin = torch.ge(y_logits, 0)
 
         # 2. Compute loss & accuracy:
-        val_loss = self.loss(y_true, y_logits)
+        val_loss = self.loss(y_logits, y_true)
         num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
 
         return {'val_loss': val_loss,
@@ -450,5 +452,4 @@ def get_args() -> argparse.Namespace:
 
 
 if __name__ == '__main__':
-
     main(get_args())

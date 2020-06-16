@@ -1,7 +1,9 @@
 import glob
 import logging as log
 import os
+import pickle
 
+import cloudpickle
 import pytest
 import torch
 
@@ -76,7 +78,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
-        max_epochs=4,
+        max_epochs=3,
         train_percent_check=0.4,
         val_percent_check=0.2,
         checkpoint_callback=checkpoint,
@@ -117,7 +119,7 @@ def test_load_model_from_checkpoint(tmpdir):
     # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
-    trainer.test()
+    trainer.test(ckpt_path=None)
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
@@ -270,7 +272,6 @@ def test_model_saving_loading(tmpdir):
 
 
 def test_model_pickle(tmpdir):
-    import pickle
-
     model = EvalModelTemplate()
     pickle.dumps(model)
+    cloudpickle.dumps(model)

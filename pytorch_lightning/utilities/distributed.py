@@ -1,5 +1,6 @@
 from functools import wraps
 import warnings
+from pytorch_lightning import _logger as log
 
 
 def rank_zero_only(fn):
@@ -23,4 +24,9 @@ def _warn(*args, **kwargs):
     warnings.warn(*args, **kwargs)
 
 
+def _info(*args, **kwargs):
+    log.info(*args, **kwargs)
+
+
+rank_zero_info = rank_zero_only(_info)
 rank_zero_warn = rank_zero_only(_warn)

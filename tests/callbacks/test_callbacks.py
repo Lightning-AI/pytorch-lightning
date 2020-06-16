@@ -7,6 +7,30 @@ from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
+import torch
+
+
+def test_early_stopping_functionality(tmpdir):
+
+    class CurrentModel(EvalModelTemplate):
+        def validation_epoch_end(self, outputs):
+            losses = [8, 4, 2, 3, 4, 5, 8, 10]
+            val_loss = losses[self.current_epoch]
+            val_loss = torch.tensor(val_loss)
+            return {'val_loss': val_loss}
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        overfit_pct=0.20,
+        max_epochs=20,
+    )
+    result = trainer.fit(model)
+    print(trainer.current_epoch)
+
+    assert trainer.current_epoch == 5, 'early_stopping failed'
 
 
 def test_trainer_callback_system(tmpdir):

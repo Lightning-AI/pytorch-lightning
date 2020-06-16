@@ -124,7 +124,7 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 from torch.utils.data import DataLoader
@@ -167,7 +167,7 @@ class TrainerEvaluationLoopMixin(ABC):
     fast_dev_run: ...
     process_output: ...
     progress_bar_dict: ...
-    proc_rank: int
+    global_rank: int
     current_epoch: int
     callback_metrics: ...
     test_dataloaders: DataLoader
@@ -191,7 +191,7 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -249,8 +249,8 @@ class TrainerEvaluationLoopMixin(ABC):
             dl_outputs = []
 
             # on TPU we have to wrap it under the ParallelLoader
-            if self.use_tpu and self.tpu_id is None:
-                device = xm.xla_device()
+            if self.use_tpu:
+                device = xm.xla_device(self.tpu_id)
                 dataloader = xla_pl.ParallelLoader(dataloader, [device])
                 dataloader = dataloader.per_device_loader(device)
 
@@ -375,7 +375,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self.add_progress_bar_metrics(prog_bar_metrics)
 
         # log results of test
-        if test_mode and self.proc_rank == 0:
+        if test_mode and self.is_global_zero:
             print('-' * 80)
             print('TEST RESULTS')
             pprint(callback_metrics)
@@ -434,7 +434,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # TPU data  transfer
         if self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch)
+            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
             args[0] = batch
 
         # CPU, TPU or gpu step

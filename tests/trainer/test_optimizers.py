@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 
@@ -235,6 +234,6 @@ def test_configure_optimizer_from_dict(tmpdir):
     model = CurrentModel(hparams)
 
     # fit model
-    trainer = Trainer(default_save_path=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     result = trainer.fit(model)
     assert result == 1

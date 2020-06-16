@@ -90,6 +90,7 @@ extensions = [
     'sphinx.ext.linkcode',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
+    'sphinx.ext.imgmath',
     'recommonmark',
     'sphinx.ext.autosectionlabel',
     # 'm2r',
@@ -140,13 +141,7 @@ exclude_patterns = [
     'api/modules.rst',
 
     # deprecated/renamed:
-    'api/pytorch_lightning.loggers.comet_logger.rst',           # TODO: remove in v0.8.0
-    'api/pytorch_lightning.loggers.mlflow_logger.rst',          # TODO: remove in v0.8.0
-    'api/pytorch_lightning.loggers.test_tube_logger.rst',       # TODO: remove in v0.8.0
-    'api/pytorch_lightning.callbacks.pt_callbacks.*',           # TODO: remove in v0.8.0
-    'api/pytorch_lightning.pt_overrides.*',                     # TODO: remove in v0.8.0
-    'api/pytorch_lightning.root_module.*',                      # TODO: remove in v0.8.0
-    'api/pytorch_lightning.logging.*',                          # TODO: remove in v0.8.0
+    'api/pytorch_lightning.logging.*',  # TODO: remove in v0.9.0
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -179,7 +174,7 @@ html_logo = '_images/logos/lightning_logo-name.svg'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_images', '_templates']
+html_static_path = ['_images', '_templates', '_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -301,6 +296,9 @@ def run_apidoc(_):
 
 
 def setup(app):
+    # this is for hiding doctest decoration,
+    # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
+    app.add_javascript('copybutton.js')
     app.connect('builder-inited', run_apidoc)
 
 
@@ -329,8 +327,8 @@ def package_list_from_file(file):
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements.txt'))
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements-extra.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/base.txt'))
+    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, 'requirements/extra.txt'))
 
 MOCK_MANUAL_PACKAGES = [
     'torchvision',

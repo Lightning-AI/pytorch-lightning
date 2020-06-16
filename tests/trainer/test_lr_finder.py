@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -15,7 +14,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -30,7 +29,7 @@ def test_model_reset_correctly(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -52,7 +51,7 @@ def test_trainer_reset_correctly(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
 
@@ -82,8 +81,8 @@ def test_trainer_arg_bool(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=5,
+        default_root_dir=tmpdir,
+        max_epochs=2,
         auto_lr_find=True
     )
 
@@ -101,8 +100,8 @@ def test_trainer_arg_str(tmpdir):
     before_lr = model.my_fancy_lr
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=5,
+        default_root_dir=tmpdir,
+        max_epochs=2,
         auto_lr_find='my_fancy_lr'
     )
 
@@ -121,8 +120,8 @@ def test_call_to_trainer_method(tmpdir):
     before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=5,
+        default_root_dir=tmpdir,
+        max_epochs=2,
     )
 
     lrfinder = trainer.lr_find(model, mode='linear')
@@ -134,6 +133,7 @@ def test_call_to_trainer_method(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
+@pytest.mark.skip('TODO: speed up this test')
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
@@ -144,8 +144,8 @@ def test_accumulation_and_early_stopping(tmpdir):
     before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
-        accumulate_grad_batches=2
+        default_root_dir=tmpdir,
+        accumulate_grad_batches=2,
     )
 
     lrfinder = trainer.lr_find(model, early_stop_threshold=None)
@@ -167,8 +167,8 @@ def test_suggestion_parameters_work(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=10,
+        default_root_dir=tmpdir,
+        max_epochs=3,
     )
 
     lrfinder = trainer.lr_find(model)
@@ -187,8 +187,8 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
-        max_epochs=10
+        default_root_dir=tmpdir,
+        max_epochs=3
     )
 
     lrfinder = trainer.lr_find(model)
