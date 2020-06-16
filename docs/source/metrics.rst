@@ -333,7 +333,7 @@ but requires conversion between pytorch and numpy thus may slow down your comput
 
 To use the sklearn backend of metrics simply import as
 
-Example::
+.. code-block:: python
     
     import pytorch_lightning.metrics.sklearn import plm
     metric = plm.Accuracy(normalize=True)
