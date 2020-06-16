@@ -269,7 +269,7 @@ class TrainerDataLoadingMixin(ABC):
                         f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
                         f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
 
-                if num_batches == 0:
+                if num_batches == 0 and percent_check > 0.0:
                     min_pct = 1.0 / len(dataloader)
                     m = f'you requested to check {percent_check} of the {mode} dataloader but ' \
                         f'{percent_check}*{num_batches} = 0. Please increase the {mode}_percent_check.' \
