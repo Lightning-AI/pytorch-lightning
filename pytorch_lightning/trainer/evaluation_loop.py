@@ -124,7 +124,7 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 
 import torch
 from torch.utils.data import DataLoader
@@ -162,7 +162,7 @@ class TrainerEvaluationLoopMixin(ABC):
     single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
-    num_test_batches: int
+    num_test_batches: List[int]
     num_val_batches: int
     fast_dev_run: ...
     process_output: ...
@@ -222,13 +222,13 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _evaluate(self, model: LightningModule, dataloaders, max_batches: int, test_mode: bool = False):
+    def _evaluate(self, model: LightningModule, dataloaders, max_batches: List[int], test_mode: bool = False):
         """Run evaluation code.
 
         Args:
             model: PT model
             dataloaders: list of PT dataloaders
-            max_batches: Scalar
+            max_batches: List of scalars
             test_mode:
         """
         # enable eval mode
@@ -254,12 +254,15 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = xla_pl.ParallelLoader(dataloader, [device])
                 dataloader = dataloader.per_device_loader(device)
 
+            # each dataloader has a max num batches
+            dl_max_batches = max_batches[dataloader_idx]
+
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
 
                 # stop short when on fast_dev_run (sets max_batch=1)
-                if batch_idx >= max_batches:
+                if batch_idx >= dl_max_batches:
                     break
 
                 # callbacks
@@ -359,7 +362,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # cap max batches to 1 when using fast_dev_run
         if self.fast_dev_run:
-            max_batches = 1
+            max_batches = [1]
 
         # Validation/Test begin callbacks
         if test_mode:

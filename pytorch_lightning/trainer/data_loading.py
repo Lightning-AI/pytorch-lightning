@@ -70,9 +70,9 @@ class TrainerDataLoadingMixin(ABC):
     num_training_batches: Union[int, float]
     val_check_batch: ...
     val_dataloaders: List[DataLoader]
-    num_val_batches: Union[int, float]
+    num_val_batches: List[Union[int, float]]
     test_dataloaders: List[DataLoader]
-    num_test_batches: Union[int, float]
+    num_test_batches: List[Union[int, float]]
     train_percent_check: float
     val_percent_check: float
     test_percent_check: float
@@ -217,7 +217,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-    def _reset_eval_dataloader(self, model: LightningModule, mode: str) -> Tuple[Union[int, float], List[DataLoader]]:
+    def _reset_eval_dataloader(self, model: LightningModule, mode: str) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -245,29 +245,40 @@ class TrainerDataLoadingMixin(ABC):
         # add samplers
         dataloaders = [self.auto_add_sampler(dl, train=False) for dl in dataloaders if dl is not None]
 
-        num_batches = 0
+        loader_num_batches = []
 
         # determine number of batches
         # datasets could be none, 1 or 2+
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
+                num_batches = 0
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
                 if not _has_len(dataloader):
                     num_batches = float('inf')
 
-            percent_check = getattr(self, f'{mode}_percent_check')
+                percent_check = getattr(self, f'{mode}_percent_check')
 
-            if num_batches != float('inf'):
-                self._percent_range_check(f'{mode}_percent_check')
+                if num_batches != float('inf'):
+                    self._percent_range_check(f'{mode}_percent_check')
 
-                num_batches = sum(len(dataloader) for dataloader in dataloaders)
-                num_batches = int(num_batches * percent_check)
-            elif percent_check not in (0.0, 1.0):
-                raise MisconfigurationException(
-                    'When using an infinite DataLoader (e.g. with an IterableDataset'
-                    f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
-                    f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
-        return num_batches, dataloaders
+                    num_batches = len(dataloader)
+                    num_batches = int(num_batches * percent_check)
+                elif percent_check not in (0.0, 1.0):
+                    raise MisconfigurationException(
+                        'When using an infinite DataLoader (e.g. with an IterableDataset'
+                        f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
+                        f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
+
+                if num_batches == 0:
+                    min_pct = 1.0 / len(dataloader)
+                    m = f'you requested to check {percent_check} of the {mode} dataloader but ' \
+                        f'{percent_check}*{num_batches} = 0. Please increase the {mode}_percent_check.' \
+                        f'Try at least {mode}_percent_check={min_pct}'
+                    raise MisconfigurationException(m)
+
+                loader_num_batches.append(num_batches)
+
+        return loader_num_batches, dataloaders
 
     def reset_val_dataloader(self, model: LightningModule) -> None:
         """Resets the validation dataloader and determines the number of batches.
