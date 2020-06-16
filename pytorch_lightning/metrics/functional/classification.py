@@ -97,7 +97,7 @@ def stat_scores(
         pred: torch.Tensor,
         target: torch.Tensor,
         class_index: int, argmax_dim: int = 1,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates the number of true positive, falsepositivee, true negative
     and false negative for a specific class
@@ -142,7 +142,7 @@ def stat_scores_multiple_classes(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         argmax_dim: int = 1,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calls the stat_scores function iteratively for all classes, thus
     calculating the number of true postive, false postive, true negative
