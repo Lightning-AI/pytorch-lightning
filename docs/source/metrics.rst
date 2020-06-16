@@ -46,7 +46,7 @@ TensorMetric
 ^^^^^^^^^^^^
 Here's an example showing how to implement a TensorMetric
 
-.. code-block:: python
+.. testcode::
 
     class RMSE(TensorMetric):
         def forward(self, x, y):
@@ -59,7 +59,7 @@ NumpyMetric
 ^^^^^^^^^^^
 Here's an example showing how to implement a NumpyMetric
 
-.. code-block:: python
+.. testcode::
 
     class RMSE(NumpyMetric):
         def forward(self, x, y):
@@ -76,7 +76,7 @@ Class Metrics
 The following are metrics which can be instantiated as part of a module definition (even with just
 plain PyTorch).
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.metrics import Accuracy
 
