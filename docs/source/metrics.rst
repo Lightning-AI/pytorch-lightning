@@ -336,7 +336,7 @@ To use the sklearn backend of metrics simply import as
 
 .. code-block:: python
     
-    import pytorch_lightning.metrics.sklearn import plm
+    import pytorch_lightning.metrics.sk_metrics import plm
     metric = plm.Accuracy(normalize=True)
     val = metric(pred, target)
     
@@ -348,72 +348,72 @@ with built-in distributed (ddp) support.
 SklearnMetric (sk)
 ^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.SklearnMetric
     :noindex:
 
 Accuracy (sk)
 ^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.Accuracy
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.Accuracy
     :noindex:
 
 AUC (sk)
 ^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.AUC
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.AUC
     :noindex:
 
 AveragePrecision (sk)
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.AveragePrecision
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.AveragePrecision
     :noindex:
 
     
 ConfusionMatrix (sk)
 ^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.ConfusionMatrix
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.ConfusionMatrix
     :noindex:
 
 F1 (sk)
 ^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.F1
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.F1
     :noindex:
 
 FBeta (sk)
 ^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.FBeta
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.FBeta
     :noindex:
 
 Precision (sk)
 ^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.Precision
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.Precision
     :noindex:
 
 Recall (sk)
 ^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.Recall
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.Recall
     :noindex:
 
 PrecisionRecallCurve (sk)
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.PrecisionRecallCurve
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.PrecisionRecallCurve
     :noindex:
 
 ROC (sk)
 ^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.ROC
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.ROC
     :noindex:
 
 AUROC (sk)
 ^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.AUROC
+.. autofunction:: pytorch_lightning.metrics.sk_metrics.AUROC
     :noindex:
