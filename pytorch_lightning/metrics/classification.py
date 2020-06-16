@@ -19,22 +19,6 @@ from pytorch_lightning.metrics.functional.classification import (
 )
 from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
 
-__all__ = [
-    'Accuracy',
-    'ConfusionMatrix',
-    'PrecisionRecall',
-    'Precision',
-    'Recall',
-    'AveragePrecision',
-    'AUROC',
-    'FBeta',
-    'F1',
-    'ROC',
-    'MulticlassROC',
-    'MulticlassPrecisionRecall',
-    'DiceCoefficient'
-]
-
 
 class Accuracy(TensorMetric):
     """

@@ -6,21 +6,6 @@ import torch
 from pytorch_lightning import _logger as lightning_logger
 from pytorch_lightning.metrics.metric import NumpyMetric
 
-__all__ = [
-    'SklearnMetric',
-    'Accuracy',
-    'AveragePrecision',
-    'AUC',
-    'ConfusionMatrix',
-    'F1',
-    'FBeta',
-    'Precision',
-    'Recall',
-    'PrecisionRecallCurve',
-    'ROC',
-    'AUROC'
-]
-
 
 class SklearnMetric(NumpyMetric):
     """
