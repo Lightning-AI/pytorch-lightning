@@ -228,17 +228,15 @@ class Precision(TensorMetric):
 
             >>> pred = torch.tensor([0, 1, 2, 3])
             >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = PrecisionRecall()
-            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
-            (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
-             tensor([1., 0., 0., 0.]),
-             tensor([1., 2., 3.]))
+            >>> metric = Precision()
+            >>> metric(pred, target)
+            tensor(0.75)
 
         """
         super().__init__(name='precision',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
-
+        # Fixme: bug with result value
         self.num_classes = num_classes
         self.reduction = reduction
 
@@ -753,9 +751,9 @@ class DiceCoefficient(TensorMetric):
         .. testcode:
 
             >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-            ...                     [0.05, 0.85, 0.05, 0.05],
-            ...                     [0.05, 0.05, 0.85, 0.05],
-            ...                     [0.05, 0.05, 0.05, 0.85]])
+            ...                      [0.05, 0.85, 0.05, 0.05],
+            ...                      [0.05, 0.05, 0.85, 0.05],
+            ...                      [0.05, 0.05, 0.05, 0.85]])
             >>> target = torch.tensor([0, 1, 3, 2])
             >>> metric = DiceCoefficient()
             >>> classes_pr = metric(pred, target)
