@@ -65,6 +65,30 @@ def test_early_stopping_no_extraneous_invocations():
     trainer.fit(model)
 
 
+@pytest.mark.parametrize('loss_values, patience, expected_stop_epoch', [
+    ([6, 5, 5, 5, 5, 5], 3, 5),
+    ([6, 5, 4, 4, 3, 3], 1, 4),
+    ([6, 5, 6, 5, 5, 5], 3, 5),
+])
+def test_early_stopping_patience(loss_values, patience, expected_stop_epoch):
+    """Test to ensure that early stopping is not triggered before patience is exhausted."""
+
+    class ModelOverrideValidationReturn(EvalModelTemplate):
+        validation_return_values = torch.Tensor(loss_values)
+        count = 0
+
+        def validation_epoch_end(self, outputs):
+            loss = self.validation_return_values[self.count]
+            self.count += 1
+            return {"test_val_loss": loss}
+
+    model = ModelOverrideValidationReturn()
+    early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
+    trainer = Trainer(early_stop_callback=early_stop_callback, val_check_interval=1.0, num_sanity_val_steps=0)
+    trainer.fit(model)
+    assert trainer.current_epoch + 1 == expected_stop_epoch
+
+
 def test_pickling(tmpdir):
     import pickle
     early_stopping = EarlyStopping()

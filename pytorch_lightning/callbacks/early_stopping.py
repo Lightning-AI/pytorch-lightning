@@ -132,7 +132,6 @@ class EarlyStopping(Callback):
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
 
-        stop_training = False
         current = logs.get(self.monitor)
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
@@ -144,13 +143,10 @@ class EarlyStopping(Callback):
             self.wait += 1
             if self.wait >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
-                stop_training = True
-
-        if stop_training:
-            trainer.should_stop = True
+                trainer.should_stop = True
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
             rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
                            ' but will start from "0" in v0.8.0.', DeprecationWarning)
-            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
+            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping triggered.')
