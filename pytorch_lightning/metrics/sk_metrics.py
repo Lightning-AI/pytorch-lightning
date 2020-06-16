@@ -68,10 +68,10 @@ class Accuracy(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Accuracy()
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor([0.7500])
 
     """
@@ -94,22 +94,22 @@ class Accuracy(SklearnMetric):
 
     def forward(
             self,
-            pred: np.ndarray,
-            target: np.ndarray,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None
     ) -> float:
         """
         Computes the accuracy
 
         Args:
-            pred: the array containing the predictions (already in categorical form)
-            target: the array containing the targets (in categorical form)
+            y_pred: the array containing the predictions (already in categorical form)
+            y_true: the array containing the targets (in categorical form)
             sample_weight:  Sample weights.
 
         Return:
             Accuracy Score
         """
-        return super().forward(y_pred=pred, y_true=target, sample_weight=sample_weight)
+        return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
 
 class AUC(SklearnMetric):
@@ -121,10 +121,10 @@ class AUC(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = AUC()
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor(0.3333)
     """
     def __init__(
@@ -165,10 +165,10 @@ class AveragePrecision(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = AveragePrecision()
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor(0.3333)
 
     """
@@ -203,20 +203,20 @@ class AveragePrecision(SklearnMetric):
     def forward(
             self,
             y_score: np.ndarray,
-            target: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None
     ) -> float:
         """
         Args:
             y_score: Target scores, can either be probability estimates of the positive class,
                 confidence values, or binary decisions.
-            target: True binary labels in binary label indicators.
+            y_true: True binary labels in binary label indicators.
             sample_weight: Sample weights.
 
         Return:
             average precision score
         """
-        return super().forward(y_score=y_score, y_true=target,
+        return super().forward(y_score=y_score, y_true=y_true,
                                sample_weight=sample_weight)
 
 
@@ -229,10 +229,10 @@ class ConfusionMatrix(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 2])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 2])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = ConfusionMatrix()
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor([[1., 0., 0.],
                 [0., 1., 0.],
                 [0., 0., 2.]])
@@ -248,7 +248,7 @@ class ConfusionMatrix(SklearnMetric):
             labels: List of labels to index the matrix. This may be used to reorder
                 or select a subset of labels.
                 If none is given, those that appear at least once
-                in ``target`` or ``pred`` are used in sorted order.
+                in ``y_true`` or ``y_pred`` are used in sorted order.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
@@ -259,17 +259,17 @@ class ConfusionMatrix(SklearnMetric):
                          reduce_op=reduce_op,
                          labels=labels)
 
-    def forward(self, pred: np.ndarray, target: np.ndarray) -> np.ndarray:
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray) -> np.ndarray:
         """
         Args:
-            pred: Estimated targets as returned by a classifier.
-            target: Ground truth (correct) target values.
+            y_pred: Estimated targets as returned by a classifier.
+            y_true: Ground truth (correct) target values.
 
         Return:
             Confusion matrix (array of shape [n_classes, n_classes])
 
         """
-        return super().forward(y_pred=pred, y_true=target)
+        return super().forward(y_pred=y_pred, y_true=y_true)
 
 
 class F1(SklearnMetric):
@@ -289,10 +289,10 @@ class F1(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = F1()
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor(0.6667)
 
     References
@@ -351,14 +351,14 @@ class F1(SklearnMetric):
 
     def forward(
             self,
-            pred: np.ndarray,
-            target: np.ndarray,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None
     ) -> Union[np.ndarray, float]:
         """
         Args:
-            pred : Estimated targets as returned by a classifier.
-            target: Ground truth (correct) target values.
+            y_pred : Estimated targets as returned by a classifier.
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
         Return:
@@ -366,7 +366,7 @@ class F1(SklearnMetric):
             average of the F1 scores of each class for the multiclass task.
 
         """
-        return super().forward(y_pred=pred, y_true=target, sample_weight=sample_weight)
+        return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
 
 class FBeta(SklearnMetric):
@@ -378,10 +378,10 @@ class FBeta(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = FBeta(0.25)
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor(0.7361)
 
     References:
@@ -446,14 +446,14 @@ class FBeta(SklearnMetric):
 
     def forward(
             self,
-            pred: np.ndarray,
-            target: np.ndarray,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None
     ) -> Union[np.ndarray, float]:
         """
         Args:
-            pred : Estimated targets as returned by a classifier.
-            target: Ground truth (correct) target values.
+            y_pred : Estimated targets as returned by a classifier.
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
         Return:
@@ -461,7 +461,7 @@ class FBeta(SklearnMetric):
             average of the FBeta scores of each class for the multiclass task.
 
         """
-        return super().forward(y_pred=pred, y_true=target, sample_weight=sample_weight)
+        return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
 
 class Precision(SklearnMetric):
@@ -475,10 +475,10 @@ class Precision(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Precision(num_classes=4)
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor(0.7500)
 
     """
@@ -535,14 +535,14 @@ class Precision(SklearnMetric):
 
     def forward(
             self,
-            pred: np.ndarray,
-            target: np.ndarray,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
-            pred : Estimated targets as returned by a classifier.
-            target: Ground truth (correct) target values.
+            y_pred : Estimated targets as returned by a classifier.
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
         Return:
@@ -550,7 +550,7 @@ class Precision(SklearnMetric):
             average of the precision of each class for the multiclass task.
 
         """
-        return super().forward(y_pred=pred, y_true=target, sample_weight=sample_weight)
+        return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
 
 class Recall(SklearnMetric):
@@ -563,10 +563,10 @@ class Recall(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Recall()
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor(0.6250)
 
     """
@@ -623,14 +623,14 @@ class Recall(SklearnMetric):
 
     def forward(
             self,
-            pred: np.ndarray,
-            target: np.ndarray,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
-            pred : Estimated targets as returned by a classifier.
-            target: Ground truth (correct) target values.
+            y_pred : Estimated targets as returned by a classifier.
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
         Return:
@@ -638,7 +638,7 @@ class Recall(SklearnMetric):
             average of the recall of each class for the multiclass task.
 
         """
-        return super().forward(y_pred=pred, y_true=target, sample_weight=sample_weight)
+        return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
 
 class PrecisionRecallCurve(SklearnMetric):
@@ -682,13 +682,13 @@ class PrecisionRecallCurve(SklearnMetric):
     def forward(
             self,
             probas_pred: np.ndarray,
-            target: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None
     ) -> Union[np.ndarray, float]:
         """
         Args:
             probas_pred : Estimated probabilities or decision function.
-            target: Ground truth (correct) target values.
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
         Returns:
@@ -706,7 +706,7 @@ class PrecisionRecallCurve(SklearnMetric):
         # only return x and y here, since for now we cannot auto-convert elements of multiple length.
         # Will be fixed in native implementation
         return np.array(super().forward(probas_pred=probas_pred,
-                                        y_true=target,
+                                        y_true=y_true,
                                         sample_weight=sample_weight)[:2])
 
 
@@ -719,10 +719,10 @@ class ROC(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = ROC()
-        >>> fp, tp, thresholds = metric(pred, target)
+        >>> fp, tp, thresholds = metric(y_pred, y_true)
         >>> fp
         tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
         >>> tp
@@ -758,14 +758,14 @@ class ROC(SklearnMetric):
     def forward(
             self,
             y_score: np.ndarray,
-            target: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None
     ) -> Union[np.ndarray, float]:
         """
         Args:
             y_score : Target scores, can either be probability estimates of the positive
                 class or confidence values.
-            target: Ground truth (correct) target values.
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
         Returns:
@@ -781,7 +781,7 @@ class ROC(SklearnMetric):
                 and is arbitrarily set to `max(y_score) + 1`.
 
         """
-        return np.array(super().forward(y_score=y_score, y_true=target, sample_weight=sample_weight)[:2])
+        return np.array(super().forward(y_score=y_score, y_true=y_true, sample_weight=sample_weight)[:2])
 
 
 class AUROC(SklearnMetric):
@@ -794,10 +794,10 @@ class AUROC(SklearnMetric):
 
     Example:
 
-        >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = AUROC()
-        >>> metric(pred, target)
+        >>> metric(y_pred, y_true)
         tensor(0.3333)
 
     """
@@ -834,18 +834,18 @@ class AUROC(SklearnMetric):
     def forward(
             self,
             y_score: np.ndarray,
-            target: np.ndarray,
+            y_true: np.ndarray,
             sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
             y_score: Target scores, can either be probability estimates of the positive class,
                 confidence values, or binary decisions.
-            target: True binary labels in binary label indicators.
+            y_true: True binary labels in binary label indicators.
             sample_weight: Sample weights.
 
         Return:
             Area Under Receiver Operating Characteristic Curve
         """
-        return super().forward(y_score=y_score, y_true=target,
+        return super().forward(y_score=y_score, y_true=y_true,
                                sample_weight=sample_weight)
