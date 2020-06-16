@@ -117,12 +117,16 @@ def stat_scores(
         >>> x = torch.tensor([1, 2, 3])
         >>> y = torch.tensor([0, 2, 3])
         >>> tp, fp, tn, fn, sup = stat_scores(x, y, class_index=1)
-        >>> stat_scores(x, y, class_index=1)   # doctest: +NORMALIZE_WHITESPACE
-        (tensor(0),
-         tensor(1),
-         tensor(2),
-         tensor(0),
-         tensor(0))
+        >>> tp
+        tensor(0)
+        >>> fp
+        tensor(1)
+        >>> tn
+        tensor(2)
+        >>> fn
+        tensor(0)
+        >>> sup
+        tensor(0)
 
     """
     if pred.ndim == target.ndim + 1:
@@ -163,12 +167,16 @@ def stat_scores_multiple_classes(
         >>> x = torch.tensor([1, 2, 3])
         >>> y = torch.tensor([0, 2, 3])
         >>> tps, fps, tns, fns, sups = stat_scores_multiple_classes(x, y)
-        >>> stat_scores_multiple_classes(x, y)   # doctest: +NORMALIZE_WHITESPACE
-        (tensor([0., 0., 1., 1.]),
-         tensor([0., 1., 0., 0.]),
-         tensor([2., 2., 2., 2.]),
-         tensor([1., 0., 0., 0.]),
-         tensor([1., 0., 1., 1.]))
+        >>> tps
+        tensor([0., 0., 1., 1.])
+        >>> fps
+        tensor([0., 1., 0., 0.])
+        >>> tns
+        tensor([2., 2., 2., 2.])
+        >>> fns
+        tensor([1., 0., 0., 0.])
+        >>> sups
+        tensor([1., 0., 1., 1.])
     """
     num_classes = get_num_classes(pred=pred, target=target,
                                   num_classes=num_classes)
@@ -680,7 +688,7 @@ def multiclass_precision_recall_curve(
         target: torch.Tensor,
         sample_weight: Optional[Sequence] = None,
         num_classes: Optional[int] = None,
-) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Computes precision-recall pairs for different thresholds given a multiclass scores.
 

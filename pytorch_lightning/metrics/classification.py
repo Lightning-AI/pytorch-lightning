@@ -683,7 +683,6 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
             ...                     [0.05, 0.05, 0.05, 0.85]])
             >>> target = torch.tensor([0, 1, 3, 2])
             >>> metric = MulticlassPrecisionRecall()
-            >>> classes_pr = metric(pred, target)
             >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
             ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
              (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
@@ -755,7 +754,6 @@ class DiceCoefficient(TensorMetric):
             ...                      [0.05, 0.05, 0.05, 0.85]])
             >>> target = torch.tensor([0, 1, 3, 2])
             >>> metric = DiceCoefficient()
-            >>> classes_pr = metric(pred, target)
             >>> metric(pred, target)
             tensor(0.3333)
         """
