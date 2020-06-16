@@ -192,9 +192,9 @@ class PrecisionRecall(TensorCollectionMetric):
             sample_weight: the weights per sample
 
         Return:
-            - torch.Tensor: precision values
-            - torch.Tensor: recall values
-            - torch.Tensor: threshold values
+            - precision values
+            - recall values
+            - threshold values
         """
         return precision_recall_curve(pred=pred, target=target,
                                       sample_weight=sample_weight,
@@ -582,9 +582,9 @@ class ROC(TensorCollectionMetric):
             sample_weight: the weights per sample
 
         Return:
-            - torch.Tensor: false positive rate
-            - torch.Tensor: true positive rate
-            - torch.Tensor: thresholds
+            - false positive rate
+            - true positive rate
+            - thresholds
         """
         return roc(pred=pred, target=target,
                    sample_weight=sample_weight,
