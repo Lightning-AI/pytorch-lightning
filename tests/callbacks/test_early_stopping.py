@@ -84,7 +84,7 @@ def test_early_stopping_patience(loss_values, patience, expected_stop_epoch):
 
     model = ModelOverrideValidationReturn()
     early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
-    trainer = Trainer(early_stop_callback=early_stop_callback, val_check_interval=1.0, num_sanity_val_steps=0)
+    trainer = Trainer(early_stop_callback=early_stop_callback, val_check_interval=1.0, num_sanity_val_steps=0, max_epochs=10)
     trainer.fit(model)
     assert trainer.current_epoch + 1 == expected_stop_epoch
 
