@@ -345,19 +345,19 @@ Like the native Lightning metrics these converted sklearn metrics also come
 with built-in distributed (ddp) support.
 
 SklearnMetric (sk)
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.SklearnMetric
     :noindex:
 
 Accuracy (sk)
-^^^^^^^^^^^^
+^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.Accuracy
     :noindex:
 
 AUC (sk)
-^^^^^^^
+^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.AUC
     :noindex:
@@ -370,19 +370,19 @@ AveragePrecision (sk)
 
     
 ConfusionMatrix (sk)
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.ConfusionMatrix
     :noindex:
 
 F1 (sk)
-^^^^^^
+^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.F1
     :noindex:
 
 FBeta (sk)
-^^^^^^^^^
+^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.FBeta
     :noindex:
@@ -394,25 +394,25 @@ Precision (sk)
     :noindex:
 
 Recall (sk)
-^^^^^^^^^^
+^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.Recall
     :noindex:
 
 PrecisionRecallCurve (sk)
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.PrecisionRecallCurve
     :noindex:
 
 ROC (sk)
-^^^^^^^
+^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.ROC
     :noindex:
 
 AUROC (sk)
-^^^^^^^^^
+^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.AUROC
     :noindex:
