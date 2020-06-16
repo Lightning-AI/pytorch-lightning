@@ -703,7 +703,7 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
             pred: torch.Tensor,
             target: torch.Tensor,
             sample_weight: Optional[Sequence] = None,
-    ) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Actual metric computation
 

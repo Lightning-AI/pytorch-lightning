@@ -79,6 +79,15 @@ class Accuracy(SklearnMetric):
 
     Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = Accuracy()
+        >>> metric(pred, target)
+        tensor(0.7500)
+
     """
     def __init__(self, normalize: bool = True,
                  reduce_group: Any = torch.distributed.group.WORLD,
@@ -109,7 +118,6 @@ class Accuracy(SklearnMetric):
 
         Return:
             Accuracy Score
-
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
@@ -120,6 +128,14 @@ class AUC(SklearnMetric):
 
     Warning:
         Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = AUC()
+        >>> metric(pred, target)
+        tensor(0.3333)
     """
     def __init__(self,
                  reduce_group: Any = torch.distributed.group.WORLD,
@@ -156,6 +172,15 @@ class AUC(SklearnMetric):
 class AveragePrecision(SklearnMetric):
     """
     Calculates the average precision (AP) score.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = AveragePrecision()
+        >>> metric(pred, target)
+        tensor(0.3333)
+
     """
     def __init__(self, average: Optional[str] = 'macro',
                  reduce_group: Any = torch.distributed.group.WORLD,
@@ -206,6 +231,17 @@ class ConfusionMatrix(SklearnMetric):
     By definition a confusion matrix :math:`C` is such that :math:`C_{i, j}`
     is equal to the number of observations known to be in group :math:`i` but
     predicted to be in group :math:`j`.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 2])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = ConfusionMatrix()
+        >>> metric(pred, target)
+        tensor([[1., 0., 0.],
+                [0., 1., 0.],
+                [0., 0., 2.]])
+
     """
     def __init__(self, labels: Optional[Sequence] = None,
                  reduce_group: Any = torch.distributed.group.WORLD,
@@ -254,6 +290,15 @@ class F1(SklearnMetric):
 
     In the multi-class and multi-label case, this is the weighted average of
     the F1 score of each class.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = F1()
+        >>> metric(pred, target)
+        tensor(0.6667)
+
 
     References
         - [1] `Wikipedia entry for the F1-score
@@ -330,6 +375,14 @@ class FBeta(SklearnMetric):
     favors recall (``beta -> 0`` considers only precision, ``beta -> inf``
     only recall).
 
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = FBeta(0.25)
+        >>> metric(pred, target)
+        tensor(0.7361)
+
     References:
         - [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
           Modern Information Retrieval. Addison Wesley, pp. 327-328.
@@ -394,7 +447,6 @@ class FBeta(SklearnMetric):
             y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
 
-
         Return:
             FBeta score of the positive class in binary classification or weighted
             average of the FBeta scores of each class for the multiclass task.
@@ -411,6 +463,15 @@ class Precision(SklearnMetric):
     intuitively the ability of the classifier not to label as positive a sample
     that is negative.
     The best value is 1 and the worst value is 0.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = Precision(num_classes=4)
+        >>> metric(pred, target)
+        tensor(0.7500)
+
     """
 
     def __init__(self, labels: Optional[Sequence] = None,
@@ -483,6 +544,15 @@ class Recall(SklearnMetric):
     true positives and ``fn`` the number of false negatives. The recall is
     intuitively the ability of the classifier to find all the positive samples.
     The best value is 1 and the worst value is 0.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = Recall()
+        >>> metric(pred, target)
+        tensor(0.6250)
+
     """
 
     def __init__(self, labels: Optional[Sequence] = None,
@@ -616,6 +686,24 @@ class ROC(SklearnMetric):
 
     Note:
         this implementation is restricted to the binary classification task.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = ROC()
+        >>> fp, tp, thresholds = metric(pred, target)
+        >>> fp
+        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
+        >>> tp
+        tensor([0., 0., 0., 1., 1.])
+        >>> thresholds
+        tensor([4., 3., 2., 1., 0.])
+
+    References:
+        - [1] `Wikipedia entry for the Receiver operating characteristic
+          <http://en.wikipedia.org/wiki/Receiver_operating_characteristic>`_
+
     """
 
     def __init__(self,
@@ -629,10 +717,6 @@ class ROC(SklearnMetric):
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
-
-        References:
-            - [1] `Wikipedia entry for the Receiver operating characteristic
-              <http://en.wikipedia.org/wiki/Receiver_operating_characteristic>`_
         """
         super().__init__('roc_curve',
                          reduce_group=reduce_group,
@@ -671,6 +755,15 @@ class AUROC(SklearnMetric):
     Note:
         this implementation is restricted to the binary classification task
         or multilabel classification task in label indicator format.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = AUROC()
+        >>> metric(pred, target)
+        tensor(0.3333)
+
     """
 
     def __init__(self, average: Optional[str] = 'macro',
