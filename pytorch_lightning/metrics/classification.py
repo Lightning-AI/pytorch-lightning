@@ -192,9 +192,9 @@ class PrecisionRecall(TensorCollectionMetric):
             sample_weight: the weights per sample
 
         Return:
-            torch.Tensor: precision values
-            torch.Tensor: recall values
-            torch.Tensor: threshold values
+            - torch.Tensor: precision values
+            - torch.Tensor: recall values
+            - torch.Tensor: threshold values
         """
         return precision_recall_curve(pred=pred, target=target,
                                       sample_weight=sample_weight,
@@ -420,7 +420,8 @@ class AUROC(TensorMetric):
 
 
 class FBeta(TensorMetric):
-    """Computes the FBeta Score"""
+    """Computes the FBeta Score, which is the weighted harmonic mean of precision and recall.
+        It ranges between 1 and 0, where 1 is perfect and the worst value is 0."""
 
     def __init__(
             self,
@@ -440,7 +441,7 @@ class FBeta(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
+            reduce_op: the operation to perform for DDP reduction
 
         Example:
 
@@ -476,7 +477,8 @@ class FBeta(TensorMetric):
 
 
 class F1(TensorMetric):
-    """Computes the F1 score"""
+    """Computes the F1 score, which is the harmonic mean of the precision and recall.
+    It ranges between 1 and 0, where 1 is perfect and the worst value is 0."""
 
     def __init__(
             self,
@@ -580,9 +582,9 @@ class ROC(TensorCollectionMetric):
             sample_weight: the weights per sample
 
         Return:
-            torch.Tensor: false positive rate
-            torch.Tensor: true positive rate
-            torch.Tensor: thresholds
+            - torch.Tensor: false positive rate
+            - torch.Tensor: true positive rate
+            - torch.Tensor: thresholds
         """
         return roc(pred=pred, target=target,
                    sample_weight=sample_weight,
@@ -646,8 +648,8 @@ class MulticlassROC(TensorCollectionMetric):
             sample_weight: Weights for each sample defining the sample's impact on the score
 
         Return:
-            tuple: A tuple consisting of one tuple per class,
-                holding false positive rate, true positive rate and thresholds
+            tuple: A tuple consisting of one tuple per class, holding false positive rate, true positive rate and thresholds
+
         """
         return multiclass_roc(pred=pred,
                               target=target,
@@ -711,8 +713,8 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
             sample_weight: Weights for each sample defining the sample's impact on the score
 
         Return:
-            tuple: A tuple consisting of one tuple per class,
-                holding precision, recall and thresholds
+            tuple: A tuple consisting of one tuple per class, holding precision, recall and thresholds
+
         """
         return multiclass_precision_recall_curve(pred=pred,
                                                  target=target,

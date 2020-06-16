@@ -12,7 +12,7 @@ Metrics are used to monitor model performance.
 In this package we provide two major pieces of functionality.
 
 1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
-2. A collection of popular metrics already implemented for you.
+2. A collection of ready to use pupular metrics. There are two types of metrics: Class metrics and Functional metrics.
 3. A interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
 
 Example::
@@ -37,8 +37,8 @@ Out::
 
 Implement a metric
 ------------------
-You can implement metrics as either a PyTorch metric or a Numpy metric. Numpy metrics
-will slow down training, use PyTorch metrics when possible.
+You can implement metrics as either a PyTorch metric or a Numpy metric (It is recommend to use PyTorch metrics when possible,
+since Numpy metrics slow down training).
 
 Use :class:`TensorMetric` to implement native PyTorch metrics. This class
 handles automated DDP syncing and converts all inputs and outputs to tensors.
@@ -81,7 +81,7 @@ Here's an example showing how to implement a NumpyMetric
 
 Class Metrics
 -------------
-The following are metrics which can be instantiated as part of a module definition (even with just
+Class metrics can be instantiated as part of a module definition (even with just
 plain PyTorch).
 
 .. testcode::
