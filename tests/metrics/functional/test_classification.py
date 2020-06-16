@@ -42,10 +42,46 @@ from pytorch_lightning.metrics.functional.classification import (
     (partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2)),
     (sk_confusion_matrix, confusion_matrix)
 ])
-def test_against_sklearn(sklearn_metric, torch_metric):
+def test_against_sklearn_symetric(sklearn_metric, torch_metric):
     """Compare PL metrics to sklearn version."""
     pred = torch.randint(10, (500,))
     target = torch.randint(10, (500,))
+
+    assert torch.allclose(
+        torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
+        torch_metric(pred, target))
+
+
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
+    (sk_accuracy, accuracy),
+    (partial(sk_precision, average='macro'), precision),
+    (partial(sk_recall, average='macro'), recall),
+    (partial(sk_f1_score, average='macro'), f1_score),
+    (partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2)),
+    (sk_confusion_matrix, confusion_matrix)
+])
+def test_against_sklearn_preds(sklearn_metric, torch_metric):
+    """Compare PL metrics to sklearn version."""
+    pred = torch.randint(10, (200,))
+    target = torch.randint(5, (200,))
+
+    assert torch.allclose(
+        torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
+        torch_metric(pred, target))
+
+
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
+    (sk_accuracy, accuracy),
+    (partial(sk_precision, average='macro'), precision),
+    (partial(sk_recall, average='macro'), recall),
+    (partial(sk_f1_score, average='macro'), f1_score),
+    (partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2)),
+    (sk_confusion_matrix, confusion_matrix)
+])
+def test_against_sklearn_targets(sklearn_metric, torch_metric):
+    """Compare PL metrics to sklearn version."""
+    pred = torch.randint(5, (200,))
+    target = torch.randint(10, (200,))
 
     assert torch.allclose(
         torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
