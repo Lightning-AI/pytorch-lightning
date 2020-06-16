@@ -363,7 +363,7 @@ AUC (sk)
     :noindex:
 
 AveragePrecision (sk)
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.AveragePrecision
     :noindex:
@@ -388,7 +388,7 @@ FBeta (sk)
     :noindex:
 
 Precision (sk)
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearn.Precision
     :noindex:
