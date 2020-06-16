@@ -66,7 +66,7 @@ class Accuracy(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = Accuracy()
             >>> metric(pred, target)
-            tensor([0.7500])
+            tensor(0.7500)
 
         """
         super().__init__(name='accuracy',
