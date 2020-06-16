@@ -99,7 +99,7 @@ def stat_scores(
         class_index: int, argmax_dim: int = 1,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calculates the number of true positive, falsepositivee, true negative
+    Calculates the number of true positive, false positive, true negative
     and false negative for a specific class
 
     Args:
@@ -156,7 +156,7 @@ def stat_scores_multiple_classes(
             axis the argmax transformation will be applied over
 
     Return:
-        Returns tensors for: tp, fp, tn, fn
+        Tensors in the following order: True Positive, False Positive, True Negative, False Negative
 
     Example:
 
@@ -446,8 +446,9 @@ def f1_score(
         reduction='elementwise_mean',
 ) -> torch.Tensor:
     """
-    Computes F1-score a.k.a F-measure.
-
+    Computes the F1-score (a.k.a F-measure), which is the harmonic mean of the precision and recall.
+    It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
+ 
     Args:
         pred: estimated probabilities
         target: ground-truth labels
@@ -724,7 +725,7 @@ def multiclass_precision_recall_curve(
     return tuple(class_pr_vals)
 
 
-def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True):
+def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True) -> torch.Tensor:
     """
     Computes Area Under the Curve (AUC) using the trapezoidal rule
 
@@ -734,7 +735,7 @@ def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True):
         reorder: reorder coordinates, so they are increasing.
 
     Return:
-        AUC score (float)
+        Tensor containing AUC score (float)
 
     Example:
 
@@ -861,10 +862,14 @@ def dice_score(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        bg:
-        nan_score:
-        no_fg_score:
-        reduction:
+        bg: whether to also compute dice for the background
+        nan_score: score to return, if a NaN occurs during computation (denom zero)
+        no_fg_score: score to return, if no foreground pixel was found in target
+        reduction: a method for reducing accuracies over labels (default: takes the mean)
+                Available reduction methods:
+                - elementwise_mean: takes the mean
+                - none: pass array
+                - sum: add elements
 
     Example:
 
