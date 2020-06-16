@@ -6,7 +6,6 @@ from pytorch_lightning.metrics.classification import (
     ConfusionMatrix,
     F1,
     FBeta,
-    Precision,
     Recall,
     ROC,
     AUROC,
@@ -40,4 +39,3 @@ __all__ = [
     'Recall',
     'SklearnMetric',
 ]
-
