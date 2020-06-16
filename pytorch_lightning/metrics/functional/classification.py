@@ -82,9 +82,6 @@ def get_num_classes(
     num_pred_classes = int(pred.max().detach().item() + 1)
     num_all_classes = max(num_target_classes, num_pred_classes)
 
-    if num_classes is not None and num_classes != num_all_classes:
-        return num_classes
-
     if num_classes is None:
         num_classes = num_all_classes
     elif num_classes != num_all_classes:
