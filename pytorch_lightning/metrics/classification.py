@@ -40,6 +40,14 @@ class Accuracy(TensorMetric):
     """
     Computes the accuracy classification score
 
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = Accuracy()
+        >>> metric(pred, target)
+        tensor(0.7500)
+
     """
 
     def __init__(
@@ -59,15 +67,6 @@ class Accuracy(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = Accuracy()
-            >>> metric(pred, target)
-            tensor(0.7500)
-
         """
         super().__init__(name='accuracy',
                          reduce_group=reduce_group,
@@ -95,6 +94,16 @@ class ConfusionMatrix(TensorMetric):
     Computes the confusion matrix C where each entry C_{i,j} is the number of observations
     in group i that were predicted in group j.
 
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 2])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = ConfusionMatrix()
+        >>> metric(pred, target)
+        tensor([[1., 0., 0.],
+                [0., 1., 0.],
+                [0., 0., 2.]])
+
     """
 
     def __init__(
@@ -108,17 +117,6 @@ class ConfusionMatrix(TensorMetric):
             normalize: whether to compute a normalized confusion matrix
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 2])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = ConfusionMatrix()
-            >>> metric(pred, target)
-            tensor([[1., 0., 0.],
-                    [0., 1., 0.],
-                    [0., 0., 2.]])
-
         """
         super().__init__(name='confusion_matrix',
                          reduce_group=reduce_group,
@@ -143,6 +141,20 @@ class ConfusionMatrix(TensorMetric):
 class PrecisionRecall(TensorCollectionMetric):
     """
     Computes the precision recall curve
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = PrecisionRecall()
+        >>> prec, recall, thr = metric(pred, target)
+        >>> prec
+        tensor([0.3333, 0.0000, 0.0000, 1.0000])
+        >>> recall
+        tensor([1., 0., 0., 0.])
+        >>> thr
+        tensor([1., 2., 3.])
+
     """
 
     def __init__(
@@ -156,20 +168,6 @@ class PrecisionRecall(TensorCollectionMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = PrecisionRecall()
-            >>> prec, recall, thr = metric(pred, target)
-            >>> prec
-            tensor([0.3333, 0.0000, 0.0000, 1.0000])
-            >>> recall
-            tensor([1., 0., 0., 0.])
-            >>> thr
-            tensor([1., 2., 3.])
-
         """
         super().__init__(name='precision_recall_curve',
                          reduce_group=reduce_group,
@@ -204,6 +202,15 @@ class PrecisionRecall(TensorCollectionMetric):
 class Precision(TensorMetric):
     """
     Computes the precision score
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = Precision(num_classes=4)
+        >>> metric(pred, target)
+        tensor(0.7500)
+
     """
 
     def __init__(
@@ -223,15 +230,6 @@ class Precision(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = Precision(num_classes=4)
-            >>> metric(pred, target)
-            tensor(0.7500)
-
         """
         super().__init__(name='precision',
                          reduce_group=reduce_group,
@@ -258,6 +256,15 @@ class Precision(TensorMetric):
 class Recall(TensorMetric):
     """
     Computes the recall score
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = Recall()
+        >>> metric(pred, target)
+        tensor(0.6250)
+
     """
 
     def __init__(
@@ -277,15 +284,6 @@ class Recall(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = Recall()
-            >>> metric(pred, target)
-            tensor(0.6250)
-
         """
         super().__init__(name='recall',
                          reduce_group=reduce_group,
@@ -314,6 +312,15 @@ class Recall(TensorMetric):
 class AveragePrecision(TensorMetric):
     """
     Computes the average precision score
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = AveragePrecision()
+        >>> metric(pred, target)
+        tensor(0.3333)
+
     """
 
     def __init__(
@@ -327,15 +334,6 @@ class AveragePrecision(TensorMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = AveragePrecision()
-            >>> metric(pred, target)
-            tensor(0.3333)
-
         """
         super().__init__(name='AP',
                          reduce_group=reduce_group,
@@ -368,6 +366,15 @@ class AveragePrecision(TensorMetric):
 class AUROC(TensorMetric):
     """
     Computes the area under curve (AUC) of the receiver operator characteristic (ROC)
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = AUROC()
+        >>> metric(pred, target)
+        tensor(0.3333)
+
     """
 
     def __init__(
@@ -381,15 +388,6 @@ class AUROC(TensorMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = AUROC()
-            >>> metric(pred, target)
-            tensor(0.3333)
-
         """
         super().__init__(name='auroc',
                          reduce_group=reduce_group,
@@ -420,8 +418,18 @@ class AUROC(TensorMetric):
 
 
 class FBeta(TensorMetric):
-    """Computes the FBeta Score, which is the weighted harmonic mean of precision and recall.
-        It ranges between 1 and 0, where 1 is perfect and the worst value is 0."""
+    """
+    Computes the FBeta Score, which is the weighted harmonic mean of precision and recall.
+        It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = FBeta(0.25)
+        >>> metric(pred, target)
+        tensor(0.7361)
+    """
 
     def __init__(
             self,
@@ -442,15 +450,6 @@ class FBeta(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for DDP reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = FBeta(0.25)
-            >>> metric(pred, target)
-            tensor(0.7361)
-
         """
         super().__init__(name='fbeta',
                          reduce_group=reduce_group,
@@ -477,8 +476,18 @@ class FBeta(TensorMetric):
 
 
 class F1(TensorMetric):
-    """Computes the F1 score, which is the harmonic mean of the precision and recall.
-    It ranges between 1 and 0, where 1 is perfect and the worst value is 0."""
+    """
+    Computes the F1 score, which is the harmonic mean of the precision and recall.
+    It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = F1()
+        >>> metric(pred, target)
+        tensor(0.6667)
+    """
 
     def __init__(
             self,
@@ -497,15 +506,6 @@ class F1(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = F1()
-            >>> metric(pred, target)
-            tensor(0.6667)
-
         """
         super().__init__(name='f1',
                          reduce_group=reduce_group,
@@ -533,6 +533,20 @@ class F1(TensorMetric):
 class ROC(TensorCollectionMetric):
     """
     Computes the Receiver Operator Characteristic (ROC)
+
+    Example:
+
+        >>> pred = torch.tensor([0, 1, 2, 3])
+        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> metric = ROC()
+        >>> fp, tp, thresholds = metric(pred, target)
+        >>> fp
+        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
+        >>> tp
+        tensor([0., 0., 0., 1., 1.])
+        >>> thresholds
+        tensor([4., 3., 2., 1., 0.])
+
     """
 
     def __init__(
@@ -546,20 +560,6 @@ class ROC(TensorCollectionMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([0, 1, 2, 3])
-            >>> target = torch.tensor([0, 1, 2, 2])
-            >>> metric = ROC()
-            >>> fp, tp, thresholds = metric(pred, target)
-            >>> fp
-            tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
-            >>> tp
-            tensor([0., 0., 0., 1., 1.])
-            >>> thresholds
-            tensor([4., 3., 2., 1., 0.])
-
         """
         super().__init__(name='roc',
                          reduce_group=reduce_group,
@@ -594,6 +594,21 @@ class ROC(TensorCollectionMetric):
 class MulticlassROC(TensorCollectionMetric):
     """
     Computes the multiclass ROC
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                     [0.05, 0.85, 0.05, 0.05],
+        ...                     [0.05, 0.05, 0.85, 0.05],
+        ...                     [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> metric = MulticlassROC()
+        >>> classes_roc = metric(pred, target)
+        >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+         (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+         (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+         (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
     """
 
     def __init__(
@@ -612,21 +627,6 @@ class MulticlassROC(TensorCollectionMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-            ...                     [0.05, 0.85, 0.05, 0.05],
-            ...                     [0.05, 0.05, 0.85, 0.05],
-            ...                     [0.05, 0.05, 0.05, 0.85]])
-            >>> target = torch.tensor([0, 1, 3, 2])
-            >>> metric = MulticlassROC()
-            >>> classes_roc = metric(pred, target)
-            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
-            ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
-             (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
-             (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
-             (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
         """
         super().__init__(name='multiclass_roc',
                          reduce_group=reduce_group,
@@ -658,7 +658,22 @@ class MulticlassROC(TensorCollectionMetric):
 
 
 class MulticlassPrecisionRecall(TensorCollectionMetric):
-    """Computes the multiclass PR Curve"""
+    """Computes the multiclass PR Curve
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                     [0.05, 0.85, 0.05, 0.05],
+        ...                     [0.05, 0.05, 0.85, 0.05],
+        ...                     [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> metric = MulticlassPrecisionRecall()
+        >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
+         (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
+         (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])),
+         (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])))
+    """
 
     def __init__(
             self,
@@ -676,20 +691,6 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-            ...                     [0.05, 0.85, 0.05, 0.05],
-            ...                     [0.05, 0.05, 0.85, 0.05],
-            ...                     [0.05, 0.05, 0.05, 0.85]])
-            >>> target = torch.tensor([0, 1, 3, 2])
-            >>> metric = MulticlassPrecisionRecall()
-            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
-            ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
-             (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
-             (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])),
-             (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])))
 
         """
         super().__init__(name='multiclass_precision_recall_curve',
@@ -723,7 +724,20 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
 
 
 class DiceCoefficient(TensorMetric):
-    """Computes the dice coefficient"""
+    """
+    Computes the dice coefficient
+
+    Example:
+
+        >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+        ...                      [0.05, 0.85, 0.05, 0.05],
+        ...                      [0.05, 0.05, 0.85, 0.05],
+        ...                      [0.05, 0.05, 0.05, 0.85]])
+        >>> target = torch.tensor([0, 1, 3, 2])
+        >>> metric = DiceCoefficient()
+        >>> metric(pred, target)
+        tensor(0.3333)
+    """
 
     def __init__(
             self,
@@ -745,19 +759,6 @@ class DiceCoefficient(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
-
-        Example:
-
-        .. testcode:
-
-            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-            ...                      [0.05, 0.85, 0.05, 0.05],
-            ...                      [0.05, 0.05, 0.85, 0.05],
-            ...                      [0.05, 0.05, 0.05, 0.85]])
-            >>> target = torch.tensor([0, 1, 3, 2])
-            >>> metric = DiceCoefficient()
-            >>> metric(pred, target)
-            tensor(0.3333)
         """
         super().__init__(name='dice',
                          reduce_group=reduce_group,

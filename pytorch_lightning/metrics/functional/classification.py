@@ -107,7 +107,7 @@ def stat_scores(
             axis the argmax transformation will be applied over
 
     Return:
-        Tensors in the following order: True Positive, False Positive, True Negative, False Negative
+        True Positive, False Positive, True Negative, False Negative
 
     Example:
 
@@ -149,7 +149,7 @@ def stat_scores_multiple_classes(
             axis the argmax transformation will be applied over
 
     Return:
-        Tensors in the following order: True Positive, False Positive, True Negative, False Negative
+        True Positive, False Positive, True Negative, False Negative
 
     Example:
 
@@ -533,7 +533,7 @@ def roc(
         pos_label: the label for the positive class (default: 1)
 
     Return:
-        [Tensor, Tensor, Tensor]: false-positive rate (fpr), true-positive rate (tpr), thresholds
+        false-positive rate (fpr), true-positive rate (tpr), thresholds
 
     Example:
 
@@ -587,8 +587,8 @@ def multiclass_roc(
         num_classes: number of classes (default: None, computes automatically from data)
 
     Return:
-        [num_classes, Tensor, Tensor, Tensor]: returns roc for each class.
-        number of classes, false-positive rate (fpr), true-positive rate (tpr), thresholds
+        returns roc for each class.
+        Number of classes, false-positive rate (fpr), true-positive rate (tpr), thresholds
 
     Example:
 
@@ -631,7 +631,7 @@ def precision_recall_curve(
         pos_label: the label for the positive class (default: 1.)
 
     Return:
-         [Tensor, Tensor, Tensor]: precision, recall, thresholds
+         precision, recall, thresholds
 
     Example:
 
@@ -689,7 +689,7 @@ def multiclass_precision_recall_curve(
         num_classes: number of classes
 
     Return:
-        [num_classes, Tensor, Tensor, Tensor]: number of classes, precision, recall, thresholds
+        number of classes, precision, recall, thresholds
 
     Example:
 
@@ -863,11 +863,11 @@ def dice_score(
         nan_score: score to return, if a NaN occurs during computation (denom zero)
         no_fg_score: score to return, if no foreground pixel was found in target
         reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
+            Available reduction methods:
 
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Example:
 
