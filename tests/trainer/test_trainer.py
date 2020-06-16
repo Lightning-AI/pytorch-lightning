@@ -19,7 +19,7 @@ from pytorch_lightning.core.saving import (
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.io import load as pl_load
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from tests.base import EvalModelTemplate
 
 

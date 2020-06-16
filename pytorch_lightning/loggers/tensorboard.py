@@ -17,11 +17,6 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
 
-try:
-    from omegaconf import Container
-except ImportError:
-    Container = None
-
 
 class TensorBoardLogger(LightningLoggerBase):
     r"""
@@ -156,14 +151,7 @@ class TensorBoardLogger(LightningLoggerBase):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file
-        if Container is not None:
-            if isinstance(self.hparams, Container):
-                from omegaconf import OmegaConf
-                OmegaConf.save(self.hparams, hparams_file, resolve=True)
-            else:
-                save_hparams_to_yaml(hparams_file, self.hparams)
-        else:
-            save_hparams_to_yaml(hparams_file, self.hparams)
+        save_hparams_to_yaml(hparams_file, self.hparams)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
