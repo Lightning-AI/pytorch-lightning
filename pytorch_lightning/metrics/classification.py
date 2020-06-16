@@ -228,7 +228,7 @@ class Precision(TensorMetric):
             >>> target = torch.tensor([0, 1, 2, 2])
             >>> metric = PrecisionRecall()
             >>> metric(pred, target)
-            (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1., 2., 3.]))
+            (tensor([0.3333, 0.0000, 0.0000, 1.0000]), tensor([1., 0., 0., 0.]), tensor([1, 2, 3]))
 
         """
         super().__init__(name='precision',
