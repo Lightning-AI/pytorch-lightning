@@ -43,7 +43,8 @@ handles automated DDP syncing and converts all inputs and outputs to tensors.
 Use :class:`NumpyMetric` to implement numpy metrics. This class
 handles automated DDP syncing and converts all inputs and outputs to tensors.
 
-.. warning:: Numpy metrics might slow down your training substantially,
+.. warning:: 
+    Numpy metrics might slow down your training substantially,
     since every metric computation requires a GPU sync to convert tensors to numpy.
 
 TensorMetric
