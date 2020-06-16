@@ -259,7 +259,7 @@ class ModelCheckpoint(Callback):
         self.dirpath = ckpt_path
         os.makedirs(self.dirpath, exist_ok=True)
         trainer.ckpt_path = ckpt_path
-        trainer.weights_save_path = self.dirpath
+        trainer.weights_save_path = ckpt_path
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
