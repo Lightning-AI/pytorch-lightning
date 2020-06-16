@@ -92,7 +92,7 @@ plain PyTorch).
             self.metric = Accuracy()
 
         def forward(self, x, y):
-            y_hat = # ...
+            y_hat = ...
             acc = self.metric(y_hat, y)
 
     # PyTorch Lightning
