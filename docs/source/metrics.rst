@@ -29,7 +29,7 @@ Out::
 
     tensor(0.7500)
 
-.. warning:: The metrics package is still in development, and is the moment limited 
+.. warning:: The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR! 
     to a few metrics. Please feel free to create an issue/PR if you have a proposed 
     metric or have found a bug.
 
