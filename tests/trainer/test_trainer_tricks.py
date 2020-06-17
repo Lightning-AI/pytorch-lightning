@@ -11,6 +11,18 @@ from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 def test_overfit(tmpdir):
 
     # ------------------------------------------------------
+    # Make sure the trainer ends up with correct values
+    # ------------------------------------------------------
+    assert Trainer(overfit_batches=0.2).overfit_batches == 0.2
+    assert Trainer(overfit_batches=20).overfit_batches == 20
+    assert Trainer(limit_val_batches=0.2).limit_val_batches == 0.2
+    assert Trainer(limit_val_batches=20).limit_val_batches == 20
+    assert Trainer(limit_train_batches=0.2).limit_train_batches == 0.2
+    assert Trainer(limit_train_batches=20).limit_train_batches == 20
+    assert Trainer(limit_test_batches=0.2).limit_test_batches == 0.2
+    assert Trainer(limit_test_batches=20).limit_test_batches == 20
+
+    # ------------------------------------------------------
     # Make sure shuffle is correct across loaders initially
     # ------------------------------------------------------
     model = EvalModelTemplate()
