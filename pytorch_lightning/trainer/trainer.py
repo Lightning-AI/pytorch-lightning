@@ -102,7 +102,7 @@ class Trainer(
         min_epochs: int = 1,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
-        limit_train_batches: float = 1.0,
+        limit_train_batches: Union[int, float] = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
         val_check_interval: Union[int, float] = 1.0,
