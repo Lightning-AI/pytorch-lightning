@@ -35,7 +35,7 @@ class DummyTensorCollectionMetric(TensorCollectionMetric):
         return 1., 2., 3., 4.
 
 
-@pytest.mark.parametrize('metric', [DummyTensorCollectionMetric])
+@pytest.mark.parametrize('metric', [DummyTensorCollectionMetric()])
 def test_collection_metric(metric: Metric):
     """ Test that metric.device, metric.dtype works for metric collection """
     input1, input2 = torch.tensor([1.]), torch.tensor([2.])
