@@ -180,6 +180,18 @@ ROC
 .. autoclass:: pytorch_lightning.metrics.classification.ROC
     :noindex:
 
+MAE
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MAE
+    :noindex:
+
+MSE
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MSE
+    :noindex:
+
 MulticlassROC
 ^^^^^^^^^^^^^
 
@@ -190,6 +202,18 @@ MulticlassPrecisionRecall
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
+    :noindex:
+
+RMSE
+^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.RMSLE
+    :noindex:
+
+RMSLE
+^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.RMSE
     :noindex:
 
 --------------
