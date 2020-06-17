@@ -8,7 +8,7 @@ from sklearn.metrics import (
     recall_score as sk_recall,
     f1_score as sk_f1_score,
     fbeta_score as sk_fbeta_score,
-    confusion_matrix as sk_confusion_matrix
+    confusion_matrix as sk_confusion_matrix,
 )
 
 from pytorch_lightning import seed_everything
@@ -35,17 +35,31 @@ from pytorch_lightning.metrics.functional.classification import (
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
-    (sk_accuracy, accuracy),
-    (partial(sk_precision, average='macro'), precision),
-    (partial(sk_recall, average='macro'), recall),
-    (partial(sk_f1_score, average='macro'), f1_score),
-    (partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2)),
-    (sk_confusion_matrix, confusion_matrix)
+    pytest.param(sk_accuracy, accuracy, id='accuracy'),
+    pytest.param(partial(sk_precision, average='macro'), precision, id='precision'),
+    pytest.param(partial(sk_recall, average='macro'), recall, id='recall'),
+    pytest.param(partial(sk_f1_score, average='macro'), f1_score, id='f1_score'),
+    pytest.param(partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2), id='fbeta_score'),
+    pytest.param(sk_confusion_matrix, confusion_matrix, id='confusion_matrix')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric):
     """Compare PL metrics to sklearn version."""
     pred = torch.randint(10, (500,))
     target = torch.randint(10, (500,))
+
+    assert torch.allclose(
+        torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
+        torch_metric(pred, target))
+
+    pred = torch.randint(10, (200,))
+    target = torch.randint(5, (200,))
+
+    assert torch.allclose(
+        torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
+        torch_metric(pred, target))
+
+    pred = torch.randint(5, (200,))
+    target = torch.randint(10, (200,))
 
     assert torch.allclose(
         torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
