@@ -85,7 +85,7 @@ class TrainerDataLoadingMixin(ABC):
     def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _limit_eval_batches_check(self, name: str) -> None:
+    def _check_batch_limits(self, name: str) -> None:
         value = getattr(self, name)
 
         # ints are fine
@@ -193,7 +193,7 @@ class TrainerDataLoadingMixin(ABC):
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
         self._worker_check(self.train_dataloader, 'train dataloader')
-        self._limit_eval_batches_check('limit_train_batches')
+        self._check_batch_limits('limit_train_batches')
 
         if not _has_len(self.train_dataloader):
             self.num_training_batches = float('inf')
@@ -226,7 +226,7 @@ class TrainerDataLoadingMixin(ABC):
                         ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
                         ' checking validation every k training batches.')
             else:
-                self._limit_eval_batches_check('val_check_interval')
+                self._check_batch_limits('val_check_interval')
 
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
@@ -291,7 +291,7 @@ class TrainerDataLoadingMixin(ABC):
                 limit_eval_batches = getattr(self, f'limit_{mode}_batches')
 
                 if num_batches != float('inf'):
-                    self._limit_eval_batches_check(f'limit_{mode}_batches')
+                    self._check_batch_limits(f'limit_{mode}_batches')
 
                     num_batches = len(dataloader)
 
