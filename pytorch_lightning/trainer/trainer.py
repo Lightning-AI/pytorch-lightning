@@ -1249,5 +1249,11 @@ class _PatchDataLoader(object):
 
 
 def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
-    is_whole_num = batches % 1.0 == 0
-    return int(batches) if batches > 1.0 and is_whole_num else batches
+    if 0 < batches <= 1:
+        return batches
+    elif batches % 1.0 == 0:
+        return int(batches)
+    else:
+        raise MisconfigurationException(
+            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+        )

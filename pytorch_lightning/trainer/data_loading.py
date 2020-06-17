@@ -86,6 +86,7 @@ class TrainerDataLoadingMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def _check_batch_limits(self, name: str) -> None:
+        # TODO: verify it is still needed and deprecate it..
         value = getattr(self, name)
 
         # ints are fine
