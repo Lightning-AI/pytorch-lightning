@@ -1249,4 +1249,5 @@ class _PatchDataLoader(object):
 
 
 def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
-    return int(batches) if batches > 1.0 else batches
+    is_whole_num = batches % 1.0 == 0
+    return int(batches) if batches > 1.0 and is_whole_num else batches
