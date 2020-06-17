@@ -105,7 +105,7 @@ class Trainer(
         limit_train_batches: float = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
-        val_check_interval: float = 1.0,
+        val_check_interval: Union[int, float] = 1.0,
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
