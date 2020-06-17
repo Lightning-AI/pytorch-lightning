@@ -102,7 +102,7 @@ class Trainer(
         min_epochs: int = 1,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
-        train_percent_check: float = 1.0,
+        limit_train_batches: float = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
         val_check_interval: float = 1.0,
@@ -221,7 +221,7 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
-            train_percent_check: How much of training dataset to check.
+            limit_train_batches: How much of training dataset to check.
 
             limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
 
@@ -504,8 +504,8 @@ class Trainer(
         limit_test_batches = int(limit_test_batches) if limit_test_batches > 1.0 else limit_test_batches
         limit_val_batches = int(limit_val_batches) if limit_val_batches > 1.0 else limit_val_batches
 
-        # TODO: convert train_percent_check to limit_train_batches
-        self.determine_data_use_amount(train_percent_check, limit_val_batches,
+        # TODO: convert limit_train_batches to limit_train_batches
+        self.determine_data_use_amount(limit_train_batches, limit_val_batches,
                                        limit_test_batches, overfit_batches)
 
         # AMP init

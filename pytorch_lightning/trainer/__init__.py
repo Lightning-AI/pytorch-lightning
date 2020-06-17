@@ -880,7 +880,7 @@ Example::
     # track the 2-norm
     trainer = Trainer(track_grad_norm=2)
 
-train_percent_check
+limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
 
 How much of training dataset to check.
@@ -889,15 +889,15 @@ Useful when debugging or testing something that happens at the end of an epoch.
 .. code-block::python
 
     # default used by the Trainer
-    trainer = Trainer(train_percent_check=1.0)
+    trainer = Trainer(limit_train_batches=1.0)
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(train_percent_check=1.0)
+    trainer = Trainer(limit_train_batches=1.0)
 
     # run through only 25% of the training set each epoch
-    trainer = Trainer(train_percent_check=0.25)
+    trainer = Trainer(limit_train_batches=0.25)
 
 truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^

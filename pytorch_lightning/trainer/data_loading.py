@@ -73,7 +73,7 @@ class TrainerDataLoadingMixin(ABC):
     num_val_batches: List[Union[int, float]]
     test_dataloaders: List[DataLoader]
     num_test_batches: List[Union[int, float]]
-    train_percent_check: float
+    limit_train_batches: float
     limit_val_batches: float
     limit_test_batches: float
     replace_sampler_ddp: bool
@@ -193,17 +193,17 @@ class TrainerDataLoadingMixin(ABC):
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
         self._worker_check(self.train_dataloader, 'train dataloader')
-        self._limit_eval_batches_check('train_percent_check')
+        self._limit_eval_batches_check('limit_train_batches')
 
         if not _has_len(self.train_dataloader):
             self.num_training_batches = float('inf')
         else:
             # try getting the length
-            if isinstance(self.train_percent_check, float):
+            if isinstance(self.limit_train_batches, float):
                 self.num_training_batches = len(self.train_dataloader)
-                self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
+                self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
             else:
-                self.num_training_batches = self.train_percent_check
+                self.num_training_batches = self.limit_train_batches
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -365,11 +365,11 @@ class TrainerDataLoadingMixin(ABC):
 
         return dataloader
 
-    def determine_data_use_amount(self, train_percent_check: float, limit_val_batches: Union[int, float],
+    def determine_data_use_amount(self, limit_train_batches: float, limit_val_batches: Union[int, float],
                                   limit_test_batches: Union[int, float], overfit_batches: float) -> None:
         """Use less data for debugging purposes
         """
-        self.train_percent_check = train_percent_check
+        self.limit_train_batches = limit_train_batches
         self.limit_val_batches = limit_val_batches
         self.limit_test_batches = limit_test_batches
         if overfit_batches > 0:
@@ -378,6 +378,6 @@ class TrainerDataLoadingMixin(ABC):
                     f'`overfit_batches` when used as a percentage must '
                     f'be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
 
-            self.train_percent_check = overfit_batches
+            self.limit_train_batches = overfit_batches
             self.limit_val_batches = overfit_batches
             self.limit_test_batches = overfit_batches

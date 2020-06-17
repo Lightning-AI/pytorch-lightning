@@ -239,7 +239,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
         tpu_cores=8,
         precision=16,
         early_stop_checkpoint=True,
-        train_percent_check=0.5,
+        limit_train_batches=0.5,
         val_check_interval=0.25
     )
 
