@@ -1,8 +1,11 @@
 """
 .. testsetup:: *
 
+    import os
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.utilities.seed import seed_everything
+
 
 Once you've organized your PyTorch code into a LightningModule,
 the Trainer automates everything else.
@@ -27,8 +30,6 @@ Basic use
 This is the basic use of the trainer:
 
 .. code-block:: python
-
-    from pytorch_lightning import Trainer
 
     model = MyLightningModule()
 
@@ -119,7 +120,7 @@ Reproducibility
 To ensure full reproducibility from run to run you need to set seeds for pseudo-random generators,
 and set ``deterministic``` flag in ``Trainer``.
 
-.. testcode::
+Example::
 
     from pytorch_lightning import Trainer, seed_everything
 
@@ -270,7 +271,7 @@ checkpoint_callback
 ^^^^^^^^^^^^^^^^^^^
 Callback for checkpointing.
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.callbacks import ModelCheckpoint
     trainer = Trainer(checkpoint_callback=ModelCheckpoint())
@@ -319,6 +320,8 @@ The distributed backend to use.
 
     # default used by the Trainer
     trainer = Trainer(distributed_backend=None)
+
+Example::
 
     # dp = DataParallel
     trainer = Trainer(gpus=2, distributed_backend='dp')
@@ -411,6 +414,8 @@ gpus
     # list: train on GPUs 1, 4 (by bus ordering)
     trainer = Trainer(gpus=[1, 4])
     trainer = Trainer(gpus='1, 4') # equivalent
+
+Example::
 
     # -1: train on all gpus
     trainer = Trainer(gpus=-1)
@@ -511,7 +516,7 @@ logger
     # default logger used by trainer
     logger = TensorBoardLogger(
         save_dir=os.getcwd(),
-        version=self.slurm_job_id,
+        version=1,
         name='lightning_logs'
     )
     Trainer(logger=logger)
@@ -719,6 +724,8 @@ will still show torch.float32.
     # 16-bit precision
     trainer = Trainer(precision=16)
 
+Example::
+
     # one day
     trainer = Trainer(precision=8|4|2)
 
@@ -751,7 +758,7 @@ See the `profiler documentation <profiler.rst>`_. for more details.
 
 .. testcode::
 
-    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
+    from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)
@@ -760,12 +767,10 @@ See the `profiler documentation <profiler.rst>`_. for more details.
     trainer = Trainer(profiler=True)
 
     # equivalent to profiler=True
-    profiler = Profiler()
-    trainer = Trainer(profiler=profiler)
+    trainer = Trainer(profiler=SimpleProfiler())
 
     # advanced profiler for function-level stats
-    profiler = AdvancedProfiler()
-    trainer = Trainer(profiler=profiler)
+    trainer = Trainer(profiler=AdvancedProfiler())
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -812,7 +817,7 @@ Enables auto adding of distributed sampler.
 
 By setting to False, you have to add your own distributed sampler:
 
-.. testcode::
+.. code-block:: python
 
     # default used by the Trainer
     sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
@@ -996,11 +1001,13 @@ Directory of where to save weights if specified.
     # save to your custom path
     trainer = Trainer(weights_save_path='my/path')
 
+Example::
+
     # if checkpoint callback used, then overrides the weights path
     # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint_callback = ModelCheckpoint(filepath='some/path')
+    checkpoint = ModelCheckpoint(filepath='some/path')
     trainer = Trainer(
-        checkpoint_callback=checkpoint_callback,
+        checkpoint_callback=checkpoint,
         weights_save_path='my/path'
     )
 
@@ -1026,6 +1033,6 @@ Trainer class
 """
 
 from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.trainer.seed import seed_everything
+from pytorch_lightning.utilities.seed import seed_everything
 
 __all__ = ['Trainer', 'seed_everything']
