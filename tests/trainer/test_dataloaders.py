@@ -74,7 +74,7 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
     dict(limit_test_batches=1.2),
 ])
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
-    with pytest.raises(ValueError):
+    with pytest.raises(MisconfigurationException):
         Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,
