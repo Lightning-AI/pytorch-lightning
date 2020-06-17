@@ -17,7 +17,7 @@ def test_trains_logger(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=0.05,
+        limit_train_batches=0.05,
         logger=logger
     )
     result = trainer.fit(model)

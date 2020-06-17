@@ -162,8 +162,8 @@ def test_gradient_accumulation_scheduling(tmpdir):
     schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
-                      train_percent_check=0.1,
-                      val_percent_check=0.1,
+                      limit_train_batches=0.1,
+                      limit_val_batches=0.1,
                       max_epochs=2,
                       default_root_dir=tmpdir)
 
@@ -367,8 +367,8 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.65,
-        val_percent_check=1,
+        limit_train_batches=0.65,
+        limit_val_batches=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -414,7 +414,7 @@ def _init_steps_model():
     num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
 
     trainer_options = dict(
-        train_percent_check=train_percent,
+        limit_train_batches=train_percent,
     )
     return model, trainer_options, num_train_samples
 
@@ -588,7 +588,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
 
 
 def test_disabled_validation():
-    """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
+    """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
     class CurrentModel(EvalModelTemplate):
 
@@ -609,23 +609,23 @@ def test_disabled_validation():
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.0,
+        limit_train_batches=0.4,
+        limit_val_batches=0.0,
         fast_dev_run=False,
     )
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # check that val_percent_check=0 turns off validation
+    # check that limit_val_batches=0 turns off validation
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch == 2
     assert not model.validation_step_invoked, \
-        '`validation_step` should not run when `val_percent_check=0`'
+        '`validation_step` should not run when `limit_val_batches=0`'
     assert not model.validation_epoch_end_invoked, \
-        '`validation_epoch_end` should not run when `val_percent_check=0`'
+        '`validation_epoch_end` should not run when `limit_val_batches=0`'
 
-    # check that val_percent_check has no influence when fast_dev_run is turned on
+    # check that limit_val_batches has no influence when fast_dev_run is turned on
     model = CurrentModel(**hparams)
     trainer_options.update(fast_dev_run=True)
     trainer = Trainer(**trainer_options)
@@ -722,8 +722,8 @@ def test_trainer_interrupted_flag(tmpdir):
     trainer = Trainer(
         callbacks=[interrupt_callback, handle_interrupt_callback],
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
         logger=False,
         default_root_dir=tmpdir,

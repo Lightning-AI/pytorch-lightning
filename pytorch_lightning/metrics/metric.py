@@ -9,8 +9,6 @@ from pytorch_lightning.metrics.converters import (
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
-__all__ = ['Metric', 'TensorMetric', 'NumpyMetric']
-
 
 class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
     """

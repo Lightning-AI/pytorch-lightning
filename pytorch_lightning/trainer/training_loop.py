@@ -68,15 +68,18 @@ Set how much of the training set to check
 
 If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag.
 
-train_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+limit_train_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(train_percent_check=1.0)
+    trainer = Trainer(limit_train_batches=1.0)
 
     # check 10% only
-    trainer = Trainer(train_percent_check=0.1)
+    trainer = Trainer(limit_train_batches=0.1)
+
+    # check 10 batches only
+    trainer = Trainer(limit_train_batches=10)
 
 Packed sequences as inputs
 --------------------------
@@ -318,6 +321,12 @@ class TrainerTrainLoopMixin(ABC):
 
         # get model
         model = self.get_model()
+
+        # enable train mode
+        model.train()
+
+        # enable gradients
+        torch.set_grad_enabled(True)
 
         # load data
         # if reload_dataloaders_every_epoch, this is moved to the epoch loop

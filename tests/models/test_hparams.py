@@ -39,7 +39,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     assert model.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_pct=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=0.5)
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -156,7 +156,7 @@ def test_explicit_missing_args_hparams(tmpdir):
     assert model.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties
@@ -266,7 +266,7 @@ def test_collect_init_arguments(tmpdir, cls):
         assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
     trainer.fit(model)
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
 
@@ -349,7 +349,7 @@ def test_collect_init_arguments_with_local_vars(cls):
 #     assert model.hparams.my_arg == 42
 #
 #     # verify that the checkpoint saved the correct values
-#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_pct=0.5)
+#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
 #     trainer.fit(model)
 #
 #     # verify that model loads correctly

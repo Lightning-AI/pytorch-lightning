@@ -145,6 +145,14 @@ else:
     HOROVOD_AVAILABLE = True
 
 
+try:
+    from hydra.utils import to_absolute_path
+except ImportError:
+    HYDRA_AVAILABLE = False
+else:
+    HYDRA_AVAILABLE = True
+
+
 class TrainerDDPMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
@@ -379,28 +387,30 @@ class TrainerDDPMixin(ABC):
         os.environ['NODE_RANK'] = node_rank
         os.environ['LOCAL_RANK'] = '0'
 
+        # when user is using hydra find the absolute path
+        path_lib = abspath if not HYDRA_AVAILABLE else to_absolute_path
+
         # pull out the commands used to run the script and resolve the abs file path
         command = sys.argv
-        full_path = abspath(command[0])
+        try:
+            full_path = path_lib(command[0])
+        except Exception as e:
+            full_path = abspath(command[0])
+
         command[0] = full_path
         command = ['python'] + command
 
         # since this script sets the visible devices we replace the gpus flag with a number
         num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
 
-        # if script called without a flag, pass in a flag anyhow
-        if '--gpus' not in command:
-            arg_gpus = len(self.gpus) if isinstance(self.gpus, list) else self.gpus
-            command += ['--gpus', arg_gpus]
-
-        gpu_flag_idx = command.index('--gpus')
-        command[gpu_flag_idx + 1] = f'{num_gpus}'
+        if '--gpus' in command:
+            gpu_flag_idx = command.index('--gpus')
+            command[gpu_flag_idx + 1] = f'{num_gpus}'
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.num_nodes}'
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.num_processes):
-            print('launching local_rank', local_rank)
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
 

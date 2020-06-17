@@ -24,7 +24,7 @@ def test_early_stopping_functionality(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=True,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         max_epochs=20,
     )
     result = trainer.fit(model)
@@ -48,6 +48,8 @@ def test_trainer_callback_system(tmpdir):
             super().__init__()
             self.on_init_start_called = False
             self.on_init_end_called = False
+            self.on_fit_start_called = False
+            self.on_fit_end_called = False
             self.on_sanity_check_start_called = False
             self.on_sanity_check_end_called = False
             self.on_epoch_start_called = False
@@ -72,6 +74,14 @@ def test_trainer_callback_system(tmpdir):
         def on_init_end(self, trainer):
             assert isinstance(trainer, Trainer)
             self.on_init_end_called = True
+
+        def on_fit_start(self, trainer):
+            assert isinstance(trainer, Trainer)
+            self.on_fit_start_called = True
+
+        def on_fit_end(self, trainer):
+            assert isinstance(trainer, Trainer)
+            self.on_fit_end_called = True
 
         def on_sanity_check_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
@@ -142,13 +152,15 @@ def test_trainer_callback_system(tmpdir):
     trainer_options = dict(
         callbacks=[test_callback],
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
     )
 
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
+    assert not test_callback.on_fit_start_called
+    assert not test_callback.on_fit_end_called
     assert not test_callback.on_sanity_check_start_called
     assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
@@ -172,6 +184,8 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert not test_callback.on_fit_start_called
+    assert not test_callback.on_fit_end_called
     assert not test_callback.on_sanity_check_start_called
     assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
@@ -193,6 +207,8 @@ def test_trainer_callback_system(tmpdir):
 
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert test_callback.on_fit_start_called
+    assert test_callback.on_fit_end_called
     assert test_callback.on_sanity_check_start_called
     assert test_callback.on_sanity_check_end_called
     assert test_callback.on_epoch_start_called
@@ -242,7 +258,7 @@ def test_early_stopping_no_val_step(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         max_epochs=2,
     )
     result = trainer.fit(model)
@@ -276,7 +292,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     trainer = Trainer(default_root_dir=tmpdir,
                       checkpoint_callback=checkpoint,
-                      overfit_pct=0.20,
+                      overfit_batches=0.20,
                       max_epochs=2
                       )
     trainer.fit(model)
@@ -297,7 +313,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        overfit_pct=0.2,
+        overfit_batches=0.2,
         max_epochs=2,
         logger=logger
     )

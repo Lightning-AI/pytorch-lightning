@@ -49,6 +49,13 @@ Or without conda environments, anywhere you can use pip.
 
     pip install pytorch-lightning
 
+Or with conda
+
+.. code-block:: bash
+
+    conda install pytorch-lightning -c conda-forge
+
+
 ---------
 
 Lightning Philosophy

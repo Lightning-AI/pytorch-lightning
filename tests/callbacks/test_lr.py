@@ -17,8 +17,8 @@ def test_lr_logger_single_lr(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
         callbacks=[lr_logger]
     )
     result = trainer.fit(model)
@@ -40,8 +40,8 @@ def test_lr_logger_no_lr(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
         callbacks=[lr_logger]
     )
 
@@ -61,8 +61,8 @@ def test_lr_logger_multi_lrs(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
         callbacks=[lr_logger]
     )
     result = trainer.fit(model)
@@ -88,8 +88,8 @@ def test_lr_logger_param_groups(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
         callbacks=[lr_logger]
     )
     result = trainer.fit(model)

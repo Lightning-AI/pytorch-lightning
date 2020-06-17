@@ -21,10 +21,10 @@ PyTorch Lightning Documentation
    :caption: Python API
 
    callbacks
-   hooks
    lightning-module
    loggers
    metrics
+   hooks
    trainer
 
 .. toctree::
@@ -54,6 +54,7 @@ PyTorch Lightning Documentation
    :caption: Tutorials
 
    From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
+   Video on how to refactor PyTorch into PyTorch Lightning <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1

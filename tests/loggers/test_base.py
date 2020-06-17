@@ -66,7 +66,7 @@ def test_custom_logger(tmpdir):
 
     trainer = Trainer(
         max_epochs=1,
-        train_percent_check=0.05,
+        limit_train_batches=0.05,
         logger=logger,
         default_root_dir=tmpdir
     )
@@ -86,7 +86,7 @@ def test_multiple_loggers(tmpdir):
 
     trainer = Trainer(
         max_epochs=1,
-        train_percent_check=0.05,
+        limit_train_batches=0.05,
         logger=[logger1, logger2],
         default_root_dir=tmpdir
     )
@@ -144,8 +144,8 @@ def test_adding_step_key(tmpdir):
     trainer = Trainer(
         max_epochs=3,
         default_root_dir=tmpdir,
-        train_percent_check=0.001,
-        val_percent_check=0.01,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
         num_sanity_val_steps=0,
     )
     trainer.logger.log_metrics = _log_metrics_decorator(

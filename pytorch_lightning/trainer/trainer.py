@@ -8,7 +8,6 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -18,7 +17,8 @@ from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_9
+from pytorch_lightning.trainer.deprecated_api import (
+    TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
     TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
@@ -74,6 +74,7 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
+    TrainerDeprecatedAPITillVer0_10,
 ):
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
@@ -93,7 +94,7 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], int]] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: int = 1,
-        overfit_pct: float = 0.0,
+        overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
         check_val_every_n_epoch: int = 1,
         fast_dev_run: bool = False,
@@ -102,10 +103,10 @@ class Trainer(
         min_epochs: int = 1,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
-        train_percent_check: float = 1.0,
-        val_percent_check: float = 1.0,
-        test_percent_check: float = 1.0,
-        val_check_interval: float = 1.0,
+        limit_train_batches: Union[int, float] = 1.0,
+        limit_val_batches: Union[int, float] = 1.0,
+        limit_test_batches: Union[int, float] = 1.0,
+        val_check_interval: Union[int, float] = 1.0,
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
@@ -129,6 +130,10 @@ class Trainer(
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
+        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        overfit_pct: float = None  # backward compatible, todo: remove in v1.0.0
     ):
         r"""
 
@@ -185,7 +190,12 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            overfit_pct: How much of training-, validation-, and test dataset to check.
+            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int).
+
+            overfit_pct:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `overfit_batches` instead. Will remove 0.10.0.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
@@ -213,11 +223,26 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
-            train_percent_check: How much of training dataset to check.
+            limit_train_batches: How much of training dataset to check.
 
-            val_percent_check: How much of validation dataset to check.
+            limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
 
-            test_percent_check: How much of test dataset to check.
+            limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
+
+            train_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_train_batches` instead. Will remove v0.10.0.
+
+            val_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_val_batches` instead. Will remove v0.10.0.
+
+            test_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_test_batches` instead. Will remove v0.10.0.
 
             val_check_interval: How often within one training epoch to check the validation set
 
@@ -383,9 +408,9 @@ class Trainer(
         self.batch_idx = 0
         self.progress_bar_metrics = {}
         self.callback_metrics = {}
-        self.num_val_batches = []
+        self.num_val_batches = [0]
         self.num_training_batches = 0
-        self.num_test_batches = []
+        self.num_test_batches = [0]
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
@@ -444,7 +469,7 @@ class Trainer(
         if self.on_tpu:
             self.init_tpu()
 
-        # init flags for SLURM+ddp to work
+        # init flags for SLURM+DDP to work
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
@@ -452,7 +477,7 @@ class Trainer(
         self.local_rank = self.determine_local_rank()
         self.global_rank = 0
 
-        # nvidia setup
+        # NVIDIA setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # backward compatibility
@@ -468,9 +493,37 @@ class Trainer(
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
-        self.overfit_pct = overfit_pct
-        self.determine_data_use_amount(train_percent_check, val_percent_check,
-                                       test_percent_check, overfit_pct)
+        # TODO: remove in 0.10.0
+        if overfit_pct is not None:
+            rank_zero_warn("Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            overfit_batches = overfit_pct
+
+        # convert floats to ints
+        self.overfit_batches = _determine_limit_batches(overfit_batches)
+
+        # TODO: remove in 0.10.0
+        if val_percent_check is not None:
+            rank_zero_warn("Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            limit_val_batches = val_percent_check
+
+        # TODO: remove in 0.10.0
+        if test_percent_check is not None:
+            rank_zero_warn("Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            limit_test_batches = test_percent_check
+
+        # TODO: remove in 0.10.0
+        if train_percent_check is not None:
+            rank_zero_warn("Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            limit_train_batches = train_percent_check
+
+        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
+        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
+        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
         # These are the only lines needed after v0.8.0
@@ -785,6 +838,11 @@ class Trainer(
         # check that model is configured correctly
         self.check_model_configuration(model)
 
+        # callbacks
+        self.on_fit_start()
+        if self.is_function_implemented('on_fit_start'):
+            model.on_fit_start()
+
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
@@ -880,6 +938,13 @@ class Trainer(
 
             self.run_pretrain_routine(model)
 
+        # callbacks
+        self.on_fit_end()
+
+        # model hooks
+        if self.is_function_implemented('on_fit_end'):
+            model.on_fit_end()
+
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
@@ -972,7 +1037,7 @@ class Trainer(
             return
 
         # check if we should run validation during training
-        self.disable_validation = not (self.is_overridden('validation_step') and self.val_percent_check > 0) \
+        self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
             and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
@@ -984,11 +1049,12 @@ class Trainer(
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
-            eval_results = self._evaluate(model=model,
-                                          dataloaders=self.val_dataloaders,
-                                          max_batches=self.num_sanity_val_steps,
-                                          test_mode=False)
-
+            num_loaders = len(self.val_dataloaders)
+            max_batches = [self.num_sanity_val_steps] * num_loaders
+            eval_results = self._evaluate(model,
+                                          self.val_dataloaders,
+                                          max_batches,
+                                          False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
 
             self.on_sanity_check_end()
@@ -1180,3 +1246,14 @@ class _PatchDataLoader(object):
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
+
+
+def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+    if 0 <= batches <= 1:
+        return batches
+    elif batches > 1 and batches % 1.0 == 0:
+        return int(batches)
+    else:
+        raise MisconfigurationException(
+            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+        )

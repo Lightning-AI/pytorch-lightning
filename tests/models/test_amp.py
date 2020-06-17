@@ -98,8 +98,8 @@ def test_cpu_model_with_amp(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
         precision=16
     )
 

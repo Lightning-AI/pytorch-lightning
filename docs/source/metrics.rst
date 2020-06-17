@@ -12,7 +12,8 @@ Metrics are used to monitor model performance.
 In this package we provide two major pieces of functionality.
 
 1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
-2. A collection of popular metrics already implemented for you.
+2. A collection of ready to use pupular metrics. There are two types of metrics: Class metrics and Functional metrics.
+3. A interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
 
 Example::
 
@@ -28,12 +29,17 @@ Out::
 
     tensor(0.7500)
 
+.. warning::
+    The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR!
+    to a few metrics. Please feel free to create an issue/PR if you have a proposed 
+    metric or have found a bug.
+
 --------------
 
 Implement a metric
 ------------------
-You can implement metrics as either a PyTorch metric or a Numpy metric. Numpy metrics
-will slow down training, use PyTorch metrics when possible.
+You can implement metrics as either a PyTorch metric or a Numpy metric (It is recommend to use PyTorch metrics when possible,
+since Numpy metrics slow down training).
 
 Use :class:`TensorMetric` to implement native PyTorch metrics. This class
 handles automated DDP syncing and converts all inputs and outputs to tensors.
@@ -76,7 +82,7 @@ Here's an example showing how to implement a NumpyMetric
 
 Class Metrics
 -------------
-The following are metrics which can be instantiated as part of a module definition (even with just
+Class metrics can be instantiated as part of a module definition (even with just
 plain PyTorch).
 
 .. testcode::
@@ -180,6 +186,18 @@ ROC
 .. autoclass:: pytorch_lightning.metrics.classification.ROC
     :noindex:
 
+MAE
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MAE
+    :noindex:
+
+MSE
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MSE
+    :noindex:
+
 MulticlassROC
 ^^^^^^^^^^^^^
 
@@ -192,10 +210,52 @@ MulticlassPrecisionRecall
 .. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
     :noindex:
 
+RMSE
+^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.RMSLE
+    :noindex:
+
+RMSLE
+^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.RMSE
+    :noindex:
+
 --------------
 
 Functional Metrics
 ------------------
+Functional metrics can be called anywhere (even used with just plain PyTorch).
+
+.. testcode::
+
+    from pytorch_lightning.metrics.functional import accuracy
+
+    pred = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 2, 2])
+
+    # calculates accuracy across all GPUs and all Nodes used in training
+    accuracy(pred, target)
+
+.. testoutput::
+
+    tensor(0.7500)
+
+These metrics even work when using distributed training:
+
+.. code-block:: python
+
+    class MyModule(...):
+        def forward(self, x, y):
+            return accuracy(x, y)
+
+    model = MyModule()
+    trainer = Trainer(gpus=8, num_nodes=2)
+
+    # any metric automatically reduces across GPUs (even the ones you implement using Lightning)
+    trainer.fit(model)
+
 
 accuracy (F)
 ^^^^^^^^^^^^
@@ -315,4 +375,99 @@ to_onehot (F)
 ^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
+    :noindex:
+
+----------------
+
+Sklearn interface
+-----------------
+    
+Lightning supports `sklearns metrics module <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_ 
+as a backend for calculating metrics. Sklearns metrics are well tested and robust, 
+but requires conversion between pytorch and numpy thus may slow down your computations.
+
+To use the sklearn backend of metrics simply import as
+
+.. code-block:: python
+    
+    import pytorch_lightning.metrics.sklearns import plm
+    metric = plm.Accuracy(normalize=True)
+    val = metric(pred, target)
+    
+Each converted sklearn metric comes has the same interface as its 
+originally counterpart (e.g. accuracy takes the additional `normalize` keyword). 
+Like the native Lightning metrics these converted sklearn metrics also come 
+with built-in distributed (ddp) support.
+
+SklearnMetric (sk)
+^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.SklearnMetric
+    :noindex:
+
+Accuracy (sk)
+^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Accuracy
+    :noindex:
+
+AUC (sk)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.AUC
+    :noindex:
+
+AveragePrecision (sk)
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.AveragePrecision
+    :noindex:
+
+    
+ConfusionMatrix (sk)
+^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.ConfusionMatrix
+    :noindex:
+
+F1 (sk)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.F1
+    :noindex:
+
+FBeta (sk)
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.FBeta
+    :noindex:
+
+Precision (sk)
+^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Precision
+    :noindex:
+
+Recall (sk)
+^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Recall
+    :noindex:
+
+PrecisionRecallCurve (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.PrecisionRecallCurve
+    :noindex:
+
+ROC (sk)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.ROC
+    :noindex:
+
+AUROC (sk)
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.AUROC
     :noindex:

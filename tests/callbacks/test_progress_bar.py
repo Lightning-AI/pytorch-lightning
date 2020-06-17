@@ -20,7 +20,7 @@ def test_progress_bar_on(callbacks, refresh_rate):
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
         max_epochs=1,
-        overfit_pct=0.2,
+        overfit_batches=0.2,
     )
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
@@ -61,7 +61,7 @@ def test_progress_bar_totals():
 
     trainer = Trainer(
         progress_bar_refresh_rate=1,
-        val_percent_check=1.0,
+        limit_val_batches=1.0,
         max_epochs=1,
     )
     bar = trainer.progress_bar_callback
@@ -174,7 +174,7 @@ def test_progress_bar_progress_refresh(refresh_rate):
     trainer = Trainer(
         callbacks=[progress_bar],
         progress_bar_refresh_rate=101,  # should not matter if custom callback provided
-        train_percent_check=1.0,
+        limit_train_batches=1.0,
         num_sanity_val_steps=2,
         max_epochs=3,
     )

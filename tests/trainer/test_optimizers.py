@@ -16,8 +16,8 @@ def test_optimizer_with_scheduling(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
+        limit_val_batches=0.1,
+        limit_train_batches=0.2
     )
     results = trainer.fit(model)
     assert results == 1
@@ -47,8 +47,8 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
+        limit_val_batches=0.1,
+        limit_train_batches=0.2
     )
     results = trainer.fit(model)
     assert results == 1
@@ -82,8 +82,8 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
+        limit_val_batches=0.1,
+        limit_train_batches=0.2
     )
     results = trainer.fit(model)
     assert results == 1
@@ -121,8 +121,8 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
+        limit_val_batches=0.1,
+        limit_train_batches=0.2
     )
     results = trainer.fit(model)
     assert results == 1
@@ -211,8 +211,8 @@ def test_none_optimizer(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2
+        limit_val_batches=0.1,
+        limit_train_batches=0.2
     )
     result = trainer.fit(model)
 
