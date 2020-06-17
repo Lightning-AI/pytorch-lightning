@@ -491,7 +491,8 @@ class Trainer(
             overfit_batches = overfit_pct
 
         # convert floats to ints
-        self.overfit_batches = int(overfit_batches) if overfit_batches > 1.0 else overfit_batches
+        overfit_batches = int(overfit_batches) if overfit_batches > 1.0 else overfit_batches
+        self.overfit_batches = overfit_batches
 
         # TODO: remove in 1.0.0
         if val_percent_check < 1.0:
