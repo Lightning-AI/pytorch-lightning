@@ -9,7 +9,10 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities import rank_zero_only
-from omegaconf import DictConfig
+try:
+    from omegaconf import Container
+except ImportError:
+    Container = None
 
 
 class LightningLoggerBase(ABC):
