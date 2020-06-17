@@ -202,6 +202,36 @@ MulticlassPrecisionRecall
 
 Functional Metrics
 ------------------
+Functional metrics can be called anywhere (even used with just plain PyTorch).
+
+Example::
+
+    from pytorch_lightning.metrics.functional import accuracy
+
+    pred = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 2, 2])
+
+    # calculates accuracy across all GPUs and all Nodes used in training
+    accuracy(pred, target)
+
+Out::
+
+    tensor(0.7500)
+
+These metrics even work when using distributed training:
+
+.. code-block:: python
+
+    class MyModule(...):
+        def forward(self, x, y):
+            return accuracy(x, y)
+
+    model = MyModule()
+    trainer = Trainer(gpus=8, num_nodes=2)
+
+    # any metric automatically reduces across GPUs (even the ones you implement using Lightning)
+    trainer.fit(model)
+
 
 accuracy (F)
 ^^^^^^^^^^^^
