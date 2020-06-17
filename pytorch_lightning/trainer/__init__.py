@@ -408,14 +408,14 @@ gpus
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
 
+Example::
+
     # int: train on 2 gpus
     trainer = Trainer(gpus=2)
 
     # list: train on GPUs 1, 4 (by bus ordering)
     trainer = Trainer(gpus=[1, 4])
     trainer = Trainer(gpus='1, 4') # equivalent
-
-Example::
 
     # -1: train on all gpus
     trainer = Trainer(gpus=-1)
