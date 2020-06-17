@@ -314,6 +314,7 @@ class Trainer(
         self.model = None
         self.testing = False
         self.disable_validation = False
+        self.prepare_data_per_node = prepare_data_per_node
         self.lr_schedulers = []
         self.optimizers = None
         self.optimizer_frequencies = []
@@ -323,14 +324,13 @@ class Trainer(
         self.should_stop = False
 
         # set default save path if user didn't provide one
-        if default_root_dir is None or default_root_dir is True:
+        if default_root_dir is None:
             default_root_dir = os.getcwd()
         self.default_root_dir = default_root_dir
 
-        # configure logger
         self.configure_logger(logger)
 
-        # initialize callbacks
+        # init callbacks
         self.callbacks = callbacks or []
 
         # configure early stop callback
@@ -352,8 +352,6 @@ class Trainer(
         self.early_stop_callback = early_stop_callback
 
         self.on_init_start()
-
-        self.prepare_data_per_node = prepare_data_per_node
 
         # benchmarking
         self.benchmark = benchmark

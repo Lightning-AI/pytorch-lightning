@@ -149,6 +149,7 @@ from typing import Union, List
 
 import numpy as np
 import torch
+import subprocess
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
@@ -159,7 +160,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-import subprocess
+
 
 try:
     from apex import amp
@@ -378,7 +379,7 @@ class TrainerTrainLoopMixin(ABC):
                     else:
                         log.info('Trainer was signaled to stop but required minimum epochs'
                                  f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                                 'not been met. Training will continue...')
+                                 ' not been met. Training will continue...')
 
             self.run_training_teardown()
 
