@@ -392,7 +392,11 @@ class TrainerDDPMixin(ABC):
 
         # pull out the commands used to run the script and resolve the abs file path
         command = sys.argv
-        full_path = path_lib(command[0])
+        try:
+            full_path = path_lib(command[0])
+        except Exception as e:
+            full_path = abspath(command[0])
+
         command[0] = full_path
         command = ['python'] + command
 
