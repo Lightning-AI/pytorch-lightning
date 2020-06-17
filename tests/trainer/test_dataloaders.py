@@ -49,7 +49,6 @@ def test_fit_val_loader_only(tmpdir):
 
 @pytest.mark.parametrize("dataloader_options", [
     dict(limit_train_batches=-0.1),
-    dict(limit_train_batches=1.1),
     dict(val_check_interval=1.1),
     dict(val_check_interval=10000),
 ])

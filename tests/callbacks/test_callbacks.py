@@ -152,7 +152,7 @@ def test_trainer_callback_system(tmpdir):
     trainer_options = dict(
         callbacks=[test_callback],
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
     )
