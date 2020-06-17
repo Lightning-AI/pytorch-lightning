@@ -73,9 +73,9 @@ class TrainerDataLoadingMixin(ABC):
     num_val_batches: List[Union[int, float]]
     test_dataloaders: List[DataLoader]
     num_test_batches: List[Union[int, float]]
-    train_percent_check: float
-    limit_val_batches: float
-    limit_test_batches: float
+    limit_train_batches: Union[int, float]
+    limit_val_batches: Union[int, float]
+    limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
     num_nodes: int
     num_processes: int
@@ -85,14 +85,15 @@ class TrainerDataLoadingMixin(ABC):
     def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _limit_eval_batches_check(self, name: str) -> None:
+    def _check_batch_limits(self, name: str) -> None:
+        # TODO: verify it is still needed and deprecate it..
         value = getattr(self, name)
 
         # ints are fine
         if isinstance(value, int):
             return
 
-        msg = f'`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}.'
+        msg = f'`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}. (or pass in an int)'
         if name == 'val_check_interval':
             msg += ' If you want to disable validation set `limit_val_batches` to 0.0 instead.'
 
@@ -193,17 +194,17 @@ class TrainerDataLoadingMixin(ABC):
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
         self._worker_check(self.train_dataloader, 'train dataloader')
-        self._limit_eval_batches_check('train_percent_check')
+        self._check_batch_limits('limit_train_batches')
 
         if not _has_len(self.train_dataloader):
             self.num_training_batches = float('inf')
         else:
             # try getting the length
-            if isinstance(self.train_percent_check, float):
+            if isinstance(self.limit_train_batches, float):
                 self.num_training_batches = len(self.train_dataloader)
-                self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
+                self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
             else:
-                self.num_training_batches = self.train_percent_check
+                self.num_training_batches = self.limit_train_batches
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -226,14 +227,16 @@ class TrainerDataLoadingMixin(ABC):
                         ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
                         ' checking validation every k training batches.')
             else:
-                self._limit_eval_batches_check('val_check_interval')
+                self._check_batch_limits('val_check_interval')
 
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-    def _reset_eval_dataloader(self,
-                               model: LightningModule,
-                               mode: str) -> Tuple[List[Union[int, float]], List[DataLoader]]:
+    def _reset_eval_dataloader(
+            self,
+            model: LightningModule,
+            mode: str
+    ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -260,15 +263,13 @@ class TrainerDataLoadingMixin(ABC):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
-                    m = 'You requested to overfit but enabled training Dataloader shuffling. ' \
-                        'we are turning it off for you'
-                    rank_zero_warn(m)
+                    rank_zero_warn('You requested to overfit but enabled training Dataloader shuffling.'
+                                   ' We are turning it off for you.')
                     dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
 
                 else:
-                    rank_zero_warn(
-                        f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
-                        ' this off for validation and test dataloaders.')
+                    rank_zero_warn(f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
+                                   ' this off for validation and test dataloaders.')
 
         if any([dl is None for dl in dataloaders]):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
@@ -291,7 +292,7 @@ class TrainerDataLoadingMixin(ABC):
                 limit_eval_batches = getattr(self, f'limit_{mode}_batches')
 
                 if num_batches != float('inf'):
-                    self._limit_eval_batches_check(f'limit_{mode}_batches')
+                    self._check_batch_limits(f'limit_{mode}_batches')
 
                     num_batches = len(dataloader)
 
@@ -309,10 +310,11 @@ class TrainerDataLoadingMixin(ABC):
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
-                    m = f'you requested to check {limit_eval_batches} of the {mode} dataloader but ' \
-                        f'{limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.' \
-                        f'Try at least limit_{mode}_batches={min_pct}'
-                    raise MisconfigurationException(m)
+                    raise MisconfigurationException(
+                        f'you requested to check {limit_eval_batches} of the {mode} dataloader but'
+                        f' {limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.'
+                        f' Try at least limit_{mode}_batches={min_pct}'
+                    )
 
                 loader_num_batches.append(num_batches)
 
@@ -365,19 +367,12 @@ class TrainerDataLoadingMixin(ABC):
 
         return dataloader
 
-    def determine_data_use_amount(self, train_percent_check: float, limit_val_batches: Union[int, float],
-                                  limit_test_batches: Union[int, float], overfit_batches: float) -> None:
-        """Use less data for debugging purposes
-        """
-        self.train_percent_check = train_percent_check
-        self.limit_val_batches = limit_val_batches
-        self.limit_test_batches = limit_test_batches
+    def determine_data_use_amount(self, overfit_batches: float) -> None:
+        """Use less data for debugging purposes"""
         if overfit_batches > 0:
             if isinstance(overfit_batches, float) and overfit_batches > 1:
-                raise ValueError(
-                    f'`overfit_batches` when used as a percentage must '
-                    f'be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
-
-            self.train_percent_check = overfit_batches
+                raise ValueError('`overfit_batches` when used as a percentage must'
+                                 f' be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
+            self.limit_train_batches = overfit_batches
             self.limit_val_batches = overfit_batches
             self.limit_test_batches = overfit_batches

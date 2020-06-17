@@ -21,10 +21,10 @@ PyTorch Lightning Documentation
    :caption: Python API
 
    callbacks
-   hooks
    lightning-module
    loggers
    metrics
+   hooks
    trainer
 
 .. toctree::

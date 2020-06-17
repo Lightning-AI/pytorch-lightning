@@ -68,15 +68,18 @@ Set how much of the training set to check
 
 If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag.
 
-train_percent_check will be overwritten by overfit_batches if `overfit_batches > 0`
+limit_train_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(train_percent_check=1.0)
+    trainer = Trainer(limit_train_batches=1.0)
 
     # check 10% only
-    trainer = Trainer(train_percent_check=0.1)
+    trainer = Trainer(limit_train_batches=0.1)
+
+    # check 10 batches only
+    trainer = Trainer(limit_train_batches=10)
 
 Packed sequences as inputs
 --------------------------
@@ -202,7 +205,7 @@ class TrainerTrainLoopMixin(ABC):
     check_val_every_n_epoch: ...
     num_training_batches: int
     val_check_batch: ...
-    num_val_batches: List[int]
+    num_val_batches: int
     disable_validation: bool
     fast_dev_run: ...
     accumulation_scheduler: ...
