@@ -931,7 +931,7 @@ def iou(pred: torch.Tensor, target: torch.Tensor,
         IoU score : Tensor containing single value if reduction is
         'elementwise_mean', or number of classes if reduction is 'none'
     """
-    tps, fps, tns, fns = stat_scores_multiple_classes(pred, target, num_classes)
+    tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
     if remove_bg:
         tps = tps[1:]
         fps = fps[1:]
