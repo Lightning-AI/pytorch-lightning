@@ -199,8 +199,11 @@ class TrainerDataLoadingMixin(ABC):
             self.num_training_batches = float('inf')
         else:
             # try getting the length
-            self.num_training_batches = len(self.train_dataloader)
-            self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
+            if isinstance(self.train_percent_check, float):
+                self.num_training_batches = len(self.train_dataloader)
+                self.num_training_batches = int(self.num_training_batches * self.train_percent_check)
+            else:
+                self.num_training_batches = self.train_percent_check
 
         # determine when to check validation
         # if int passed in, val checks that often

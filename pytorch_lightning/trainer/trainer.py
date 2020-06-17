@@ -504,6 +504,7 @@ class Trainer(
         limit_test_batches = int(limit_test_batches) if limit_test_batches > 1.0 else limit_test_batches
         limit_val_batches = int(limit_val_batches) if limit_val_batches > 1.0 else limit_val_batches
 
+        # TODO: convert train_percent_check to limit_train_batches
         self.determine_data_use_amount(train_percent_check, limit_val_batches,
                                        limit_test_batches, overfit_batches)
 
