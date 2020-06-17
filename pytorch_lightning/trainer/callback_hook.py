@@ -21,6 +21,16 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_init_end(self)
 
+    def on_fit_start(self):
+        """Called when the trainer initialization begins, model has not yet been set."""
+        for callback in self.callbacks:
+            callback.on_fit_start(self)
+
+    def on_fit_end(self):
+        """Called when the trainer initialization begins, model has not yet been set."""
+        for callback in self.callbacks:
+            callback.on_fit_end(self)
+
     def on_sanity_check_start(self):
         """Called when the validation sanity check starts."""
         for callback in self.callbacks:
