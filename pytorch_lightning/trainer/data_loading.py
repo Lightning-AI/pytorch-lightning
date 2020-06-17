@@ -365,10 +365,14 @@ class TrainerDataLoadingMixin(ABC):
 
         return dataloader
 
-    def determine_data_use_amount(self, limit_train_batches: float, limit_val_batches: Union[int, float],
-                                  limit_test_batches: Union[int, float], overfit_batches: float) -> None:
-        """Use less data for debugging purposes
-        """
+    def determine_data_use_amount(
+            self,
+            limit_train_batches: Union[int, float],
+            limit_val_batches: Union[int, float],
+            limit_test_batches: Union[int, float],
+            overfit_batches: float
+    ) -> None:
+        """Use less data for debugging purposes"""
         self.limit_train_batches = limit_train_batches
         self.limit_val_batches = limit_val_batches
         self.limit_test_batches = limit_test_batches
@@ -376,7 +380,6 @@ class TrainerDataLoadingMixin(ABC):
             if isinstance(overfit_batches, float) and overfit_batches > 1:
                 raise ValueError('`overfit_batches` when used as a percentage must'
                                  f' be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
-
             self.limit_train_batches = overfit_batches
             self.limit_val_batches = overfit_batches
             self.limit_test_batches = overfit_batches

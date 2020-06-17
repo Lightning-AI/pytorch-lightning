@@ -469,7 +469,7 @@ class Trainer(
         if self.on_tpu:
             self.init_tpu()
 
-        # init flags for SLURM+ddp to work
+        # init flags for SLURM+DDP to work
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
@@ -477,7 +477,7 @@ class Trainer(
         self.local_rank = self.determine_local_rank()
         self.global_rank = 0
 
-        # nvidia setup
+        # NVIDIA setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # backward compatibility
@@ -500,8 +500,7 @@ class Trainer(
             overfit_batches = overfit_pct
 
         # convert floats to ints
-        overfit_batches = int(overfit_batches) if overfit_batches > 1.0 else overfit_batches
-        self.overfit_batches = overfit_batches
+        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -521,11 +520,14 @@ class Trainer(
                            " and this argument will be removed in v0.10.0", DeprecationWarning)
             limit_train_batches = train_percent_check
 
-        limit_test_batches = int(limit_test_batches) if limit_test_batches > 1.0 else limit_test_batches
-        limit_val_batches = int(limit_val_batches) if limit_val_batches > 1.0 else limit_val_batches
+        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
+        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
+        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
 
-        self.determine_data_use_amount(limit_train_batches, limit_val_batches,
-                                       limit_test_batches, overfit_batches)
+        self.determine_data_use_amount(self.limit_train_batches,
+                                       self.limit_val_batches,
+                                       self.limit_test_batches,
+                                       self.overfit_batches)
 
         # AMP init
         # These are the only lines needed after v0.8.0
@@ -1248,3 +1250,7 @@ class _PatchDataLoader(object):
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
+
+
+def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+    return int(batches) if batches > 1.0 else batches
