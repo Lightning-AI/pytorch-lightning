@@ -1249,9 +1249,9 @@ class _PatchDataLoader(object):
 
 
 def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
-    if 0 < batches <= 1:
+    if 0 <= batches <= 1:
         return batches
-    elif batches % 1.0 == 0:
+    elif batches > 1 and batches % 1.0 == 0:
         return int(batches)
     else:
         raise MisconfigurationException(
