@@ -243,7 +243,7 @@ class TrainerDataLoadingMixin(ABC):
             if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
 
                 # when overfitting, remove the randomsampler for the train loaders
-                if self.overfit_pct > 0:
+                if self.overfit_batches > 0:
                     rank_zero_warn(
                         f'You requested to overfit but enabled training Dataloader shuffling. Disabling it for you'
                     )
