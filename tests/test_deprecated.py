@@ -18,18 +18,22 @@ def test_tbd_remove_in_v1_0_0_trainer():
     with pytest.deprecated_call(match='v1.0.0'):
         trainer = Trainer(overfit_pct=0.1)
     assert not getattr(trainer, 'overfit_pct')
+    assert trainer.overfit_batches == 0.1
 
     with pytest.deprecated_call(match='v1.0.0'):
         trainer = Trainer(train_percent_check=0.1)
     assert not getattr(trainer, 'train_percent_check')
+    assert trainer.limit_train_batches == 0.1
 
     with pytest.deprecated_call(match='v1.0.0'):
         trainer = Trainer(val_percent_check=0.1)
     assert not getattr(trainer, 'val_percent_check')
+    assert trainer.limit_val_batches == 0.1
 
     with pytest.deprecated_call(match='v1.0.0'):
         trainer = Trainer(test_percent_check=0.1)
     assert not getattr(trainer, 'test_percent_check')
+    assert trainer.limit_test_batches == 0.1
 
 
 def test_tbd_remove_in_v0_9_0_trainer():
