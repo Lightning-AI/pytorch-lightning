@@ -30,12 +30,10 @@ def random():
 @pytest.mark.parametrize('num_classes', [1, None])
 def test_accuracy(num_classes):
     acc = Accuracy(num_classes=num_classes)
-
     assert acc.name == 'accuracy'
 
     result = acc(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]),
                  target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
-
     assert isinstance(result, torch.Tensor)
 
 
@@ -48,7 +46,6 @@ def test_confusion_matrix(normalize):
     pred = target.clone()
 
     cm = conf_matrix(pred, target)
-
     assert isinstance(cm, torch.Tensor)
 
 
@@ -70,48 +67,40 @@ def test_precision_recall(pos_label):
 @pytest.mark.parametrize('num_classes', [1, None])
 def test_precision(num_classes):
     precision = Precision(num_classes=num_classes)
-
     assert precision.name == 'precision'
+
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
-
     prec = precision(pred=pred, target=target)
-
     assert isinstance(prec, torch.Tensor)
 
 
 @pytest.mark.parametrize('num_classes', [1, None])
 def test_recall(num_classes):
     recall = Recall(num_classes=num_classes)
-
     assert recall.name == 'recall'
+
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
-
     rec = recall(pred=pred, target=target)
-
     assert isinstance(rec, torch.Tensor)
 
 
 @pytest.mark.parametrize('pos_label', [1, 2])
 def test_average_precision(pos_label):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
-
     avg_prec = AveragePrecision(pos_label=pos_label)
     assert avg_prec.name == 'AP'
 
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
     ap = avg_prec(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
-
     assert isinstance(ap, torch.Tensor)
 
 
 @pytest.mark.parametrize('pos_label', [1, 2])
 def test_auroc(pos_label):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
-
     auroc = AUROC(pos_label=pos_label)
     assert auroc.name == 'auroc'
 
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 0, 1])
     area = auroc(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
-
     assert isinstance(area, torch.Tensor)
 
 
@@ -131,7 +120,6 @@ def test_fbeta(beta, num_classes):
 
     score = fbeta(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]),
                   target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
-
     assert isinstance(score, torch.Tensor)
 
 
@@ -142,17 +130,15 @@ def test_f1(num_classes):
 
     score = f1(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]),
                target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
-
     assert isinstance(score, torch.Tensor)
 
 
 @pytest.mark.parametrize('pos_label', [1, 2])
 def test_roc(pos_label):
-    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
-
     roc = ROC(pos_label=pos_label)
     assert roc.name == 'roc'
 
+    pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 2, 4, 3])
     res = roc(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
 
     assert isinstance(res, tuple)
@@ -170,11 +156,9 @@ def test_multiclass_roc(num_classes):
     target = torch.tensor([0, 1, 3, 2])
 
     multi_roc = MulticlassROC(num_classes=num_classes)
-
     assert multi_roc.name == 'multiclass_roc'
 
     res = multi_roc(pred, target)
-
     assert isinstance(res, tuple)
 
     if num_classes is not None:
@@ -197,11 +181,9 @@ def test_multiclass_pr(num_classes):
     target = torch.tensor([0, 1, 3, 2])
 
     multi_pr = MulticlassPrecisionRecall(num_classes=num_classes)
-
     assert multi_pr.name == 'multiclass_precision_recall_curve'
 
     pr = multi_pr(pred, target)
-
     assert isinstance(pr, tuple)
 
     if num_classes is not None:
@@ -218,10 +200,8 @@ def test_multiclass_pr(num_classes):
 @pytest.mark.parametrize('include_background', [True, False])
 def test_dice_coefficient(include_background):
     dice_coeff = DiceCoefficient(include_background=include_background)
-
     assert dice_coeff.name == 'dice'
 
     dice = dice_coeff(torch.randint(0, 1, (10, 25, 25)),
                       torch.randint(0, 1, (10, 25, 25)))
-
     assert isinstance(dice, torch.Tensor)
