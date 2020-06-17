@@ -48,12 +48,17 @@ Make model overfit on subset of data
 A good debugging technique is to take a tiny portion of your data (say 2 samples per class),
 and try to get your model to overfit. If it can't, it's a sign it won't work with large datasets.
 
-(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.overfit_pct`
+(See: :paramref:`~pytorch_lightning.trainer.trainer.Trainer.overfit`
 argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
 
-    trainer = Trainer(overfit_pct=0.01)
+    # use only 1% of training data (and use the same training Dataloader (with shuffle off) in val and test)
+    trainer = Trainer(overfit_batches=0.01)
+
+    # or overfit a number of batches
+    trainer = Trainer(overfit_batches=0.01)
+
 
 Print a summary of your LightningModule
 ---------------------------------------

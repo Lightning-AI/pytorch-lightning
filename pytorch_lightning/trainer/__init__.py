@@ -433,6 +433,40 @@ Example::
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
 
+
+limit_test_batches
+^^^^^^^^^^^^^^^^^^
+
+How much of test dataset to check.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(limit_test_batches=1.0)
+
+    # run through only 25% of the test set each epoch
+    trainer = Trainer(limit_test_batches=0.25)
+
+    # run for only 10 batches
+    trainer = Trainer(limit_test_batches=10)
+
+limit_val_batches
+^^^^^^^^^^^^^^^^^
+
+How much of validation dataset to check.
+Useful when debugging or testing something that happens at the end of an epoch.
+
+Example::
+
+    # default used by the Trainer
+    trainer = Trainer(limit_val_batches=1.0)
+
+    # run through only 25% of the validation set each epoch
+    trainer = Trainer(limit_val_batches=0.25)
+
+        # run for only 10 batches
+    trainer = Trainer(limit_val_batches=10)
+
 log_gpu_memory
 ^^^^^^^^^^^^^^
 Options:
@@ -652,29 +686,28 @@ Example::
 
 overfit_pct
 ^^^^^^^^^^^
-Uses this much data of all datasets (training, validation, test).
+
+.. warning:: .. deprecated:: 0.8.0.
+
+    Use `overfit_batches`. Will remove 0.9.0.
+
+overfit_batches
+^^^^^^^^^^^^^^^
+Uses this much data of the training set. If will use the same training set for validation and testing.
+If the training Dataloaders(shuffle=True), Lightning will automatically disable it.
+
 Useful for quickly debugging or trying to overfit on purpose.
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(overfit_pct=0.0)
+    trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train, test, val datasets
-    trainer = Trainer(overfit_pct=0.01)
+    # use only 1% of the train set (and use the train set for val and test)
+    trainer = Trainer(overfit_batches=0.01)
 
-    # equivalent:
-    trainer = Trainer(
-        train_percent_check=0.01,
-        val_percent_check=0.01,
-        test_percent_check=0.01
-    )
-
-See Also:
-    - `train_percent_check`_
-    - `val_percent_check`_
-    - `test_percent_check`_
-
+    # overfit on 10 of the same batches
+    trainer = Trainer(overfit_batches=10)
 
 precision
 ^^^^^^^^^
@@ -827,41 +860,9 @@ show_progress_bar
     Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 test_percent_check
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
-How much of test dataset to check.
-
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(test_percent_check=1.0)
-
-    # run through only 25% of the test set each epoch
-    trainer = Trainer(test_percent_check=0.25)
-
-val_check_interval
-^^^^^^^^^^^^^^^^^^
-
-How often within one training epoch to check the validation set.
-Can specify as float or int.
-
-- use (float) to check within a training epoch
-- use (int) to check every n steps (batches)
-
-.. code-block:: python
-
-    # default used by the Trainer
-    trainer = Trainer(val_check_interval=1.0)
-
-Example::
-
-    # check validation set 4 times during a training epoch
-    trainer = Trainer(val_check_interval=0.25)
-
-    # check validation set every 1000 training batches
-    # use this when using iterableDataset and your dataset has no length
-    # (ie: production cases with streaming data)
-    trainer = Trainer(val_check_interval=1000)
+.. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 1.0.0
 
 track_grad_norm
 ^^^^^^^^^^^^^^^
@@ -955,20 +956,36 @@ override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
                 # do your own splitting on the batch
                 return splits
 
+val_check_interval
+^^^^^^^^^^^^^^^^^^
+
+How often within one training epoch to check the validation set.
+Can specify as float or int.
+
+- use (float) to check within a training epoch
+- use (int) to check every n steps (batches)
+
+.. code-block:: python
+
+    # default used by the Trainer
+    trainer = Trainer(val_check_interval=1.0)
+
+Example::
+
+    # check validation set 4 times during a training epoch
+    trainer = Trainer(val_check_interval=0.25)
+
+    # check validation set every 1000 training batches
+    # use this when using iterableDataset and your dataset has no length
+    # (ie: production cases with streaming data)
+    trainer = Trainer(val_check_interval=1000)
+
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^
 
-How much of validation dataset to check.
-Useful when debugging or testing something that happens at the end of an epoch.
+.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 1.0.0
 
-Example::
-
-    # default used by the Trainer
-    trainer = Trainer(val_percent_check=1.0)
-
-    # run through only 25% of the validation set each epoch
-    trainer = Trainer(val_percent_check=0.25)
 
 weights_save_path
 ^^^^^^^^^^^^^^^^^

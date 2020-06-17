@@ -24,30 +24,30 @@ Set how much of the validation set to check
 
 If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
 
-val_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+limit_val_batches will be overwritten by overfit if `overfit > 0`
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(val_percent_check=1.0)
+    trainer = Trainer(limit_val_batches=1.0)
 
     # check 10% only
-    trainer = Trainer(val_percent_check=0.1)
+    trainer = Trainer(limit_val_batches=0.1)
 
 Set how much of the test set to check
 -------------------------------------
 
 If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag
 
-test_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+limit_test_batches will be overwritten by overfit if `overfit > 0`
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(test_percent_check=1.0)
+    trainer = Trainer(limit_test_batches=1.0)
 
     # check 10% only
-    trainer = Trainer(test_percent_check=0.1)
+    trainer = Trainer(limit_test_batches=0.1)
 
 Set validation check frequency within 1 training epoch
 ------------------------------------------------------
@@ -370,7 +370,7 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             self.on_validation_start()
 
-        # enable disabling validation step with val_percent_check = 0
+        # enable disabling validation step with limit_val_batches = 0
         should_skip = sum(max_batches) == 0
         if should_skip:
             return

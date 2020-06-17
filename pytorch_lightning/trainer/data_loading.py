@@ -74,8 +74,8 @@ class TrainerDataLoadingMixin(ABC):
     test_dataloaders: List[DataLoader]
     num_test_batches: List[Union[int, float]]
     train_percent_check: float
-    val_percent_check: float
-    test_percent_check: float
+    limit_val_batches: float
+    limit_test_batches: float
     replace_sampler_ddp: bool
     num_nodes: int
     num_processes: int
@@ -85,11 +85,11 @@ class TrainerDataLoadingMixin(ABC):
     def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _percent_range_check(self, name: str) -> None:
+    def _limit_eval_batches_check(self, name: str) -> None:
         value = getattr(self, name)
         msg = f'`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}.'
         if name == 'val_check_interval':
-            msg += ' If you want to disable validation set `val_percent_check` to 0.0 instead.'
+            msg += ' If you want to disable validation set `limit_val_batches` to 0.0 instead.'
 
         if not 0. <= value <= 1.:
             raise ValueError(msg)
@@ -182,7 +182,7 @@ class TrainerDataLoadingMixin(ABC):
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
         self._worker_check(self.train_dataloader, 'train dataloader')
-        self._percent_range_check('train_percent_check')
+        self._limit_eval_batches_check('train_percent_check')
 
         if not _has_len(self.train_dataloader):
             self.num_training_batches = float('inf')
@@ -200,7 +200,7 @@ class TrainerDataLoadingMixin(ABC):
                 raise ValueError(
                     f'`val_check_interval` ({self.val_check_interval}) must be less than or equal '
                     f'to the number of the training batches ({self.num_training_batches}). '
-                    'If you want to disable validation set `val_percent_check` to 0.0 instead.')
+                    'If you want to disable validation set `limit_val_batches` to 0.0 instead.')
         else:
             if not _has_len(self.train_dataloader):
                 if self.val_check_interval == 1.0:
@@ -212,7 +212,7 @@ class TrainerDataLoadingMixin(ABC):
                         ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
                         ' checking validation every k training batches.')
             else:
-                self._percent_range_check('val_check_interval')
+                self._limit_eval_batches_check('limit_val_batches')
 
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
@@ -258,24 +258,31 @@ class TrainerDataLoadingMixin(ABC):
                 if not _has_len(dataloader):
                     num_batches = float('inf')
 
-                percent_check = getattr(self, f'{mode}_percent_check')
+                # percent or num_steps
+                limit_eval_batches = getattr(self, f'limit_{mode}_batches')
 
                 if num_batches != float('inf'):
-                    self._percent_range_check(f'{mode}_percent_check')
+                    self._limit_eval_batches_check(f'limit_{mode}_batches')
 
                     num_batches = len(dataloader)
-                    num_batches = int(num_batches * percent_check)
-                elif percent_check not in (0.0, 1.0):
+
+                    # limit num batches either as a percent or num steps
+                    if isinstance(limit_eval_batches, float):
+                        num_batches = int(num_batches * limit_eval_batches)
+                    else:
+                        num_batches = limit_eval_batches
+
+                elif limit_eval_batches not in (0.0, 1.0):
                     raise MisconfigurationException(
                         'When using an infinite DataLoader (e.g. with an IterableDataset'
-                        f' or when DataLoader does not implement `__len__`) for `{mode}_dataloader`,'
-                        f' `Trainer({mode}_percent_check)` must be `0.0` or `1.0`.')
+                        f' or when DataLoader does not implement `__len__`) for `limit_{mode}_batches`,'
+                        f' `Trainer(limit_{mode}_batches)` must be `0.0` or `1.0`.')
 
-                if num_batches == 0 and percent_check > 0.0:
+                if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
-                    m = f'you requested to check {percent_check} of the {mode} dataloader but ' \
-                        f'{percent_check}*{num_batches} = 0. Please increase the {mode}_percent_check.' \
-                        f'Try at least {mode}_percent_check={min_pct}'
+                    m = f'you requested to check {limit_eval_batches} of the {mode} dataloader but ' \
+                        f'{limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.' \
+                        f'Try at least limit_{mode}_batches={min_pct}'
                     raise MisconfigurationException(m)
 
                 loader_num_batches.append(num_batches)
@@ -329,18 +336,19 @@ class TrainerDataLoadingMixin(ABC):
 
         return dataloader
 
-    def determine_data_use_amount(self, train_percent_check: float, val_percent_check: float,
-                                  test_percent_check: float, overfit_pct: float) -> None:
+    def determine_data_use_amount(self, train_percent_check: float, limit_val_batches: Union[int, float],
+                                  limit_test_batches: Union[int, float], overfit_batches: float) -> None:
         """Use less data for debugging purposes
         """
         self.train_percent_check = train_percent_check
-        self.val_percent_check = val_percent_check
-        self.test_percent_check = test_percent_check
-        if overfit_pct > 0:
-            if overfit_pct > 1:
+        self.limit_val_batches = limit_val_batches
+        self.limit_test_batches = limit_test_batches
+        if overfit_batches > 0:
+            if isinstance(overfit_batches, float) and overfit_batches > 1:
                 raise ValueError(
-                    f'`overfit_pct` must be not greater than 1.0, but got {overfit_pct:.3f}.')
+                    f'`overfit_batches` when used as a percentage must '
+                    f'be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
 
-            self.train_percent_check = overfit_pct
-            self.val_percent_check = overfit_pct
-            self.test_percent_check = overfit_pct
+            self.train_percent_check = overfit_batches
+            self.limit_val_batches = overfit_batches
+            self.limit_test_batches = overfit_batches

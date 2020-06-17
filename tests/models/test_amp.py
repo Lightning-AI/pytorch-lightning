@@ -99,7 +99,7 @@ def test_cpu_model_with_amp(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.4,
+        limit_val_batches=0.4,
         precision=16
     )
 

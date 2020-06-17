@@ -120,7 +120,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2,
         auto_scale_batch_size='power'
     )
