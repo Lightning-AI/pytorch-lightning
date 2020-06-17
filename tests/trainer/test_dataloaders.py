@@ -252,15 +252,16 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
 
 
 @pytest.mark.parametrize(
-    ['train_percent_check', 'val_percent_check', 'test_percent_check'],
+    ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
     [
-        pytest.param(0.0, 0.0, 0.3),  # test percent check can never be 0
+        pytest.param(0.0, 0.0, 0.0),
+        pytest.param(0, 0, 0.5),
         pytest.param(1.0, 1.0, 1.0),
         pytest.param(0.2, 0.4, 0.4),
     ]
 )
-def test_dataloaders_with_percent_check(tmpdir, train_percent_check, val_percent_check, test_percent_check):
-    """Verify num_batches for val & test dataloaders passed with percent_check"""
+def test_dataloaders_with_limit_batches_percent(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
+    """Verify num_batches for val & test dataloaders passed with batch limit in percent"""
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
     model.test_dataloader = model.test_dataloader__multiple_mixed_length
@@ -273,14 +274,14 @@ def test_dataloaders_with_percent_check(tmpdir, train_percent_check, val_percent
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=train_percent_check,
-        val_percent_check=val_percent_check,
-        test_percent_check=test_percent_check,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        limit_test_batches=limit_test_batches,
     )
     trainer.fit(model)
-    expected_train_batches = int(len(trainer.train_dataloader) * train_percent_check)
+    expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
     expected_val_batches = [
-        int(len(dataloader) * val_percent_check) for dataloader in trainer.val_dataloaders
+        int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders
     ]
     assert trainer.num_training_batches == expected_train_batches, \
         f'train_percent_check not working with train_dataloaders, got {trainer.num_training_batches}'
@@ -290,7 +291,7 @@ def test_dataloaders_with_percent_check(tmpdir, train_percent_check, val_percent
 
     trainer.test(ckpt_path=None)
     expected_test_batches = [
-        int(len(dataloader) * test_percent_check) for dataloader in trainer.test_dataloaders
+        int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders
     ]
     assert trainer.num_test_batches == expected_test_batches, \
         f'test_percent_check not working with test_dataloaders, got {trainer.num_test_batches}'

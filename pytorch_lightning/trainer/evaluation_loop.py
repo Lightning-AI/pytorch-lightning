@@ -244,10 +244,6 @@ class TrainerEvaluationLoopMixin(ABC):
         # bookkeeping
         outputs = []
 
-        # convert max_batches to list
-        if isinstance(max_batches, int):
-            max_batches = [max_batches] * len(dataloaders)
-
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
