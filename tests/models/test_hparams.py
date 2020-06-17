@@ -1,16 +1,16 @@
 import os
-import sys
+import pickle
 from argparse import Namespace
 
+import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf, Container
 
 from pytorch_lightning import Trainer, LightningModule
+from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
 from pytorch_lightning.utilities import AttributeDict
 from tests.base import EvalModelTemplate
-import pickle
-import cloudpickle
 
 
 class SaveHparamsModel(EvalModelTemplate):
@@ -408,3 +408,21 @@ def test_hparams_pickle(tmpdir):
     assert ad == pickle.loads(pkl)
     pkl = cloudpickle.dumps(ad)
     assert ad == pickle.loads(pkl)
+
+
+def test_hparams_save_yaml(tmpdir):
+    hparams = dict(batch_size=32, learning_rate=0.001, data_root='./any/path/here',
+                   nasted=dict(any_num=123, anystr='abcd'))
+    path_yaml = os.path.join(tmpdir, 'testing-hparams.yaml')
+
+    save_hparams_to_yaml(path_yaml, hparams)
+    assert load_hparams_from_yaml(path_yaml) == hparams
+
+    save_hparams_to_yaml(path_yaml, Namespace(**hparams))
+    assert load_hparams_from_yaml(path_yaml) == hparams
+
+    save_hparams_to_yaml(path_yaml, AttributeDict(hparams))
+    assert load_hparams_from_yaml(path_yaml) == hparams
+
+    save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
+    assert load_hparams_from_yaml(path_yaml) == hparams

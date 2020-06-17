@@ -60,6 +60,14 @@ class Accuracy(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = Accuracy()
+            >>> metric(pred, target)
+            tensor(0.7500)
+
         """
         super().__init__(name='accuracy',
                          reduce_group=reduce_group,
@@ -100,6 +108,17 @@ class ConfusionMatrix(TensorMetric):
             normalize: whether to compute a normalized confusion matrix
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 2])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = ConfusionMatrix()
+            >>> metric(pred, target)
+            tensor([[1., 0., 0.],
+                    [0., 1., 0.],
+                    [0., 0., 2.]])
+
         """
         super().__init__(name='confusion_matrix',
                          reduce_group=reduce_group,
@@ -137,6 +156,19 @@ class PrecisionRecall(TensorCollectionMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = PrecisionRecall()
+            >>> prec, recall, thr = metric(pred, target)
+            >>> prec
+            tensor([0.3333, 0.0000, 0.0000, 1.0000])
+            >>> recall
+            tensor([1., 0., 0., 0.])
+            >>> thr
+            tensor([1., 2., 3.])
 
         """
         super().__init__(name='precision_recall_curve',
@@ -192,11 +224,18 @@ class Precision(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = Precision()
+            >>> metric(pred, target)
+            tensor(1.)
+
         """
         super().__init__(name='precision',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
-
         self.num_classes = num_classes
         self.reduction = reduction
 
@@ -239,6 +278,14 @@ class Recall(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = Recall()
+            >>> metric(pred, target)
+            tensor(0.8333)
+
         """
         super().__init__(name='recall',
                          reduce_group=reduce_group,
@@ -280,6 +327,14 @@ class AveragePrecision(TensorMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = AveragePrecision()
+            >>> metric(pred, target)
+            tensor(0.3333)
 
         """
         super().__init__(name='AP',
@@ -326,6 +381,14 @@ class AUROC(TensorMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = AUROC()
+            >>> metric(pred, target)
+            tensor(0.3333)
 
         """
         super().__init__(name='auroc',
@@ -379,6 +442,14 @@ class FBeta(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = FBeta(0.25)
+            >>> metric(pred, target)
+            tensor(0.9815)
+
         """
         super().__init__(name='fbeta',
                          reduce_group=reduce_group,
@@ -425,6 +496,14 @@ class F1(TensorMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = F1()
+            >>> metric(pred, target)
+            tensor(0.8889)
+
         """
         super().__init__(name='f1',
                          reduce_group=reduce_group,
@@ -465,6 +544,19 @@ class ROC(TensorCollectionMetric):
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example:
+
+            >>> pred = torch.tensor([0, 1, 2, 3])
+            >>> target = torch.tensor([0, 1, 2, 2])
+            >>> metric = ROC()
+            >>> fp, tp, thresholds = metric(pred, target)
+            >>> fp
+            tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
+            >>> tp
+            tensor([0., 0., 0., 1., 1.])
+            >>> thresholds
+            tensor([4., 3., 2., 1., 0.])
 
         """
         super().__init__(name='roc',
@@ -519,6 +611,20 @@ class MulticlassROC(TensorCollectionMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example:
+
+            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+            ...                     [0.05, 0.85, 0.05, 0.05],
+            ...                     [0.05, 0.05, 0.85, 0.05],
+            ...                     [0.05, 0.05, 0.05, 0.85]])
+            >>> target = torch.tensor([0, 1, 3, 2])
+            >>> metric = MulticlassROC()
+            >>> classes_roc = metric(pred, target)
+            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+            ((tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+             (tensor([0., 0., 1.]), tensor([0., 1., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+             (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])),
+             (tensor([0.0000, 0.3333, 1.0000]), tensor([0., 0., 1.]), tensor([1.8500, 0.8500, 0.0500])))
         """
         super().__init__(name='multiclass_roc',
                          reduce_group=reduce_group,
@@ -535,7 +641,7 @@ class MulticlassROC(TensorCollectionMetric):
         Actual metric computation
 
         Args:
-            pred: predicted labels
+            pred: predicted probability for each label
             target: groundtruth labels
             sample_weight: Weights for each sample defining the sample's impact on the score
 
@@ -569,6 +675,21 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
+        Example:
+
+            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+            ...                     [0.05, 0.85, 0.05, 0.05],
+            ...                     [0.05, 0.05, 0.85, 0.05],
+            ...                     [0.05, 0.05, 0.05, 0.85]])
+            >>> target = torch.tensor([0, 1, 3, 2])
+            >>> metric = MulticlassPrecisionRecall()
+            >>> classes_pr = metric(pred, target)
+            >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+            ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
+             (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
+             (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])),
+             (tensor([0.2500, 0.0000, 1.0000]), tensor([1., 0., 0.]), tensor([0.0500, 0.8500])))
+
         """
         super().__init__(name='multiclass_precision_recall_curve',
                          reduce_group=reduce_group,
@@ -586,7 +707,7 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
         Actual metric computation
 
         Args:
-            pred: predicted labels
+            pred: predicted probability for each label
             target: groundtruth labels
             sample_weight: Weights for each sample defining the sample's impact on the score
 
@@ -623,6 +744,20 @@ class DiceCoefficient(TensorMetric):
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
+
+        Example:
+
+        .. testcode:
+
+            >>> pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
+            ...                      [0.05, 0.85, 0.05, 0.05],
+            ...                      [0.05, 0.05, 0.85, 0.05],
+            ...                      [0.05, 0.05, 0.05, 0.85]])
+            >>> target = torch.tensor([0, 1, 3, 2])
+            >>> metric = DiceCoefficient()
+            >>> classes_pr = metric(pred, target)
+            >>> metric(pred, target)
+            tensor(0.3333)
         """
         super().__init__(name='dice',
                          reduce_group=reduce_group,
@@ -638,7 +773,7 @@ class DiceCoefficient(TensorMetric):
         Actual metric computation
 
         Args:
-            pred: predicted labels
+            pred: predicted probability for each label
             target: groundtruth labels
 
         Return:

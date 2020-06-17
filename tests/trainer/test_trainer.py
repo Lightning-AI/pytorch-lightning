@@ -2,8 +2,8 @@ import glob
 import math
 import os
 import pickle
-import types
 import sys
+import types
 from argparse import Namespace
 from pathlib import Path
 
@@ -18,8 +18,8 @@ from pytorch_lightning.core.saving import (
     load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.utilities.io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from tests.base import EvalModelTemplate
 
 
@@ -27,7 +27,7 @@ from tests.base import EvalModelTemplate
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
-    monkeypatch.setenv('TORCH_HOME', tmpdir)
+    monkeypatch.setenv('TORCH_HOME', str(tmpdir))
 
     model = EvalModelTemplate()
 
@@ -272,7 +272,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
-        trainer.callback_metrics = {'val_loss': loss}
+        trainer.callback_metrics = {'val_loss': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(tmpdir))
@@ -451,7 +451,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # check training stopped at max_epochs
     assert trainer.global_step == num_train_samples * trainer.max_epochs
-    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.current_epoch == trainer.max_epochs, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -619,7 +619,7 @@ def test_disabled_validation():
 
     # check that val_percent_check=0 turns off validation
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 1
+    assert trainer.current_epoch == 2
     assert not model.validation_step_invoked, \
         '`validation_step` should not run when `val_percent_check=0`'
     assert not model.validation_epoch_end_invoked, \
@@ -632,7 +632,7 @@ def test_disabled_validation():
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.validation_step_invoked, \
         'did not run `validation_step` with `fast_dev_run=True`'
     assert model.validation_epoch_end_invoked, \

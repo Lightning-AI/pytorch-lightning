@@ -1,12 +1,9 @@
-import torch
-import pytest
 import numpy as np
+import pytest
 
-from pytorch_lightning import Trainer, seed_everything
-
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
-
 from tests.base import EvalModelTemplate
 from tests.base.utils import reset_seed
 

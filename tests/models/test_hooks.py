@@ -68,7 +68,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     # a metric shared in both methods gets overwritten by epoch_end
     assert metrics['shared_metric'] == 111
     # metrics are kept after each epoch
-    for i in range(num_epochs):
+    for i in range(1, num_epochs + 1):
         assert metrics[f'epoch_metric_{i}'] == i
 
 

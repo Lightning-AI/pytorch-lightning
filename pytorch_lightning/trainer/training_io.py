@@ -102,7 +102,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.io import load as pl_load
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 try:
     import torch_xla
@@ -324,7 +324,7 @@ class TrainerIOMixin(ABC):
              structured dictionary
         """
         checkpoint = {
-            'epoch': self.current_epoch + 1,
+            'epoch': self.current_epoch,
             'global_step': self.global_step + 1,
             'pytorch-ligthning_version': pytorch_lightning.__version__,
         }
