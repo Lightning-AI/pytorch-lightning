@@ -232,7 +232,7 @@ class ModelCheckpoint(Callback):
         Trainer's logger to determine where to save checkpoints.
         """
         if self.dirpath is not None:
-            return # short circuit
+            return  # short circuit
 
         self.filename = '{epoch}'
 
