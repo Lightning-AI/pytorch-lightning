@@ -217,7 +217,9 @@ class TrainerDataLoadingMixin(ABC):
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-    def _reset_eval_dataloader(self, model: LightningModule, mode: str) -> Tuple[List[Union[int, float]], List[DataLoader]]:
+    def _reset_eval_dataloader(self,
+                               model: LightningModule,
+                               mode: str) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
