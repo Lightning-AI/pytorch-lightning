@@ -18,7 +18,7 @@ Native torch
 ^^^^^^^^^^^^
 When using PyTorch 1.6+ Lightning uses the native amp implementation to support 16-bit.
 
-Example::
+.. testcode::
 
     # turn on 16-bit
     trainer = Trainer(precision=16)

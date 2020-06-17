@@ -204,7 +204,7 @@ Functional Metrics
 ------------------
 Functional metrics can be called anywhere (even used with just plain PyTorch).
 
-Example::
+.. testcode::
 
     from pytorch_lightning.metrics.functional import accuracy
 
@@ -214,7 +214,7 @@ Example::
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
 
-Out::
+.. testoutput::
 
     tensor(0.7500)
 
