@@ -843,6 +843,10 @@ class Trainer(
         if self.is_function_implemented('on_fit_start'):
             model.on_fit_start()
 
+        self.setup('fit')
+        if self.is_function_implemented('setup'):
+            model.setup('fit')
+
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
@@ -944,6 +948,10 @@ class Trainer(
         # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
+
+        self.teardown('fit')
+        if self.is_function_implemented('teardown'):
+            model.teardown('fit')
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -1128,6 +1136,11 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        self.setup('test')
+        if self.is_function_implemented('setup'):
+            model_ref = self.model if model is None else model
+            model_ref.setup('test')
+
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
@@ -1166,6 +1179,10 @@ class Trainer(
             self.run_evaluation(test_mode=True)
 
         self.testing = False
+
+        self.teardown('test')
+        if self.is_function_implemented('teardown'):
+            self.model.teardown('test')
 
     def check_model_configuration(self, model: LightningModule):
         r"""
