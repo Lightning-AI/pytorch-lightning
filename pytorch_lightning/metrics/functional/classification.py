@@ -901,3 +901,40 @@ def dice_score(
 
         scores[i - bg] += score_cls
     return reduce(scores, reduction=reduction)
+
+
+def iou(pred: torch.Tensor, target: torch.Tensor,
+        num_classes: Optional[int] = None, remove_bg: bool = False,
+        reduction: str = 'elementwise_mean'):
+    """
+    Intersection over union, or Jaccard index calculation.
+
+    Args:
+        pred: Tensor containing predictions
+
+        target: Tensor containing targets
+
+        num_classes: Optionally specify the number of classes
+
+        remove_bg: Flag to state whether a background class has been included
+            within input parameters. If true, will remove background class. If
+            false, return IoU over all classes.
+            Assumes that background is '0' class in input tensor
+
+        reduction: a method for reducing IoU over labels (default: takes the mean)
+            Available reduction methods:
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
+
+    Returns:
+        IoU score : Tensor containing single value if reduction is
+        'elementwise_mean', or number of classes if reduction is 'none'
+    """
+    tps, fps, tns, fns = stat_scores_multiple_classes(pred, target, num_classes)
+    if remove_bg:
+        tps = tps[1:]
+        fps = fps[1:]
+        fns = fns[1:]
+    iou = tps / (fps + fns + tps)
+    return reduce(iou, reduction=reduction)
