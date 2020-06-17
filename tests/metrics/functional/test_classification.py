@@ -31,6 +31,7 @@ from pytorch_lightning.metrics.functional.classification import (
     precision_recall_curve,
     roc,
     auc,
+    iou
 )
 
 
@@ -364,6 +365,26 @@ def test_average_precision_constant_values():
 def test_dice_score(pred, target, expected):
     score = dice_score(torch.tensor(pred), torch.tensor(target))
     assert score == expected
+
+
+@pytest.mark.parametrize(['target', 'pred', 'half_ones', 'reduction', 'remove_bg', 'expected'], [
+    pytest.param((torch.arange(120) % 3).view(-1, 1), (torch.arange(120) % 3).view(-1, 1),
+                 False, 'none', False, torch.Tensor([1, 1, 1])),
+    pytest.param((torch.arange(120) % 3).view(-1, 1), (torch.arange(120) % 3).view(-1, 1),
+                 False, 'elementwise_mean', False, torch.Tensor([1])),
+    pytest.param((torch.arange(120) % 3).view(-1, 1), (torch.arange(120) % 3).view(-1, 1),
+                 False, 'none', True, torch.Tensor([1, 1])),
+    pytest.param((torch.arange(120) % 3).view(-1, 1), (torch.arange(120) % 3).view(-1, 1),
+                 True, 'none', False, torch.Tensor([0.5, 0.5, 0.5])),
+    pytest.param((torch.arange(120) % 3).view(-1, 1), (torch.arange(120) % 3).view(-1, 1),
+                 True, 'elementwise_mean', False, torch.Tensor([0.5])),
+    pytest.param((torch.arange(120) % 3).view(-1, 1), (torch.arange(120) % 3).view(-1, 1),
+                 True, 'none', True, torch.Tensor([0.5, 0.5])),
+])
+def test_iou(target, pred, half_ones, reduction, remove_bg, expected):
+    if half_ones:
+        pred[:60] = 1
+    assert torch.all(torch.eq(iou(pred, target, remove_bg=remove_bg, reduction=reduction), expected))
 
 
 # example data taken from
