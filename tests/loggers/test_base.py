@@ -145,7 +145,7 @@ def test_adding_step_key(tmpdir):
         max_epochs=3,
         default_root_dir=tmpdir,
         train_percent_check=0.001,
-        limit_val_batches=0.01,
+        limit_val_batches=0.1,
         num_sanity_val_steps=0,
     )
     trainer.logger.log_metrics = _log_metrics_decorator(
