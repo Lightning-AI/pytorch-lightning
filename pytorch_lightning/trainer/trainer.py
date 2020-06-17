@@ -131,6 +131,7 @@ class Trainer(
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
         val_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
         test_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
+        train_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
         overfit_pct: float = 0.0  # backward compatible, todo: remove in v1.0.0
     ):
         r"""
@@ -227,15 +228,20 @@ class Trainer(
 
             limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
 
+            train_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_train_batches` instead. Will remove 1.0.0.
+
             val_percent_check:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `min_epochs` instead. Will remove 1.0.0.
+                    Use `limit_val_batches` instead. Will remove 1.0.0.
 
             test_percent_check:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `min_epochs` instead. Will remove 1.0.0.
+                    Use `limit_test_batches` instead. Will remove 1.0.0.
 
             val_check_interval: How often within one training epoch to check the validation set
 
