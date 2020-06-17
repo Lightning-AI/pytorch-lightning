@@ -1,4 +1,12 @@
 """
+.. testsetup:: *
+
+    import os
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.utilities.seed import seed_everything
+
+
 Once you've organized your PyTorch code into a LightningModule,
 the Trainer automates everything else.
 
@@ -22,8 +30,6 @@ Basic use
 This is the basic use of the trainer:
 
 .. code-block:: python
-
-    from pytorch_lightning import Trainer
 
     model = MyLightningModule()
 
@@ -114,7 +120,7 @@ Reproducibility
 To ensure full reproducibility from run to run you need to set seeds for pseudo-random generators,
 and set ``deterministic``` flag in ``Trainer``.
 
-.. code-block:: python
+Example::
 
     from pytorch_lightning import Trainer, seed_everything
 
@@ -133,7 +139,7 @@ accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 Accumulates grads every k batches or as set up in the dict.
 
-.. code-block:: python
+.. testcode::
 
     # default used by the Trainer (no accumulation)
     trainer = Trainer(accumulate_grad_batches=1)
@@ -163,7 +169,7 @@ auto_scale_batch_size
 Automatically tries to find the largest batch size that fits into memory,
 before any training.
 
-.. code-block:: python
+.. testcode::
 
     # default used by the Trainer (no scaling of batch size)
     trainer = Trainer(auto_scale_batch_size=None)
@@ -176,7 +182,7 @@ auto_lr_find
 Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
 before any training, to find optimal initial learning rate.
 
-.. code-block:: python
+.. testcode::
 
     # default used by the Trainer (no learning rate finder)
     trainer = Trainer(auto_lr_find=False)
@@ -267,7 +273,8 @@ Callback for checkpointing.
 
 .. code-block:: python
 
-    trainer = Trainer(checkpoint_callback=checkpoint_callback)
+    from pytorch_lightning.callbacks import ModelCheckpoint
+    trainer = Trainer(checkpoint_callback=ModelCheckpoint())
 
 Example::
 
@@ -309,7 +316,7 @@ The distributed backend to use.
 - (```ddp2```) dp on node, ddp across nodes. Useful for things like increasing
     the number of negative samples
 
-.. code-block:: python
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(distributed_backend=None)
@@ -343,22 +350,19 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 - ``None``: The default callback monitoring ``'val_loss'`` is created.
 - Default: ``None``.
 
-.. code-block:: python
-
-    trainer = Trainer(early_stop_callback=early_stop_callback)
-
-Example::
+.. testcode::
 
     from pytorch_lightning.callbacks import EarlyStopping
 
     # default used by the Trainer
-    early_stop_callback = EarlyStopping(
+    early_stop = EarlyStopping(
         monitor='val_loss',
         patience=3,
         strict=False,
         verbose=False,
         mode='min'
     )
+    trainer = Trainer(early_stop_callback=early_stop)
 
 .. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
 
@@ -384,7 +388,7 @@ Under the hood the pseudocode looks like this:
     out = validation_step(val_batch)
     validation_epoch_end([out])
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
@@ -399,10 +403,12 @@ gpus
 - or Which GPUs to train on
 - can handle strings
 
-Example::
+.. testcode::
 
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
+
+Example::
 
     # int: train on 2 gpus
     trainer = Trainer(gpus=2)
@@ -428,7 +434,7 @@ Gradient clipping value
 
 - 0 means don't clip.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(gradient_clip_val=0.0)
@@ -439,7 +445,7 @@ limit_test_batches
 
 How much of test dataset to check.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(limit_test_batches=1.0)
@@ -456,7 +462,7 @@ limit_val_batches
 How much of validation dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(limit_val_batches=1.0)
@@ -464,7 +470,7 @@ Example::
     # run through only 25% of the validation set each epoch
     trainer = Trainer(limit_val_batches=0.25)
 
-        # run for only 10 batches
+    # run for only 10 batches
     trainer = Trainer(limit_val_batches=10)
 
 log_gpu_memory
@@ -475,7 +481,7 @@ Options:
 - 'min_max'
 - 'all'
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(log_gpu_memory=None)
@@ -493,7 +499,7 @@ log_save_interval
 
 Writes logs to disk this often.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(log_save_interval=100)
@@ -503,26 +509,23 @@ logger
 
 `Logger <loggers.rst>`_ (or iterable collection of loggers) for experiment tracking.
 
-.. code-block:: python
-
-    Trainer(logger=logger)
-
-Example::
+.. testcode::
 
     from pytorch_lightning.loggers import TensorBoardLogger
 
     # default logger used by trainer
     logger = TensorBoardLogger(
         save_dir=os.getcwd(),
-        version=self.slurm_job_id,
+        version=1,
         name='lightning_logs'
     )
+    Trainer(logger=logger)
 
 max_epochs
 ^^^^^^^^^^
 Stop training once this number of epochs is reached
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(max_epochs=1000)
@@ -531,7 +534,7 @@ min_epochs
 ^^^^^^^^^^
 Force training for at least these many epochs
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(min_epochs=1)
@@ -541,12 +544,10 @@ max_steps
 Stop training after this number of steps
 Training will stop if max_steps or max_epochs have reached (earliest).
 
-.. code-block:: python
+.. testcode::
 
     # Default (disabled)
     trainer = Trainer(max_steps=None)
-
-Example::
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
@@ -557,12 +558,10 @@ min_steps
 Force training for at least these number of steps.
 Trainer will train model for at least min_steps or min_epochs (latest).
 
-.. code-block:: python
+.. testcode::
 
     # Default (disabled)
     trainer = Trainer(min_steps=None)
-
-Example::
 
     # Run at least for 100 steps (disable min_epochs)
     trainer = Trainer(min_steps=100, min_epochs=0)
@@ -572,7 +571,7 @@ num_nodes
 
 Number of GPU nodes for distributed training.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(num_nodes=1)
@@ -590,7 +589,7 @@ machine without GPUs. This is useful for debugging, but **will not** provide
 any speedup, since single-process Torch already makes effient use of multiple
 CPUs.
 
-Example::
+.. testcode::
 
     # Simulate DDP for debugging on your GPU-less laptop
     trainer = Trainer(distributed_backend="ddp_cpu", num_processes=2)
@@ -602,7 +601,7 @@ Sanity check runs n batches of val before starting the training routine.
 This catches any bugs in your validation without having to wait for the first validation check.
 The Trainer uses 5 steps by default. Turn it off or modify it here.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(num_sanity_val_steps=5)
@@ -629,7 +628,7 @@ prepare_data_per_node
 If True will call `prepare_data()` on LOCAL_RANK=0 for every node.
 If False will only call from NODE_RANK=0, LOCAL_RANK=0
 
-Example::
+.. testcode::
 
     # default
     Trainer(prepare_data_per_node=True)
@@ -652,7 +651,7 @@ Your effective batch size is batch_size * total tpu cores.
 
 This parameter can be either 1 or 8.
 
-Example::
+.. testcode::
 
     # your_trainer_file.py
 
@@ -698,7 +697,7 @@ If the training Dataloaders(shuffle=True), Lightning will automatically disable 
 
 Useful for quickly debugging or trying to overfit on purpose.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
@@ -717,13 +716,15 @@ Can be used on CPU, GPU or TPUs.
 If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(precision=32)
 
     # 16-bit precision
     trainer = Trainer(precision=16)
+
+Example::
 
     # one day
     trainer = Trainer(precision=8|4|2)
@@ -741,7 +742,7 @@ process_position
 ^^^^^^^^^^^^^^^^
 Orders the progress bar. Useful when running multiple trainers on the same node.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(process_position=0)
@@ -755,9 +756,9 @@ To profile individual steps during training and assist in identifying bottleneck
 
 See the `profiler documentation <profiler.rst>`_. for more details.
 
-Example::
+.. testcode::
 
-    from pytorch_lightning.profiler import Profiler, AdvancedProfiler
+    from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)
@@ -766,12 +767,10 @@ Example::
     trainer = Trainer(profiler=True)
 
     # equivalent to profiler=True
-    profiler = Profiler()
-    trainer = Trainer(profiler=profiler)
+    trainer = Trainer(profiler=SimpleProfiler())
 
     # advanced profiler for function-level stats
-    profiler = AdvancedProfiler()
-    trainer = Trainer(profiler=profiler)
+    trainer = Trainer(profiler=AdvancedProfiler())
 
 progress_bar_refresh_rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -779,7 +778,7 @@ How often to refresh progress bar (in steps).
 In notebooks, faster refresh rates (lower number) is known to crash them
 because of their screen refresh rates, so raise it to 50 or more.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(progress_bar_refresh_rate=1)
@@ -811,14 +810,14 @@ replace_sampler_ddp
 ^^^^^^^^^^^^^^^^^^^
 Enables auto adding of distributed sampler.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(replace_sampler_ddp=True)
 
 By setting to False, you have to add your own distributed sampler:
 
-Example::
+.. code-block:: python
 
     # default used by the Trainer
     sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=True)
@@ -828,7 +827,7 @@ resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 To resume training from a specific checkpoint pass in the path here.
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(resume_from_checkpoint=None)
@@ -841,7 +840,7 @@ row_log_interval
 
 How often to add logging rows (does not write to disk)
 
-Example::
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
@@ -859,10 +858,20 @@ show_progress_bar
 
     Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
+val_percent_check
+^^^^^^^^^^^^^^^^^
+
+.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 0.10.0
+
 test_percent_check
 ^^^^^^^^^^^^^^^^^^
 
-.. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 1.0.0
+.. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 0.10.0
+
+train_percent_check
+^^^^^^^^^^^^^^^^^^^
+
+.. warning:: deprecated in v0.8.0 please use `limit_train_batches`. Will remove in 0.10.0
 
 track_grad_norm
 ^^^^^^^^^^^^^^^
@@ -870,34 +879,35 @@ track_grad_norm
 - no tracking (-1)
 - Otherwise tracks that norm (2 for 2-norm)
 
-.. code-block:: python
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(track_grad_norm=-1)
 
-Example::
-
     # track the 2-norm
     trainer = Trainer(track_grad_norm=2)
 
-train_percent_check
+limit_train_batches
 ^^^^^^^^^^^^^^^^^^^
 
 How much of training dataset to check.
 Useful when debugging or testing something that happens at the end of an epoch.
 
-.. code-block::python
+.. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(train_percent_check=1.0)
+    trainer = Trainer(limit_train_batches=1.0)
 
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(train_percent_check=1.0)
+    trainer = Trainer(limit_train_batches=1.0)
 
     # run through only 25% of the training set each epoch
-    trainer = Trainer(train_percent_check=0.25)
+    trainer = Trainer(limit_train_batches=0.25)
+
+    # run through only 10 batches of the training set each epoch
+    trainer = Trainer(limit_train_batches=10)
 
 truncated_bptt_steps
 ^^^^^^^^^^^^^^^^^^^^
@@ -912,7 +922,7 @@ and the trainer will apply Truncated Backprop to it.
 recurrent network trajectories."
 <http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
 
-Example::
+.. testcode::
 
     # default used by the Trainer (ie: disabled)
     trainer = Trainer(truncated_bptt_steps=None)
@@ -949,9 +959,9 @@ with the hidden
 To modify how the batch is split,
 override :meth:`pytorch_lightning.core.LightningModule.tbptt_split_batch`:
 
-.. code-block:: python
+.. testcode::
 
-        class LitMNIST(pl.LightningModule):
+        class LitMNIST(LightningModule):
             def tbptt_split_batch(self, batch, split_size):
                 # do your own splitting on the batch
                 return splits
@@ -965,12 +975,10 @@ Can specify as float or int.
 - use (float) to check within a training epoch
 - use (int) to check every n steps (batches)
 
-.. code-block:: python
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(val_check_interval=1.0)
-
-Example::
 
     # check validation set 4 times during a training epoch
     trainer = Trainer(val_check_interval=0.25)
@@ -981,31 +989,25 @@ Example::
     trainer = Trainer(val_check_interval=1000)
 
 
-val_percent_check
-^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 1.0.0
-
-
 weights_save_path
 ^^^^^^^^^^^^^^^^^
 Directory of where to save weights if specified.
 
-.. code-block:: python
+.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(weights_save_path=os.getcwd())
 
-Example::
-
     # save to your custom path
     trainer = Trainer(weights_save_path='my/path')
 
+Example::
+
     # if checkpoint callback used, then overrides the weights path
     # **NOTE: this saves weights to some/path NOT my/path
-    checkpoint_callback = ModelCheckpoint(filepath='some/path')
+    checkpoint = ModelCheckpoint(filepath='some/path')
     trainer = Trainer(
-        checkpoint_callback=checkpoint_callback,
+        checkpoint_callback=checkpoint,
         weights_save_path='my/path'
     )
 
@@ -1014,7 +1016,7 @@ weights_summary
 Prints a summary of the weights when training begins.
 Options: 'full', 'top', None.
 
-Example::
+.. testcode::
 
     # default used by the Trainer (ie: print summary of top level modules)
     trainer = Trainer(weights_summary='top')
@@ -1031,6 +1033,6 @@ Trainer class
 """
 
 from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.trainer.seed import seed_everything
+from pytorch_lightning.utilities.seed import seed_everything
 
 __all__ = ['Trainer', 'seed_everything']

@@ -1,4 +1,5 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
+import random
 import sys
 
 import pytest
@@ -12,6 +13,36 @@ def _soft_unimport_module(str_module):
     # once the module is imported  e.g with parsing with pytest it lives in memory
     if str_module in sys.modules:
         del sys.modules[str_module]
+
+
+def test_tbd_remove_in_v0_10_0_trainer():
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(overfit_pct=rnd_val)
+    assert trainer.overfit_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.overfit_pct == rnd_val
+
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(train_percent_check=rnd_val)
+    assert trainer.limit_train_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.train_percent_check == rnd_val
+
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(val_percent_check=rnd_val)
+    assert trainer.limit_val_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.val_percent_check == rnd_val
+
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(test_percent_check=rnd_val)
+    assert trainer.limit_test_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.test_percent_check == rnd_val
 
 
 def test_tbd_remove_in_v0_9_0_trainer():

@@ -162,7 +162,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
     schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
-                      train_percent_check=0.1,
+                      limit_train_batches=0.1,
                       limit_val_batches=0.1,
                       max_epochs=2,
                       default_root_dir=tmpdir)
@@ -367,7 +367,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.65,
+        limit_train_batches=0.65,
         limit_val_batches=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
@@ -414,7 +414,7 @@ def _init_steps_model():
     num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
 
     trainer_options = dict(
-        train_percent_check=train_percent,
+        limit_train_batches=train_percent,
     )
     return model, trainer_options, num_train_samples
 
@@ -609,7 +609,7 @@ def test_disabled_validation():
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
+        limit_train_batches=0.4,
         limit_val_batches=0.0,
         fast_dev_run=False,
     )
@@ -723,7 +723,7 @@ def test_trainer_interrupted_flag(tmpdir):
         callbacks=[interrupt_callback, handle_interrupt_callback],
         max_epochs=1,
         limit_val_batches=0.1,
-        train_percent_check=0.2,
+        limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
         logger=False,
         default_root_dir=tmpdir,
