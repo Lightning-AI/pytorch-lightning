@@ -849,7 +849,7 @@ show_progress_bar
     Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 val_percent_check
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 .. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 0.10.0
 
@@ -977,12 +977,6 @@ Can specify as float or int.
     # use this when using iterableDataset and your dataset has no length
     # (ie: production cases with streaming data)
     trainer = Trainer(val_check_interval=1000)
-
-
-val_percent_check
-^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 1.0.0
 
 
 weights_save_path

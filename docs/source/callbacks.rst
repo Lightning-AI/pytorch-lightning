@@ -46,7 +46,7 @@ Example:
 We successfully extended functionality without polluting our super clean
 :class:`~pytorch_lightning.core.LightningModule` research code.
 
----------
+---
 
 .. automodule:: pytorch_lightning.callbacks.base
    :noindex:
@@ -56,7 +56,7 @@ We successfully extended functionality without polluting our super clean
         _abc_impl,
         check_monitor_top_k,
 
----------
+---
 
 .. automodule:: pytorch_lightning.callbacks.early_stopping
    :noindex:
@@ -66,7 +66,7 @@ We successfully extended functionality without polluting our super clean
         _abc_impl,
         check_monitor_top_k,
 
----------
+---
 
 .. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
@@ -76,14 +76,15 @@ We successfully extended functionality without polluting our super clean
         _abc_impl,
         check_monitor_top_k,
 
----------
+---
 
 .. automodule:: pytorch_lightning.callbacks.lr_logger
     :noindex:
     :exclude-members:
         _extract_lr,
         _find_names
----------
+
+---
 
 .. automodule:: pytorch_lightning.callbacks.model_checkpoint
    :noindex:
@@ -93,7 +94,7 @@ We successfully extended functionality without polluting our super clean
         _abc_impl,
         check_monitor_top_k,
 
----------
+---
 
 .. automodule:: pytorch_lightning.callbacks.progress
    :noindex:
