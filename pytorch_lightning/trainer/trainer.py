@@ -500,7 +500,7 @@ class Trainer(
             overfit_batches = overfit_pct
 
         # convert floats to ints
-        self.overfit_batches = _determine_limit_batches(overfit_batches)
+        self.overfit_batches = _determine_limit_batches(overfit_batches, name='overfit_batches')
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -520,9 +520,9 @@ class Trainer(
                            " and this argument will be removed in v0.10.0", DeprecationWarning)
             limit_train_batches = train_percent_check
 
-        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
-        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
-        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.limit_test_batches = _determine_limit_batches(limit_test_batches, name='limit_test_batches')
+        self.limit_val_batches = _determine_limit_batches(limit_val_batches, name='limit_val_batches')
+        self.limit_train_batches = _determine_limit_batches(limit_train_batches, name='limit_train_batches')
         self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init

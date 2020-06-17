@@ -309,10 +309,11 @@ class TrainerDataLoadingMixin(ABC):
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
-                    m = f'you requested to check {limit_eval_batches} of the {mode} dataloader but ' \
-                        f'{limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.' \
-                        f'Try at least limit_{mode}_batches={min_pct}'
-                    raise MisconfigurationException(m)
+                    raise MisconfigurationException(
+                        f'you requested to check {limit_eval_batches} of the {mode} dataloader but'
+                        f' {limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.'
+                        f' Try at least limit_{mode}_batches={min_pct}'
+                    )
 
                 loader_num_batches.append(num_batches)
 
