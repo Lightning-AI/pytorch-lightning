@@ -223,7 +223,7 @@ class TrainerDataLoadingMixin(ABC):
                         ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
                         ' checking validation every k training batches.')
             else:
-                self._limit_eval_batches_check('limit_val_batches')
+                self._limit_eval_batches_check('val_check_interval')
 
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
