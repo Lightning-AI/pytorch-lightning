@@ -65,6 +65,7 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
         # fit model
         trainer.fit(model)
 
+
 @pytest.mark.parametrize("dataloader_options", [
     dict(limit_train_batches=-0.1),
     dict(limit_train_batches=1.2),
