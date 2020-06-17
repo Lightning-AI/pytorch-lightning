@@ -239,7 +239,7 @@ def test_simple_cpu(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.1,
+        limit_train_batches=20,
     )
     result = trainer.fit(model)
 
