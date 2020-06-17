@@ -184,8 +184,8 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
-    assert test_callback.on_fit_start_called
-    assert test_callback.on_fit_end_called
+    assert not test_callback.on_fit_start_called
+    assert not test_callback.on_fit_end_called
     assert not test_callback.on_sanity_check_start_called
     assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called

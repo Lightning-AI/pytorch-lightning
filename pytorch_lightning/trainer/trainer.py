@@ -787,8 +787,6 @@ class Trainer(
 
         # callbacks
         self.on_fit_start()
-
-        # model hooks
         if self.is_function_implemented('on_fit_start'):
             model.on_fit_start()
 
