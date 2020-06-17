@@ -1,5 +1,5 @@
 r"""
-GradientAccumulator
+Gradient Accumulator
 ====================
 
 Change gradient accumulation factor according to scheduling.

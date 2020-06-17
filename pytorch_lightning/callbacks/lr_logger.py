@@ -1,7 +1,7 @@
 r"""
 
-LearningRateLogger
-==================
+Learning Rate Logger
+====================
 
 Log learning rate for lr schedulers during training
 
