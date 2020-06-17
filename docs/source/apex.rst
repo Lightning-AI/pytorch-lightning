@@ -25,7 +25,7 @@ When using PyTorch 1.6+ Lightning uses the native amp implementation to support 
 
 Apex 16-bit
 ^^^^^^^^^^^
-If you are using an earlier version of PyTorch Lightnign uses Apex to support 16-bit.
+If you are using an earlier version of PyTorch Lightning uses Apex to support 16-bit.
 
 Follow these instructions to install Apex.
 To use 16-bit precision, do two things:
