@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 
 from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric, TensorCollectionMetric
@@ -34,7 +35,8 @@ class DummyTensorCollectionMetric(TensorCollectionMetric):
         return 1., 2., 3., 4.
 
 
-def _test_collection_metric(metric: Metric):
+@pytest.mark.parametrize('metric', [DummyTensorCollectionMetric()])
+def test_collection_metric(metric: Metric):
     """ Test that metric.device, metric.dtype works for metric collection """
     input1, input2 = torch.tensor([1.]), torch.tensor([2.])
 
@@ -81,7 +83,11 @@ def _test_collection_metric(metric: Metric):
         assert metric.dtype == torch.float16
 
 
-def _test_metric(metric: Metric):
+@pytest.mark.parametrize('metric', [
+    DummyTensorMetric(),
+    DummyNumpyMetric(),
+])
+def test_metric(metric: Metric):
     """ Test that metric.device, metric.dtype works for single metric"""
     input1, input2 = torch.tensor([1.]), torch.tensor([2.])
 
@@ -133,15 +139,3 @@ def _test_metric(metric: Metric):
         metric.half()
         assert metric.dtype == torch.float16
         assert metric(input1, input2).dtype == torch.float16
-
-
-def test_tensor_metric():
-    _test_metric(DummyTensorMetric())
-
-
-def test_numpy_metric():
-    _test_metric(DummyNumpyMetric())
-
-
-def test_tensor_collection():
-    _test_collection_metric(DummyTensorCollectionMetric())

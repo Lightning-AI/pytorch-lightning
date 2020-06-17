@@ -821,6 +821,11 @@ class Trainer(
         # check that model is configured correctly
         self.check_model_configuration(model)
 
+        # callbacks
+        self.on_fit_start()
+        if self.is_function_implemented('on_fit_start'):
+            model.on_fit_start()
+
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
@@ -915,6 +920,13 @@ class Trainer(
             self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
             self.run_pretrain_routine(model)
+
+        # callbacks
+        self.on_fit_end()
+
+        # model hooks
+        if self.is_function_implemented('on_fit_end'):
+            model.on_fit_end()
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
