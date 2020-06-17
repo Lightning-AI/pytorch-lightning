@@ -17,11 +17,11 @@ except ImportError:  # pragma: no-cover
     Run = None
     _WANDB_AVAILABLE = False
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLogger
 from pytorch_lightning.utilities import rank_zero_only
 
 
-class WandbLogger(LightningLoggerBase):
+class WandbLogger(LightningLogger):
     """
     Log using `Weights and Biases <https://www.wandb.com/>`_. Install it with pip:
 

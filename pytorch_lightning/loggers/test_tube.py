@@ -12,11 +12,11 @@ except ImportError:  # pragma: no-cover
     Experiment = None
     _TEST_TUBE_AVAILABLE = False
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLogger
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
-class TestTubeLogger(LightningLoggerBase):
+class TestTubeLogger(LightningLogger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format
     but using a nicer folder structure (see `full docs <https://williamfalcon.github.io/test-tube>`_).

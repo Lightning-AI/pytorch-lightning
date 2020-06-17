@@ -31,12 +31,12 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_only
 
 
-class CometLogger(LightningLoggerBase):
+class CometLogger(LightningLogger):
     r"""
     Log using `Comet.ml <https://www.comet.ml>`_. Install it with pip:
 

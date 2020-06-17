@@ -11,7 +11,7 @@ import torch
 from pytorch_lightning.utilities import rank_zero_only
 
 
-class LightningLoggerBase(ABC):
+class LightningLogger(ABC):
     """
     Base class for experiment loggers.
 
@@ -26,7 +26,7 @@ class LightningLoggerBase(ABC):
 
     Note:
         The `agg_key_funcs` and `agg_default_func` arguments are used only when
-        one logs metrics with the :meth:`~LightningLoggerBase.agg_and_log_metrics` method.
+        one logs metrics with the :meth:`~LightningLogger.agg_and_log_metrics` method.
     """
 
     def __init__(
@@ -134,7 +134,7 @@ class LightningLoggerBase(ABC):
         Records metrics.
         This method logs metrics as as soon as it received them. If you want to aggregate
         metrics for one specific `step`, use the
-        :meth:`~pytorch_lightning.loggers.base.LightningLoggerBase.agg_and_log_metrics` method.
+        :meth:`~pytorch_lightning.loggers.base.LightningLogger.agg_and_log_metrics` method.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -166,9 +166,9 @@ class LightningLoggerBase(ABC):
             Flattened dict.
 
         Examples:
-            >>> LightningLoggerBase._flatten_dict({'a': {'b': 'c'}})
+            >>> LightningLogger._flatten_dict({'a': {'b': 'c'}})
             {'a/b': 'c'}
-            >>> LightningLoggerBase._flatten_dict({'a': {'b': 123}})
+            >>> LightningLogger._flatten_dict({'a': {'b': 123}})
             {'a/b': 123}
         """
 
@@ -200,7 +200,7 @@ class LightningLoggerBase(ABC):
         ...           "namespace": Namespace(foo=3),
         ...           "layer": torch.nn.BatchNorm1d}
         >>> import pprint
-        >>> pprint.pprint(LightningLoggerBase._sanitize_params(params))  # doctest: +NORMALIZE_WHITESPACE
+        >>> pprint.pprint(LightningLogger._sanitize_params(params))  # doctest: +NORMALIZE_WHITESPACE
         {'bool': True,
          'float': 0.3,
          'int': 1,
@@ -248,7 +248,7 @@ class LightningLoggerBase(ABC):
         """Return the experiment version."""
 
 
-class LoggerCollection(LightningLoggerBase):
+class LoggerCollection(LightningLogger):
     """
     The :class:`LoggerCollection` class is used to iterate all logging actions over
     the given `logger_iterable`.
@@ -257,11 +257,11 @@ class LoggerCollection(LightningLoggerBase):
         logger_iterable: An iterable collection of loggers
     """
 
-    def __init__(self, logger_iterable: Iterable[LightningLoggerBase]):
+    def __init__(self, logger_iterable: Iterable[LightningLogger]):
         super().__init__()
         self._logger_iterable = logger_iterable
 
-    def __getitem__(self, index: int) -> LightningLoggerBase:
+    def __getitem__(self, index: int) -> LightningLogger:
         return [logger for logger in self._logger_iterable][index]
 
     @property
@@ -301,7 +301,7 @@ class DummyExperiment(object):
         return self.nop
 
 
-class DummyLogger(LightningLoggerBase):
+class DummyLogger(LightningLogger):
     """ Dummy logger for internal use. Is usefull if we want to disable users
         logger for a feature, but still secure that users code can run """
     def __init__(self):

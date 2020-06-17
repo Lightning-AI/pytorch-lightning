@@ -14,11 +14,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLogger
 from pytorch_lightning.utilities import rank_zero_only
 
 
-class TensorBoardLogger(LightningLoggerBase):
+class TensorBoardLogger(LightningLogger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to

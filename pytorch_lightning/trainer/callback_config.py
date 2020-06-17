@@ -4,7 +4,7 @@ from typing import List, Callable, Optional
 
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import LightningLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -14,7 +14,7 @@ class TrainerCallbackConfigMixin(ABC):
     #  the proper values/initialisation should be done in child class
     callbacks: List[Callback]
     default_root_dir: str
-    logger: LightningLoggerBase
+    logger: LightningLogger
     weights_save_path: Optional[str]
     ckpt_path: str
     checkpoint_callback: Optional[ModelCheckpoint]

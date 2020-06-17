@@ -95,7 +95,7 @@ import torch.distributed as torch_distrib
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import LightningLogger
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
@@ -139,7 +139,7 @@ class TrainerIOMixin(ABC):
     checkpoint_callback: ...
     global_rank: int
     weights_save_path: str
-    logger: LightningLoggerBase
+    logger: LightningLogger
     early_stop_callback: ...
     lr_schedulers: ...
     optimizers: ...

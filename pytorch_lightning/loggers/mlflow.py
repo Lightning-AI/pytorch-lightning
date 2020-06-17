@@ -17,11 +17,11 @@ except ImportError:  # pragma: no-cover
     _MLFLOW_AVAILABLE = False
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLogger
 from pytorch_lightning.utilities import rank_zero_only
 
 
-class MLFlowLogger(LightningLoggerBase):
+class MLFlowLogger(LightningLogger):
     """
     Log using `MLflow <https://mlflow.org>`_. Install it with pip:
 

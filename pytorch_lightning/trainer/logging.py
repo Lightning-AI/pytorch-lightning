@@ -4,7 +4,7 @@ from typing import Union, Iterable
 import torch
 
 from pytorch_lightning.core import memory
-from pytorch_lightning.loggers import TensorBoardLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers import TensorBoardLogger, LightningLogger, LoggerCollection
 from pytorch_lightning.utilities.memory import recursive_detach
 
 
@@ -15,7 +15,7 @@ class TrainerLoggingMixin(ABC):
     current_epoch: int
     on_gpu: bool
     log_gpu_memory: ...
-    logger: Union[LightningLoggerBase, bool]
+    logger: Union[LightningLogger, bool]
     progress_bar_metrics: ...
     global_step: int
     global_rank: int

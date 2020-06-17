@@ -126,7 +126,7 @@ from os.path import abspath
 import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import LightningLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
 
@@ -152,7 +152,7 @@ class TrainerDDPMixin(ABC):
     on_gpu: bool
     num_gpu_nodes: int
     gpus: List[int]
-    logger: Union[LightningLoggerBase, bool]
+    logger: Union[LightningLogger, bool]
     checkpoint_callback: Union[ModelCheckpoint, bool]
     data_parallel_device_ids: ...
     distributed_backend: Optional[str]

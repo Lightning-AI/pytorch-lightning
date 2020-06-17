@@ -33,14 +33,14 @@ Custom Logger
 -------------
 
 You can implement your own logger by writing a class that inherits from
-:class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
+:class:`LightningLogger`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
 decorator to make sure that only the first process in DDP training logs data.
 
 .. code-block:: python
 
     from pytorch_lightning.utilities import rank_zero_only
-    from pytorch_lightning.loggers import LightningLoggerBase
-    class MyLogger(LightningLoggerBase):
+    from pytorch_lightning.loggers import LightningLogger
+    class MyLogger(LightningLogger):
 
         @rank_zero_only
         def log_hyperparams(self, params):
@@ -95,11 +95,11 @@ Supported Loggers
 """
 from os import environ
 
-from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers.base import LightningLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 __all__ = [
-    'LightningLoggerBase',
+    'LightningLogger',
     'LoggerCollection',
     'TensorBoardLogger',
 ]

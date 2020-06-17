@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import numpy as np
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers import LightningLogger, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
 from tests.base import EvalModelTemplate
 
@@ -26,7 +26,7 @@ def test_logger_collection():
     mock2.close.assert_called_once()
 
 
-class CustomLogger(LightningLoggerBase):
+class CustomLogger(LightningLogger):
     def __init__(self):
         super().__init__()
         self.hparams_logged = None

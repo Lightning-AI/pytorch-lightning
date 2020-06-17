@@ -12,7 +12,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import LightningLogger
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
 from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
@@ -79,7 +79,7 @@ class Trainer(
 
     def __init__(
         self,
-        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+        logger: Union[LightningLogger, Iterable[LightningLogger], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
         early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
         callbacks: Optional[List[Callback]] = None,

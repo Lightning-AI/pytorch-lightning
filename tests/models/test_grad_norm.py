@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import LightningLogger
 from pytorch_lightning.utilities import rank_zero_only
 from tests.base import EvalModelTemplate
 from tests.base.utils import reset_seed
 
 
-class OnlyMetricsListLogger(LightningLoggerBase):
+class OnlyMetricsListLogger(LightningLogger):
     def __init__(self):
         super().__init__()
         self.metrics = []

@@ -154,7 +154,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import LightningLogger
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -210,7 +210,7 @@ class TrainerTrainLoopMixin(ABC):
     enable_early_stop: ...
     early_stop_callback: ...
     callback_metrics: ...
-    logger: Union[LightningLoggerBase, bool]
+    logger: Union[LightningLogger, bool]
     global_step: int
     testing: bool
     log_save_interval: float

@@ -23,11 +23,11 @@ except ImportError:  # pragma: no-cover
                       ' install it with `pip install trains`.')
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLogger
 from pytorch_lightning.utilities import rank_zero_only
 
 
-class TrainsLogger(LightningLoggerBase):
+class TrainsLogger(LightningLogger):
     """
     Log using `allegro.ai TRAINS <https://github.com/allegroai/trains>`_. Install it with pip:
 
