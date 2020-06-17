@@ -11,7 +11,7 @@ Fixes # (issue)
 
 - [ ] Was this discussed/approved via a Github issue? (no need for typos and docs improvements)
 - [ ] Did you read the [contributor guideline](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md), Pull Request section?
-- [ ] Did you make sure your PR does only one thing, instead of bundling different chnages together? Otherwise, we ask you create a separate PR for every change.
+- [ ] Did you make sure your PR does only one thing, instead of bundling different changes together? Otherwise, we ask you create a separate PR for every change.
 - [ ] Did you make sure to update the documentation with your changes?
 - [ ] Did you write any new necessary tests? 
 - [ ] Did you verify new and existing tests pass locally with your changes?
