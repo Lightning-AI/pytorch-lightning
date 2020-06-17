@@ -24,7 +24,7 @@ Set how much of the validation set to check
 
 If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
 
-limit_val_batches will be overwritten by overfit if `overfit > 0`
+limit_val_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 
@@ -39,7 +39,7 @@ Set how much of the test set to check
 
 If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag
 
-limit_test_batches will be overwritten by overfit if `overfit > 0`
+limit_test_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 

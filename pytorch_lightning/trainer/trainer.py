@@ -494,10 +494,10 @@ class Trainer(
 
         # TODO: remove in 1.0.0
         if val_percent_check < 1.0:
-            limit_val_batches = limit_val_batches
+            limit_val_batches = val_percent_check
 
         if test_percent_check < 1.0:
-            limit_test_batches = limit_test_batches
+            limit_test_batches = test_percent_check
 
         self.determine_data_use_amount(train_percent_check, limit_val_batches,
                                        limit_test_batches, overfit_batches)
