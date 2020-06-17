@@ -249,7 +249,7 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
-        for loader_i in range(dataloaders):
+        for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
 
             # shuffling in val and test set is bad practice
@@ -260,7 +260,7 @@ class TrainerDataLoadingMixin(ABC):
                     m = 'You requested to overfit but enabled training Dataloader shuffling. ' \
                         'we are turning it off for you'
                     rank_zero_warn(m)
-                    dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler)
+                    dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
 
                 else:
                     rank_zero_warn(
