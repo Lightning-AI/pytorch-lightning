@@ -490,7 +490,8 @@ class Trainer(
         if overfit_pct > 0:
             overfit_batches = overfit_pct
 
-        self.overfit_batches = overfit_batches
+        # convert floats to ints
+        self.overfit_batches = int(overfit_batches) if overfit_batches > 1.0 else overfit_batches
 
         # TODO: remove in 1.0.0
         if val_percent_check < 1.0:
@@ -498,6 +499,9 @@ class Trainer(
 
         if test_percent_check < 1.0:
             limit_test_batches = test_percent_check
+
+        limit_test_batches = int(limit_test_batches) if limit_test_batches > 1.0 else limit_test_batches
+        limit_val_batches = int(limit_val_batches) if limit_val_batches > 1.0 else limit_val_batches
 
         self.determine_data_use_amount(train_percent_check, limit_val_batches,
                                        limit_test_batches, overfit_batches)
