@@ -231,9 +231,11 @@ class TrainerDataLoadingMixin(ABC):
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-    def _reset_eval_dataloader(self,
-                               model: LightningModule,
-                               mode: str) -> Tuple[List[Union[int, float]], List[DataLoader]]:
+    def _reset_eval_dataloader(
+            self,
+            model: LightningModule,
+            mode: str
+    ) -> Tuple[List[Union[int, float]], List[DataLoader]]:
         """Generic method to reset a dataloader for evaluation.
 
         Args:
@@ -260,15 +262,13 @@ class TrainerDataLoadingMixin(ABC):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
-                    m = 'You requested to overfit but enabled training Dataloader shuffling. ' \
-                        'we are turning it off for you'
-                    rank_zero_warn(m)
+                    rank_zero_warn('You requested to overfit but enabled training Dataloader shuffling.'
+                                   ' We are turning it off for you.')
                     dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
 
                 else:
-                    rank_zero_warn(
-                        f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
-                        ' this off for validation and test dataloaders.')
+                    rank_zero_warn(f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
+                                   ' this off for validation and test dataloaders.')
 
         if any([dl is None for dl in dataloaders]):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
