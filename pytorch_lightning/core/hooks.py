@@ -23,6 +23,12 @@ class ModelHooks(Module):
         If on DDP it is called on every process
         """
 
+    def on_fit_end(self):
+        """
+        Called at the very end of fit.
+        If on DDP it is called on every process
+        """
+
     # TODO: remove in v0.9.0
     def on_sanity_check_start(self):
         """
