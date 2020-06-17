@@ -144,7 +144,7 @@ def test_adding_step_key(tmpdir):
     trainer = Trainer(
         max_epochs=3,
         default_root_dir=tmpdir,
-        limit_train_batches=0.001,
+        limit_train_batches=0.1,
         val_percent_check=0.01,
         num_sanity_val_steps=0,
     )
