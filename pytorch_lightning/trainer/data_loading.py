@@ -92,7 +92,7 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(value, int):
             return
 
-        msg = f'`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}.'
+        msg = f'`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}. (or pass in an int)'
         if name == 'val_check_interval':
             msg += ' If you want to disable validation set `limit_val_batches` to 0.0 instead.'
 
