@@ -14,6 +14,24 @@ def _soft_unimport_module(str_module):
         del sys.modules[str_module]
 
 
+def test_tbd_remove_in_v1_0_0_trainer():
+    with pytest.deprecated_call(match='v1.0.0'):
+        trainer = Trainer(overfit_pct=0.1)
+    assert not getattr(trainer, 'overfit_pct')
+
+    with pytest.deprecated_call(match='v1.0.0'):
+        trainer = Trainer(train_percent_check=0.1)
+    assert not getattr(trainer, 'train_percent_check')
+
+    with pytest.deprecated_call(match='v1.0.0'):
+        trainer = Trainer(val_percent_check=0.1)
+    assert not getattr(trainer, 'val_percent_check')
+
+    with pytest.deprecated_call(match='v1.0.0'):
+        trainer = Trainer(test_percent_check=0.1)
+    assert not getattr(trainer, 'test_percent_check')
+
+
 def test_tbd_remove_in_v0_9_0_trainer():
     # test show_progress_bar set by progress_bar_refresh_rate
     with pytest.deprecated_call(match='v0.9.0'):
