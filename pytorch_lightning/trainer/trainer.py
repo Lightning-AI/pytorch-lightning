@@ -508,6 +508,7 @@ class Trainer(
         if test_percent_check < 1.0:
             limit_test_batches = test_percent_check
 
+        # TODO: remove in 1.0.0
         if train_percent_check < 1.0:
             limit_train_batches = train_percent_check
 
