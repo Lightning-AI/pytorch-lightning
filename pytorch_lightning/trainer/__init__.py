@@ -689,7 +689,7 @@ overfit_pct
 
 .. warning:: .. deprecated:: 0.8.0.
 
-    Use `overfit_batches`. Will remove 0.9.0.
+    Use `overfit_batches`. Will remove 1.0.0.
 
 overfit_batches
 ^^^^^^^^^^^^^^^
