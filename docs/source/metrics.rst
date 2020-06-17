@@ -1,5 +1,6 @@
 .. testsetup:: *
 
+    import torch
     from torch.nn import Module
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.metrics import TensorMetric, NumpyMetric
@@ -24,10 +25,6 @@ Example::
 
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
-
-Out::
-
-    tensor(0.7500)
 
 .. warning::
     The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR!
@@ -228,7 +225,7 @@ Functional Metrics
 ------------------
 Functional metrics can be called anywhere (even used with just plain PyTorch).
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.metrics.functional import accuracy
 
@@ -237,10 +234,6 @@ Functional metrics can be called anywhere (even used with just plain PyTorch).
 
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
-
-.. testoutput::
-
-    tensor(0.7500)
 
 These metrics even work when using distributed training:
 

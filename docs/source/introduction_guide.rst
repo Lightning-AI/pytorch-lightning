@@ -17,7 +17,7 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
 quickly becomes onerous and starts distracting from the core research code.
 
----------
+---
 
 Goal of this guide
 ------------------
@@ -32,7 +32,7 @@ to use inheritance to very quickly create an AutoEncoder.
 .. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
     of research to illustrate.
 
----------
+---
 
 Installing Lightning
 --------------------
@@ -55,8 +55,7 @@ Or with conda
 
     conda install pytorch-lightning -c conda-forge
 
-
----------
+---
 
 Lightning Philosophy
 --------------------
@@ -118,7 +117,7 @@ In Lightning this code is abstracted out by `Callbacks`.
     generated = decoder(z)
     self.experiment.log('images', generated)
 
----------
+---
 
 Elements of a research project
 ------------------------------
@@ -381,7 +380,7 @@ in the LightningModule
 Again, this is the same PyTorch code except that it has been organized by the LightningModule.
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
 
----------
+---
 
 Training
 --------
@@ -587,11 +586,11 @@ Notice the epoch is MUCH faster!
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
 
----------
+---
 
 .. include:: hyperparameters.rst
 
----------
+---
 
 Validating
 ----------
@@ -670,7 +669,7 @@ in the validation loop, you won't need to potentially wait a full epoch to find 
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
 
----------
+---
 
 Testing
 -------
@@ -741,7 +740,7 @@ You can also run the test from a saved lightning model
 
 .. warning:: .test() is not stable yet on TPUs. We're working on getting around the multiprocessing challenges.
 
----------
+---
 
 Predicting
 ----------
@@ -842,7 +841,7 @@ Or maybe we have a model that we use to do generation
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
 
----------
+---
 
 Extensibility
 -------------
@@ -903,7 +902,7 @@ you could do your own:
 Every single part of training is configurable this way.
 For a full list look at `LightningModule <lightning-module.rst>`_.
 
----------
+---
 
 Callbacks
 ---------
@@ -940,10 +939,10 @@ And pass the callbacks into the trainer
 .. note::
     See full list of 12+ hooks in the :ref:`callbacks`.
 
----------
+---
 
 .. include:: child_modules.rst
 
----------
+---
 
 .. include:: transfer_learning.rst
