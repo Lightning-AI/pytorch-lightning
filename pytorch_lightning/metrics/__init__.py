@@ -27,7 +27,7 @@ from pytorch_lightning.metrics.sklearns import (
     SklearnMetric,
 )
 
-__all__ = [
+classification_metrics = [
     'AUC',
     'AUROC',
     'Accuracy',
@@ -45,3 +45,10 @@ __all__ = [
     'Recall',
     'SklearnMetric',
 ]
+regression_metrics = [
+    'MSE',
+    'RMSE',
+    'MAE',
+    'RMSLE'
+]
+__all__ = regression_metrics + classification_metrics
