@@ -318,8 +318,8 @@ class TrainerTrainLoopMixin(ABC):
 
         # get model
         model = self.get_model()
-        
-        # enable train mode 
+
+        # enable train mode
         model.train()
 
         # enable gradients
