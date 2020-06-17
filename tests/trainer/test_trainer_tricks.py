@@ -5,6 +5,52 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from torch.utils.data import RandomSampler
+
+
+def test_overfit(tmpdir):
+
+    model = EvalModelTemplate()
+    model.train_dataloader()
+
+    # original train loader which should be replaced in all methods
+    train_loader = model.train_dataloader()
+    full_train_samples = len(train_loader)
+    num_train_samples = int(0.11 * full_train_samples)
+
+    # make sure the original loader has shuffle=True
+    assert isinstance(train_loader.sampler, RandomSampler)
+
+    # pull out a batch from the original loader
+    (xa, ya) = next(iter(train_loader))
+
+    # make sure the train set is also the val and test set
+    for split in ['val', 'test']:
+        # test percent overfit batches
+        loader_num_batches, dataloaders = Trainer(overfit_batches=0.11)._reset_eval_dataloader(model, split)
+        assert loader_num_batches == num_train_samples
+        assert isinstance(dataloaders[0].sampler, RandomSampler)
+
+        # assert that it's the same dataloader
+        (xb, yb) = next(iter(dataloaders[0]))
+        assert torch.eq(xa, xb)
+        assert torch.eq(ya, yb)
+
+        # test overfit number of batches
+        loader_num_batches, dataloaders = Trainer(overfit_batches=1)._reset_eval_dataloader(model, split)
+        assert loader_num_batches == 1
+        loader_num_batches, dataloaders = Trainer(overfit_batches=5)._reset_eval_dataloader(model, split)
+        assert loader_num_batches == 5
+
+        # make sure the samplers are disabled
+        assert isinstance(dataloaders[0].sampler, RandomSampler)
+
+        # assert that it's the same dataloader
+        (xb, yb) = next(iter(dataloaders[0]))
+        assert torch.eq(xa, xb)
+        assert torch.eq(ya, yb)
+
+
 
 
 def test_model_reset_correctly(tmpdir):
