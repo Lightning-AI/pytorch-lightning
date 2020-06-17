@@ -73,9 +73,9 @@ class TrainerDataLoadingMixin(ABC):
     num_val_batches: List[Union[int, float]]
     test_dataloaders: List[DataLoader]
     num_test_batches: List[Union[int, float]]
-    limit_train_batches: float
-    limit_val_batches: float
-    limit_test_batches: float
+    limit_train_batches: Union[int, float]
+    limit_val_batches: Union[int, float]
+    limit_test_batches: Union[int, float]
     replace_sampler_ddp: bool
     num_nodes: int
     num_processes: int

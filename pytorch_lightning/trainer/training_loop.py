@@ -78,6 +78,9 @@ limit_train_batches will be overwritten by overfit_pct if `overfit_pct > 0`
     # check 10% only
     trainer = Trainer(limit_train_batches=0.1)
 
+    # check 10 batches only
+    trainer = Trainer(limit_train_batches=10)
+
 Packed sequences as inputs
 --------------------------
 
