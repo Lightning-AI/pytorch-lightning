@@ -80,7 +80,7 @@ def test_multiple_val_dataloader(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=1.0,
     )
     result = trainer.fit(model)
@@ -116,7 +116,7 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2
     )
     trainer.fit(model)
@@ -144,7 +144,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True))
@@ -161,7 +161,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True),
@@ -183,7 +183,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir, ckpt_path):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True),
@@ -216,7 +216,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True),
@@ -245,7 +245,7 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2
     )
 
@@ -286,7 +286,7 @@ def test_val_inf_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__infinite
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_percent_check=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5)
 
     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
         trainer.fit(model)
@@ -298,7 +298,7 @@ def test_test_inf_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__infinite
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, test_percent_check=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=0.5)
 
     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
         trainer.test(model)
@@ -354,8 +354,8 @@ def test_error_on_zero_len_dataloader(tmpdir):
             default_root_dir=tmpdir,
             max_epochs=1,
             train_percent_check=0.1,
-            val_percent_check=0.1,
-            test_percent_check=0.1
+            limit_val_batches=0.1,
+            limit_test_batches=0.1
         )
         trainer.fit(model)
 
@@ -371,7 +371,7 @@ def test_warning_with_few_workers(tmpdir, ckpt_path):
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.2
     )
 
@@ -489,7 +489,7 @@ def test_batch_size_smaller_than_num_gpus():
     trainer = Trainer(
         max_epochs=1,
         train_percent_check=0.1,
-        val_percent_check=0,
+        limit_val_batches=0,
         gpus=num_gpus,
     )
 

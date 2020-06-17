@@ -56,17 +56,17 @@ If you don't want to check 100% of the training/validation/test set (for debuggi
     # DEFAULT
     trainer = Trainer(
         train_percent_check=1.0,
-        val_percent_check=1.0,
-        test_percent_check=1.0
+        limit_val_batches=1.0,
+        limit_test_batches=1.0
     )
 
     # check 10%, 20%, 30% only, respectively for training, validation and test set
     trainer = Trainer(
         train_percent_check=0.1,
-        val_percent_check=0.2,
-        test_percent_check=0.3
+        limit_val_batches=0.2,
+        limit_test_batches=0.3
     )
 
-.. note:: ``train_percent_check``, ``val_percent_check`` and ``test_percent_check`` will be overwritten by ``overfit_pct`` if ``overfit_pct`` > 0. ``val_percent_check`` will be ignored if ``fast_dev_run=True``.
+.. note:: ``train_percent_check``, ``limit_val_batches`` and ``limit_test_batches`` will be overwritten by ``overfit_batches`` if ``overfit_batches`` > 0. ``limit_val_batches`` will be ignored if ``fast_dev_run=True``.
 
-.. note:: If you set ``val_percent_check=0``, validation will be disabled.
+.. note:: If you set ``limit_val_batches=0``, validation will be disabled.

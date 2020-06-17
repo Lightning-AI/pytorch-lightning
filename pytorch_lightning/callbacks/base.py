@@ -22,6 +22,14 @@ class Callback(abc.ABC):
         """Called when the trainer initialization ends, model has not yet been set."""
         pass
 
+    def on_fit_start(self, trainer):
+        """Called when fit begins"""
+        pass
+
+    def on_fit_end(self, trainer):
+        """Called when fit ends"""
+        pass
+
     def on_sanity_check_start(self, trainer, pl_module):
         """Called when the validation sanity check starts."""
         pass

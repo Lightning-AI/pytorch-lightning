@@ -53,7 +53,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
         max_epochs=1,
         logger=logger,
         train_percent_check=0.2,
-        val_percent_check=0.5,
+        limit_val_batches=0.5,
         fast_dev_run=True,
     )
     trainer.fit(model)
