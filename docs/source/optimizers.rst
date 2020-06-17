@@ -2,7 +2,7 @@ Optimization
 ===============
 
 Learning rate scheduling
--------------------------------------
+------------------------
 Every optimizer you use can be paired with any `LearningRateScheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
 
 .. testcode::
@@ -41,7 +41,7 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
 
 
 Use multiple optimizers (like GANs)
--------------------------------------
+-----------------------------------
 To use multiple optimizers return > 1 optimizers from :meth:`pytorch_lightning.core.LightningModule.configure_optimizers`
 
 .. testcode::
@@ -73,7 +73,7 @@ Lightning will call each optimizer sequentially:
 
 
 Step optimizers at arbitrary intervals
-----------------------------------------
+--------------------------------------
 To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
 override the :meth:`optimizer_step` function.
 

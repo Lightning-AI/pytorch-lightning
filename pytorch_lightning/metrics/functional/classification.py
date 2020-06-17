@@ -209,14 +209,14 @@ def accuracy(
 
     Example:
 
-        >>> x = torch.tensor([1, 2, 3])
-        >>> y = torch.tensor([0, 2, 3])
+        >>> x = torch.tensor([0, 1, 2, 3])
+        >>> y = torch.tensor([0, 1, 2, 2])
         >>> accuracy(x, y)
-        tensor(0.6667)
+        tensor(0.7500)
 
     """
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target,
-                                                            num_classes=num_classes)
+    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
+        pred=pred, target=target, num_classes=num_classes)
 
     if not (target > 0).any() and num_classes is None:
         raise RuntimeError("cannot infer num_classes when target is all zero")
@@ -539,7 +539,7 @@ def roc(
 
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
-        >>> fpr, tpr, thresholds = roc(x,y)
+        >>> fpr, tpr, thresholds = roc(x, y)
         >>> fpr
         tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
         >>> tpr

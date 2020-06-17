@@ -8,7 +8,7 @@ Fast Training
 There are multiple options to speed up different parts of the training by choosing to train
 on a subset of data. This could be done for speed or debugging purposes.
 
-----------------------
+---
 
 Check validation every n epochs
 -------------------------------
@@ -19,7 +19,7 @@ If you have a small dataset you might want to check validation every n epochs
     # DEFAULT
     trainer = Trainer(check_val_every_n_epoch=1)
 
-----------------------
+---
 
 Force training for min or max epochs
 ------------------------------------
@@ -33,7 +33,7 @@ It can be useful to force training for a minimum number of epochs or limit to a 
     # DEFAULT
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
-----------------------
+---
 
 Set validation check frequency within 1 training epoch
 ------------------------------------------------------
@@ -52,7 +52,7 @@ Must use an int if using an IterableDataset.
     # check every 100 train batches (ie: for IterableDatasets or fixed frequency)
     trainer = Trainer(val_check_interval=100)
 
-----------------------
+---
 
 Use data subset for training, validation and test
 -------------------------------------------------
