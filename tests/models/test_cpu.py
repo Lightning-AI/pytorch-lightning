@@ -26,7 +26,7 @@ def test_cpu_slurm_save_load(tmpdir):
         max_epochs=1,
         logger=logger,
         train_percent_check=0.2,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir)
     )
     result = trainer.fit(model)
@@ -90,10 +90,10 @@ def test_early_stopping_cpu_model(tmpdir):
         early_stop_callback=stopping,
         max_epochs=2,
         gradient_clip_val=1.0,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         track_grad_norm=2,
         train_percent_check=0.1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
     )
 
     model = EvalModelTemplate()
@@ -119,7 +119,7 @@ def test_multi_cpu_model_ddp(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
         gpus=None,
         num_processes=2,
         distributed_backend='ddp_cpu'
@@ -137,7 +137,7 @@ def test_lbfgs_cpu_model(tmpdir):
         progress_bar_refresh_rate=0,
         weights_summary='top',
         train_percent_check=0.2,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -154,10 +154,10 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gradient_clip_val=1.0,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         progress_bar_refresh_rate=0,
         train_percent_check=0.01,
-        val_percent_check=0.01,
+        limit_val_batches=0.01,
     )
 
     model = EvalModelTemplate()
@@ -184,8 +184,8 @@ def test_running_test_after_fitting(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=2,
         train_percent_check=0.4,
-        val_percent_check=0.2,
-        test_percent_check=0.2,
+        limit_val_batches=0.2,
+        limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger
     )
@@ -214,8 +214,8 @@ def test_running_test_no_val(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.2,
-        test_percent_check=0.2,
+        limit_val_batches=0.2,
+        limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
         early_stop_callback=False
@@ -238,7 +238,7 @@ def test_simple_cpu(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
+        limit_val_batches=0.1,
         train_percent_check=0.1,
     )
     result = trainer.fit(model)
@@ -254,7 +254,7 @@ def test_cpu_model(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.4
+        limit_val_batches=0.4
     )
 
     model = EvalModelTemplate()
@@ -267,13 +267,13 @@ def test_all_features_cpu_model(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         track_grad_norm=2,
         progress_bar_refresh_rate=0,
         accumulate_grad_batches=2,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.4
+        limit_val_batches=0.4
     )
 
     model = EvalModelTemplate()
@@ -342,7 +342,7 @@ def test_tbptt_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         truncated_bptt_steps=truncated_bptt_steps,
-        val_percent_check=0,
+        limit_val_batches=0,
         weights_summary=None,
         early_stop_callback=False
     )
