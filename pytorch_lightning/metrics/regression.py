@@ -4,6 +4,7 @@ from pytorch_lightning.metrics.metric import Metric
 
 __all__ = ['MSE', 'RMSE', 'MAE', 'RMSLE']
 
+
 class MSE(Metric):
     """
     Computes the mean squared loss.
