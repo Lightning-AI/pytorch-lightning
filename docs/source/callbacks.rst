@@ -68,7 +68,7 @@ We successfully extended functionality without polluting our super clean
 
 ---------
 
-.. automodule:: pytorch_lightning.callbacks.model_checkpoint
+.. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
    :exclude-members:
         _del_model,
@@ -78,7 +78,14 @@ We successfully extended functionality without polluting our super clean
 
 ---------
 
-.. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
+.. automodule:: pytorch_lightning.callbacks.lr_logger
+    :noindex:
+    :exclude-members:
+        _extract_lr,
+        _find_names
+---------
+
+.. automodule:: pytorch_lightning.callbacks.model_checkpoint
    :noindex:
    :exclude-members:
         _del_model,
@@ -91,11 +98,3 @@ We successfully extended functionality without polluting our super clean
 .. automodule:: pytorch_lightning.callbacks.progress
    :noindex:
    :exclude-members:
-
----------
-
-.. automodule:: pytorch_lightning.callbacks.lr_logger
-    :noindex:
-    :exclude-members:
-        _extract_lr,
-        _find_names

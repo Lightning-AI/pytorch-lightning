@@ -1,6 +1,6 @@
 r"""
-Early Stopping
-==============
+EarlyStopping
+=============
 
 Monitor a validation metric and stop training when it stops improving.
 
