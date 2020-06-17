@@ -62,7 +62,7 @@ def test_horovod_cpu(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
         distributed_backend='horovod',
         deterministic=True,
     )
@@ -79,7 +79,7 @@ def test_horovod_cpu_implicit(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
         deterministic=True,
     )
     _run_horovod(trainer_options)
@@ -97,7 +97,7 @@ def test_horovod_multi_gpu(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
         distributed_backend='horovod'
@@ -132,7 +132,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
         distributed_backend='horovod'
@@ -150,7 +150,7 @@ def test_horovod_multi_optimizer(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_val_batches=0.2,
         deterministic=True,
         distributed_backend='horovod'
     )

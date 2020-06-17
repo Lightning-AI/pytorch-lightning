@@ -68,7 +68,7 @@ Set how much of the training set to check
 
 If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag.
 
-train_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+train_percent_check will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 
@@ -202,7 +202,7 @@ class TrainerTrainLoopMixin(ABC):
     check_val_every_n_epoch: ...
     num_training_batches: int
     val_check_batch: ...
-    num_val_batches: int
+    num_val_batches: List[int]
     disable_validation: bool
     fast_dev_run: ...
     accumulation_scheduler: ...
