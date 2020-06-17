@@ -494,7 +494,9 @@ class Trainer(
 
         # how much of the data to use
         # TODO: remove in 0.10.0
-        if overfit_pct > 0:
+        if overfit_pct is not None:
+            rank_zero_warn("Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
             overfit_batches = overfit_pct
 
         # convert floats to ints

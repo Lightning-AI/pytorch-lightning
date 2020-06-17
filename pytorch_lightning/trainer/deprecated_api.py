@@ -1,6 +1,7 @@
 """Mirroring deprecated API"""
 
 from abc import ABC
+from typing import Union
 
 from pytorch_lightning.utilities import rank_zero_warn
 
@@ -40,14 +41,16 @@ class TrainerDeprecatedAPITillVer0_9(ABC):
 
 
 class TrainerDeprecatedAPITillVer0_10(ABC):
-    limit_val_batches: ...
-    limit_test_batches: ...
+    limit_val_batches: Union[int, float]
+    limit_test_batches: Union[int, float]
+    limit_train_batches: Union[int, float]
+    overfit_batches: Union[int, float]
 
     def __init__(self):
         super().__init__()  # mixin calls super too
 
     @property
-    def val_percent_check(self):
+    def val_percent_check(self) -> Union[int, float]:
         """Back compatibility, will be removed in v0.10.0"""
         rank_zero_warn("Attribute `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
                        " and this method will be removed in v0.10.0", DeprecationWarning)
@@ -61,7 +64,7 @@ class TrainerDeprecatedAPITillVer0_10(ABC):
         self.limit_val_batches = pct
 
     @property
-    def test_percent_check(self):
+    def test_percent_check(self) -> Union[int, float]:
         """Back compatibility, will be removed in v0.10.0"""
         rank_zero_warn("Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
                        " and this method will be removed in v0.10.0", DeprecationWarning)
@@ -73,3 +76,31 @@ class TrainerDeprecatedAPITillVer0_10(ABC):
         rank_zero_warn("Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
                        " and this method will be removed in v0.10.0", DeprecationWarning)
         self.limit_test_batches = pct
+
+    @property
+    def train_percent_check(self) -> Union[int, float]:
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        return self.limit_train_batches
+
+    @train_percent_check.setter
+    def train_percent_check(self, pct):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        self.limit_train_batches = pct
+
+    @property
+    def overfit_pct(self) -> Union[int, float]:
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `train_percent_check` is now set by `overfit_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        return self.overfit_batches
+
+    @overfit_pct.setter
+    def overfit_pct(self, pct):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `train_percent_check` is now set by `overfit_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        self.overfit_batches = pct
