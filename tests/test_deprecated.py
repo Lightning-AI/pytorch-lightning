@@ -15,7 +15,7 @@ def _soft_unimport_module(str_module):
         del sys.modules[str_module]
 
 
-def test_tbd_remove_in_v0_10_0_trainer(arg):
+def test_tbd_remove_in_v0_10_0_trainer():
     rnd_val = random.random()
     with pytest.deprecated_call(match='v0.10.0'):
         trainer = Trainer(overfit_pct=rnd_val)
