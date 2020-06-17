@@ -27,7 +27,7 @@ def test_overfit(tmpdir):
     # ------------------------------------------------------
     # get the training loader and batch
     # ------------------------------------------------------
-    train_loader = model.train_dataloader()
+    train_loader = DataLoader(model.train_dataloader().dataset, shuffle=False)
     full_train_samples = len(train_loader)
     num_train_samples = int(0.11 * full_train_samples)
 
@@ -40,6 +40,7 @@ def test_overfit(tmpdir):
     test_loader = DataLoader(model.test_dataloader().dataset, shuffle=False)
 
     # set the model loaders
+    model.train_dataloader = lambda: train_loader
     model.val_dataloader = lambda: val_loader
     model.test_dataloader = lambda: test_loader
 
@@ -54,13 +55,13 @@ def test_overfit(tmpdir):
         loader_num_batches, dataloaders = Trainer(overfit_batches=0.11)._reset_eval_dataloader(model, split)
         assert loader_num_batches[0] == num_train_samples
 
-        # make sure we turned off the sampler
+        # make sure we turned off shuffle for the user
         assert isinstance(dataloaders[0].sampler, SequentialSampler)
 
         # make sure the loaders are the same
         (xb, yb) = next(iter(dataloaders[0]))
-        assert torch.eq(xa, xb)
-        assert torch.eq(ya, yb)
+        assert torch.eq(xa, xb).all()
+        assert torch.eq(ya, yb).all()
 
         # ------------------------------------------------------
         # test overfit_batches as int
@@ -86,8 +87,6 @@ def test_overfit(tmpdir):
             loader_num_batches, dataloaders = Trainer(limit_test_batches=10)._reset_eval_dataloader(model, split)
             assert loader_num_batches[0] == 10
 
-
-test_overfit('')
 
 def test_model_reset_correctly(tmpdir):
     """ Check that model weights are correctly reset after scaling batch size. """
