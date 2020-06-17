@@ -8,7 +8,7 @@ from tests.base import EvalModelTemplate
 from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 
-def test_overfit(tmpdir):
+def test_overfit_batch_limits(tmpdir):
 
     # ------------------------------------------------------
     # Make sure the trainer ends up with correct values
@@ -55,6 +55,28 @@ def test_overfit(tmpdir):
     model.train_dataloader = lambda: train_loader
     model.val_dataloader = lambda: val_loader
     model.test_dataloader = lambda: test_loader
+
+    # ------------------------------------------------------
+    # test train loader applies correct limits
+    # ------------------------------------------------------
+    trainer = Trainer(overfit_batches=4)
+    trainer.reset_train_dataloader(model)
+    assert trainer.num_training_batches == 4
+
+    # make sure the loaders are the same
+    (xb, yb) = next(iter(trainer.train_dataloader))
+    assert torch.eq(xa, xb).all()
+    assert torch.eq(ya, yb).all()
+
+    trainer = Trainer(overfit_batches=0.11)
+    trainer.reset_train_dataloader(model)
+    assert trainer.train_dataloader is train_loader
+    assert trainer.num_training_batches == num_train_samples
+
+    # make sure the loaders are the same
+    (xb, yb) = next(iter(trainer.train_dataloader))
+    assert torch.eq(xa, xb).all()
+    assert torch.eq(ya, yb).all()
 
     # ------------------------------------------------------
     # run tests for both val and test
