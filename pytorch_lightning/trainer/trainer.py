@@ -131,7 +131,7 @@ class Trainer(
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
         val_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
         test_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
-        overfit_pct: float = 1.0  # backward compatible, todo: remove in v1.0.0
+        overfit_pct: float = 0.0  # backward compatible, todo: remove in v1.0.0
     ):
         r"""
 

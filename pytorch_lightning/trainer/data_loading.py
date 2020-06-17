@@ -87,6 +87,11 @@ class TrainerDataLoadingMixin(ABC):
 
     def _limit_eval_batches_check(self, name: str) -> None:
         value = getattr(self, name)
+
+        # ints are fine
+        if isinstance(value, int):
+            return
+
         msg = f'`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}.'
         if name == 'val_check_interval':
             msg += ' If you want to disable validation set `limit_val_batches` to 0.0 instead.'
@@ -242,12 +247,11 @@ class TrainerDataLoadingMixin(ABC):
             # shuffling in val and test set is bad practice
             if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
 
-                # when overfitting, remove the randomsampler for the train loaders
+                # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
-                    rank_zero_warn(
-                        f'You requested to overfit but enabled training Dataloader shuffling. Disabling it for you'
-                    )
-                    loader.sampler = SequentialSampler(loader.dataset)
+                    m = 'You requested to overfit but enabled training Dataloader shuffling. ' \
+                        'Please turn it off and try again (we cannot turn it off for you)'
+                    raise MisconfigurationException(m)
 
                 else:
                     rank_zero_warn(

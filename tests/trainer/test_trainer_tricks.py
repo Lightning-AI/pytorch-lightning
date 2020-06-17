@@ -5,7 +5,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from torch.utils.data import RandomSampler
+from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 
 def test_overfit(tmpdir):
@@ -15,42 +15,60 @@ def test_overfit(tmpdir):
 
     # original train loader which should be replaced in all methods
     train_loader = model.train_dataloader()
+
+    # make sure the val and tests are not shuffled
+    assert isinstance(train_loader.sampler, RandomSampler)
+    assert isinstance(model.val_dataloader().sampler, SequentialSampler)
+    assert isinstance(model.test_dataloader().sampler, SequentialSampler)
+
+    # now that we confirmed that train is shuffled and val, test aren't then if the exception is raised it's because
+    # we used the train set
+    with pytest.raises(MisconfigurationException):
+        Trainer(overfit_batches=0.11)._reset_eval_dataloader(model, 'val')
+
+    # set custom loaders
+    train_loader = DataLoader(model.train_dataloader().dataset, shuffle=False)
+    val_loader = DataLoader(model.val_dataloader().dataset, shuffle=False)
+    test_loader = DataLoader(model.test_dataloader().dataset, shuffle=False)
+
+    # set the model loaders
+    model.train_dataloader = lambda: train_loader
+    model.val_dataloader = lambda: val_loader
+    model.test_dataloader = lambda: test_loader
+
     full_train_samples = len(train_loader)
     num_train_samples = int(0.11 * full_train_samples)
-
-    # make sure the original loader has shuffle=True
-    assert isinstance(train_loader.sampler, RandomSampler)
-
-    # pull out a batch from the original loader
-    (xa, ya) = next(iter(train_loader))
 
     # make sure the train set is also the val and test set
     for split in ['val', 'test']:
         # test percent overfit batches
         loader_num_batches, dataloaders = Trainer(overfit_batches=0.11)._reset_eval_dataloader(model, split)
-        assert loader_num_batches == num_train_samples
-        assert isinstance(dataloaders[0].sampler, RandomSampler)
-
-        # assert that it's the same dataloader
-        (xb, yb) = next(iter(dataloaders[0]))
-        assert torch.eq(xa, xb)
-        assert torch.eq(ya, yb)
+        assert loader_num_batches[0] == num_train_samples
+        assert dataloaders[0] is train_loader
 
         # test overfit number of batches
         loader_num_batches, dataloaders = Trainer(overfit_batches=1)._reset_eval_dataloader(model, split)
-        assert loader_num_batches == 1
+        assert loader_num_batches[0] == 1
         loader_num_batches, dataloaders = Trainer(overfit_batches=5)._reset_eval_dataloader(model, split)
-        assert loader_num_batches == 5
+        assert loader_num_batches[0] == 5
 
-        # make sure the samplers are disabled
-        assert isinstance(dataloaders[0].sampler, RandomSampler)
+        # test limit_xx_batches as a percent
+        if split == 'val':
+            loader_num_batches, dataloaders = Trainer(limit_val_batches=0.1)._reset_eval_dataloader(model, split)
+            assert loader_num_batches[0] == int(0.1 * len(val_loader))
+            assert dataloaders[0] is val_loader
 
-        # assert that it's the same dataloader
-        (xb, yb) = next(iter(dataloaders[0]))
-        assert torch.eq(xa, xb)
-        assert torch.eq(ya, yb)
+            loader_num_batches, dataloaders = Trainer(limit_val_batches=10)._reset_eval_dataloader(model, split)
+            assert loader_num_batches[0] == 10
+            assert dataloaders[0] is val_loader
+        else:
+            loader_num_batches, dataloaders = Trainer(limit_test_batches=0.1)._reset_eval_dataloader(model, split)
+            assert loader_num_batches[0] == int(0.1 * len(test_loader))
+            assert dataloaders[0] is test_loader
 
-
+            loader_num_batches, dataloaders = Trainer(limit_test_batches=10)._reset_eval_dataloader(model, split)
+            assert loader_num_batches[0] == 10
+            assert dataloaders[0] is test_loader
 
 
 def test_model_reset_correctly(tmpdir):
