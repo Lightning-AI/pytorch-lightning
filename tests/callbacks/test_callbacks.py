@@ -48,6 +48,8 @@ def test_trainer_callback_system(tmpdir):
             super().__init__()
             self.on_init_start_called = False
             self.on_init_end_called = False
+            self.on_fit_start_called = False
+            self.on_fit_end_called = False
             self.on_sanity_check_start_called = False
             self.on_sanity_check_end_called = False
             self.on_epoch_start_called = False
@@ -72,6 +74,14 @@ def test_trainer_callback_system(tmpdir):
         def on_init_end(self, trainer):
             assert isinstance(trainer, Trainer)
             self.on_init_end_called = True
+
+        def on_fit_start(self, trainer):
+            assert isinstance(trainer, Trainer)
+            self.on_fit_start_called = True
+
+        def on_fit_end(self, trainer):
+            assert isinstance(trainer, Trainer)
+            self.on_fit_end_called = True
 
         def on_sanity_check_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
@@ -149,6 +159,8 @@ def test_trainer_callback_system(tmpdir):
 
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
+    assert not test_callback.on_fit_start_called
+    assert not test_callback.on_fit_end_called
     assert not test_callback.on_sanity_check_start_called
     assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
@@ -172,6 +184,8 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert test_callback.on_fit_start_called
+    assert test_callback.on_fit_end_called
     assert not test_callback.on_sanity_check_start_called
     assert not test_callback.on_sanity_check_end_called
     assert not test_callback.on_epoch_start_called
@@ -193,6 +207,8 @@ def test_trainer_callback_system(tmpdir):
 
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert test_callback.on_fit_start_called
+    assert test_callback.on_fit_end_called
     assert test_callback.on_sanity_check_start_called
     assert test_callback.on_sanity_check_end_called
     assert test_callback.on_epoch_start_called
