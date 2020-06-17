@@ -59,6 +59,8 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
     # or overfit a number of batches
     trainer = Trainer(overfit_batches=0.01)
 
+With this flag, the train, val, and test sets will all be the same train set. We will also replace the sampler
+in the training set to turn off shuffle for you.
 
 Print a summary of your LightningModule
 ---------------------------------------

@@ -144,15 +144,21 @@ class TrainerDataLoadingMixin(ABC):
                     ' distributed training. Either remove the sampler from your DataLoader or set'
                     ' `replace_sampler_ddp`=False if you want to use your custom sampler.')
 
-            skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
+            # replace with distributed sampler
+            sampler = self._get_distributed_sampler(dataloader)
+            dataloader = self.replace_sampler(dataloader, sampler)
 
-            dl_args = {
-                k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
-            }
+        return dataloader
 
-            dl_args['sampler'] = self._get_distributed_sampler(dataloader)
-            dataloader = type(dataloader)(**dl_args)
+    def replace_sampler(self, dataloader, sampler):
+        skip_keys = ['sampler', 'batch_sampler', 'dataset_kind']
 
+        dl_args = {
+            k: v for k, v in dataloader.__dict__.items() if not k.startswith('_') and k not in skip_keys
+        }
+
+        dl_args['sampler'] = sampler
+        dataloader = type(dataloader)(**dl_args)
         return dataloader
 
     def _get_distributed_sampler(self, dataloader):
@@ -243,15 +249,18 @@ class TrainerDataLoadingMixin(ABC):
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
-        for loader in dataloaders:
+        for loader_i in range(dataloaders):
+            loader = dataloaders[loader_i]
+
             # shuffling in val and test set is bad practice
             if mode in ('val', 'test') and hasattr(loader, 'sampler') and isinstance(loader.sampler, RandomSampler):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
                     m = 'You requested to overfit but enabled training Dataloader shuffling. ' \
-                        'Please turn it off and try again (we cannot turn it off for you)'
-                    raise MisconfigurationException(m)
+                        'we are turning it off for you'
+                    rank_zero_warn(m)
+                    dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler)
 
                 else:
                     rank_zero_warn(
