@@ -20,7 +20,7 @@ from sklearn.metrics import (
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
-from pytorch_lightning.metrics.sk_metrics import (
+from pytorch_lightning.metrics.sklearns import (
     Accuracy,
     AveragePrecision,
     AUC,
