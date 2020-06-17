@@ -860,7 +860,7 @@ show_progress_bar
     Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 test_percent_check
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 .. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 1.0.0
 
