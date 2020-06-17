@@ -48,7 +48,6 @@ def test_trainer_reset_correctly(tmpdir):
                           'callbacks',
                           'checkpoint_callback',
                           'early_stop_callback',
-                          'enable_early_stop',
                           'train_percent_check']
 
     attributes_before = {}

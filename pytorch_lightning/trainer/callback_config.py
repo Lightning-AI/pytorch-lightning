@@ -68,14 +68,10 @@ class TrainerCallbackConfigMixin(ABC):
                 verbose=True,
                 mode='min'
             )
-            # TODO remove this attribute
-            self.enable_early_stop = True
         elif not early_stop_callback:
             early_stop_callback = None
-            self.enable_early_stop = False
         else:
             early_stop_callback = early_stop_callback
-            self.enable_early_stop = True
         return early_stop_callback
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
