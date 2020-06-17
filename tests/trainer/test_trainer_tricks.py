@@ -10,6 +10,9 @@ from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 def test_overfit(tmpdir):
 
+    # ------------------------------------------------------
+    # Make sure shuffle is correct across loaders initially
+    # ------------------------------------------------------
     model = EvalModelTemplate()
     model.train_dataloader()
 
@@ -21,12 +24,16 @@ def test_overfit(tmpdir):
     assert isinstance(model.val_dataloader().sampler, SequentialSampler)
     assert isinstance(model.test_dataloader().sampler, SequentialSampler)
 
+    # ------------------------------------------------------
     # now that we confirmed that train is shuffled and val, test aren't then if the exception is raised it's because
     # we used the train set
+    # ------------------------------------------------------
     with pytest.raises(MisconfigurationException):
         Trainer(overfit_batches=0.11)._reset_eval_dataloader(model, 'val')
 
+    # ------------------------------------------------------
     # set custom loaders
+    # ------------------------------------------------------
     train_loader = DataLoader(model.train_dataloader().dataset, shuffle=False)
     val_loader = DataLoader(model.val_dataloader().dataset, shuffle=False)
     test_loader = DataLoader(model.test_dataloader().dataset, shuffle=False)
@@ -39,20 +46,29 @@ def test_overfit(tmpdir):
     full_train_samples = len(train_loader)
     num_train_samples = int(0.11 * full_train_samples)
 
-    # make sure the train set is also the val and test set
+    # ------------------------------------------------------
+    # run tests for both val and test
+    # ------------------------------------------------------
     for split in ['val', 'test']:
-        # test percent overfit batches
+
+        # ------------------------------------------------------
+        # test overfit_batches as percent
+        # ------------------------------------------------------
         loader_num_batches, dataloaders = Trainer(overfit_batches=0.11)._reset_eval_dataloader(model, split)
         assert loader_num_batches[0] == num_train_samples
         assert dataloaders[0] is train_loader
 
-        # test overfit number of batches
+        # ------------------------------------------------------
+        # test overfit_batches as int
+        # ------------------------------------------------------
         loader_num_batches, dataloaders = Trainer(overfit_batches=1)._reset_eval_dataloader(model, split)
         assert loader_num_batches[0] == 1
         loader_num_batches, dataloaders = Trainer(overfit_batches=5)._reset_eval_dataloader(model, split)
         assert loader_num_batches[0] == 5
 
-        # test limit_xx_batches as a percent
+        # ------------------------------------------------------
+        # test limit_xxx_batches as percent AND int
+        # ------------------------------------------------------
         if split == 'val':
             loader_num_batches, dataloaders = Trainer(limit_val_batches=0.1)._reset_eval_dataloader(model, split)
             assert loader_num_batches[0] == int(0.1 * len(val_loader))
