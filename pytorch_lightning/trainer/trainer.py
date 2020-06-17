@@ -1138,8 +1138,8 @@ class Trainer(
         """
         self.setup('test')
         if self.is_function_implemented('setup'):
-            model = model if model is not None else self.model
-            model.setup('test')
+            model_ref = self.model if model is None else model
+            model_ref.setup('test')
 
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
