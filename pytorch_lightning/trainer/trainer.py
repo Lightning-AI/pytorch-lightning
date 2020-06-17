@@ -8,7 +8,6 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -18,7 +17,8 @@ from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_9
+from pytorch_lightning.trainer.deprecated_api import (
+    TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
     TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
@@ -74,6 +74,7 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
+    TrainerDeprecatedAPITillVer0_10,
 ):
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
@@ -129,10 +130,10 @@ class Trainer(
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
-        val_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
-        test_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
-        train_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
-        overfit_pct: float = 0.0  # backward compatible, todo: remove in v1.0.0
+        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        overfit_pct: float = None  # backward compatible, todo: remove in v1.0.0
     ):
         r"""
 
@@ -231,17 +232,17 @@ class Trainer(
             train_percent_check:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `limit_train_batches` instead. Will remove 1.0.0.
+                    Use `limit_train_batches` instead. Will remove v0.10.0.
 
             val_percent_check:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `limit_val_batches` instead. Will remove 1.0.0.
+                    Use `limit_val_batches` instead. Will remove v0.10.0.
 
             test_percent_check:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `limit_test_batches` instead. Will remove 1.0.0.
+                    Use `limit_test_batches` instead. Will remove v0.10.0.
 
             val_check_interval: How often within one training epoch to check the validation set
 
@@ -492,7 +493,7 @@ class Trainer(
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
-        # TODO: remove in 1.0.0
+        # TODO: remove in 0.10.0
         if overfit_pct > 0:
             overfit_batches = overfit_pct
 
@@ -500,16 +501,22 @@ class Trainer(
         overfit_batches = int(overfit_batches) if overfit_batches > 1.0 else overfit_batches
         self.overfit_batches = overfit_batches
 
-        # TODO: remove in 1.0.0
-        if val_percent_check < 1.0:
+        # TODO: remove in 0.10.0
+        if val_percent_check is not None:
+            rank_zero_warn("Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
             limit_val_batches = val_percent_check
 
-        # TODO: remove in 1.0.0
-        if test_percent_check < 1.0:
+        # TODO: remove in 0.10.0
+        if test_percent_check is not None:
+            rank_zero_warn("Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
             limit_test_batches = test_percent_check
 
-        # TODO: remove in 1.0.0
-        if train_percent_check < 1.0:
+        # TODO: remove in 0.10.0
+        if train_percent_check is not None:
+            rank_zero_warn("Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
             limit_train_batches = train_percent_check
 
         limit_test_batches = int(limit_test_batches) if limit_test_batches > 1.0 else limit_test_batches

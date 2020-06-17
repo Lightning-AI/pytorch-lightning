@@ -15,14 +15,14 @@ class TrainerDeprecatedAPITillVer0_9(ABC):
     @property
     def show_progress_bar(self):
         """Back compatibility, will be removed in v0.9.0"""
-        rank_zero_warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
+        rank_zero_warn("Attribute `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
                        " and this method will be removed in v0.9.0", DeprecationWarning)
         return self.progress_bar_callback and self.progress_bar_callback.refresh_rate >= 1
 
     @show_progress_bar.setter
     def show_progress_bar(self, tf):
         """Back compatibility, will be removed in v0.9.0"""
-        rank_zero_warn("Argument `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
+        rank_zero_warn("Attribute `show_progress_bar` is now set by `progress_bar_refresh_rate` since v0.7.2"
                        " and this method will be removed in v0.9.0", DeprecationWarning)
 
     @property
@@ -35,5 +35,41 @@ class TrainerDeprecatedAPITillVer0_9(ABC):
     @property
     def num_tpu_cores(self):
         """Back compatibility, will be removed in v0.9.0"""
-        rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
+        rank_zero_warn("Attribute `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
                        " and this argument will be removed in v0.9.0", DeprecationWarning)
+
+
+class TrainerDeprecatedAPITillVer0_10(ABC):
+    limit_val_batches: ...
+    limit_test_batches: ...
+
+    def __init__(self):
+        super().__init__()  # mixin calls super too
+
+    @property
+    def val_percent_check(self):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        return self.limit_val_batches
+
+    @val_percent_check.setter
+    def val_percent_check(self, pct):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        self.limit_val_batches = pct
+
+    @property
+    def test_percent_check(self):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        return self.limit_test_batches
+
+    @test_percent_check.setter
+    def test_percent_check(self, pct):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        self.limit_test_batches = pct

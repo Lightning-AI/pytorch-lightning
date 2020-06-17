@@ -374,9 +374,8 @@ class TrainerDataLoadingMixin(ABC):
         self.limit_test_batches = limit_test_batches
         if overfit_batches > 0:
             if isinstance(overfit_batches, float) and overfit_batches > 1:
-                raise ValueError(
-                    f'`overfit_batches` when used as a percentage must '
-                    f'be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
+                raise ValueError('`overfit_batches` when used as a percentage must'
+                                 f' be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
 
             self.limit_train_batches = overfit_batches
             self.limit_val_batches = overfit_batches
