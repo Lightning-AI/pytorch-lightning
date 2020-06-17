@@ -9,6 +9,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities import rank_zero_only
+from omegaconf import DictConfig
 
 
 class LightningLoggerBase(ABC):
@@ -174,9 +175,9 @@ class LightningLoggerBase(ABC):
 
         def _dict_generator(input_dict, prefixes=None):
             prefixes = prefixes[:] if prefixes else []
-            if isinstance(input_dict, dict):
+            if isinstance(input_dict, (dict, DictConfig)):
                 for key, value in input_dict.items():
-                    if isinstance(value, (dict, Namespace)):
+                    if isinstance(value, (dict, DictConfig, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
                         for d in _dict_generator(value, prefixes + [key]):
                             yield d
