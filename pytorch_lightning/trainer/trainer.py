@@ -195,7 +195,7 @@ class Trainer(
             overfit_pct:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `overfit_batches` instead. Will remove 1.0.0.
+                    Use `overfit_batches` instead. Will remove 0.10.0.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
@@ -523,11 +523,7 @@ class Trainer(
         self.limit_test_batches = _determine_limit_batches(limit_test_batches)
         self.limit_val_batches = _determine_limit_batches(limit_val_batches)
         self.limit_train_batches = _determine_limit_batches(limit_train_batches)
-
-        self.determine_data_use_amount(self.limit_train_batches,
-                                       self.limit_val_batches,
-                                       self.limit_test_batches,
-                                       self.overfit_batches)
+        self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
         # These are the only lines needed after v0.8.0
