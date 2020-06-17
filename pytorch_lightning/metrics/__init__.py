@@ -4,7 +4,7 @@ from pytorch_lightning.metrics.regression import (
     MSE,
     RMSE,
     MAE,
-    RMSLE
+    RMSLE,
 )
 from pytorch_lightning.metrics.classification import (
     Accuracy,
