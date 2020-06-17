@@ -1136,9 +1136,9 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
-
         self.setup('test')
         if self.is_function_implemented('setup'):
+            model = model if model is not None else self.model
             model.setup('test')
 
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
@@ -1182,7 +1182,7 @@ class Trainer(
 
         self.teardown('test')
         if self.is_function_implemented('teardown'):
-            model.teardown('test')
+            self.model.teardown('test')
 
     def check_model_configuration(self, model: LightningModule):
         r"""
