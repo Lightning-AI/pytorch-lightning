@@ -287,7 +287,7 @@ class TrainerDDPMixin(ABC):
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, used: {self.use_tpu}')
+        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {self.tpu_cores} TPU cores')
 
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
