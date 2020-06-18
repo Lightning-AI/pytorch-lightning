@@ -12,7 +12,7 @@ To enable a hook, simply override the method in your LightningModule and the tra
 
 3. Add it in the correct place in :mod:`pytorch_lightning.trainer` where it should be called.
 
----
+----------------
 
 Hooks lifecycle
 ---------------
@@ -72,7 +72,7 @@ Test loop
 - ``torch.set_grad_enabled(True)``
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_post_performance_check`
 
----
+----------------
 
 General hooks
 -------------
