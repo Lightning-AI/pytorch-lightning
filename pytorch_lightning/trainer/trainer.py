@@ -223,7 +223,7 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
-            limit_train_batches: How much of training dataset to check.
+            limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
 
             limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
 
