@@ -124,7 +124,7 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Union
 
 import torch
 from torch.utils.data import DataLoader
