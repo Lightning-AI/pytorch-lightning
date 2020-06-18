@@ -17,5 +17,6 @@ from pytorch_lightning.metrics.functional.classification import (
     stat_scores,
     stat_scores_multiple_classes,
     to_categorical,
-    to_onehot
+    to_onehot,
+    iou,
 )

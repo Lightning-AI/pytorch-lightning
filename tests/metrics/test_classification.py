@@ -19,6 +19,7 @@ from pytorch_lightning.metrics.classification import (
     MulticlassROC,
     MulticlassPrecisionRecall,
     DiceCoefficient,
+    IoU,
 )
 
 
@@ -205,3 +206,14 @@ def test_dice_coefficient(include_background):
     dice = dice_coeff(torch.randint(0, 1, (10, 25, 25)),
                       torch.randint(0, 1, (10, 25, 25)))
     assert isinstance(dice, torch.Tensor)
+
+
+@pytest.mark.parametrize('remove_bg', [True, False])
+def test_iou(remove_bg):
+    iou = IoU(remove_bg=remove_bg)
+    assert iou.name == 'iou'
+
+    score = iou(torch.randint(0, 1, (10, 25, 25)),
+                torch.randint(0, 1, (10, 25, 25)))
+
+    assert isinstance(score, torch.Tensor)
