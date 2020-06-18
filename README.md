@@ -21,7 +21,7 @@
 -->
 </div>
 
-----------------
+---
 
 ## Continuous Integration
 <center>
@@ -184,7 +184,7 @@ Although your research/production project might start simple, once you add thing
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
-----------------
+---
 
 ## README Table of Contents
 - [How do I use it](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it)
@@ -200,7 +200,7 @@ Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/
 - [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
 - [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)
 
-----------------
+---
 
 ## Realistic example
 Here's how you would organize a realistic PyTorch project into Lightning.
@@ -365,7 +365,7 @@ Check out this awesome list of research papers and implementations done with Lig
 Check out our [introduction guide](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html) to get started.
 Or jump straight into [our tutorials](https://pytorch-lightning.readthedocs.io/en/latest/#tutorials).
 
-----------------
+---
 
 ## Asking for help
 Welcome to the Lightning community!
@@ -376,7 +376,7 @@ If you have any questions, feel free to:
 3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.
 4. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
 
-----------------
+---
 
 ## FAQ
 **How do I use Lightning for rapid research?**    
@@ -444,13 +444,13 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 - Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 
-----------------
+---
 
 ### Trending contributors
 
 [![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/0)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/0)[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/1)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/1)[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/2)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/2)[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/3)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/3)[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/4)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/4)[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/5)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/5)[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/6)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/6)[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/7)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/7)
 
-----------------
+---
 
 #### Funding    
 Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can
