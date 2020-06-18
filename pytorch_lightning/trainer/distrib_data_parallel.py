@@ -372,7 +372,6 @@ class TrainerDDPMixin(ABC):
     def __set_random_port(self):
         """
         When running DDP NOT managed by SLURM, the ports might collide
-        :return:
         """
         try:
             default_port = os.environ['MASTER_PORT']
