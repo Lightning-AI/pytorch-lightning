@@ -892,6 +892,7 @@ class Trainer(
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
+                self.__set_random_port()
                 model.share_memory()
 
                 # spin up peers
