@@ -544,14 +544,16 @@ In this method we do all the preparation we need to do once (instead of on every
 
     class LitMNIST(LightningModule):
         def prepare_data(self):
-            # transform
-            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
             # download only
-            MNIST(os.getcwd(), train=True, download=True, transform=transform)
-            MNIST(os.getcwd(), train=False, download=True, transform=transform)
+            MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
+            MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
         def setup(self, step):
+            # transform
+            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+            MNIST(os.getcwd(), train=True, download=False, transform=transform)
+            MNIST(os.getcwd(), train=False, download=False, transform=transform)
+
             # train/val split
             mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
 
