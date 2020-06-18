@@ -857,17 +857,11 @@ class Trainer(
             model.prepare_data()
             self._is_data_prepared = True
 
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.barrier()
-
-        if self.on_tpu and XLA_AVAILABLE:
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.Trainer.run_setup")
+        self.barrier('fit_prepare_data')
 
         self.setup('fit')
         if self.is_function_implemented('setup'):
             model.setup('fit')
-
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
@@ -1158,6 +1152,8 @@ class Trainer(
             model_ref = self.model if model is None else model
             model_ref.setup('test')
 
+        self.barrier('test_setup')
+
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
@@ -1259,6 +1255,13 @@ class Trainer(
                 raise MisconfigurationException('You have defined `test_step()` but did not'
                                                 ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
 
+    def barrier(self, name):
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.barrier()
+
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
 
 class _PatchDataLoader(object):
     r"""
@@ -1291,3 +1294,4 @@ def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
         raise MisconfigurationException(
             f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
         )
+
