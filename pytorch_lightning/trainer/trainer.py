@@ -851,15 +851,23 @@ class Trainer(
         if self.is_function_implemented('on_fit_start'):
             model.on_fit_start()
 
-        self.setup('fit')
-        if self.is_function_implemented('setup'):
-            model.setup('fit')
-
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
+
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.barrier()
+
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous("pl.Trainer.run_setup")
+
+        self.setup('fit')
+        if self.is_function_implemented('setup'):
+            model.setup('fit')
+
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
