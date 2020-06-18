@@ -72,7 +72,7 @@ Test loop
 - ``torch.set_grad_enabled(True)``
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_post_performance_check`
 
----
+----------------
 
 General hooks
 -------------

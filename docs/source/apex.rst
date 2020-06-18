@@ -8,7 +8,7 @@
 Lightning offers 16-bit training for CPUs, GPUs and TPUs.
 
 GPU 16-bit
------------
+----------
 16 bit precision can cut your memory footprint by half.
 If using volta architecture GPUs it can give a dramatic training speed-up as well.
 

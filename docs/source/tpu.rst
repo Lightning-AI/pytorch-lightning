@@ -5,13 +5,13 @@ Lightning supports running on TPUs. At this moment, TPUs are available
 on Google Cloud (GCP), Google Colab and Kaggle Environments. For more information on TPUs
 `watch this video <https://www.youtube.com/watch?v=kPMpmcl_Pyw>`_.
 
----
+----------------
 
 Live demo
 ----------
 Check out this `Google Colab <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3>`_ to see how to train MNIST on TPUs.
 
----
+----------------
 
 TPU Terminology
 ---------------
@@ -23,7 +23,7 @@ A TPU pod hosts many TPUs on it. Currently, TPU pod v2 has 2048 cores!
 You can request a full pod from Google cloud or a "slice" which gives you
 some subset of those 2048 cores.
 
----
+----------------
 
 How to access TPUs
 ------------------
