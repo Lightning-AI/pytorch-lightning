@@ -8,7 +8,7 @@ Training Tricks
 Lightning implements various tricks to help during training
 
 Accumulate gradients
--------------------------------------
+--------------------
 Accumulated gradients runs K small batches of size N before doing a backwards pass.
 The effect is a large effective batch size of size KxN.
 
@@ -21,7 +21,7 @@ The effect is a large effective batch size of size KxN.
 
 
 Gradient Clipping
--------------------------------------
+-----------------
 Gradient clipping may be enabled to avoid exploding gradients. Specifically, this will `clip the gradient
 norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ computed over all model parameters together.
 

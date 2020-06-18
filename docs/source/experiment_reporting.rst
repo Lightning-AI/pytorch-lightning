@@ -104,6 +104,7 @@ Here we show the validation loss in the progress bar
 
 Snapshot hyperparameters
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
 When training a model, it's useful to know what hyperparams went into that model.
 When Lightning creates a checkpoint, it stores a key "hparams" with the hyperparams.
 
@@ -118,6 +119,7 @@ in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.util
 
 Snapshot code
 ^^^^^^^^^^^^^
+
 Loggers  also allow you to snapshot a copy of the code used in this experiment.
 For example, TestTubeLogger does this with a flag:
 
