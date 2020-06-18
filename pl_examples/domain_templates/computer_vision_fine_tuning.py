@@ -311,7 +311,7 @@ class TransferLearningModel(pl.LightningModule):
                                      download_root=self.dl_path,
                                      remove_finished=True)
 
-    def setup(self, step: str):
+    def setup(self, stage: str):
         data_path = Path(self.dl_path).joinpath('cats_and_dogs_filtered')
 
         # 2. Load the data + preprocessing & data augmentation
