@@ -153,6 +153,16 @@ else:
     HYDRA_AVAILABLE = True
 
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
+
+
 class TrainerDDPMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
@@ -277,6 +287,7 @@ class TrainerDDPMixin(ABC):
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
+        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, used: {self.use_tpu}')
 
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
