@@ -1263,6 +1263,7 @@ class Trainer(
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
 
+
 class _PatchDataLoader(object):
     r"""
     Callable object for patching dataloaders passed into trainer.fit().
