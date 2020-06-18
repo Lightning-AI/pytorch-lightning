@@ -1262,7 +1262,6 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
-
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
