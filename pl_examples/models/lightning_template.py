@@ -141,10 +141,13 @@ class LightningTemplateModel(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
-        self.mnist_train = MNIST(self.data_root, train=True, download=True, transform=transform)
-        self.mnist_test = MNIST(self.data_root, train=False, download=True, transform=transform)
+        MNIST(self.data_root, train=True, download=True, transform=transforms.ToTensor())
+        MNIST(self.data_root, train=False, download=True, transform=transforms.ToTensor())
+
+    def setup(self, stage):
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+        self.mnist_train = MNIST(self.data_root, train=True, download=False, transform=transform)
+        self.mnist_test = MNIST(self.data_root, train=False, download=False, transform=transform)
 
     def train_dataloader(self):
         log.info('Training data loader called.')

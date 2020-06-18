@@ -17,15 +17,15 @@ else:
 
 class ModelHooks(Module):
 
-    def setup(self, step: str):
+    def setup(self, stage: str):
         """
         Called at the beginning of fit and test.
 
         Args:
-            step: either 'fit' or 'test'
+            stage: either 'fit' or 'test'
         """
 
-    def teardown(self, step: str):
+    def teardown(self, stage: str):
         """
         Called at the end of fit and test.
 

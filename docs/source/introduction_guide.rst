@@ -278,6 +278,9 @@ Doing it in the `prepare_data` method ensures that when you have
 multiple GPUs you won't overwrite the data. This is a contrived example
 but it gets more complicated with things like NLP or Imagenet.
 
+`prepare_data` gets called on the `LOCAL_RANK=0` GPU per node. If your nodes share a file system,
+set `Trainer(prepare_data_per_node=False)` and it will be code from node=0, gpu=0 only.
+
 In general fill these methods with the following:
 
 .. testcode::
@@ -535,16 +538,21 @@ will cause all sorts of issues.
 To solve this problem, move the download code to the `prepare_data` method in the LightningModule.
 In this method we do all the preparation we need to do once (instead of on every gpu).
 
+`prepare_data` can be called in two ways, once per node or only on the root node (`Trainer(prepare_data_per_node=False)`).
+
 .. testcode::
 
     class LitMNIST(LightningModule):
         def prepare_data(self):
+            # download only
+            MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
+            MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
+
+        def setup(self, stage):
             # transform
             transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
-            # download
-            mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
-            mnist_test = MNIST(os.getcwd(), train=False, download=True, transform=transform)
+            MNIST(os.getcwd(), train=True, download=False, transform=transform)
+            MNIST(os.getcwd(), train=False, download=False, transform=transform)
 
             # train/val split
             mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
