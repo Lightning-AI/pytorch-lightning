@@ -270,7 +270,7 @@ allow for this:
     ...         MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
     ...         MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
-            def setup(self, step):
+            def setup(self, stage):
     ...         mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transforms.ToTensor())
     ...         mnist_test = MNIST(os.getcwd(), train=False, download=False, transform=transforms.ToTensor())
     ...         # train/val split

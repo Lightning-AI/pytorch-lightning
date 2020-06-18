@@ -548,7 +548,7 @@ In this method we do all the preparation we need to do once (instead of on every
             MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
-        def setup(self, step):
+        def setup(self, stage):
             # transform
             transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
             MNIST(os.getcwd(), train=True, download=False, transform=transform)

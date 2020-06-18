@@ -144,7 +144,7 @@ class LightningTemplateModel(LightningModule):
         MNIST(self.data_root, train=True, download=True, transform=transforms.ToTensor())
         MNIST(self.data_root, train=False, download=True, transform=transforms.ToTensor())
 
-    def setup(self, step):
+    def setup(self, stage):
         transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
         self.mnist_train = MNIST(self.data_root, train=True, download=False, transform=transform)
         self.mnist_test = MNIST(self.data_root, train=False, download=False, transform=transform)
