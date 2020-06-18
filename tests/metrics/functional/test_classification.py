@@ -31,7 +31,7 @@ from pytorch_lightning.metrics.functional.classification import (
     precision_recall_curve,
     roc,
     auc,
-    iou
+    iou,
 )
 
 

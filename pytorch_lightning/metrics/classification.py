@@ -776,6 +776,19 @@ class DiceCoefficient(TensorMetric):
 class IoU(TensorMetric):
     """
     Computes the intersection over union.
+
+    Example:
+
+        >>> pred = torch.tensor([[0, 0, 0, 0, 0, 0, 0, 0],
+        ...                      [0, 0, 1, 1, 1, 0, 0, 0],
+        ...                      [0, 0, 0, 0, 0, 0, 0, 0]])
+        >>> target = torch.tensor([[0, 0, 0, 0, 0, 0, 0, 0],
+        ...                        [0, 0, 0, 1, 1, 1, 0, 0],
+        ...                        [0, 0, 0, 0, 0, 0, 0, 0]])
+        >>> metric = IoU()
+        >>> metric(pred, target)
+        tensor(0.7045)
+
     """
     def __init__(self,
                  remove_bg: bool = False,

@@ -19,7 +19,7 @@ from pytorch_lightning.metrics.classification import (
     MulticlassROC,
     MulticlassPrecisionRecall,
     DiceCoefficient,
-    IoU
+    IoU,
 )
 
 
