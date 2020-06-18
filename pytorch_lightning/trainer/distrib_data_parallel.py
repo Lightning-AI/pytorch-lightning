@@ -182,6 +182,7 @@ class TrainerDDPMixin(ABC):
     num_processes: int
     num_nodes: int
     node_rank: int
+    tpu_cores: int
 
     @property
     def is_global_zero(self) -> int:
