@@ -46,6 +46,8 @@ def test_trainer_callback_system(tmpdir):
     class TestCallback(Callback):
         def __init__(self):
             super().__init__()
+            self.setup_called = False
+            self.teardown_called = False
             self.on_init_start_called = False
             self.on_init_end_called = False
             self.on_fit_start_called = False
@@ -66,6 +68,14 @@ def test_trainer_callback_system(tmpdir):
             self.on_validation_end_called = False
             self.on_test_start_called = False
             self.on_test_end_called = False
+
+        def setup(self, trainer, step: str):
+            assert isinstance(trainer, Trainer)
+            self.setup_called = True
+
+        def teardown(self, trainer, step: str):
+            assert isinstance(trainer, Trainer)
+            self.teardown_called = True
 
         def on_init_start(self, trainer):
             assert isinstance(trainer, Trainer)
@@ -157,6 +167,8 @@ def test_trainer_callback_system(tmpdir):
         progress_bar_refresh_rate=0,
     )
 
+    assert not test_callback.setup_called
+    assert not test_callback.teardown_called
     assert not test_callback.on_init_start_called
     assert not test_callback.on_init_end_called
     assert not test_callback.on_fit_start_called
@@ -184,6 +196,8 @@ def test_trainer_callback_system(tmpdir):
     assert trainer.callbacks[0] == test_callback
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
+    assert not test_callback.setup_called
+    assert not test_callback.teardown_called
     assert not test_callback.on_fit_start_called
     assert not test_callback.on_fit_end_called
     assert not test_callback.on_sanity_check_start_called
@@ -205,6 +219,8 @@ def test_trainer_callback_system(tmpdir):
 
     trainer.fit(model)
 
+    assert test_callback.setup_called
+    assert test_callback.teardown_called
     assert test_callback.on_init_start_called
     assert test_callback.on_init_end_called
     assert test_callback.on_fit_start_called
@@ -226,11 +242,17 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
 
+    # reset setup teardown callback
+    test_callback.teardown_called = False
+    test_callback.setup_called = False
+
     test_callback = TestCallback()
     trainer_options.update(callbacks=[test_callback])
     trainer = Trainer(**trainer_options)
     trainer.test(model)
 
+    assert test_callback.setup_called
+    assert test_callback.teardown_called
     assert test_callback.on_test_batch_start_called
     assert test_callback.on_test_batch_end_called
     assert test_callback.on_test_start_called

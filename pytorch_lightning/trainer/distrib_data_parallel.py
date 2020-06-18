@@ -153,6 +153,16 @@ else:
     HYDRA_AVAILABLE = True
 
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
+
+
 class TrainerDDPMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
@@ -172,6 +182,7 @@ class TrainerDDPMixin(ABC):
     num_processes: int
     num_nodes: int
     node_rank: int
+    tpu_cores: int
 
     @property
     def is_global_zero(self) -> int:
@@ -277,6 +288,8 @@ class TrainerDDPMixin(ABC):
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
+        num_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
 
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
@@ -329,7 +342,6 @@ class TrainerDDPMixin(ABC):
         node_ids = [(k, os.environ.get(k, None)) for k in env_vars]
         node_ids = [(k, v) for k, v in node_ids if v is not None]
         if len(node_ids) == 0:
-            log.warning("No environment variable for node rank defined. Set as 0.")
             return 0
         if len(node_ids) > 1:
             log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. "
@@ -360,14 +372,16 @@ class TrainerDDPMixin(ABC):
     def __set_random_port(self):
         """
         When running DDP NOT managed by SLURM, the ports might collide
-        :return:
         """
         try:
             default_port = os.environ['MASTER_PORT']
         except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
-            os.environ['MASTER_PORT'] = str(default_port)
+            # use the process id as a seed to a generator for port only
+            pid = os.getpid()
+            rng1 = np.random.RandomState(pid)
+            default_port = rng1.randint(10000, 19999, 1)[0]
+
+        os.environ['MASTER_PORT'] = str(default_port)
 
     def spawn_ddp_children(self, model):
         self.__set_random_port()
