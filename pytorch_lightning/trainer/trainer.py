@@ -868,7 +868,6 @@ class Trainer(
         if self.is_function_implemented('setup'):
             model.setup('fit')
 
-
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
