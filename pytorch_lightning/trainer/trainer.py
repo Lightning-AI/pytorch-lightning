@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info
+from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 
 try:
     from apex import amp
@@ -321,6 +321,12 @@ class Trainer(
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
+
+        # init the default rank if exists
+        if 'LOCAL_RANK' in os.environ:
+            rank_zero_only.rank = os.environ['LOCAL_RANK']
+        if 'SLURM_JOB_ID' in os.environ:
+            rank_zero_only.rank = os.environ['SLURM_JOB_ID']
 
         # Init callbacks
         self.prepare_data_per_node = prepare_data_per_node
