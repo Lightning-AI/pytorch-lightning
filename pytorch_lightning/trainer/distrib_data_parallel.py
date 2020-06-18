@@ -129,6 +129,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
+import numpy as np
 
 try:
     from apex import amp
@@ -377,8 +378,10 @@ class TrainerDDPMixin(ABC):
         try:
             default_port = os.environ['MASTER_PORT']
         except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
+            import os
+            pid = os.getpid()
+            rng1 = np.random.RandomState(pid)
+            default_port = rng1.randint(10000, 19999, 1)[0]
             os.environ['MASTER_PORT'] = str(default_port)
 
     def spawn_ddp_children(self, model):
