@@ -7,8 +7,6 @@
 Experiment Logging
 ==================
 
----
-
 Comet.ml
 ^^^^^^^^
 
@@ -49,7 +47,7 @@ The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except
 .. seealso::
     :class:`~pytorch_lightning.loggers.CometLogger` docs.
 
----
+----------------
 
 MLflow
 ^^^^^^
@@ -76,7 +74,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 .. seealso::
     :class:`~pytorch_lightning.loggers.MLFlowLogger` docs.
 
----
+----------------
 
 Neptune.ai
 ^^^^^^^^^^
@@ -116,7 +114,7 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
 
----
+----------------
 
 allegro.ai TRAINS
 ^^^^^^^^^^^^^^^^^
@@ -160,7 +158,7 @@ The :class:`~pytorch_lightning.loggers.TrainsLogger` is available anywhere in yo
 .. seealso::
     :class:`~pytorch_lightning.loggers.TrainsLogger` docs.
 
----
+----------------
 
 Tensorboard
 ^^^^^^^^^^^
@@ -186,7 +184,7 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
 .. seealso::
     :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
 
----
+----------------
 
 Test Tube
 ^^^^^^^^^
@@ -221,7 +219,7 @@ The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere exc
 .. seealso::
     :class:`~pytorch_lightning.loggers.TestTubeLogger` docs.
 
----
+----------------
 
 Weights and Biases
 ^^^^^^^^^^^^^^^^^^
@@ -257,7 +255,7 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
 .. seealso::
     :class:`~pytorch_lightning.loggers.WandbLogger` docs.
 
----
+----------------
 
 Multiple Loggers
 ^^^^^^^^^^^^^^^^
