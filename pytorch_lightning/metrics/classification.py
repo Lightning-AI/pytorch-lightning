@@ -801,6 +801,7 @@ class IoU(TensorMetric):
                 Assumes that background is '0' class in input tensor
             reduction: a method for reducing IoU over labels (default: takes the mean)
                 Available reduction methods:
+
                 - elementwise_mean: takes the mean
                 - none: pass array
                 - sum: add elements
