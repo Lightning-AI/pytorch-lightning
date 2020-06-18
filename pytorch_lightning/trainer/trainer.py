@@ -1061,7 +1061,7 @@ class Trainer(
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
-        if not self.disable_validation and self.num_sanity_val_steps > 0:
+        if not self.disable_validation and self.num_sanity_val_steps:
             self.reset_val_dataloader(ref_model)
 
             # hook and callback
@@ -1070,6 +1070,7 @@ class Trainer(
 
             num_loaders = len(self.val_dataloaders)
             max_batches = [self.num_sanity_val_steps] * num_loaders
+            max_batches = [float('inf') for m in max_batches if m == -1]
             eval_results = self._evaluate(model,
                                           self.val_dataloaders,
                                           max_batches,
