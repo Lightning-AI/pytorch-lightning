@@ -69,7 +69,7 @@ def test_trainer_callback_system(tmpdir):
             self.on_test_start_called = False
             self.on_test_end_called = False
 
-        def setup(self, trainer, step: str):
+        def setup(self, trainer, stage: str):
             assert isinstance(trainer, Trainer)
             self.setup_called = True
 
