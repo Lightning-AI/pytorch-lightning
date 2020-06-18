@@ -232,16 +232,10 @@ class TrainerEvaluationLoopMixin(ABC):
         """Run evaluation code.
 
         Args:
-<<<<<<< HEAD
-            model: PT model
-            dataloaders: list of PT dataloaders
-            max_batches: List of scalars
-=======
             model: The model to evaluate.
             dataloaders: A list of PyTorch dataloaders.
             max_batches: An integer or list of integers with length of the number of dataloaders. Each
                 entry is the number of batches to process in the corresponding dataloader.
->>>>>>> max_batches can be int
             test_mode:
         """
         # enable eval mode
