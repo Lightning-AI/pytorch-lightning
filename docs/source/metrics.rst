@@ -216,13 +216,13 @@ IoU
 RMSE
 ^^^^
 
-.. autoclass:: pytorch_lightning.metrics.regression.RMSLE
+.. autoclass:: pytorch_lightning.metrics.regression.RMSE
     :noindex:
 
 RMSLE
 ^^^^^
 
-.. autoclass:: pytorch_lightning.metrics.regression.RMSE
+.. autoclass:: pytorch_lightning.metrics.regression.RMSLE
     :noindex:
 
 ---
