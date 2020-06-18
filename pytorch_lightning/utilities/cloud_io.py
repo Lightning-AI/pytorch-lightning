@@ -1,6 +1,6 @@
 import torch
 
-from Pathlib import Path
+from pathlib import Path
 from urllib.parse import urlparse
 
 
