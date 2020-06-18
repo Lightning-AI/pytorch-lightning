@@ -372,14 +372,16 @@ class TrainerDDPMixin(ABC):
     def __set_random_port(self):
         """
         When running DDP NOT managed by SLURM, the ports might collide
-        :return:
         """
         try:
             default_port = os.environ['MASTER_PORT']
         except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
-            os.environ['MASTER_PORT'] = str(default_port)
+            # use the process id as a seed to a generator for port only
+            pid = os.getpid()
+            rng1 = np.random.RandomState(pid)
+            default_port = rng1.randint(10000, 19999, 1)[0]
+
+        os.environ['MASTER_PORT'] = str(default_port)
 
     def spawn_ddp_children(self, model):
         self.__set_random_port()
