@@ -11,15 +11,15 @@ class TrainerCallbackHookMixin(ABC):
     callbacks: List[Callback] = []
     get_model: Callable = ...
 
-    def setup(self, step: str):
+    def setup(self, stage: str):
         """Called in the beginning of fit and test"""
         for callback in self.callbacks:
-            callback.setup(self, step)
+            callback.setup(self, stage)
 
-    def teardown(self, step: str):
+    def teardown(self, stage: str):
         """Called at the end of fit and test"""
         for callback in self.callbacks:
-            callback.teardown(self, step)
+            callback.teardown(self, stage)
 
     def on_init_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""

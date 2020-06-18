@@ -14,11 +14,11 @@ class Callback(abc.ABC):
     Abstract base class used to build new callbacks.
     """
 
-    def setup(self, trainer, step: str):
+    def setup(self, trainer, stage: str):
         """Called when fit or test begins"""
         pass
 
-    def teardown(self, trainer, step: str):
+    def teardown(self, trainer, stage: str):
         """Called when fit or test ends"""
         pass
 
