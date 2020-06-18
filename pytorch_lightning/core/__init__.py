@@ -267,11 +267,12 @@ allow for this:
     >>> class LitModel(pl.LightningModule):
     ...     def prepare_data(self):
     ...         # download
-    ...         mnist_train = MNIST(os.getcwd(), train=True, download=True,
-    ...                             transform=transforms.ToTensor())
-    ...         mnist_test = MNIST(os.getcwd(), train=False, download=True,
-    ...                            transform=transforms.ToTensor())
+    ...         MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
+    ...         MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
     ...
+    ...     def setup(self, stage):
+    ...         mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transforms.ToTensor())
+    ...         mnist_test = MNIST(os.getcwd(), train=False, download=False, transform=transforms.ToTensor())
     ...         # train/val split
     ...         mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
     ...
