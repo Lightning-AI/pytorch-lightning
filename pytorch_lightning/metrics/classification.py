@@ -15,7 +15,8 @@ from pytorch_lightning.metrics.functional.classification import (
     roc,
     multiclass_roc,
     multiclass_precision_recall_curve,
-    dice_score
+    dice_score,
+    iou,
 )
 from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
 
@@ -770,3 +771,48 @@ class DiceCoefficient(TensorMetric):
                           nan_score=self.nan_score,
                           no_fg_score=self.no_fg_score,
                           reduction=self.reduction)
+
+
+class IoU(TensorMetric):
+    """
+    Computes the intersection over union.
+
+    Example:
+
+        >>> pred = torch.tensor([[0, 0, 0, 0, 0, 0, 0, 0],
+        ...                      [0, 0, 1, 1, 1, 0, 0, 0],
+        ...                      [0, 0, 0, 0, 0, 0, 0, 0]])
+        >>> target = torch.tensor([[0, 0, 0, 0, 0, 0, 0, 0],
+        ...                        [0, 0, 0, 1, 1, 1, 0, 0],
+        ...                        [0, 0, 0, 0, 0, 0, 0, 0]])
+        >>> metric = IoU()
+        >>> metric(pred, target)
+        tensor(0.7045)
+
+    """
+    def __init__(self,
+                 remove_bg: bool = False,
+                 reduction: str = 'elementwise_mean'):
+        """
+        Args:
+            remove_bg: Flag to state whether a background class has been included
+                within input parameters. If true, will remove background class. If
+                false, return IoU over all classes.
+                Assumes that background is '0' class in input tensor
+            reduction: a method for reducing IoU over labels (default: takes the mean)
+                Available reduction methods:
+
+                - elementwise_mean: takes the mean
+                - none: pass array
+                - sum: add elements
+        """
+        super().__init__(name='iou')
+        self.remove_bg = remove_bg
+        self.reduction = reduction
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor,
+                sample_weight: Optional[torch.Tensor] = None):
+        """
+        Actual metric calculation.
+        """
+        return iou(y_pred, y_true, remove_bg=self.remove_bg, reduction=self.reduction)

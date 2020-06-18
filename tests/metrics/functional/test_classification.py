@@ -31,6 +31,7 @@ from pytorch_lightning.metrics.functional.classification import (
     precision_recall_curve,
     roc,
     auc,
+    iou,
 )
 
 
@@ -364,6 +365,23 @@ def test_average_precision_constant_values():
 def test_dice_score(pred, target, expected):
     score = dice_score(torch.tensor(pred), torch.tensor(target))
     assert score == expected
+
+
+@pytest.mark.parametrize(['half_ones', 'reduction', 'remove_bg', 'expected'], [
+    pytest.param(False, 'none', False, torch.Tensor([1, 1, 1])),
+    pytest.param(False, 'elementwise_mean', False, torch.Tensor([1])),
+    pytest.param(False, 'none', True, torch.Tensor([1, 1])),
+    pytest.param(True, 'none', False, torch.Tensor([0.5, 0.5, 0.5])),
+    pytest.param(True, 'elementwise_mean', False, torch.Tensor([0.5])),
+    pytest.param(True, 'none', True, torch.Tensor([0.5, 0.5])),
+])
+def test_iou(half_ones, reduction, remove_bg, expected):
+    pred = (torch.arange(120) % 3).view(-1, 1)
+    target = (torch.arange(120) % 3).view(-1, 1)
+    if half_ones:
+        pred[:60] = 1
+    iou_val = iou(pred, target, remove_bg=remove_bg, reduction=reduction)
+    assert torch.allclose(iou_val, expected, atol=1e-9)
 
 
 # example data taken from

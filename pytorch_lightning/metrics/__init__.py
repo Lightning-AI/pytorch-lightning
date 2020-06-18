@@ -20,6 +20,7 @@ from pytorch_lightning.metrics.classification import (
     MulticlassROC,
     Precision,
     PrecisionRecall,
+    IoU,
 )
 from pytorch_lightning.metrics.sklearns import (
     AUC,
@@ -43,6 +44,7 @@ __classification_metrics = [
     'PrecisionRecallCurve',
     'ROC',
     'Recall',
+    'IoU',
 ]
 __regression_metrics = [
     'MSE',
