@@ -468,7 +468,7 @@ If you want to cite the framework feel free to use this (but only if you loved i
 @article{falcon2019pytorch,
   title={PyTorch Lightning},
   author={Falcon, WA},
-  journal={GitHub. Note: https://github. com/williamFalcon/pytorch-lightning Cited by},
+  journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning Cited by},
   volume={3},
   year={2019}
 }
