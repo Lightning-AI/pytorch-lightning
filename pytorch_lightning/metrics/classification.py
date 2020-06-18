@@ -16,7 +16,7 @@ from pytorch_lightning.metrics.functional.classification import (
     multiclass_roc,
     multiclass_precision_recall_curve,
     dice_score,
-    iou
+    iou,
 )
 from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
 
