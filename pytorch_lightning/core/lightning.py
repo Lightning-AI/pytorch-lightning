@@ -1290,7 +1290,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
-        In distributed (GPU, TPU), this will only be called once.
+        In distributed (GPU, TPU), this will only be called once on the local_rank=0 of each node.
+        To call this on only the root=0 of the main node, use `Trainer(prepare_data_per_node=False)`
         This is called before requesting the dataloaders:
 
         .. code-block:: python
