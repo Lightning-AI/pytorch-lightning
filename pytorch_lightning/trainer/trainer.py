@@ -1294,4 +1294,3 @@ def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
         raise MisconfigurationException(
             f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
         )
-
