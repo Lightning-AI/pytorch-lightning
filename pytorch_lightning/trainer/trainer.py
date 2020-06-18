@@ -323,6 +323,8 @@ class Trainer(
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
         # init the default rank if exists
+        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
+        # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = os.environ['LOCAL_RANK']
         if 'SLURM_JOB_ID' in os.environ:
