@@ -255,7 +255,7 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
 .. seealso::
     :class:`~pytorch_lightning.loggers.WandbLogger` docs.
 
----
+----------------
 
 Multiple Loggers
 ^^^^^^^^^^^^^^^^

@@ -33,7 +33,7 @@ It can be useful to force training for a minimum number of epochs or limit to a 
     # DEFAULT
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
----
+----------------
 
 Set validation check frequency within 1 training epoch
 ------------------------------------------------------
@@ -52,7 +52,7 @@ Must use an int if using an IterableDataset.
     # check every 100 train batches (ie: for IterableDatasets or fixed frequency)
     trainer = Trainer(val_check_interval=100)
 
----
+----------------
 
 Use data subset for training, validation and test
 -------------------------------------------------

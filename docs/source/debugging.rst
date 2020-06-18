@@ -6,7 +6,7 @@ Debugging
 =========
 The following are flags that make debugging much easier.
 
----
+----------------
 
 fast_dev_run
 ------------
@@ -21,7 +21,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
     trainer = Trainer(fast_dev_run=True)
 
----
+----------------
 
 Inspect gradient norms
 ----------------------
@@ -35,7 +35,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
     # the 2-norm
     trainer = Trainer(track_grad_norm=2)
 
----
+----------------
 
 Log GPU usage
 -------------
@@ -48,7 +48,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
     trainer = Trainer(log_gpu_memory=True)
 
----
+----------------
 
 Make model overfit on subset of data
 ------------------------------------
@@ -70,7 +70,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 With this flag, the train, val, and test sets will all be the same train set. We will also replace the sampler
 in the training set to turn off shuffle for you.
 
----
+----------------
 
 Print a summary of your LightningModule
 ---------------------------------------
@@ -99,7 +99,7 @@ See Also:
     - :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_summary` Trainer argument
     - :class:`~pytorch_lightning.core.memory.ModelSummary`
 
----
+----------------
 
 Shorten epochs
 --------------
@@ -116,7 +116,7 @@ On larger datasets like Imagenet, this can help you debug or test a few things f
     # use 10 batches of train and 5 batches of val
     trainer = Trainer(limit_train_batches=10, limit_val_batches=5)
 
----
+----------------
 
 Set the number of validation sanity steps
 -----------------------------------------

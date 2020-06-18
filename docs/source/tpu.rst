@@ -33,7 +33,7 @@ To access TPUs there are two main ways.
 2. Using Google Cloud (GCP).
 3. Using Kaggle.
 
----
+----------------
 
 Colab TPUs
 -----------
@@ -65,7 +65,7 @@ To get a TPU on colab, follow these steps:
 
 6. Then set up your LightningModule as normal.
 
----
+----------------
 
 DistributedSamplers
 -------------------
@@ -122,7 +122,7 @@ To use a full TPU pod skip to the TPU pod section.
 
 That's it! Your model will train on all 8 TPU cores.
 
----
+----------------
 
 Single TPU core training
 ------------------------
@@ -132,14 +132,14 @@ Lightning supports training on a single TPU core. Just pass the TPU core ID [1-8
 
     trainer = pl.Trainer(tpu_cores=[1])
 
----
+----------------
 
 Distributed Backend with TPU
 ----------------------------
 The ```distributed_backend``` option used for GPUs does not apply to TPUs.
 TPUs work in DDP mode by default (distributing over each core)
 
----
+----------------
 
 TPU Pod
 -------
@@ -153,7 +153,7 @@ All you need to do is submit the following command:
     --conda-env=torch-xla-nightly
     -- python /usr/share/torch-xla-0.5/pytorch/xla/test/test_train_imagenet.py --fake_data
 
----
+----------------
 
 16 bit precision
 -----------------
@@ -171,7 +171,7 @@ set the 16-bit flag.
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
 
----
+----------------
 
 About XLA
 ----------
