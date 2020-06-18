@@ -31,7 +31,7 @@ Example::
     to a few metrics. Please feel free to create an issue/PR if you have a proposed 
     metric or have found a bug.
 
---------------
+---
 
 Implement a metric
 ------------------
@@ -75,7 +75,7 @@ Here's an example showing how to implement a NumpyMetric
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
 
---------------
+---
 
 Class Metrics
 -------------
@@ -207,6 +207,12 @@ MulticlassPrecisionRecall
 .. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
     :noindex:
 
+IoU
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.classification.IoU
+    :noindex:
+
 RMSE
 ^^^^
 
@@ -219,7 +225,7 @@ RMSLE
 .. autoclass:: pytorch_lightning.metrics.regression.RMSE
     :noindex:
 
---------------
+---
 
 Functional Metrics
 ------------------
@@ -346,16 +352,23 @@ stat_scores (F)
 .. autofunction:: pytorch_lightning.metrics.functional.stat_scores
     :noindex:
 
+iou (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.iou
+    :noindex:
+
 stat_scores_multiple_classes (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
     :noindex:
 
-----------------
+---
 
 Metric pre-processing
 ---------------------
+
 Metric
 
 to_categorical (F)
@@ -370,7 +383,7 @@ to_onehot (F)
 .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
     :noindex:
 
-----------------
+---
 
 Sklearn interface
 -----------------
