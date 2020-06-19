@@ -20,7 +20,7 @@ def test_progress_bar_on(callbacks, refresh_rate):
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
         max_epochs=1,
-        overfit_batches=0.2,
+        overfit_batches=5,
     )
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
