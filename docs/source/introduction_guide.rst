@@ -310,7 +310,7 @@ In this case we recommend the following:
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
 
-Example::
+.. testcode::
 
     class LitMNIST(LightningModule):
 
