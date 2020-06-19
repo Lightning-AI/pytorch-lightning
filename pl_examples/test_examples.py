@@ -25,7 +25,7 @@ def test_gpu_template(cli_args):
         run_cli()
 
 
-@pytest.mark.parametrize('cli_args', ['--max_epochs 1 --max_steps 3'])
+@pytest.mark.parametrize('cli_args', ['--max_epochs 1 --max_steps 3 --num_nodes 1 --gpus 2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_node_ddp(cli_args):
     """Test running CLI for an example with default params."""
@@ -36,7 +36,7 @@ def test_multi_node_ddp(cli_args):
         run_cli()
 
 
-@pytest.mark.parametrize('cli_args', ['--max_epochs 1 --max_steps 3'])
+@pytest.mark.parametrize('cli_args', ['--max_epochs 1 --max_steps 3 --num_nodes 1 --gpus 2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_node_ddp2(cli_args):
     """Test running CLI for an example with default params."""

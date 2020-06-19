@@ -4,13 +4,10 @@ Runs a model on the CPU on a single node.
 import os
 from argparse import ArgumentParser
 
-import numpy as np
-import torch
-
-import pytorch_lightning as pl
+from pytorch_lightning import Trainer, seed_everything
 from pl_examples.models.lightning_template import LightningTemplateModel
 
-pl.seed_everything(234)
+seed_everything(234)
 
 
 def main(args):
@@ -26,7 +23,7 @@ def main(args):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = pl.Trainer.from_argparse_args(args)
+    trainer = Trainer.from_argparse_args(args)
 
     # ------------------------
     # 3 START TRAINING
@@ -44,7 +41,7 @@ def run_cli():
 
     # each LightningModule defines arguments relevant to it
     parser = LightningTemplateModel.add_model_specific_args(parent_parser, root_dir)
-    parser = pl.Trainer.add_argparse_args(parser)
+    parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
 
     # ---------------------
