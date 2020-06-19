@@ -609,6 +609,11 @@ class TrainerTrainLoopMixin(ABC):
                     # backward pass
                     model_ref = self.get_model()
                     with self.profiler.profile('model_backward'):
+                        # scale loss for 16 bit
+                        if self.precision == 16 and not self.on_tpu:
+                            closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
+
+                        # do backward pass
                         model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
