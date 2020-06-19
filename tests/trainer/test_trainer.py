@@ -451,7 +451,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # check training stopped at max_epochs
     assert trainer.global_step == num_train_samples * trainer.max_epochs
-    assert trainer.current_epoch == trainer.max_epochs, "Model did not stop at max_epochs"
+    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -619,7 +619,7 @@ def test_disabled_validation():
 
     # check that limit_val_batches=0 turns off validation
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 2
+    assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, \
         '`validation_step` should not run when `limit_val_batches=0`'
     assert not model.validation_epoch_end_invoked, \
@@ -632,7 +632,7 @@ def test_disabled_validation():
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 1
+    assert trainer.current_epoch == 0
     assert model.validation_step_invoked, \
         'did not run `validation_step` with `fast_dev_run=True`'
     assert model.validation_epoch_end_invoked, \

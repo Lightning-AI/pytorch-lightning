@@ -42,9 +42,11 @@ class GradientAccumulationScheduler(Callback):
 
         for key in scheduling:
             if not isinstance(key, int) or not isinstance(scheduling[key], int):
-                raise TypeError("All epochs and accumulation factor must be integers")
+                raise TypeError("All epoches and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
+        # rank_zero_warn('Epochs indexing of `scheduling` starts from "1" until v0.6.x,'
+        #                ' but will start from "0" in v0.8.0.', DeprecationWarning)
         if minimal_epoch < 1:
             raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
         if minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
@@ -54,7 +56,9 @@ class GradientAccumulationScheduler(Callback):
         self.epochs = sorted(scheduling.keys())
 
     def on_epoch_start(self, trainer, pl_module):
-        epoch = trainer.current_epoch
+        # indexing epochs from 1 (until v0.6.x)
+        # In v0.8.0, ` + 1` should be removed.
+        epoch = trainer.current_epoch + 1
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
                 trainer.accumulate_grad_batches = self.scheduling.get(self.epochs[i])
