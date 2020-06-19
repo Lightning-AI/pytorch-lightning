@@ -655,13 +655,7 @@ class TrainerTrainLoopMixin(ABC):
                         self.scaler.unscale_(optimizer)
                     self.clip_gradients()
 
-                    # calls .step(), .zero_grad()
-                    # override function to modify this behavior
-                    model = self.get_model()
-                    with self.profiler.profile('optimizer_step'):
-                        model.optimizer_step(self.current_epoch, batch_idx,
-                                             optimizer, opt_idx,
-                                             lambda: optimizer_closure()[0])
+                    self._apply_gradients(optimizer, opt_idx, batch_idx, optimizer_closure)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value.mean())
@@ -684,6 +678,46 @@ class TrainerTrainLoopMixin(ABC):
         self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
 
         return 0, grad_norm_dic, all_log_metrics, batch_output
+
+    def _apply_gradients(self, optimizer, opt_idx, batch_idx, optimizer_closure):
+        # calls .step(), .zero_grad()
+        # override function to modify this behavior
+        model = self.get_model()
+        closure = lambda: optimizer_closure()[0]
+
+        with self.profiler.profile('optimizer_step'):
+
+            # apply TPU optimizer
+            if self.use_tpu and XLA_AVAILABLE:
+                model.optimizer_step(self.current_epoch, batch_idx,
+                                     optimizer, opt_idx, closure, on_tpu=True)
+
+            # for LBFGS do something a bit different
+            elif isinstance(optimizer, torch.optim.LBFGS):
+
+                # native amp + lbfgs is a no go right now
+                if self.trainer.use_amp and self.trainer.use_native_amp:
+                    raise MisconfigurationException(
+                        'native PyTorch amp and lbfgs are not compatible.'
+                        ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, closure)
+
+            # when using 16-bit
+            else:
+                if self.use_amp and self.use_native_amp:
+                    self.scaler.step(optimizer)
+                else:
+                    model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, closure)
+
+            # in native 16-bit we need to update scaler after optimizer step
+            if self.use_amp and self.use_native_amp:
+                self.scaler.update()
+
+            # model hook
+            model.on_before_zero_grad(optimizer)
+
+            # clear gradients
+            model.optimizer_zero_grad(self.current_epoch, batch_idx, optimizer, opt_idx)
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
