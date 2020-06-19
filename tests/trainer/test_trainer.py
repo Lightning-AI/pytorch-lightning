@@ -912,7 +912,7 @@ def test_trainer_subclassing():
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_trainer_omegaconf(trainer_params):
-    _ = Trainer(**trainer_params)
+    Trainer(**trainer_params)
 
 
 def test_trainer_pickle(tmpdir):
