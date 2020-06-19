@@ -10,6 +10,8 @@ Lightning supports multiple dataloaders in a few ways.
 2. In the validation and test loop you also have the option to return multiple dataloaders
    which lightning will call sequentially.
 
+----------
+
 Multiple training dataloaders
 -----------------------------
 For training, the best way to use multiple-dataloaders is to create a Dataloader class
@@ -54,6 +56,8 @@ dataloaders).
         def test_dataloader(self):
             # SAME
             ...
+
+----------
 
 Test/Val dataloaders
 --------------------

@@ -17,6 +17,8 @@ To enable a hook, simply override the method in your LightningModule and the tra
 Hooks lifecycle
 ---------------
 
+----------
+
 Training set-up
 ^^^^^^^^^^^^^^^
 
@@ -29,6 +31,8 @@ Training set-up
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.val_dataloader`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.summarize`
 - :meth:`~pytorch_lightning.trainer.training_io.TrainerIOMixin.restore_weights`
+
+----------
 
 Training loop
 ^^^^^^^^^^^^^
@@ -46,6 +50,8 @@ Training loop
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_epoch_end`
 
+----------
+
 Validation loop
 ^^^^^^^^^^^^^^^
 
@@ -58,6 +64,8 @@ Validation loop
 - ``model.train()``
 - ``torch.set_grad_enabled(True)``
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_post_performance_check`
+
+----------
 
 Test loop
 ^^^^^^^^^

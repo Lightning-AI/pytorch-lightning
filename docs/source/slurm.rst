@@ -9,6 +9,8 @@ Lightning automates the details behind training on a SLURM-powered cluster.
 
 .. _multi-node:
 
+----------
+
 Multi-node training
 -------------------
 To train a model using multiple nodes, do the following:
@@ -114,6 +116,8 @@ Here's an example of how to add your own sampler (again, not needed with Lightni
     # in your training script
     trainer = Trainer(replace_sampler_ddp=False)
 
+----------
+
 Wall time auto-resubmit
 -----------------------
 When you use Lightning in a SLURM cluster, it automatically detects when it is about
@@ -130,6 +134,7 @@ To get this behavior make sure to add the correct signal to your SLURM script
     # 90 seconds before training ends
     SBATCH --signal=SIGUSR1@90
 
+----------
 
 Building SLURM scripts
 ----------------------
@@ -193,6 +198,7 @@ See also the multi-node examples
 
 The other option is that you generate scripts on your own via a bash command or use another library.
 
+----------
 
 Self-balancing architecture (COMING SOON)
 -----------------------------------------
