@@ -1,3 +1,9 @@
+.. testsetup:: *
+
+    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.trainer.trainer import Trainer
+    from pytorch_lightning import loggers as pl_loggers
+
 .. role:: hidden
     :class: hidden-section
 
@@ -7,26 +13,26 @@ Lightning supports the most popular logging frameworks (TensorBoard, Comet, Weig
 To use a logger, simply pass it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 Lightning uses TensorBoard by default.
 
-.. code-block:: python
+.. testcode::
 
-    from pytorch_lightning import Trainer
-    from pytorch_lightning import loggers
-    tb_logger = loggers.TensorBoardLogger('logs/')
+    from pytorch_lightning import loggers as pl_loggers
+
+    tb_logger = pl_loggers.TensorBoardLogger('logs/')
     trainer = Trainer(logger=tb_logger)
 
 Choose from any of the others such as MLflow, Comet, Neptune, WandB, ...
 
-.. code-block:: python
+.. testcode::
 
-    comet_logger = loggers.CometLogger(save_dir='logs/')
+    comet_logger = pl_loggers.CometLogger(save_dir='logs/')
     trainer = Trainer(logger=comet_logger)
 
 To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
 
-.. code-block:: python
+.. testcode::
 
-    tb_logger = loggers.TensorBoardLogger('logs/')
-    comet_logger = loggers.CometLogger(save_dir='logs/')
+    tb_logger = pl_loggers.TensorBoardLogger('logs/')
+    comet_logger = pl_loggers.CometLogger(save_dir='logs/')
     trainer = Trainer(logger=[tb_logger, comet_logger])
 
 Note:
@@ -42,10 +48,11 @@ You can implement your own logger by writing a class that inherits from
 :class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
 decorator to make sure that only the first process in DDP training logs data.
 
-.. code-block:: python
+.. testcode::
 
     from pytorch_lightning.utilities import rank_zero_only
     from pytorch_lightning.loggers import LightningLoggerBase
+
     class MyLogger(LightningLoggerBase):
 
         @rank_zero_only
@@ -81,9 +88,8 @@ Using loggers
 Call the logger anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule` by doing:
 
-.. code-block:: python
+.. testcode::
 
-    from pytorch_lightning import LightningModule
     class LitModel(LightningModule):
         def training_step(self, batch, batch_idx):
             # example

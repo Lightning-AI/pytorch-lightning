@@ -60,18 +60,18 @@ else:
 
 class Trainer(
     TrainerIOMixin,
+    TrainerCallbackHookMixin,
+    TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerAMPMixin,
     TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
-    TrainerModelHooksMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerEvaluationLoopMixin,
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
-    TrainerCallbackHookMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
     TrainerDeprecatedAPITillVer0_10,
@@ -550,7 +550,7 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def is_global_zero(self):
+    def is_global_zero(self) -> bool:
         return self.global_rank == 0
 
     @property
