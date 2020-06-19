@@ -1706,4 +1706,3 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return line.split('=')[1]
 
         return None
-
