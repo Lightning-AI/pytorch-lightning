@@ -897,18 +897,19 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
-                self.__set_random_port()
+                self._set_random_port
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
-                self.__set_random_port()
+                self._set_random_port
                 model.share_memory()
 
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
+                self._set_random_port
                 self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
@@ -1273,7 +1274,6 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
-
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 

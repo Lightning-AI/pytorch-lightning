@@ -369,7 +369,7 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def __set_random_port(self):
+    def set_random_port(self):
         """
         When running DDP NOT managed by SLURM, the ports might collide
         """
@@ -384,7 +384,6 @@ class TrainerDDPMixin(ABC):
         os.environ['MASTER_PORT'] = str(default_port)
 
     def spawn_ddp_children(self, model):
-        self.__set_random_port()
         port = os.environ['MASTER_PORT']
 
         master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
