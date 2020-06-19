@@ -1692,4 +1692,4 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
-        self.save_hyperparameters(hp, frame=inspect.currentframe().f_back.f_back)
+        self._set_hparams(hp)
