@@ -683,14 +683,13 @@ class TrainerTrainLoopMixin(ABC):
         # calls .step(), .zero_grad()
         # override function to modify this behavior
         model = self.get_model()
-        closure = lambda: optimizer_closure()[0]
 
         with self.profiler.profile('optimizer_step'):
 
             # apply TPU optimizer
             if self.use_tpu and XLA_AVAILABLE:
                 model.optimizer_step(self.current_epoch, batch_idx,
-                                     optimizer, opt_idx, closure, on_tpu=True)
+                                     optimizer, opt_idx, lambda: optimizer_closure()[0], on_tpu=True)
 
             # for LBFGS do something a bit different
             elif isinstance(optimizer, torch.optim.LBFGS):
@@ -700,14 +699,14 @@ class TrainerTrainLoopMixin(ABC):
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, closure)
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda: optimizer_closure()[0])
 
             # when using 16-bit
             else:
                 if self.use_amp and self.use_native_amp:
                     self.scaler.step(optimizer)
                 else:
-                    model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, closure)
+                    model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda: optimizer_closure()[0])
 
             # in native 16-bit we need to update scaler after optimizer step
             if self.use_amp and self.use_native_amp:

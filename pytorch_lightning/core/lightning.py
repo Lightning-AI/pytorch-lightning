@@ -1133,7 +1133,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: Optimizer,
             optimizer_idx: int,
             second_order_closure: Optional[Callable] = None,
-            on_tpu: bool=False
+            on_tpu: bool = False
     ) -> None:
         r"""
         Override this method to adjust the default way the
