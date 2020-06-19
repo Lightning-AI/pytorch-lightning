@@ -550,7 +550,7 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def is_global_zero(self):
+    def is_global_zero(self) -> bool:
         return self.global_rank == 0
 
     @property
