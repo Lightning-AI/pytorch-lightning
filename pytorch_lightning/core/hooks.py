@@ -34,6 +34,10 @@ class ModelHooks(Module):
 
                 def prepare_data(self):
                     download_data()
+                    tokenize()
+
+                    # don't do this
+                    self.something = else
 
                 def setup(step):
                     data = Load_data(...)
