@@ -857,8 +857,6 @@ class Trainer(
             model.prepare_data()
             self._is_data_prepared = True
 
-        # no barrier needed because all non-download processes will wait at init distributed (the barrier)
-
         self.setup('fit')
         if self.is_function_implemented('setup', model):
             model.setup('fit')

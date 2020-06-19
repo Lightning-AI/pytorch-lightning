@@ -153,6 +153,7 @@ from typing import Union, List
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -701,6 +702,11 @@ class TrainerTrainLoopMixin(ABC):
     def run_training_teardown(self):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
+
+        # clean up dist group
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.destroy_process_group()
+
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks
