@@ -926,9 +926,6 @@ class Trainer(
             # track for predict
             self.model = model
 
-            # wait for all prepare data nodes to finish
-            self.barrier('setup')
-
             # train
             if self.tpu_id is not None:
                 self.tpu_train(self.tpu_id, model)
