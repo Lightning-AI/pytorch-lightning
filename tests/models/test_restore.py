@@ -172,7 +172,7 @@ def test_dp_resume(tmpdir):
     result = trainer.fit(model)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
-    real_global_epoch = trainer.current_epoch + 1
+    real_global_epoch = trainer.current_epoch
 
     # correct result and ok accuracy
     assert result == 1, 'amp + dp model failed to complete'

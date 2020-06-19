@@ -38,7 +38,7 @@ class GradientAccumulationScheduler(Callback):
 
         for key in scheduling:
             if not isinstance(key, int) or not isinstance(scheduling[key], int):
-                raise TypeError("All epoches and accumulation factor must be integers")
+                raise TypeError("All epochs and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
         if minimal_epoch != 0:  # if user didnt define first epoch accumulation factor
