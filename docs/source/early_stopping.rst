@@ -7,8 +7,6 @@
 Early stopping
 ==============
 
-----------
-
 Stopping an epoch early
 -----------------------
 You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.on_batch_start` to return `-1` when some condition is met.

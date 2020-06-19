@@ -17,8 +17,6 @@ To enable a hook, simply override the method in your LightningModule and the tra
 Hooks lifecycle
 ---------------
 
-----------
-
 Training set-up
 ^^^^^^^^^^^^^^^
 
