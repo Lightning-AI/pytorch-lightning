@@ -57,7 +57,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     trainer = Trainer(
         max_epochs=num_epochs,
         default_root_dir=tmpdir,
-        overfit_batches=0.1,
+        overfit_batches=2,
     )
     result = trainer.fit(model)
     assert result == 1
