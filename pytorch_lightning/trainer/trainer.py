@@ -857,7 +857,7 @@ class Trainer(
             model.prepare_data()
             self._is_data_prepared = True
 
-        self.barrier('fit_prepare_data')
+        # no barrier needed because all non-download processes will wait at init distributed (the barrier)
 
         self.setup('fit')
         if self.is_function_implemented('setup', model):
@@ -1153,7 +1153,7 @@ class Trainer(
         if self.is_function_implemented('setup', model_ref):
             model_ref.setup('test')
 
-        self.barrier('test_setup')
+        # no barrier needed because all processes will catch up once the distributed group boots
 
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
