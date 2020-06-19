@@ -1256,14 +1256,6 @@ class Trainer(
                 raise MisconfigurationException('You have defined `test_step()` but did not'
                                                 ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
 
-    def barrier(self, name):
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.barrier()
-
-        if self.on_tpu and XLA_AVAILABLE:
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
-
 
 class _PatchDataLoader(object):
     r"""
