@@ -185,7 +185,8 @@ class TrainerDDPMixin(ABC):
     tpu_cores: int
 
     @property
-    def is_global_zero(self) -> int:
+    @abstractmethod
+    def is_global_zero(self) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @property
@@ -216,6 +217,14 @@ class TrainerDDPMixin(ABC):
 
     @abstractmethod
     def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def setup(self, *args) -> None:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def is_function_implemented(self, *args) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
