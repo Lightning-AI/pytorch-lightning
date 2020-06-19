@@ -320,7 +320,7 @@ def test_val_inf_dataloader_error(tmpdir):
 
 
 @pytest.mark.skip('TODO: speed up this test')
-def test_val_not_impolemented_error_dataloader_error(tmpdir):
+def test_val_not_implemented_error_dataloader_error(tmpdir):
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__not_implemented_error
@@ -345,7 +345,7 @@ def test_test_inf_dataloader_error(tmpdir):
 
 @pytest.mark.skip('TODO: speed up this test')
 def test_test_not_implemented_error_dataloader_error(tmpdir):
-    """Test inf train data loader (e.g. IterableDataset)"""
+    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__not_implemented_error
 
