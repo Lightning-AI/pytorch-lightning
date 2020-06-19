@@ -193,7 +193,6 @@ class ModelHooks(Module):
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
 
         else:
-            # TODO: remove in v0.8.0
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
 
         return scaled_loss
