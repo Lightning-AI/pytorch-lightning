@@ -39,6 +39,7 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
       ]
       return optimizers, schedulers
 
+----------
 
 Use multiple optimizers (like GANs)
 -----------------------------------
@@ -71,6 +72,7 @@ Lightning will call each optimizer sequentially:
       for scheduler in scheduler:
          scheduler.step()
 
+----------
 
 Step optimizers at arbitrary intervals
 --------------------------------------

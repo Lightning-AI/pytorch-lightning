@@ -256,14 +256,14 @@ under the `train_dataloader` method. This is great because if you run into a pro
 to figure out how they prepare their training data you can just look in the `train_dataloader` method.
 
 Usually though, we want to separate the things that write to disk in data-processing from
-things like transforms which happen in memory.
+things like transforms which happen in memory. This is only relevant in multi-GPU or TPU training.
 
 .. testcode::
 
     class LitMNIST(LightningModule):
 
         def prepare_data(self):
-            # download only
+            # download only (not called on every GPU, just the root GPU per node)
             MNIST(os.getcwd(), train=True, download=True)
 
         def train_dataloader(self):
@@ -301,6 +301,31 @@ In general fill these methods with the following:
             # dataset creation
             # return a DataLoader
             ...
+
+Models defined by data
+^^^^^^^^^^^^^^^^^^^^^^
+Sometimes a model needs to know about the data to be built (ie: number of classes or vocab size).
+In this case we recommend the following:
+
+1. use `prepare_data` to download and process the dataset.
+2. use `setup` to do splits, and build your model internals
+
+Example::
+
+    class LitMNIST(LightningModule):
+
+        def __init__(self):
+            self.l1 = None
+
+        def prepare_data(self):
+            download_data()
+            tokenize()
+
+        def setup(self, step):
+            # step is either 'fit' or 'test' 90% of the time not relevant
+            data = load_data()
+            num_classes = data.classes
+            self.l1 = nn.Linear(..., num_classes)
 
 Optimizer
 ^^^^^^^^^
