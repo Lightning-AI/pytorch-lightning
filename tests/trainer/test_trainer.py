@@ -107,13 +107,16 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
     # test incorrect configs
     with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        # assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
         assert Trainer(accumulate_grad_batches={-2: 3})
 
     with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
