@@ -64,9 +64,11 @@ class LayerSummary(object):
         def hook(module, inp, out):
             if len(inp) == 1:
                 inp = inp[0]
-            self._in_size = parse_batch_shape(inp)
-            self._out_size = parse_batch_shape(out)
-            self._hook_handle.remove()  # hook detaches itself from module
+            if self._in_size == UNKNOWN_SIZE:
+                self._in_size = parse_batch_shape(inp)
+            if self._out_size == UNKNOWN_SIZE:
+                self._out_size = parse_batch_shape(out)
+            #self._hook_handle.remove()  # hook detaches itself from module
 
         return self._module.register_forward_hook(hook)
 
@@ -180,6 +182,8 @@ class ModelSummary(object):
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
+        for layer in summary.values():
+            layer._hook_handle.remove()
         return summary
 
     def _forward_example_input(self) -> None:
