@@ -127,7 +127,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
         args = Trainer.parse_argparser(parser)
 
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.gpus == expected_gpu
+    assert trainer.data_parallel_device_ids == expected_gpu
 
 
 @pytest.mark.skipif(sys.version_info < (3, 7),
