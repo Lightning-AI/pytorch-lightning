@@ -3,16 +3,10 @@ import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple, MutableMapping
 
 import numpy as np
 import torch
-
-from pytorch_lightning.utilities import rank_zero_only
-try:
-    from omegaconf import Container
-except ImportError:
-    Container = None
 
 
 class LightningLoggerBase(ABC):
@@ -178,9 +172,9 @@ class LightningLoggerBase(ABC):
 
         def _dict_generator(input_dict, prefixes=None):
             prefixes = prefixes[:] if prefixes else []
-            if isinstance(input_dict, (dict, DictConfig)):
+            if isinstance(input_dict, MutableMapping):
                 for key, value in input_dict.items():
-                    if isinstance(value, (dict, DictConfig, Namespace)):
+                    if isinstance(value, (MutableMapping, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
                         for d in _dict_generator(value, prefixes + [key]):
                             yield d
