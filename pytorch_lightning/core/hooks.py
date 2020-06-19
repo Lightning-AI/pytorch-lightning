@@ -30,7 +30,7 @@ class ModelHooks(Module):
         Called at the end of fit and test.
 
         Args:
-            step: either 'fit' or 'test'
+            stage: either 'fit' or 'test'
         """
 
     def on_fit_start(self):

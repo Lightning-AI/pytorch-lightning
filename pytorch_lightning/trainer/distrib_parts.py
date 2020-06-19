@@ -155,6 +155,11 @@ class TrainerDPMixin(ABC):
         return move_data_to_device(batch, device)
 
     def single_gpu_train(self, model):
+        # call setup
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
+
         model.cuda(self.root_gpu)
 
         # CHOOSE OPTIMIZER
@@ -171,6 +176,11 @@ class TrainerDPMixin(ABC):
         self.run_pretrain_routine(model)
 
     def tpu_train(self, tpu_core_idx, model):
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
+
         # put model on tpu
         self._device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
         model.to(self._device)
@@ -205,6 +215,10 @@ class TrainerDPMixin(ABC):
             self.save_spawn_weights(model)
 
     def dp_train(self, model):
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -246,6 +260,11 @@ class TrainerDPMixin(ABC):
         model.forward = model_autocast_original_forward
 
     def horovod_train(self, model):
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
+
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
             assert self.root_gpu == hvd.local_rank()
