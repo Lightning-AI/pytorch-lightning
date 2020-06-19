@@ -20,9 +20,25 @@ class ModelHooks(Module):
     def setup(self, stage: str):
         """
         Called at the beginning of fit and test.
+        This is a good hook when you need to build models dynamically or adjust something about them.
+        This hook is called on every process when using DDP.
 
         Args:
             stage: either 'fit' or 'test'
+
+        Example::
+
+            class LitModel(...):
+                def __init__(self):
+                    self.l1 = None
+
+                def prepare_data(self):
+                    download_data()
+
+                def setup(step):
+                    data = Load_data(...)
+                    self.l1 = nn.Linear(28, data.num_classes)
+
         """
 
     def teardown(self, stage: str):
