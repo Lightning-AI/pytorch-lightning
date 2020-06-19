@@ -89,6 +89,14 @@ class TrainerDPMixin(ABC):
     def reinit_scheduler_properties(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def setup(self, *args) -> None:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def is_function_implemented(self, *args) -> bool:
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):
             ref_model = model.module
