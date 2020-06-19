@@ -356,8 +356,8 @@ def check_gpus_data_type(gpus: Any) -> None:
     Args:
         gpus: parameter as passed to the Trainer
     """
-    if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
-        raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
+    if gpus is not None and (not isinstance(gpus, (int, str, MutableSequence)) or isinstance(gpus, bool)):
+        raise MisconfigurationException("GPUs must be int, string or sequence of ints or None.")
 
 
 def normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
