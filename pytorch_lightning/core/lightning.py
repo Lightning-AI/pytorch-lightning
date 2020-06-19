@@ -1698,6 +1698,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self._set_hparams(hp)
 
     def __get_hparams_assignment_variable(self):
+        """
+        looks at the code of the class to figure out what the user named self.hparams
+        this only happens when the user explicitly sets self.hparams
+        """
         class_code = inspect.getsource(self.__class__)
         lines = class_code.split('\n')
         for line in lines:
