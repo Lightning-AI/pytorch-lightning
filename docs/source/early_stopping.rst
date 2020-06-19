@@ -13,11 +13,15 @@ You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.lightni
 
 If you do this repeatedly, for every epoch you had originally requested, then this will stop your entire run.
 
+----------
+
 Default Epoch End Callback Behavior
 -----------------------------------
 By default early stopping will be enabled if `'val_loss'`
 is found in :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`'s
 return dict. Otherwise training will proceed with early stopping disabled.
+
+----------
 
 Enable Early Stopping using the EarlyStopping Callback
 ------------------------------------------------------
@@ -80,6 +84,8 @@ and change where it is called:
 .. seealso::
     - :class:`~pytorch_lightning.trainer.trainer.Trainer`
     - :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`
+
+----------
 
 Disable Early Stopping with callbacks on epoch end
 --------------------------------------------------

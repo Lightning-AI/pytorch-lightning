@@ -10,6 +10,8 @@ Multi-GPU training
 ==================
 Lightning supports multiple ways of doing distributed training.
 
+----------
+
 Preparing your code
 -------------------
 To train on CPU/GPU/TPU without changing your code, we need to build a few good habits :)
@@ -119,6 +121,7 @@ which cannot be pickled.
     _pickle.PicklingError: Can't pickle [THIS IS THE THING TO FIND AND DELETE]:
     attribute lookup <lambda> on __main__ failed
 
+----------
 
 Select GPU devices
 ------------------
@@ -192,6 +195,7 @@ However, when using a cluster, Lightning will NOT set these flags (and you shoul
 SLURM will set these for you.
 For more details see the `SLURM cluster guide <slurm.rst>`_.
 
+----------
 
 Distributed modes
 -----------------
@@ -573,7 +577,9 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
         `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
-                
+
+----------
+
 PytorchElastic
 --------------
 Lightning supports the use of PytorchElastic to enable fault-tolerent and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
@@ -608,10 +614,14 @@ And then launch the elastic job with:
 See the official `PytorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
 
+----------
+
 Jupyter Notebooks
 -----------------
 Unfortunately any `ddp_` is not supported in jupyter notebooks. Please use `dp` for multiple GPUs. This is a known
 Jupyter issue. If you feel like taking a stab at adding this support, feel free to submit a PR!
+
+----------
 
 Pickle Errors
 --------------

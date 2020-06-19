@@ -2,6 +2,7 @@ Test set
 ========
 Lightning forces the user to run the test set separately to make sure it isn't evaluated by mistake.
 
+----------
 
 Test after fit
 --------------
@@ -24,6 +25,7 @@ To run the test set after training completes, use this method.
     # (4) test with an explicit model (will use this model and not load a checkpoint)
     trainer.test(model)
 
+----------
 
 Test multiple models
 --------------------
@@ -38,6 +40,7 @@ You can run the test set on multiple models using the same trainer instance.
     trainer.test(model1)
     trainer.test(model2)
 
+----------
 
 Test pre-trained model
 ----------------------
@@ -60,6 +63,7 @@ To run the test set on a pre-trained model, use this method.
 In this  case, the options you pass to trainer will be used when
 running the test set (ie: 16-bit, dp, ddp, etc...)
 
+----------
 
 Test with additional data loaders
 ---------------------------------

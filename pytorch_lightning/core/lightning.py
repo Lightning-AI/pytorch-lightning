@@ -1291,24 +1291,46 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
-        In distributed (GPU, TPU), this will only be called once on the local_rank=0 of each node.
-        To call this on only the root=0 of the main node, use `Trainer(prepare_data_per_node=False)`
+
+        .. warning:: DO NOT set state to the model (use `setup` instead)
+            since this is NOT called on every GPU in DDP/TPU
+
+        Example::
+
+            def prepare_data(self):
+                # good
+                download_data()
+                tokenize()
+                etc()
+
+                # bad
+                self.split = data_split
+                self.some_state = some_other_state()
+
+        In DDP prepare_data can be called in two ways (using Trainer(prepare_data_per_node)):
+
+        1. Once per node. This is the default and is only called on LOCAL_RANK=0.
+        2. Once in total. Only called on GLOBAL_RANK=0.
+
+        Example::
+
+            # DEFAULT
+            # called once per node on LOCAL_RANK=0 of that node
+            Trainer(prepare_data_per_node=True)
+
+            # call on GLOBAL_RANK=0 (great for shared file systems)
+            Trainer(prepare_data_per_node=False)
+
         This is called before requesting the dataloaders:
 
         .. code-block:: python
 
             model.prepare_data()
+                if ddp/tpu: init()
+            model.setup(step)
             model.train_dataloader()
             model.val_dataloader()
             model.test_dataloader()
-
-        Examples:
-            .. code-block:: python
-
-                def prepare_data(self):
-                    download_imagenet()
-                    clean_imagenet()
-                    cache_imagenet()
         """
 
     def train_dataloader(self) -> DataLoader:
@@ -1707,7 +1729,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             lines = class_code.split('\n')
             for line in lines:
                 line = re.sub(r"\s+", "", line, flags=re.UNICODE)
-                if 'self.hparams=' in line:
+                if '.hparams=' in line:
                     return line.split('=')[1]
         except Exception as e:
             return 'hparams'

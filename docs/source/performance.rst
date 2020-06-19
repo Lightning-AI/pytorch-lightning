@@ -2,6 +2,8 @@ Fast Performance
 ================
 Here are some best practices to increase your performance.
 
+----------
+
 Dataloaders
 -----------
 When building your Dataloader set `num_workers` > 0 and `pin_memory=True` (only for GPUs).
@@ -34,14 +36,20 @@ use `distributed_backend=ddp` so you can increase the `num_workers`, however you
 
     python my_program.py --gpus X
 
+----------
+
 .item(), .numpy(), .cpu()
 -------------------------
 Don't call .item() anywhere on your code. Use `.detach()` instead to remove the connected graph calls. Lightning
 takes a great deal of care to be optimized for this.
 
+----------
+
 empty_cache()
 -------------
 Don't call this unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
+
+----------
 
 construct tensors directly on device
 ------------------------------------
@@ -55,6 +63,8 @@ LightningModules know what device they are on! construct tensors on the device d
     # good (self is lightningModule)
     t = tensor.rand(2,2, device=self.device)
 
+----------
+
 Use DDP not DP
 --------------
 DP performs three GPU transfers for EVERY batch:
@@ -64,6 +74,8 @@ DP performs three GPU transfers for EVERY batch:
 3. Copy outputs of each device back to master.
 
 Whereas DDP only performs 1 transfer to sync gradients. Because of this, DDP is MUCH faster than DP.
+
+----------
 
 16-bit precision
 ----------------
