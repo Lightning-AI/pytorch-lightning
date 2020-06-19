@@ -171,7 +171,7 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
 ])
 def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     with pytest.raises(MisconfigurationException):
-        Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu
+        Trainer(gpus=gpus, distributed_backend=distributed_backend)
 
 
 @pytest.mark.gpus_param_tests
