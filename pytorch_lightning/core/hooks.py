@@ -188,6 +188,16 @@ class ModelHooks(Module):
         """
         loss.backward()
 
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
+        if self.trainer.use_native_amp:
+            scaled_loss = self.trainer.scaler.scale(unscaled_loss)
+
+        else:
+            # TODO: remove in v0.8.0
+            scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
+
+        return scaled_loss
+
     def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         """
         Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
