@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed the `load_from_checkpoint` path detected as URL bug ([#2244](https://github.com/PyTorchLightning/pytorch-lightning/pull/2244))
+- Fixed hooks - added barrier ([#2245](https://github.com/PyTorchLightning/pytorch-lightning/pull/2245), [#2257](https://github.com/PyTorchLightning/pytorch-lightning/pull/2257), [#2260](https://github.com/PyTorchLightning/pytorch-lightning/pull/220))
+- Fixed `hparams` - remove frame inspection on `self.hparams` ([#2253](https://github.com/PyTorchLightning/pytorch-lightning/pull/2253))
+- Fixed setup and on fit calls ([#2252](https://github.com/PyTorchLightning/pytorch-lightning/pull/2252))
+- Fixed GPU template ([#2255](https://github.com/PyTorchLightning/pytorch-lightning/pull/2255))
+
 ## [0.8.0] - 2020-06-18
 
 ### Added
