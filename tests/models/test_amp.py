@@ -9,7 +9,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-
 @pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
