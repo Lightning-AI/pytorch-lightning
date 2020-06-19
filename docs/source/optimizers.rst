@@ -83,23 +83,23 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 .. testcode::
 
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure, on_tpu):
         optimizer.step()
-        optimizer.zero_grad()
+
+    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
+      optimizer.zero_grad()
 
     # Alternating schedule for optimizer steps (ie: GANs)
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure, on_tpu):
         # update generator opt every 2 steps
         if optimizer_i == 0:
             if batch_nb % 2 == 0 :
                 optimizer.step()
-                optimizer.zero_grad()
 
         # update discriminator opt every 4 steps
         if optimizer_i == 1:
             if batch_nb % 4 == 0 :
                 optimizer.step()
-                optimizer.zero_grad()
 
         # ...
         # add as many optimizers as you want
@@ -118,4 +118,3 @@ Here we add a learning-rate warm up
 
         # update params
         optimizer.step()
-        optimizer.zero_grad()

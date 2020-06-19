@@ -1154,7 +1154,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                 # DEFAULT
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure=None):
+                                   second_order_closure, on_tpu):
                     optimizer.step()
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
@@ -1164,13 +1164,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
                             optimizer.step()
-                            optimizer.zero_grad()
 
                     # update discriminator opt every 4 steps
                     if optimizer_idx == 1:
                         if batch_idx % 4 == 0 :
                             optimizer.step()
-                            optimizer.zero_grad()
 
                     # ...
                     # add as many optimizers as you want
@@ -1192,7 +1190,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     # update params
                     optimizer.step()
-                    optimizer.zero_grad()
+
+        .. note:: Lightning also calls `zero_grad()` automatically right after this
 
         Note:
             If you also override the :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_before_zero_grad`
