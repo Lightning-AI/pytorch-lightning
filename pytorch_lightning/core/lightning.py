@@ -1,6 +1,7 @@
 import collections
 import inspect
 import os
+import re
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
@@ -1692,4 +1693,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
+        hparams_assignment_name = self.__get_hparams_assignment_variable()
+        self._hparams_name = hparams_assignment_name
         self._set_hparams(hp)
+
+    def __get_hparams_assignment_variable(self):
+        class_code = inspect.getsource(self.__class__)
+        lines = class_code.split('\n')
+        for line in lines:
+            line = re.sub(r"\s+", "", line, flags=re.UNICODE)
+            if 'self.hparams=' in line:
+                return line.split('=')[1]
+
+        return None
+
