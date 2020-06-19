@@ -477,7 +477,7 @@ class TrainerDDPMixin(ABC):
 
         # call setup after the ddp process has connected
         self.setup()
-        if self.is_function_implemented('setup'):
+        if self.is_function_implemented('setup', model):
             model.setup()
 
         # on world_size=0 let everyone know training is starting
