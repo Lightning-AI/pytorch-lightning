@@ -114,7 +114,7 @@ def test_argparse_args_parsing(cli_args, expected):
 
 
 @pytest.mark.parametrize(['cli_args', 'expected_gpu'], [
-    pytest.param('--gpus 1', 1),
+    pytest.param('--gpus 1', [0]),
     pytest.param('--gpus 0,', [0]),
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
