@@ -22,7 +22,7 @@ class ModelHooks(Module):
         Called at the beginning of fit and test.
 
         Args:
-            stage: either 'fit' or 'test'
+            step: either 'fit' or 'test'
         """
 
     def teardown(self, stage: str):

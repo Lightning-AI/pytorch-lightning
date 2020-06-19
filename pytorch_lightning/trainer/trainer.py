@@ -857,10 +857,6 @@ class Trainer(
             model.prepare_data()
             self._is_data_prepared = True
 
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
-
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
@@ -895,19 +891,19 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
-                self._set_random_port
+                self.set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
-                self._set_random_port
+                self.set_random_port()
                 model.share_memory()
 
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
-                self._set_random_port
+                self.set_random_port()
                 self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
@@ -930,6 +926,9 @@ class Trainer(
             # track for predict
             self.model = model
 
+            # wait for all prepare data nodes to finish
+            self.barrier('setup')
+
             # train
             if self.tpu_id is not None:
                 self.tpu_train(self.tpu_id, model)
@@ -945,6 +944,11 @@ class Trainer(
             # run through amp wrapper
             if self.use_amp:
                 raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
+
+            # call setup after the ddp process has connected
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
@@ -1151,7 +1155,7 @@ class Trainer(
         if self.is_function_implemented('setup', model_ref):
             model_ref.setup('test')
 
-        # no barrier needed because all processes will catch up once the distributed group boots
+        self.barrier('test_setup')
 
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
@@ -1253,6 +1257,14 @@ class Trainer(
             if self.testing and self.is_overridden('test_step', model):
                 raise MisconfigurationException('You have defined `test_step()` but did not'
                                                 ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
+
+    def barrier(self, name):
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.barrier()
+
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
 
 
 class _PatchDataLoader(object):
