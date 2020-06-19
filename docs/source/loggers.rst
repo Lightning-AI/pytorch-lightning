@@ -90,8 +90,6 @@ Call the logger anywhere except ``__init__`` in your
 
 .. testcode::
 
-    from pytorch_lightning import LightningModule
-
     class LitModel(LightningModule):
         def training_step(self, batch, batch_idx):
             # example
