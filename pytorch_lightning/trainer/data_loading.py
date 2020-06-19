@@ -52,7 +52,7 @@ def _has_len(dataloader: DataLoader) -> bool:
         return True
     except TypeError:
         return False
-    except NotImplementedError: # e.g. raised by torchtext if a batch_size_fn is used
+    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
         return False
 
 
