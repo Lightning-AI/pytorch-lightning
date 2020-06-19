@@ -41,7 +41,7 @@ def main(hparams):
     trainer.fit(model)
 
 
-if __name__ == '__main__':
+def run_cli():
     # ------------------------
     # TRAINING ARGUMENTS
     # ------------------------
@@ -78,3 +78,7 @@ if __name__ == '__main__':
     # RUN TRAINING
     # ---------------------
     main(hyperparams)
+
+
+if __name__ == '__main__':
+    run_cli()
