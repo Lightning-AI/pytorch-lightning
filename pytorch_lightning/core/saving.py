@@ -176,14 +176,18 @@ class ModelIO(object):
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
             model_args = {}
+
             # add some back compatibility, the actual one shall be last
             for hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
                 if hparam_key in checkpoint:
                     model_args.update(checkpoint[hparam_key])
+
             if cls.CHECKPOINT_HYPER_PARAMS_TYPE in checkpoint:
                 model_args = checkpoint[cls.CHECKPOINT_HYPER_PARAMS_TYPE](model_args)
+
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
             init_args_name = inspect.signature(cls).parameters.keys()
+
             if args_name == 'kwargs':
                 cls_kwargs = {k: v for k, v in model_args.items() if k in init_args_name}
                 kwargs.update(**cls_kwargs)
