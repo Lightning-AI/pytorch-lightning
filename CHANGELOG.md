@@ -14,6 +14,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed epoch indexing from 0 instead of 1 ([#2289](https://github.com/PyTorchLightning/pytorch-lightning/pull/2289))
 
+- Refactor Model `backward` ([#2276](https://github.com/PyTorchLightning/pytorch-lightning/pull/2276))
+
+- Refactored `training_batch` + tests to verify correctness ([#2327](https://github.com/PyTorchLightning/pytorch-lightning/pull/2327), [#2328](https://github.com/PyTorchLightning/pytorch-lightning/pull/2328))
+
+- Refactored training loop ([#2336](https://github.com/PyTorchLightning/pytorch-lightning/pull/2336))
+
+- Made optimization steps for hooks ([#2363](https://github.com/PyTorchLightning/pytorch-lightning/pull/2363))
+
+- Changed default apex level to 'O2' ([#2362](https://github.com/PyTorchLightning/pytorch-lightning/pull/2362))
+
 ### Deprecated
 
 ### Removed
@@ -41,6 +51,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed lost compatibility with custom datatypes implementing `.to` ([#2335](https://github.com/PyTorchLightning/pytorch-lightning/pull/2335))
 
 - Fixed loading model with kwargs ([#2387](https://github.com/PyTorchLightning/pytorch-lightning/pull/2387))
+
+- Fixed sum(0) for `trainer.num_val_batches` ([#2268](https://github.com/PyTorchLightning/pytorch-lightning/pull/2268))
+
+- Fixed checking if the parameters are a `DictConfig` Object ([#2216](https://github.com/PyTorchLightning/pytorch-lightning/pull/2216))
+
+- Fixed SLURM weights saving ([#2341](https://github.com/PyTorchLightning/pytorch-lightning/pull/2341))
+
+- Fixed swaps LR scheduler order ([#2356](https://github.com/PyTorchLightning/pytorch-lightning/pull/2356))
+
+- Fixed adding tensorboard `hparams` logging test ([#2342](https://github.com/PyTorchLightning/pytorch-lightning/pull/2342))
+
+- Fixed use model ref for tear down ([#2360](https://github.com/PyTorchLightning/pytorch-lightning/pull/2360))
+
+- Fixed logger crash on DDP ([#2388](https://github.com/PyTorchLightning/pytorch-lightning/pull/2388))
 
 - Fixed several issues with early stopping and checkpoint callbacks ([#1504](https://github.com/PyTorchLightning/pytorch-lightning/pull/1504), [#2391](https://github.com/PyTorchLightning/pytorch-lightning/pull/2391))
 
