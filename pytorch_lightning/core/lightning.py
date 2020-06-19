@@ -1692,4 +1692,4 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
-        self._set_hparams(hp)
+        self._hparams = hp
