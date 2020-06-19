@@ -55,6 +55,33 @@ def test_amp_multi_gpu(tmpdir, backend):
 
 
 @pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp', 'ddp'])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_wandb(tmpdir, backend):
+    """Make sure DP/DDP + AMP work."""
+    from pytorch_lightning.loggers import WandbLogger
+    tutils.set_random_master_port()
+
+    model = EvalModelTemplate()
+    logger = WandbLogger(name='utest')
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        distributed_backend=backend,
+        precision=16,
+        logger=logger,
+
+    )
+    # tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result
+    trainer.test(model)
+
+
+@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
