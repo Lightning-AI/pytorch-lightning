@@ -1133,7 +1133,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: Optimizer,
             optimizer_idx: int,
             second_order_closure: Optional[Callable] = None,
-            on_tpu: bool = False
+            on_tpu: bool = False,
+            native_amp: bool = False
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1200,6 +1201,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         if on_tpu:
             xm.optimizer_step(optimizer)
+
+        elif native_amp:
+            self.scaler.step(optimizer)
         else:
             optimizer.step(second_order_closure)
 

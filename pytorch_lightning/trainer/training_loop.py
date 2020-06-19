@@ -703,11 +703,9 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                if self.use_amp and self.use_native_amp:
-                    self.scaler.step(optimizer)
-                else:
-                    model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx,
-                                         lambda: optimizer_closure()[0])
+                native_amp = self.use_amp and self.use_native_amp
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx,
+                                     lambda: optimizer_closure()[0], native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
             if self.use_amp and self.use_native_amp:
