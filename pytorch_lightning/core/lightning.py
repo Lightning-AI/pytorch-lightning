@@ -1702,11 +1702,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         looks at the code of the class to figure out what the user named self.hparams
         this only happens when the user explicitly sets self.hparams
         """
-        class_code = inspect.getsource(self.__class__)
-        lines = class_code.split('\n')
-        for line in lines:
-            line = re.sub(r"\s+", "", line, flags=re.UNICODE)
-            if 'self.hparams=' in line:
-                return line.split('=')[1]
+        try:
+            class_code = inspect.getsource(self.__class__)
+            lines = class_code.split('\n')
+            for line in lines:
+                line = re.sub(r"\s+", "", line, flags=re.UNICODE)
+                if 'self.hparams=' in line:
+                    return line.split('=')[1]
+        except Exception as e:
+            return 'hparams'
 
         return None
