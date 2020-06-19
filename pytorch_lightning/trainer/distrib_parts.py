@@ -174,7 +174,7 @@ class TrainerDPMixin(ABC):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-        # TODO: update for 0.8.0
+        # TODO: remove with dropping NVIDIA AMP support
         if self.use_amp and not self.use_native_amp:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
@@ -240,7 +240,7 @@ class TrainerDPMixin(ABC):
             # wrap the user's forward in autocast and give it back at the end
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
-        # TODO: remove in v0.8.0
+        # TODO: remove with dropping NVIDIA AMP support
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp and not self.use_native_amp:
