@@ -261,9 +261,9 @@ class TrainerDPMixin(ABC):
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        self.setup()
+        self.setup('fit')
         if self.is_function_implemented('setup', model):
-            model.setup()
+            model.setup('fit')
 
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
