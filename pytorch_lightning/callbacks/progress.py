@@ -96,7 +96,7 @@ class ProgressBarBase(Callback):
         if trainer.fast_dev_run and trainer.val_dataloaders is not None:
             total_val_batches = len(trainer.val_dataloaders)
         elif not self.trainer.disable_validation:
-            is_val_epoch = trainer.current_epoch % trainer.check_val_every_n_epoch == 0
+            is_val_epoch = (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(trainer.num_val_batches) if is_val_epoch else 0
         return total_val_batches
 
@@ -318,7 +318,7 @@ class ProgressBar(ProgressBarBase):
         total_batches = total_train_batches + total_val_batches
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(total_batches))
-        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
+        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch + 1}')
 
     def on_batch_end(self, trainer, pl_module):
         super().on_batch_end(trainer, pl_module)
