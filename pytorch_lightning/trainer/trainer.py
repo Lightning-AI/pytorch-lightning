@@ -360,7 +360,7 @@ class Trainer(
 
         if tpu_cores is None:
             tpu_cores = num_tpu_cores
-        self.tpu_cores = parse_tpu_cores(tpu_cores)
+        self.tpu_cores = _parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
 
         self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
