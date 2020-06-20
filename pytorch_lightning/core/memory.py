@@ -7,6 +7,7 @@ from typing import Tuple, Dict, Union, List, Any
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -57,11 +58,14 @@ class LayerSummary(object):
     def __del__(self):
         self.detach_hook()
 
-    def _register_hook(self):
+    def _register_hook(self) -> RemovableHandle:
         """
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
         If the hook is called, it will remove itself from the from the module, meaning that
         recursive models will only record their input- and output shapes once.
+
+        Return:
+            A handle for the installed hook.
         """
 
         def hook(module, inp, out):
@@ -82,11 +86,11 @@ class LayerSummary(object):
             self._hook_handle.remove()
 
     @property
-    def in_size(self):
+    def in_size(self) -> Union[str, List]:
         return self._in_size or UNKNOWN_SIZE
 
     @property
-    def out_size(self):
+    def out_size(self) -> Union[str, List]:
         return self._out_size or UNKNOWN_SIZE
 
     @property
