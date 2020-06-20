@@ -1061,7 +1061,7 @@ class Trainer(
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
-        if not self.disable_validation and self.num_sanity_val_steps:
+        if not self.disable_validation and self.num_sanity_val_steps > 0:
             self.reset_val_dataloader(ref_model)
 
             # hook and callback
