@@ -346,8 +346,8 @@ class TrainerTrainLoopMixin(ABC):
             model.on_train_start()
 
         try:
-            # run all epochs from actual + 1 till the maximal
-            for epoch in range(self.current_epoch + 1, self.max_epochs + 1):
+            # run all epochs
+            for epoch in range(self.current_epoch, self.max_epochs):
                 # reset train dataloader
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
@@ -382,7 +382,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.update_learning_rates(interval='epoch')
 
                 # early stopping
-                met_min_epochs = epoch >= self.min_epochs
+                met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 # TODO wrap this logic into the callback
@@ -476,7 +476,7 @@ class TrainerTrainLoopMixin(ABC):
             # RUN VAL STEP
             # ---------------
             is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
-            can_check_epoch = self.current_epoch % self.check_val_every_n_epoch == 0
+            can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             can_check_val = not self.disable_validation and can_check_epoch
             should_check_val = is_val_check_batch or early_stop_epoch
             should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
