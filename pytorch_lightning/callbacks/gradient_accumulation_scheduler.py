@@ -17,10 +17,6 @@ class GradientAccumulationScheduler(Callback):
     Args:
         scheduling: scheduling in format {epoch: accumulation_factor}
 
-            .. warning::
-                Epochs indexing starts from "1" until v0.6.x,
-                but will start from "0" in v0.8.0.
-
     Example::
 
         >>> from pytorch_lightning import Trainer
@@ -42,13 +38,13 @@ class GradientAccumulationScheduler(Callback):
 
         for key in scheduling:
             if not isinstance(key, int) or not isinstance(scheduling[key], int):
-                raise TypeError("All epochs and accumulation factor must be integers")
+                raise TypeError("All epoches and accumulation factor must be integers")
 
         minimal_epoch = min(scheduling.keys())
-        if minimal_epoch < 1:
+        if minimal_epoch < 0:
             raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
-        if minimal_epoch != 1:  # if user didnt define first epoch accumulation factor
-            scheduling.update({1: 1})
+        if minimal_epoch != 0:  # if user didnt define first epoch accumulation factor
+            scheduling.update({0: 1})
 
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())

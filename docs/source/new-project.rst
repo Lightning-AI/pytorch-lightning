@@ -76,6 +76,8 @@ Under the hood, lightning does (in high-level pseudocode):
 .. code-block:: python
 
     model = LitModel()
+    torch.set_grad_enabled(True)
+    model.train()
     train_dataloader = model.train_dataloader()
     optimizer = model.configure_optimizers()
 
@@ -139,6 +141,7 @@ Under the hood in pseudocode, lightning does the following:
         # ...
 
         if validate_at_some_point:
+            torch.set_grad_enabled(False)
             model.eval()
             val_outs = []
             for val_batch in model.val_dataloader:
@@ -146,6 +149,7 @@ Under the hood in pseudocode, lightning does the following:
                 val_outs.append(val_out)
 
             model.validation_epoch_end(val_outs)
+            torch.set_grad_enabled(True)
             model.train()
 
 The beauty of Lightning is that it handles the details of when to validate, when to call .eval(),
@@ -196,6 +200,7 @@ Again, under the hood, lightning does the following in (pseudocode):
 
 .. code-block:: python
 
+    torch.set_grad_enabled(False)
     model.eval()
     test_outs = []
     for test_batch in model.test_dataloader:

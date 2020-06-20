@@ -10,6 +10,7 @@ from pathlib import Path
 import cloudpickle
 import pytest
 import torch
+from omegaconf import OmegaConf
 
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
@@ -107,13 +108,17 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
     # test incorrect configs
     with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        assert Trainer(accumulate_grad_batches={-1: 3, 1: 4, 4: 6})
+    with pytest.raises(IndexError):
         assert Trainer(accumulate_grad_batches={-2: 3})
 
     with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
@@ -451,7 +456,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # check training stopped at max_epochs
     assert trainer.global_step == num_train_samples * trainer.max_epochs
-    assert trainer.current_epoch == trainer.max_epochs, "Model did not stop at max_epochs"
+    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -619,7 +624,7 @@ def test_disabled_validation():
 
     # check that limit_val_batches=0 turns off validation
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 2
+    assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, \
         '`validation_step` should not run when `limit_val_batches=0`'
     assert not model.validation_epoch_end_invoked, \
@@ -632,7 +637,7 @@ def test_disabled_validation():
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 1
+    assert trainer.current_epoch == 0
     assert model.validation_step_invoked, \
         'did not run `validation_step` with `fast_dev_run=True`'
     assert model.validation_epoch_end_invoked, \
@@ -903,6 +908,15 @@ def test_trainer_subclassing():
     # when we pass in an unknown arg, the base class should complain
     with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'"):
         TrainerSubclass(abcdefg='unknown_arg')
+
+
+@pytest.mark.parametrize('trainer_params', [
+    OmegaConf.create({'max_epochs': 1, 'gpus': 1}),
+    OmegaConf.create({'max_epochs': 1, 'gpus': [0]}),
+])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_trainer_omegaconf(trainer_params):
+    Trainer(**trainer_params)
 
 
 def test_trainer_pickle(tmpdir):
