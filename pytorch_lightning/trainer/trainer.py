@@ -1070,7 +1070,7 @@ class Trainer(
 
             num_loaders = len(self.val_dataloaders)
             max_batches = [self.num_sanity_val_steps] * num_loaders
-            max_batches = [float('inf') for m in max_batches if m == -1]
+            max_batches = [float('inf') if m == -1 else m for m in max_batches]
             eval_results = self._evaluate(model,
                                           self.val_dataloaders,
                                           max_batches,
