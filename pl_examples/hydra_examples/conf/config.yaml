@@ -1,0 +1,11 @@
+defaults:
+  - data: mnist
+  - model: basic
+  - callbacks: basic
+  - profiler: null
+  - logger: null
+  - checkpoint: null
+  - early_stopping: null
+  - trainer: trainer
+  - scheduler: step
+  - opt: adam

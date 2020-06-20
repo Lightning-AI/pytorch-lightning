@@ -1,0 +1,13 @@
+# @package _group_
+
+functions:
+  print:
+    target: pl_examples.hydra_examples.user_config.MyPrintingCallback
+  message:
+    target: pl_examples.hydra_examples.user_config.MessageCallback
+    params:
+      iter_num: 12
+
+callbacks_list:
+  - ${callbacks.functions.print}
+  - ${callbacks.functions.message}
