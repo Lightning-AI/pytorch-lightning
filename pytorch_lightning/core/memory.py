@@ -60,22 +60,24 @@ class LayerSummary(object):
     def _register_hook(self):
         """
         Registers a hook on the module that computes the input- and output size(s) on the first forward pass.
-        Recursive models will only record their input- and output shapes once.
+        If the hook is called, it will remove itself from the from the module, meaning that
+        recursive models will only record their input- and output shapes once.
         """
 
         def hook(module, inp, out):
             if len(inp) == 1:
                 inp = inp[0]
-            if self._in_size in (None, UNKNOWN_SIZE):
-                self._in_size = parse_batch_shape(inp)
-            if self._out_size in (None, UNKNOWN_SIZE):
-                self._out_size = parse_batch_shape(out)
+            self._in_size = parse_batch_shape(inp)
+            self._out_size = parse_batch_shape(out)
             self._hook_handle.remove()
 
         return self._module.register_forward_hook(hook)
 
     def detach_hook(self):
-        """ Removes the forward hook. Will be called after the summary is created. """
+        """
+        Removes the forward hook if it was not already removed in the forward pass.
+        Will be called after the summary is created.
+        """
         if self._hook_handle is not None:
             self._hook_handle.remove()
 
