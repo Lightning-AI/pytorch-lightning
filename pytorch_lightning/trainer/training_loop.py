@@ -153,6 +153,7 @@ from typing import Union, List
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -258,7 +259,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_function_implemented(self, *args):
+    def is_function_implemented(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -608,6 +609,11 @@ class TrainerTrainLoopMixin(ABC):
                     # backward pass
                     model_ref = self.get_model()
                     with self.profiler.profile('model_backward'):
+                        # scale loss for 16 bit
+                        if self.precision == 16 and not self.on_tpu:
+                            closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
+
+                        # do backward pass
                         model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
@@ -701,6 +707,11 @@ class TrainerTrainLoopMixin(ABC):
     def run_training_teardown(self):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
+
+        # clean up dist group
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.destroy_process_group()
+
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks

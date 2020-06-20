@@ -60,18 +60,18 @@ else:
 
 class Trainer(
     TrainerIOMixin,
+    TrainerCallbackHookMixin,
+    TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerAMPMixin,
     TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
-    TrainerModelHooksMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerEvaluationLoopMixin,
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
-    TrainerCallbackHookMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
     TrainerDeprecatedAPITillVer0_10,
@@ -550,7 +550,7 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def is_global_zero(self):
+    def is_global_zero(self) -> bool:
         return self.global_rank == 0
 
     @property
@@ -848,12 +848,8 @@ class Trainer(
 
         # callbacks
         self.on_fit_start()
-        if self.is_function_implemented('on_fit_start'):
+        if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
-
-        self.setup('fit')
-        if self.is_function_implemented('setup'):
-            model.setup('fit')
 
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
@@ -895,18 +891,19 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
-                self.__set_random_port()
+                self.set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
-                self.__set_random_port()
+                self.set_random_port()
                 model.share_memory()
 
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
+                self.set_random_port()
                 self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
@@ -944,6 +941,11 @@ class Trainer(
             # run through amp wrapper
             if self.use_amp:
                 raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
+
+            # call setup after the ddp process has connected
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
@@ -1146,9 +1148,11 @@ class Trainer(
             trainer.test(model, test_dataloaders=test)
         """
         self.setup('test')
-        if self.is_function_implemented('setup'):
-            model_ref = self.model if model is None else model
+        model_ref = self.model if model is None else model
+        if self.is_function_implemented('setup', model_ref):
             model_ref.setup('test')
+
+        self.barrier('test_setup')
 
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
@@ -1251,6 +1255,14 @@ class Trainer(
                 raise MisconfigurationException('You have defined `test_step()` but did not'
                                                 ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
 
+    def barrier(self, name):
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.barrier()
+
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
+
 
 class _PatchDataLoader(object):
     r"""
@@ -1261,7 +1273,6 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
-
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 

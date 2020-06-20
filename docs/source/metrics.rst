@@ -31,7 +31,7 @@ Example::
     to a few metrics. Please feel free to create an issue/PR if you have a proposed 
     metric or have found a bug.
 
----
+----------------
 
 Implement a metric
 ------------------
@@ -48,6 +48,8 @@ handles automated DDP syncing and converts all inputs and outputs to tensors.
     Numpy metrics might slow down your training substantially,
     since every metric computation requires a GPU sync to convert tensors to numpy.
 
+----------------
+
 TensorMetric
 ^^^^^^^^^^^^
 Here's an example showing how to implement a TensorMetric
@@ -60,6 +62,8 @@ Here's an example showing how to implement a TensorMetric
 
 .. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
     :noindex:
+
+----------------
 
 NumpyMetric
 ^^^^^^^^^^^
@@ -75,7 +79,7 @@ Here's an example showing how to implement a NumpyMetric
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
 
----
+----------------
 
 Class Metrics
 -------------
@@ -216,16 +220,16 @@ IoU
 RMSE
 ^^^^
 
-.. autoclass:: pytorch_lightning.metrics.regression.RMSLE
+.. autoclass:: pytorch_lightning.metrics.regression.RMSE
     :noindex:
 
 RMSLE
 ^^^^^
 
-.. autoclass:: pytorch_lightning.metrics.regression.RMSE
+.. autoclass:: pytorch_lightning.metrics.regression.RMSLE
     :noindex:
 
----
+----------------
 
 Functional Metrics
 ------------------
@@ -364,12 +368,10 @@ stat_scores_multiple_classes (F)
 .. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
     :noindex:
 
----
+----------------
 
 Metric pre-processing
 ---------------------
-
-Metric
 
 to_categorical (F)
 ^^^^^^^^^^^^^^^^^^
@@ -383,7 +385,7 @@ to_onehot (F)
 .. autofunction:: pytorch_lightning.metrics.functional.to_onehot
     :noindex:
 
----
+----------------
 
 Sklearn interface
 -----------------

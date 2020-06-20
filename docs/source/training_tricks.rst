@@ -7,6 +7,8 @@ Training Tricks
 ================
 Lightning implements various tricks to help during training
 
+----------
+
 Accumulate gradients
 --------------------
 Accumulated gradients runs K small batches of size N before doing a backwards pass.
@@ -19,6 +21,7 @@ The effect is a large effective batch size of size KxN.
     # DEFAULT (ie: no accumulated grads)
     trainer = Trainer(accumulate_grad_batches=1)
 
+----------
 
 Gradient Clipping
 -----------------
@@ -34,6 +37,8 @@ norm <https://pytorch.org/docs/stable/nn.html#torch.nn.utils.clip_grad_norm_>`_ 
 
     # clip gradients with norm above 0.5
     trainer = Trainer(gradient_clip_val=0.5)
+
+----------
 
 Auto scaling of batch size
 --------------------------

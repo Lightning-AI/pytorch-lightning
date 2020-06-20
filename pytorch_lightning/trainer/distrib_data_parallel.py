@@ -185,7 +185,8 @@ class TrainerDDPMixin(ABC):
     tpu_cores: int
 
     @property
-    def is_global_zero(self) -> int:
+    @abstractmethod
+    def is_global_zero(self) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @property
@@ -216,6 +217,14 @@ class TrainerDDPMixin(ABC):
 
     @abstractmethod
     def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def setup(self, *args) -> None:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def is_function_implemented(self, *args) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
@@ -369,7 +378,7 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def __set_random_port(self):
+    def set_random_port(self):
         """
         When running DDP NOT managed by SLURM, the ports might collide
         """
@@ -384,7 +393,6 @@ class TrainerDDPMixin(ABC):
         os.environ['MASTER_PORT'] = str(default_port)
 
     def spawn_ddp_children(self, model):
-        self.__set_random_port()
         port = os.environ['MASTER_PORT']
 
         master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
@@ -475,6 +483,11 @@ class TrainerDDPMixin(ABC):
         # where to store ip_table
         model.trainer = self
         model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
+
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero:

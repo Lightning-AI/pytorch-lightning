@@ -104,3 +104,17 @@ class TrainerDeprecatedAPITillVer0_10(ABC):
         rank_zero_warn("Attribute `train_percent_check` is now set by `overfit_batches` since v0.8.0"
                        " and this method will be removed in v0.10.0", DeprecationWarning)
         self.overfit_batches = pct
+
+    @property
+    def proc_rank(self) -> int:
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `proc_rank` is now set by `global_rank` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        return self.global_rank
+
+    @proc_rank.setter
+    def proc_rank(self, rank):
+        """Back compatibility, will be removed in v0.10.0"""
+        rank_zero_warn("Attribute `proc_rank` is now set by `global_rank` since v0.8.0"
+                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        self.global_rank = rank

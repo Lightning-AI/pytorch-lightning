@@ -7,8 +7,10 @@
 =================
 Lightning offers 16-bit training for CPUs, GPUs and TPUs.
 
+----------
+
 GPU 16-bit
------------
+----------
 16 bit precision can cut your memory footprint by half.
 If using volta architecture GPUs it can give a dramatic training speed-up as well.
 
@@ -66,6 +68,8 @@ Enable 16-bit
 
 If you need to configure the apex init for your particular use case or want to use a different way of doing
 16-bit training, override   :meth:`pytorch_lightning.core.LightningModule.configure_apex`.
+
+----------
 
 TPU 16-bit
 ----------
