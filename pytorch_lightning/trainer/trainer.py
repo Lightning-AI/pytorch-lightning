@@ -379,7 +379,7 @@ class Trainer(
         self.max_steps = max_steps
         self.min_steps = min_steps
 
-        self.num_sanity_val_steps = num_sanity_val_steps
+        self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
@@ -1070,7 +1070,6 @@ class Trainer(
 
             num_loaders = len(self.val_dataloaders)
             max_batches = [self.num_sanity_val_steps] * num_loaders
-            max_batches = [float('inf') if m == -1 else m for m in max_batches]
             eval_results = self._evaluate(model,
                                           self.val_dataloaders,
                                           max_batches,
