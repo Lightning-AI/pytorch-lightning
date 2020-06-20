@@ -10,6 +10,7 @@ from pathlib import Path
 import cloudpickle
 import pytest
 import torch
+from omegaconf import OmegaConf
 
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
@@ -907,6 +908,15 @@ def test_trainer_subclassing():
     # when we pass in an unknown arg, the base class should complain
     with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'"):
         TrainerSubclass(abcdefg='unknown_arg')
+
+
+@pytest.mark.parametrize('trainer_params', [
+    OmegaConf.create({'max_epochs': 1, 'gpus': 1}),
+    OmegaConf.create({'max_epochs': 1, 'gpus': [0]}),
+])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_trainer_omegaconf(trainer_params):
+    Trainer(**trainer_params)
 
 
 def test_trainer_pickle(tmpdir):
