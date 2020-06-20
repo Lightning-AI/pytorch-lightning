@@ -6,20 +6,18 @@ import os
 import torch
 import yaml
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 PRIMITIVE_TYPES = (bool, int, float, str)
-ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
+ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 try:
     from omegaconf import Container
 except ImportError:
     Container = None
-else:
-    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (

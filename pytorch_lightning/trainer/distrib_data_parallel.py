@@ -518,7 +518,7 @@ class TrainerDDPMixin(ABC):
 
         # AMP
         # run through amp wrapper before going to distributed DP
-        # TODO: remove in v0.8.0
+        # TODO: remove with dropping NVIDIA AMP support
         if self.use_amp and not self.use_native_amp:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers

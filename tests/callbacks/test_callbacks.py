@@ -286,7 +286,7 @@ def test_early_stopping_no_val_step(tmpdir):
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch <= trainer.max_epochs
+    assert trainer.current_epoch < trainer.max_epochs
 
 
 def test_pickling(tmpdir):
