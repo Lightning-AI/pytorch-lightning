@@ -48,10 +48,7 @@ def test_against_sklearn(sklearn_metric, torch_metric):
     pred = torch.randint(10, (500,))
     target = torch.randint(10, (500,))
 
-    if torch.cuda.is_available():
-        device = 'cuda'
-    else:
-        device = 'cpu'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     pred = pred.to(device)
     target = target.to(device)
