@@ -374,7 +374,7 @@ def test_inf_train_dataloader(tmpdir, check_interval):
 
 
 @pytest.mark.parametrize('check_interval', [50, 1.0])
-# @pytest.mark.skip('TODO: speed up this test')
+@pytest.mark.skip('TODO: speed up this test')
 def test_not_implemented_error_train_dataloader(tmpdir, check_interval):
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
 
@@ -412,8 +412,8 @@ def test_inf_val_dataloader(tmpdir, check_interval):
 
 
 @pytest.mark.parametrize('check_interval', [1.0])
-# @pytest.mark.skip('TODO: speed up this test')
-def test_not_implemented_error_dataloader(tmpdir, check_interval):
+@pytest.mark.skip('TODO: speed up this test')
+def test_not_implemented_error_val_dataloader(tmpdir, check_interval):
     """Test not_implemented_error data loader (e.g. IterableDataset)"""
 
     model = EvalModelTemplate()
