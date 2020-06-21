@@ -93,6 +93,20 @@ def test_linear_model_summary_shapes(device, dtype, mode):
     pytest.param(ModelSummary.MODE_FULL),
     pytest.param(ModelSummary.MODE_TOP),
 ])
+def test_hooks_removed_after_summarize(mode):
+    """ Test that all hooks were properly removed after summary, even ones that were not run. """
+    model = UnorderedModel()
+    summary = ModelSummary(model, mode=mode)
+    # hooks should be removed
+    for _, layer in summary.summarize().items():
+        handle = layer._hook_handle
+        assert handle.id not in handle.hooks_dict_ref()
+
+
+@pytest.mark.parametrize(['mode'], [
+    pytest.param(ModelSummary.MODE_FULL),
+    pytest.param(ModelSummary.MODE_TOP),
+])
 def test_rnn_summary_shapes(mode):
     """ Test that the model summary works for RNNs. """
     model = ParityModuleRNN()

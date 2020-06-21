@@ -43,7 +43,8 @@ that change in the `Autoencoder` model are the init, forward, training, validati
 
         def forward(self, x):
             generated = self.decoder(x)
-
+            return generated
+            
         def training_step(self, batch, batch_idx):
             x, _ = batch
 
