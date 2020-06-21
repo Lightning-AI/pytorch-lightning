@@ -531,7 +531,7 @@ def _tpu_cores_valid(tpu_cores):
 
 
 def _parse_tpu_cores_str(tpu_cores):
-    if tpu_cores == '1' or tpu_cores == '8':
+    if tpu_cores in ('1', '8'):
         tpu_cores = int(tpu_cores)
     else:
         tpu_cores = [int(x.strip()) for x in tpu_cores.split(',') if len(x) > 0]
