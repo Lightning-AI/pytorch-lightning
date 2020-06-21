@@ -28,3 +28,13 @@ class CustomNotImplementedErrorDataloader(CustomInfDataloader):
     def __len__(self):
         """raise NotImplementedError"""
         raise NotImplementedError
+
+    def __next__(self):
+        if self.count >= 5:
+            raise StopIteration
+        self.count = self.count + 1
+        try:
+            return next(self.iter)
+        except StopIteration:
+            self.iter = iter(self.dataloader)
+            return next(self.iter)
