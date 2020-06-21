@@ -295,7 +295,7 @@ def test_train_inf_dataloader_error(tmpdir):
         trainer.fit(model)
 
 
-# @pytest.mark.skip('TODO: speed up this test')
+@pytest.mark.skip('TODO: speed up this test')
 def test_train_not_implemented_error_dataloader_error(tmpdir):
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
