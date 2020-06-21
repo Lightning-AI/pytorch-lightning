@@ -47,23 +47,37 @@ def test_against_sklearn(sklearn_metric, torch_metric):
     """Compare PL metrics to sklearn version."""
     pred = torch.randint(10, (500,))
     target = torch.randint(10, (500,))
+    
+    if torch.cuda.is_available():
+        device = 'cuda'
+    else:
+        device = 'cpu'
+        
+    pred = pred.to(device)
+    target = target.to(device)
 
     assert torch.allclose(
-        torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
+        torch.tensor(sklearn_metric(target, pred), dtype=torch.float, device=device),
         torch_metric(pred, target))
 
     pred = torch.randint(10, (200,))
     target = torch.randint(5, (200,))
+    
+    pred = pred.to(device)
+    target = target.to(device)
 
     assert torch.allclose(
-        torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
+        torch.tensor(sklearn_metric(target, pred), dtype=torch.float, device=device),
         torch_metric(pred, target))
 
     pred = torch.randint(5, (200,))
     target = torch.randint(10, (200,))
+    
+    pred = pred.to(device)
+    target = target.to(device)
 
     assert torch.allclose(
-        torch.tensor(sklearn_metric(target, pred), dtype=torch.float),
+        torch.tensor(sklearn_metric(target, pred), dtype=torch.float, device=device),
         torch_metric(pred, target))
 
 
