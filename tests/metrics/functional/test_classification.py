@@ -57,7 +57,8 @@ def test_against_sklearn(sklearn_metric, torch_metric):
     target = target.to(device)
 
     assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(), pred.cpu().detach().numpy()), dtype=torch.float, device=device),
+        torch.tensor(sklearn_metric(target.cpu().detach().numpy(), 
+                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
         torch_metric(pred, target))
 
     pred = torch.randint(10, (200,))
@@ -67,7 +68,8 @@ def test_against_sklearn(sklearn_metric, torch_metric):
     target = target.to(device)
 
     assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(), pred.cpu().detach().numpy()), dtype=torch.float, device=device),
+        torch.tensor(sklearn_metric(target.cpu().detach().numpy(), 
+                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
         torch_metric(pred, target))
 
     pred = torch.randint(5, (200,))
@@ -77,7 +79,8 @@ def test_against_sklearn(sklearn_metric, torch_metric):
     target = target.to(device)
 
     assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(), pred.cpu().detach().numpy()), dtype=torch.float, device=device),
+        torch.tensor(sklearn_metric(target.cpu().detach().numpy(), 
+                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
         torch_metric(pred, target))
 
 
