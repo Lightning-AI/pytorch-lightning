@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an issue with forward hooks not being removed after model summary ([#2298](https://github.com/PyTorchLightning/pytorch-lightning/pull/2298))
-
+- Fixed an issue how _has_len handels 'NotImplementedError' e.g. raised by torchtext.data.Iterator   ([#2293](https://github.com/PyTorchLightning/pytorch-lightning/pull/2293)) ([#2307](https://github.com/PyTorchLightning/pytorch-lightning/pull/2307))
 
 ## [0.8.1] - 2020-06-19
 
