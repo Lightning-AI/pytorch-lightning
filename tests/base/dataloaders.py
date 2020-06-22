@@ -30,7 +30,7 @@ class CustomNotImplementedErrorDataloader(CustomInfDataloader):
         raise NotImplementedError
 
     def __next__(self):
-        if self.count >= 5:
+        if self.count >= 2:
             raise StopIteration
         self.count = self.count + 1
         try:
