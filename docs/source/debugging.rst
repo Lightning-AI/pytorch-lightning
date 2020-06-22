@@ -6,7 +6,9 @@ Debugging
 =========
 The following are flags that make debugging much easier.
 
-Fast dev run
+----------------
+
+fast_dev_run
 ------------
 This flag runs a "unit test" by running 1 training batch and 1 validation batch.
 The point is to detect any bugs in the training/validation loop without having to wait for
@@ -18,6 +20,8 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 .. testcode::
 
     trainer = Trainer(fast_dev_run=True)
+
+----------------
 
 Inspect gradient norms
 ----------------------
@@ -31,6 +35,8 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
     # the 2-norm
     trainer = Trainer(track_grad_norm=2)
 
+----------------
+
 Log GPU usage
 -------------
 Logs (to a logger) the GPU usage for each GPU on the master machine.
@@ -41,6 +47,8 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 .. testcode::
 
     trainer = Trainer(log_gpu_memory=True)
+
+----------------
 
 Make model overfit on subset of data
 ------------------------------------
@@ -61,6 +69,8 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 With this flag, the train, val, and test sets will all be the same train set. We will also replace the sampler
 in the training set to turn off shuffle for you.
+
+----------------
 
 Print a summary of your LightningModule
 ---------------------------------------
@@ -89,6 +99,24 @@ See Also:
     - :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_summary` Trainer argument
     - :class:`~pytorch_lightning.core.memory.ModelSummary`
 
+----------------
+
+Shorten epochs
+--------------
+Sometimes it's helpful to only use a percentage of your training, val or test data (or a set number of batches).
+For example, you can use 20% of the training set and 1% of the validation set.
+
+On larger datasets like Imagenet, this can help you debug or test a few things faster than waiting for a full epoch.
+
+.. testcode::
+
+    # use only 10% of training data and 1% of val data
+    trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.01)
+
+    # use 10 batches of train and 5 batches of val
+    trainer = Trainer(limit_train_batches=10, limit_val_batches=5)
+
+----------------
 
 Set the number of validation sanity steps
 -----------------------------------------

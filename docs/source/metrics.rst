@@ -1,5 +1,6 @@
 .. testsetup:: *
 
+    import torch
     from torch.nn import Module
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.metrics import TensorMetric, NumpyMetric
@@ -25,16 +26,12 @@ Example::
     # calculates accuracy across all GPUs and all Nodes used in training
     accuracy(pred, target)
 
-Out::
-
-    tensor(0.7500)
-
 .. warning::
     The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR!
     to a few metrics. Please feel free to create an issue/PR if you have a proposed 
     metric or have found a bug.
 
---------------
+----------------
 
 Implement a metric
 ------------------
@@ -51,6 +48,8 @@ handles automated DDP syncing and converts all inputs and outputs to tensors.
     Numpy metrics might slow down your training substantially,
     since every metric computation requires a GPU sync to convert tensors to numpy.
 
+----------------
+
 TensorMetric
 ^^^^^^^^^^^^
 Here's an example showing how to implement a TensorMetric
@@ -63,6 +62,8 @@ Here's an example showing how to implement a TensorMetric
 
 .. autoclass:: pytorch_lightning.metrics.metric.TensorMetric
     :noindex:
+
+----------------
 
 NumpyMetric
 ^^^^^^^^^^^
@@ -78,7 +79,7 @@ Here's an example showing how to implement a NumpyMetric
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
 
---------------
+----------------
 
 Class Metrics
 -------------
@@ -186,6 +187,18 @@ ROC
 .. autoclass:: pytorch_lightning.metrics.classification.ROC
     :noindex:
 
+MAE
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MAE
+    :noindex:
+
+MSE
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.MSE
+    :noindex:
+
 MulticlassROC
 ^^^^^^^^^^^^^
 
@@ -198,10 +211,54 @@ MulticlassPrecisionRecall
 .. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
     :noindex:
 
---------------
+IoU
+^^^
+
+.. autoclass:: pytorch_lightning.metrics.classification.IoU
+    :noindex:
+
+RMSE
+^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.RMSE
+    :noindex:
+
+RMSLE
+^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.RMSLE
+    :noindex:
+
+----------------
 
 Functional Metrics
 ------------------
+Functional metrics can be called anywhere (even used with just plain PyTorch).
+
+.. code-block:: python
+
+    from pytorch_lightning.metrics.functional import accuracy
+
+    pred = torch.tensor([0, 1, 2, 3])
+    target = torch.tensor([0, 1, 2, 2])
+
+    # calculates accuracy across all GPUs and all Nodes used in training
+    accuracy(pred, target)
+
+These metrics even work when using distributed training:
+
+.. code-block:: python
+
+    class MyModule(...):
+        def forward(self, x, y):
+            return accuracy(x, y)
+
+    model = MyModule()
+    trainer = Trainer(gpus=8, num_nodes=2)
+
+    # any metric automatically reduces across GPUs (even the ones you implement using Lightning)
+    trainer.fit(model)
+
 
 accuracy (F)
 ^^^^^^^^^^^^
@@ -299,6 +356,12 @@ stat_scores (F)
 .. autofunction:: pytorch_lightning.metrics.functional.stat_scores
     :noindex:
 
+iou (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.iou
+    :noindex:
+
 stat_scores_multiple_classes (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -309,7 +372,6 @@ stat_scores_multiple_classes (F)
 
 Metric pre-processing
 ---------------------
-Metric
 
 to_categorical (F)
 ^^^^^^^^^^^^^^^^^^

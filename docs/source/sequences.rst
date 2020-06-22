@@ -7,9 +7,10 @@ Sequential Data
 ================
 Lightning has built in support for dealing with sequential data.
 
+----------
 
 Packed sequences as inputs
-----------------------------
+--------------------------
 When using PackedSequence, do 2 things:
 
 1. return either a padded tensor in dataset or a list of variable length tensors in the dataloader collate_fn (example above shows the list implementation).
@@ -28,8 +29,10 @@ When using PackedSequence, do 2 things:
         x = rnn.pack_sequence(batch[0], enforce_sorted=False)
         y = rnn.pack_sequence(batch[1], enforce_sorted=False)
 
+----------
+
 Truncated Backpropagation Through Time
----------------------------------------
+--------------------------------------
 There are times when multiple backwards passes are needed for each batch.
 For example, it may save memory to use Truncated Backpropagation Through Time when training RNNs.
 
@@ -49,8 +52,10 @@ Lightning can handle TBTT automatically via this flag.
 .. note:: Using this feature requires updating your LightningModule's :meth:`pytorch_lightning.core.LightningModule.training_step` to include
     a `hiddens` arg.
 
+----------
+
 Iterable Datasets
----------------------------------------
+-----------------
 Lightning supports using IterableDatasets as well as map-style Datasets. IterableDatasets provide a more natural
 option when using sequential data.
 

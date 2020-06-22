@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
-from typing import Union, Callable, Any, List, Optional, Tuple
+from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import _logger as log
@@ -89,6 +89,14 @@ class TrainerDPMixin(ABC):
     def reinit_scheduler_properties(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def setup(self, *args) -> None:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def is_function_implemented(self, *args) -> bool:
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def copy_trainer_model_properties(self, model):
         if isinstance(model, LightningDataParallel):
             ref_model = model.module
@@ -155,13 +163,18 @@ class TrainerDPMixin(ABC):
         return move_data_to_device(batch, device)
 
     def single_gpu_train(self, model):
+        # call setup
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
+
         model.cuda(self.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-        # TODO: update for 0.8.0
+        # TODO: remove with dropping NVIDIA AMP support
         if self.use_amp and not self.use_native_amp:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
@@ -171,6 +184,11 @@ class TrainerDPMixin(ABC):
         self.run_pretrain_routine(model)
 
     def tpu_train(self, tpu_core_idx, model):
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
+
         # put model on tpu
         self._device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
         model.to(self._device)
@@ -205,6 +223,10 @@ class TrainerDPMixin(ABC):
             self.save_spawn_weights(model)
 
     def dp_train(self, model):
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -218,7 +240,7 @@ class TrainerDPMixin(ABC):
             # wrap the user's forward in autocast and give it back at the end
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
-        # TODO: remove in v0.8.0
+        # TODO: remove with dropping NVIDIA AMP support
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.use_dp and self.use_amp and not self.use_native_amp:
@@ -246,6 +268,11 @@ class TrainerDPMixin(ABC):
         model.forward = model_autocast_original_forward
 
     def horovod_train(self, model):
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
+
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
             assert self.root_gpu == hvd.local_rank()
@@ -329,14 +356,14 @@ def check_gpus_data_type(gpus: Any) -> None:
     Args:
         gpus: parameter as passed to the Trainer
     """
-    if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
-        raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
+    if gpus is not None and (not isinstance(gpus, (int, str, MutableSequence)) or isinstance(gpus, bool)):
+        raise MisconfigurationException("GPUs must be int, string or sequence of ints or None.")
 
 
 def normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
     assert gpus is not None
-    if isinstance(gpus, list):
-        return gpus
+    if isinstance(gpus, MutableSequence):
+        return list(gpus)
 
     # must be an int
     if not gpus:  # gpus==0

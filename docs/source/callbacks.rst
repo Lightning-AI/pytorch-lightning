@@ -46,6 +46,7 @@ Example:
 We successfully extended functionality without polluting our super clean
 :class:`~pytorch_lightning.core.LightningModule` research code.
 
+----------------
 
 Best Practices
 ==============
@@ -68,7 +69,7 @@ is strongly discouraged.
         _abc_impl,
         check_monitor_top_k,
 
----------
+----------------
 
 .. automodule:: pytorch_lightning.callbacks.early_stopping
    :noindex:
@@ -78,17 +79,7 @@ is strongly discouraged.
         _abc_impl,
         check_monitor_top_k,
 
----------
-
-.. automodule:: pytorch_lightning.callbacks.model_checkpoint
-   :noindex:
-   :exclude-members:
-        _del_model,
-        _save_model,
-        _abc_impl,
-        check_monitor_top_k,
-
----------
+----------------
 
 .. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
@@ -98,16 +89,26 @@ is strongly discouraged.
         _abc_impl,
         check_monitor_top_k,
 
----------
-
-.. automodule:: pytorch_lightning.callbacks.progress
-   :noindex:
-   :exclude-members:
-
----------
+----------------
 
 .. automodule:: pytorch_lightning.callbacks.lr_logger
     :noindex:
     :exclude-members:
         _extract_lr,
         _find_names
+
+----------------
+
+.. automodule:: pytorch_lightning.callbacks.model_checkpoint
+   :noindex:
+   :exclude-members:
+        _del_model,
+        _save_model,
+        _abc_impl,
+        check_monitor_top_k,
+
+----------------
+
+.. automodule:: pytorch_lightning.callbacks.progress
+   :noindex:
+   :exclude-members:

@@ -189,7 +189,7 @@ class TrainerTrainingTricksMixin(ABC):
             'checkpoint_callback': self.checkpoint_callback,
             'early_stop_callback': self.early_stop_callback,
             'auto_scale_batch_size': self.auto_scale_batch_size,
-            'train_percent_check': self.train_percent_check,
+            'limit_train_batches': self.limit_train_batches,
             'model': self.model,
         }
 
@@ -201,7 +201,7 @@ class TrainerTrainingTricksMixin(ABC):
         self.callbacks = []  # not needed before full run
         self.checkpoint_callback = False  # required for saving
         self.early_stop_callback = None
-        self.train_percent_check = 1.0
+        self.limit_train_batches = 1.0
         self.optimizers, self.schedulers = [], []  # required for saving
         self.model = model  # required for saving
 
@@ -213,7 +213,7 @@ class TrainerTrainingTricksMixin(ABC):
         self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.auto_scale_batch_size = self.__dumped_params['auto_scale_batch_size']
         self.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.train_percent_check = self.__dumped_params['train_percent_check']
+        self.limit_train_batches = self.__dumped_params['limit_train_batches']
         self.model = self.__dumped_params['model']
         del self.__dumped_params
 

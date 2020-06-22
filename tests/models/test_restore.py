@@ -31,7 +31,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
+        limit_train_batches=0.4,
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
@@ -79,7 +79,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=3,
-        train_percent_check=0.4,
+        limit_train_batches=0.4,
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger
@@ -110,7 +110,7 @@ def test_load_model_from_checkpoint(tmpdir):
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
+        limit_train_batches=0.4,
         limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
@@ -172,7 +172,7 @@ def test_dp_resume(tmpdir):
     result = trainer.fit(model)
 
     # track epoch before saving. Increment since we finished the current epoch, don't want to rerun
-    real_global_epoch = trainer.current_epoch
+    real_global_epoch = trainer.current_epoch + 1
 
     # correct result and ok accuracy
     assert result == 1, 'amp + dp model failed to complete'
@@ -187,7 +187,7 @@ def test_dp_resume(tmpdir):
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
-    trainer_options['train_percent_check'] = 0.5
+    trainer_options['limit_train_batches'] = 0.5
     trainer_options['limit_val_batches'] = 0.2
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)

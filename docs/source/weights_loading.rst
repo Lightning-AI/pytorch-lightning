@@ -35,7 +35,7 @@ To change the checkpoint path pass in:
 
 To modify the behavior of checkpointing pass in your own callback.
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 

@@ -39,7 +39,7 @@ def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
     assert model.hparams.test_arg == 14
 
     # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
     trainer.fit(model)
 
     # make sure the raw checkpoint saved the properties

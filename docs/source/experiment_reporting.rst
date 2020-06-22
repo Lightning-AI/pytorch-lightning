@@ -10,6 +10,7 @@ Lightning supports many different experiment loggers. These loggers allow you to
 as training progresses. They usually provide a GUI to visualize and can sometimes even snapshot hyperparameters
 used in each experiment.
 
+----------
 
 Control logging frequency
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -20,6 +21,8 @@ It may slow training down to log every single batch. Trainer has an option to lo
 
    k = 10
    trainer = Trainer(row_log_interval=k)
+
+----------
 
 Control log writing frequency
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -34,6 +37,8 @@ want to log using this trainer flag.
 
     k = 100
     trainer = Trainer(log_save_interval=k)
+
+----------
 
 Log metrics
 ^^^^^^^^^^^
@@ -84,6 +89,8 @@ For instance, here we log images using tensorboard.
         ...
         return results
 
+----------
+
 Modify progress bar
 ^^^^^^^^^^^^^^^^^^^
 
@@ -102,8 +109,11 @@ Here we show the validation loss in the progress bar
         results = {'progress_bar': logs}
         return results
 
+----------
+
 Snapshot hyperparameters
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
 When training a model, it's useful to know what hyperparams went into that model.
 When Lightning creates a checkpoint, it stores a key "hparams" with the hyperparams.
 
@@ -116,8 +126,11 @@ Some loggers also allow logging the hyperparams used in the experiment. For inst
 when using the TestTubeLogger or the TensorBoardLogger, all hyperparams will show
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
 
+----------
+
 Snapshot code
 ^^^^^^^^^^^^^
+
 Loggers  also allow you to snapshot a copy of the code used in this experiment.
 For example, TestTubeLogger does this with a flag:
 

@@ -307,12 +307,11 @@ class TransferLearningModel(pl.LightningModule):
 
     def prepare_data(self):
         """Download images and prepare images datasets."""
-
-        # 1. Download the images
         download_and_extract_archive(url=DATA_URL,
                                      download_root=self.dl_path,
                                      remove_finished=True)
 
+    def setup(self, stage: str):
         data_path = Path(self.dl_path).joinpath('cats_and_dogs_filtered')
 
         # 2. Load the data + preprocessing & data augmentation

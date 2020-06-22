@@ -21,7 +21,7 @@ def test_single_gpu_model(tmpdir, gpus):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.1,
+        limit_train_batches=0.1,
         limit_val_batches=0.1,
         gpus=gpus
     )
@@ -40,7 +40,7 @@ def test_multi_gpu_model(tmpdir, backend):
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=0.4,
+        limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=[0, 1],
         distributed_backend=backend,
@@ -65,7 +65,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     trainer_options = dict(default_root_dir=tmpdir,
                            progress_bar_refresh_rate=0,
                            max_epochs=1,
-                           train_percent_check=0.1,
+                           limit_train_batches=0.1,
                            limit_val_batches=0.1,
                            gpus=[0, 1],
                            distributed_backend='ddp')
@@ -87,7 +87,7 @@ def test_multi_gpu_none_backend(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.1,
+        limit_train_batches=0.1,
         limit_val_batches=0.1,
         gpus='-1'
     )
@@ -171,7 +171,7 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
 ])
 def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     with pytest.raises(MisconfigurationException):
-        Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu
+        Trainer(gpus=gpus, distributed_backend=distributed_backend)
 
 
 @pytest.mark.gpus_param_tests

@@ -8,8 +8,7 @@ from tests.base import EvalModelTemplate
 from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 
-def test_overfit(tmpdir):
-
+def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # Make sure shuffle is correct across loaders initially
     # ------------------------------------------------------
@@ -43,6 +42,28 @@ def test_overfit(tmpdir):
     model.train_dataloader = lambda: train_loader
     model.val_dataloader = lambda: val_loader
     model.test_dataloader = lambda: test_loader
+
+    # ------------------------------------------------------
+    # test train loader applies correct limits
+    # ------------------------------------------------------
+    trainer = Trainer(overfit_batches=4)
+    trainer.reset_train_dataloader(model)
+    assert trainer.num_training_batches == 4
+
+    # make sure the loaders are the same
+    (xb, yb) = next(iter(trainer.train_dataloader))
+    assert torch.eq(xa, xb).all()
+    assert torch.eq(ya, yb).all()
+
+    trainer = Trainer(overfit_batches=0.11)
+    trainer.reset_train_dataloader(model)
+    assert trainer.train_dataloader is train_loader
+    assert trainer.num_training_batches == num_train_samples
+
+    # make sure the loaders are the same
+    (xb, yb) = next(iter(trainer.train_dataloader))
+    assert torch.eq(xa, xb).all()
+    assert torch.eq(ya, yb).all()
 
     # ------------------------------------------------------
     # run tests for both val and test
@@ -129,7 +150,7 @@ def test_trainer_reset_correctly(tmpdir):
                           'callbacks',
                           'checkpoint_callback',
                           'early_stop_callback',
-                          'train_percent_check']
+                          'limit_train_batches']
 
     attributes_before = {}
     for ca in changed_attributes:
@@ -201,7 +222,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        train_percent_check=0.2,
+        limit_train_batches=0.2,
         auto_scale_batch_size='power'
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True))

@@ -1,5 +1,11 @@
 from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
 from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
+from pytorch_lightning.metrics.regression import (
+    MSE,
+    RMSE,
+    MAE,
+    RMSLE,
+)
 from pytorch_lightning.metrics.classification import (
     Accuracy,
     AveragePrecision,
@@ -14,6 +20,7 @@ from pytorch_lightning.metrics.classification import (
     MulticlassROC,
     Precision,
     PrecisionRecall,
+    IoU,
 )
 from pytorch_lightning.metrics.sklearns import (
     AUC,
@@ -21,7 +28,7 @@ from pytorch_lightning.metrics.sklearns import (
     SklearnMetric,
 )
 
-__all__ = [
+__classification_metrics = [
     'AUC',
     'AUROC',
     'Accuracy',
@@ -37,5 +44,12 @@ __all__ = [
     'PrecisionRecallCurve',
     'ROC',
     'Recall',
-    'SklearnMetric',
+    'IoU',
 ]
+__regression_metrics = [
+    'MSE',
+    'RMSE',
+    'MAE',
+    'RMSLE'
+]
+__all__ = __regression_metrics + __classification_metrics + ['SklearnMetric']

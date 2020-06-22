@@ -23,7 +23,7 @@ def main(hparams):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = LightningTemplateModel(hparams)
+    model = LightningTemplateModel(**vars(hparams))
 
     # ------------------------
     # 2 INIT TRAINER
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         '--distributed_backend',
         type=str,
         default='dp',
-        help='supports three options dp, ddp, ddp2'
+        help='supports four options dp, ddp, ddp2, ddp_spawn'
     )
     parent_parser.add_argument(
         '--use_16bit',

@@ -10,6 +10,7 @@ from pathlib import Path
 import cloudpickle
 import pytest
 import torch
+from omegaconf import OmegaConf
 
 import tests.base.utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
@@ -107,13 +108,17 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
     # test incorrect configs
     with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        assert Trainer(accumulate_grad_batches={-1: 3, 1: 4, 4: 6})
+    with pytest.raises(IndexError):
         assert Trainer(accumulate_grad_batches={-2: 3})
 
     with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
@@ -162,7 +167,7 @@ def test_gradient_accumulation_scheduling(tmpdir):
     schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
-                      train_percent_check=0.1,
+                      limit_train_batches=0.1,
                       limit_val_batches=0.1,
                       max_epochs=2,
                       default_root_dir=tmpdir)
@@ -367,7 +372,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.65,
+        limit_train_batches=0.65,
         limit_val_batches=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
@@ -414,7 +419,7 @@ def _init_steps_model():
     num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
 
     trainer_options = dict(
-        train_percent_check=train_percent,
+        limit_train_batches=train_percent,
     )
     return model, trainer_options, num_train_samples
 
@@ -451,7 +456,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # check training stopped at max_epochs
     assert trainer.global_step == num_train_samples * trainer.max_epochs
-    assert trainer.current_epoch == trainer.max_epochs, "Model did not stop at max_epochs"
+    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
 
 
 def test_trainer_min_steps_and_epochs(tmpdir):
@@ -582,7 +587,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             with pytest.raises(FileNotFoundError):
                 trainer.test(ckpt_path='random.ckpt')
         else:
-            ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0])
+            ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0].absolute())
             trainer.test(ckpt_path=ckpt_path)
             assert loaded_checkpoint_path == ckpt_path
 
@@ -609,7 +614,7 @@ def test_disabled_validation():
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
+        limit_train_batches=0.4,
         limit_val_batches=0.0,
         fast_dev_run=False,
     )
@@ -619,7 +624,7 @@ def test_disabled_validation():
 
     # check that limit_val_batches=0 turns off validation
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 2
+    assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, \
         '`validation_step` should not run when `limit_val_batches=0`'
     assert not model.validation_epoch_end_invoked, \
@@ -632,7 +637,7 @@ def test_disabled_validation():
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch == 1
+    assert trainer.current_epoch == 0
     assert model.validation_step_invoked, \
         'did not run `validation_step` with `fast_dev_run=True`'
     assert model.validation_epoch_end_invoked, \
@@ -723,7 +728,7 @@ def test_trainer_interrupted_flag(tmpdir):
         callbacks=[interrupt_callback, handle_interrupt_callback],
         max_epochs=1,
         limit_val_batches=0.1,
-        train_percent_check=0.2,
+        limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
         logger=False,
         default_root_dir=tmpdir,
@@ -903,6 +908,15 @@ def test_trainer_subclassing():
     # when we pass in an unknown arg, the base class should complain
     with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'"):
         TrainerSubclass(abcdefg='unknown_arg')
+
+
+@pytest.mark.parametrize('trainer_params', [
+    OmegaConf.create({'max_epochs': 1, 'gpus': 1}),
+    OmegaConf.create({'max_epochs': 1, 'gpus': [0]}),
+])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_trainer_omegaconf(trainer_params):
+    Trainer(**trainer_params)
 
 
 def test_trainer_pickle(tmpdir):

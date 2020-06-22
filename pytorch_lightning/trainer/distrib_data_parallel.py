@@ -145,6 +145,24 @@ else:
     HOROVOD_AVAILABLE = True
 
 
+try:
+    from hydra.utils import to_absolute_path
+except ImportError:
+    HYDRA_AVAILABLE = False
+else:
+    HYDRA_AVAILABLE = True
+
+
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
+
+
 class TrainerDDPMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
@@ -163,9 +181,11 @@ class TrainerDDPMixin(ABC):
     num_processes: int
     num_nodes: int
     node_rank: int
+    tpu_cores: int
 
     @property
-    def is_global_zero(self) -> int:
+    @abstractmethod
+    def is_global_zero(self) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @property
@@ -196,6 +216,14 @@ class TrainerDDPMixin(ABC):
 
     @abstractmethod
     def save_checkpoint(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def setup(self, *args) -> None:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def is_function_implemented(self, *args) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
@@ -268,6 +296,8 @@ class TrainerDDPMixin(ABC):
             )
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
+        num_cores = self.tpu_cores if self.tpu_cores is not None else 0
+        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
 
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
@@ -320,7 +350,6 @@ class TrainerDDPMixin(ABC):
         node_ids = [(k, os.environ.get(k, None)) for k in env_vars]
         node_ids = [(k, v) for k, v in node_ids if v is not None]
         if len(node_ids) == 0:
-            log.warning("No environment variable for node rank defined. Set as 0.")
             return 0
         if len(node_ids) > 1:
             log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. "
@@ -348,20 +377,21 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def __set_random_port(self):
+    def set_random_port(self):
         """
         When running DDP NOT managed by SLURM, the ports might collide
-        :return:
         """
         try:
             default_port = os.environ['MASTER_PORT']
         except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
-            os.environ['MASTER_PORT'] = str(default_port)
+            # use the process id as a seed to a generator for port only
+            pid = os.getpid()
+            rng1 = np.random.RandomState(pid)
+            default_port = rng1.randint(10000, 19999, 1)[0]
+
+        os.environ['MASTER_PORT'] = str(default_port)
 
     def spawn_ddp_children(self, model):
-        self.__set_random_port()
         port = os.environ['MASTER_PORT']
 
         master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
@@ -378,28 +408,30 @@ class TrainerDDPMixin(ABC):
         os.environ['NODE_RANK'] = node_rank
         os.environ['LOCAL_RANK'] = '0'
 
+        # when user is using hydra find the absolute path
+        path_lib = abspath if not HYDRA_AVAILABLE else to_absolute_path
+
         # pull out the commands used to run the script and resolve the abs file path
         command = sys.argv
-        full_path = abspath(command[0])
+        try:
+            full_path = path_lib(command[0])
+        except Exception as e:
+            full_path = abspath(command[0])
+
         command[0] = full_path
         command = ['python'] + command
 
         # since this script sets the visible devices we replace the gpus flag with a number
         num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
 
-        # if script called without a flag, pass in a flag anyhow
-        if '--gpus' not in command:
-            arg_gpus = len(self.gpus) if isinstance(self.gpus, list) else self.gpus
-            command += ['--gpus', arg_gpus]
-
-        gpu_flag_idx = command.index('--gpus')
-        command[gpu_flag_idx + 1] = f'{num_gpus}'
+        if '--gpus' in command:
+            gpu_flag_idx = command.index('--gpus')
+            command[gpu_flag_idx + 1] = f'{num_gpus}'
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.num_nodes}'
 
         self.interactive_ddp_procs = []
         for local_rank in range(1, self.num_processes):
-            print('launching local_rank', local_rank)
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
 
@@ -451,6 +483,11 @@ class TrainerDDPMixin(ABC):
         model.trainer = self
         model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
 
+        # call setup after the ddp process has connected
+        self.setup('fit')
+        if self.is_function_implemented('setup', model):
+            model.setup('fit')
+
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero:
             log.info('-' * 100)
@@ -480,7 +517,7 @@ class TrainerDDPMixin(ABC):
 
         # AMP
         # run through amp wrapper before going to distributed DP
-        # TODO: remove in v0.8.0
+        # TODO: remove with dropping NVIDIA AMP support
         if self.use_amp and not self.use_native_amp:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers

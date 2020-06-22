@@ -8,7 +8,6 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -18,7 +17,8 @@ from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_9
+from pytorch_lightning.trainer.deprecated_api import (
+    TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
     TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
@@ -32,7 +32,7 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info
+from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 
 try:
     from apex import amp
@@ -60,20 +60,21 @@ else:
 
 class Trainer(
     TrainerIOMixin,
+    TrainerCallbackHookMixin,
+    TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerAMPMixin,
     TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
-    TrainerModelHooksMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerEvaluationLoopMixin,
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
-    TrainerCallbackHookMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
+    TrainerDeprecatedAPITillVer0_10,
 ):
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
@@ -102,10 +103,10 @@ class Trainer(
         min_epochs: int = 1,
         max_steps: Optional[int] = None,
         min_steps: Optional[int] = None,
-        train_percent_check: float = 1.0,
+        limit_train_batches: Union[int, float] = 1.0,
         limit_val_batches: Union[int, float] = 1.0,
         limit_test_batches: Union[int, float] = 1.0,
-        val_check_interval: float = 1.0,
+        val_check_interval: Union[int, float] = 1.0,
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
@@ -129,9 +130,10 @@ class Trainer(
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
-        val_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
-        test_percent_check: float = 1.0,  # backward compatible, todo: remove in v1.0.0
-        overfit_pct: float = 0.0  # backward compatible, todo: remove in v1.0.0
+        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        overfit_pct: float = None  # backward compatible, todo: remove in v1.0.0
     ):
         r"""
 
@@ -193,7 +195,7 @@ class Trainer(
             overfit_pct:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `overfit_batches` instead. Will remove 1.0.0.
+                    Use `overfit_batches` instead. Will remove 0.10.0.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
@@ -221,21 +223,26 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
-            train_percent_check: How much of training dataset to check.
+            limit_train_batches: How much of training dataset to check.
 
             limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
 
             limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
 
+            train_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_train_batches` instead. Will remove v0.10.0.
+
             val_percent_check:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `min_epochs` instead. Will remove 1.0.0.
+                    Use `limit_val_batches` instead. Will remove v0.10.0.
 
             test_percent_check:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `min_epochs` instead. Will remove 1.0.0.
+                    Use `limit_test_batches` instead. Will remove v0.10.0.
 
             val_check_interval: How often within one training epoch to check the validation set
 
@@ -315,6 +322,14 @@ class Trainer(
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
+        # init the default rank if exists
+        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
+        # this way we only show it on rank 0
+        if 'LOCAL_RANK' in os.environ:
+            rank_zero_only.rank = os.environ['LOCAL_RANK']
+        if 'SLURM_JOB_ID' in os.environ:
+            rank_zero_only.rank = os.environ['SLURM_JOB_ID']
+        
         # training bookeeping
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
@@ -472,7 +487,7 @@ class Trainer(
         if self.on_tpu:
             self.init_tpu()
 
-        # init flags for SLURM+ddp to work
+        # init flags for SLURM+DDP to work
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
@@ -480,7 +495,7 @@ class Trainer(
         self.local_rank = self.determine_local_rank()
         self.global_rank = 0
 
-        # nvidia setup
+        # NVIDIA setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # backward compatibility
@@ -496,27 +511,37 @@ class Trainer(
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
-        # TODO: remove in 1.0.0
-        if overfit_pct > 0:
+        # TODO: remove in 0.10.0
+        if overfit_pct is not None:
+            rank_zero_warn("Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
             overfit_batches = overfit_pct
 
         # convert floats to ints
-        overfit_batches = int(overfit_batches) if overfit_batches > 1.0 else overfit_batches
-        self.overfit_batches = overfit_batches
+        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
-        # TODO: remove in 1.0.0
-        if val_percent_check < 1.0:
+        # TODO: remove in 0.10.0
+        if val_percent_check is not None:
+            rank_zero_warn("Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
             limit_val_batches = val_percent_check
 
-        if test_percent_check < 1.0:
+        # TODO: remove in 0.10.0
+        if test_percent_check is not None:
+            rank_zero_warn("Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
             limit_test_batches = test_percent_check
 
-        limit_test_batches = int(limit_test_batches) if limit_test_batches > 1.0 else limit_test_batches
-        limit_val_batches = int(limit_val_batches) if limit_val_batches > 1.0 else limit_val_batches
+        # TODO: remove in 0.10.0
+        if train_percent_check is not None:
+            rank_zero_warn("Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            limit_train_batches = train_percent_check
 
-        # TODO: convert train_percent_check to limit_train_batches
-        self.determine_data_use_amount(train_percent_check, limit_val_batches,
-                                       limit_test_batches, overfit_batches)
+        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
+        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
+        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
         # These are the only lines needed after v0.8.0
@@ -535,7 +560,7 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def is_global_zero(self):
+    def is_global_zero(self) -> bool:
         return self.global_rank == 0
 
     @property
@@ -833,7 +858,7 @@ class Trainer(
 
         # callbacks
         self.on_fit_start()
-        if self.is_function_implemented('on_fit_start'):
+        if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
 
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
@@ -876,17 +901,19 @@ class Trainer(
                 self.ddp_train(task, model)
 
             elif self.distributed_backend == 'cpu_ddp':
-                self.__set_random_port()
+                self.set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
+                self.set_random_port()
                 model.share_memory()
 
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
+                self.set_random_port()
                 self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
@@ -925,6 +952,11 @@ class Trainer(
             if self.use_amp:
                 raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
+            # call setup after the ddp process has connected
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
+
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
@@ -937,6 +969,10 @@ class Trainer(
         # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
+
+        self.teardown('fit')
+        if self.is_function_implemented('teardown'):
+            model.teardown('fit')
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
@@ -1115,6 +1151,13 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        self.setup('test')
+        model_ref = self.model if model is None else model
+        if self.is_function_implemented('setup', model_ref):
+            model_ref.setup('test')
+
+        self.barrier('test_setup')
+
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
@@ -1153,6 +1196,10 @@ class Trainer(
             self.run_evaluation(test_mode=True)
 
         self.testing = False
+
+        self.teardown('test')
+        if self.is_function_implemented('teardown'):
+            self.model.teardown('test')
 
     def check_model_configuration(self, model: LightningModule):
         r"""
@@ -1212,6 +1259,14 @@ class Trainer(
                 raise MisconfigurationException('You have defined `test_step()` but did not'
                                                 ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
 
+    def barrier(self, name):
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.barrier()
+
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
+
 
 class _PatchDataLoader(object):
     r"""
@@ -1222,7 +1277,6 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
-
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
@@ -1233,3 +1287,14 @@ class _PatchDataLoader(object):
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
+
+
+def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+    if 0 <= batches <= 1:
+        return batches
+    elif batches > 1 and batches % 1.0 == 0:
+        return int(batches)
+    else:
+        raise MisconfigurationException(
+            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+        )

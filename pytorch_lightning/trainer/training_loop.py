@@ -68,15 +68,18 @@ Set how much of the training set to check
 
 If you don't want to check 100% of the training set (for debugging or if it's huge), set this flag.
 
-train_percent_check will be overwritten by overfit_batches if `overfit_batches > 0`
+limit_train_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(train_percent_check=1.0)
+    trainer = Trainer(limit_train_batches=1.0)
 
     # check 10% only
-    trainer = Trainer(train_percent_check=0.1)
+    trainer = Trainer(limit_train_batches=0.1)
+
+    # check 10 batches only
+    trainer = Trainer(limit_train_batches=10)
 
 Packed sequences as inputs
 --------------------------
@@ -151,6 +154,7 @@ import numpy as np
 import torch
 import subprocess
 from torch.utils.data import DataLoader
+import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -204,7 +208,7 @@ class TrainerTrainLoopMixin(ABC):
     check_val_every_n_epoch: ...
     num_training_batches: int
     val_check_batch: ...
-    num_val_batches: List[int]
+    num_val_batches: int
     disable_validation: bool
     fast_dev_run: ...
     accumulation_scheduler: ...
@@ -255,7 +259,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_function_implemented(self, *args):
+    def is_function_implemented(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -319,6 +323,12 @@ class TrainerTrainLoopMixin(ABC):
         # get model
         model = self.get_model()
 
+        # enable train mode
+        model.train()
+
+        # enable gradients
+        torch.set_grad_enabled(True)
+
         # load data
         # if reload_dataloaders_every_epoch, this is moved to the epoch loop
         if not self.reload_dataloaders_every_epoch:
@@ -333,8 +343,8 @@ class TrainerTrainLoopMixin(ABC):
             model.on_train_start()
 
         try:
-            # run all epochs from actual + 1 till the maximal
-            for epoch in range(self.current_epoch + 1, self.max_epochs + 1):
+            # run all epochs
+            for epoch in range(self.current_epoch, self.max_epochs):
                 # reset train dataloader
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
@@ -369,7 +379,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.update_learning_rates(interval='epoch')
 
                 # early stopping
-                met_min_epochs = epoch >= self.min_epochs
+                met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
@@ -461,7 +471,7 @@ class TrainerTrainLoopMixin(ABC):
             # RUN VAL STEP
             # ---------------
             is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
-            can_check_epoch = self.current_epoch % self.check_val_every_n_epoch == 0
+            can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
             can_check_val = not self.disable_validation and can_check_epoch
             should_check_val = is_val_check_batch or self.should_stop
             should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
@@ -596,6 +606,11 @@ class TrainerTrainLoopMixin(ABC):
                     # backward pass
                     model_ref = self.get_model()
                     with self.profiler.profile('model_backward'):
+                        # scale loss for 16 bit
+                        if self.precision == 16 and not self.on_tpu:
+                            closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
+
+                        # do backward pass
                         model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
                     # track metrics for callbacks
@@ -689,6 +704,11 @@ class TrainerTrainLoopMixin(ABC):
     def run_training_teardown(self):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
+
+        # clean up dist group
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.destroy_process_group()
+
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks
@@ -702,7 +722,6 @@ class TrainerTrainLoopMixin(ABC):
 
         # summarize profile results
         self.profiler.describe()
-
         self._teardown_already_run = True
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
