@@ -783,8 +783,8 @@ def test_gpu_choice(tmpdir):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
 
 
-
 def test_num_sanity_val_steps(tmpdir):
+    """ Test that num_sanity_val_steps=-1 runs through all validation data once. """
     model = EvalModelTemplate()
     trainer = Trainer(
         num_sanity_val_steps=-1,
