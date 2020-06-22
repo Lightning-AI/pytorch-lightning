@@ -300,7 +300,7 @@ def test_train_not_implemented_error_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__not_implemented_error
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=None, max_epochs=1, val_check_interval=0.5)
 
     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
         trainer.fit(model)
@@ -323,7 +323,7 @@ def test_val_not_implemented_error_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__not_implemented_error
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=None, max_epochs=1, limit_val_batches=0.5)
 
     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
         trainer.fit(model)
@@ -346,7 +346,7 @@ def test_test_not_implemented_error_dataloader_error(tmpdir):
     model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__not_implemented_error
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=0.5)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=None, max_epochs=1, limit_test_batches=0.5)
 
     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
         trainer.test(model)
@@ -379,6 +379,7 @@ def test_not_implemented_error_train_dataloader(tmpdir, check_interval):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        max_steps=None,
         max_epochs=1,
         val_check_interval=check_interval
     )
@@ -417,6 +418,7 @@ def test_not_implemented_error_val_dataloader(tmpdir, check_interval):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
+        max_steps=None,
         max_epochs=1,
         val_check_interval=check_interval,
     )
