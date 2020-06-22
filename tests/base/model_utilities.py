@@ -1,6 +1,6 @@
 from torch.utils.data import DataLoader
 
-from tests.base.datasets import TrialMNIST
+from pytorch_lightning.utilities.datasets import TrialMNIST
 
 
 class ModelTemplateData:
