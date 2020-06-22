@@ -66,9 +66,9 @@ def test_early_stopping_no_extraneous_invocations():
 
 
 @pytest.mark.parametrize('loss_values, patience, expected_stop_epoch', [
-    ([6, 5, 5, 5, 5, 5], 3, 5),
-    ([6, 5, 4, 4, 3, 3], 1, 4),
-    ([6, 5, 6, 5, 5, 5], 3, 5),
+    ([6, 5, 5, 5, 5, 5], 3, 4),
+    ([6, 5, 4, 4, 3, 3], 1, 3),
+    ([6, 5, 6, 5, 5, 5], 3, 4),
 ])
 def test_early_stopping_patience(loss_values, patience, expected_stop_epoch):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
