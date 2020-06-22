@@ -7,6 +7,7 @@ class CustomInfDataloader:
         self.dataloader = dataloader
         self.iter = iter(dataloader)
         self.count = 0
+        self.dataloader.num_workers = 0  # reduce chance for hanging pytest
 
     def __iter__(self):
         self.count = 0
