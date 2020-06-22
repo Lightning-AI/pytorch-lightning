@@ -794,11 +794,11 @@ def test_num_sanity_val_steps(tmpdir):
         default_root_dir=tmpdir
     )
     assert trainer.num_sanity_val_steps == float('inf')
-    val_dataloader = model.val_dataloader()
+    val_dataloaders = model.val_dataloader__multiple()
 
     with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
-        trainer.fit(model, val_dataloaders=val_dataloader)
-        assert mocked.call_count == len(val_dataloader)
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+        assert mocked.call_count == sum(len(dl) for dl in val_dataloaders)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
