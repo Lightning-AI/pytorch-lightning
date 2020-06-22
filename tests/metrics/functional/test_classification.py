@@ -342,18 +342,19 @@ def test_auc(x, y, expected):
     assert auc(torch.tensor(x), torch.tensor(y)) == expected
 
 
-def test_average_precision_constant_values():
+@pytest.mark.parametrize(['scores', 'target', 'expected_score'], [
     # Check the average_precision_score of a constant predictor is
     # the TPR
-
     # Generate a dataset with 25% of positives
-    target = torch.zeros(100, dtype=torch.float)
-    target[::4] = 1
     # And a constant score
-    pred = torch.ones(100)
     # The precision is then the fraction of positive whatever the recall
     # is, as there is only one threshold:
-    assert average_precision(pred, target).item() == .25
+    pytest.param(torch.tensor([1, 1, 1, 1]), torch.tensor([0, 0, 0, 1]), .25),
+    # With treshold .8 : 1 TP and 2 TN and one FN
+    pytest.param(torch.tensor([.6, .7, .8, 9]), torch.tensor([1, 0, 0, 1]), .75),
+])
+def test_average_precision(scores, target, expected_score):
+    assert average_precision(scores, target) == expected_score
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
