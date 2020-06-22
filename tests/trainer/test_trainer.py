@@ -6,6 +6,7 @@ import sys
 import types
 from argparse import Namespace
 from pathlib import Path
+from unittest.mock import patch
 
 import cloudpickle
 import pytest
@@ -780,6 +781,24 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+
+
+
+def test_num_sanity_val_steps(tmpdir):
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        num_sanity_val_steps=-1,
+        # TODO: limit_val_batches influences num_sanity_val_step. Fix it.
+        # limit_val_batches=0,
+        max_steps=1,
+        default_root_dir=tmpdir
+    )
+    assert trainer.num_sanity_val_steps == float('inf')
+    val_dataloader = model.val_dataloader()
+
+    with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
+        trainer.fit(model, val_dataloaders=val_dataloader)
+        assert mocked.call_count == len(val_dataloader)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
