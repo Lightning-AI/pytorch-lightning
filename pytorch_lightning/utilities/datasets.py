@@ -26,15 +26,6 @@ class LightDataset(ABC, Dataset):
     cache_folder_name: str
     DATASET_NAME = 'light'
 
-    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
-        img = self.data[idx].float().unsqueeze(0)
-        target = int(self.targets[idx])
-
-        if self.normalize is not None:
-            img = self.normalize_tensor(img, mean=self.normalize[0], std=self.normalize[1])
-
-        return img, target
-
     def __len__(self) -> int:
         return len(self.data)
 
@@ -45,6 +36,27 @@ class LightDataset(ABC, Dataset):
     @property
     def cached_folder_path(self) -> str:
         return os.path.join(self.root_path, self.DATASET_NAME, self.cache_folder_name)
+
+    @staticmethod
+    def _prepare_subset(
+            full_data: torch.Tensor,
+            full_targets: torch.Tensor,
+            num_samples: int,
+            digits: Sequence
+    ) -> Tuple[Tensor, Tensor]:
+        classes = {d: 0 for d in digits}
+        indexes = []
+        for idx, target in enumerate(full_targets):
+            label = target.item()
+            if classes.get(label, float('inf')) >= num_samples:
+                continue
+            indexes.append(idx)
+            classes[label] += 1
+            if all(classes[k] >= num_samples for k in classes):
+                break
+        data = full_data[indexes]
+        targets = full_targets[indexes]
+        return data, targets
 
 
 class MNIST(LightDataset):
@@ -97,6 +109,7 @@ class MNIST(LightDataset):
         self.train = train  # training set or test set
         self.normalize = normalize
 
+        os.makedirs(self.cached_folder_path, exist_ok=True)
         self.prepare_data(download)
 
         if not self._check_exists(self.cached_folder_path):
@@ -104,6 +117,15 @@ class MNIST(LightDataset):
 
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = torch.load(os.path.join(self.cached_folder_path, data_file))
+
+    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
+        img = self.data[idx].float().unsqueeze(0)
+        target = int(self.targets[idx])
+
+        if self.normalize is not None:
+            img = self.normalize_tensor(img, mean=self.normalize[0], std=self.normalize[1])
+
+        return img, target
 
     def normalize_tensor(self, tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
         # tensor = tensor.clone()
@@ -126,8 +148,6 @@ class MNIST(LightDataset):
 
         if self._check_exists(data_folder):
             return
-
-        os.makedirs(data_folder, exist_ok=True)
 
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
             url = os.path.join(self.BASE_URL, fname)
@@ -188,32 +208,8 @@ class TrialMNIST(MNIST):
             download=download
         )
 
-    @staticmethod
-    def _prepare_subset(
-            full_data: torch.Tensor,
-            full_targets: torch.Tensor,
-            num_samples: int,
-            digits: Sequence
-    ):
-        classes = {d: 0 for d in digits}
-        indexes = []
-        for idx, target in enumerate(full_targets):
-            label = target.item()
-            if classes.get(label, float('inf')) >= num_samples:
-                continue
-            indexes.append(idx)
-            classes[label] += 1
-            if all(classes[k] >= num_samples for k in classes):
-                break
-        data = full_data[indexes]
-        targets = full_targets[indexes]
-        return data, targets
-
     def prepare_data(self, download: bool) -> None:
-        if self._check_exists(self.cached_folder_path):
-            return
-        if download:
-            self._download(super().cached_folder_path)
+        super().prepare_data(download)
 
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
             path_fname = os.path.join(super().cached_folder_path, fname)
@@ -221,22 +217,6 @@ class TrialMNIST(MNIST):
             data, targets = torch.load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))
-
-
-class AverageDataset(Dataset):
-
-    def __init__(self, dataset_len=300, sequence_len=100):
-        self.dataset_len = dataset_len
-        self.sequence_len = sequence_len
-        self.input_seq = torch.randn(dataset_len, sequence_len, 10)
-        top, bottom = self.input_seq.chunk(2, -1)
-        self.output_seq = top + bottom.roll(shifts=1, dims=-1)
-
-    def __len__(self):
-        return self.dataset_len
-
-    def __getitem__(self, item):
-        return self.input_seq[item], self.output_seq[item]
 
 
 class CIFAR10(LightDataset):
@@ -292,6 +272,7 @@ class CIFAR10(LightDataset):
         self.train = train  # training set or test set
         self.normalize = normalize
 
+        os.makedirs(self.cached_folder_path, exist_ok=True)
         self.prepare_data(download)
 
         if not self._check_exists(self.cached_folder_path, (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME)):
@@ -329,12 +310,12 @@ class CIFAR10(LightDataset):
             pkl = pickle.load(fo, encoding='bytes')
         return torch.tensor(pkl[b'data']), torch.tensor(pkl[b'labels'])
 
-    def _extract_archive_save_torch(self):
+    def _extract_archive_save_torch(self, download_path):
         # extract achieve
-        with tarfile.open(os.path.join(self.cached_folder_path, self.FILE_NAME), 'r:gz') as tar:
-            tar.extractall(path=self.cached_folder_path)
+        with tarfile.open(os.path.join(download_path, self.FILE_NAME), 'r:gz') as tar:
+            tar.extractall(path=download_path)
         # this is internal path in the archive
-        path_content = os.path.join(self.cached_folder_path, 'cifar-10-batches-py')
+        path_content = os.path.join(download_path, 'cifar-10-batches-py')
 
         # load Test and save as PT
         torch.save(self._unpickle(path_content, 'test_batch'),
@@ -355,18 +336,98 @@ class CIFAR10(LightDataset):
     def prepare_data(self, download: bool):
         if self._check_exists(self.cached_folder_path, (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME)):
             return
+
+        base_path = os.path.join(self.root_path, self.DATASET_NAME)
         if download:
-            self._download(self.cached_folder_path)
-        self._extract_archive_save_torch()
+            self._download(base_path)
+        self._extract_archive_save_torch(base_path)
 
     def _download(self, data_folder: str) -> None:
         """Download the data if it doesn't exist in cached_folder_path already."""
         if self._check_exists(data_folder, self.FILE_NAME):
             return
 
-        os.makedirs(data_folder, exist_ok=True)
-
         url = os.path.join(self.BASE_URL, self.FILE_NAME)
         logging.info(f'Downloading {url}')
         fpath = os.path.join(data_folder, self.FILE_NAME)
         urllib.request.urlretrieve(url, fpath)
+
+
+class TrialCIFAR10(CIFAR10):
+    """
+    Customized `CIFAR10 <http://www.cs.toronto.edu/~kriz/cifar.html>`_ dataset for testing Pytorch Lightning
+    without the torchvision dependency.
+
+    Args:
+        root: Root directory of dataset where ``CIFAR10/processed/training.pt``
+            and  ``CIFAR10/processed/test.pt`` exist.
+        train: If ``True``, creates dataset from ``training.pt``,
+            otherwise from ``test.pt``.
+        normalize: mean and std deviation of the MNIST dataset.
+        download: If true, downloads the dataset from the internet and
+            puts it in root directory. If dataset is already downloaded, it is not
+            downloaded again.
+        num_samples: number of examples per selected class/digit
+        labels: list selected MNIST digits/classes
+
+    Examples:
+
+        >>> dataset = TrialCIFAR10(download=True, normalize=(0., 1.), num_samples=150)
+        >>> len(dataset)
+        450
+        >>> sorted(set([d.item() for d in dataset.targets]))
+        [0, 1, 2]
+        >>> torch.bincount(dataset.targets)
+        tensor([150, 150, 150])
+        >>> data, label = dataset[0]
+        >>> data.shape
+        torch.Size([3, 32, 32])
+    """
+    def __init__(
+            self,
+            root: str = PATH_DATASETS,
+            train: bool = True,
+            normalize: tuple = (0.5, 1.0),
+            download: bool = False,
+            num_samples: int = 100,
+            labels: Optional[Sequence] = (0, 1, 2)
+    ):
+        # number of examples per class
+        self.num_samples = num_samples
+        # take just a subset of CIFAR dataset
+        self.labels = labels if labels else list(range(10))
+
+        self.cache_folder_name = f'labels-{"-".join(str(d) for d in sorted(self.labels))}_nb-{self.num_samples}'
+
+        super().__init__(
+            root,
+            train=train,
+            normalize=normalize,
+            download=download
+        )
+
+    def prepare_data(self, download: bool) -> None:
+        super().prepare_data(download)
+
+        for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
+            path_fname = os.path.join(super().cached_folder_path, fname)
+            assert os.path.isfile(path_fname), 'Missing cached file: %s' % path_fname
+            data, targets = torch.load(path_fname)
+            data, targets = self._prepare_subset(data, targets, self.num_samples, self.labels)
+            torch.save((data, targets), os.path.join(self.cached_folder_path, fname))
+
+
+class AverageDataset(Dataset):
+
+    def __init__(self, dataset_len=300, sequence_len=100):
+        self.dataset_len = dataset_len
+        self.sequence_len = sequence_len
+        self.input_seq = torch.randn(dataset_len, sequence_len, 10)
+        top, bottom = self.input_seq.chunk(2, -1)
+        self.output_seq = top + bottom.roll(shifts=1, dims=-1)
+
+    def __len__(self):
+        return self.dataset_len
+
+    def __getitem__(self, item):
+        return self.input_seq[item], self.output_seq[item]
