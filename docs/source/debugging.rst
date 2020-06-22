@@ -129,4 +129,4 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 .. testcode::
 
     # DEFAULT
-    trainer = Trainer(num_sanity_val_steps=5)
+    trainer = Trainer(num_sanity_val_steps=2)

@@ -72,15 +72,16 @@ Set the number of validation sanity steps
 -----------------------------------------
 
 Lightning runs a few steps of validation in the beginning of training.
- This avoids crashing in the validation loop sometime deep into a lengthy training loop.
+This avoids crashing in the validation loop sometime deep into a lengthy training loop.
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(num_sanity_val_steps=5)
+    trainer = Trainer(num_sanity_val_steps=2)
 
 
-You can use `Trainer(num_sanity_val_steps=0)` to skip the sanity check.
+You can use `Trainer(num_sanity_val_steps=0)` to skip the sanity check or `Trainer(num_sanity_val_steps=-1)`
+to check all the validation data.
 
 # Testing loop
 
