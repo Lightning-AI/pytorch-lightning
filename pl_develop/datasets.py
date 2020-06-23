@@ -5,6 +5,7 @@ import tarfile
 import urllib.request
 from abc import ABC, abstractmethod
 from typing import Tuple, Optional, Sequence
+from urllib.error import HTTPError
 
 import numpy as np
 import torch
@@ -57,6 +58,15 @@ class LightDataset(ABC, Dataset):
         data = full_data[indexes]
         targets = full_targets[indexes]
         return data, targets
+
+    def _download_from_url(self, base_url: str, data_folder: str, file_name: str):
+        url = os.path.join(base_url, file_name)
+        logging.info(f'Downloading {url}')
+        fpath = os.path.join(data_folder, file_name)
+        try:
+            urllib.request.urlretrieve(url, fpath)
+        except HTTPError:
+            raise RuntimeError(f'Failed download from {url}')
 
 
 class MNIST(LightDataset):
@@ -150,10 +160,7 @@ class MNIST(LightDataset):
             return
 
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
-            url = os.path.join(self.BASE_URL, fname)
-            logging.info(f'Downloading {url}')
-            fpath = os.path.join(data_folder, fname)
-            urllib.request.urlretrieve(url, fpath)
+            self._download_from_url(self.BASE_URL, data_folder, fname)
 
 
 class TrialMNIST(MNIST):
@@ -339,18 +346,14 @@ class CIFAR10(LightDataset):
 
         base_path = os.path.join(self.root_path, self.DATASET_NAME)
         if download:
-            self._download(base_path)
+            self.download(base_path)
         self._extract_archive_save_torch(base_path)
 
-    def _download(self, data_folder: str) -> None:
+    def download(self, data_folder: str) -> None:
         """Download the data if it doesn't exist in cached_folder_path already."""
         if self._check_exists(data_folder, self.FILE_NAME):
             return
-
-        url = os.path.join(self.BASE_URL, self.FILE_NAME)
-        logging.info(f'Downloading {url}')
-        fpath = os.path.join(data_folder, self.FILE_NAME)
-        urllib.request.urlretrieve(url, fpath)
+        self._download_from_url(self.BASE_URL, data_folder, self.FILE_NAME)
 
 
 class TrialCIFAR10(CIFAR10):
