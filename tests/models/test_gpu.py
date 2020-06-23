@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 PRETEND_N_OF_GPUS = 16
 

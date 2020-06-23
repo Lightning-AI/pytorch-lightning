@@ -3,7 +3,7 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateLogger
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 def test_lr_logger_single_lr(tmpdir):

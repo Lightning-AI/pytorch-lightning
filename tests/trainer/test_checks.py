@@ -3,7 +3,7 @@ import pytest
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 # TODO: add matching messages

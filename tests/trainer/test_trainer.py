@@ -21,7 +21,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 @pytest.mark.parametrize('url_ckpt', [True, False])

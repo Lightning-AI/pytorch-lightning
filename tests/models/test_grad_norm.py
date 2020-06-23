@@ -4,7 +4,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 from tests.base.utils import reset_seed
 
 

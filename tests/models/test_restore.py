@@ -11,7 +11,7 @@ import tests.base.pipelines as tpipes
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 @pytest.mark.spawn

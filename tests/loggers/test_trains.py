@@ -2,7 +2,7 @@ import pickle
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TrainsLogger
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 def test_trains_logger(tmpdir):

@@ -4,7 +4,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 @patch('pytorch_lightning.loggers.neptune.neptune')

@@ -7,7 +7,7 @@ import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 def _get_logger_args(logger_class, save_dir):

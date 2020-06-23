@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])

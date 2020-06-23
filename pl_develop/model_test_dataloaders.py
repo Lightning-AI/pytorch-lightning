@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from tests.base.dataloaders import CustomInfDataloader
-from tests.base.dataloaders import CustomNotImplementedErrorDataloader
+from pl_develop import CustomInfDataloader
+from pl_develop import CustomNotImplementedErrorDataloader
 
 
 class TestDataloaderVariations(ABC):

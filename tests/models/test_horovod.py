@@ -11,8 +11,8 @@ import torch
 import tests.base.pipelines as tpipes
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
-from tests.base.models import TestGAN
+from pl_develop import EvalModelTemplate
+from pl_develop import EvalModelGAN
 
 try:
     from horovod.common.util import nccl_built
@@ -144,7 +144,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_multi_optimizer(tmpdir):
-    model = TestGAN(**EvalModelTemplate.get_default_hparams())
+    model = EvalModelGAN(**EvalModelTemplate.get_default_hparams())
 
     trainer_options = dict(
         default_root_dir=str(tmpdir),

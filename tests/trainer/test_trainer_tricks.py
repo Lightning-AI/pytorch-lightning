@@ -4,7 +4,7 @@ import torch
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 

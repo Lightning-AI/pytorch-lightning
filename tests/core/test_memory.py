@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.core.memory import UNKNOWN_SIZE, ModelSummary
-from tests.base.models import ParityModuleRNN
+from pl_develop import ParityModuleRNN
 
 
 class EmptyModule(LightningModule):

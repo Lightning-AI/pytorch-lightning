@@ -6,7 +6,7 @@ import numpy as np
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 def test_logger_collection():

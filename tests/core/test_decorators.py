@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from pytorch_lightning.core.decorators import auto_move_data
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")

@@ -10,7 +10,7 @@ from omegaconf import OmegaConf, Container
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
 from pytorch_lightning.utilities import AttributeDict
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 class SaveHparamsModel(EvalModelTemplate):

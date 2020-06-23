@@ -64,7 +64,7 @@ class Discriminator(nn.Module):
         return validity
 
 
-class TestGAN(LightningModule):
+class EvalModelGAN(LightningModule):
     """Implements a basic GAN for the purpose of illustrating multiple optimizers."""
 
     def __init__(self, hidden_dim, learning_rate, b1, b2, **kwargs):

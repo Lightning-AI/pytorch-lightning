@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 def test_optimizer_with_scheduling(tmpdir):

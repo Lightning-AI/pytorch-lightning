@@ -5,7 +5,7 @@ import torch
 # from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests.base.model_template import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 from tests.base.utils import reset_seed, get_default_logger, init_checkpoint_callback, get_data_path
 
 

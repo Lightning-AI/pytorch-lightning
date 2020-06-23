@@ -8,7 +8,7 @@ from torch.utils.data.dataset import Subset
 import tests.base.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from pl_develop import EvalModelTemplate
 
 
 def test_fit_train_loader_only(tmpdir):
