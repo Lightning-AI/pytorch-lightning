@@ -1,6 +1,5 @@
 import torch
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import Result
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 
@@ -39,7 +38,7 @@ class DeterministicModel(LightningModule):
         counts = self.count_num_graphs(result)
         assert counts == count
 
-    def count_num_graphs(self, result: Result, num_graphs=0):
+    def count_num_graphs(self, result, num_graphs=0):
         for k, v in result.items():
             if isinstance(v, torch.Tensor) and v.grad_fn is not None:
                 num_graphs += 1
