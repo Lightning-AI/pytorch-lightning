@@ -204,7 +204,7 @@ class ModelHooks(Module):
 
         The data types listed below (and any arbitrary nesting of them) are supported out of the box:
 
-        - :class:`torch.Tensor`
+        - :class:`torch.Tensor` or anything that implements `.to(...)`
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
