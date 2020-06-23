@@ -9,6 +9,11 @@ class DeterministicModel(LightningModule):
 
     def __init__(self, weights=None):
         super().__init__()
+
+        self.training_step_called = False
+        self.training_step_end_called = False
+        self.training_epoch_end_called = False
+
         if weights is None:
             weights = torch.tensor([
                 [4, 3, 5],
@@ -18,39 +23,6 @@ class DeterministicModel(LightningModule):
 
     def forward(self, x):
         return self.l1.mm(x.float().t())
-
-    def base_train_result(self, acc):
-        x = acc
-        result = Result(
-            minimize=acc,
-            early_stop_on=torch.tensor(1.4).type_as(x),
-            checkpoint_on=torch.tensor(1.5).type_as(x)
-        )
-
-        result.log_metric('log_acc1', torch.tensor(12).type_as(x))
-        result.log_metrics({'log_acc2': torch.tensor(7).type_as(x)})
-        result.pbar_metric('pbar_acc1', torch.tensor(17).type_as(x))
-        result.pbar_metrics({'pbar_acc2': torch.tensor(19).type_as(x)})
-
-        # make sure minimize is the only thing with a graph
-        self.assert_graph_count(result, 1)
-        return result
-
-    def base_eval_result(self, acc):
-        x = acc
-        result = Result(
-            early_stop_on=torch.tensor(1.4).type_as(x),
-            checkpoint_on=torch.tensor(1.5).type_as(x)
-        )
-        result.log_metrics({
-            'log_acc1': torch.tensor(12).type_as(x),
-            'log_acc2': torch.tensor(7).type_as(x)
-        })
-        result.pbar_metrics({
-            'pbar_acc1': torch.tensor(17).type_as(x),
-            'pbar_acc2': torch.tensor(19).type_as(x)
-        })
-        return result
 
     def step(self, batch, batch_idx):
         x = batch
@@ -76,51 +48,52 @@ class DeterministicModel(LightningModule):
 
         return num_graphs
 
-    def training_step_only(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_train_result(acc)
-        return result
-
-    def training_step_with_batch_end(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_train_result(acc)
-
-        return result
-
-    def training_step_with_epoch_end(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_train_result(acc)
-        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(acc))
-
-        return result
-
-    def training_step_with_batch_and_epoch_end(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_train_result(acc)
-        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(acc))
-        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(acc))
-
-        return result
-
+    # --------------------------
+    # dictionary returns
+    # --------------------------
     def training_step_dict_return(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
 
         logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
+
+        self.training_step_called = True
         return {'loss': acc, 'log': logs, 'progress_bar': pbar}
 
-    def training_step_end_basic(self, outputs):
-        # make sure only the expected keys are here
-        keys = set(outputs.keys())
-        assert keys == {'to_batch_end_1', 'minimize'}
+    def training_step_for_step_end_dict(self, batch, batch_idx):
+        """sends outputs to training_batch_end"""
+        acc = self.step(batch, batch_idx)
 
-        result = Result()
-        result.pass_to_epoch_end('from_train_step_end', torch.tensor(19))
+        logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
+        pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
+
+        self.training_step_called = True
+        result = {'loss': acc}
+        result.update(logs)
+        result.update(pbar)
         return result
+
+    def training_step_end_dict(self, output):
+        self.training_step_end_called = True
+
+        # make sure loss has the grad
+        assert 'loss' in output
+        assert output['loss'].grad_fn is not None
+
+        # make sure nothing else has grads
+        assert self.count_num_graphs(output) == 1
+
+        # make sure the other keys are there
+        assert 'log_acc1' in output
+        assert 'log_acc2' in output
+        assert 'pbar_acc1' in output
+        assert 'pbar_acc2' in output
+
+        logs = {'log_acc1': output['log_acc1'], 'log_acc2': output['log_acc2']}
+        pbar = {'pbar_acc1': output['pbar_acc1'], 'pbar_acc2': output['pbar_acc2']}
+
+        acc = output['loss']
+        return {'loss': acc, 'log': logs, 'progress_bar': pbar}
 
     def training_epoch_end_basic(self, outputs):
         if self.use_dp or self.use_ddp2:
@@ -134,71 +107,12 @@ class DeterministicModel(LightningModule):
                 for key in keys:
                     assert key in batch_out
 
-    def validation_step_only(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_eval_result(acc)
-
-        return result
-
-    def validation_step_with_batch_end(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_eval_result(acc)
-        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(acc))
-
-        return result
-
-    def validation_step_with_epoch_end(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_eval_result(acc)
-        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(acc))
-
-        return result
-
-    def validation_step_with_batch_and_epoch_end(self, batch, batch_idx):
-        acc = self.step(batch, batch_idx)
-
-        result = self.base_eval_result(acc)
-        result.pass_to_batch_end('to_batch_end_1', torch.tensor([-1, -2, -3]).type_as(acc))
-        result.pass_to_epoch_end('to_epoch_end_1', torch.tensor([-3, -2, -3]).type_as(acc))
-
-        return result
-
     def validation_step_dict_return(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
 
         logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
         return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
-
-    def validation_step_end_basic(self, outputs):
-        if self.use_dp or self.use_ddp2:
-            pass
-        else:
-            # only saw 3 batches
-            assert len(outputs) == 3
-            for batch_out in outputs:
-                assert len(batch_out.keys()) == 2
-                keys = ['to_batch_end_1', 'to_batch_end_2', 'minimize']
-                for key in keys:
-                    assert key in batch_out
-
-        result = TrainResult()
-        result.pass_to_epoch_end('from_train_step_end', torch.tensor(19))
-
-    def validation_epoch_end_basic(self, outputs):
-        if self.use_dp or self.use_ddp2:
-            pass
-        else:
-            # only saw 3 batches
-            assert len(outputs) == 3
-            for batch_out in outputs:
-                assert len(batch_out.keys()) == 2
-                keys = ['to_batch_end_1', 'to_batch_end_2']
-                for key in keys:
-                    assert key in batch_out
 
     def train_dataloader(self):
         return DataLoader(DummyDataset(), batch_size=3, shuffle=False)
