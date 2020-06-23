@@ -22,7 +22,7 @@ If you have a small dataset you might want to check validation every n epochs
 Set how much of the validation set to check
 -------------------------------------------
 
-If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag.
 
 limit_val_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
@@ -37,7 +37,7 @@ limit_val_batches will be overwritten by overfit_batches if `overfit_batches > 0
 Set how much of the test set to check
 -------------------------------------
 
-If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag.
 
 limit_test_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
