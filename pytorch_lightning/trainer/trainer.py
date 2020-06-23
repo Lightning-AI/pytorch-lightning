@@ -190,12 +190,12 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int).
+            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
             overfit_pct:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `overfit_batches` instead. Will remove 0.10.0.
+                    Use `overfit_batches` instead. Will be removed in 0.10.0.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
@@ -223,7 +223,7 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
-            limit_train_batches: How much of training dataset to check.
+            limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
 
             limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
 
