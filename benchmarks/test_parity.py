@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torch
 
-import pl_develop.utils as tutils
+import tests.base.utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pl_develop import ParityModuleRNN, ParityModuleMNIST
 
