@@ -515,7 +515,7 @@ def test_batch_size_smaller_than_num_gpus():
 
 
 @pytest.mark.parametrize('check_interval', [1.0])
-def test_not_implemented_error_val_dataloader(tmpdir, check_interval):
+def test_val_dataloader_not_implemented_error(tmpdir, check_interval):
     """Test not_implemented_error data loader (e.g. IterableDataset)"""
 
     model = EvalModelTemplate()
@@ -535,7 +535,7 @@ def test_not_implemented_error_val_dataloader(tmpdir, check_interval):
 
 
 @pytest.mark.parametrize('check_interval', [50, 1.0])
-def test_not_implemented_error_train_dataloader(tmpdir, check_interval):
+def test_train_dataloader_not_implemented_error(tmpdir, check_interval):
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
 
     model = EvalModelTemplate()
@@ -553,7 +553,7 @@ def test_not_implemented_error_train_dataloader(tmpdir, check_interval):
     assert result == 1
 
 
-def test_train_not_implemented_error_dataloader_error(tmpdir):
+def test_train_dataloader_not_implemented_error_failed(tmpdir):
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__not_implemented_error
@@ -564,7 +564,7 @@ def test_train_not_implemented_error_dataloader_error(tmpdir):
         trainer.fit(model)
 
 
-def test_val_not_implemented_error_dataloader_error(tmpdir):
+def test_val_dataloader_not_implemented_error_failed(tmpdir):
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__not_implemented_error
@@ -575,7 +575,7 @@ def test_val_not_implemented_error_dataloader_error(tmpdir):
         trainer.fit(model)
 
 
-def test_test_not_implemented_error_dataloader_error(tmpdir):
+def test_test_dataloader_not_implemented_error_failed(tmpdir):
     """Test not_implemented_error train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
     model.test_dataloader = model.test_dataloader__not_implemented_error
