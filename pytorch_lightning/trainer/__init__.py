@@ -456,6 +456,8 @@ How much of test dataset to check.
     # run for only 10 batches
     trainer = Trainer(limit_test_batches=10)
 
+In the case of multiple test dataloaders, the limit applies to each dataloader individually.
+
 limit_val_batches
 ^^^^^^^^^^^^^^^^^
 
@@ -472,6 +474,8 @@ Useful when debugging or testing something that happens at the end of an epoch.
 
     # run for only 10 batches
     trainer = Trainer(limit_val_batches=10)
+
+In the case of multiple validation dataloaders, the limit applies to each dataloader individually.
 
 log_gpu_memory
 ^^^^^^^^^^^^^^

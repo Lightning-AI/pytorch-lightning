@@ -28,7 +28,7 @@ class ValidationEpochEndVariations(ABC):
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
-    def validation_epoch_end_multiple_dataloaders(self, outputs):
+    def validation_epoch_end__multiple_dataloaders(self, outputs):
         """
         Called at the end of validation to aggregate outputs
 
