@@ -844,7 +844,7 @@ def average_precision(
     # Return the step function integral
     # The following works because the last entry of precision is
     # guaranteed to be 1, as returned by precision_recall_curve
-    return -torch.sum(recall[1:] - recall[:-1] * precision[:-1])
+    return -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
 
 
 def dice_score(
