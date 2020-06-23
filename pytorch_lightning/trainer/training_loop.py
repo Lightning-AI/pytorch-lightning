@@ -450,7 +450,6 @@ class TrainerTrainLoopMixin(ABC):
                 break
 
             self.batch_idx = batch_idx
-
             model.global_step = self.global_step
 
             # ------------------------------------
@@ -463,49 +462,29 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_overridden('training_epoch_end', model=self.get_model()):
                 epoch_output.append(batch_output.training_step_output_for_epoch_end)
 
+            # update LR schedulers
+            self.update_train_loop_lr_schedulers()
+
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_output.signal == -1
 
-            # TODO: consolidate all actions that need to take place only after
-            # self.accumulate_grad_batches steps (optimizer step, lr update, global step increment)
-            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
-                # update lr
-                self.update_learning_rates(interval='step')
+            # -----------------------------------------
+            # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+            # -----------------------------------------
+            should_check_val = self.check_validation_in_train_loop(batch_idx, early_stop_epoch, is_last_batch)
 
-            # ---------------
-            # RUN VAL STEP
-            # ---------------
-            is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
-            can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            can_check_val = not self.disable_validation and can_check_epoch
-            should_check_val = is_val_check_batch or early_stop_epoch
-            should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
-            should_check_val = can_check_val and should_check_val
+            # -----------------------------------------
+            # SAVE LOGGERS (ie: Tensorboard, etc...)
+            # -----------------------------------------
+            self.save_loggers_in_training_loop(batch_idx, early_stop_epoch)
 
-            # ---------------
-            # CHECKPOINTING, EARLY STOPPING
-            # ---------------
-            # fast_dev_run always forces val checking after train batch
-            if self.fast_dev_run or should_check_val:
-                self.run_evaluation(test_mode=self.testing)
-                self.call_checkpoint_callback()
-
-            # when logs should be saved
-            should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
-            if should_save_log or self.fast_dev_run:
-                if self.is_global_zero and self.logger is not None:
-                    self.logger.save()
-
-            # when metrics should be logged
-            should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
-            if should_log_metrics or self.fast_dev_run:
-                # logs user requested information to logger
-                self.log_metrics(batch_output.batch_step_metrics, batch_output.grad_norm_dic)
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS
+            # -----------------------------------------
+            self.save_train_loop_metrics_to_loggers(batch_idx, early_stop_epoch, batch_output)
 
             # progress global step according to grads progress
-            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
-                self.global_step += 1
-            self.total_batch_idx += 1
+            self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
@@ -517,10 +496,33 @@ class TrainerTrainLoopMixin(ABC):
             if early_stop_epoch or self.fast_dev_run:
                 break
 
-        if self.use_horovod:
-            hvd.join(hvd.local_rank() if self.on_gpu else -1)
+        # let ddp devices catch up when using horovod
+        self.sync_horovod()
 
         # process epoch outputs
+        self.run_training_epoch_end(epoch_output)
+
+        # when no val loop is present or fast-dev-run still need to call checkpoints
+        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
+            self.call_checkpoint_callback()
+
+        # epoch end hook
+        self.run_on_epoch_end_hook(model)
+
+    def update_train_loop_lr_schedulers(self):
+        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+            # update lr
+            self.update_learning_rates(interval='step')
+
+    def run_on_epoch_end_hook(self, model):
+        with self.profiler.profile('on_epoch_end'):
+            # callbacks
+            self.on_epoch_end()
+            # model hooks
+            if self.is_function_implemented('on_epoch_end'):
+                model.on_epoch_end()
+
+    def run_training_epoch_end(self, epoch_output):
         model = self.get_model()
         if self.is_overridden('training_epoch_end', model=model):
             epoch_output = model.training_epoch_end(epoch_output)
@@ -537,17 +539,45 @@ class TrainerTrainLoopMixin(ABC):
             # add metrics to progress_bar
             self.add_progress_bar_metrics(_processed_outputs[1])
 
-        # when no val loop is present or fast-dev-run still need to call checkpoints
-        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
+    def sync_horovod(self):
+        if self.use_horovod:
+            hvd.join(hvd.local_rank() if self.on_gpu else -1)
+
+    def increment_accumulated_grad_global_step(self):
+        # progress global step according to grads progress
+        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+            self.global_step += 1
+        self.total_batch_idx += 1
+
+    def save_train_loop_metrics_to_loggers(self, batch_idx, early_stop_epoch, batch_output):
+        # when metrics should be logged
+        should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
+        if should_log_metrics or self.fast_dev_run:
+            # logs user requested information to logger
+            self.log_metrics(batch_output.batch_step_metrics, batch_output.grad_norm_dic)
+
+    def save_loggers_in_training_loop(self, batch_idx, early_stop_epoch):
+        # when loggers should save to disk
+        should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
+        if should_save_log or self.fast_dev_run:
+            if self.is_global_zero and self.logger is not None:
+                self.logger.save()
+
+    def check_validation_in_train_loop(self, batch_idx, early_stop_epoch, is_last_batch):
+        # decide if we should run validation
+        is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
+        can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
+        can_check_val = not self.disable_validation and can_check_epoch
+        should_check_val = is_val_check_batch or early_stop_epoch
+        should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
+        should_check_val = can_check_val and should_check_val
+
+        # if we need to run validation, then also call the checkpoint callback
+        if self.fast_dev_run or should_check_val:
+            self.run_evaluation(test_mode=self.testing)
             self.call_checkpoint_callback()
 
-        # Epoch end events
-        with self.profiler.profile('on_epoch_end'):
-            # callbacks
-            self.on_epoch_end()
-            # model hooks
-            if self.is_function_implemented('on_epoch_end'):
-                model.on_epoch_end()
+        return should_check_val
 
     def run_training_batch(self, batch, batch_idx):
         # track grad norms
