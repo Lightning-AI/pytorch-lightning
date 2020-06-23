@@ -612,7 +612,7 @@ class TrainerTrainLoopMixin(ABC):
                 batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
 
-                # loss, training_step_output, training_step_output_for_epoch_end, hiddens
+                # track hiddens
                 self.hiddens = opt_closure_result.hiddens
 
                 # check if loss or model weights are nan
