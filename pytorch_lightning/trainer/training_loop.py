@@ -686,7 +686,7 @@ class TrainerTrainLoopMixin(ABC):
             ).loss
             model.optimizer_step(self.current_epoch, batch_idx,
                                  optimizer, opt_idx,
-                                 lambda: lambda_closure)
+                                 lambda_closure)
 
         return grad_norm_dic
 
