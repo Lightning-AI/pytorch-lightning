@@ -286,3 +286,15 @@ def test_single_gpu_batch_parse():
     batch = trainer.transfer_batch_to_gpu(batch, 0)
     assert batch[0].a.device.index == 0
     assert batch[0].a.type() == 'torch.cuda.FloatTensor'
+
+    # non-Tensor that has `.to()` defined
+    class CustomBatchType:
+        def __init__(self):
+            self.a = torch.rand(2, 2)
+
+        def to(self, *args, **kwargs):
+            self.a = self.a.to(*args, **kwargs)
+            return self
+
+    batch = trainer.transfer_batch_to_gpu(CustomBatchType())
+    assert batch.a.type() == 'torch.cuda.FloatTensor'
