@@ -424,7 +424,7 @@ class TrainerTrainLoopMixin(ABC):
 
         return train_dataloader
 
-    def run_on_epoch_start_hook(self):
+    def run_on_epoch_start_hook(self, model):
         # Epoch start events
         with self.profiler.profile('on_epoch_start'):
             # callbacks
@@ -440,7 +440,7 @@ class TrainerTrainLoopMixin(ABC):
         model = self.get_model()
 
         # Epoch start events
-        self.run_on_epoch_start_hook()
+        self.run_on_epoch_start_hook(model)
 
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
