@@ -688,12 +688,12 @@ overfit_pct
 
 .. warning:: .. deprecated:: 0.8.0.
 
-    Use `overfit_batches`. Will remove 1.0.0.
+    Use `overfit_batches`. Will be removed in 0.10.0.
 
 overfit_batches
 ^^^^^^^^^^^^^^^
-Uses this much data of the training set. If will use the same training set for validation and testing.
-If the training Dataloaders(shuffle=True), Lightning will automatically disable it.
+Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
 
