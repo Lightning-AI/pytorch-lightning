@@ -329,7 +329,7 @@ class Trainer(
             rank_zero_only.rank = os.environ['LOCAL_RANK']
         if 'SLURM_JOB_ID' in os.environ:
             rank_zero_only.rank = os.environ['SLURM_JOB_ID']
-        
+
         # training bookeeping
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
