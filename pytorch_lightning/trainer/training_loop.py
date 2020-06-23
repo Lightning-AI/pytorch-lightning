@@ -453,19 +453,18 @@ class TrainerTrainLoopMixin(ABC):
 
             model.global_step = self.global_step
 
-            # ---------------
-            # RUN TRAIN STEP
-            # ---------------
-            _outputs = self.run_training_batch(batch, batch_idx)
-            batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
+            # ------------------------------------
+            # TRAINING_STEP + TRAINING_STEP_END
+            # ------------------------------------
+            batch_output = self.run_training_batch(batch, batch_idx)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
-                epoch_output.append(batch_output)
+                epoch_output.append(batch_output.training_step_output_for_epoch_end)
 
             # when returning -1 from train_step, we end epoch early
-            early_stop_epoch = batch_result == -1
+            early_stop_epoch = batch_output.signal == -1
 
             # TODO: consolidate all actions that need to take place only after
             # self.accumulate_grad_batches steps (optimizer step, lr update, global step increment)
@@ -501,7 +500,7 @@ class TrainerTrainLoopMixin(ABC):
             should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
             if should_log_metrics or self.fast_dev_run:
                 # logs user requested information to logger
-                self.log_metrics(batch_step_metrics, grad_norm_dic)
+                self.log_metrics(batch_output.batch_step_metrics, batch_output.grad_norm_dic)
 
             # progress global step according to grads progress
             if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -561,7 +560,7 @@ class TrainerTrainLoopMixin(ABC):
         batch_log_metrics = []
 
         if batch is None:
-            return 0, grad_norm_dic, {}, {}
+            return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
         # Batch start events
         with self.profiler.profile('on_batch_start'):
@@ -571,7 +570,7 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
                 if response == -1:
-                    return -1, grad_norm_dic, {}, {}
+                    return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
@@ -650,7 +649,13 @@ class TrainerTrainLoopMixin(ABC):
         # track all metrics for callbacks
         self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
-        return 0, grad_norm_dic, batch_log_metrics, opt_closure_result.training_step_output_for_epoch_end
+        result = AttributeDict(
+            signal=0,
+            grad_norm_dic=grad_norm_dic,
+            batch_log_metrics=batch_log_metrics,
+            training_step_output_for_epoch_end=opt_closure_result.training_step_output_for_epoch_end
+        )
+        return result
 
     def run_batch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
         # ------------------
