@@ -43,9 +43,10 @@ class LightDataset(ABC, Dataset):
             full_data: torch.Tensor,
             full_targets: torch.Tensor,
             num_samples: int,
-            digits: Sequence
+            labels: Sequence
     ) -> Tuple[Tensor, Tensor]:
-        classes = {d: 0 for d in digits}
+        """Prepare a subset of a common dataset."""
+        classes = {d: 0 for d in labels}
         indexes = []
         for idx, target in enumerate(full_targets):
             label = target.item()
