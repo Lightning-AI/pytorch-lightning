@@ -48,9 +48,9 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tpipes.load_model(logger,
-                                         trainer.checkpoint_callback.dirpath,
-                                         module_class=EvalModelTemplate)
+    pretrained_model = tpipes.load_model_checkpoint(logger,
+                                                    trainer.checkpoint_callback.dirpath,
+                                                    module_class=EvalModelTemplate)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -92,7 +92,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tpipes.load_model(
+    pretrained_model = tpipes.load_model_checkpoint(
         logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate
     )
 

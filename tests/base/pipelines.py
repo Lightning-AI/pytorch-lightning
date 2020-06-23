@@ -20,9 +20,9 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(trainer.logger,
-                                  trainer.checkpoint_callback.dirpath,
-                                  path_expt=trainer_options.get('default_root_dir'))
+    pretrained_model = load_model_checkpoint(trainer.logger,
+                                             trainer.checkpoint_callback.dirpath,
+                                             path_expt=trainer_options.get('default_root_dir'))
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -59,7 +59,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model(logger, trainer.checkpoint_callback.dirpath)
+    pretrained_model = load_model_checkpoint(logger, trainer.checkpoint_callback.dirpath)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -80,14 +80,10 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         trainer.hpc_load(save_dir, on_gpu=on_gpu)
 
 
-def load_model(logger, root_weights_dir, module_class=EvalModelTemplate, path_expt=None):
+def load_model_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate, path_expt=None):
     # load trained model
     path_expt_dir = get_data_path(logger, path_dir=path_expt)
     hparams_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_HPARAMS_FILE)
-    return load_model_from_checkpoint(root_weights_dir, module_class, hparams_path)
-
-
-def load_model_from_checkpoint(root_weights_dir, module_class=EvalModelTemplate, hparams_path=None):
     # load trained model
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
