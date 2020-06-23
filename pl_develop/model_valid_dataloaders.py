@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from pl_develop import CustomInfDataloader
-from pl_develop import CustomNotImplementedErrorDataloader
+
+from pl_develop.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 
 
 class ValDataloaderVariations(ABC):

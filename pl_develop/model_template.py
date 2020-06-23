@@ -2,18 +2,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_lightning.core.lightning import LightningModule
 from pl_develop.datasets import TrialMNIST, PATH_DATASETS
-from pl_develop import ConfigureOptimizersPool
+from pl_develop.model_optimizers import ConfigureOptimizersPool
 from pl_develop.model_test_dataloaders import TestDataloaderVariations
 from pl_develop.model_test_epoch_ends import TestEpochEndVariations
 from pl_develop.model_test_steps import TestStepVariations
-from pl_develop import TrainDataloaderVariations
-from pl_develop import TrainingStepVariations
+from pl_develop.model_train_dataloaders import TrainDataloaderVariations
+from pl_develop.model_train_steps import TrainingStepVariations
 from pl_develop.model_utilities import ModelTemplateUtils, ModelTemplateData
-from pl_develop import ValDataloaderVariations
+from pl_develop.model_valid_dataloaders import ValDataloaderVariations
 from pl_develop.model_valid_epoch_ends import ValidationEpochEndVariations
-from pl_develop import ValidationStepVariations
+from pl_develop.model_valid_steps import ValidationStepVariations
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class EvalModelTemplate(
