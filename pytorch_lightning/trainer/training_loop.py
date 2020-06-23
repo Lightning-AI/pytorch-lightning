@@ -415,11 +415,16 @@ class TrainerTrainLoopMixin(ABC):
 
                 self.run_training_teardown()
 
-    def run_training_epoch(self):
+    def prepare_train_loop_dataloader(self, train_dataloader):
+        # on TPU we have to wrap it under the ParallelLoader
+        if self.use_tpu:
+            device = xm.xla_device(self.tpu_id)
+            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
+            train_dataloader = train_dataloader.per_device_loader(device)
 
-        # get model
-        model = self.get_model()
+        return train_dataloader
 
+    def run_on_epoch_start_hook(self):
         # Epoch start events
         with self.profiler.profile('on_epoch_start'):
             # callbacks
@@ -429,14 +434,16 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_epoch_start'):
                 model.on_epoch_start()
 
-        # track local dataloader so TPU can wrap each epoch
-        train_dataloader = self.train_dataloader
+    def run_training_epoch(self):
 
-        # on TPU we have to wrap it under the ParallelLoader
-        if self.use_tpu:
-            device = xm.xla_device(self.tpu_id)
-            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
-            train_dataloader = train_dataloader.per_device_loader(device)
+        # get model
+        model = self.get_model()
+
+        # Epoch start events
+        self.run_on_epoch_start_hook()
+
+        # modify dataloader if needed (ddp, etc...)
+        train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
 
         # bookkeeping
         epoch_output = []
