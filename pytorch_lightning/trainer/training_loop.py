@@ -683,7 +683,7 @@ class TrainerTrainLoopMixin(ABC):
                 opt_idx,
                 optimizer,
                 self.hiddens
-            )[0]
+            ).loss
             model.optimizer_step(self.current_epoch, batch_idx,
                                  optimizer, opt_idx,
                                  lambda: lambda_closure)
