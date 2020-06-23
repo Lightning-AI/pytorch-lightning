@@ -61,7 +61,7 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
 
-    # use only 1% of training data (and use the same training Dataloader (with shuffle off) in val and test)
+    # use only 1% of training data (and use the same training dataloader (with shuffle off) in val and test)
     trainer = Trainer(overfit_batches=0.01)
 
     # or overfit a number of batches
