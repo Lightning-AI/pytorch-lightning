@@ -39,15 +39,15 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
     return data
 
 
-class TransferrableDataType(ABC):
+class TransferableDataType(ABC):
     """
     A custom type for data that can be moved to a torch device via `.to(...)`.
 
     Example:
 
-        >>> isinstance(dict, TransferrableDataType)
+        >>> isinstance(dict, TransferableDataType)
         False
-        >>> isinstance(torch.rand(2, 3), TransferrableDataType)
+        >>> isinstance(torch.rand(2, 3), TransferableDataType)
         True
         >>> class CustomObject:
         ...     def __init__(self):
@@ -55,13 +55,13 @@ class TransferrableDataType(ABC):
         ...     def to(self, device):
         ...         self.x = self.x.to(device)
         ...         return self
-        >>> isinstance(CustomObject(), TransferrableDataType)
+        >>> isinstance(CustomObject(), TransferableDataType)
         True
     """
 
     @classmethod
     def __subclasshook__(cls, subclass):
-        if cls is TransferrableDataType:
+        if cls is TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
         return NotImplemented
@@ -86,4 +86,4 @@ def move_data_to_device(batch: Any, device: torch.device):
     """
     def to(data):
         return data.to(device, non_blocking=True)
-    return apply_to_collection(batch, dtype=TransferrableDataType, function=to)
+    return apply_to_collection(batch, dtype=TransferableDataType, function=to)
