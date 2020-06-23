@@ -460,8 +460,9 @@ class TrainerTrainLoopMixin(ABC):
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
+            # combine all batch_outputs
             if self.is_overridden('training_epoch_end', model=self.get_model()):
-                outputs.append(batch_output)
+                outputs = outputs + batch_output
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
@@ -553,6 +554,9 @@ class TrainerTrainLoopMixin(ABC):
         # track metrics to log
         all_log_metrics = []
 
+        # bookkeeping all split_batch and optimizer iteration batch outputs
+        all_batch_outputs = []
+
         if batch is None:
             return 0, grad_norm_dic, {}, {}
 
@@ -638,6 +642,9 @@ class TrainerTrainLoopMixin(ABC):
                 # calculate loss
                 loss, batch_output = optimizer_closure()
 
+                # track batch_output
+                all_batch_outputs.append(batch_output)
+
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:
                     self.detect_nan_tensors(loss)
@@ -688,7 +695,7 @@ class TrainerTrainLoopMixin(ABC):
         # track all metrics for callbacks
         self.callback_metrics.update({k: v for d in all_callback_metrics for k, v in d.items()})
 
-        return 0, grad_norm_dic, all_log_metrics, batch_output
+        return 0, grad_norm_dic, all_log_metrics, all_batch_outputs
 
     def _get_optimizers_iterable(self):
         if not self.optimizer_frequencies:
