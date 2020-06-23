@@ -5,6 +5,7 @@ import pytest
 import torch
 from packaging.version import parse as version_parse
 
+import tests.base.pipelines as tpipes
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
@@ -97,7 +98,7 @@ def test_early_stopping_cpu_model(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
     model.freeze()
@@ -126,7 +127,7 @@ def test_multi_cpu_model_ddp(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):
@@ -145,7 +146,7 @@ def test_lbfgs_cpu_model(tmpdir):
                    learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
-    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
+    tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -161,7 +162,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test_without_loggers(trainer_options, model)
+    tpipes.run_model_test_without_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -259,7 +260,7 @@ def test_cpu_model(tmpdir):
 
     model = EvalModelTemplate()
 
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_all_features_cpu_model(tmpdir):
@@ -277,7 +278,7 @@ def test_all_features_cpu_model(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_tbptt_cpu_model(tmpdir):

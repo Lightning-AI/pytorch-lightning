@@ -3,6 +3,7 @@ from collections import namedtuple
 import pytest
 import torch
 
+import tests.base.pipelines as tpipes
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core import memory
@@ -27,7 +28,7 @@ def test_single_gpu_model(tmpdir, gpus):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.mark.spawn
@@ -94,7 +95,7 @@ def test_multi_gpu_none_backend(tmpdir):
 
     model = EvalModelTemplate()
     with pytest.warns(UserWarning):
-        tutils.run_model_test(trainer_options, model)
+        tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.fixture

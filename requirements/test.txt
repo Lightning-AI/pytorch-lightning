@@ -9,3 +9,4 @@ check-manifest
 twine==1.13.0
 black==19.10b0
 pre-commit>=1.0
+cloudpickle>=1.2

@@ -3,6 +3,7 @@ import os
 import pytest
 import torch
 
+import tests.base.pipelines as tpipes
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -133,4 +134,4 @@ def test_cpu_model_with_amp(tmpdir):
     model = EvalModelTemplate()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model, on_gpu=False)
+        tpipes.run_model_test(trainer_options, model, on_gpu=False)

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.utilities.datasets import TrialMNIST, AverageDataset, MNIST
+from pl_develop.datasets import TrialMNIST, AverageDataset, MNIST
 
 try:
     from test_tube import HyperOptArgumentParser

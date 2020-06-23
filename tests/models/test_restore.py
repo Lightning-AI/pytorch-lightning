@@ -7,6 +7,7 @@ import cloudpickle
 import pytest
 import torch
 
+import tests.base.pipelines as tpipes
 import tests.base.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -47,7 +48,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger,
+    pretrained_model = tpipes.load_model(logger,
                                          trainer.checkpoint_callback.dirpath,
                                          module_class=EvalModelTemplate)
 
@@ -63,7 +64,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tutils.run_prediction(dataloader, pretrained_model)
+        tpipes.run_prediction(dataloader, pretrained_model)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -91,7 +92,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(
+    pretrained_model = tpipes.load_model(
         logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate
     )
 
@@ -202,7 +203,7 @@ def test_dp_resume(tmpdir):
         dp_model.eval()
 
         dataloader = trainer.train_dataloader
-        tutils.run_prediction(dataloader, dp_model, dp=True)
+        tpipes.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
     model = EvalModelTemplate(**hparams)

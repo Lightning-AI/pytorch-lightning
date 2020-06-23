@@ -5,7 +5,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset
 
-import tests.base.utils as tutils
+import tests.base.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -109,7 +109,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # make sure predictions are good for each val set
     for dataloader in trainer.val_dataloaders:
-        tutils.run_prediction(dataloader, trainer.model)
+        tpipes.run_prediction(dataloader, trainer.model)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
@@ -145,7 +145,7 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
 
     # make sure predictions are good for each test set
     for dataloader in trainer.test_dataloaders:
-        tutils.run_prediction(dataloader, trainer.model)
+        tpipes.run_prediction(dataloader, trainer.model)
 
     # run the test method
     trainer.test(ckpt_path=ckpt_path)
