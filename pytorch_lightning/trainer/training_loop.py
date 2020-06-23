@@ -553,7 +553,7 @@ class TrainerTrainLoopMixin(ABC):
         batch_callback_metrics = []
 
         # track metrics to log
-        all_log_metrics = []
+        batch_log_metrics = []
 
         if batch is None:
             return 0, grad_norm_dic, {}, {}
@@ -603,6 +603,7 @@ class TrainerTrainLoopMixin(ABC):
                 # POST forward bookkeeping
                 # ------------------------------
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
+                batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
 
                 # loss, training_step_output, training_step_output_for_epoch_end, hiddens
@@ -639,12 +640,12 @@ class TrainerTrainLoopMixin(ABC):
                 self.get_model().on_batch_end()
 
         # collapse all metrics into one dict
-        all_log_metrics = {k: v for d in all_log_metrics for k, v in d.items()}
+        batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
         self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
-        return 0, grad_norm_dic, all_log_metrics, opt_closure_result.training_step_output_for_epoch_end
+        return 0, grad_norm_dic, batch_log_metrics, opt_closure_result.training_step_output_for_epoch_end
 
     def run_batch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
         # ------------------
