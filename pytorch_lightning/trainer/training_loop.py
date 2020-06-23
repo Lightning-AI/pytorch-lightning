@@ -529,8 +529,14 @@ class TrainerTrainLoopMixin(ABC):
             _processed_outputs = self.process_output(epoch_output)
             log_epoch_metrics = _processed_outputs[2]
             callback_epoch_metrics = _processed_outputs[3]
+
+            # add the metrics to the loggers
             self.log_metrics(log_epoch_metrics, {})
+
+            # add metrics to callbacks
             self.callback_metrics.update(callback_epoch_metrics)
+
+            # add metrics to progress_bar
             self.add_progress_bar_metrics(_processed_outputs[1])
 
         # when no val loop is present or fast-dev-run still need to call checkpoints

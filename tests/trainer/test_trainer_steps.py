@@ -72,15 +72,20 @@ def test_full_training_loop_dict(tmpdir):
     model = DeterministicModel()
     model.training_step = model.training_step_for_step_end_dict
     model.training_step_end = model.training_step_end_dict
+    model.training_epoch_end = model.training_epoch_end_dict
     model.val_dataloader = None
 
-    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer = Trainer(max_epochs=1, weights_summary=None)
     trainer.fit(model)
 
     # make sure correct steps were called
     assert model.training_step_called
     assert model.training_step_end_called
-    assert not model.training_epoch_end_called
+    assert model.training_epoch_end_called
+
+    # assert epoch end metrics were added
+    assert trainer.callback_metrics['epoch_end_log_1'] == 178
+    assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
@@ -95,3 +100,6 @@ def test_full_training_loop_dict(tmpdir):
     pbar_metrics = training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
     assert pbar_metrics['pbar_acc2'] == 19.0
+
+
+test_full_training_loop_dict('')

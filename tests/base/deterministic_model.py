@@ -31,7 +31,7 @@ class DeterministicModel(LightningModule):
         assert torch.all(y_hat[0, :] == 15.0)
         assert torch.all(y_hat[1, :] == 42.0)
         out = y_hat.sum()
-        assert out == (42.0*3) + (15.0*3)
+        assert out == (42.0 * 3) + (15.0 * 3)
 
         return out
 
@@ -95,17 +95,25 @@ class DeterministicModel(LightningModule):
         acc = output['loss']
         return {'loss': acc, 'log': logs, 'progress_bar': pbar}
 
-    def training_epoch_end_basic(self, outputs):
+    def training_epoch_end_dict(self, outputs):
+        self.training_epoch_end_called = True
+
         if self.use_dp or self.use_ddp2:
             pass
         else:
-            # only saw 3 batches
-            assert len(outputs) == 3
+            # only saw 4 batches
+            assert len(outputs) == 4
             for batch_out in outputs:
-                assert len(batch_out.keys()) == 2
-                keys = ['to_batch_end_1', 'to_batch_end_2']
+                assert len(batch_out.keys()) == 5
+                keys = ['batch_loss', 'pbar_on_batch_end', 'log_metrics', 'callback_metrics']
                 for key in keys:
                     assert key in batch_out
+
+        prototype_loss = outputs[0]['batch_loss']
+        logs = {'epoch_end_log_1': torch.tensor(178).type_as(prototype_loss)}
+        pbar = {'epoch_end_pbar_1': torch.tensor(234).type_as(prototype_loss)}
+
+        return {'log': logs, 'progress_bar': pbar}
 
     def validation_step_dict_return(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
