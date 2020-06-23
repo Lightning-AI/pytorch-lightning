@@ -439,7 +439,7 @@ class TrainerTrainLoopMixin(ABC):
             train_dataloader = train_dataloader.per_device_loader(device)
 
         # bookkeeping
-        outputs = []
+        epoch_output = []
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -462,7 +462,7 @@ class TrainerTrainLoopMixin(ABC):
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
-                outputs.append(batch_output)
+                epoch_output.append(batch_output)
 
             # when returning -1 from train_step, we end epoch early
             early_stop_epoch = batch_result == -1
@@ -524,7 +524,7 @@ class TrainerTrainLoopMixin(ABC):
         # process epoch outputs
         model = self.get_model()
         if self.is_overridden('training_epoch_end', model=model):
-            epoch_output = model.training_epoch_end(outputs)
+            epoch_output = model.training_epoch_end(epoch_output)
             _processed_outputs = self.process_output(epoch_output)
             log_epoch_metrics = _processed_outputs[2]
             callback_epoch_metrics = _processed_outputs[3]
