@@ -44,15 +44,17 @@ class TransferrableDataType(ABC):
     A custom type for data that can be moved to a torch device via `.to(...)`.
 
     Example:
-        >>> isinstance(torch.rand(2, 3), TransferrableDataType)
-        True
+
         >>> isinstance(dict, TransferrableDataType)
         False
+        >>> isinstance(torch.rand(2, 3), TransferrableDataType)
+        True
         >>> class CustomObject:
         ...     def __init__(self):
         ...         self.x = torch.rand(2, 2)
         ...     def to(self, device):
-        ...         self.x.to(device)
+        ...         self.x = self.x.to(device)
+        ...         return self
         >>> isinstance(CustomObject(), TransferrableDataType)
         True
     """
