@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Created new module `pl_develop` with PL test tools (moved from `tests.base.model_*`) and added CIFAR10 dataset ([#2323](https://github.com/PyTorchLightning/pytorch-lightning/pull/2323))
+
 ### Changed
 
 - Changed epoch indexing from 0 instead of 1 ([#2289](https://github.com/PyTorchLightning/pytorch-lightning/pull/2289))
