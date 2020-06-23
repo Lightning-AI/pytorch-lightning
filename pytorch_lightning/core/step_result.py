@@ -25,7 +25,8 @@ class Result(Dict):
         Args:
             minimize: Metric to minimize
             early_stop_on: Metric for early stopping. Ignored with a validation loop.
-            checkpoint_on: Metric for checkpointing. Ignored with a validation loop otherwise defaults to `minimize` value.
+            checkpoint_on: Metric for checkpointing. Ignored with a validation loop otherwise defaults
+                to `minimize` value.
             hiddens: tensor of hiddens to pass to next step when using TBPTT
 
         .. code-block: python
@@ -56,10 +57,10 @@ class Result(Dict):
             result.to_pbar(train_nce_loss', loss)
             result.to_pbar('train_nce_loss', loss, on_batch_end=True, on_epoch_end=False)
 
-        Although 99% of the time we are interested in a metric for each training batch, (ie: loss decrease over the epoch),
-        sometimes you may want to know something like the average loss for the full epoch. You can either
-        define the `training_epoch_end` method for something fancy, or use the `on_epoch_end` argument with your custom
-        reduce function
+        Although 99% of the time we are interested in a metric for each training batch,
+        (ie: loss decrease over the epoch), sometimes you may want to know something like the average loss
+        for the full epoch. You can either define the `training_epoch_end` method for something fancy,
+        or use the `on_epoch_end` argument with your custom reduce function
 
         .. code-block: python
 
