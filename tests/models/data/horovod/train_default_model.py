@@ -20,8 +20,15 @@ import argparse
 import json
 import os
 import sys
+import pytest
 
-import horovod.torch as hvd
+try:
+    import horovod.torch as hvd
+except ImportError:
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, '..', '..', '..', '..')
@@ -38,6 +45,7 @@ parser.add_argument('--trainer-options', required=True)
 parser.add_argument('--on-gpu', action='store_true', default=False)
 
 
+@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod not installed")
 def run_test_from_config(trainer_options):
     """Trains the default model with the given config."""
     set_random_master_port()

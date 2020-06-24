@@ -371,7 +371,7 @@ class TrainerTrainLoopMixin(ABC):
                 # -----------------
                 self.run_training_epoch()
 
-                if self.max_steps and self.max_steps == self.global_step:
+                if self.max_steps and self.max_steps <= self.global_step:
                     self.run_training_teardown()
                     return
 

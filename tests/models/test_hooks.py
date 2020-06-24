@@ -20,6 +20,7 @@ def test_on_before_zero_grad_called(max_steps):
 
     trainer = Trainer(
         max_steps=max_steps,
+        max_epochs=2,
         num_sanity_val_steps=5,
     )
     assert 0 == model.on_before_zero_grad_called
