@@ -24,8 +24,8 @@ def test_trainingstep_dict(tmpdir):
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
-    assert out.all_log_metrics['log_acc1'] == 12.0
-    assert out.all_log_metrics['log_acc2'] == 7.0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
     pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
@@ -55,8 +55,8 @@ def training_step_with_step_end(tmpdir):
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
-    assert out.all_log_metrics['log_acc1'] == 12.0
-    assert out.all_log_metrics['log_acc2'] == 7.0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
     pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
@@ -91,8 +91,8 @@ def test_full_training_loop_dict(tmpdir):
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
-    assert out.all_log_metrics['log_acc1'] == 12.0
-    assert out.all_log_metrics['log_acc2'] == 7.0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
     pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
@@ -127,8 +127,8 @@ def test_train_step_epoch_end(tmpdir):
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
-    assert out.all_log_metrics['log_acc1'] == 12.0
-    assert out.all_log_metrics['log_acc2'] == 7.0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
     pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
