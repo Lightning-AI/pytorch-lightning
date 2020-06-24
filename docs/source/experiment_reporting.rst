@@ -124,6 +124,9 @@ to see fewer messages like so:
     import logging
     logging.getLogger("lightning").setLevel(logging.ERROR)
 
+Read more about custom Python logging `here <https://docs.python.org/3/library/logging.html>`_.
+
+
 ----------
 
 Snapshot hyperparameters
