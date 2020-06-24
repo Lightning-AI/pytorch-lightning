@@ -144,8 +144,6 @@ in your model.
 
 """
 
-import atexit
-import signal
 import subprocess
 from abc import ABC, abstractmethod
 from typing import Callable
@@ -153,7 +151,6 @@ from typing import Union, List
 
 import numpy as np
 import torch
-import subprocess
 from torch.utils.data import DataLoader
 import torch.distributed as torch_distrib
 
