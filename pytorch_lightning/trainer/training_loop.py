@@ -144,8 +144,6 @@ in your model.
 
 """
 
-import atexit
-import signal
 import subprocess
 from abc import ABC, abstractmethod
 from typing import Callable
