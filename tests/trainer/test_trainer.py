@@ -297,6 +297,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True)
     )
@@ -592,7 +593,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             assert loaded_checkpoint_path == ckpt_path
 
 
-def test_disabled_validation():
+def test_disabled_validation(tmpdir):
     """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
     class CurrentModel(EvalModelTemplate):
@@ -612,6 +613,7 @@ def test_disabled_validation():
     model = CurrentModel(**hparams)
 
     trainer_options = dict(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=2,
         limit_train_batches=0.4,

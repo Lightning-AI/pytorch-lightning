@@ -2,7 +2,7 @@ from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
 
-def test_trainingstep_dict(tmpdir):
+def test_training_step_dict(tmpdir):
     """
     Tests that only training_step can be used
     """
@@ -10,7 +10,11 @@ def test_trainingstep_dict(tmpdir):
     model.training_step = model.training_step_dict_return
     model.val_dataloader = None
 
-    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        weights_summary=None,
+    )
     trainer.fit(model)
 
     # make sure correct steps were called
@@ -75,7 +79,11 @@ def test_full_training_loop_dict(tmpdir):
     model.training_epoch_end = model.training_epoch_end_dict
     model.val_dataloader = None
 
-    trainer = Trainer(max_epochs=1, weights_summary=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
     trainer.fit(model)
 
     # make sure correct steps were called
@@ -112,7 +120,11 @@ def test_train_step_epoch_end(tmpdir):
     model.training_epoch_end = model.training_epoch_end_dict
     model.val_dataloader = None
 
-    trainer = Trainer(max_epochs=1, weights_summary=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
     trainer.fit(model)
 
     # make sure correct steps were called
