@@ -30,7 +30,7 @@ def test_wandb_logger(wandb):
 
 
 @patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_pickle(wandb):
+def test_wandb_pickle(tmpdir, wandb):
     """Verify that pickling trainer with wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
@@ -45,7 +45,11 @@ def test_wandb_pickle(wandb):
 
     logger = WandbLogger(id='the_id', offline=True)
 
-    trainer = Trainer(max_epochs=1, logger=logger)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+    )
     # Access the experiment to ensure it's created
     assert trainer.logger.experiment, 'missing experiment'
     pkl_bytes = pickle.dumps(trainer)

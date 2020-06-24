@@ -132,7 +132,7 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     trainer.fit(model)
     if ckpt_path == 'specific':
@@ -160,7 +160,7 @@ def test_train_dataloader_passed_to_fit(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True))
     result = trainer.fit(model, **fit_options)
@@ -177,7 +177,7 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True),
                        val_dataloaders=model.dataloader(train=False))
@@ -199,7 +199,7 @@ def test_all_dataloaders_passed_to_fit(tmpdir, ckpt_path):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True),
                        val_dataloaders=model.dataloader(train=False))
@@ -441,7 +441,7 @@ def test_inf_train_dataloader(tmpdir, check_interval):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_check_interval=check_interval
+        val_check_interval=check_interval,
     )
     result = trainer.fit(model)
     # verify training completed
@@ -459,7 +459,7 @@ def test_not_implemented_error_train_dataloader(tmpdir, check_interval):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_check_interval=check_interval
+        val_check_interval=check_interval,
     )
     result = trainer.fit(model)
     # verify training completed
@@ -519,7 +519,7 @@ def test_error_on_zero_len_dataloader(tmpdir):
             max_epochs=1,
             limit_train_batches=0.1,
             limit_val_batches=0.1,
-            limit_test_batches=0.1
+            limit_test_batches=0.1,
         )
         trainer.fit(model)
 
@@ -613,7 +613,7 @@ def test_dataloader_reinit_for_subclass():
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
-def test_batch_size_smaller_than_num_gpus():
+def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3
     batch_size = 3
@@ -651,6 +651,7 @@ def test_batch_size_smaller_than_num_gpus():
     model = CurrentTestModel(**hparams)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0,
