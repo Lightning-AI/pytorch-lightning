@@ -7,7 +7,6 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  PR_REF: ${{ github.event.pull_request.head.ref }}
   GKE_CLUSTER: oneshots-europe-west4   # TODO: update to cluster name.
   GKE_ZONE: europe-west4-a  # TODO: update to cluster zone.
   GKE_REGION: europe-west4  # TODO: update to cluster region.
