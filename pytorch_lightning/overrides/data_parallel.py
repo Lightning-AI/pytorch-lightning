@@ -102,8 +102,6 @@ class LightningDataParallel(DataParallel):
         """
 
         def gather_method(outputs):
-            if all(t.dim() == 0 for t in outputs) and self.dim == 0:
-                outputs = tuple(t.view(1) for t in outputs)
             return Gather.apply(self.output_device, self.dim, *outputs)
 
         return apply_to_collection(outputs, torch.Tensor, gather_method)
