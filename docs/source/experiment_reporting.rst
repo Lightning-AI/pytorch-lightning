@@ -109,6 +109,21 @@ Here we show the validation loss in the progress bar
         results = {'progress_bar': logs}
         return results
 
+
+----------
+
+Configure console logging
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Lightning logs useful information about the training process and user warnings to the console.
+You can retrieve the Lightning logger and change it to your liking. For example, increase the logging level
+to see fewer messages like so:
+
+.. code-block:: python
+
+    import logging
+    logging.getLogger("lightning").setLevel(logging.ERROR)
+
 ----------
 
 Snapshot hyperparameters
