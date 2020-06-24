@@ -327,8 +327,6 @@ class Trainer(
         # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = os.environ['LOCAL_RANK']
-        if 'SLURM_JOB_ID' in os.environ:
-            rank_zero_only.rank = os.environ['SLURM_JOB_ID']
 
         # Init callbacks
         self.prepare_data_per_node = prepare_data_per_node
