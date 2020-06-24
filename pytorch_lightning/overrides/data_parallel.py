@@ -1,6 +1,7 @@
 import itertools
 import threading
 from itertools import chain
+from collections import Mapping, Iterable
 
 import torch
 from torch.cuda._utils import _get_device_index
@@ -8,8 +9,6 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
 from pytorch_lightning.core.step_result import Result
-
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -100,11 +99,34 @@ class LightningDataParallel(DataParallel):
         r"""
         Override the gather method to support python scalars as well.
         """
+        def gather_map(outputs):
+            elem = outputs[0]
+            elem_type = type(elem)
 
-        def gather_method(outputs):
-            return Gather.apply(self.output_device, self.dim, *outputs)
+            if isinstance(elem, torch.Tensor):
+                return Gather.apply(self.output_device, self.dim, *outputs)
 
-        return apply_to_collection(outputs, torch.Tensor, gather_method)
+            elif elem is None:
+                return None
+
+            elif isinstance(elem, Mapping):
+                if not all((len(elem) == len(d) for d in outputs)):
+                    raise ValueError('All dicts must have the same number of keys')
+                return elem_type(((k, gather_map([d[k] for d in outputs]))
+                                  for k in elem))
+
+            elif isinstance(elem, Iterable) and not isinstance(elem, str):
+                return elem_type(map(gather_map, zip(*outputs)))
+
+            return outputs
+
+        # Recursive function calls like this create reference cycles.
+        # Setting the function to None clears the refcycle.
+        try:
+            res = gather_map(outputs)
+        finally:
+            gather_map = None
+        return res
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
