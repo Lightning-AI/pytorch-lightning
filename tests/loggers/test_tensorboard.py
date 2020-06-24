@@ -13,6 +13,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 import yaml
 
 
+@pytest.importorskip('torch', minversion='1.5.0')
 def test_tensorboard_hparams(tmpdir):
     model = EvalModelTemplate()
 
