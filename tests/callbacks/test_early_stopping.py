@@ -32,7 +32,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
         early_stop_callback=early_stop_callback,
-        max_epochs=4
+        max_epochs=4,
     )
     trainer.fit(model)
     early_stop_callback_state = early_stop_callback.state_dict()
@@ -44,6 +44,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state)
     new_trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=2,
         resume_from_checkpoint=checkpoint_filepath,
         early_stop_callback=early_stop_callback,
