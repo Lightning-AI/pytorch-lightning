@@ -89,7 +89,7 @@ def test_multiple_val_dataloader(tmpdir):
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple
     model.validation_step = model.validation_step__multiple_dataloaders
-    model.validation_epoch_end = model.validation_epoch_end_multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
 
     # fit model
     trainer = Trainer(
@@ -224,7 +224,7 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
 
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
-    model.validation_epoch_end = model.validation_epoch_end_multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
     model.test_step = model.test_step__multiple_dataloaders
 
     # train, multiple val and multiple test passed to fit
@@ -249,6 +249,81 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
         f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
     assert len(trainer.test_dataloaders) == 2, \
         f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+
+
+@pytest.mark.parametrize(
+    ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
+    [
+        pytest.param(0.0, 0.0, 0.0),
+        pytest.param(0, 0, 0.5),
+        pytest.param(1.0, 1.0, 1.0),
+        pytest.param(0.2, 0.4, 0.4),
+    ]
+)
+def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
+    """Verify num_batches for val & test dataloaders passed with batch limit in percent"""
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__multiple_mixed_length
+    model.test_dataloader = model.test_dataloader__multiple_mixed_length
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    model.test_step = model.test_step__multiple_dataloaders
+    model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
+
+    # train, multiple val and multiple test passed with percent_check
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        limit_test_batches=limit_test_batches,
+    )
+    trainer.fit(model)
+    expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
+    expected_val_batches = [
+        int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders
+    ]
+    assert trainer.num_training_batches == expected_train_batches
+    assert trainer.num_val_batches == expected_val_batches
+
+    trainer.test(ckpt_path=None)
+    expected_test_batches = [
+        int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders
+    ]
+    assert trainer.num_test_batches == expected_test_batches
+
+
+@pytest.mark.parametrize(
+    ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
+    [
+        pytest.param(0, 0, 0),
+        pytest.param(1, 2, 3),
+        pytest.param(1, 2, 1e50),
+    ]
+)
+def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
+    """Verify num_batches for val & test dataloaders passed with batch limit as number"""
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__multiple_mixed_length
+    model.test_dataloader = model.test_dataloader__multiple_mixed_length
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    model.test_step = model.test_step__multiple_dataloaders
+    model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
+
+    # train, multiple val and multiple test passed with percent_check
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=limit_val_batches,
+        limit_test_batches=limit_test_batches,
+    )
+    trainer.fit(model)
+    assert trainer.num_training_batches == limit_train_batches
+    assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
+    trainer.test(ckpt_path=None)
+    assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
