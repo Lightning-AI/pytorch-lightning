@@ -1,19 +1,18 @@
-from argparse import Namespace
-
 import os
+from argparse import Namespace
+from packaging import version
+
 import pytest
 import torch
+import yaml
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-import tests.base.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-import yaml
 
 
-@pytest.mark.importorskip('torch', minversion='1.5.0')
+@pytest.mark.skipif(version.parse(torch.__version__) < version.parse('1.5.0'), reason='Minimal PT version is set to 1.5')
 def test_tensorboard_hparams(tmpdir):
     model = EvalModelTemplate()
 
