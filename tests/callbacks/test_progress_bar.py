@@ -107,10 +107,11 @@ def test_progress_bar_totals(tmpdir):
     assert bar.test_batch_idx == k
 
 
-def test_progress_bar_fast_dev_run():
+def test_progress_bar_fast_dev_run(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
     )
 
