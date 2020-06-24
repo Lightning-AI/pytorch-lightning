@@ -3,8 +3,21 @@ from argparse import Namespace
 import pytest
 import torch
 
+import tests.base.utils as tutils
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from tests.base import EvalModelTemplate
 
+
+def test_tensorboard_hparams(tmpdir):
+    model = EvalModelTemplate()
+
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer.fit(model)
+
+
+# test_tensorboard_hparams('/Users/williamfalcon/Desktop/')
 
 def test_tensorboard_automatic_versioning(tmpdir):
     """Verify that automatic versioning works"""
