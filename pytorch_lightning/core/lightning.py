@@ -1151,18 +1151,19 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             second_order_closure: closure for second order methods
             on_tpu: true if TPU backward is required
             using_native_amp: True if using native amp
+            using_lbfgs: True if the matching optimizer is lbfgs
 
         Examples:
             .. code-block:: python
 
                 # DEFAULT
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     optimizer.step()
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure, on_tpu, using_native_amp):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
@@ -1186,7 +1187,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                 # learning rate warm-up
                 def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, second_order_closure=None):
+                                    optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)

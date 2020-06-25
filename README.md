@@ -148,7 +148,7 @@ For example, here you could do your own backward pass without worrying about GPU
 ```python
 class LitModel(LightningModule):
     def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                     second_order_closure=None, on_tpu=False):
+                     second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
       optimizer.step()
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
