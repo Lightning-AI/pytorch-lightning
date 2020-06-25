@@ -139,6 +139,7 @@ jobs:
         python setup.py check --metadata --strict
         python setup.py sdist
         twine check dist/*
+
     #- name: Try install package
     #  if: ! startsWith(matrix.os, 'windows')
     #  run: |
@@ -146,7 +147,7 @@ jobs:
     #    pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
     #    deactivate ; rm -rf vEnv
 
-    - name: Statistics
-      if: success()
-      run: |
-         coverage report
+    #- name: Statistics
+    #  if: success()
+    #  run: |
+    #     coverage report
