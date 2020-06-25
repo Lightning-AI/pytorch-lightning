@@ -747,7 +747,8 @@ class TrainerTrainLoopMixin(ABC):
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure)
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
+                                     using_lbfgs=True)
 
             # when using 16-bit
             else:
