@@ -46,7 +46,7 @@ class LightningTemplateModel(LightningModule):
                  out_features: int = 10,
                  hidden_dim: int = 1000,
                  **kwargs
-                 ) -> 'LightningTemplateModel':
+                 ):
         # init superclass
         super().__init__()
         self.drop_prob = drop_prob
