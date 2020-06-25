@@ -10,8 +10,14 @@ from typing import Union, Any, Callable, Optional
 import numpy as np
 import torch
 from torch.utils.data._utils.collate import np_str_obj_array_pattern
-
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities import rank_zero_warn
+
+try:
+    from torch.distributed import ReduceOp
+except ImportError:
+    ReduceOp = None
+    rank_zero_warn('Unsupported `ReduceOp` for distributed computing.')
 
 
 def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callable:
@@ -217,7 +223,7 @@ def _tensor_collection_metric_conversion(func_to_decorate: Callable) -> Callable
 
 def _sync_ddp_if_available(result: Union[torch.Tensor],
                            group: Optional[Any] = None,
-                           reduce_op: Optional[torch.distributed.ReduceOp] = None,
+                           reduce_op: Optional[ReduceOp] = None,
                            ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -247,7 +253,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
 
 
 def sync_ddp(group: Optional[Any] = None,
-             reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
+             reduce_op: Optional[ReduceOp] = None) -> Callable:
     """
     This decorator syncs a functions outputs across different processes for DDP.
 
@@ -269,7 +275,7 @@ def sync_ddp(group: Optional[Any] = None,
 
 
 def numpy_metric(group: Optional[Any] = None,
-                 reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
+                 reduce_op: Optional[ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on numpy arrays.
     It handles the argument conversion and DDP reduction for metrics working on numpy.
@@ -292,7 +298,7 @@ def numpy_metric(group: Optional[Any] = None,
 
 
 def tensor_metric(group: Optional[Any] = None,
-                  reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
+                  reduce_op: Optional[ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on tensors.
     It handles the argument conversion and DDP reduction for metrics working on tensors.
@@ -314,7 +320,7 @@ def tensor_metric(group: Optional[Any] = None,
 
 
 def tensor_collection_metric(group: Optional[Any] = None,
-                             reduce_op: Optional[torch.distributed.ReduceOp] = None) -> Callable:
+                             reduce_op: Optional[ReduceOp] = None) -> Callable:
     """
     This decorator shall be used on all function metrics working on tensors and returning collections
     that cannot be converted to tensors.
