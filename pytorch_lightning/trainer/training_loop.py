@@ -467,7 +467,7 @@ class TrainerTrainLoopMixin(ABC):
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
-                epoch_output.append(batch_output.training_step_output_for_epoch_end)
+                epoch_output += batch_output.training_step_output_for_epoch_end
 
             # update LR schedulers
             self.update_train_loop_lr_schedulers()
@@ -596,6 +596,9 @@ class TrainerTrainLoopMixin(ABC):
         # track metrics to log
         batch_log_metrics = []
 
+        # track all training_step output for epoch_end
+        all_training_step_output_for_epoch_end = []
+
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
@@ -646,6 +649,7 @@ class TrainerTrainLoopMixin(ABC):
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
                 batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
+                all_training_step_output_for_epoch_end.append(opt_closure_result.training_step_output_for_epoch_end)
 
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens
@@ -690,7 +694,7 @@ class TrainerTrainLoopMixin(ABC):
             signal=0,
             grad_norm_dic=grad_norm_dic,
             batch_log_metrics=batch_log_metrics,
-            training_step_output_for_epoch_end=opt_closure_result.training_step_output_for_epoch_end
+            training_step_output_for_epoch_end=all_training_step_output_for_epoch_end
         )
         return result
 
