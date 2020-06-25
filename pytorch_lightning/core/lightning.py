@@ -1135,7 +1135,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             second_order_closure: Optional[Callable] = None,
             on_tpu: bool = False,
             using_native_amp: bool = False,
-            using_lbfgs = False,
+            using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
