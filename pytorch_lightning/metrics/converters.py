@@ -18,6 +18,7 @@ try:
 except ImportError:
     class ReduceOp:
         SUM = None
+
     rank_zero_warn('Unsupported `ReduceOp` for distributed computing.')
 
 
