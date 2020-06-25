@@ -126,7 +126,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_level: str = 'O1',  # backward compatible, todo: remove in v1.0.0
+        amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
