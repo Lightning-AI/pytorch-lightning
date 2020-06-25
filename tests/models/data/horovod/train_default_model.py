@@ -23,7 +23,7 @@ import sys
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     hvd = None
     raise Warning('You requested to import Horovod which is missing or not supported for your OS.')
 
