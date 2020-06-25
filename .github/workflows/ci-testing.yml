@@ -122,8 +122,8 @@ jobs:
       run: |
         # tox --sitepackages
         # flake8 .
-        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        coverage report
+        python -m pytest pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        # coverage report
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
