@@ -6,7 +6,7 @@ local tputests = base.BaseTest {
   modelName: 'tpu-tests',
   mode: 'presubmit',
 
-  timeout: 300, # 5 minutes, in seconds.
+  timeout: 900, # 15 minutes, in seconds.
 
   image: std.extVar('image'),
   imageTag: std.extVar('image-tag'),
@@ -19,6 +19,7 @@ local tputests = base.BaseTest {
   command: [
     'py.test',
     'pytorch-lightning/tests/models/test_tpu.py',
+    '-v',
   ]
 };
 
