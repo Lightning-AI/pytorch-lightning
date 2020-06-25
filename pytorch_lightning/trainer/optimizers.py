@@ -116,17 +116,17 @@ class TrainerOptimizersMixin(ABC):
             for optimizer in optimizers:
                 # check that we dont mix users optimizers and schedulers
                 if scheduler.optimizer == optimizer:
+                    # Find the mro belonging to the base lr scheduler class
+                    for i, mro in enumerate(scheduler.__class__.__mro__):
+                        if (
+                            mro == optim.lr_scheduler._LRScheduler
+                            or mro == optim.lr_scheduler.ReduceLROnPlateau
+                        ):
+                            idx = i
+                            state = scheduler.state_dict()
+                        else:
+                            state = None
 
-                # Find the mro belonging to the base lr scheduler class
-                for i, mro in enumerate(scheduler.__class__.__mro__):
-                    if (
-                        mro == optim.lr_scheduler._LRScheduler
-                        or mro == optim.lr_scheduler.ReduceLROnPlateau
-                    ):
-                        idx = i
-                        state = scheduler.state_dict()
-                    else:
-                        state = None
                 scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
                 if state is not None:
                     scheduler.load_state_dict(state)
