@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install conda and python.
 RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
-    #~/miniconda.sh -b -p /home/containeruser/conda && \
     ~/miniconda.sh -b && \
     rm ~/miniconda.sh
 
