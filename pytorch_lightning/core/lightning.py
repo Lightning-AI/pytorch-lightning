@@ -1204,7 +1204,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if on_tpu:
             xm.optimizer_step(optimizer)
         elif using_native_amp:
-            self.scaler.step(optimizer)
+            self.trainer.scaler.step(optimizer)
         else:
             optimizer.step(second_order_closure)
 
