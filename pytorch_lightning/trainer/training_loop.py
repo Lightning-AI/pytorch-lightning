@@ -716,7 +716,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # .STEP + ZERO_GRAD
         # ------------------
-        self.call_optimizer_step(self, optimizer, opt_idx, batch_idx, split_batch)
+        self.call_optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
 
         return grad_norm_dic
 
