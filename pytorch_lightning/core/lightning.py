@@ -1133,6 +1133,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: Optimizer,
             optimizer_idx: int,
             second_order_closure: Optional[Callable] = None,
+            on_tpu: bool = False,
+            using_native_amp: bool = False,
+            using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1146,19 +1149,21 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers this indexes into that list.
             second_order_closure: closure for second order methods
+            on_tpu: true if TPU backward is required
+            using_native_amp: True if using native amp
+            using_lbfgs: True if the matching optimizer is lbfgs
 
         Examples:
             .. code-block:: python
 
                 # DEFAULT
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure=None):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     optimizer.step()
-                    optimizer.zero_grad()
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure=None):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
@@ -1182,7 +1187,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                 # learning rate warm-up
                 def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, second_order_closure=None):
+                                    optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -1198,30 +1203,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
-        if self.trainer.use_tpu and XLA_AVAILABLE:
+        if on_tpu:
             xm.optimizer_step(optimizer)
-        elif isinstance(optimizer, torch.optim.LBFGS):
-
-            # native amp + lbfgs is a no go right now
-            if self.trainer.use_amp and self.trainer.use_native_amp:
-                raise MisconfigurationException(
-                    'native PyTorch amp and lbfgs are not compatible.'
-                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+        elif using_native_amp:
+            self.trainer.scaler.step(optimizer)
+        elif using_lbfgs:
             optimizer.step(second_order_closure)
         else:
-            if self.trainer.use_amp and self.trainer.use_native_amp:
-                self.trainer.scaler.step(optimizer)
-            else:
-                optimizer.step()
+            optimizer.step()
 
-        # in native 16-bit we need to update scaler after optimizer step
-        if self.trainer.use_amp and self.trainer.use_native_amp:
-            self.trainer.scaler.update()
-
-        # model hook
-        self.on_before_zero_grad(optimizer)
-
-        # clear gradients
+    def optimizer_zero_grad(self,
+                            epoch: int,
+                            batch_idx: int,
+                            optimizer: Optimizer,
+                            optimizer_idx: int):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
