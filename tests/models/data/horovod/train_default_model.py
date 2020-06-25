@@ -23,7 +23,7 @@ import sys
 
 try:
     import horovod.torch as hvd
-except Exception:
+except (ModuleNotFoundError, ImportError):
     raise Warning('You requested to import Horovod which is missing or not supported for your OS.')
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
