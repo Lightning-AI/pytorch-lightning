@@ -68,7 +68,7 @@ def test_custom_logger(tmpdir):
         max_epochs=1,
         limit_train_batches=0.05,
         logger=logger,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -88,7 +88,7 @@ def test_multiple_loggers(tmpdir):
         max_epochs=1,
         limit_train_batches=0.05,
         logger=[logger1, logger2],
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -108,7 +108,11 @@ def test_multiple_loggers_pickle(tmpdir):
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer = Trainer(max_epochs=1, logger=[logger1, logger2])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=[logger1, logger2],
+    )
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0}, 0)

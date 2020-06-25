@@ -19,7 +19,7 @@ def test_lr_logger_single_lr(tmpdir):
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
-        callbacks=[lr_logger]
+        callbacks=[lr_logger],
     )
     result = trainer.fit(model)
     assert result
@@ -42,7 +42,7 @@ def test_lr_logger_no_lr(tmpdir):
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
-        callbacks=[lr_logger]
+        callbacks=[lr_logger],
     )
 
     with pytest.warns(RuntimeWarning):
@@ -63,7 +63,7 @@ def test_lr_logger_multi_lrs(tmpdir):
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
-        callbacks=[lr_logger]
+        callbacks=[lr_logger],
     )
     result = trainer.fit(model)
     assert result
@@ -90,7 +90,7 @@ def test_lr_logger_param_groups(tmpdir):
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
-        callbacks=[lr_logger]
+        callbacks=[lr_logger],
     )
     result = trainer.fit(model)
     assert result

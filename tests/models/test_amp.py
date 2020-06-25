@@ -20,7 +20,7 @@ def test_amp_single_gpu(tmpdir, backend):
         max_epochs=1,
         gpus=1,
         distributed_backend=backend,
-        precision=16
+        precision=16,
     )
 
     model = EvalModelTemplate()
@@ -99,6 +99,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
         distributed_backend='ddp',

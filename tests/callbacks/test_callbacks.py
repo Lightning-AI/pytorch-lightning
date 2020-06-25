@@ -160,6 +160,7 @@ def test_trainer_callback_system(tmpdir):
     test_callback = TestCallback()
 
     trainer_options = dict(
+        default_root_dir=tmpdir,
         callbacks=[test_callback],
         max_epochs=1,
         limit_val_batches=0.1,

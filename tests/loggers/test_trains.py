@@ -18,7 +18,7 @@ def test_trains_logger(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=0.05,
-        logger=logger
+        logger=logger,
     )
     result = trainer.fit(model)
 
@@ -40,7 +40,7 @@ def test_trains_pickle(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        logger=logger
+        logger=logger,
     )
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)

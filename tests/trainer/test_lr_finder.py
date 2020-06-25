@@ -15,7 +15,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     with pytest.raises(MisconfigurationException):
@@ -30,7 +30,7 @@ def test_model_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     before_state_dict = model.state_dict()
@@ -52,7 +52,7 @@ def test_trainer_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
@@ -83,7 +83,7 @@ def test_trainer_arg_bool(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find=True
+        auto_lr_find=True,
     )
 
     trainer.fit(model)
@@ -102,7 +102,7 @@ def test_trainer_arg_str(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find='my_fancy_lr'
+        auto_lr_find='my_fancy_lr',
     )
 
     trainer.fit(model)
@@ -188,7 +188,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=3
+        max_epochs=3,
     )
 
     lrfinder = trainer.lr_find(model)
