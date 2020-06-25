@@ -365,6 +365,7 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
 - [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
 - [Finetune BERT, RoBERTa etc on QA Datasets like SQuAD](https://github.com/tshrjn/Finetune-QA/)
+- [Pytorch-Lightning + Microsoft NNI with Docker](https://github.com/davinnovation/pytorch-boilerplate)
 
 ## Tutorials
 Check out our [introduction guide](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html) to get started.
