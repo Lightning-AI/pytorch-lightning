@@ -16,7 +16,8 @@ from pytorch_lightning.utilities import rank_zero_warn
 try:
     from torch.distributed import ReduceOp
 except ImportError:
-    ReduceOp = None
+    class ReduceOp:
+        SUM = None
     rank_zero_warn('Unsupported `ReduceOp` for distributed computing.')
 
 
