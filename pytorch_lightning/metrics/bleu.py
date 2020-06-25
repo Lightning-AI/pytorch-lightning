@@ -1,14 +1,13 @@
 from collections import Counter
 import math
 import re
-from typing import List
 
 
 def math_log(num: int):
     return -99999999 if num == 0.0 else math.log(num)
 
 
-def best_match_len(translate_list: List[list], reference_list: List[list]):
+def best_match_len(translate_list: list, reference_list: list):
     """Finding the closet length of the reference texts with respect to translated text
 
     Args:
@@ -27,7 +26,7 @@ def best_match_len(translate_list: List[list], reference_list: List[list]):
     return ref_len, translate_len
 
 
-def count_ngram(ngram_input_list: List[list], num_grams: int) -> Counter:
+def count_ngram(ngram_input_list: list, num_grams: int) -> Counter:
     """Counting how many times each word appears in a given text with ngram
 
     Args:
@@ -47,7 +46,7 @@ def count_ngram(ngram_input_list: List[list], num_grams: int) -> Counter:
     return ngram_counter
 
 
-def count_clip_ngram(translate_list: List[list], reference_list: List[list], num_grams: int) -> Counter:
+def count_clip_ngram(translate_list: list, reference_list: list, num_grams: int) -> Counter:
     """Clipping the count value of each word to be minimum value from translated counter and reference counter
     Args:
         translate_list: A list of translated text
@@ -72,7 +71,7 @@ def count_clip_ngram(translate_list: List[list], reference_list: List[list], num
     return ngram_counter_clip
 
 
-def bleu_score(translate_text: str, reference_list: List[list], n: int = 4) -> float:
+def bleu_score(translate_text: str, reference_list: list, n: int = 4) -> float:
     """Calculate bleu score of machine translated text
 
     Args:
