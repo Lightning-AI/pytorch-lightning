@@ -21,7 +21,7 @@ from pytorch_lightning.trainer.deprecated_api import (
     TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
+    TrainerDPMixin, _parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus, _parse_tpu_cores)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -91,7 +91,7 @@ class Trainer(
         num_processes: int = 1,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
-        tpu_cores: Optional[Union[List[int], int]] = None,
+        tpu_cores: Optional[Union[List[int], str, int]] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: int = 1,
         overfit_batches: Union[int, float] = 0.0,
@@ -327,8 +327,6 @@ class Trainer(
         # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = os.environ['LOCAL_RANK']
-        if 'SLURM_JOB_ID' in os.environ:
-            rank_zero_only.rank = os.environ['SLURM_JOB_ID']
 
         # training bookeeping
         self.total_batch_idx = 0
@@ -411,13 +409,10 @@ class Trainer(
 
         if tpu_cores is None:
             tpu_cores = num_tpu_cores
-        self.on_tpu = tpu_cores is not None
-        self.tpu_cores = tpu_cores
-        assert self.tpu_cores in (1, 8, None) or (
-            isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1
-        ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
+        self.tpu_cores = _parse_tpu_cores(tpu_cores)
+        self.on_tpu = self.tpu_cores is not None
 
-        self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
+        self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
@@ -470,7 +465,7 @@ class Trainer(
         else:
             self.gpus = gpus
 
-        self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
+        self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
 
@@ -713,7 +708,7 @@ class Trainer(
             else:
                 use_type = arg_types[0]
 
-            if arg == 'gpus':
+            if arg == 'gpus' or arg == 'tpu_cores':
                 use_type = Trainer._allowed_type
                 arg_default = Trainer._arg_default
 
@@ -929,6 +924,9 @@ class Trainer(
 
         elif self.use_tpu:  # pragma: no-cover
             rank_zero_info(f'training on {self.tpu_cores} TPU cores')
+
+            if not XLA_AVAILABLE:
+                raise MisconfigurationException('No TPU devices found.')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
