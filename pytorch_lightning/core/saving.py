@@ -279,7 +279,7 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     """Load hparams from a file.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
-    >>> path_csv = './testing-hparams.csv'
+    >>> path_csv = 'testing-hparams.csv'
     >>> save_hparams_to_tags_csv(path_csv, hparams)
     >>> hparams_new = load_hparams_from_tags_csv(path_csv)
     >>> vars(hparams) == hparams_new
