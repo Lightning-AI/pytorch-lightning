@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 
@@ -17,7 +18,8 @@ def test_optimizer_with_scheduling(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
+        **tutils.default_trainer_options(),
     )
     results = trainer.fit(model)
     assert results == 1
@@ -48,7 +50,8 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
+        **tutils.default_trainer_options(),
     )
     results = trainer.fit(model)
     assert results == 1
@@ -83,7 +86,8 @@ def test_multi_optimizer_with_scheduling_stepping(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
+        **tutils.default_trainer_options(),
     )
     results = trainer.fit(model)
     assert results == 1
@@ -122,7 +126,8 @@ def test_reduce_lr_on_plateau_scheduling(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
+        **tutils.default_trainer_options(),
     )
     results = trainer.fit(model)
     assert results == 1
@@ -212,7 +217,8 @@ def test_none_optimizer(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=0.1,
-        limit_train_batches=0.2
+        limit_train_batches=0.2,
+        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
 
@@ -234,6 +240,10 @@ def test_configure_optimizer_from_dict(tmpdir):
     model = CurrentModel(hparams)
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        **tutils.default_trainer_options(),
+    )
     result = trainer.fit(model)
     assert result == 1

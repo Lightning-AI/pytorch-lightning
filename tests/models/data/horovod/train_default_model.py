@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 from tests.base import EvalModelTemplate  # noqa: E402
-from tests.base.utils import set_random_master_port, run_model_test  # noqa: E402
+from tests.base.develop_utils import set_random_master_port, run_model_test  # noqa: E402
 
 
 parser = argparse.ArgumentParser()

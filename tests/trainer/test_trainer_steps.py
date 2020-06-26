@@ -1,3 +1,4 @@
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
@@ -73,7 +74,11 @@ def test_full_training_loop_dict(tmpdir):
     model.training_epoch_end = model.training_epoch_end_dict
     model.val_dataloader = None
 
-    trainer = Trainer(max_epochs=1, weights_summary=None)
+    trainer = Trainer(
+        max_epochs=1,
+        weights_summary=None,
+        **tutils.default_trainer_options(),
+    )
     trainer.fit(model)
 
     # make sure correct steps were called
@@ -109,7 +114,11 @@ def test_train_step_epoch_end(tmpdir):
     model.training_epoch_end = model.training_epoch_end_dict
     model.val_dataloader = None
 
-    trainer = Trainer(max_epochs=1, weights_summary=None)
+    trainer = Trainer(
+        max_epochs=1,
+        weights_summary=None,
+        **tutils.default_trainer_options(),
+    )
     trainer.fit(model)
 
     # make sure correct steps were called

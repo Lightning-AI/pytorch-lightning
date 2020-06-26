@@ -3,7 +3,7 @@ import pickle
 
 import pytest
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
@@ -55,6 +55,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
         limit_train_batches=0.2,
         limit_val_batches=0.5,
         fast_dev_run=True,
+        **tutils.default_trainer_options(),
     )
     trainer.fit(model)
 
@@ -90,7 +91,8 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     trainer = Trainer(
         max_epochs=1,
-        logger=logger
+        logger=logger,
+        **tutils.default_trainer_options(),
     )
     pkl_bytes = pickle.dumps(trainer)
 
@@ -110,7 +112,8 @@ def test_logger_reset_correctly(tmpdir, extra_params):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        **extra_params
+        **extra_params,
+        **tutils.default_trainer_options(),
     )
     logger1 = trainer.logger
     trainer.fit(model)

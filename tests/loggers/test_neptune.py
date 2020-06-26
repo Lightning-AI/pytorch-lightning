@@ -2,6 +2,7 @@ from unittest.mock import patch, MagicMock
 
 import torch
 
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import NeptuneLogger
 from tests.base import EvalModelTemplate
@@ -83,7 +84,8 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
             default_root_dir=tmpdir,
             max_epochs=1,
             limit_train_batches=0.05,
-            logger=logger
+            logger=logger,
+            **tutils.default_trainer_options(),
         )
         trainer.fit(model)
         return logger

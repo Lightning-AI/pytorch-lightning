@@ -6,6 +6,7 @@ import numpy as np
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
+import tests.base.develop_utils as tutils
 from tests.base import EvalModelTemplate
 
 
@@ -68,7 +69,8 @@ def test_custom_logger(tmpdir):
         max_epochs=1,
         limit_train_batches=0.05,
         logger=logger,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
+        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -88,7 +90,8 @@ def test_multiple_loggers(tmpdir):
         max_epochs=1,
         limit_train_batches=0.05,
         logger=[logger1, logger2],
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
+        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -147,6 +150,7 @@ def test_adding_step_key(tmpdir):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         num_sanity_val_steps=0,
+        **tutils.default_trainer_options(),
     )
     trainer.logger.log_metrics = _log_metrics_decorator(
         trainer.logger.log_metrics)

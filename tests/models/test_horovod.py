@@ -8,7 +8,7 @@ import sys
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from tests.base.models import TestGAN
@@ -152,7 +152,7 @@ def test_horovod_multi_optimizer(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
 
     # fit model

@@ -7,7 +7,7 @@ import cloudpickle
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate
@@ -82,7 +82,8 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
+        **tutils.default_trainer_options(),
     )
 
     # fit model
@@ -114,6 +115,7 @@ def test_load_model_from_checkpoint(tmpdir):
         limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
+        **tutils.default_trainer_options(),
     )
 
     # fit model

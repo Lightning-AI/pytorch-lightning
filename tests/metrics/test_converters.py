@@ -4,7 +4,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning.metrics.converters import (
     _apply_to_inputs,
     _apply_to_outputs,

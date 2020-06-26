@@ -1,5 +1,6 @@
 import pytest
 
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, ProgressBar, ModelCheckpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -21,6 +22,7 @@ def test_progress_bar_on(callbacks, refresh_rate):
         progress_bar_refresh_rate=refresh_rate,
         max_epochs=1,
         overfit_batches=5,
+        **tutils.default_trainer_options(),
     )
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
@@ -40,6 +42,7 @@ def test_progress_bar_off(callbacks, refresh_rate):
     trainer = Trainer(
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
+        **tutils.default_trainer_options(),
     )
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBar)]
@@ -63,6 +66,7 @@ def test_progress_bar_totals():
         progress_bar_refresh_rate=1,
         limit_val_batches=1.0,
         max_epochs=1,
+        **tutils.default_trainer_options(),
     )
     bar = trainer.progress_bar_callback
     assert 0 == bar.total_train_batches
@@ -110,6 +114,7 @@ def test_progress_bar_fast_dev_run():
 
     trainer = Trainer(
         fast_dev_run=True,
+        **tutils.default_trainer_options(),
     )
 
     progress_bar = trainer.progress_bar_callback
@@ -177,6 +182,7 @@ def test_progress_bar_progress_refresh(refresh_rate):
         limit_train_batches=1.0,
         num_sanity_val_steps=2,
         max_epochs=3,
+        **tutils.default_trainer_options(),
     )
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
