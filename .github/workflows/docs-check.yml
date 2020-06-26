@@ -79,7 +79,7 @@ jobs:
       - name: Make Documentation
         run: |
           # First run the same pipeline as Read-The-Docs
-          apt-get update && sudo apt-get install -y cmake
+          apt-get update && sudo apt-get install -y cmake texlive
           cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
 
       - name: Upload built docs

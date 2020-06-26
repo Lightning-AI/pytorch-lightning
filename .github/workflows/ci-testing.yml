@@ -14,7 +14,7 @@ on:
 # on: [push, pull_request]
 
 jobs:
-  build:
+  pytest:
 
     runs-on: ${{ matrix.os }}
     strategy:
