@@ -26,7 +26,6 @@ def test_early_stopping_functionality(tmpdir):
         early_stop_callback=True,
         overfit_batches=0.20,
         max_epochs=20,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
     print(trainer.current_epoch)
@@ -166,7 +165,6 @@ def test_trainer_callback_system(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
-        **tutils.default_trainer_options(),
     )
 
     assert not test_callback.setup_called
@@ -284,7 +282,6 @@ def test_early_stopping_no_val_step(tmpdir):
         early_stop_callback=stopping,
         overfit_batches=0.20,
         max_epochs=2,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
 
@@ -320,7 +317,6 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
         checkpoint_callback=checkpoint,
         overfit_batches=0.20,
         max_epochs=2,
-        **tutils.default_trainer_options(),
     )
     trainer.fit(model)
 
@@ -343,7 +339,6 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
         overfit_batches=0.2,
         max_epochs=2,
         logger=logger,
-        **tutils.default_trainer_options(),
     )
     trainer.fit(model)
 

@@ -84,7 +84,6 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
-        **tutils.default_trainer_options(),
     )
 
     # fit model
@@ -116,7 +115,6 @@ def test_load_model_from_checkpoint(tmpdir):
         limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
-        **tutils.default_trainer_options(),
     )
 
     # fit model

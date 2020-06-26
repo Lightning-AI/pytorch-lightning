@@ -77,7 +77,6 @@ def test_full_training_loop_dict(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         weights_summary=None,
-        **tutils.default_trainer_options(),
     )
     trainer.fit(model)
 
@@ -117,7 +116,6 @@ def test_train_step_epoch_end(tmpdir):
     trainer = Trainer(
         max_epochs=1,
         weights_summary=None,
-        **tutils.default_trainer_options(),
     )
     trainer.fit(model)
 

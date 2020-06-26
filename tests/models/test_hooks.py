@@ -22,7 +22,6 @@ def test_on_before_zero_grad_called(max_steps):
     trainer = Trainer(
         max_steps=max_steps,
         num_sanity_val_steps=5,
-        **tutils.default_trainer_options(),
     )
     assert 0 == model.on_before_zero_grad_called
     trainer.fit(model)
@@ -60,7 +59,6 @@ def test_training_epoch_end_metrics_collection(tmpdir):
         max_epochs=num_epochs,
         default_root_dir=tmpdir,
         overfit_batches=2,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
     assert result == 1
@@ -100,9 +98,7 @@ def test_transfer_batch_hook():
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(
-        **tutils.default_trainer_options(),
-    )
+    trainer = Trainer()
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
     batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)

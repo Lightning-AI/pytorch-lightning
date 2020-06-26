@@ -98,7 +98,6 @@ def test_multiple_val_dataloader(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=1.0,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
 
@@ -135,7 +134,6 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        **tutils.default_trainer_options(),
     )
     trainer.fit(model)
     if ckpt_path == 'specific':
@@ -164,7 +162,6 @@ def test_train_dataloader_passed_to_fit(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        **tutils.default_trainer_options(),
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True))
     result = trainer.fit(model, **fit_options)
@@ -182,7 +179,6 @@ def test_train_val_dataloaders_passed_to_fit(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        **tutils.default_trainer_options(),
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True),
                        val_dataloaders=model.dataloader(train=False))

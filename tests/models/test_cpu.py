@@ -29,7 +29,6 @@ def test_cpu_slurm_save_load(tmpdir):
         limit_train_batches=0.2,
         limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir),
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -65,7 +64,6 @@ def test_cpu_slurm_save_load(tmpdir):
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
-        **tutils.default_trainer_options(),
     )
     model = EvalModelTemplate(**hparams)
 
@@ -191,7 +189,6 @@ def test_running_test_after_fitting(tmpdir):
         limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
 
@@ -223,7 +220,6 @@ def test_running_test_no_val(tmpdir):
         checkpoint_callback=checkpoint,
         logger=logger,
         early_stop_callback=False,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
 
@@ -245,7 +241,6 @@ def test_simple_cpu(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=20,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
 
@@ -351,7 +346,6 @@ def test_tbptt_cpu_model(tmpdir):
         limit_val_batches=0,
         weights_summary=None,
         early_stop_callback=False,
-        **tutils.default_trainer_options(),
     )
     result = trainer.fit(model)
 

@@ -17,7 +17,6 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        **tutils.default_trainer_options(),
     )
 
     with pytest.raises(MisconfigurationException):
@@ -33,7 +32,6 @@ def test_model_reset_correctly(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        **tutils.default_trainer_options(),
     )
 
     before_state_dict = model.state_dict()
@@ -56,7 +54,6 @@ def test_trainer_reset_correctly(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        **tutils.default_trainer_options(),
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
@@ -88,7 +85,6 @@ def test_trainer_arg_bool(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         auto_lr_find=True,
-        **tutils.default_trainer_options(),
     )
 
     trainer.fit(model)
@@ -108,7 +104,6 @@ def test_trainer_arg_str(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         auto_lr_find='my_fancy_lr',
-        **tutils.default_trainer_options(),
     )
 
     trainer.fit(model)
@@ -128,7 +123,6 @@ def test_call_to_trainer_method(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        **tutils.default_trainer_options(),
     )
 
     lrfinder = trainer.lr_find(model, mode='linear')
@@ -152,7 +146,6 @@ def test_accumulation_and_early_stopping(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         accumulate_grad_batches=2,
-        **tutils.default_trainer_options(),
     )
 
     lrfinder = trainer.lr_find(model, early_stop_threshold=None)
@@ -176,7 +169,6 @@ def test_suggestion_parameters_work(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
-        **tutils.default_trainer_options(),
     )
 
     lrfinder = trainer.lr_find(model)
@@ -197,7 +189,6 @@ def test_suggestion_with_non_finite_values(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=3,
-        **tutils.default_trainer_options(),
     )
 
     lrfinder = trainer.lr_find(model)
