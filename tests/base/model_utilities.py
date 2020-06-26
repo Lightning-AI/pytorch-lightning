@@ -12,7 +12,7 @@ class ModelTemplateData:
         loader = DataLoader(
             dataset=dataset,
             batch_size=self.batch_size,
-            num_workers=3,
+            num_workers=0,
             shuffle=train,
         )
         return loader
