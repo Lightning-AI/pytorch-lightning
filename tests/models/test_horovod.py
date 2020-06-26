@@ -8,6 +8,7 @@ import sys
 import pytest
 import torch
 
+import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
@@ -137,7 +138,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         deterministic=True,
         distributed_backend='horovod'
     )
-    tutils.run_model_test_without_loggers(trainer_options, model)
+    tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
