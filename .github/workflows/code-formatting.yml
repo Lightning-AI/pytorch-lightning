@@ -60,10 +60,12 @@ jobs:
 
       - name: Set up node
         uses: actions/setup-node@v1
+        with:
+          node-version: '12'
 
       - name: Install pyright
         run: |
-          npm install pyright@1.1.45
+          npm install pyright
 
       - name: Run type checking
         run: |
