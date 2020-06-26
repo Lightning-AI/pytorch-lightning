@@ -813,7 +813,7 @@ def test_num_sanity_val_steps(tmpdir):
         # TODO: limit_val_batches influences num_sanity_val_step. Fix it.
         # limit_val_batches=0,
         max_steps=1,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     assert trainer.num_sanity_val_steps == float('inf')
     val_dataloaders = model.val_dataloader__multiple()
