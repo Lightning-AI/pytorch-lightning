@@ -69,4 +69,4 @@ jobs:
 
       - name: Run type checking
         run: |
-          npm/pyright --project .pyrightconfig.json
+          $(npm bin)/pyright --project .pyrightconfig.json

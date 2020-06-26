@@ -14,7 +14,7 @@ from tests.base.model_template import EvalModelTemplate
 def default_trainer_options():
     opt = {}
     if platform.system() == "Windows":
-        opt.update(distributed_backend='ddp_cpu')
+        opt.update(distributed_backend='dp')
     return opt
 
 
