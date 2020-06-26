@@ -48,7 +48,9 @@ jobs:
         run: |
           # First run the same pipeline as Read-The-Docs
           apt-get update && sudo apt-get install -y cmake
-          cd docs; make doctest; make coverage
+          cd docs
+          make doctest
+          make coverage
 
   make-docs:
     runs-on: ubuntu-latest
@@ -79,8 +81,10 @@ jobs:
       - name: Make Documentation
         run: |
           # First run the same pipeline as Read-The-Docs
-          apt-get update && sudo apt-get install -y cmake texlive
-          cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
+          sudo apt-get update && sudo apt-get install -y texlive
+          cd docs
+          make clean
+          make html --debug --jobs 2 SPHINXOPTS="-W"
 
       - name: Upload built docs
         uses: actions/upload-artifact@v2
