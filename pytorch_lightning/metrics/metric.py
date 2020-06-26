@@ -5,7 +5,8 @@ import torch
 import torch.distributed
 
 from pytorch_lightning.metrics.converters import (
-    tensor_metric, numpy_metric, tensor_collection_metric)
+    tensor_metric, numpy_metric, tensor_collection_metric,
+    sync_ddp_if_available, convert_to_tensor, convert_to_numpy)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
@@ -29,19 +30,37 @@ class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
         self.name = name
         self._dtype = torch.get_default_dtype()
         self._device = torch.device('cpu')
-
+        self.register_forward_pre_hook(self.input_convert)
+        self.register_forward_hook(self.ddp_sync)
+        self.register_forward_hook(self.compute)
+        self.register_forward_hook(self.output_convert)
+        
     @abstractmethod
     def forward(self, *args, **kwargs) -> torch.Tensor:
         """
-        Implements the actual metric computation.
+        Implements the actual metric computation. 
 
         Returns:
-            metric value
+            metric value or metric state
 
         """
         raise NotImplementedError
-
-
+        
+    def compute(self, module, input, output) -> torch.Tensor:
+        """
+        Output contains the 
+        """
+        return output
+    
+    def ddp_sync(self, module, input, output):
+        return output
+    
+    def input_convert(self, module, input):
+        return input
+    
+    def output_convert(self, module, input, output):
+        return output
+        
 class TensorMetric(Metric):
     """
     Base class for metric implementation operating directly on tensors.
@@ -62,15 +81,20 @@ class TensorMetric(Metric):
                 Defaults to sum.
         """
         super().__init__(name)
-        self._orig_call = tensor_metric(group=reduce_group,
-                                        reduce_op=reduce_op)(super().__call__)
-
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-        def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
-            return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
-
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+        self.reduce_group = reduce_group
+        self.reduce_op = reduce_op
+    
+    def input_convert(self, module, input):
+        return apply_to_collection(input, 
+                                   (torch.Tensor, np.ndarray, numbers.Number), 
+                                   convert_to_tensor)
+    
+    def ddp_sync(self, module, input, output):
+        return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
+                                   self.reduce_group, self.reduce_op)
+    
+    def output_convert(self, module, input, output):
+        return apply_to_collection(output, torch.Tensor, convert_to_tensor)
 
 
 class TensorCollectionMetric(Metric):
@@ -103,16 +127,23 @@ class TensorCollectionMetric(Metric):
                 Defaults to sum.
         """
         super().__init__(name)
-        self._orig_call = tensor_collection_metric(group=reduce_group,
-                                                   reduce_op=reduce_op)(super().__call__)
+        self.reduce_group = reduce_group
+        self.reduce_op = reduce_op
 
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-        def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
-            return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
+    def input_convert(self, module, input):
+        return apply_to_collection(input, 
+                                   (torch.Tensor, np.ndarray, numbers.Number), 
+                                   convert_to_tensor)
 
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+    def ddp_sync(self, module, input, output):
+        return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
+                                   self.reduce_group, self.reduce_op)
 
+    
+    def output_convert(self, module, input, output):
+        return apply_to_collection(output, 
+                                   (torch.Tensor, np.ndarray, numbers.Number), 
+                                   convert_to_tensor)    
 
 class NumpyMetric(Metric):
     """
@@ -138,9 +169,22 @@ class NumpyMetric(Metric):
         self._orig_call = numpy_metric(group=reduce_group,
                                        reduce_op=reduce_op)(super().__call__)
 
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-        def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
-            return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
-
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+    def input_convert(self, module, input):
+        return apply_to_collection(input, 
+                                   (torch.Tensor, np.ndarray, numbers.Number), 
+                                   convert_to_numpy)
+    
+    def ddp_sync(self, module, input, output):
+        # For numpy we need to convert the output of forward before ddp sync
+        output = apply_to_collection(output, 
+                                     (torch.Tensor, np.ndarray, numbers.Number), 
+                                     convert_to_tensor)
+        return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
+                                   self.reduce_group, self.reduce_op)
+    
+    def output_convert(self, module, input, output):
+        return apply_to_collection(output, 
+                                   (torch.Tensor, np.ndarray, numbers.Number), 
+                                   convert_to_tensor)
+    
+    
