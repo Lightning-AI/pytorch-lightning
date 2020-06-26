@@ -304,7 +304,7 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
 
-    with open(tags_csv, 'w') as fp:
+    with open(tags_csv, 'w', newline='') as fp:
         fieldnames = ['key', 'value']
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writerow({'key': 'key', 'value': 'value'})
