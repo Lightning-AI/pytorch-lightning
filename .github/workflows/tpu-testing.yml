@@ -1,0 +1,90 @@
+name: Run TPU tests on current PR.
+
+on:
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: lightning-cluster   # TODO: update to cluster name.
+  GKE_ZONE: us-central1-b  # TODO: update to cluster zone.
+  IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
+
+jobs:
+  setup-build-publish-deploy:
+    name: tpu-testing-job
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.14.x
+
+    - name: Checkout Pytorch Lightning
+      uses: actions/checkout@v2
+      with:
+        repository: PyTorchLightning/pytorch-lightning
+        ref: ${{ github.event.pull_request.head.sha }}
+        path: main
+
+    - name: Checkout ml-testing-accelerators
+      uses: actions/checkout@v2
+      with:
+        repository: GoogleCloudPlatform/ml-testing-accelerators
+        path: ml-testing-accelerators
+        ref: 4ebcf060a110a359c2f214d81be7334313ce3c03
+
+    # Setup gcloud CLI
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '290.0.1'
+        service_account_key: ${{ secrets.GKE_SA_KEY_BASE64 }}
+        project_id: ${{ secrets.GKE_PROJECT }}
+        export_default_credentials: true
+
+    # Configure Docker to use the gcloud command-line tool as a credential
+    # helper for authentication
+    - run: |-
+        gcloud --quiet auth configure-docker
+    - name: Build and Push Docker Image
+      run: |
+        cd main/docker/tpu
+        docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
+        docker push "$IMAGE:$GITHUB_RUN_ID"
+
+    # Install jsonnet.
+    - run: |-
+        go get github.com/google/go-jsonnet/cmd/jsonnet
+    # Get the GKE credentials so we can deploy to the cluster
+    # Use either zone or region depending on cluster setup.
+    - run: |-
+        gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+        #gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GKE_REGION"
+
+    - run: |-
+        # Deploy the job on the kubernetes cluster.
+        job_name=$(jsonnet -J ml-testing-accelerators/ main/docker/tpu/tpu_example.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
+        job_name=${job_name#job.batch/} && \
+        job_name=${job_name% created} && \
+        echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
+        i=0 && \
+        max_checks=10 && \
+        status_code=2 && \
+        # Check on the job periodically. Set the status code depending on what
+        # happened to the job in Kubernetes. If we try max_checks times and
+        # still the job hasn't finished, give up and return the starting
+        # non-zero status code.
+        while [ $i -lt $max_checks ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else echo "Job not finished yet"; fi; sleep 30; done && \
+        echo "Done waiting. Job status code: $status_code" && \
+        # Allow time for logs to flush.
+        sleep 60 && \
+        echo "JOB_NAME: $job_name" && \
+        echo "GKE_CLUSTER: $GKE_CLUSTER" && \
+        echo "GKE_ZONE: $GKE_ZONE" && \
+        # TODO: Use $GKE_ZONE or $GKE_REGION depending on cluster setup.
+        echo $(gcloud logging read "resource.type=k8s_container resource.labels.project_id=$PROJECT_ID resource.labels.location=$GKE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$PROJECT_ID) && \
+        echo "Done with log retrieval attempt." && \
+        gcloud container images delete "$IMAGE:$GITHUB_RUN_ID" --force-delete-tags && \
+        exit $status_code
