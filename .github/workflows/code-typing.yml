@@ -12,7 +12,7 @@ on:
 jobs:
   python-types:
     name: Python static type checking with Pyright
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 15
