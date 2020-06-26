@@ -133,7 +133,6 @@ def test_call_to_trainer_method(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
-@pytest.mark.skip('TODO: speed up this test')
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
@@ -155,7 +154,7 @@ def test_accumulation_and_early_stopping(tmpdir):
         'Learning rate was not altered after running learning rate finder'
     assert len(lrfinder.results['lr']) == 100, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 100 * 2, \
+    assert lrfinder._total_batch_idx == 190, \
         'Accumulation parameter did not work'
 
 

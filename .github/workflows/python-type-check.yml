@@ -60,7 +60,7 @@ jobs:
 
       - name: Install pyright
         run: |
-          npm install pyright
+          npm install pyright@1.1.45
 
       - name: Run type checking
         run: |
