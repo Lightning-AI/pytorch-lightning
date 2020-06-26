@@ -208,7 +208,7 @@ class ModelHooks(Module):
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
-        - ``torchtext.data.Batch`` (COMING SOON)
+        - :class:`torchtext.data.Batch`
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 

@@ -3,6 +3,8 @@ from collections import Mapping, Sequence
 from typing import Any, Callable, Union
 
 import torch
+from torchtext.data import Batch
+from copy import copy
 
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
@@ -34,6 +36,12 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
         return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
     elif isinstance(data, Sequence) and not isinstance(data, str):
         return elem_type([apply_to_collection(d, dtype, function, *args, **kwargs) for d in data])
+    elif isinstance(data, Batch):
+        new_batch = copy(data)  # Shallow copy is enough + I don't want to modify the object
+        for field in data.fields:
+            new_data = apply_to_collection(getattr(data, field), dtype, function, *args, **kwargs)
+            setattr(new_batch, field, new_data)
+        return new_batch
 
     # data is neither of dtype, nor a collection
     return data
