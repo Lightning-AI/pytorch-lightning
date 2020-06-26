@@ -46,6 +46,10 @@ jobs:
 
       - name: Set up node
         uses: actions/setup-node@v1
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+          npm start
 
       - name: Install pyright
         run: |
