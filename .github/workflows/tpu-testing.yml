@@ -45,7 +45,7 @@ jobs:
         export_default_credentials: true
 
     # Configure Docker to use the gcloud command-line tool as a credential
-    # helper for authentication
+    # helper for authentication.
     - run: |-
         gcloud --quiet auth configure-docker
     - name: Build and Push Docker Image
@@ -61,7 +61,6 @@ jobs:
     # Use either zone or region depending on cluster setup.
     - run: |-
         gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
-        #gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GKE_REGION"
 
     - run: |-
         # Deploy the job on the kubernetes cluster.
@@ -83,7 +82,6 @@ jobs:
         echo "JOB_NAME: $job_name" && \
         echo "GKE_CLUSTER: $GKE_CLUSTER" && \
         echo "GKE_ZONE: $GKE_ZONE" && \
-        # TODO: Use $GKE_ZONE or $GKE_REGION depending on cluster setup.
         echo $(gcloud logging read "resource.type=k8s_container resource.labels.project_id=$PROJECT_ID resource.labels.location=$GKE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$PROJECT_ID) && \
         echo "Done with log retrieval attempt." && \
         gcloud container images delete "$IMAGE:$GITHUB_RUN_ID" --force-delete-tags && \
