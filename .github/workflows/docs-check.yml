@@ -75,13 +75,14 @@ jobs:
         run: |
           pip install -r requirements/base.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
           pip install -r requirements/docs.txt
+          # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
+          sudo apt-get update && sudo apt-get install -y texlive-latex-recommended
           python --version ; pip --version ; pip list
         shell: bash
 
       - name: Make Documentation
         run: |
           # First run the same pipeline as Read-The-Docs
-          sudo apt-get update && sudo apt-get install -y texlive-latex-extra
           cd docs
           make clean
           make html --debug --jobs 2 SPHINXOPTS="-W"
