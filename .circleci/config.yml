@@ -178,10 +178,10 @@ workflows:
   version: 2
   build:
     jobs:
-      - Formatting
-      - Build-Docs
+      #- Formatting
+      #- Build-Docs
       - PyTorch-v1_3
       - PyTorch-v1_4
       - PyTorch-v1_5
-      - Install-pkg
+      #- Install-pkg
       - Examples

@@ -5,7 +5,7 @@ on:
 - pull_request
 
 jobs:
-  docs:
+  check-docs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -16,3 +16,78 @@ jobs:
         pre-build-command: "apt-get update -y && apt-get install -y git && pip install -r requirements/docs.txt"
         docs-folder: "docs/"
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  test-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      # Note: This uses an internal pip API and may not always work
+      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+      - name: Cache pip
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          # python -m pip install --upgrade --user pip
+          pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
+          pip install -r docs/requirements.txt
+          python --version ; pip --version ; pip list
+        shell: bash
+
+      - name: Test Documentation
+        run: |
+          # First run the same pipeline as Read-The-Docs
+          apt-get update && sudo apt-get install -y cmake
+          cd docs; make doctest; make coverage
+
+  make-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      # Note: This uses an internal pip API and may not always work
+      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+      - name: Cache pip
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
+          pip install -r docs/requirements.txt
+          python --version ; pip --version ; pip list
+        shell: bash
+
+      - name: Make Documentation
+        run: |
+          # First run the same pipeline as Read-The-Docs
+          apt-get update && sudo apt-get install -y cmake
+          pip install -r docs/requirements.txt
+          cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
+
+      - name: Upload built docs
+        uses: actions/upload-artifact@v2
+        with:
+          name: docs-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
+          path: docs/build/html/
+        # Use always() to always run this step to publish test results when there are test failures
+        if: success()
+
