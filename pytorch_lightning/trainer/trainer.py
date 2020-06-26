@@ -13,7 +13,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin, APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin

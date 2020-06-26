@@ -156,7 +156,7 @@ class ModelSummary(object):
     MODE_DEFAULT = MODE_TOP
     MODES = [MODE_FULL, MODE_TOP]
 
-    def __init__(self, model: "pl.LightningModule", mode: str = MODE_DEFAULT):
+    def __init__(self, model, mode: str = MODE_DEFAULT):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
