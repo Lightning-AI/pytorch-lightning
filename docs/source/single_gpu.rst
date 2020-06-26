@@ -12,3 +12,10 @@ there's no need to set them yourself.
 
     # train on 1 GPU (using dp mode)
     trainer = Trainer(gpus=1)
+
+Note that each step will load the batch from the CPU to the GPU.
+If your entire dataset fits in memory, you can manually save your
+whole dataset's data as a GPU Tensor inside the dataset object when
+you create it (dataset's `__init__`). If you return it as a GPU
+tensor from the dataset, you will save the time required to load
+it every batch.
