@@ -1,4 +1,3 @@
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 

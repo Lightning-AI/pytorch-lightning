@@ -6,7 +6,6 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset
 
 import tests.base.develop_pipelines as tpipes
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate

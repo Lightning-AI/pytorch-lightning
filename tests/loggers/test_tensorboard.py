@@ -1,10 +1,10 @@
 import os
 from argparse import Namespace
-from packaging import version
 
 import pytest
 import torch
 import yaml
+from packaging import version
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer

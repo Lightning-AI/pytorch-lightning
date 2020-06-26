@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 

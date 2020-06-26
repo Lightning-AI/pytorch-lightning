@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only

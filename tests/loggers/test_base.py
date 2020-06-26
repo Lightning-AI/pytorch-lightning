@@ -6,7 +6,6 @@ import numpy as np
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.utilities import rank_zero_only
-import tests.base.develop_utils as tutils
 from tests.base import EvalModelTemplate
 
 
