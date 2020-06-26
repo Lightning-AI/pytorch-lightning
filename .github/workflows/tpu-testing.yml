@@ -36,7 +36,7 @@ jobs:
         path: ml-testing-accelerators
         ref: 4ebcf060a110a359c2f214d81be7334313ce3c03
 
-    # Setup gcloud CLI
+    # Setup gcloud CLI.
     - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:
         version: '290.0.1'
