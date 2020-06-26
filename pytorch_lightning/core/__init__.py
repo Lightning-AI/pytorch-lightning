@@ -149,6 +149,7 @@ Add validation loop
 Thus, if we wanted to add a validation loop you would add this to your
 :class:`~LightningModule`:
 
+    >>> import pytorch_lightning as pl
     >>> class LitModel(pl.LightningModule):
     ...     def validation_step(self, batch, batch_idx):
     ...         x, y = batch
@@ -166,6 +167,7 @@ Thus, if we wanted to add a validation loop you would add this to your
 Add test loop
 ^^^^^^^^^^^^^
 
+    >>> import pytorch_lightning as pl
     >>> class LitModel(pl.LightningModule):
     ...     def test_step(self, batch, batch_idx):
     ...         x, y = batch
@@ -264,6 +266,7 @@ every GPU. The :class:`~LightningModule` has the
 :class:`~LightningModule.prepare_data` method to
 allow for this:
 
+    >>> import pytorch_lightning as pl
     >>> class LitModel(pl.LightningModule):
     ...     def prepare_data(self):
     ...         # download

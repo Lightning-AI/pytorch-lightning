@@ -127,6 +127,7 @@ class ModelSummary(object):
 
     Example::
 
+        >>> import pytorch_lightning as pl
         >>> class LitModel(pl.LightningModule):
         ...
         ...     def __init__(self):
