@@ -542,7 +542,7 @@ class Trainer(
             self.precision = 16 if use_amp else 32
 
         self.amp_level = amp_level
-        self.init_amp(use_amp)
+        self.init_amp()
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
