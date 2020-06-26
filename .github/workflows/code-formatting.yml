@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Set up Python
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
@@ -69,4 +69,4 @@ jobs:
 
       - name: Run type checking
         run: |
-          $(npm bin)/pyright --project .pyrightconfig.json
+          npm/pyright --project .pyrightconfig.json
