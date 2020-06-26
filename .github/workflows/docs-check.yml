@@ -81,7 +81,7 @@ jobs:
       - name: Make Documentation
         run: |
           # First run the same pipeline as Read-The-Docs
-          sudo apt-get update && sudo apt-get install -y texlive
+          sudo apt-get update && sudo apt-get install -y texlive-latex-extra
           cd docs
           make clean
           make html --debug --jobs 2 SPHINXOPTS="-W"
