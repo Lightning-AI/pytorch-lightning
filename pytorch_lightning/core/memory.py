@@ -9,7 +9,8 @@ import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-import pytorch_lightning as pl
+
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
@@ -209,7 +210,7 @@ class ModelSummary(object):
         input_ = apply_to_collection(input_, torch.Tensor, lambda x: x.type(model.dtype))
 
         if trainer is not None and trainer.use_amp:
-            if model.use_native_amp:
+            if NATIVE_AMP_AVALAIBLE:
                 model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training

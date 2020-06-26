@@ -100,7 +100,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 try:
@@ -147,7 +147,6 @@ class TrainerIOMixin(ABC):
     num_training_batches: int
     accumulate_grad_batches: int
     use_amp: bool
-    use_native_amp: bool
     scaler: ...
 
     def get_model(self):
@@ -307,7 +306,7 @@ class TrainerIOMixin(ABC):
             model.cuda(self.root_gpu)
 
         # restore amp scaling
-        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
 
         # load training state (affects trainer only)
@@ -352,7 +351,7 @@ class TrainerIOMixin(ABC):
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
-            if self.use_amp and self.use_native_amp:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
 
         # add the module_arguments and state_dict from the model
@@ -502,7 +501,7 @@ class TrainerIOMixin(ABC):
         model.load_state_dict(checkpoint['state_dict'])
 
         # restore amp scaling
-        if self.use_amp and self.use_native_amp and 'native_amp_scaling_state' in checkpoint:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
 
         if self.root_gpu is not None:

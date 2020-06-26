@@ -160,7 +160,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -709,7 +709,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and self.use_native_amp:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE:
             self.scaler.unscale_(optimizer)
         self.clip_gradients()
 
@@ -743,7 +743,7 @@ class TrainerTrainLoopMixin(ABC):
             elif isinstance(optimizer, torch.optim.LBFGS):
 
                 # native amp + lbfgs is a no go right now
-                if self.use_amp and self.use_native_amp:
+                if self.use_amp and NATIVE_AMP_AVALAIBLE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -752,11 +752,11 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                native_amp = self.use_amp and self.use_native_amp
+                native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure, native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.use_amp and self.use_native_amp:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE:
                 self.scaler.update()
 
             # model hook
@@ -773,7 +773,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and self.use_native_amp:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
