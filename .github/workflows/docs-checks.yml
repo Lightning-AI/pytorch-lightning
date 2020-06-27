@@ -6,7 +6,7 @@ on:
 
 jobs:
   check-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - uses: ammaraskar/sphinx-action@master
@@ -18,7 +18,7 @@ jobs:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
   test-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@master
@@ -53,7 +53,7 @@ jobs:
           make coverage
 
   make-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@master
@@ -76,7 +76,7 @@ jobs:
           pip install -r requirements/base.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
           pip install -r requirements/docs.txt
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
-          sudo apt-get update && sudo apt-get install -y texlive-latex-extra texlive-pictures
+          sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           python --version ; pip --version ; pip list
         shell: bash
 
