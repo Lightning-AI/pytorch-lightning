@@ -3,6 +3,8 @@ from collections import Mapping, Sequence
 from typing import Any, Callable, Union
 
 import torch
+from torchtext.data import Batch
+from copy import copy
 
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
@@ -84,6 +86,16 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
     """
-    def to(data):
+
+    def batch_to(data):
+        if isinstance(data, Batch):
+            # Shallow copy because each Batch has a reference to Dataset which contains all examples
+            device_data = copy(data)
+            for field in data.fields:
+                # Batch contains output of Field.process(...) which is tensor hence .to(...) exists
+                device_field = getattr(data, field).to(device, non_blocking=True)
+                setattr(device_data, field, device_field)
+            return device_data
+
         return data.to(device, non_blocking=True)
-    return apply_to_collection(batch, dtype=TransferableDataType, function=to)
+    return apply_to_collection(batch, dtype=(TransferableDataType, Batch), function=batch_to)
