@@ -21,7 +21,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, PRIMITIVE_TYPES, ALLOWED_CONFIG_TYPES
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
