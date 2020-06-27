@@ -43,7 +43,7 @@ want to log using this trainer flag.
 Log metrics
 ^^^^^^^^^^^
 
-To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, TRAINS, etc...)
+To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, etc...)
 
 1. training_epoch_end, validation_epoch_end, test_epoch_end will all log anything in the "log" key of the return dict.
 

@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Moved `TrainsLogger` to Bolts ([#](https://github.com/PyTorchLightning/pytorch-lightning/pull/))
+
 ### Fixed
 
 - Fixed parsing TPU arguments and TPU tests ([#2094](https://github.com/PyTorchLightning/pytorch-lightning/pull/2094))
