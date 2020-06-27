@@ -35,7 +35,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -285,7 +285,11 @@ class TrainerDataLoadingMixin(ABC):
         # datasets could be none, 1 or 2+
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = 0
+                try:
+                    num_batches = len(dataloader)
+                except (TypeError, NotImplementedError):
+                    num_batches = float('inf')
+
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
 
                 # percent or num_steps
@@ -293,8 +297,6 @@ class TrainerDataLoadingMixin(ABC):
 
                 if num_batches != float('inf'):
                     self._check_batch_limits(f'limit_{mode}_batches')
-
-                    num_batches = len(dataloader)
 
                     # limit num batches either as a percent or num steps
                     if isinstance(limit_eval_batches, float):

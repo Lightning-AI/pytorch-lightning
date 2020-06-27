@@ -5,7 +5,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -109,7 +109,7 @@ def test_multiple_val_dataloader(tmpdir):
 
     # make sure predictions are good for each val set
     for dataloader in trainer.val_dataloaders:
-        tutils.run_prediction(dataloader, trainer.model)
+        tpipes.run_prediction(dataloader, trainer.model)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
@@ -145,7 +145,7 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
 
     # make sure predictions are good for each test set
     for dataloader in trainer.test_dataloaders:
-        tutils.run_prediction(dataloader, trainer.model)
+        tpipes.run_prediction(dataloader, trainer.model)
 
     # run the test method
     trainer.test(ckpt_path=ckpt_path)
@@ -358,7 +358,6 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
         f'`test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
-@pytest.mark.skip('TODO: speed up this test')
 def test_train_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
@@ -370,19 +369,6 @@ def test_train_inf_dataloader_error(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skip('TODO: speed up this test')
-def test_train_not_implemented_error_dataloader_error(tmpdir):
-    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate()
-    model.train_dataloader = model.train_dataloader__not_implemented_error
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=0.5)
-
-    with pytest.raises(MisconfigurationException, match='not_implemented_error DataLoader'):
-        trainer.fit(model)
-
-
-@pytest.mark.skip('TODO: speed up this test')
 def test_val_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
@@ -394,19 +380,6 @@ def test_val_inf_dataloader_error(tmpdir):
         trainer.fit(model)
 
 
-@pytest.mark.skip('TODO: speed up this test')
-def test_val_not_implemented_error_dataloader_error(tmpdir):
-    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate()
-    model.val_dataloader = model.val_dataloader__not_implemented_error
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5)
-
-    with pytest.raises(MisconfigurationException, match='not_implemented_error DataLoader'):
-        trainer.fit(model)
-
-
-@pytest.mark.skip('TODO: speed up this test')
 def test_test_inf_dataloader_error(tmpdir):
     """Test inf train data loader (e.g. IterableDataset)"""
     model = EvalModelTemplate()
@@ -418,20 +391,7 @@ def test_test_inf_dataloader_error(tmpdir):
         trainer.test(model)
 
 
-@pytest.mark.skip('TODO: speed up this test')
-def test_test_not_implemented_error_dataloader_error(tmpdir):
-    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
-    model = EvalModelTemplate()
-    model.test_dataloader = model.test_dataloader__not_implemented_error
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=0.5)
-
-    with pytest.raises(MisconfigurationException, match='not_implemented_error DataLoader'):
-        trainer.test(model)
-
-
 @pytest.mark.parametrize('check_interval', [50, 1.0])
-@pytest.mark.skip('TODO: speed up this test')
 def test_inf_train_dataloader(tmpdir, check_interval):
     """Test inf train data loader (e.g. IterableDataset)"""
 
@@ -467,32 +427,11 @@ def test_not_implemented_error_train_dataloader(tmpdir, check_interval):
 
 
 @pytest.mark.parametrize('check_interval', [1.0])
-@pytest.mark.skip('TODO: speed up this test')
 def test_inf_val_dataloader(tmpdir, check_interval):
     """Test inf val data loader (e.g. IterableDataset)"""
 
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__infinite
-
-    # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_check_interval=check_interval,
-    )
-    result = trainer.fit(model)
-
-    # verify training completed
-    assert result == 1
-
-
-@pytest.mark.parametrize('check_interval', [1.0])
-@pytest.mark.skip('TODO: speed up this test')
-def test_not_implemented_error_dataloader(tmpdir, check_interval):
-    """Test not_implemented_error data loader (e.g. IterableDataset)"""
-
-    model = EvalModelTemplate()
-    model.val_dataloader = model.val_dataloader__not_implemented_error
 
     # logger file to get meta
     trainer = Trainer(
@@ -662,3 +601,74 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     # where we will get fewer metrics than gpus
     result = trainer.fit(model)
     assert 1 == result
+
+
+@pytest.mark.parametrize('check_interval', [1.0])
+def test_val_dataloader_not_implemented_error(tmpdir, check_interval):
+    """Test not_implemented_error data loader (e.g. IterableDataset)"""
+
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__not_implemented_error
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        max_epochs=1,
+        val_check_interval=check_interval,
+    )
+    result = trainer.fit(model)
+    # verify training completed
+    assert result == 1
+
+
+@pytest.mark.parametrize('check_interval', [50, 1.0])
+def test_train_dataloader_not_implemented_error(tmpdir, check_interval):
+    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
+
+    model = EvalModelTemplate()
+    model.train_dataloader = model.train_dataloader__not_implemented_error
+    model.val_dataloader = model.val_dataloader__not_implemented_error
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=5,
+        max_epochs=1,
+        val_check_interval=check_interval
+    )
+    result = trainer.fit(model)
+    # verify training completed
+    assert result == 1
+
+
+def test_train_dataloader_not_implemented_error_failed(tmpdir):
+    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate()
+    model.train_dataloader = model.train_dataloader__not_implemented_error
+
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, val_check_interval=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.fit(model)
+
+
+def test_val_dataloader_not_implemented_error_failed(tmpdir):
+    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__not_implemented_error
+
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, limit_val_batches=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.fit(model)
+
+
+def test_test_dataloader_not_implemented_error_failed(tmpdir):
+    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
+    model = EvalModelTemplate()
+    model.test_dataloader = model.test_dataloader__not_implemented_error
+
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, limit_test_batches=0.5)
+
+    with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
+        trainer.test(model)

@@ -18,7 +18,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -38,7 +38,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -61,7 +61,6 @@ class TrainerDPMixin(ABC):
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
-    use_native_amp: bool
     data_parallel_device_ids: ...
     progress_bar_callback: ...
     tpu_id: Optional[int]
@@ -175,7 +174,7 @@ class TrainerDPMixin(ABC):
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
         # TODO: remove with dropping NVIDIA AMP support
-        if self.use_amp and not self.use_native_amp:
+        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
@@ -236,14 +235,14 @@ class TrainerDPMixin(ABC):
 
         # hack forward to do autocast for the user
         model_autocast_original_forward = model.forward
-        if self.use_amp and self.use_native_amp:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE:
             # wrap the user's forward in autocast and give it back at the end
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
         # TODO: remove with dropping NVIDIA AMP support
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp and not self.use_native_amp:
+        if self.use_dp and self.use_amp and not NATIVE_AMP_AVALAIBLE:
             if self.amp_level == 'O2':
                 raise MisconfigurationException(
                     f'Amp level {self.amp_level} with DataParallel is not supported.'

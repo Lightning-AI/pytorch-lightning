@@ -12,15 +12,15 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import (
     load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 

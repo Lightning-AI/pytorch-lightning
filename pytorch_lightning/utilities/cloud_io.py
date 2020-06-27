@@ -5,8 +5,7 @@ from urllib.parse import urlparse
 
 
 def load(path_or_url: str, map_location=None):
-    parsed = urlparse(path_or_url)
-    if parsed.scheme == '' or Path(path_or_url).is_file():
-        # no scheme or local file
+    if urlparse(path_or_url).scheme == '' or Path(path_or_url).drive:  # no scheme or with a drive letter
         return torch.load(path_or_url, map_location=map_location)
-    return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
+    else:
+        return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)

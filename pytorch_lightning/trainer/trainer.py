@@ -13,7 +13,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
+from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -52,7 +52,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -126,7 +126,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_level: str = 'O1',  # backward compatible, todo: remove in v1.0.0
+        amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
@@ -255,7 +255,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
@@ -542,12 +542,17 @@ class Trainer(
         # These are the only lines needed after v0.8.0
         # we wrap the user's forward with autocast and give it back at the end of fit
         self.autocast_original_forward = None
-        self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
         self.scaler = None
 
+        # Backward compatibility, TODO: remove in v0.9.0
+        if use_amp is not None:
+            rank_zero_warn("Argument `use_amp` is now set by `precision` since v0.7.0"
+                           " and this method will be removed in v0.9.0", DeprecationWarning)
+            self.precision = 16 if use_amp else 32
+
         self.amp_level = amp_level
-        self.init_amp(use_amp)
+        self.init_amp()
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -895,7 +900,7 @@ class Trainer(
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
 
-            elif self.distributed_backend == 'cpu_ddp':
+            elif self.distributed_backend == 'ddp_cpu':
                 self.set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
@@ -1012,7 +1017,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.use_native_amp and self.precision == 16:
+        if NATIVE_AMP_AVALAIBLE and self.precision == 16:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1197,7 +1202,8 @@ class Trainer(
 
         self.teardown('test')
         if self.is_function_implemented('teardown'):
-            self.model.teardown('test')
+            model_ref = self.get_model()
+            model_ref.teardown('test')
 
     def check_model_configuration(self, model: LightningModule):
         r"""

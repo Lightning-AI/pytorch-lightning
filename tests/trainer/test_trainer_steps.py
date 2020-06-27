@@ -117,11 +117,7 @@ def test_train_step_epoch_end(tmpdir):
     model.training_epoch_end = model.training_epoch_end_dict
     model.val_dataloader = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-    )
+    trainer = Trainer(max_epochs=1, weights_summary=None)
     trainer.fit(model)
 
     # make sure correct steps were called

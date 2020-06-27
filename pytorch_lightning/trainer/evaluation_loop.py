@@ -124,15 +124,14 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable, Optional, List, Union
+from typing import Callable, List, Union
 
 import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -144,7 +143,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -285,7 +284,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and self.use_native_amp:
+                if self.use_amp and NATIVE_AMP_AVALAIBLE:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:

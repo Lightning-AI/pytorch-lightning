@@ -29,5 +29,10 @@ def _info(*args, **kwargs):
     log.info(*args, **kwargs)
 
 
+def _debug(*args, **kwargs):
+    log.info(*args, **kwargs)
+
+
+rank_zero_debug = rank_zero_only(_debug)
 rank_zero_info = rank_zero_only(_info)
 rank_zero_warn = rank_zero_only(_warn)

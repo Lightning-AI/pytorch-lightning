@@ -1,7 +1,8 @@
-import torch
-from pytorch_lightning.core.lightning import LightningModule
-from torch.utils.data import Dataset, DataLoader
 import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
+
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class DeterministicModel(LightningModule):

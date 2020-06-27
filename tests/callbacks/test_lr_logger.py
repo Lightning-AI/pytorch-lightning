@@ -1,6 +1,6 @@
 import pytest
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateLogger
 from tests.base import EvalModelTemplate

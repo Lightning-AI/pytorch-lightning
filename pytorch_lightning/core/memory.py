@@ -9,7 +9,8 @@ import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-import pytorch_lightning as pl
+
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
@@ -126,6 +127,7 @@ class ModelSummary(object):
 
     Example::
 
+        >>> import pytorch_lightning as pl
         >>> class LitModel(pl.LightningModule):
         ...
         ...     def __init__(self):
@@ -154,7 +156,7 @@ class ModelSummary(object):
     MODE_DEFAULT = MODE_TOP
     MODES = [MODE_FULL, MODE_TOP]
 
-    def __init__(self, model: "pl.LightningModule", mode: str = MODE_DEFAULT):
+    def __init__(self, model, mode: str = MODE_DEFAULT):
         self._model = model
         self._mode = mode
         self._layer_summary = self.summarize()
@@ -209,7 +211,7 @@ class ModelSummary(object):
         input_ = apply_to_collection(input_, torch.Tensor, lambda x: x.type(model.dtype))
 
         if trainer is not None and trainer.use_amp:
-            if model.use_native_amp:
+            if NATIVE_AMP_AVALAIBLE:
                 model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training
