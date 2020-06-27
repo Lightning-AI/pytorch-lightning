@@ -10,6 +10,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
 PRETEND_N_OF_GPUS = 16
 
@@ -301,3 +302,32 @@ def test_single_gpu_batch_parse():
 
     batch = trainer.transfer_batch_to_gpu(CustomBatchType())
     assert batch.a.type() == 'torch.cuda.FloatTensor'
+
+    # torchtext.data.Batch
+    samples = [
+        {'text': 'PyTorch Lightning is awesome!', 'label': 0},
+        {'text': 'Please make it work with torchtext', 'label': 1}
+    ]
+
+    text_field = Field()
+    label_field = LabelField()
+    fields = {
+        'text': ('text', text_field),
+        'label': ('label', label_field)
+    }
+
+    examples = [Example.fromdict(sample, fields) for sample in samples]
+    dataset = Dataset(
+        examples=examples,
+        fields=fields.values()
+    )
+
+    # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
+    text_field.build_vocab(dataset)
+    label_field.build_vocab(dataset)
+
+    batch = Batch(data=examples, dataset=dataset)
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+
+    assert batch.text.type() == 'torch.cuda.LongTensor'
+    assert batch.label.type() == 'torch.cuda.LongTensor'
