@@ -329,7 +329,6 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - [Neptune.ai](https://neptune.ai/)
 - [Comet.ml](https://www.comet.ml/site/)
 - [Wandb](https://www.wandb.com/)
-- [Trains](https://github.com/allegroai/trains)
 - ...  
 
 ![tensorboard-support](docs/source/_images/general/tf_loss.png)

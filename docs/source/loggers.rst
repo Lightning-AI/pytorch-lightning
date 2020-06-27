@@ -139,9 +139,3 @@ Test-tube
 
 .. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
     :noindex:
-
-Trains
-^^^^^^
-
-.. autoclass:: pytorch_lightning.loggers.trains.TrainsLogger
-    :noindex:
