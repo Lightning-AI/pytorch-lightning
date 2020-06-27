@@ -32,7 +32,6 @@ class TrainerCallbackConfigMixin(ABC):
     def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    @
     def configure_checkpoint_callback(self):
         """
         Weight path set in this priority:
