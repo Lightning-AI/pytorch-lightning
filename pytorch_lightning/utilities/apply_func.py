@@ -1,10 +1,14 @@
 from abc import ABC
 from collections import Mapping, Sequence
+from copy import copy
 from typing import Any, Callable, Union
 
 import torch
-from torchtext.data import Batch
-from copy import copy
+
+try:
+    from torchtext.data import Batch
+except ImportError:
+    Batch = None
 
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
@@ -86,9 +90,11 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
     """
-
     def batch_to(data):
-        if isinstance(data, Batch):
+        if Batch is None:
+            raise ImportError('You want to use `torchtext` package which is not installed yet,'
+                              ' install it with `pip install torchtext`.')
+        elif isinstance(data, Batch):
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
             for field in data.fields:
