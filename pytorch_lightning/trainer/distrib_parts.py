@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
-from typing import Union, Callable, Any, List, Optional, Tuple
+from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import _logger as log
@@ -18,7 +18,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -38,7 +38,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -61,7 +61,6 @@ class TrainerDPMixin(ABC):
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
-    use_native_amp: bool
     data_parallel_device_ids: ...
     progress_bar_callback: ...
     tpu_id: Optional[int]
@@ -174,8 +173,8 @@ class TrainerDPMixin(ABC):
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-        # TODO: update for 0.8.0
-        if self.use_amp and not self.use_native_amp:
+        # TODO: remove with dropping NVIDIA AMP support
+        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
             # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
@@ -236,14 +235,14 @@ class TrainerDPMixin(ABC):
 
         # hack forward to do autocast for the user
         model_autocast_original_forward = model.forward
-        if self.use_amp and self.use_native_amp:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE:
             # wrap the user's forward in autocast and give it back at the end
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
-        # TODO: remove in v0.8.0
+        # TODO: remove with dropping NVIDIA AMP support
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp and not self.use_native_amp:
+        if self.use_dp and self.use_amp and not NATIVE_AMP_AVALAIBLE:
             if self.amp_level == 'O2':
                 raise MisconfigurationException(
                     f'Amp level {self.amp_level} with DataParallel is not supported.'
@@ -330,7 +329,7 @@ class TrainerDPMixin(ABC):
         hvd.join()
 
 
-def normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
+def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
     if isinstance(s, str):
         if s == '-1':
             return -1
@@ -348,22 +347,22 @@ def get_all_available_gpus() -> List[int]:
     return list(range(torch.cuda.device_count()))
 
 
-def check_gpus_data_type(gpus: Any) -> None:
+def _check_data_type(device_ids: Any) -> None:
     """
-    Checks that the gpus argument is one of: None, Int, String or List.
+    Checks that the device_ids argument is one of: None, Int, String or List.
     Raises a MisconfigurationException otherwise.
 
     Args:
-        gpus: parameter as passed to the Trainer
+        device_ids: gpus/tpu_cores parameter as passed to the Trainer
     """
-    if gpus is not None and (not isinstance(gpus, (int, str, list)) or isinstance(gpus, bool)):
-        raise MisconfigurationException("GPUs must be int, string or list of ints or None.")
+    if device_ids is not None and (not isinstance(device_ids, (int, str, MutableSequence)) or isinstance(device_ids, bool)):
+        raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
 
 
-def normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
+def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int]]) -> Optional[List[int]]:
     assert gpus is not None
-    if isinstance(gpus, list):
-        return gpus
+    if isinstance(gpus, MutableSequence):
+        return list(gpus)
 
     # must be an int
     if not gpus:  # gpus==0
@@ -405,7 +404,7 @@ def sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     return gpus
 
 
-def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[int]]:
+def _parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[int]]:
     """
     Parses the GPU ids given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
@@ -429,7 +428,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
         return None
 
     # Check that gpus param is None, Int, String or List
-    check_gpus_data_type(gpus)
+    _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
     if gpus is None or isinstance(gpus, int) and gpus == 0:
@@ -438,8 +437,8 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     # We know user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
 
-    gpus = normalize_parse_gpu_string_input(gpus)
-    gpus = normalize_parse_gpu_input_to_list(gpus)
+    gpus = _normalize_parse_gpu_string_input(gpus)
+    gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
     gpus = sanitize_gpu_ids(gpus)
@@ -491,6 +490,51 @@ def retry_jittered_backoff(func: Callable, num_retries: int = 5, cap_delay: floa
                 continue
         time.sleep(sleep_delay)
         sleep_delay = min(cap_delay, random.uniform(base_delay, sleep_delay * 3))
+
+
+def _parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[List[int], int]]:
+    """
+    Parses the tpu_cores given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer`.
+
+    Args:
+        tpu_cores: An int 1 or string '1' indicate that 1 core with multi-processing should be used
+            An int 8 or string '8' indicate that all 8 cores with multi-processing should be used
+            A list of int or a string containing list of comma separated integer
+            indicates specific TPU core to use.
+
+    Returns:
+        a list of tpu_cores to be used or ``None`` if no TPU cores were requested
+    """
+
+    if callable(tpu_cores):
+        return None
+
+    _check_data_type(tpu_cores)
+
+    if isinstance(tpu_cores, str):
+        tpu_cores = _parse_tpu_cores_str(tpu_cores.strip())
+
+    if not _tpu_cores_valid(tpu_cores):
+        raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
+
+    return tpu_cores
+
+
+def _tpu_cores_valid(tpu_cores):
+    return tpu_cores in (1, 8, None) or (
+        isinstance(tpu_cores, (list, tuple, set)) and
+        len(tpu_cores) == 1 and
+        tpu_cores[0] in range(1, 9)
+    )
+
+
+def _parse_tpu_cores_str(tpu_cores):
+    if tpu_cores in ('1', '8'):
+        tpu_cores = int(tpu_cores)
+    else:
+        tpu_cores = [int(x.strip()) for x in tpu_cores.split(',') if len(x) > 0]
+    return tpu_cores
 
 
 def pick_single_gpu(exclude_gpus: list):

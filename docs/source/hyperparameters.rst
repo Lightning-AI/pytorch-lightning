@@ -126,7 +126,7 @@ makes those values available via `self.hparams`.
             self.save_hyperparameters()
 
             # equivalent
-            self.save_hyperparameters(['layer_1_dim', 'learning_rate'])
+            self.save_hyperparameters('layer_1_dim', 'learning_rate')
 
             # this now works
             self.hparams.layer_1_dim
@@ -145,7 +145,7 @@ In that case, choose only a few
             self.loss_fx = loss_fx
 
             # call this to save (layer_1_dim=128) to the checkpoint
-            self.save_hyperparameters(['layer_1_dim'])
+            self.save_hyperparameters('layer_1_dim')
 
     # to load specify the other args
     model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())

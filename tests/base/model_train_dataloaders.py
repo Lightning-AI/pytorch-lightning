@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from tests.base.dataloaders import CustomInfDataloader
+from tests.base.dataloaders import CustomNotImplementedErrorDataloader
 
 
 class TrainDataloaderVariations(ABC):
@@ -14,6 +15,9 @@ class TrainDataloaderVariations(ABC):
 
     def train_dataloader__infinite(self):
         return CustomInfDataloader(self.dataloader(train=True))
+
+    def train_dataloader__not_implemented_error(self):
+        return CustomNotImplementedErrorDataloader(self.dataloader(train=True))
 
     def train_dataloader__zero_length(self):
         dataloader = self.dataloader(train=True)

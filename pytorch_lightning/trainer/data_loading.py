@@ -35,7 +35,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -51,6 +51,8 @@ def _has_len(dataloader: DataLoader) -> bool:
                              ' Please make sure that your Dataloader at least returns 1 batch')
         return True
     except TypeError:
+        return False
+    except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
         return False
 
 
@@ -263,12 +265,12 @@ class TrainerDataLoadingMixin(ABC):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
-                    rank_zero_warn('You requested to overfit but enabled training Dataloader shuffling.'
+                    rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
                                    ' We are turning it off for you.')
                     dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
 
                 else:
-                    rank_zero_warn(f'Your {mode}_dataloader has shuffle=True, it is best practice to turn'
+                    rank_zero_warn(f'Your {mode}_dataloader has `shuffle=True`, it is best practice to turn'
                                    ' this off for validation and test dataloaders.')
 
         if any([dl is None for dl in dataloaders]):
@@ -283,18 +285,18 @@ class TrainerDataLoadingMixin(ABC):
         # datasets could be none, 1 or 2+
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = 0
-                self._worker_check(dataloader, f'{mode} dataloader {i}')
-                if not _has_len(dataloader):
+                try:
+                    num_batches = len(dataloader)
+                except (TypeError, NotImplementedError):
                     num_batches = float('inf')
+
+                self._worker_check(dataloader, f'{mode} dataloader {i}')
 
                 # percent or num_steps
                 limit_eval_batches = getattr(self, f'limit_{mode}_batches')
 
                 if num_batches != float('inf'):
                     self._check_batch_limits(f'limit_{mode}_batches')
-
-                    num_batches = len(dataloader)
 
                     # limit num batches either as a percent or num steps
                     if isinstance(limit_eval_batches, float):
@@ -372,7 +374,7 @@ class TrainerDataLoadingMixin(ABC):
         if overfit_batches > 0:
             if isinstance(overfit_batches, float) and overfit_batches > 1:
                 raise ValueError('`overfit_batches` when used as a percentage must'
-                                 f' be not 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
+                                 f' be in range 0.0 < x < 1.0 but got {overfit_batches:.3f}.')
             self.limit_train_batches = overfit_batches
             self.limit_val_batches = overfit_batches
             self.limit_test_batches = overfit_batches

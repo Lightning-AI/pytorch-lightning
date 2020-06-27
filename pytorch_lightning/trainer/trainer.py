@@ -13,7 +13,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
+from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -21,7 +21,7 @@ from pytorch_lightning.trainer.deprecated_api import (
     TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
+    TrainerDPMixin, _parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus, _parse_tpu_cores)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -52,7 +52,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -91,7 +91,7 @@ class Trainer(
         num_processes: int = 1,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
-        tpu_cores: Optional[Union[List[int], int]] = None,
+        tpu_cores: Optional[Union[List[int], str, int]] = None,
         log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: int = 1,
         overfit_batches: Union[int, float] = 0.0,
@@ -126,7 +126,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_level: str = 'O1',  # backward compatible, todo: remove in v1.0.0
+        amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
         show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
@@ -190,12 +190,12 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int).
+            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
 
             overfit_pct:
                 .. warning:: .. deprecated:: 0.8.0
 
-                    Use `overfit_batches` instead. Will remove 0.10.0.
+                    Use `overfit_batches` instead. Will be removed in 0.10.0.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
@@ -223,7 +223,7 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
-            limit_train_batches: How much of training dataset to check.
+            limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
 
             limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
 
@@ -255,7 +255,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
@@ -327,8 +327,6 @@ class Trainer(
         # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = os.environ['LOCAL_RANK']
-        if 'SLURM_JOB_ID' in os.environ:
-            rank_zero_only.rank = os.environ['SLURM_JOB_ID']
 
         # Init callbacks
         self.prepare_data_per_node = prepare_data_per_node
@@ -360,13 +358,10 @@ class Trainer(
 
         if tpu_cores is None:
             tpu_cores = num_tpu_cores
-        self.on_tpu = tpu_cores is not None
-        self.tpu_cores = tpu_cores
-        assert self.tpu_cores in (1, 8, None) or (
-            isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1
-        ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
+        self.tpu_cores = _parse_tpu_cores(tpu_cores)
+        self.on_tpu = self.tpu_cores is not None
 
-        self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
+        self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
@@ -460,7 +455,7 @@ class Trainer(
         else:
             self.gpus = gpus
 
-        self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
+        self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
 
@@ -537,12 +532,17 @@ class Trainer(
         # These are the only lines needed after v0.8.0
         # we wrap the user's forward with autocast and give it back at the end of fit
         self.autocast_original_forward = None
-        self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
         self.scaler = None
 
+        # Backward compatibility, TODO: remove in v0.9.0
+        if use_amp is not None:
+            rank_zero_warn("Argument `use_amp` is now set by `precision` since v0.7.0"
+                           " and this method will be removed in v0.9.0", DeprecationWarning)
+            self.precision = 16 if use_amp else 32
+
         self.amp_level = amp_level
-        self.init_amp(use_amp)
+        self.init_amp()
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -703,7 +703,7 @@ class Trainer(
             else:
                 use_type = arg_types[0]
 
-            if arg == 'gpus':
+            if arg == 'gpus' or arg == 'tpu_cores':
                 use_type = Trainer._allowed_type
                 arg_default = Trainer._arg_default
 
@@ -890,7 +890,7 @@ class Trainer(
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
 
-            elif self.distributed_backend == 'cpu_ddp':
+            elif self.distributed_backend == 'ddp_cpu':
                 self.set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
@@ -919,6 +919,9 @@ class Trainer(
 
         elif self.use_tpu:  # pragma: no-cover
             rank_zero_info(f'training on {self.tpu_cores} TPU cores')
+
+            if not XLA_AVAILABLE:
+                raise MisconfigurationException('No TPU devices found.')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
@@ -1004,7 +1007,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.use_native_amp and self.precision == 16:
+        if NATIVE_AMP_AVALAIBLE and self.precision == 16:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1195,7 +1198,8 @@ class Trainer(
 
         self.teardown('test')
         if self.is_function_implemented('teardown'):
-            self.model.teardown('test')
+            model_ref = self.get_model()
+            model_ref.teardown('test')
 
     def check_model_configuration(self, model: LightningModule):
         r"""

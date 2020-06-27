@@ -6,20 +6,18 @@ import os
 import torch
 import yaml
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 PRIMITIVE_TYPES = (bool, int, float, str)
-ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
+ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 try:
     from omegaconf import Container
 except ImportError:
     Container = None
-else:
-    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -281,7 +279,7 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     """Load hparams from a file.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
-    >>> path_csv = './testing-hparams.csv'
+    >>> path_csv = os.path.join('.', 'testing-hparams.csv')
     >>> save_hparams_to_tags_csv(path_csv, hparams)
     >>> hparams_new = load_hparams_from_tags_csv(path_csv)
     >>> vars(hparams) == hparams_new
@@ -306,7 +304,7 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
 
-    with open(tags_csv, 'w') as fp:
+    with open(tags_csv, 'w', newline='') as fp:
         fieldnames = ['key', 'value']
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writerow({'key': 'key', 'value': 'value'})

@@ -127,6 +127,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
 
@@ -139,7 +140,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -177,7 +178,6 @@ class TrainerDDPMixin(ABC):
     amp_level: str
     use_tpu: bool
     default_root_dir: str
-    use_native_amp: bool
     progress_bar_callback: ...
     num_processes: int
     num_nodes: int
@@ -518,8 +518,8 @@ class TrainerDDPMixin(ABC):
 
         # AMP
         # run through amp wrapper before going to distributed DP
-        # TODO: remove in v0.8.0
-        if self.use_amp and not self.use_native_amp:
+        # TODO: remove with dropping NVIDIA AMP support
+        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)

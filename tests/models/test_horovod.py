@@ -8,7 +8,8 @@ import sys
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from tests.base.models import TestGAN
@@ -137,7 +138,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         deterministic=True,
         distributed_backend='horovod'
     )
-    tutils.run_model_test_without_loggers(trainer_options, model)
+    tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
@@ -152,7 +153,7 @@ def test_horovod_multi_optimizer(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
 
     # fit model

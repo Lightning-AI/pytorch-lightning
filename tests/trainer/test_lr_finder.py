@@ -15,7 +15,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     with pytest.raises(MisconfigurationException):
@@ -30,7 +30,7 @@ def test_model_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     before_state_dict = model.state_dict()
@@ -52,7 +52,7 @@ def test_trainer_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     changed_attributes = ['callbacks', 'logger', 'max_steps', 'auto_lr_find',
@@ -83,7 +83,7 @@ def test_trainer_arg_bool(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find=True
+        auto_lr_find=True,
     )
 
     trainer.fit(model)
@@ -102,7 +102,7 @@ def test_trainer_arg_str(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find='my_fancy_lr'
+        auto_lr_find='my_fancy_lr',
     )
 
     trainer.fit(model)
@@ -133,7 +133,6 @@ def test_call_to_trainer_method(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
-@pytest.mark.skip('TODO: speed up this test')
 def test_accumulation_and_early_stopping(tmpdir):
     """ Test that early stopping of learning rate finder works, and that
         accumulation also works for this feature """
@@ -155,7 +154,7 @@ def test_accumulation_and_early_stopping(tmpdir):
         'Learning rate was not altered after running learning rate finder'
     assert len(lrfinder.results['lr']) == 100, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 100 * 2, \
+    assert lrfinder._total_batch_idx == 190, \
         'Accumulation parameter did not work'
 
 
@@ -188,7 +187,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=3
+        max_epochs=3,
     )
 
     lrfinder = trainer.lr_find(model)

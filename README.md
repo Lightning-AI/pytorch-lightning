@@ -143,13 +143,15 @@ As you see, you're just organizing your PyTorch code - there's no abstraction.
 
 And for the stuff that the Trainer abstracts out, you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implement your own distributed training, 16-bit precision, or even a custom backward pass.
 
-For example, here you could do your own backward pass
+For example, here you could do your own backward pass without worrying about GPUs, TPUs or 16-bit since we already handle it.
 
 ```python
 class LitModel(LightningModule):
-  def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                     second_order_closure=None):
+    def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                     second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
       optimizer.step()
+
+    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
 ```
 
@@ -365,6 +367,7 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
 - [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
 - [Finetune BERT, RoBERTa etc on QA Datasets like SQuAD](https://github.com/tshrjn/Finetune-QA/)
+- [Pytorch-Lightning + Microsoft NNI with Docker](https://github.com/davinnovation/pytorch-boilerplate)
 
 ## Tutorials
 Check out our [introduction guide](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html) to get started.
