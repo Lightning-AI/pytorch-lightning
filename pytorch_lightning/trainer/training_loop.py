@@ -410,8 +410,9 @@ class TrainerTrainLoopMixin(ABC):
                 self.interrupted = True
                 self.on_keyboard_interrupt()
 
-                for proc in self.interactive_ddp_procs:
-                    subprocess.Popen.kill(proc)
+                if self.global_rank == 0:
+                    for proc in self.interactive_ddp_procs:
+                        subprocess.Popen.kill(proc)
 
                 self.run_training_teardown()
 
