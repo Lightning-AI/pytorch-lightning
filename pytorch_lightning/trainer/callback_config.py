@@ -42,7 +42,7 @@ class TrainerCallbackConfigMixin(ABC):
         ckpt_path = self.default_root_dir
         if self.checkpoint_callback:
             # init a default one
-            if self.logger is not None and self.global_rank != 0:
+            if self.logger is not None and self.logger.checkpoint is not None:
                 save_dir = (getattr(self.logger, 'save_dir', None) or
                             getattr(self.logger, '_save_dir', None) or
                             self.default_root_dir)
