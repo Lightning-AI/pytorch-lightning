@@ -117,50 +117,6 @@ The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere exce
 
 ----------------
 
-allegro.ai TRAINS
-^^^^^^^^^^^^^^^^^
-
-`allegro.ai <https://github.com/allegroai/trains/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.TrainsLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install trains
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. testcode::
-
-    from pytorch_lightning.loggers import TrainsLogger
-    trains_logger = TrainsLogger(
-        project_name='examples',
-        task_name='pytorch lightning test',
-    )
-    trainer = Trainer(logger=trains_logger)
-
-.. testoutput::
-    :options: +ELLIPSIS, +NORMALIZE_WHITESPACE
-    :hide:
-
-    TRAINS Task: ...
-    TRAINS results page: ...
-
-The :class:`~pytorch_lightning.loggers.TrainsLogger` is available anywhere in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def __init__(self):
-            some_img = fake_image()
-            self.logger.experiment.log_image('debug', 'generated_image_0', some_img, 0)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.TrainsLogger` docs.
-
-----------------
-
 Tensorboard
 ^^^^^^^^^^^
 

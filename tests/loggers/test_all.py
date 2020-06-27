@@ -25,7 +25,6 @@ def _get_logger_args(logger_class, save_dir):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
@@ -72,8 +71,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # CometLogger,  # TODO: add this one
-    # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
