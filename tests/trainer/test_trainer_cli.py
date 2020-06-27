@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 
 

@@ -2,6 +2,7 @@ import os
 from unittest.mock import patch
 
 import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -32,7 +33,7 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
         max_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
-        tpu_cores=tpu_cores
+        tpu_cores=tpu_cores,
     )
     trainer.fit(model)
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
