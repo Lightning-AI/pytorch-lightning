@@ -3,7 +3,8 @@ import os
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -45,7 +46,7 @@ def test_amp_multi_gpu(tmpdir, backend):
         # gpus=2,
         gpus='0, 1',  # test init with gpu string
         distributed_backend=backend,
-        precision=16
+        precision=16,
     )
 
     # tutils.run_model_test(trainer_options, model)
@@ -133,4 +134,4 @@ def test_cpu_model_with_amp(tmpdir):
     model = EvalModelTemplate()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model, on_gpu=False)
+        tpipes.run_model_test(trainer_options, model, on_gpu=False)

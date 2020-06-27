@@ -3,7 +3,8 @@ from collections import namedtuple
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
@@ -27,7 +28,7 @@ def test_single_gpu_model(tmpdir, gpus):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.mark.spawn
@@ -62,13 +63,15 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    trainer_options = dict(default_root_dir=tmpdir,
-                           progress_bar_refresh_rate=0,
-                           max_epochs=1,
-                           limit_train_batches=0.1,
-                           limit_val_batches=0.1,
-                           gpus=[0, 1],
-                           distributed_backend='ddp')
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
 
     model = EvalModelTemplate()
     fit_options = dict(train_dataloader=model.train_dataloader(),
@@ -94,7 +97,7 @@ def test_multi_gpu_none_backend(tmpdir):
 
     model = EvalModelTemplate()
     with pytest.warns(UserWarning):
-        tutils.run_model_test(trainer_options, model)
+        tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.fixture

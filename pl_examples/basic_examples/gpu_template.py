@@ -61,7 +61,8 @@ if __name__ == '__main__':
         '--distributed_backend',
         type=str,
         default='dp',
-        help='supports four options dp, ddp, ddp2, ddp_spawn'
+        help='supports four options dp, ddp, ddp2, ddp_spawn, ...',
+        choices=['dp', 'ddp', 'ddp2', 'ddp_spawn', 'ddp_cpu'],
     )
     parent_parser.add_argument(
         '--use_16bit',
