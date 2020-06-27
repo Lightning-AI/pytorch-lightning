@@ -283,7 +283,7 @@ def test_collect_init_arguments(tmpdir, cls):
 
     if isinstance(model, DictConfSubClassEvalModel):
         assert isinstance(model.hparams.dict_conf, Container)
-        assert model.hparams.dict_conf == 'anything'
+        assert model.hparams.dict_conf['my_param'] == 'anything'
 
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
