@@ -408,24 +408,6 @@ def test_inf_train_dataloader(tmpdir, check_interval):
     assert result == 1
 
 
-@pytest.mark.parametrize('check_interval', [50, 1.0])
-@pytest.mark.skip('TODO: speed up this test')
-def test_not_implemented_error_train_dataloader(tmpdir, check_interval):
-    """Test not_implemented_error train data loader (e.g. IterableDataset)"""
-
-    model = EvalModelTemplate()
-    model.train_dataloader = model.train_dataloader__not_implemented_error
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        val_check_interval=check_interval,
-    )
-    result = trainer.fit(model)
-    # verify training completed
-    assert result == 1
-
-
 @pytest.mark.parametrize('check_interval', [1.0])
 def test_inf_val_dataloader(tmpdir, check_interval):
     """Test inf val data loader (e.g. IterableDataset)"""
