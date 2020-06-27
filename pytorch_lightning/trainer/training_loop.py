@@ -470,7 +470,7 @@ class TrainerTrainLoopMixin(ABC):
             # -----------------------------------------
             should_check_val = self.check_validation_in_train_loop(batch_idx, is_last_batch)
             if self.fast_dev_run or should_check_val:
-                self.run_evaluation(test_mode=self.testing)
+                self.run_evaluation(test_mode=False)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
