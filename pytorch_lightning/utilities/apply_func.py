@@ -91,10 +91,9 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :class:`torch.device`
     """
     def batch_to(data):
-        if Batch is None:
-            raise ImportError('You want to use `torchtext` package which is not installed yet,'
-                              ' install it with `pip install torchtext`.')
-        elif isinstance(data, Batch):
+        # try to move torchtext data first
+        if TORCHTEXT_AVAILABLE and isinstance(data, Batch):
+
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
             for field in data.fields:
@@ -102,6 +101,7 @@ def move_data_to_device(batch: Any, device: torch.device):
                 device_field = getattr(data, field).to(device, non_blocking=True)
                 setattr(device_data, field, device_field)
             return device_data
+        else:
+            return data.to(device, non_blocking=True)
 
-        return data.to(device, non_blocking=True)
     return apply_to_collection(batch, dtype=(TransferableDataType, Batch), function=batch_to)
