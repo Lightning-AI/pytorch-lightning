@@ -854,6 +854,8 @@ class TrainerTrainLoopMixin(ABC):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
 
+        self._teardown_already_run = True
+
         # clean up dist group
         if self.use_ddp or self.use_ddp2:
             torch_distrib.destroy_process_group()
@@ -870,8 +872,8 @@ class TrainerTrainLoopMixin(ABC):
             self.logger.finalize("success")
 
         # summarize profile results
-        self.profiler.describe()
-        self._teardown_already_run = True
+        if self.global_rank == 0:
+            self.profiler.describe()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
