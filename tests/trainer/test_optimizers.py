@@ -231,7 +231,7 @@ def test_configure_optimizer_from_dict(tmpdir):
             return config
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = CurrentModel(hparams)
+    model = CurrentModel(**hparams)
 
     # fit model
     trainer = Trainer(
