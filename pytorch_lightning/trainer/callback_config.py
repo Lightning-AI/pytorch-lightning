@@ -51,17 +51,10 @@ class TrainerCallbackConfigMixin(ABC):
                 if self.weights_save_path is not None:
                     save_dir = self.weights_save_path
 
-                if self.local_rank == 0:
-                    print(self.logger.version)
-                    import pdb; pdb.set_trace()
                 version = self.logger.version if isinstance(
                     self.logger.version, str) else f'version_{self.logger.version}'
-                ckpt_path = os.path.join(
-                    save_dir,
-                    self.logger.name,
-                    version,
-                    "checkpoints"
-                )
+                print(save_dir, self.logger.name, version)
+                ckpt_path = os.path.join(save_dir, self.logger.name, version, "checkpoints")
             else:
                 ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
 
