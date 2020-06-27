@@ -6,6 +6,7 @@ from typing import List, Callable, Optional
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class TrainerCallbackConfigMixin(ABC):
@@ -32,6 +33,7 @@ class TrainerCallbackConfigMixin(ABC):
     def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @rank_zero_only
     def configure_checkpoint_callback(self):
         """
         Weight path set in this priority:
@@ -53,7 +55,6 @@ class TrainerCallbackConfigMixin(ABC):
 
                 version = self.logger.version if isinstance(
                     self.logger.version, str) else f'version_{self.logger.version}'
-                print(save_dir, self.logger.name, version)
                 ckpt_path = os.path.join(save_dir, self.logger.name, version, "checkpoints")
             else:
                 ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
