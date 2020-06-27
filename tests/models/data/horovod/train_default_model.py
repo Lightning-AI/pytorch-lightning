@@ -20,14 +20,11 @@ import argparse
 import json
 import os
 import sys
-import pytest
 
 
 try:
     import horovod.torch as hvd
-    HOROVOD_AVAILABLE = True
 except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
@@ -46,7 +43,6 @@ parser.add_argument('--trainer-options', required=True)
 parser.add_argument('--on-gpu', action='store_true', default=False)
 
 
-@pytest.mark.skipif(not HOROVOD_AVAILABLE, reason="Horovod not installed")
 def run_test_from_config(trainer_options):
     """Trains the default model with the given config."""
     set_random_master_port()
