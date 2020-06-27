@@ -35,10 +35,11 @@ def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     ([], False),
     ([ModelCheckpoint('../trainer')], 0),
 ])
-def test_progress_bar_off(callbacks, refresh_rate):
+def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
     )

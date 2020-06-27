@@ -22,13 +22,12 @@ import os
 import sys
 import pytest
 
-   
 
 try:
     import horovod.torch as hvd
-     HOROVOD_AVAILABLE = True
+    HOROVOD_AVAILABLE = True
 except (ModuleNotFoundError, ImportError):
-     HOROVOD_AVAILABLE = False
+    HOROVOD_AVAILABLE = False
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
