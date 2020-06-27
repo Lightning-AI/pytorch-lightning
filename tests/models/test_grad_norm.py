@@ -58,6 +58,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         max_epochs=3,
         track_grad_norm=norm_type,
         row_log_interval=1,  # request grad_norms every batch
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
 
