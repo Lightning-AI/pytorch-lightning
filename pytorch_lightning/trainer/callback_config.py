@@ -42,7 +42,7 @@ class TrainerCallbackConfigMixin(ABC):
         ckpt_path = self.default_root_dir
         if self.checkpoint_callback:
             # init a default one
-            if self.logger is not None:
+            if self.logger.experiment is not None:
                 save_dir = (getattr(self.logger, 'save_dir', None) or
                             getattr(self.logger, '_save_dir', None) or
                             self.default_root_dir)
@@ -53,7 +53,6 @@ class TrainerCallbackConfigMixin(ABC):
 
                 version = self.logger.version if isinstance(
                     self.logger.version, str) else f'version_{self.logger.version}'
-                print(self.local_rank, self.logger.version, self.logger.name, version)
                 ckpt_path = os.path.join(save_dir, self.logger.name, version, "checkpoints")
             else:
                 ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
