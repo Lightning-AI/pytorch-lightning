@@ -150,15 +150,12 @@ class LightningTemplateModel(LightningModule):
         self.mnist_test = MNIST(self.data_root, train=False, download=False, transform=transform)
 
     def train_dataloader(self):
-        log.info('Training data loader called.')
         return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)
 
     def val_dataloader(self):
-        log.info('Validation data loader called.')
         return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     def test_dataloader(self):
-        log.info('Test data loader called.')
         return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
 
     @staticmethod
