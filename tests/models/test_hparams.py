@@ -275,16 +275,15 @@ def test_collect_init_arguments(tmpdir, cls):
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]['batch_size'] == 179
 
     # verify that model loads correctly
-    # TODO: uncomment and get it pass
-    # model = cls.load_from_checkpoint(raw_checkpoint_path)
-    # assert model.hparams.batch_size == 179
-    #
-    # if isinstance(model, AggSubClassEvalModel):
-    #     assert isinstance(model.hparams.my_loss, torch.nn.CrossEntropyLoss)
-    #
-    # if isinstance(model, DictConfSubClassEvalModel):
-    #     assert isinstance(model.hparams.dict_conf, Container)
-    #     assert model.hparams.dict_conf == 'anything'
+    model = cls.load_from_checkpoint(raw_checkpoint_path)
+    assert model.hparams.batch_size == 179
+
+    if isinstance(model, AggSubClassEvalModel):
+        assert isinstance(model.hparams.my_loss, torch.nn.CrossEntropyLoss)
+
+    if isinstance(model, DictConfSubClassEvalModel):
+        assert isinstance(model.hparams.dict_conf, Container)
+        assert model.hparams.dict_conf == 'anything'
 
     # verify that we can overwrite whatever we want
     model = cls.load_from_checkpoint(raw_checkpoint_path, batch_size=99)
