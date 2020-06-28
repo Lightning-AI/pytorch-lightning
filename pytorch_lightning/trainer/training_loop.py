@@ -399,9 +399,6 @@ class TrainerTrainLoopMixin(ABC):
                 self.interrupted = True
                 self.on_keyboard_interrupt()
 
-                for proc in self.interactive_ddp_procs:
-                    subprocess.Popen.kill(proc)
-
                 self.run_training_teardown()
 
     def prepare_train_loop_dataloader(self, train_dataloader):
@@ -841,9 +838,7 @@ class TrainerTrainLoopMixin(ABC):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
 
-        # clean up dist group
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.destroy_process_group()
+        self._teardown_already_run = True
 
         # Train end events
         with self.profiler.profile('on_train_end'):
@@ -857,8 +852,16 @@ class TrainerTrainLoopMixin(ABC):
             self.logger.finalize("success")
 
         # summarize profile results
-        self.profiler.describe()
-        self._teardown_already_run = True
+        if self.global_rank == 0:
+            self.profiler.describe()
+
+        if self.global_rank == 0:
+            for proc in self.interactive_ddp_procs:
+                subprocess.Popen.kill(proc)
+
+        # clean up dist group
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.destroy_process_group()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
