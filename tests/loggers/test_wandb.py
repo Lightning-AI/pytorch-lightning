@@ -29,39 +29,38 @@ def test_wandb_logger(wandb):
     assert logger.version == wandb.init().id
 
 
-# TODO: find the issue with running this test
-# @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-# def test_wandb_pickle(tmpdir, wandb):
-#     """Verify that pickling trainer with wandb logger works.
-#
-#     Wandb doesn't work well with pytest so we have to mock it out here.
-#     """
-#     class Experiment:
-#         id = 'the_id'
-#
-#         def project_name(self):
-#             return 'the_project_name'
-#
-#     wandb.init.return_value = Experiment()
-#
-#     logger = WandbLogger(id='the_id', offline=True)
-#
-#     trainer = Trainer(
-#         default_root_dir=tmpdir,
-#         max_epochs=1,
-#         logger=logger,
-#     )
-#     # Access the experiment to ensure it's created
-#     assert trainer.logger.experiment, 'missing experiment'
-#     pkl_bytes = pickle.dumps(trainer)
-#     trainer2 = pickle.loads(pkl_bytes)
-#
-#     assert os.environ['WANDB_MODE'] == 'dryrun'
-#     assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
-#     assert trainer2.logger.experiment, 'missing experiment'
-#
-#     wandb.init.assert_called()
-#     assert 'id' in wandb.init.call_args[1]
-#     assert wandb.init.call_args[1]['id'] == 'the_id'
-#
-#     del os.environ['WANDB_MODE']
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_wandb_pickle(wandb, tmpdir):
+    """Verify that pickling trainer with wandb logger works.
+
+    Wandb doesn't work well with pytest so we have to mock it out here.
+    """
+    class Experiment:
+        id = 'the_id'
+
+        def project_name(self):
+            return 'the_project_name'
+
+    wandb.init.return_value = Experiment()
+
+    logger = WandbLogger(id='the_id', offline=True)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+    )
+    # Access the experiment to ensure it's created
+    assert trainer.logger.experiment, 'missing experiment'
+    pkl_bytes = pickle.dumps(trainer)
+    trainer2 = pickle.loads(pkl_bytes)
+
+    assert os.environ['WANDB_MODE'] == 'dryrun'
+    assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
+    assert trainer2.logger.experiment, 'missing experiment'
+
+    wandb.init.assert_called()
+    assert 'id' in wandb.init.call_args[1]
+    assert wandb.init.call_args[1]['id'] == 'the_id'
+
+    del os.environ['WANDB_MODE']
