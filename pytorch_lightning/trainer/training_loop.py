@@ -852,14 +852,6 @@ class TrainerTrainLoopMixin(ABC):
 
         self._teardown_already_run = True
 
-        if self.global_rank == 0:
-            for proc in self.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
-
-        # clean up dist group
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.destroy_process_group()
-
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks
@@ -874,6 +866,14 @@ class TrainerTrainLoopMixin(ABC):
         # summarize profile results
         if self.global_rank == 0:
             self.profiler.describe()
+
+        if self.global_rank == 0:
+            for proc in self.interactive_ddp_procs:
+                subprocess.Popen.kill(proc)
+
+        # clean up dist group
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.destroy_process_group()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
