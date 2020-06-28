@@ -325,7 +325,7 @@ class TrainerIOMixin(ABC):
         checkpoint = {
             'epoch': self.current_epoch + 1,
             'global_step': self.global_step + 1,
-            'pytorch-ligthning_version': pytorch_lightning.__version__,
+            'pytorch-lightning_version': pytorch_lightning.__version__,
         }
 
         if not weights_only:

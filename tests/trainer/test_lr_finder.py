@@ -182,7 +182,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
     """ Test that non-finite values does not alter results """
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(hparams)
+    model = EvalModelTemplate(**hparams)
 
     # logger file to get meta
     trainer = Trainer(
