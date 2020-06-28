@@ -49,7 +49,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     logger = StoreHistoryLogger(**logger_args)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
         limit_train_batches=0.2,
