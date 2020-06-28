@@ -85,8 +85,8 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         # on rank 0 we expect the saved files and on all others no saves
-        assert trainer.global_rank == 0 and self.count == self.expected_count \
-            or trainer.global_rank > 0 and self.count == 0
+        assert (trainer.global_rank == 0 and self.count == self.expected_count) \
+            or (trainer.global_rank > 0 and self.count == 0)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
