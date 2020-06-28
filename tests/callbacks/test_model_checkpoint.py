@@ -1,5 +1,6 @@
 import os
 import pickle
+import platform
 from pathlib import Path
 
 import pytest
@@ -82,6 +83,7 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
             or trainer.global_rank > 0 and self.count == 0
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
     model = EvalModelTemplate()
