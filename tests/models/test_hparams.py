@@ -240,11 +240,6 @@ class DictConfSubClassEvalModel(SubClassEvalModel):
         self.save_hyperparameters()
 
 
-class NoArgsSubClassEvalModel(EvalModelTemplate):
-    def __init__(self):
-        super().__init__()
-
-
 @pytest.mark.parametrize("cls", [
     EvalModelTemplate,
     SubClassEvalModel,
@@ -252,7 +247,6 @@ class NoArgsSubClassEvalModel(EvalModelTemplate):
     AggSubClassEvalModel,
     UnconventionalArgsEvalModel,
     DictConfSubClassEvalModel,
-    # NoArgsSubClassEvalModel,
 ])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
@@ -437,30 +431,40 @@ def test_hparams_save_yaml(tmpdir):
     assert load_hparams_from_yaml(path_yaml) == hparams
 
 
-def test_nohparams_train_test(tmpdir):
+class NoArgsSubClassEvalModel(EvalModelTemplate):
+    def __init__(self):
+        super().__init__()
 
-    class SimpleNoArgsModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.l1 = torch.nn.Linear(28 * 28, 10)
 
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
+class SimpleNoArgsModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.l1 = torch.nn.Linear(28 * 28, 10)
 
-        def training_step(self, batch, batch_nb):
-            x, y = batch
-            loss = F.cross_entropy(self(x), y)
-            return {'loss': loss, 'log': {'train_loss': loss}}
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-        def test_step(self, batch, batch_nb):
-            x, y = batch
-            loss = F.cross_entropy(self(x), y)
-            return {'loss': loss, 'log': {'train_loss': loss}}
+    def training_step(self, batch, batch_nb):
+        x, y = batch
+        loss = F.cross_entropy(self(x), y)
+        return {'loss': loss, 'log': {'train_loss': loss}}
 
-        def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=0.02)
+    def test_step(self, batch, batch_nb):
+        x, y = batch
+        loss = F.cross_entropy(self(x), y)
+        return {'loss': loss, 'log': {'train_loss': loss}}
 
-    model = SimpleNoArgsModel()
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.02)
+
+
+@pytest.mark.parametrize("cls", [
+    NoArgsSubClassEvalModel,
+    NoArgsSubClassEvalModel,
+])
+def test_nohparams_train_test(tmpdir, cls):
+
+    model = cls()
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
