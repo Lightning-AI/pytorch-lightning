@@ -180,8 +180,7 @@ class ModelIO(object):
                 if hparam_key in checkpoint:
                     model_args.update(checkpoint[hparam_key])
 
-            if cls.CHECKPOINT_HYPER_PARAMS_TYPE in checkpoint:
-                model_args = checkpoint[cls.CHECKPOINT_HYPER_PARAMS_TYPE](model_args)
+            model_args = _convert_loaded_hparams(model_args, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
             cls_spec = inspect.getfullargspec(cls.__init__)
@@ -246,6 +245,18 @@ class ModelIO(object):
         Args:
             checkpoint: A dictionary with variables from the checkpoint.
         """
+
+
+def _convert_loaded_hparams(model_args: dict, hparams_type: Union[Callable, str] = None) -> object:
+    """Convert hparams according given type in callable or string (past) format"""
+    # if not hparams type define
+    if not hparams_type:
+        return model_args
+    # if past checkpoint loaded, convert str to callable
+    if isinstance(hparams_type, str):
+        hparams_type = AttributeDict
+    # convert hparams
+    return hparams_type(model_args)
 
 
 def update_hparams(hparams: dict, updates: dict) -> None:
