@@ -268,6 +268,7 @@ def test_collect_init_arguments(tmpdir, cls):
     # verify that the checkpoint saved the correct values
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
     trainer.fit(model)
+
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
 
     raw_checkpoint = torch.load(raw_checkpoint_path)
@@ -391,6 +392,7 @@ def test_load_past_checkpoint(tmpdir, past_key):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
     raw_checkpoint[past_key] = raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+    raw_checkpoint['hparams_type'] = 'Namespace'
     raw_checkpoint[past_key]['batch_size'] = -17
     del raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
     # save back the checkpoint
