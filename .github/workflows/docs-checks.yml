@@ -45,6 +45,8 @@ jobs:
         shell: bash
 
       - name: Test Documentation
+        env:
+          SPHINX_MOCK_REQUIREMENTS: 0
         run: |
           # First run the same pipeline as Read-The-Docs
           apt-get update && sudo apt-get install -y cmake
