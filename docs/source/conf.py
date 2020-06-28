@@ -417,7 +417,11 @@ import os
 import torch
 import numpy
 
-TORCHVISION_AVAILABLE = importlib.util.find_spec('torchvision')
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+APEX_AVAILABLE = importlib.util.find_spec("apex") is not None
+XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
+
 
 """
 coverage_skip_undoc_in_source = True
