@@ -571,8 +571,8 @@ class TrainerTrainLoopMixin(ABC):
         can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
         can_check_val = not self.disable_validation and can_check_epoch
         should_check_val = is_val_check_batch or self.should_stop
-        should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
-        should_check_val = can_check_val and should_check_val
+        is_last_batch_for_infinite_dataset = (is_last_batch and self.val_check_batch == float('inf'))
+        should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
 
         return should_check_val
 
