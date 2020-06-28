@@ -131,9 +131,9 @@ class WandbLogger(LightningLoggerBase):
         self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
 
     @property
-    def name(self) -> str:
-        return self.experiment.project_name()
+    def name(self) -> Optional[str]:
+        return self.experiment.project_name() if self._experiment else None
 
     @property
-    def version(self) -> str:
-        return self.experiment.id
+    def version(self) -> Optional[str]:
+        return self.experiment.id if self._experiment else None
