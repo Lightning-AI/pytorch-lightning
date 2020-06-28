@@ -1,22 +1,27 @@
 import pytest
 
 import torch
-import tests.base.develop_utils as tutils
-from pytorch_lightning import Callback
-from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import EarlyStopping, LearningRateLogger, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
-from pathlib import Path
 
 
-@pytest.mark.skip('TODO: fix this test')
 def test_resume_early_stopping_from_checkpoint(tmpdir):
     """
     Prevent regressions to bugs:
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
+
+    class EarlyStoppingTestStore(EarlyStopping):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # cache the state for each epoch
+            self.saved_states = []
+
+        def on_validation_end(self, trainer, pl_module):
+            super().on_validation_end(trainer, pl_module)
+            self.saved_states.append(self.state_dict().copy())
 
     class EarlyStoppingTestRestore(EarlyStopping):
         def __init__(self, expected_state):
@@ -28,7 +33,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 
     model = EvalModelTemplate()
     checkpoint_callback = ModelCheckpoint(save_top_k=1)
-    early_stop_callback = EarlyStopping()
+    early_stop_callback = EarlyStoppingTestStore()
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
@@ -36,12 +41,15 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         max_epochs=4,
     )
     trainer.fit(model)
-    early_stop_callback_state = early_stop_callback.state_dict()
 
     checkpoint_filepath = checkpoint_callback.kth_best_model
     # ensure state is persisted properly
     checkpoint = torch.load(checkpoint_filepath)
+    # the checkpoint saves "epoch + 1"
+    early_stop_callback_state = early_stop_callback.saved_states[checkpoint['epoch'] - 1]
+    assert 4 == len(early_stop_callback.saved_states)
     assert checkpoint['early_stop_callback_state_dict'] == early_stop_callback_state
+
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state)
     new_trainer = Trainer(
