@@ -6,11 +6,13 @@ import cloudpickle
 import pytest
 import torch
 from omegaconf import OmegaConf, Container
+from torch.nn import functional as F
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
 from pytorch_lightning.utilities import AttributeDict
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, TrialMNIST
 
 
 class SaveHparamsModel(EvalModelTemplate):
@@ -238,6 +240,11 @@ class DictConfSubClassEvalModel(SubClassEvalModel):
         self.save_hyperparameters()
 
 
+class NoArgsSubClassEvalModel(EvalModelTemplate):
+    def __init__(self):
+        super().__init__()
+
+
 @pytest.mark.parametrize("cls", [
     EvalModelTemplate,
     SubClassEvalModel,
@@ -245,6 +252,7 @@ class DictConfSubClassEvalModel(SubClassEvalModel):
     AggSubClassEvalModel,
     UnconventionalArgsEvalModel,
     DictConfSubClassEvalModel,
+    # NoArgsSubClassEvalModel,
 ])
 def test_collect_init_arguments(tmpdir, cls):
     """ Test that the model automatically saves the arguments passed into the constructor """
@@ -427,3 +435,39 @@ def test_hparams_save_yaml(tmpdir):
 
     save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
     assert load_hparams_from_yaml(path_yaml) == hparams
+
+
+def test_nohparams_train_test(tmpdir):
+
+    class SimpleNoArgsModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(28 * 28, 10)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+        def training_step(self, batch, batch_nb):
+            x, y = batch
+            loss = F.cross_entropy(self(x), y)
+            return {'loss': loss, 'log': {'train_loss': loss}}
+
+        def test_step(self, batch, batch_nb):
+            x, y = batch
+            loss = F.cross_entropy(self(x), y)
+            return {'loss': loss, 'log': {'train_loss': loss}}
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.02)
+
+    model = SimpleNoArgsModel()
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
+
+    train_loader = DataLoader(TrialMNIST(os.getcwd(), train=True, download=True), batch_size=32)
+    trainer.fit(model, train_loader)
+
+    test_loader = DataLoader(TrialMNIST(os.getcwd(), train=False, download=True), batch_size=32)
+    trainer.test(test_dataloaders=test_loader)
