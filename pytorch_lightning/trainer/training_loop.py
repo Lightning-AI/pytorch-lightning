@@ -410,10 +410,6 @@ class TrainerTrainLoopMixin(ABC):
                 self.interrupted = True
                 self.on_keyboard_interrupt()
 
-                if self.global_rank == 0:
-                    for proc in self.interactive_ddp_procs:
-                        subprocess.Popen.kill(proc)
-
                 self.run_training_teardown()
 
     def prepare_train_loop_dataloader(self, train_dataloader):
@@ -855,6 +851,10 @@ class TrainerTrainLoopMixin(ABC):
             return
 
         self._teardown_already_run = True
+
+        if self.global_rank == 0:
+            for proc in self.interactive_ddp_procs:
+                subprocess.Popen.kill(proc)
 
         # clean up dist group
         if self.use_ddp or self.use_ddp2:
