@@ -332,6 +332,7 @@ if SPHINX_MOCK_REQUIREMENTS:
 
 MOCK_MANUAL_PACKAGES = [
     'torchvision',
+    'numpy',
     'PIL',
     # packages with different package name compare to import name
     'yaml',
