@@ -459,10 +459,11 @@ class SimpleNoArgsModel(LightningModule):
 
 
 @pytest.mark.parametrize("cls", [
-    NoArgsSubClassEvalModel,
+    SimpleNoArgsModel,
     NoArgsSubClassEvalModel,
 ])
-def test_nohparams_train_test(tmpdir, cls):
+def test_model_nohparams_train_test(tmpdir, cls):
+    """Test models that do not tae any argument in init."""
 
     model = cls()
     trainer = Trainer(
@@ -478,7 +479,7 @@ def test_nohparams_train_test(tmpdir, cls):
 
 
 def test_model_ignores_non_exist_kwargument(tmpdir):
-    """ Test that the model takes nly valid class arguments """
+    """Test that the model takes only valid class arguments."""
 
     class LocalModel(EvalModelTemplate):
         def __init__(self, batch_size=15):
