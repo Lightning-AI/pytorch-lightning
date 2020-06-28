@@ -29,9 +29,9 @@ Automatic saving
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in:
 
-.. testcode::
+.. code-block:: python
 
-    trainer = Trainer(default_root_dir='lightning_checkpoints')
+    trainer = Trainer(default_root_dir='path/to/your/checkpoint')
 
 To modify the behavior of checkpointing pass in your own callback.
 
