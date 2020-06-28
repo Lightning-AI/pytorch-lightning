@@ -468,7 +468,7 @@ class TrainerTrainLoopMixin(ABC):
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
-            should_check_val = self.check_validation_in_train_loop(batch_idx, is_last_batch)
+            should_check_val = self.should_check_val(batch_idx, is_last_batch)
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=False)
 
@@ -564,7 +564,7 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_global_zero and self.logger is not None:
                 self.logger.save()
 
-    def check_validation_in_train_loop(self, batch_idx, is_last_batch):
+    def should_check_val(self, batch_idx, is_last_batch):
         # decide if we should run validation
         is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
         can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
