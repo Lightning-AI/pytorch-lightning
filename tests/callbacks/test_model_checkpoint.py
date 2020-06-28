@@ -25,7 +25,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint,
         overfit_pct=0.20,
-        max_epochs=5,
+        max_epochs=(save_top_k + 2),
     )
     trainer.fit(model)
 
