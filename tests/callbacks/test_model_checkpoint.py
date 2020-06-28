@@ -3,6 +3,7 @@ import pickle
 import platform
 from pathlib import Path
 
+import cloudpickle
 import pytest
 
 import tests.base.develop_utils as tutils
@@ -56,8 +57,13 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
 
 def test_pickling(tmpdir):
     ckpt = ModelCheckpoint(tmpdir)
+
     ckpt_pickled = pickle.dumps(ckpt)
     ckpt_loaded = pickle.loads(ckpt_pickled)
+    assert vars(ckpt) == vars(ckpt_loaded)
+
+    ckpt_pickled = cloudpickle.dumps(ckpt)
+    ckpt_loaded = cloudpickle.loads(ckpt_pickled)
     assert vars(ckpt) == vars(ckpt_loaded)
 
 

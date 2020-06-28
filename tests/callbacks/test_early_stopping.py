@@ -1,3 +1,6 @@
+import pickle
+
+import cloudpickle
 import pytest
 
 import torch
@@ -118,8 +121,13 @@ def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_ep
 
 
 def test_pickling(tmpdir):
-    import pickle
     early_stopping = EarlyStopping()
+
     early_stopping_pickled = pickle.dumps(early_stopping)
     early_stopping_loaded = pickle.loads(early_stopping_pickled)
     assert vars(early_stopping) == vars(early_stopping_loaded)
+
+    early_stopping_pickled = cloudpickle.dumps(early_stopping)
+    early_stopping_loaded = cloudpickle.loads(early_stopping_pickled)
+    assert vars(early_stopping) == vars(early_stopping_loaded)
+
