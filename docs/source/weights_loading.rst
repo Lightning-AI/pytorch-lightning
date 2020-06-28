@@ -31,7 +31,7 @@ To change the checkpoint path pass in:
 
 .. code-block:: python
 
-    trainer = Trainer(default_root_dir='path/to/your/checkpoint')
+    trainer = Trainer(default_root_dir='your/path/to/save/checkpoints')
 
 To modify the behavior of checkpointing pass in your own callback.
 
