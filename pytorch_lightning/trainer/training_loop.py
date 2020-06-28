@@ -433,6 +433,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # bookkeeping
         epoch_output = []
+        should_check_val = False
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -497,14 +498,18 @@ class TrainerTrainLoopMixin(ABC):
         # process epoch outputs
         self.run_training_epoch_end(epoch_output)
 
+        # checkpoint callback
+        self.check_checkpoint_callback(should_check_val)
+
+        # epoch end hook
+        self.run_on_epoch_end_hook(model)
+
+    def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
         if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
-
-        # epoch end hook
-        self.run_on_epoch_end_hook(model)
 
     def update_train_loop_lr_schedulers(self):
         if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
