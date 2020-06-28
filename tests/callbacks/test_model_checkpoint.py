@@ -1,3 +1,4 @@
+import os
 import pickle
 from pathlib import Path
 
@@ -57,3 +58,42 @@ def test_pickling(tmpdir):
     ckpt_pickled = pickle.dumps(ckpt)
     ckpt_loaded = pickle.loads(ckpt_pickled)
     assert vars(ckpt) == vars(ckpt_loaded)
+
+
+class ModelCheckpointTestInvocations(ModelCheckpoint):
+    # this class has to be defined outside the test function, otherwise we get pickle error
+    # due to the way ddp process is launched
+
+    def __init__(self, expected_count, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.count = 0
+        self.expected_count = expected_count
+
+    def _save_model(self, filepath):
+        # make sure we don't save twice
+        assert not os.path.isfile(filepath)
+        self.count += 1
+        super()._save_model(filepath)
+
+    def on_train_end(self, trainer, pl_module):
+        super().on_train_end(trainer, pl_module)
+        # on rank 0 we expect the saved files and on all others no saves
+        assert trainer.global_rank == 0 and self.count == self.expected_count \
+            or trainer.global_rank > 0 and self.count == 0
+
+
+def test_model_checkpoint_no_extraneous_invocations(tmpdir):
+    """Test to ensure that the model callback saves the checkpoints only once in distributed mode."""
+    model = EvalModelTemplate()
+    num_epochs = 4
+    model_checkpoint = ModelCheckpointTestInvocations(expected_count=num_epochs, save_top_k=-1)
+    trainer = Trainer(
+        distributed_backend='ddp_cpu',
+        num_processes=2,
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=model_checkpoint,
+        max_epochs=num_epochs,
+    )
+    result = trainer.fit(model)
+    assert 1 == result
