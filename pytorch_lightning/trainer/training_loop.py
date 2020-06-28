@@ -462,8 +462,7 @@ class TrainerTrainLoopMixin(ABC):
             self.update_train_loop_lr_schedulers()
 
             # when returning -1 from train_step, we end epoch early
-            if batch_output.signal == -1:
-                self.should_stop = True
+            self.should_stop = batch_output.signal == -1
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
