@@ -67,6 +67,7 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
+    CometLogger,
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
