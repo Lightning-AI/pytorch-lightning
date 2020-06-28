@@ -105,16 +105,16 @@ def test_explicit_args_hparams(tmpdir):
     """
 
     # define model
-    class TestModel(EvalModelTemplate):
+    class LocalModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters('test_arg', 'test_arg2')
 
-    model = TestModel(test_arg=14, test_arg2=90)
+    model = LocalModel(test_arg=14, test_arg2=90)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, TestModel)
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
+    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, LocalModel)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
 
     # config specific tests
     assert model.hparams.test_arg2 == 120
@@ -126,16 +126,16 @@ def test_implicit_args_hparams(tmpdir):
     """
 
     # define model
-    class TestModel(EvalModelTemplate):
+    class LocalModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters()
 
-    model = TestModel(test_arg=14, test_arg2=90)
+    model = LocalModel(test_arg=14, test_arg2=90)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, TestModel)
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
+    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, LocalModel)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=120)
 
     # config specific tests
     assert model.hparams.test_arg2 == 120
@@ -147,12 +147,12 @@ def test_explicit_missing_args_hparams(tmpdir):
     """
 
     # define model
-    class TestModel(EvalModelTemplate):
+    class LocalModel(EvalModelTemplate):
         def __init__(self, test_arg, test_arg2):
             super().__init__()
             self.save_hyperparameters('test_arg')
 
-    model = TestModel(test_arg=14, test_arg2=90)
+    model = LocalModel(test_arg=14, test_arg2=90)
 
     # test proper property assignments
     assert model.hparams.test_arg == 14
@@ -168,7 +168,7 @@ def test_explicit_missing_args_hparams(tmpdir):
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]['test_arg'] == 14
 
     # verify that model loads correctly
-    model = TestModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
     assert model.hparams.test_arg == 14
     assert 'test_arg2' not in model.hparams  # test_arg2 is not registered in class init
 
@@ -475,3 +475,24 @@ def test_nohparams_train_test(tmpdir, cls):
 
     test_loader = DataLoader(TrialMNIST(os.getcwd(), train=False, download=True), batch_size=32)
     trainer.test(test_dataloaders=test_loader)
+
+
+def test_model_ignores_non_exist_kwargument(tmpdir):
+    """ Test that the model takes nly valid class arguments """
+
+    class LocalModel(EvalModelTemplate):
+        def __init__(self, batch_size=15):
+            super().__init__(batch_size=batch_size)
+            self.save_hyperparameters()
+
+    model = LocalModel()
+    assert model.hparams.batch_size == 15
+
+    # verify that the checkpoint saved the correct values
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+
+    # verify that we can overwrite whatever we want
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, non_exist_kwarg=99)
+    assert 'non_exist_kwarg' not in model.hparams
