@@ -4,7 +4,8 @@ local tpus = import 'templates/tpus.libsonnet';
 local tputests = base.BaseTest {
   frameworkPrefix: 'pl',
   modelName: 'tpu-tests',
-  mode: 'presubmit',
+  mode: 'postsubmit',
+  configMaps: [],
 
   timeout: 900, # 15 minutes, in seconds.
 

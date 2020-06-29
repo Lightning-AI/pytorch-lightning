@@ -34,7 +34,7 @@ jobs:
       with:
         repository: GoogleCloudPlatform/ml-testing-accelerators
         path: ml-testing-accelerators
-        ref: 4ebcf060a110a359c2f214d81be7334313ce3c03
+        ref: 9c00d5a97adb35226713e193b8252a8c9789425d
 
     # Setup gcloud CLI.
     - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
