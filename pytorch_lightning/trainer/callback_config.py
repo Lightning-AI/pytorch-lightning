@@ -32,79 +32,47 @@ class TrainerCallbackConfigMixin(ABC):
     def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def configure_checkpoint_callback(self):
+    def configure_checkpoint_callback(self, checkpoint_callback):
         """
         Weight path set in this priority:
         Checkpoint_callback's path (if passed in).
         User provided weights_saved_path
         Otherwise use os.getcwd()
         """
-        ckpt_path = self.default_root_dir
-        if self.checkpoint_callback:
-            # init a default one
-            if self.logger is not None and self.logger.experiment is not None:
-                save_dir = (getattr(self.logger, 'save_dir', None) or
-                            getattr(self.logger, '_save_dir', None) or
-                            self.default_root_dir)
-
-                # weights_save_path overrides anything
-                if self.weights_save_path is not None:
-                    save_dir = self.weights_save_path
-
-                version = self.logger.version if isinstance(
-                    self.logger.version, str) else f'version_{self.logger.version}'
-                ckpt_path = os.path.join(save_dir, self.logger.name, version, "checkpoints")
-            else:
-                ckpt_path = os.path.join(self.default_root_dir, "checkpoints")
-
+        if checkpoint_callback is True:
             # when no val step is defined, use 'loss' otherwise 'val_loss'
             train_step_only = not self.is_overridden('validation_step')
             monitor_key = 'loss' if train_step_only else 'val_loss'
+            checkpoint_callback = ModelCheckpoint(
+                filepath=None,
+                monitor=monitor_key
+            )
+        elif checkpoint_callback is False:
+            checkpoint_callback = None
 
-            if self.checkpoint_callback is True:
-                os.makedirs(ckpt_path, exist_ok=True)
-                self.checkpoint_callback = ModelCheckpoint(
-                    filepath=ckpt_path,
-                    monitor=monitor_key
-                )
-            # If user specified None in filepath, override with runtime default
-            elif isinstance(self.checkpoint_callback, ModelCheckpoint) \
-                    and self.checkpoint_callback.dirpath is None:
-                self.checkpoint_callback.dirpath = ckpt_path
-                self.checkpoint_callback.filename = '{epoch}'
-                os.makedirs(self.checkpoint_callback.dirpath, exist_ok=True)
-        elif self.checkpoint_callback is False:
-            self.checkpoint_callback = None
-
-        self.ckpt_path = ckpt_path
-
-        if self.checkpoint_callback:
-            # set the path for the callbacks
-            self.checkpoint_callback.save_function = self.save_checkpoint
-
-            # if checkpoint callback used, then override the weights path
-            self.weights_save_path = self.checkpoint_callback.dirpath
+        if checkpoint_callback:
+            checkpoint_callback.save_function = self.save_checkpoint
 
         # if weights_save_path is still none here, set to current working dir
         if self.weights_save_path is None:
             self.weights_save_path = self.default_root_dir
 
+        return checkpoint_callback
+
     def configure_early_stopping(self, early_stop_callback):
         if early_stop_callback is True or None:
-            self.early_stop_callback = EarlyStopping(
+            early_stop_callback = EarlyStopping(
                 monitor='val_loss',
                 patience=3,
                 strict=True,
                 verbose=True,
                 mode='min'
             )
-            self.enable_early_stop = True
         elif not early_stop_callback:
-            self.early_stop_callback = None
-            self.enable_early_stop = False
+            early_stop_callback = None
         else:
-            self.early_stop_callback = early_stop_callback
-            self.enable_early_stop = True
+            early_stop_callback = early_stop_callback
+        return early_stop_callback
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         progress_bars = [c for c in self.callbacks if isinstance(c, ProgressBarBase)]

@@ -92,6 +92,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 .. testcode::
 
     from pytorch_lightning.loggers import NeptuneLogger
+
     neptune_logger = NeptuneLogger(
         api_key='ANONYMOUS',  # replace with your own
         project_name='shared/pytorch-lightning-integration',
@@ -193,7 +194,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 .. testcode::
 
     from pytorch_lightning.loggers import WandbLogger
-    wandb_logger = WandbLogger()
+    wandb_logger = WandbLogger(offline=True)
     trainer = Trainer(logger=wandb_logger)
 
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your

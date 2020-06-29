@@ -154,6 +154,7 @@ def test_dp_resume(tmpdir):
         max_epochs=1,
         gpus=2,
         distributed_backend='dp',
+        default_root_dir=tmpdir,
     )
 
     # get logger

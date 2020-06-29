@@ -29,7 +29,7 @@ Automatic saving
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in:
 
-.. testcode::
+.. code-block:: python
 
     trainer = Trainer(default_root_dir='/your/path/to/save/checkpoints')
 

@@ -144,8 +144,7 @@ in your model.
 
 """
 
-import atexit
-import signal
+import subprocess
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
@@ -157,6 +156,7 @@ import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -164,7 +164,6 @@ from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
-import subprocess
 
 try:
     from apex import amp
@@ -212,7 +211,6 @@ class TrainerTrainLoopMixin(ABC):
     fast_dev_run: ...
     accumulation_scheduler: ...
     lr_schedulers: ...
-    enable_early_stop: ...
     early_stop_callback: ...
     callback_metrics: ...
     logger: Union[LightningLoggerBase, bool]
@@ -239,7 +237,6 @@ class TrainerTrainLoopMixin(ABC):
     max_steps: int
     min_steps: int
     total_batch_idx: int
-    checkpoint_callback: ...
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
@@ -264,7 +261,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_evaluation(self, *args):
+    def run_evaluation(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -340,9 +337,6 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('on_train_start'):
             # callbacks
             self.on_train_start()
-            # initialize early stop callback
-            if self.early_stop_callback is not None:
-                self.early_stop_callback.on_train_start(self, self.get_model())
             # model hooks
             model.on_train_start()
 
@@ -375,7 +369,7 @@ class TrainerTrainLoopMixin(ABC):
                 # -----------------
                 self.run_training_epoch()
 
-                if self.max_steps and self.max_steps == self.global_step:
+                if self.max_steps and self.max_steps <= self.global_step:
                     self.run_training_teardown()
                     return
 
@@ -386,19 +380,14 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
-                # TODO wrap this logic into the callback
-                # DO NOT DELETE
-                # early stopping as a (new Callback) class doesn't yet work because we have to know these
-                # trainer flags including the current epoch stuff
-                # all of this needs to go into the early stopping to clean up better
-                if self.enable_early_stop:
+                if self.should_stop:
                     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
-                        should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
-                        # stop training
-                        stop = should_stop and met_min_epochs
-                        if stop:
-                            self.run_training_teardown()
-                            return
+                        self.run_training_teardown()
+                        return
+                    else:
+                        log.info('Trainer was signaled to stop but required minimum epochs'
+                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                                 ' not been met. Training will continue...')
 
             self.run_training_teardown()
 
@@ -444,6 +433,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # bookkeeping
         epoch_output = []
+        should_check_val = False
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -470,22 +460,24 @@ class TrainerTrainLoopMixin(ABC):
             self.update_train_loop_lr_schedulers()
 
             # when returning -1 from train_step, we end epoch early
-            early_stop_epoch = batch_output.signal == -1
+            self.should_stop = batch_output.signal == -1
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
-            should_check_val = self.check_validation_in_train_loop(batch_idx, early_stop_epoch, is_last_batch)
+            should_check_val = self.should_check_val(batch_idx, is_last_batch)
+            if self.fast_dev_run or should_check_val:
+                self.run_evaluation(test_mode=False)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
             # -----------------------------------------
-            self.save_loggers_in_training_loop(batch_idx, early_stop_epoch)
+            self.save_loggers_in_training_loop(batch_idx)
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.save_train_loop_metrics_to_loggers(batch_idx, early_stop_epoch, batch_output)
+            self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
@@ -497,7 +489,7 @@ class TrainerTrainLoopMixin(ABC):
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
-            if early_stop_epoch or self.fast_dev_run:
+            if self.fast_dev_run or self.should_stop:
                 break
 
         # let ddp devices catch up when using horovod
@@ -506,12 +498,18 @@ class TrainerTrainLoopMixin(ABC):
         # process epoch outputs
         self.run_training_epoch_end(epoch_output)
 
-        # when no val loop is present or fast-dev-run still need to call checkpoints
-        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
-            self.call_checkpoint_callback()
+        # checkpoint callback
+        self.check_checkpoint_callback(should_check_val)
 
         # epoch end hook
         self.run_on_epoch_end_hook(model)
+
+    def check_checkpoint_callback(self, should_check_val):
+        # when no val loop is present or fast-dev-run still need to call checkpoints
+        # TODO bake this logic into the checkpoint callback
+        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
+            checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+            [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
     def update_train_loop_lr_schedulers(self):
         if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
@@ -553,33 +551,28 @@ class TrainerTrainLoopMixin(ABC):
             self.global_step += 1
         self.total_batch_idx += 1
 
-    def save_train_loop_metrics_to_loggers(self, batch_idx, early_stop_epoch, batch_output):
+    def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
-        should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
+        should_log_metrics = batch_idx % self.row_log_interval == 0 or self.should_stop
         if should_log_metrics or self.fast_dev_run:
             # logs user requested information to logger
             self.log_metrics(batch_output.batch_log_metrics, batch_output.grad_norm_dic)
 
-    def save_loggers_in_training_loop(self, batch_idx, early_stop_epoch):
+    def save_loggers_in_training_loop(self, batch_idx):
         # when loggers should save to disk
-        should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
+        should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or self.should_stop
         if should_save_log or self.fast_dev_run:
             if self.is_global_zero and self.logger is not None:
                 self.logger.save()
 
-    def check_validation_in_train_loop(self, batch_idx, early_stop_epoch, is_last_batch):
+    def should_check_val(self, batch_idx, is_last_batch):
         # decide if we should run validation
         is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
         can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
         can_check_val = not self.disable_validation and can_check_epoch
-        should_check_val = is_val_check_batch or early_stop_epoch
-        should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
-        should_check_val = can_check_val and should_check_val
-
-        # if we need to run validation, then also call the checkpoint callback
-        if self.fast_dev_run or should_check_val:
-            self.run_evaluation(test_mode=self.testing)
-            self.call_checkpoint_callback()
+        should_check_val = is_val_check_batch or self.should_stop
+        is_last_batch_for_infinite_dataset = (is_last_batch and self.val_check_batch == float('inf'))
+        should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
 
         return should_check_val
 
@@ -983,10 +976,6 @@ class TrainerTrainLoopMixin(ABC):
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
-
-    def call_checkpoint_callback(self):
-        if self.checkpoint_callback is not None:
-            self.checkpoint_callback.on_validation_end(self, self.get_model())
 
 
 def _with_is_last(iterable):

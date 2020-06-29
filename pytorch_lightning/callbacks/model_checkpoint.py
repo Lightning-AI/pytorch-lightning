@@ -226,6 +226,41 @@ class ModelCheckpoint(Callback):
         filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
         return filepath
 
+    def on_train_start(self, trainer, pl_module):
+        """
+        Determine model checkpoint save directory at runtime. References attributes from the
+        Trainer's logger to determine where to save checkpoints.
+        """
+        if self.dirpath is not None:
+            return  # short circuit
+
+        self.filename = '{epoch}'
+
+        if trainer.logger is not None and trainer.logger.experiment is not None:
+            # weights_save_path overrides anything
+            if getattr(trainer, 'weights_save_path', None) is not None:
+                save_dir = trainer.weights_save_path
+            else:
+                save_dir = (getattr(trainer.logger, 'save_dir', None)
+                            or getattr(trainer.logger, '_save_dir', None)
+                            or trainer.default_root_dir)
+
+            version = trainer.logger.version if isinstance(
+                trainer.logger.version, str) else f'version_{trainer.logger.version}'
+            ckpt_path = os.path.join(
+                save_dir,
+                trainer.logger.name,
+                version,
+                "checkpoints"
+            )
+        else:
+            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
+
+        self.dirpath = ckpt_path
+        os.makedirs(self.dirpath, exist_ok=True)
+        trainer.ckpt_path = ckpt_path
+        trainer.weights_save_path = ckpt_path
+
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
