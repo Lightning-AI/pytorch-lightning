@@ -134,6 +134,7 @@ class Trainer(
         amp_level: str = 'O2',
         distributed_backend: Optional[str] = None,
         automatic_optimization: bool = True,
+        multiple_trainloader_mode: str = 'max_size_cycle',
     ):
         r"""
         Customize every aspect of training via flags
@@ -287,7 +288,7 @@ class Trainer(
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
-        self.train_loop = TrainLoop(self)
+        self.train_loop = TrainLoop(self, multiple_trainloader_mode)
         self.plugin_connector = PluginConnector(self)
 
         # training state
