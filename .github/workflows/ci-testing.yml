@@ -33,7 +33,7 @@ jobs:
             os: macOS-10.15
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 50
+    timeout-minutes: 25
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -112,9 +112,9 @@ jobs:
     - name: Cache datasets
       uses: actions/cache@v1
       with:
-        path: tests/Datasets # This path is specific to Ubuntu
+        path: Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
-        key: mnist-dataset
+        key: pl-dataset
 
     - name: Tests
       # env:
