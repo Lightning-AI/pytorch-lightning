@@ -559,9 +559,11 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
     class TestBestModel(EvalModelTemplate):
         @classmethod
         def load_from_checkpoint(cls, checkpoint_path, *args, **kwargs):
+            assert args == (1, 2, 3)
+            assert kwargs == {'kw1': 'a', 'kw2': 'b', 'kw3': 'c'}
             nonlocal loaded_checkpoint_path
             loaded_checkpoint_path = checkpoint_path
-            return super().load_from_checkpoint(checkpoint_path, *args, **kwargs)
+            return super().load_from_checkpoint(checkpoint_path)
 
     model = TestBestModel(**hparams)
     trainer = Trainer(
@@ -577,7 +579,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             with pytest.raises(MisconfigurationException, match='.*is not configured to save the best.*'):
                 trainer.test(ckpt_path=ckpt_path)
         else:
-            trainer.test(ckpt_path=ckpt_path)
+            trainer.test(1, 2, 3, ckpt_path=ckpt_path, kw1='a', kw2='b', kw3='c')
             assert loaded_checkpoint_path == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
@@ -588,10 +590,10 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
             with pytest.raises(FileNotFoundError):
-                trainer.test(ckpt_path='random.ckpt')
+                trainer.test(1, 2, 3, ckpt_path='random.ckpt', kw1='a', kw2='b', kw3='c')
         else:
             ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0].absolute())
-            trainer.test(ckpt_path=ckpt_path)
+            trainer.test(1, 2, 3, ckpt_path=ckpt_path, kw1='a', kw2='b', kw3='c')
             assert loaded_checkpoint_path == ckpt_path
 
 

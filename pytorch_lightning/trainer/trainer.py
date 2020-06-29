@@ -1101,15 +1101,19 @@ class Trainer(
 
     def test(
             self,
+            *args,
             model: Optional[LightningModule] = None,
             test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            ckpt_path: Optional[str] = 'best'
+            ckpt_path: Optional[str] = 'best',
+            **kwargs,
     ):
         r"""
 
         Separates from fit to make sure you never run on your test set until you want to.
 
         Args:
+            args: Any positional args needed to load the model from a checkpoint.
+
             model: The model to test.
 
             test_dataloaders: Either a single
@@ -1117,6 +1121,8 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
+            kwargs: Any keyword args needed to load the model from a checkpoint.
 
         Example::
 
@@ -1171,7 +1177,7 @@ class Trainer(
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
-            model = self.get_model().load_from_checkpoint(ckpt_path)
+            model = self.get_model().load_from_checkpoint(ckpt_path, *args, **kwargs)
 
         self.testing = True
 
@@ -1281,6 +1287,7 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
+
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
