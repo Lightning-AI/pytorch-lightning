@@ -345,7 +345,6 @@ class Trainer(
         # training state
         self.model = None
         self.testing = False
-        self.disable_validation = False
         self.prepare_data_per_node = prepare_data_per_node
         self.lr_schedulers = []
         self.optimizers = None
@@ -798,6 +797,18 @@ class Trainer(
         ref_model = self.model if not self.data_parallel else self.model.module
         return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
 
+    @property
+    def disable_validation(self) -> bool:
+        """ Check if validation is disabled during training. """
+        disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
+            and not self.fast_dev_run
+        return disable_validation
+
+    @property
+    def enable_validation(self) -> bool:
+        """ Check if we should run validation during training. """
+        return not self.disable_validation
+
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
@@ -1066,13 +1077,12 @@ class Trainer(
             self.run_evaluation(test_mode=True)
             return
 
-        # check if we should run validation during training
-        self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
-            and not self.fast_dev_run
+        should_sanity_check = self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 \
+            and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
-        if not self.disable_validation and self.num_sanity_val_steps > 0:
+        if should_sanity_check:
             self.reset_val_dataloader(ref_model)
 
             # hook and callback

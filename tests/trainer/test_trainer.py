@@ -810,7 +810,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
 
 
 @pytest.mark.parametrize(['limit_val_batches'], [
-    pytest.param(0.0),
+    pytest.param(0.0),  # this should run no sanity checks
     pytest.param(1),
     pytest.param(1.0),
     pytest.param(0.3),
@@ -834,7 +834,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 
     with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
         trainer.fit(model, val_dataloaders=val_dataloaders)
-        assert mocked.call_count == sum(len(dl) for dl in val_dataloaders)
+        assert mocked.call_count == sum(len(dl) * (limit_val_batches > 0) for dl in val_dataloaders)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
