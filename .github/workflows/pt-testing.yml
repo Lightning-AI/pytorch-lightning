@@ -70,7 +70,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)"
+        python -c "fname = 'requirements/base.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)"
         # python -m pip install --upgrade --user pip
         HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install -r ./requirements/devel.txt --quiet
         pip install -r ./requirements/examples.txt --quiet
