@@ -5,6 +5,7 @@ Early Stopping
 Monitor a validation metric and stop training when it stops improving.
 
 """
+from copy import deepcopy
 
 import numpy as np
 import torch
@@ -58,7 +59,7 @@ class EarlyStopping(Callback):
         self.verbose = verbose
         self.strict = strict
         self.min_delta = min_delta
-        self.wait = 0
+        self.wait_count = 0
         self.stopped_epoch = 0
         self.mode = mode
 
@@ -76,12 +77,17 @@ class EarlyStopping(Callback):
                 log.info(f'EarlyStopping mode set to {self.mode} for monitoring {self.monitor}.')
 
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
+        self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def _validate_condition_metric(self, logs):
         """
         Checks that the condition metric for early stopping is good
-        :param logs:
-        :return:
+
+        Args:
+            logs: callback metrics from validation output
+
+        Return:
+             True if specified metric is available
         """
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
@@ -103,39 +109,48 @@ class EarlyStopping(Callback):
     def monitor_op(self):
         return self.mode_dict[self.mode]
 
-    def on_train_start(self, trainer, pl_module):
-        # Allow instances to be re-used
-        self.wait = 0
-        self.stopped_epoch = 0
-        self.best = torch_inf if self.monitor_op == torch.lt else -torch_inf
+    def state_dict(self):
+        return {
+            'wait_count': self.wait_count,
+            'stopped_epoch': self.stopped_epoch,
+            'best_score': self.best_score,
+            'patience': self.patience
+        }
+
+    def load_state_dict(self, state_dict):
+        state_dict = deepcopy(state_dict)
+        self.wait_count = state_dict['wait_count']
+        self.stopped_epoch = state_dict['stopped_epoch']
+        self.best_score = state_dict['best_score']
+        self.patience = state_dict['patience']
+
+    def on_sanity_check_end(self, trainer, pl_module):
+        logs = trainer.callback_metrics
+        self._validate_condition_metric(logs)
 
     def on_validation_end(self, trainer, pl_module):
-        return self._run_early_stopping_check(trainer, pl_module)
+        self._run_early_stopping_check(trainer, pl_module)
 
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
-        stop_training = False
         if not self._validate_condition_metric(logs):
-            return stop_training
+            return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
 
-        if self.monitor_op(current - self.min_delta, self.best):
-            self.best = current
-            self.wait = 0
+        if self.monitor_op(current - self.min_delta, self.best_score):
+            self.best_score = current
+            self.wait_count = 0
         else:
-            self.wait += 1
-            if self.wait >= self.patience:
+            self.wait_count += 1
+            if self.wait_count >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
-                stop_training = True
-                self.on_train_end(trainer, pl_module)
-
-        return stop_training
+                trainer.should_stop = True
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
             rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
                            ' but will start from "0" in v0.8.0.', DeprecationWarning)
-            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping')
+            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping triggered.')

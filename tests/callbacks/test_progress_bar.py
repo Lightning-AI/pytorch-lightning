@@ -13,10 +13,11 @@ from tests.base import EvalModelTemplate
     ([ProgressBar(refresh_rate=2)], 0),
     ([ProgressBar(refresh_rate=2)], 1),
 ])
-def test_progress_bar_on(callbacks, refresh_rate):
+def test_progress_bar_on(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned on."""
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
         max_epochs=1,
@@ -34,10 +35,11 @@ def test_progress_bar_on(callbacks, refresh_rate):
     ([], False),
     ([ModelCheckpoint('../trainer')], 0),
 ])
-def test_progress_bar_off(callbacks, refresh_rate):
+def test_progress_bar_off(tmpdir, callbacks, refresh_rate):
     """Test different ways the progress bar can be turned off."""
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=callbacks,
         progress_bar_refresh_rate=refresh_rate,
     )
@@ -54,12 +56,13 @@ def test_progress_bar_misconfiguration():
         Trainer(callbacks=callbacks)
 
 
-def test_progress_bar_totals():
+def test_progress_bar_totals(tmpdir):
     """Test that the progress finishes with the correct total steps processed."""
 
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=1,
         limit_val_batches=1.0,
         max_epochs=1,
@@ -105,10 +108,11 @@ def test_progress_bar_totals():
     assert bar.test_batch_idx == k
 
 
-def test_progress_bar_fast_dev_run():
+def test_progress_bar_fast_dev_run(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         fast_dev_run=True,
     )
 
@@ -136,7 +140,7 @@ def test_progress_bar_fast_dev_run():
 
 
 @pytest.mark.parametrize('refresh_rate', [0, 1, 50])
-def test_progress_bar_progress_refresh(refresh_rate):
+def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     """Test that the three progress bars get correctly updated when using different refresh rates."""
 
     model = EvalModelTemplate()
@@ -172,6 +176,7 @@ def test_progress_bar_progress_refresh(refresh_rate):
 
     progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)
     trainer = Trainer(
+        default_root_dir=tmpdir,
         callbacks=[progress_bar],
         progress_bar_refresh_rate=101,  # should not matter if custom callback provided
         limit_train_batches=1.0,

@@ -95,6 +95,7 @@ import torch.distributed as torch_distrib
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
@@ -328,26 +329,32 @@ class TrainerIOMixin(ABC):
         }
 
         if not weights_only:
-            if self.checkpoint_callback:
+
+            # TODO support more generic way for callbacks to persist a state_dict in a checkpoint
+            checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+            early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+            if checkpoint_callbacks:
+                # we add the official checkpoint callback to the end of the list
+                # extra user provided callbacks will not be persisted yet
                 checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
                 checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
 
-            if self.early_stop_callback:
-                checkpoint['early_stop_callback_wait'] = self.early_stop_callback.wait
-                checkpoint['early_stop_callback_patience'] = self.early_stop_callback.patience
+            if early_stopping_callbacks and checkpoint_callbacks:
+                # we add the official early stopping callback to the end of the list
+                # extra user provided callbacks will not be persisted yet
+                checkpoint['early_stop_callback_state_dict'] = early_stopping_callbacks[-1].state_dict()
 
             # save optimizers
             optimizer_states = []
             for i, optimizer in enumerate(self.optimizers):
                 optimizer_states.append(optimizer.state_dict())
-
             checkpoint['optimizer_states'] = optimizer_states
 
             # save lr schedulers
             lr_schedulers = []
             for scheduler in self.lr_schedulers:
                 lr_schedulers.append(scheduler['scheduler'].state_dict())
-
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
@@ -405,21 +412,25 @@ class TrainerIOMixin(ABC):
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
-        if self.checkpoint_callback:
+        # TODO support more generic way for callbacks to load callback state_dicts
+        checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+        early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+
+        if checkpoint_callbacks:
             if 'checkpoint_callback_best_model_score' in checkpoint:
-                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best_model_score']
+                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best_model_score']
             else:
                 # Old naming until version 0.7.6
                 rank_zero_warn(
                     'Loading a checkpoint created with an old version of Lightning; '
                     'this will not be supported in the future.'
                 )
-                self.checkpoint_callback.best_model_score = checkpoint['checkpoint_callback_best']
-            self.checkpoint_callback.best_model_path = checkpoint['checkpoint_callback_best_model_path']
+                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best']
+            checkpoint_callbacks[-1].best_model_path = checkpoint['checkpoint_callback_best_model_path']
 
-        if self.early_stop_callback:
-            self.early_stop_callback.wait = checkpoint['early_stop_callback_wait']
-            self.early_stop_callback.patience = checkpoint['early_stop_callback_patience']
+        if early_stopping_callbacks:
+            state = checkpoint['early_stop_callback_state_dict']
+            early_stopping_callbacks[-1].load_state_dict(state)
 
         self.global_step = checkpoint['global_step']
         self.current_epoch = checkpoint['epoch']

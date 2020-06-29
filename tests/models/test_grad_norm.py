@@ -84,6 +84,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     logger = OnlyMetricsListLogger()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=3,
         logger=logger,
         track_grad_norm=norm_type,

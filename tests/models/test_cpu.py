@@ -24,6 +24,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
         limit_train_batches=0.2,
@@ -54,13 +55,14 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(tmpdir, logger)
+    saved_filepath = trainer.hpc_save(trainer.weights_save_path, logger)
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
@@ -212,6 +214,7 @@ def test_running_test_no_val(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,

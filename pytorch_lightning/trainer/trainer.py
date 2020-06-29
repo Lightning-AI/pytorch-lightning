@@ -328,9 +328,60 @@ class Trainer(
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = os.environ['LOCAL_RANK']
 
-        # Init callbacks
+        # training bookeeping
+        self.total_batch_idx = 0
+        self.running_loss = TensorRunningAccum(window_length=20)
+        self.batch_idx = 0
+        self.progress_bar_metrics = {}
+        self.callback_metrics = {}
+        self.num_training_batches = 0
+        self.num_val_batches = []
+        self.num_test_batches = []
+        self.train_dataloader = None
+        self.test_dataloaders = None
+        self.val_dataloaders = None
+
+        # training state
+        self.model = None
+        self.testing = False
+        self.disable_validation = False
         self.prepare_data_per_node = prepare_data_per_node
+        self.lr_schedulers = []
+        self.optimizers = None
+        self.optimizer_frequencies = []
+        self.global_step = 0
+        self.current_epoch = 0
+        self.interrupted = False
+        self.should_stop = False
+
+        # set default save path if user didn't provide one
+        if default_root_dir is None:
+            default_root_dir = os.getcwd()
+        self.default_root_dir = default_root_dir
+
+        self.configure_logger(logger)
+
+        # init callbacks
         self.callbacks = callbacks or []
+
+        # configure early stop callback
+        # creates a default one if none passed in
+        early_stop_callback = self.configure_early_stopping(early_stop_callback)
+        if early_stop_callback:
+            self.callbacks.append(early_stop_callback)
+
+        # configure checkpoint callback
+        # it is important that this is the last callback to run
+        # pass through the required args to figure out defaults
+        self.weights_save_path = weights_save_path
+        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
+        if checkpoint_callback:
+            self.callbacks.append(checkpoint_callback)
+
+        # TODO refactor codebase (tests) to not directly reach into these callbacks
+        self.checkpoint_callback = checkpoint_callback
+        self.early_stop_callback = early_stop_callback
+
         self.on_init_start()
 
         # benchmarking
@@ -399,51 +450,10 @@ class Trainer(
             rank_zero_info('Running in fast_dev_run mode: will run a full train,'
                            ' val and test loop using a single batch')
 
-        # set default save path if user didn't provide one
-        self.default_root_dir = default_root_dir
-
-        if self.default_root_dir is None:
-            self.default_root_dir = os.getcwd()
-
-        # training bookeeping
-        self.total_batch_idx = 0
-        self.running_loss = TensorRunningAccum(window_length=20)
-        self.batch_idx = 0
-        self.progress_bar_metrics = {}
-        self.callback_metrics = {}
-        self.num_val_batches = [0]
-        self.num_training_batches = 0
-        self.num_test_batches = [0]
-        self.train_dataloader = None
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-
-        # training state
-        self.model = None
-        self.testing = False
-        self.disable_validation = False
-        self.lr_schedulers = []
-        self.optimizers = None
-        self.optimizer_frequencies = []
-        self.global_step = 0
-        self.current_epoch = 0
-        self.interrupted = False
-
-        # configure logger
-        self.configure_logger(logger)
-
         # configure profiler
         if profiler is True:
             profiler = SimpleProfiler()
         self.profiler = profiler or PassThroughProfiler()
-
-        # configure early stop callback
-        # creates a default one if none passed in
-        self.configure_early_stopping(early_stop_callback)
-
-        # configure checkpoint callback
-        self.checkpoint_callback = checkpoint_callback
-        self.weights_save_path = weights_save_path
 
         # accumulated grads
         self.accumulate_grad_batches = accumulate_grad_batches
@@ -1045,9 +1055,6 @@ class Trainer(
         # if cluster resets state, the model will update with the saved weights
         self.model = model
 
-        # set up checkpoint callback
-        self.configure_checkpoint_callback()
-
         # restore training and model before hpc call
         self.restore_weights(model)
 
@@ -1078,12 +1085,9 @@ class Trainer(
                                           max_batches,
                                           False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
+            self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
-
-            # verify that early stop has conditioned on a metric that exists
-            if self.enable_early_stop:
-                self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # clear cache before training
         if self.on_gpu and self.root_gpu is not None:
