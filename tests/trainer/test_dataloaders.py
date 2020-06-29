@@ -12,7 +12,6 @@ from tests.base import EvalModelTemplate
 
 
 def test_fit_train_loader_only(tmpdir):
-
     model = EvalModelTemplate()
     train_dataloader = model.train_dataloader()
 
@@ -31,7 +30,6 @@ def test_fit_train_loader_only(tmpdir):
 
 
 def test_fit_val_loader_only(tmpdir):
-
     model = EvalModelTemplate()
     train_dataloader = model.train_dataloader()
     val_dataloader = model.val_dataloader()
@@ -489,7 +487,6 @@ def test_warning_with_few_workers(tmpdir, ckpt_path):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
 def test_dataloader_reinit_for_subclass():
-
     class CustomDataLoader(torch.utils.data.DataLoader):
         def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
                      batch_sampler=None, num_workers=0, collate_fn=None,
@@ -583,6 +580,29 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     # where we will get fewer metrics than gpus
     result = trainer.fit(model)
     assert 1 == result
+
+
+def test_fit_multiple_train_loaders(tmpdir):
+    class MutipleLoaderModel(EvalModelTemplate):
+        def train_dataloader(self):
+            return {'a': super().train_dataloader(),
+                    'b': super().train_dataloader()}
+
+        def training_step(self, batch, batch_idx, optimizer_idx=None):
+            assert isinstance(batch, dict)
+            assert len(batch) == 2
+            assert 'a' in batch and 'b' in batch
+            return super().training_step(batch=batch['a'], batch_idx=batch_idx,
+                                         optimizer_idx=optimizer_idx)
+
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    model = MutipleLoaderModel(**hparams)
+
+    trainer = Trainer(
+        fast_dev_run=True, default_root_dir=tmpdir
+    )
+    assert 1 == trainer.fit(model)
 
 
 @pytest.mark.parametrize('check_interval', [1.0])
