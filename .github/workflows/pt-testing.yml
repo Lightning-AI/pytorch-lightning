@@ -34,6 +34,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    # TODO: use conda instead
+    #- name: Setup conda
+    #  uses: s-weigand/setup-conda@v1
+    #  with:
+    #    update-conda: true
+    #    python-version: ${{ matrix.python-version }}
+    #    conda-channels: anaconda, conda-forge
+
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     # note this os only Ubuntu based caching...
@@ -42,13 +50,8 @@ jobs:
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-pip-${{ hashFiles('requirements/base.txt') }}-${{ hashFiles('requirements/extra.txt') }}
-          restore-keys: |
+        restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-pip-
-
-    - name: Install stable PyTorch version
-      run: |
-        pip install torch==${{ matrix.pytorch-version }} -U -f https://download.pytorch.org/whl/torch_stable.html -q
-      shell: bash
 
     - name: Install stable PyTorch version
       if: matrix.pytorch-version <= 1.5
@@ -59,7 +62,7 @@ jobs:
     - name: Install nightly PyTorch version
       if: matrix.pytorch-version > 1.5
       run: |
-        pip install torch==${{ matrix.pytorch-version }} -U -f https://download.pytorch.org/whl/torch_stable.html -q
+        pip install torch==${{ matrix.pytorch-version }} -U -f https://download.pytorch.org/whl/torch_nightly.html -q
       shell: bash
 
     - name: Install dependencies
