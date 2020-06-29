@@ -9,6 +9,8 @@ import importlib
 TORCHTEXT_AVAILABLE = importlib.util.find_spec("torchtext") is not None
 if TORCHTEXT_AVAILABLE:
     from torchtext.data import Batch
+else:
+    Batch = None
 
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
