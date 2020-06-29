@@ -5,15 +5,15 @@ Progress Bars
 Use or override one of the progress bar callbacks.
 
 """
+import importlib
 import sys
 
-try:
-    # try importing ipywidgets before importing tqdm
-    # to ensure it won't fail and a progress bar is displayed
-    import ipywidgets
+
+# check if ipywidgets is installed before importing tqdm.auto
+# to ensure it won't fail and a progress bar is displayed
+if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm
-except ImportError as e:
-    # otherwise import tqdm only to print text like progress bar
+else:
     from tqdm import tqdm
 
 from pytorch_lightning.callbacks import Callback
