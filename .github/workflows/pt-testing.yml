@@ -72,11 +72,13 @@ jobs:
       run: |
         python -c "fname = 'requirements/base.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)"
         # python -m pip install --upgrade --user pip
-        HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install -r ./requirements/devel.txt --quiet
-        pip install -r ./requirements/examples.txt --quiet
+        conda install --file ./requirements/base.txt --quiet --channel conda-forge
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" conda install --file ./requirements/extra.txt --quiet --channel conda-forge
+        conda install --file ./requirements/test.txt --quiet --channel conda-forge
+        conda install --file ./requirements/examples.txt --quiet --channel conda-forge
         python --version
-        pip --version
-        pip list
+        conda info
+        conda list
       shell: bash
 
     - name: Reinstall Horovod if necessary
