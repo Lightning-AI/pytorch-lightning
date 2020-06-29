@@ -50,23 +50,28 @@ jobs:
     #    restore-keys: |
     #        ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-pip-
 
+    - name: Create conda
+      run: |
+        conda create --name ci-torch
+        conda activate ci-torch
+      shell: bash
+
     - name: Install stable PyTorch version
       if: matrix.pytorch-version <= 1.6
       run: |
-        conda install pytorch=${{ matrix.pytorch-version }} --channel pytorch
+        conda install pytorch=${{ matrix.pytorch-version }} --name ci-torch --channel pytorch
       shell: bash
 
     - name: Install nightly PyTorch version
       if: matrix.pytorch-version > 1.6
       run: |
-        conda install pytorch=${{ matrix.pytorch-version }} --channel pytorch-nightly
+        conda install pytorch=${{ matrix.pytorch-version }} --name ci-torch --channel pytorch-nightly
       shell: bash
 
     - name: Install dependencies
       run: |
-        conda activate base
         # python -m pip install --upgrade --user pip
-        HOROVOD_BUILD_ARCH_FLAGS="-mfma" conda env update --file environment.yml --satisfied-skip-solve --name base
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" conda env update --file environment.yml --satisfied-skip-solve --name ci-torch
         python --version
         conda info
         conda list
@@ -75,7 +80,6 @@ jobs:
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows' && matrix.python-version != '3.8'
       run: |
-        conda activate base
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
@@ -93,7 +97,6 @@ jobs:
 
     - name: Tests
       run: |
-        conda activate base
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning tests pl_examples -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
