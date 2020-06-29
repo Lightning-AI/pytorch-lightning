@@ -5,7 +5,8 @@ import pytest
 import torch
 from packaging.version import parse as version_parse
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -23,11 +24,12 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -53,13 +55,14 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(tmpdir, logger)
+    saved_filepath = trainer.hpc_save(trainer.weights_save_path, logger)
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
@@ -97,7 +100,7 @@ def test_early_stopping_cpu_model(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
     model.freeze()
@@ -122,11 +125,11 @@ def test_multi_cpu_model_ddp(tmpdir):
         limit_val_batches=0.2,
         gpus=None,
         num_processes=2,
-        distributed_backend='ddp_cpu'
+        distributed_backend='ddp_cpu',
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):
@@ -145,7 +148,7 @@ def test_lbfgs_cpu_model(tmpdir):
                    learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
-    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
+    tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -161,7 +164,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test_without_loggers(trainer_options, model)
+    tpipes.run_model_test_without_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -187,7 +190,7 @@ def test_running_test_after_fitting(tmpdir):
         limit_val_batches=0.2,
         limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
     )
     result = trainer.fit(model)
 
@@ -211,6 +214,7 @@ def test_running_test_no_val(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
@@ -218,7 +222,7 @@ def test_running_test_no_val(tmpdir):
         limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
-        early_stop_callback=False
+        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -259,7 +263,7 @@ def test_cpu_model(tmpdir):
 
     model = EvalModelTemplate()
 
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_all_features_cpu_model(tmpdir):
@@ -277,7 +281,7 @@ def test_all_features_cpu_model(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_tbptt_cpu_model(tmpdir):
@@ -344,7 +348,7 @@ def test_tbptt_cpu_model(tmpdir):
         truncated_bptt_steps=truncated_bptt_steps,
         limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False
+        early_stop_callback=False,
     )
     result = trainer.fit(model)
 

@@ -14,7 +14,7 @@ on:
 # on: [push, pull_request]
 
 jobs:
-  build:
+  pytest:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -33,11 +33,11 @@ jobs:
             os: macOS-10.15
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 15
+    timeout-minutes: 50
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -122,8 +122,9 @@ jobs:
       run: |
         # tox --sitepackages
         # flake8 .
-        coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        coverage report
+        # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
+        python -m pytest pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        # coverage report
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
@@ -139,6 +140,7 @@ jobs:
         python setup.py check --metadata --strict
         python setup.py sdist
         twine check dist/*
+
     #- name: Try install package
     #  if: ! startsWith(matrix.os, 'windows')
     #  run: |
@@ -146,7 +148,7 @@ jobs:
     #    pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
     #    deactivate ; rm -rf vEnv
 
-    - name: Statistics
-      if: success()
-      run: |
-         coverage report
+    #- name: Statistics
+    #  if: success()
+    #  run: |
+    #     coverage report

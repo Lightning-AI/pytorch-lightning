@@ -3,12 +3,14 @@ from collections import namedtuple
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
 PRETEND_N_OF_GPUS = 16
 
@@ -27,7 +29,7 @@ def test_single_gpu_model(tmpdir, gpus):
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.mark.spawn
@@ -62,13 +64,15 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    trainer_options = dict(default_root_dir=tmpdir,
-                           progress_bar_refresh_rate=0,
-                           max_epochs=1,
-                           limit_train_batches=0.1,
-                           limit_val_batches=0.1,
-                           gpus=[0, 1],
-                           distributed_backend='ddp')
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
 
     model = EvalModelTemplate()
     fit_options = dict(train_dataloader=model.train_dataloader(),
@@ -94,7 +98,7 @@ def test_multi_gpu_none_backend(tmpdir):
 
     model = EvalModelTemplate()
     with pytest.warns(UserWarning):
-        tutils.run_model_test(trainer_options, model)
+        tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.fixture
@@ -286,3 +290,44 @@ def test_single_gpu_batch_parse():
     batch = trainer.transfer_batch_to_gpu(batch, 0)
     assert batch[0].a.device.index == 0
     assert batch[0].a.type() == 'torch.cuda.FloatTensor'
+
+    # non-Tensor that has `.to()` defined
+    class CustomBatchType:
+        def __init__(self):
+            self.a = torch.rand(2, 2)
+
+        def to(self, *args, **kwargs):
+            self.a = self.a.to(*args, **kwargs)
+            return self
+
+    batch = trainer.transfer_batch_to_gpu(CustomBatchType())
+    assert batch.a.type() == 'torch.cuda.FloatTensor'
+
+    # torchtext.data.Batch
+    samples = [
+        {'text': 'PyTorch Lightning is awesome!', 'label': 0},
+        {'text': 'Please make it work with torchtext', 'label': 1}
+    ]
+
+    text_field = Field()
+    label_field = LabelField()
+    fields = {
+        'text': ('text', text_field),
+        'label': ('label', label_field)
+    }
+
+    examples = [Example.fromdict(sample, fields) for sample in samples]
+    dataset = Dataset(
+        examples=examples,
+        fields=fields.values()
+    )
+
+    # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
+    text_field.build_vocab(dataset)
+    label_field.build_vocab(dataset)
+
+    batch = Batch(data=examples, dataset=dataset)
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+
+    assert batch.text.type() == 'torch.cuda.LongTensor'
+    assert batch.label.type() == 'torch.cuda.LongTensor'

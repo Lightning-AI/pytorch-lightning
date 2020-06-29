@@ -2,7 +2,7 @@ from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
 
-def test_trainingstep_dict(tmpdir):
+def test_training_step_dict(tmpdir):
     """
     Tests that only training_step can be used
     """
@@ -10,7 +10,11 @@ def test_trainingstep_dict(tmpdir):
     model.training_step = model.training_step_dict_return
     model.val_dataloader = None
 
-    trainer = Trainer(fast_dev_run=True, weights_summary=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        weights_summary=None,
+    )
     trainer.fit(model)
 
     # make sure correct steps were called
@@ -23,12 +27,11 @@ def test_trainingstep_dict(tmpdir):
         break
 
     out = trainer.run_training_batch(batch, batch_idx)
-    signal, grad_norm_dic, all_log_metrics, training_step_output_for_epoch_end = out
-    assert signal == 0
-    assert all_log_metrics['log_acc1'] == 12.0
-    assert all_log_metrics['log_acc2'] == 7.0
+    assert out.signal == 0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
-    pbar_metrics = training_step_output_for_epoch_end['pbar_on_batch_end']
+    pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
     assert pbar_metrics['pbar_acc2'] == 19.0
 
@@ -55,12 +58,11 @@ def training_step_with_step_end(tmpdir):
         break
 
     out = trainer.run_training_batch(batch, batch_idx)
-    signal, grad_norm_dic, all_log_metrics, training_step_output_for_epoch_end = out
-    assert signal == 0
-    assert all_log_metrics['log_acc1'] == 12.0
-    assert all_log_metrics['log_acc2'] == 7.0
+    assert out.signal == 0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
-    pbar_metrics = training_step_output_for_epoch_end['pbar_on_batch_end']
+    pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
     assert pbar_metrics['pbar_acc2'] == 19.0
 
@@ -75,7 +77,11 @@ def test_full_training_loop_dict(tmpdir):
     model.training_epoch_end = model.training_epoch_end_dict
     model.val_dataloader = None
 
-    trainer = Trainer(max_epochs=1, weights_summary=None)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
     trainer.fit(model)
 
     # make sure correct steps were called
@@ -92,12 +98,11 @@ def test_full_training_loop_dict(tmpdir):
         break
 
     out = trainer.run_training_batch(batch, batch_idx)
-    signal, grad_norm_dic, all_log_metrics, training_step_output_for_epoch_end = out
-    assert signal == 0
-    assert all_log_metrics['log_acc1'] == 12.0
-    assert all_log_metrics['log_acc2'] == 7.0
+    assert out.signal == 0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
-    pbar_metrics = training_step_output_for_epoch_end['pbar_on_batch_end']
+    pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
     assert pbar_metrics['pbar_acc2'] == 19.0
 
@@ -129,11 +134,10 @@ def test_train_step_epoch_end(tmpdir):
         break
 
     out = trainer.run_training_batch(batch, batch_idx)
-    signal, grad_norm_dic, all_log_metrics, training_step_output_for_epoch_end = out
-    assert signal == 0
-    assert all_log_metrics['log_acc1'] == 12.0
-    assert all_log_metrics['log_acc2'] == 7.0
+    assert out.signal == 0
+    assert out.batch_log_metrics['log_acc1'] == 12.0
+    assert out.batch_log_metrics['log_acc2'] == 7.0
 
-    pbar_metrics = training_step_output_for_epoch_end['pbar_on_batch_end']
+    pbar_metrics = out.training_step_output_for_epoch_end['pbar_on_batch_end']
     assert pbar_metrics['pbar_acc1'] == 17.0
     assert pbar_metrics['pbar_acc2'] == 19.0

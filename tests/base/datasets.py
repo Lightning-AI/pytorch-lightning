@@ -136,9 +136,15 @@ class TrialMNIST(MNIST):
         tensor([100, 100, 100])
     """
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2)):
+    def __init__(
+            self,
+            root: str = PATH_DATASETS,
+            train: bool = True,
+            normalize: tuple = (0.5, 1.0),
+            download: bool = False,
+            num_samples: int = 100,
+            digits: Optional[Sequence] = (0, 1, 2),
+    ):
 
         # number of examples per class
         self.num_samples = num_samples

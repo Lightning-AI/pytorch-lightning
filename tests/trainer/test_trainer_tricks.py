@@ -1,11 +1,11 @@
 import pytest
 import torch
+from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 
 def test_overfit_batch_limits(tmpdir):
@@ -118,7 +118,7 @@ def test_model_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     before_state_dict = model.state_dict()
@@ -141,7 +141,7 @@ def test_trainer_reset_correctly(tmpdir):
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_epochs=1,
     )
 
     changed_attributes = ['max_steps',
@@ -150,7 +150,6 @@ def test_trainer_reset_correctly(tmpdir):
                           'callbacks',
                           'checkpoint_callback',
                           'early_stop_callback',
-                          'enable_early_stop',
                           'limit_train_batches']
 
     attributes_before = {}
@@ -224,7 +223,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
-        auto_scale_batch_size='power'
+        auto_scale_batch_size='power',
     )
     fit_options = dict(train_dataloader=model.dataloader(train=True))
 

@@ -77,6 +77,7 @@ references:
      name: Testing Documentation
      command: |
        # Second run examples in docs
+       bash tests/install_AMP.sh
        sudo apt-get update && sudo apt-get install -y cmake
        sudo pip install -r requirements/docs.txt
        cd docs; make doctest; make coverage
@@ -177,10 +178,10 @@ workflows:
   version: 2
   build:
     jobs:
-      - Formatting
-      - Build-Docs
+      #- Formatting
+      #- Build-Docs
       - PyTorch-v1_3
       - PyTorch-v1_4
       - PyTorch-v1_5
-      - Install-pkg
+      #- Install-pkg
       - Examples

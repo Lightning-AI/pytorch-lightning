@@ -144,8 +144,7 @@ in your model.
 
 """
 
-import atexit
-import signal
+import subprocess
 from abc import ABC, abstractmethod
 from typing import Callable
 from typing import Union, List
@@ -157,14 +156,14 @@ import torch.distributed as torch_distrib
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
-import subprocess
 
 try:
     from apex import amp
@@ -183,7 +182,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -212,7 +211,6 @@ class TrainerTrainLoopMixin(ABC):
     fast_dev_run: ...
     accumulation_scheduler: ...
     lr_schedulers: ...
-    enable_early_stop: ...
     early_stop_callback: ...
     callback_metrics: ...
     logger: Union[LightningLoggerBase, bool]
@@ -239,7 +237,6 @@ class TrainerTrainLoopMixin(ABC):
     max_steps: int
     min_steps: int
     total_batch_idx: int
-    checkpoint_callback: ...
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
@@ -264,7 +261,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_evaluation(self, *args):
+    def run_evaluation(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -340,9 +337,6 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('on_train_start'):
             # callbacks
             self.on_train_start()
-            # initialize early stop callback
-            if self.early_stop_callback is not None:
-                self.early_stop_callback.on_train_start(self, self.get_model())
             # model hooks
             model.on_train_start()
 
@@ -375,7 +369,7 @@ class TrainerTrainLoopMixin(ABC):
                 # -----------------
                 self.run_training_epoch()
 
-                if self.max_steps and self.max_steps == self.global_step:
+                if self.max_steps and self.max_steps <= self.global_step:
                     self.run_training_teardown()
                     return
 
@@ -386,19 +380,14 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
-                # TODO wrap this logic into the callback
-                # DO NOT DELETE
-                # early stopping as a (new Callback) class doesn't yet work because we have to know these
-                # trainer flags including the current epoch stuff
-                # all of this needs to go into the early stopping to clean up better
-                if self.enable_early_stop:
+                if self.should_stop:
                     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
-                        should_stop = self.early_stop_callback.on_validation_end(self, self.get_model())
-                        # stop training
-                        stop = should_stop and met_min_epochs
-                        if stop:
-                            self.run_training_teardown()
-                            return
+                        self.run_training_teardown()
+                        return
+                    else:
+                        log.info('Trainer was signaled to stop but required minimum epochs'
+                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                                 ' not been met. Training will continue...')
 
             self.run_training_teardown()
 
@@ -410,16 +399,18 @@ class TrainerTrainLoopMixin(ABC):
                 self.interrupted = True
                 self.on_keyboard_interrupt()
 
-                for proc in self.interactive_ddp_procs:
-                    subprocess.Popen.kill(proc)
-
                 self.run_training_teardown()
 
-    def run_training_epoch(self):
+    def prepare_train_loop_dataloader(self, train_dataloader):
+        # on TPU we have to wrap it under the ParallelLoader
+        if self.use_tpu:
+            device = xm.xla_device(self.tpu_id)
+            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
+            train_dataloader = train_dataloader.per_device_loader(device)
 
-        # get model
-        model = self.get_model()
+        return train_dataloader
 
+    def run_on_epoch_start_hook(self, model):
         # Epoch start events
         with self.profiler.profile('on_epoch_start'):
             # callbacks
@@ -429,17 +420,20 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_epoch_start'):
                 model.on_epoch_start()
 
-        # track local dataloader so TPU can wrap each epoch
-        train_dataloader = self.train_dataloader
+    def run_training_epoch(self):
 
-        # on TPU we have to wrap it under the ParallelLoader
-        if self.use_tpu:
-            device = xm.xla_device(self.tpu_id)
-            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
-            train_dataloader = train_dataloader.per_device_loader(device)
+        # get model
+        model = self.get_model()
+
+        # Epoch start events
+        self.run_on_epoch_start_hook(model)
+
+        # modify dataloader if needed (ddp, etc...)
+        train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
 
         # bookkeeping
-        outputs = []
+        epoch_output = []
+        should_check_val = False
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -450,63 +444,43 @@ class TrainerTrainLoopMixin(ABC):
                 break
 
             self.batch_idx = batch_idx
-
             model.global_step = self.global_step
 
-            # ---------------
-            # RUN TRAIN STEP
-            # ---------------
-            _outputs = self.run_training_batch(batch, batch_idx)
-            batch_result, grad_norm_dic, batch_step_metrics, batch_output = _outputs
+            # ------------------------------------
+            # TRAINING_STEP + TRAINING_STEP_END
+            # ------------------------------------
+            batch_output = self.run_training_batch(batch, batch_idx)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
-                outputs.append(batch_output)
+                epoch_output.append(batch_output.training_step_output_for_epoch_end)
+
+            # update LR schedulers
+            self.update_train_loop_lr_schedulers()
 
             # when returning -1 from train_step, we end epoch early
-            early_stop_epoch = batch_result == -1
+            self.should_stop = batch_output.signal == -1
 
-            # TODO: consolidate all actions that need to take place only after
-            # self.accumulate_grad_batches steps (optimizer step, lr update, global step increment)
-            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
-                # update lr
-                self.update_learning_rates(interval='step')
-
-            # ---------------
-            # RUN VAL STEP
-            # ---------------
-            is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
-            can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-            can_check_val = not self.disable_validation and can_check_epoch
-            should_check_val = is_val_check_batch or early_stop_epoch
-            should_check_val = should_check_val or (is_last_batch and self.val_check_batch == float('inf'))
-            should_check_val = can_check_val and should_check_val
-
-            # ---------------
-            # CHECKPOINTING, EARLY STOPPING
-            # ---------------
-            # fast_dev_run always forces val checking after train batch
+            # -----------------------------------------
+            # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+            # -----------------------------------------
+            should_check_val = self.should_check_val(batch_idx, is_last_batch)
             if self.fast_dev_run or should_check_val:
-                self.run_evaluation(test_mode=self.testing)
-                self.call_checkpoint_callback()
+                self.run_evaluation(test_mode=False)
 
-            # when logs should be saved
-            should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or early_stop_epoch
-            if should_save_log or self.fast_dev_run:
-                if self.is_global_zero and self.logger is not None:
-                    self.logger.save()
+            # -----------------------------------------
+            # SAVE LOGGERS (ie: Tensorboard, etc...)
+            # -----------------------------------------
+            self.save_loggers_in_training_loop(batch_idx)
 
-            # when metrics should be logged
-            should_log_metrics = batch_idx % self.row_log_interval == 0 or early_stop_epoch
-            if should_log_metrics or self.fast_dev_run:
-                # logs user requested information to logger
-                self.log_metrics(batch_step_metrics, grad_norm_dic)
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS
+            # -----------------------------------------
+            self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
             # progress global step according to grads progress
-            if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
-                self.global_step += 1
-            self.total_batch_idx += 1
+            self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
@@ -515,16 +489,45 @@ class TrainerTrainLoopMixin(ABC):
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
-            if early_stop_epoch or self.fast_dev_run:
+            if self.fast_dev_run or self.should_stop:
                 break
 
-        if self.use_horovod:
-            hvd.join(hvd.local_rank() if self.on_gpu else -1)
+        # let ddp devices catch up when using horovod
+        self.sync_horovod()
 
         # process epoch outputs
+        self.run_training_epoch_end(epoch_output)
+
+        # checkpoint callback
+        self.check_checkpoint_callback(should_check_val)
+
+        # epoch end hook
+        self.run_on_epoch_end_hook(model)
+
+    def check_checkpoint_callback(self, should_check_val):
+        # when no val loop is present or fast-dev-run still need to call checkpoints
+        # TODO bake this logic into the checkpoint callback
+        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
+            checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+            [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
+
+    def update_train_loop_lr_schedulers(self):
+        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+            # update lr
+            self.update_learning_rates(interval='step')
+
+    def run_on_epoch_end_hook(self, model):
+        with self.profiler.profile('on_epoch_end'):
+            # callbacks
+            self.on_epoch_end()
+            # model hooks
+            if self.is_function_implemented('on_epoch_end'):
+                model.on_epoch_end()
+
+    def run_training_epoch_end(self, epoch_output):
         model = self.get_model()
         if self.is_overridden('training_epoch_end', model=model):
-            epoch_output = model.training_epoch_end(outputs)
+            epoch_output = model.training_epoch_end(epoch_output)
             _processed_outputs = self.process_output(epoch_output)
             log_epoch_metrics = _processed_outputs[2]
             callback_epoch_metrics = _processed_outputs[3]
@@ -538,17 +541,40 @@ class TrainerTrainLoopMixin(ABC):
             # add metrics to progress_bar
             self.add_progress_bar_metrics(_processed_outputs[1])
 
-        # when no val loop is present or fast-dev-run still need to call checkpoints
-        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
-            self.call_checkpoint_callback()
+    def sync_horovod(self):
+        if self.use_horovod:
+            hvd.join(hvd.local_rank() if self.on_gpu else -1)
 
-        # Epoch end events
-        with self.profiler.profile('on_epoch_end'):
-            # callbacks
-            self.on_epoch_end()
-            # model hooks
-            if self.is_function_implemented('on_epoch_end'):
-                model.on_epoch_end()
+    def increment_accumulated_grad_global_step(self):
+        # progress global step according to grads progress
+        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+            self.global_step += 1
+        self.total_batch_idx += 1
+
+    def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
+        # when metrics should be logged
+        should_log_metrics = batch_idx % self.row_log_interval == 0 or self.should_stop
+        if should_log_metrics or self.fast_dev_run:
+            # logs user requested information to logger
+            self.log_metrics(batch_output.batch_log_metrics, batch_output.grad_norm_dic)
+
+    def save_loggers_in_training_loop(self, batch_idx):
+        # when loggers should save to disk
+        should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or self.should_stop
+        if should_save_log or self.fast_dev_run:
+            if self.is_global_zero and self.logger is not None:
+                self.logger.save()
+
+    def should_check_val(self, batch_idx, is_last_batch):
+        # decide if we should run validation
+        is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
+        can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
+        can_check_val = not self.disable_validation and can_check_epoch
+        should_check_val = is_val_check_batch or self.should_stop
+        is_last_batch_for_infinite_dataset = (is_last_batch and self.val_check_batch == float('inf'))
+        should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
+
+        return should_check_val
 
     def run_training_batch(self, batch, batch_idx):
         # track grad norms
@@ -561,7 +587,7 @@ class TrainerTrainLoopMixin(ABC):
         batch_log_metrics = []
 
         if batch is None:
-            return 0, grad_norm_dic, {}, {}
+            return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
         # Batch start events
         with self.profiler.profile('on_batch_start'):
@@ -571,7 +597,7 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
                 if response == -1:
-                    return -1, grad_norm_dic, {}, {}
+                    return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         splits = [batch]
         if self.truncated_bptt_steps is not None:
@@ -650,7 +676,13 @@ class TrainerTrainLoopMixin(ABC):
         # track all metrics for callbacks
         self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
-        return 0, grad_norm_dic, batch_log_metrics, opt_closure_result.training_step_output_for_epoch_end
+        result = AttributeDict(
+            signal=0,
+            grad_norm_dic=grad_norm_dic,
+            batch_log_metrics=batch_log_metrics,
+            training_step_output_for_epoch_end=opt_closure_result.training_step_output_for_epoch_end
+        )
+        return result
 
     def run_batch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
         # ------------------
@@ -667,14 +699,22 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and self.use_native_amp:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE:
             self.scaler.unscale_(optimizer)
         self.clip_gradients()
 
         # ------------------
         # .STEP + ZERO_GRAD
         # ------------------
+        self.call_optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
+
+        return grad_norm_dic
+
+    def call_optimizer_step(self, optimizer, opt_idx, batch_idx, split_batch):
+        # calls .step(), .zero_grad()
+        # override function to modify this behavior
         model = self.get_model()
+
         with self.profiler.profile('optimizer_step'):
             lambda_closure = lambda: self.optimizer_closure(
                 split_batch,
@@ -683,11 +723,38 @@ class TrainerTrainLoopMixin(ABC):
                 optimizer,
                 self.hiddens
             ).loss
-            model.optimizer_step(self.current_epoch, batch_idx,
-                                 optimizer, opt_idx,
-                                 lambda_closure)
 
-        return grad_norm_dic
+            # apply TPU optimizer
+            if self.use_tpu and XLA_AVAILABLE:
+                model.optimizer_step(self.current_epoch, batch_idx,
+                                     optimizer, opt_idx, lambda_closure, on_tpu=True)
+
+            # for LBFGS do something a bit different
+            elif isinstance(optimizer, torch.optim.LBFGS):
+
+                # native amp + lbfgs is a no go right now
+                if self.use_amp and NATIVE_AMP_AVALAIBLE:
+                    raise MisconfigurationException(
+                        'native PyTorch amp and lbfgs are not compatible.'
+                        ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
+                                     using_lbfgs=True)
+
+            # when using 16-bit
+            else:
+                native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
+                                     using_native_amp=native_amp)
+
+            # in native 16-bit we need to update scaler after optimizer step
+            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+                self.scaler.update()
+
+            # model hook
+            model.on_before_zero_grad(optimizer)
+
+            # clear gradients
+            model.optimizer_zero_grad(self.current_epoch, batch_idx, optimizer, opt_idx)
 
     def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
@@ -697,7 +764,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and self.use_native_amp:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -777,9 +844,7 @@ class TrainerTrainLoopMixin(ABC):
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
 
-        # clean up dist group
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.destroy_process_group()
+        self._teardown_already_run = True
 
         # Train end events
         with self.profiler.profile('on_train_end'):
@@ -793,8 +858,16 @@ class TrainerTrainLoopMixin(ABC):
             self.logger.finalize("success")
 
         # summarize profile results
-        self.profiler.describe()
-        self._teardown_already_run = True
+        if self.global_rank == 0:
+            self.profiler.describe()
+
+        if self.global_rank == 0:
+            for proc in self.interactive_ddp_procs:
+                subprocess.Popen.kill(proc)
+
+        # clean up dist group
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.destroy_process_group()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
@@ -904,10 +977,6 @@ class TrainerTrainLoopMixin(ABC):
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
-
-    def call_checkpoint_callback(self):
-        if self.checkpoint_callback is not None:
-            self.checkpoint_callback.on_validation_end(self, self.get_model())
 
 
 def _with_is_last(iterable):

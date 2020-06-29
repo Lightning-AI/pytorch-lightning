@@ -163,7 +163,6 @@ class TrainerLRFinderMixin(ABC):
         # Disable standard checkpoint & early stopping
         self.checkpoint_callback = False
         self.early_stop_callback = None
-        self.enable_early_stop = False
 
         # Required for saving the model
         self.optimizers, self.schedulers = [], [],
@@ -215,7 +214,6 @@ class TrainerLRFinderMixin(ABC):
             'max_steps': self.max_steps,
             'checkpoint_callback': self.checkpoint_callback,
             'early_stop_callback': self.early_stop_callback,
-            'enable_early_stop': self.enable_early_stop,
             'configure_optimizers': model.configure_optimizers,
         }
 
@@ -226,7 +224,6 @@ class TrainerLRFinderMixin(ABC):
         self.max_steps = self.__dumped_params['max_steps']
         self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.enable_early_stop = self.__dumped_params['enable_early_stop']
         model.configure_optimizers = self.__dumped_params['configure_optimizers']
         del self.__dumped_params
 

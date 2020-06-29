@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
@@ -160,6 +160,7 @@ def test_trainer_callback_system(tmpdir):
     test_callback = TestCallback()
 
     trainer_options = dict(
+        default_root_dir=tmpdir,
         callbacks=[test_callback],
         max_epochs=1,
         limit_val_batches=0.1,
@@ -312,11 +313,12 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(default_root_dir=tmpdir,
-                      checkpoint_callback=checkpoint,
-                      overfit_batches=0.20,
-                      max_epochs=2
-                      )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        checkpoint_callback=checkpoint,
+        overfit_batches=0.20,
+        max_epochs=2,
+    )
     trainer.fit(model)
 
     # These should be different if the dirpath has be overridden
@@ -337,7 +339,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
         default_root_dir=tmpdir,
         overfit_batches=0.2,
         max_epochs=2,
-        logger=logger
+        logger=logger,
     )
     trainer.fit(model)
 

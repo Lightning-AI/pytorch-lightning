@@ -170,7 +170,9 @@ class ModelIO(object):
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs):
+    def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, **cls_kwargs):
+        cls_spec = inspect.getfullargspec(cls.__init__)
+        cls_init_args_name = inspect.signature(cls).parameters.keys()
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
             model_args = {}
@@ -180,23 +182,28 @@ class ModelIO(object):
                 if hparam_key in checkpoint:
                     model_args.update(checkpoint[hparam_key])
 
-            if cls.CHECKPOINT_HYPER_PARAMS_TYPE in checkpoint:
-                model_args = checkpoint[cls.CHECKPOINT_HYPER_PARAMS_TYPE](model_args)
+            model_args = _convert_loaded_hparams(model_args, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-            init_args_name = inspect.signature(cls).parameters.keys()
 
             if args_name == 'kwargs':
-                cls_kwargs = {k: v for k, v in model_args.items() if k in init_args_name}
-                kwargs.update(**cls_kwargs)
+                # in case the class cannot take any extra argument filter only the possible
+                cls_kwargs.update(**model_args)
             elif args_name:
-                if args_name in init_args_name:
-                    kwargs.update({args_name: model_args})
+                if args_name in cls_init_args_name:
+                    cls_kwargs.update({args_name: model_args})
             else:
-                args = (model_args, ) + args
+                cls_args = (model_args,) + cls_args
 
+        if not cls_spec.varkw:
+            # filter kwargs according to class init unless it allows any argument via kwargs
+            cls_kwargs = {k: v for k, v in cls_kwargs.items() if k in cls_init_args_name}
+
+        # prevent passing positional arguments if class does not accept any
+        if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
+            cls_args, cls_kwargs = [], {}
+        model = cls(*cls_args, **cls_kwargs)
         # load the state_dict on the model automatically
-        model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
@@ -244,6 +251,18 @@ class ModelIO(object):
         """
 
 
+def _convert_loaded_hparams(model_args: dict, hparams_type: Union[Callable, str] = None) -> object:
+    """Convert hparams according given type in callable or string (past) format"""
+    # if not hparams type define
+    if not hparams_type:
+        return model_args
+    # if past checkpoint loaded, convert str to callable
+    if isinstance(hparams_type, str):
+        hparams_type = AttributeDict
+    # convert hparams
+    return hparams_type(model_args)
+
+
 def update_hparams(hparams: dict, updates: dict) -> None:
     """
     Overrides hparams with new values
@@ -279,7 +298,7 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     """Load hparams from a file.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
-    >>> path_csv = './testing-hparams.csv'
+    >>> path_csv = os.path.join('.', 'testing-hparams.csv')
     >>> save_hparams_to_tags_csv(path_csv, hparams)
     >>> hparams_new = load_hparams_from_tags_csv(path_csv)
     >>> vars(hparams) == hparams_new
@@ -304,7 +323,7 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
 
-    with open(tags_csv, 'w') as fp:
+    with open(tags_csv, 'w', newline='') as fp:
         fieldnames = ['key', 'value']
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writerow({'key': 'key', 'value': 'value'})
