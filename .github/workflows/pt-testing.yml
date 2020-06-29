@@ -14,7 +14,7 @@ on:
 # on: [push, pull_request]
 
 jobs:
-  pytest:
+  conda:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -23,7 +23,7 @@ jobs:
         os: [ubuntu-20.04]
         python-version: [3.7]
         # todo: add nightly versions
-        pytorch-version: [1.3, 1.4, 1.5]  # , 1.6
+        pytorch-version: [1.3, 1.4, 1.5, 1.6, 1.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
@@ -64,8 +64,9 @@ jobs:
 
     - name: Install dependencies
       run: |
+        conda activate base
         # python -m pip install --upgrade --user pip
-        HOROVOD_BUILD_ARCH_FLAGS="-mfma" conda env update --file environment.yml  --name base
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" conda env update --file environment.yml --satisfied-skip-solve --name base
         python --version
         conda info
         conda list
@@ -74,7 +75,7 @@ jobs:
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows' && matrix.python-version != '3.8'
       run: |
-        # conda activate base
+        conda activate base
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
@@ -92,7 +93,7 @@ jobs:
 
     - name: Tests
       run: |
-        # conda activate base
+        conda activate base
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning tests pl_examples -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
