@@ -532,21 +532,21 @@ def test_testpass_overrides(tmpdir):
     with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
-        Trainer().test(model)
+        Trainer().test(model=model)
 
     # Misconfig when neither test_step or test_end is implemented
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(**hparams)
         model.test_step = LightningModule.test_step
-        Trainer().test(model)
+        Trainer().test(model=model)
 
     # No exceptions when one or both of test_step or test_end are implemented
     model = EvalModelTemplate(**hparams)
     model.test_step_end = LightningModule.test_step_end
-    Trainer().test(model)
+    Trainer().test(model=model)
 
     model = EvalModelTemplate(**hparams)
-    Trainer().test(model)
+    Trainer().test(model=model)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
