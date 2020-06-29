@@ -1158,7 +1158,7 @@ class Trainer(
             test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
-            trainer.test(model, test_dataloaders=test)
+            trainer.test(model=model, test_dataloaders=test)
         """
         self.setup('test')
         model_ref = self.model if model is None else model
