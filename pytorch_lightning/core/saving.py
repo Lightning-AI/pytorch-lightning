@@ -171,6 +171,8 @@ class ModelIO(object):
 
     @classmethod
     def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, **cls_kwargs):
+        cls_spec = inspect.getfullargspec(cls.__init__)
+        cls_init_args_name = inspect.signature(cls).parameters.keys()
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
             model_args = {}
@@ -183,14 +185,9 @@ class ModelIO(object):
             model_args = _convert_loaded_hparams(model_args, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-            cls_spec = inspect.getfullargspec(cls.__init__)
-            kwargs_identifier = cls_spec.varkw
-            cls_init_args_name = inspect.signature(cls).parameters.keys()
 
             if args_name == 'kwargs':
                 # in case the class cannot take any extra argument filter only the possible
-                if not kwargs_identifier:
-                    model_args = {k: v for k, v in model_args.items() if k in cls_init_args_name}
                 cls_kwargs.update(**model_args)
             elif args_name:
                 if args_name in cls_init_args_name:
@@ -198,8 +195,15 @@ class ModelIO(object):
             else:
                 cls_args = (model_args,) + cls_args
 
-        # load the state_dict on the model automatically
+        if not cls_spec.varkw:
+            # filter kwargs according to class init unless it allows any argument via kwargs
+            cls_kwargs = {k: v for k, v in cls_kwargs.items() if k in cls_init_args_name}
+
+        # prevent passing positional arguments if class does not accept any
+        if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
+            cls_args, cls_kwargs = [], {}
         model = cls(*cls_args, **cls_kwargs)
+        # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
