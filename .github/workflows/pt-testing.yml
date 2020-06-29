@@ -29,12 +29,7 @@ jobs:
     timeout-minutes: 20
     steps:
     - uses: actions/checkout@v2
-    #- name: Set up Python ${{ matrix.python-version }}
-    #  uses: actions/setup-python@v2
-    #  with:
-    #    python-version: ${{ matrix.python-version }}
 
-    # TODO: use conda instead
     # https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf
     - name: Setup conda
       uses: s-weigand/setup-conda@v1
@@ -42,6 +37,7 @@ jobs:
         update-conda: true
         python-version: ${{ matrix.python-version }}
         conda-channels: anaconda, conda-forge
+        activate-conda: true
 
     # TODO: add conda/pip caching
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -55,27 +51,21 @@ jobs:
     #        ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-pip-
 
     - name: Install stable PyTorch version
-      if: matrix.pytorch-version <= 1.5
+      if: matrix.pytorch-version <= 1.6
       run: |
         conda install pytorch=${{ matrix.pytorch-version }} --channel pytorch
-        conda list
       shell: bash
 
     - name: Install nightly PyTorch version
-      if: matrix.pytorch-version > 1.5
+      if: matrix.pytorch-version > 1.6
       run: |
         conda install pytorch=${{ matrix.pytorch-version }} --channel pytorch-nightly
-        conda list
       shell: bash
 
     - name: Install dependencies
       run: |
-        python -c "fname = 'requirements/base.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('torch')] ; open(fname, 'w').writelines(lines)"
         # python -m pip install --upgrade --user pip
-        conda install --file ./requirements/base.txt --quiet --channel conda-forge
-        HOROVOD_BUILD_ARCH_FLAGS="-mfma" conda install --file ./requirements/extra.txt --quiet --channel conda-forge
-        conda install --file ./requirements/test.txt --quiet --channel conda-forge
-        conda install --file ./requirements/examples.txt --quiet --channel conda-forge
+        HOROVOD_BUILD_ARCH_FLAGS="-mfma" conda env update --file environment.yml  --name base
         python --version
         conda info
         conda list
@@ -84,6 +74,7 @@ jobs:
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows' && matrix.python-version != '3.8'
       run: |
+        # conda activate base
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
@@ -101,6 +92,7 @@ jobs:
 
     - name: Tests
       run: |
+        # conda activate base
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning tests pl_examples -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
