@@ -8,8 +8,13 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
 import os
+
+try:
+    import ipywidgets
+    from tqdm.auto import tqdm
+except ImportError as e:
+    from tqdm import tqdm
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback

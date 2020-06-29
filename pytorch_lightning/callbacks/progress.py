@@ -7,7 +7,14 @@ Use or override one of the progress bar callbacks.
 """
 import sys
 
-from tqdm.auto import tqdm
+try:
+    # try importing ipywidgets before importing tqdm
+    # to ensure it won't fail and a progress bar is displayed
+    import ipywidgets
+    from tqdm.auto import tqdm
+except ImportError as e:
+    # otherwise import tqdm only to print text like progress bar
+    from tqdm import tqdm
 
 from pytorch_lightning.callbacks import Callback
 
