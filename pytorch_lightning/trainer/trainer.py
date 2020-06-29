@@ -134,6 +134,7 @@ class Trainer(
         automatic_optimization: Optional[bool] = None,
         move_metrics_to_cpu: bool = False,
         enable_pl_optimizer: bool = True,
+        multiple_trainloader_mode: str = 'max_size_cycle',
     ):
         r"""
         Customize every aspect of training via flags
@@ -305,7 +306,7 @@ class Trainer(
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
-        self.train_loop = TrainLoop(self)
+        self.train_loop = TrainLoop(self, multiple_trainloader_mode)
         self.plugin_connector = PluginConnector(self)
 
         # training state
