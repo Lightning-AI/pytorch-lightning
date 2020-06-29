@@ -126,6 +126,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
+        multiple_trainloader_mode: str = 'max_size_cycle',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
         use_amp=None,  # backward compatible, todo: remove in v0.9.0
@@ -312,6 +313,10 @@ class Trainer(
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
+
+            multiple_trainloader_mode: Specifies how multiple train loaders with different lengths shall be handled.
+                Supported modes are 'min_size' which stops if the shortest loader is exhausted and
+                'max_size_cycle' which stops if the longest loader is exhausted and cycles through the smaller ones.
         """
         super().__init__()
 
@@ -340,6 +345,7 @@ class Trainer(
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
+        self._multiple_trainloader_mode = multiple_trainloader_mode
 
         # training state
         self.model = None

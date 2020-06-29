@@ -233,6 +233,7 @@ class TrainerTrainLoopMixin(ABC):
     batch_idx: int
     precision: ...
     train_dataloader: DataLoader
+    _multiple_trainloader_mode: str
     reload_dataloaders_every_epoch: bool
     max_steps: int
     min_steps: int
@@ -436,7 +437,7 @@ class TrainerTrainLoopMixin(ABC):
         should_check_val = False
 
         # support multiple loaders (either as mapping or sequence)
-        combined_loader_iter = CombinedLoaderIterator(train_dataloader)
+        combined_loader_iter = CombinedLoaderIterator(train_dataloader, mode=self._multiple_trainloader_mode)
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
