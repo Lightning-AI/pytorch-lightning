@@ -8,7 +8,7 @@ on:
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: lightning-cluster   # TODO: update to cluster name.
-  GKE_ZONE: us-central1-b  # TODO: update to cluster zone.
+  GKE_ZONE: us-central1-a  # TODO: update to cluster zone.
   IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
 
 jobs:
