@@ -809,15 +809,25 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
         assert trainer.tpu_id == expected_tpu_id
 
 
-def test_num_sanity_val_steps(tmpdir):
-    """ Test that num_sanity_val_steps=-1 runs through all validation data once. """
+@pytest.mark.parametrize(['limit_val_batches'], [
+    pytest.param(0.0),
+    pytest.param(1),
+    pytest.param(1.0),
+    pytest.param(0.3),
+])
+def test_num_sanity_val_steps(tmpdir, limit_val_batches):
+    """
+    Test that num_sanity_val_steps=-1 runs through all validation data once.
+    Makes sure this setting is independent of limit_val_batches.
+    """
     model = EvalModelTemplate()
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
     trainer = Trainer(
-        num_sanity_val_steps=-1,
-        # TODO: limit_val_batches influences num_sanity_val_step. Fix it.
-        # limit_val_batches=0,
-        max_steps=1,
         default_root_dir=tmpdir,
+        num_sanity_val_steps=-1,
+        limit_val_batches=limit_val_batches,  # should have no influence
+        max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float('inf')
     val_dataloaders = model.val_dataloader__multiple()
