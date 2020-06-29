@@ -133,7 +133,7 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
-        trainer.test(model)
+        trainer.test(model=model)
     assert trainer.callback_metrics == {'test_loss': torch.tensor(0.6)}
 
     with pytest.deprecated_call(match='v1.0'):
@@ -146,7 +146,7 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
-        trainer.test(model)
+        trainer.test(model=model)
     assert trainer.callback_metrics == {'test_loss': torch.tensor(0.7)}
 
     with pytest.deprecated_call(match='v1.0'):

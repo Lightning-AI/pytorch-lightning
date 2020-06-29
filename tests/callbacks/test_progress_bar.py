@@ -96,7 +96,7 @@ def test_progress_bar_totals(tmpdir):
     assert 0 == bar.total_test_batches
     assert bar.test_progress_bar is None
 
-    trainer.test(model)
+    trainer.test(model=model)
 
     # check test progress bar total
     k = bar.total_test_batches
@@ -131,7 +131,7 @@ def test_progress_bar_fast_dev_run(tmpdir):
     assert 2 == progress_bar.main_progress_bar.total
     assert 2 == progress_bar.main_progress_bar.n
 
-    trainer.test(model)
+    trainer.test(model=model)
 
     # the test progress bar should display 1 batch
     assert 1 == progress_bar.test_batch_idx
@@ -189,5 +189,5 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
     assert progress_bar.val_batches_seen == 3 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
 
-    trainer.test(model)
+    trainer.test(model=model)
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches

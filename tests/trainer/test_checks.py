@@ -94,7 +94,7 @@ def test_wrong_test_settigs(tmpdir):
     with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.test_epoch_end = None
-        trainer.test(model)
+        trainer.test(model=model)
 
     # ----------------
     # if have test_step and NO test_dataloader passed in tell user to pass test_dataloader
@@ -102,7 +102,7 @@ def test_wrong_test_settigs(tmpdir):
     with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
-        trainer.test(model)
+        trainer.test(model=model)
 
     # ----------------
     # if have test_dataloader and NO test_step tell user to implement  test_step
@@ -111,7 +111,7 @@ def test_wrong_test_settigs(tmpdir):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
         model.test_step = None
-        trainer.test(model, test_dataloaders=model.dataloader(train=False))
+        trainer.test(model=model, test_dataloaders=model.dataloader(train=False))
 
     # ----------------
     # if have test_dataloader and test_step but no test_epoch_end warn user
@@ -120,4 +120,4 @@ def test_wrong_test_settigs(tmpdir):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
         model.test_epoch_end = None
-        trainer.test(model, test_dataloaders=model.dataloader(train=False))
+        trainer.test(model=model, test_dataloaders=model.dataloader(train=False))

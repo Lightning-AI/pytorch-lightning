@@ -29,7 +29,7 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
     assert max_steps == model.on_before_zero_grad_called
 
     model.on_before_zero_grad_called = 0
-    trainer.test(model)
+    trainer.test(model=model)
     assert 0 == model.on_before_zero_grad_called
 
 

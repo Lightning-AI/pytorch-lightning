@@ -388,7 +388,7 @@ def test_test_inf_dataloader_error(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_test_batches=0.5)
 
     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
-        trainer.test(model)
+        trainer.test(model=model)
 
 
 @pytest.mark.parametrize('check_interval', [50, 1.0])
@@ -653,4 +653,4 @@ def test_test_dataloader_not_implemented_error_failed(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=5, max_epochs=1, limit_test_batches=0.5)
 
     with pytest.raises(MisconfigurationException, match='infinite DataLoader'):
-        trainer.test(model)
+        trainer.test(model=model)

@@ -250,7 +250,7 @@ def test_trainer_callback_system(tmpdir):
     test_callback = TestCallback()
     trainer_options.update(callbacks=[test_callback])
     trainer = Trainer(**trainer_options)
-    trainer.test(model)
+    trainer.test(model=model)
 
     assert test_callback.setup_called
     assert test_callback.teardown_called

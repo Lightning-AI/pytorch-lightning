@@ -54,7 +54,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(model=pretrained_model)
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(new_trainer)
@@ -97,7 +97,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     )
 
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(model=pretrained_model)
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(new_trainer)
@@ -138,7 +138,7 @@ def test_load_model_from_checkpoint(tmpdir):
         assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
 
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    new_trainer.test(model=pretrained_model)
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(new_trainer)

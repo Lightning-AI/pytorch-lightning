@@ -79,7 +79,7 @@ def test_multi_gpu_wandb(tmpdir, backend):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result
-    trainer.test(model)
+    trainer.test(model=model)
 
 
 @pytest.mark.spawn
