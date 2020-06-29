@@ -62,7 +62,7 @@ jobs:
     - name: Install nightly PyTorch version
       if: matrix.pytorch-version > 1.5
       run: |
-        pip install torch==${{ matrix.pytorch-version }} -U -f https://download.pytorch.org/whl/torch_nightly.html -q
+        pip install torch==${{ matrix.pytorch-version }} -U -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html -q
       shell: bash
 
     - name: Install dependencies
