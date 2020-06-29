@@ -1,4 +1,4 @@
-name: CI testing
+name: CI complete testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
