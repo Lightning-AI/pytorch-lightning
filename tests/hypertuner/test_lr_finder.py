@@ -1,9 +1,10 @@
 import pytest
 import torch
 
+import tests.base.develop_utils as tutils
+from tests.base import EvalModelTemplate
 from pytorch_lightning import Trainer, HyperTuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -156,7 +157,7 @@ def test_accumulation_and_early_stopping(tmpdir):
 
     lrfinder = tuner.lr_find(model, num_training=20, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
-    
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
     assert len(lrfinder.results['lr']) == 20, \
@@ -206,3 +207,30 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
     assert before_lr == after_lr, \
         'Learning rate was altered because of non-finite loss values'
+
+
+@pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model(tmpdir, backend):
+    """Make sure DDP works."""
+    tutils.set_random_master_port()
+
+    trainer_options = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        gpus=[0, 1],
+        distributed_backend=backend
+    )
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    before_lr = hparams.get('learning_rate')
+
+    trainer = Trainer(**trainer_options)
+    tuner = HyperTuner(trainer)
+    lrfinder = tuner.lr_find(model)
+    after_lr = lrfinder.suggestion()
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'

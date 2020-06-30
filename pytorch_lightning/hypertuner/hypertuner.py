@@ -45,9 +45,6 @@ class HyperTuner(HyperTunerLRFinderMixin, HyperTunerBatchScalerMixin):
         # For checking dependency
         self._scale_batch_size_called = False
         self._lr_find_called = False
-        
-        self._prepare_data_called = False
-        self._model_setup_called = False
 
         rank_zero_warn('HyperTuner class is `experimental`, meaning that some of'
                        ' its functionality is under tested and its interface may'

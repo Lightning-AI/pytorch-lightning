@@ -140,3 +140,30 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
     with pytest.raises(MisconfigurationException):
         tuner.tune(model, **tune_options)
+
+
+@pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model(tmpdir, backend):
+    """Make sure DDP works."""
+    tutils.set_random_master_port()
+
+    trainer_options = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        gpus=[0, 1],
+        distributed_backend=backend
+    )
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    before_batch_size = hparams.get('batch_size')
+
+    trainer = Trainer(**trainer_options)
+    tuner = HyperTuner(trainer)
+    batch_scaler = tuner.scale_batch_size(model)
+    after_batch_size = batch_scaler.suggestion()
+
+    assert before_batch_size != after_batch_size, \
+        'Learning rate was not altered after running learning rate finder'
