@@ -259,9 +259,8 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        print('-' * 100)
-        print('making dirs', trainer.global_rank)
-        print('-' * 100)
+        assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
+
         os.makedirs(self.dirpath, exist_ok=True)
         trainer.ckpt_path = ckpt_path
         trainer.weights_save_path = ckpt_path
@@ -317,6 +316,8 @@ class ModelCheckpoint(Callback):
         else:
             if self.verbose > 0:
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
+
+            assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath)
 
     def _do_check_save(self, filepath, current, epoch):
