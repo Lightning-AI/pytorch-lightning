@@ -137,9 +137,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        print('----------------------------------')
-        print('called', rank_zero_only.rank)
-        print('----------------------------------')
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):

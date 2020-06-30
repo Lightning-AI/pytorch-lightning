@@ -129,6 +129,8 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
         self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
 
     @property
