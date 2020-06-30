@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           # python -m pip install --upgrade --user pip
-          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/torch_stable.html --quiet
+          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt
           pip install --requirement requirements/docs.txt
           python --version ; pip --version ; pip list
@@ -76,7 +76,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/torch_stable.html --quiet
+          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/docs.txt
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
