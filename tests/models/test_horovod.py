@@ -38,6 +38,7 @@ def _nccl_available():
         return False
 
 
+@pytest.mark.skipif(True, reason="Need to deconflict what happens to file paths in ddp")
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
     tutils.reset_seed()
