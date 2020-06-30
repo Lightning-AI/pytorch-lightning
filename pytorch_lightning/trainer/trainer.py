@@ -841,7 +841,6 @@ class Trainer(
 
         """
         # bind logger and other properties
-        model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
         # clean hparams

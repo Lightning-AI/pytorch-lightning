@@ -66,6 +66,7 @@ class TrainerDPMixin(ABC):
     tpu_id: Optional[int]
     on_colab_kaggle: str
     save_spawn_weights: Callable
+    logger: ...
 
     @property
     @abstractmethod
@@ -106,6 +107,7 @@ class TrainerDPMixin(ABC):
 
         for m in [model, ref_model]:
             m.trainer = self
+            m.logger = self.logger
             m.use_dp = self.use_dp
             m.use_ddp2 = self.use_ddp2
             m.use_ddp = self.use_ddp
