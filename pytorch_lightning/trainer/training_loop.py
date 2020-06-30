@@ -802,12 +802,12 @@ class TrainerTrainLoopMixin(ABC):
             if self.precision == 16 and not self.on_tpu:
                 closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
 
-            # do backward pass
+            # apply amp context
             if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
-                with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
-                    model_ref.backward(self, scaled_loss, optimizer, opt_idx)
-            else:
-                model_ref.backward(self, closure_loss, optimizer, opt_idx)
+                closure_loss = closure_loss.exit()
+
+            # do backward pass
+            model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
