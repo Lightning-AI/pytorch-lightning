@@ -14,6 +14,7 @@ from pytorch_lightning.loggers import (
     CometLogger,
     WandbLogger,
 )
+from pytorch_lightning.loggers.base import DummyLogger
 from tests.base import EvalModelTemplate
 
 
@@ -134,7 +135,7 @@ class RankZeroLoggerCheck(Callback):
 
     def on_fit_start(self, trainer):
         if trainer.global_rank > 0:
-            assert trainer.logger is None
+            assert isinstance(trainer.logger, DummyLogger)
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
