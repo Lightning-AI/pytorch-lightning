@@ -35,7 +35,6 @@ class LightningLoggerBase(ABC):
             agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
             agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
-        self._rank = 0
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}

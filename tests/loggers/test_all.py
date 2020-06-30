@@ -158,6 +158,7 @@ def test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         distributed_backend='ddp_cpu',
         num_processes=2,
         max_steps=1,
+        checkpoint_callback=True,
         callbacks=[RankZeroLoggerCheck()],
     )
     result = trainer.fit(model)
