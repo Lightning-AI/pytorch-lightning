@@ -354,7 +354,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def reduce_eval_ddp(self, eval_results):
         # ignore bad inputs
-        if len(eval_results) or eval_results is None:
+        if eval_results is None or len(eval_results) == 0:
             return
 
         for k, v in eval_results.items():
