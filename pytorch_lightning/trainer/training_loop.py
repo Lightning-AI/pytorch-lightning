@@ -776,6 +776,7 @@ class TrainerTrainLoopMixin(ABC):
             # PROCESS THE RESULT
             # ----------------------------
             # format and reduce outputs accordingly
+            training_step_output_for_epoch_end = training_step_output
             training_step_output = self.process_output(training_step_output, train=True)
 
             # TODO: temporary part of structured results PR
@@ -788,7 +789,7 @@ class TrainerTrainLoopMixin(ABC):
             )
 
             # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-            training_step_output_for_epoch_end = recursive_detach(training_step_output)
+            training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
 
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
