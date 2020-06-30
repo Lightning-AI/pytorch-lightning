@@ -1193,7 +1193,7 @@ class Trainer(
             # attempt to load weights from a spawn
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model
-            if os.path.exists(path):
+            if os.path.exists(path) and self.on_colab_kaggle:
                 test_model = self.load_spawn_weights(self.model)
 
             self.fit(test_model)
