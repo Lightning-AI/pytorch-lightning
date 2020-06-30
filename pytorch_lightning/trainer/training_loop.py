@@ -812,7 +812,7 @@ class TrainerTrainLoopMixin(ABC):
 
             # exit amp context
             if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
-                closure_loss = context.__exit__()
+                context.__exit__()
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
