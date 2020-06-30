@@ -342,7 +342,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # aggregate ddp stats across
                 if self.use_ddp or self.use_ddp2:
+                    print(eval_results)
                     self.reduce_eval_ddp(eval_results)
+                    print(eval_results)
 
         # enable train mode again
         model.train()
