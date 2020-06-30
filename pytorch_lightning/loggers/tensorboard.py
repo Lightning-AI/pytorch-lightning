@@ -97,9 +97,7 @@ class TensorBoardLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        print('----------------------------------')
-        print('called', rank_zero_only.rank)
-        print('----------------------------------')
+        assert rank_zero_only.rank == 0, 'tried to init log dirs in non global_rank=0'
         os.makedirs(self.root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
@@ -139,6 +137,10 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        print('----------------------------------')
+        print('called', rank_zero_only.rank)
+        print('----------------------------------')
+
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
