@@ -24,6 +24,8 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(save_dir=str(save_dir))
     if 'offline_mode' in inspect.getfullargspec(logger_class).args:
         logger_args.update(offline_mode=True)
+    if 'offline' in inspect.getfullargspec(logger_class).args:
+        logger_args.update(offline=True)
     return logger_args
 
 
@@ -134,9 +136,11 @@ class RankZeroLoggerCheck(Callback):
     # due to the way ddp process is launched
 
     def on_batch_start(self, trainer, pl_module):
-        if not trainer.is_global_zero:
-            # test that dummy experiment accepts any call
-            assert isinstance(trainer.logger.experiment, DummyExperiment)
+        is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
+        if trainer.is_global_zero:
+            assert not is_dummy
+        else:
+            assert is_dummy
             assert pl_module.logger.experiment.something(foo="bar") is None
 
 
@@ -155,6 +159,7 @@ def test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     model = EvalModelTemplate()
     trainer = Trainer(
         logger=logger,
+        # default_root_dir=tmpdir,
         distributed_backend='ddp_cpu',
         num_processes=2,
         max_steps=1,
