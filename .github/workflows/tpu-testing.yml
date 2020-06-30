@@ -65,8 +65,8 @@ jobs:
     - run: |-
         gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
 
-    - run: |-
-        # Deploy the job on the kubernetes cluster.
+    - name: Deploy the job on the kubernetes cluster
+      run: |-
         job_name=$(jsonnet -J ml-testing-accelerators/ main/docker/tpu/tpu_test-cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
