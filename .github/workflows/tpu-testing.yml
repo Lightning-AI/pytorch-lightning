@@ -64,7 +64,7 @@ jobs:
 
     - run: |-
         # Deploy the job on the kubernetes cluster.
-        job_name=$(jsonnet -J ml-testing-accelerators/ main/docker/tpu/tpu_example.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
+        job_name=$(jsonnet -J ml-testing-accelerators/ main/docker/tpu/tpu_test-cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
         echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
