@@ -137,6 +137,11 @@ class RankZeroLoggerCheck(Callback):
         if trainer.global_rank > 0:
             assert isinstance(trainer.logger, DummyLogger)
 
+    def on_batch_start(self, trainer, pl_module):
+        if trainer.global_rank > 0:
+            # test that dummy experiment accepts any call
+            assert pl_module.logger.experiment.something(foo="bar") is None
+
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.parametrize("logger_class", [
