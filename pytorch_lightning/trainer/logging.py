@@ -26,7 +26,9 @@ class TrainerLoggingMixin(ABC):
     num_gpus: int
 
     def configure_logger(self, logger):
-        if logger is True:
+        if self.global_rank > 0:
+            self.logger = None
+        elif logger is True:
             # default logger
             self.logger = TensorBoardLogger(
                 save_dir=self.default_root_dir,

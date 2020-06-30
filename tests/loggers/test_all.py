@@ -1,12 +1,19 @@
 import inspect
 import pickle
+import platform
 
 import pytest
 
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.loggers import (
-    TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
+    TensorBoardLogger,
+    MLFlowLogger,
+    NeptuneLogger,
+    TestTubeLogger,
+    CometLogger,
+    WandbLogger,
+)
 from tests.base import EvalModelTemplate
 
 
@@ -119,3 +126,37 @@ def test_logger_reset_correctly(tmpdir, extra_params):
         'Finder altered the logger of trainer'
     assert logger2 == logger3, \
         'Finder altered the logger of model'
+
+
+class RankZeroLoggerCheck(Callback):
+    # this class has to be defined outside the test function, otherwise we get pickle error
+    # due to the way ddp process is launched
+
+    def on_fit_start(self, trainer):
+        if trainer.global_rank > 0:
+            assert trainer.logger is None
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.parametrize("logger_class", [
+    TensorBoardLogger,
+    CometLogger,
+    MLFlowLogger,
+    NeptuneLogger,
+    TestTubeLogger,
+    WandbLogger,
+])
+def test_logger_on_all_ranks(tmpdir, logger_class):
+    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger = logger_class(**logger_args)
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        distributed_backend='ddp_cpu',
+        num_processes=2,
+        max_steps=1,
+        callbacks=[RankZeroLoggerCheck()],
+    )
+    result = trainer.fit(model)
+    assert result == 1

@@ -359,8 +359,6 @@ class Trainer(
             default_root_dir = os.getcwd()
         self.default_root_dir = default_root_dir
 
-        self.configure_logger(logger)
-
         # init callbacks
         self.callbacks = callbacks or []
 
@@ -500,9 +498,9 @@ class Trainer(
         self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
+        self.configure_logger(logger)
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
-
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
