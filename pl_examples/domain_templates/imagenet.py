@@ -36,7 +36,8 @@ class ImageNetLightningModel(LightningModule):
                  momentum: float,
                  weight_decay: int,
                  data_path: str,
-                 batch_size: int, **kwargs):
+                 batch_size: int,
+                 workers: int, **kwargs):
         """
         TODO: add docstring here
         """
@@ -48,6 +49,7 @@ class ImageNetLightningModel(LightningModule):
         self.weight_decay = weight_decay
         self.data_path = data_path
         self.batch_size = batch_size
+        self.workers = workers
         self.model = models.__dict__[self.arch](pretrained=self.pretrained)
 
     def forward(self, x):
@@ -129,7 +131,10 @@ class ImageNetLightningModel(LightningModule):
             momentum=self.momentum,
             weight_decay=self.weight_decay
         )
-        scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.1)
+        scheduler = lr_scheduler.LambdaLR(
+            optimizer,
+            lambda epoch: 0.1 ** (epoch // 30)
+        )
         return [optimizer], [scheduler]
 
     def train_dataloader(self):
@@ -148,17 +153,11 @@ class ImageNetLightningModel(LightningModule):
                 normalize,
             ]))
 
-        if self.use_ddp:
-            train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        else:
-            train_sampler = None
-
         train_loader = torch.utils.data.DataLoader(
             dataset=train_dataset,
             batch_size=self.batch_size,
-            shuffle=(train_sampler is None),
-            num_workers=0,
-            sampler=train_sampler
+            shuffle=True,
+            num_workers=self.workers,
         )
         return train_loader
 
@@ -177,7 +176,7 @@ class ImageNetLightningModel(LightningModule):
             ])),
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=0,
+            num_workers=self.workers,
         )
         return val_loader
 
@@ -188,6 +187,8 @@ class ImageNetLightningModel(LightningModule):
                             help='model architecture: ' +
                                  ' | '.join(MODEL_NAMES) +
                                  ' (default: resnet18)')
+        parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                            help='number of data loading workers (default: 4)')
         parser.add_argument('--epochs', default=90, type=int, metavar='N',
                             help='number of total epochs to run')
         parser.add_argument('--seed', type=int, default=42,
@@ -223,12 +224,20 @@ def get_args():
                                help='if true uses 16 bit precision')
     parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                                help='evaluate model on validation set')
-
+    parent_parser.add_argument('--resume', default=None, type=str, metavar='PATH',
+                               help='path to latest checkpoint (default: none)')
     parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
     return parser.parse_args()
 
 
 def main(args: Namespace) -> None:
+    if args.distributed_backend == 'ddp':
+        # When using a single GPU per process and per
+        # DistributedDataParallel, we need to divide the batch size
+        # ourselves based on the total number of GPUs we have
+        args.batch_size = int(args.batch_size / args.gpus)
+        args.workers = int((args.workers + args.gpus - 1) / args.gpus)
+
     model = ImageNetLightningModel(**vars(args))
 
     if args.seed is not None:
@@ -242,6 +251,8 @@ def main(args: Namespace) -> None:
         max_epochs=args.epochs,
         distributed_backend=args.distributed_backend,
         precision=16 if args.use_16bit else 32,
+        resume_from_checkpoint=args.resume,
+        profiler=True,
     )
 
     if args.evaluate:
