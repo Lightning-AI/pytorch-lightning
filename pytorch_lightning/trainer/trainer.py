@@ -71,7 +71,6 @@ class Trainer(
     TrainerEvaluationLoopMixin,
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
-    TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
     TrainerDeprecatedAPITillVer0_10,
 ):
@@ -291,10 +290,10 @@ class Trainer(
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
             auto_lr_find:
-                .. warning:: .. deprecated:: 0.8.0
+                .. warning:: .. deprecated:: 0.9.0
 
                     Has no effect. Please use tuner class instead.
-                    Will remove 0.9.0.
+                    Will remove 0.10.0.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement.
                 If not specified this will toggled automatically ddp is used
@@ -307,10 +306,10 @@ class Trainer(
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
 
             auto_scale_batch_size:
-                .. warning:: .. deprecated:: 0.8.0
+                .. warning:: .. deprecated:: 0.9.0
 
                     Has no effect. Please use tuner class instead.
-                    Will remove 0.9.0.
+                    Will remove 0.10.0.
 
             prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
                 Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
@@ -436,15 +435,15 @@ class Trainer(
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
         if auto_lr_find is not None:
-            rank_zero_warn("Argument `auto_lr_find` has no effect since v0.8.0"
-                           " and will be removed in v0.9.0. Tuning the learning"
-                           " rate can instead be achieved using the Tuner class.",
+            rank_zero_warn("Argument `auto_lr_find` has no effect since v0.9.0"
+                           " and will be removed in v0.10.0. Tuning the learning"
+                           " rate can instead be achieved using the HyperTuner class.",
                            DeprecationWarning)
 
         if auto_scale_batch_size is not None:
-            rank_zero_warn("Argument `auto_scale_batch_size` has no effect since v0.8.0"
-                           " and will be removed in v0.9.0. Tuning the batch size"
-                           " can instead be achieved using the Tuner class.",
+            rank_zero_warn("Argument `auto_scale_batch_size` has no effect since v0.9.0"
+                           " and will be removed in v0.10.0. Tuning the batch size"
+                           " can instead be achieved using the HyperTuner class.",
                            DeprecationWarning)
 
         self._is_data_prepared = False

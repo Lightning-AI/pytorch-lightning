@@ -86,6 +86,8 @@ afterwards. Each object comes with the following fields/methods
 * `fig = obj.plot(...)`: method for plotting the results of the search
 * `new_val = obj.suggestion(...)`: method for getting suggestion for optimal value to use
 
+----------
+
 Auto scaling of batch size
 ==========================
 
@@ -145,6 +147,7 @@ interact with the results.
     :members: plot, suggestion
     :noindex:
 
+----------
 
 Learning Rate Finder
 ====================
