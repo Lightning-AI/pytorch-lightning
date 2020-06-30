@@ -258,6 +258,10 @@ class ModelCheckpoint(Callback):
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
         self.dirpath = ckpt_path
+
+        print('-' * 100)
+        print('making dirs', trainer.global_rank)
+        print('-' * 100)
         os.makedirs(self.dirpath, exist_ok=True)
         trainer.ckpt_path = ckpt_path
         trainer.weights_save_path = ckpt_path
