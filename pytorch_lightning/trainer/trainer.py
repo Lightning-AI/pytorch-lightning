@@ -33,6 +33,11 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
+import warnings
+
+# warnings to ignore
+warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
+                                          'please use torch.distributed.ReduceOp instead')
 
 try:
     from apex import amp
