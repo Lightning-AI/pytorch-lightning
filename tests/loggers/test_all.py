@@ -148,7 +148,7 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     CometLogger,
-    MLFlowLogger,
+    #MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
     WandbLogger,
@@ -159,7 +159,7 @@ def test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     model = EvalModelTemplate()
     trainer = Trainer(
         logger=logger,
-        # default_root_dir=tmpdir,
+        default_root_dir=tmpdir,
         distributed_backend='ddp_cpu',
         num_processes=2,
         max_steps=1,
