@@ -15,10 +15,6 @@ dependencies:
     - pyyaml>=3.13
     - tqdm>=4.35.0
 
-    # Optional
-    - scipy>=0.13.3
-    - scikit-learn>=0.20.0
-
     # For dev and testing
     - check-manifest
     - coverage
@@ -30,6 +26,10 @@ dependencies:
     - autopep8
     - twine==1.13.0
     - pillow<7.0.0
+
+    # Optional
+    - scipy>=0.13.3
+    - scikit-learn>=0.20.0
 
     - pip:
         - test-tube>=0.7.5
