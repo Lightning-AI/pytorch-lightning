@@ -804,6 +804,7 @@ class TrainerTrainLoopMixin(ABC):
 
                 # enter amp context
                 if not NATIVE_AMP_AVALAIBLE:
+                    context = closure_loss
                     closure_loss = closure_loss.__enter__()
 
             # do backward pass
@@ -811,7 +812,7 @@ class TrainerTrainLoopMixin(ABC):
 
             # exit amp context
             if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
-                closure_loss = closure_loss.__exit__()
+                closure_loss = context.__exit__()
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
