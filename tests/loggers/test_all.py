@@ -134,13 +134,11 @@ class RankZeroLoggerCheck(Callback):
     # due to the way ddp process is launched
 
     def on_fit_start(self, trainer):
-        if trainer.global_rank > 0:
-            assert isinstance(trainer.logger.experiment, DummyExperiment)
+        assert trainer.is_global_zero or isinstance(trainer.logger.experiment, DummyExperiment)
 
     def on_batch_start(self, trainer, pl_module):
-        if trainer.global_rank > 0:
-            # test that dummy experiment accepts any call
-            assert pl_module.logger.experiment.something(foo="bar") is None
+        # test that dummy experiment accepts any call
+        assert trainer.is_global_zero or pl_module.logger.experiment.something(foo="bar") is None
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
