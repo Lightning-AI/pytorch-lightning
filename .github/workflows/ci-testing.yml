@@ -87,8 +87,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade-strategy only-if-needed
-        # pip install -q "PyYAML>=5.3.1"  # needed for installing dependencues
+        # python -m pip install --upgrade --user pip
+        pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade-strategy "only-if-needed"
         HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --requirement ./requirements/devel.txt --quiet --upgrade-strategy "only-if-needed"
         python --version
         pip --version
