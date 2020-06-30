@@ -5,7 +5,6 @@ Neptune
 from argparse import Namespace
 from typing import Optional, List, Dict, Any, Union, Iterable
 
-# from PIL.Image import Image
 
 try:
     import neptune

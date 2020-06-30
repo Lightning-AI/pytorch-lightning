@@ -82,9 +82,6 @@ class Trainer(
         >>> import torch
         >>> from torch.nn import functional as F
         >>> from torch.utils.data import Dataset, DataLoader
-        >>> class AAA:
-        ...     def __init__(self):
-        ...         self.a = 1
 
         >>> # Define model
         >>> class SimpleModel(LightningModule):
@@ -121,8 +118,8 @@ class Trainer(
         ...         return self.input_seq[item], self.output_seq[item]
         ...
         >>> train_loader = DataLoader(SimpleDataset(), batch_size=8)
-        >>> #define trainer and run
         >>> model = SimpleModel()
+        >>> # Define Trainer and fit model
         >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
         >>> trainer.fit(model, train_loader)
         1
