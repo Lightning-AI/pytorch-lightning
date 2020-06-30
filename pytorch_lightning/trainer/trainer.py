@@ -126,7 +126,7 @@ class Trainer(
         >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
         >>> trainer.fit(model, train_loader)
         1
-        >>> res = trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        >>> trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         --------------------------------------------------------------------------------
         TEST RESULTS
         ...
