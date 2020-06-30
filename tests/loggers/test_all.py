@@ -146,12 +146,11 @@ class RankZeroLoggerCheck(Callback):
     TestTubeLogger,
     WandbLogger,
 ])
-def test_logger_on_all_ranks(tmpdir, logger_class):
+def test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = EvalModelTemplate()
     trainer = Trainer(
-        default_root_dir=tmpdir,
         logger=logger,
         distributed_backend='ddp_cpu',
         num_processes=2,
