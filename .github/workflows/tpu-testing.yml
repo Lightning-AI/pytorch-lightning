@@ -87,6 +87,7 @@ jobs:
         # First portion is the test logs. Print these to Github Action stdout.
         cat xx00 && \
         # TODO: Remove this `cat`. Printing the xml for debugging.
+        echo "\n Now printing the XML: \n" && \
         cat xx01 && \
         echo "Done with log retrieval attempt." && \
         gcloud container images delete "$IMAGE:$GITHUB_RUN_ID" --force-delete-tags && \
@@ -94,6 +95,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
+      if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./xx01
