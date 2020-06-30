@@ -366,7 +366,8 @@ class TrainerEvaluationLoopMixin(ABC):
                 if self.global_rank == 0:
                     print('-'*100)
                     print(v)
-                dist.all_reduce(v)
+                dist.all_reduce(v, op=dist.reduce_op.SUM)
+                v = v / self.world_size
                 if self.global_rank == 0:
                     print(v)
                 print('-' * 100)
