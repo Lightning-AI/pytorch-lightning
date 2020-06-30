@@ -342,9 +342,13 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # aggregate ddp stats across
                 if self.use_ddp or self.use_ddp2:
-                    print(eval_results)
+                    if self.global_rank == 0:
+                        print('-' * 100)
+                        print(eval_results)
                     self.reduce_eval_ddp(eval_results)
-                    print(eval_results)
+                    if self.global_rank == 0:
+                        print(eval_results)
+                        print('-' * 100)
 
         # enable train mode again
         model.train()
@@ -363,14 +367,8 @@ class TrainerEvaluationLoopMixin(ABC):
             if isinstance(v, dict):
                 self.reduce_eval_ddp(v)
             elif isinstance(v, torch.Tensor):
-                if self.global_rank == 0:
-                    print('-'*100)
-                    print(v)
                 dist.all_reduce(v, op=dist.reduce_op.SUM)
                 v = v / self.world_size
-                if self.global_rank == 0:
-                    print(v)
-                print('-' * 100)
                 eval_results[k] = v
 
     def run_evaluation(self, test_mode: bool = False):
