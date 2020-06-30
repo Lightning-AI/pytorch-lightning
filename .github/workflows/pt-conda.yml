@@ -109,6 +109,8 @@ jobs:
 
     - name: Tests
       run: |
+        conda info
+        conda list
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning tests pl_examples -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
