@@ -59,8 +59,7 @@ def test_trainer_reset_correctly(tmpdir):
     tuner = HyperTuner(trainer)
 
     changed_attributes = ['callbacks', 'logger', 'val_check_interval',
-                          'max_steps', 'checkpoint_callback', 'early_stop_callback',
-                          'enable_early_stop']
+                          'max_steps', 'checkpoint_callback', 'early_stop_callback']
     attributes_before = {}
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
@@ -155,14 +154,14 @@ def test_accumulation_and_early_stopping(tmpdir):
     )
     tuner = HyperTuner(trainer)
 
-    lrfinder = tuner.lr_find(model, num_training=10, early_stop_threshold=None)
+    lrfinder = tuner.lr_find(model, num_training=20, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
-
+    
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
-    assert len(lrfinder.results['lr']) == 10, \
+    assert len(lrfinder.results['lr']) == 20, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 11 * 2, \
+    assert lrfinder._total_batch_idx == 32, \
         'Accumulation parameter did not work'
 
 

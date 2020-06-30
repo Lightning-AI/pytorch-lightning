@@ -1,6 +1,6 @@
 import pytest
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, HyperTuner
 from tests.base import EvalModelTemplate
 
@@ -14,7 +14,7 @@ def test_call_order(tmpdir):
 
     # logger file to get meta
     trainer = Trainer(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
         max_epochs=1
     )
     tuner = HyperTuner(trainer)

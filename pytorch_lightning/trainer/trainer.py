@@ -119,10 +119,8 @@ class Trainer(
         benchmark: bool = False,
         deterministic: bool = False,
         reload_dataloaders_every_epoch: bool = False,
-        auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         terminate_on_nan: bool = False,
-        auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
@@ -131,9 +129,9 @@ class Trainer(
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        overfit_pct: float = None  # backward compatible, todo: remove in v1.0.0
-            auto_lr_find: Optional[Union[bool, str]] = None,  # backward comp todo: remove in v0.9.0
-            auto_scale_batch_size: Optional[Union[str, bool]] = None,  # backward comp. todo: remove in v0.9.0
+        overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
+        auto_lr_find: Optional[Union[bool, str]] = None,  # backward comp todo: remove in v0.10.0
+        auto_scale_batch_size: Optional[Union[str, bool]] = None,  # backward comp. todo: remove in v0.10.0
     ):
         r"""
 

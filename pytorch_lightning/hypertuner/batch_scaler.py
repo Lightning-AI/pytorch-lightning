@@ -65,6 +65,13 @@ class HyperTunerBatchScalerMixin(ABC):
         # Check for correct call order
         self._batch_scaler_call_order()
 
+        # Call prepare data and model setup if nessesary
+        if self.trainer.can_prepare_data() and not self.trainer._is_data_prepared:
+            model.prepare_data()
+            self.trainer._is_data_prepared = True
+        if self.trainer.is_function_implemented('setup', model):
+            model.setup('fit')
+
         if not lightning_hasattr(model, attribute_name):
             raise MisconfigurationException(f'Field {attribute_name} not found in `model` namespace')
 
@@ -124,7 +131,6 @@ class HyperTunerBatchScalerMixin(ABC):
             'callbacks': self.trainer.callbacks,
             'checkpoint_callback': self.trainer.checkpoint_callback,
             'early_stop_callback': self.trainer.early_stop_callback,
-            'enable_early_stop': self.trainer.enable_early_stop,
             'train_percent_check': self.trainer.train_percent_check,
         }
 
@@ -147,7 +153,6 @@ class HyperTunerBatchScalerMixin(ABC):
         self.trainer.callbacks = self.__dumped_params['callbacks']
         self.trainer.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.trainer.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.trainer.enable_early_stop = self.__dumped_params['enable_early_stop']
         self.trainer.train_percent_check = self.__dumped_params['train_percent_check']
         del self.__dumped_params
 

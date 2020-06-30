@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional, Sequence
+from typing import Optional, Union, List
 
 import numpy as np
 import torch
@@ -13,7 +13,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class HyperTunerLRFinderMixin(ABC):
@@ -80,6 +80,13 @@ class HyperTunerLRFinderMixin(ABC):
         # Check for correct call order
         self._lr_finder_call_order()
 
+        # Call prepare data and model setup if nessesary
+        if self.trainer.can_prepare_data() and not self.trainer._is_data_prepared:
+            model.prepare_data()
+            self.trainer._is_data_prepared = True
+        if self.trainer.is_function_implemented('setup', model):
+            model.setup('fit')
+
         # Arguments we adjust during the batch size finder, save for restoring
         self.__lr_finder_dump_params(model)
 
@@ -138,7 +145,6 @@ class HyperTunerLRFinderMixin(ABC):
             'max_steps': self.trainer.max_steps,
             'checkpoint_callback': self.trainer.checkpoint_callback,
             'early_stop_callback': self.trainer.early_stop_callback,
-            'enable_early_stop': self.trainer.enable_early_stop,
             'configure_optimizers': model.configure_optimizers,
         }
 
@@ -164,7 +170,6 @@ class HyperTunerLRFinderMixin(ABC):
         self.trainer.max_steps = self.__dumped_params['max_steps']
         self.trainer.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.trainer.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.trainer.enable_early_stop = self.__dumped_params['enable_early_stop']
         model.configure_optimizers = self.__dumped_params['configure_optimizers']
         del self.__dumped_params
 
@@ -288,7 +293,7 @@ class LRFinderCallback(Callback):
             self.progress_bar.update()
 
         current_loss = trainer.callback_metrics[self.monitor_val].item()
-        current_step = trainer.global_step + 1  # remove the +1 in 1.0
+        current_step = trainer.global_step
 
         # Avg loss (loss with momentum) + smoothing
         self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
@@ -302,7 +307,7 @@ class LRFinderCallback(Callback):
                     self.progress_bar.close()
 
         # Save best loss for diverging checking
-        if smoothed_loss < self.best_loss or current_step == 2:
+        if smoothed_loss < self.best_loss or current_step == 1:
             self.best_loss = smoothed_loss
 
         self.results['loss'].append(smoothed_loss)
