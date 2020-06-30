@@ -802,8 +802,21 @@ class TrainerTrainLoopMixin(ABC):
             if self.precision == 16 and not self.on_tpu:
                 closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
 
+                # enter amp context
+                if not NATIVE_AMP_AVALAIBLE:
+                    context = closure_loss
+                    closure_loss = closure_loss.__enter__()
+
             # do backward pass
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
+
+            # exit amp context
+            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
+                a, b, c = None, None, None
+                error = context.__exit__(a, b, c)
+                if error:
+                    rank_zero_warn(a, b, c)
+                    raise Exception('apex unscale error')
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
