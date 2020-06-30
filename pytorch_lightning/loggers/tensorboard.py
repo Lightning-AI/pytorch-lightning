@@ -97,6 +97,9 @@ class TensorBoardLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
+        print('----------------------------------')
+        print('called', rank_zero_only.rank)
+        print('----------------------------------')
         os.makedirs(self.root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
