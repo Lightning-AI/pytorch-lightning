@@ -57,8 +57,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade --user pip
-        pip install -r ./requirements/base.txt --quiet
-        pip install -r ./requirements/test.txt --quiet
+        pip install --requirement ./requirements/base.txt --quiet  --find-links https://download.pytorch.org/whl/torch_stable.html --upgrade-strategy only-if-needed
+        pip install --requirement ./requirements/test.txt --quiet --upgrade-strategy only-if-needed
         # pip install tox coverage
         python --version
         pip --version
