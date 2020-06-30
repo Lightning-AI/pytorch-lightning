@@ -816,7 +816,7 @@ class TrainerTrainLoopMixin(ABC):
                 error = context.__exit__(a, b, c)
                 if error:
                     rank_zero_warn(a, b, c)
-                    raise Exception('apex unscalling error')
+                    raise Exception('apex unscale error')
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
