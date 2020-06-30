@@ -803,7 +803,11 @@ class TrainerTrainLoopMixin(ABC):
                 closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
 
             # do backward pass
-            model_ref.backward(self, closure_loss, optimizer, opt_idx)
+            if NATIVE_AMP_AVALAIBLE:
+                with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
+                    model_ref.backward(self, closure_loss, optimizer, opt_idx)
+            else:
+                model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
