@@ -132,6 +132,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from torch import distributed as dist
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -339,6 +340,10 @@ class TrainerEvaluationLoopMixin(ABC):
             elif self.is_overridden('validation_epoch_end', model=model):
                 eval_results = model.validation_epoch_end(outputs)
 
+                # aggregate ddp stats across
+                if self.use_ddp or self.use_ddp2:
+                    self.reduce_eval_ddp(eval_results)
+
         # enable train mode again
         model.train()
 
@@ -346,6 +351,14 @@ class TrainerEvaluationLoopMixin(ABC):
         torch.set_grad_enabled(True)
 
         return eval_results
+
+    def reduce_eval_ddp(self, eval_results):
+        for k, v in eval_results.items():
+            if isinstance(v, dict):
+                self.reduce_eval_ddp(v)
+            elif isinstance(v, torch.Tensor):
+                v = dist.all_reduce(v)
+                eval_results[k] = v
 
     def run_evaluation(self, test_mode: bool = False):
         # hook
