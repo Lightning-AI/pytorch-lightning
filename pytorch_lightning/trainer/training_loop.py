@@ -812,9 +812,11 @@ class TrainerTrainLoopMixin(ABC):
 
             # exit amp context
             if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
-                import pdb; pdb.set_trace()
                 a, b, c = None, None, None
-                context.__exit__(a, b, c)
+                error = context.__exit__(a, b, c)
+                if error:
+                    print(a, b, c)
+                    raise Exception('apex unscalling error')
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
