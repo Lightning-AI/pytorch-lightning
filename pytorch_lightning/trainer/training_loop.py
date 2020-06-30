@@ -804,7 +804,7 @@ class TrainerTrainLoopMixin(ABC):
 
                 # apply amp context
                 if not NATIVE_AMP_AVALAIBLE:
-                    closure_loss = closure_loss.exit()
+                    closure_loss = yield closure_loss
 
             # do backward pass
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
