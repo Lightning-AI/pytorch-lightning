@@ -20,7 +20,7 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -211,6 +211,7 @@ class NeptuneLogger(LightningLoggerBase):
         return state
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> Experiment:
         r"""
         Actual Neptune object. To use neptune features in your

@@ -31,7 +31,7 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_only
 
@@ -140,6 +140,7 @@ class CometLogger(LightningLoggerBase):
         self._kwargs = kwargs
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> CometBaseExperiment:
         r"""
         Actual Comet object. To use Comet features in your

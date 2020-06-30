@@ -17,7 +17,7 @@ except ImportError:  # pragma: no-cover
     _MLFLOW_AVAILABLE = False
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -75,6 +75,7 @@ class MLFlowLogger(LightningLoggerBase):
         self.tags = tags
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> MlflowClient:
         r"""
         Actual MLflow object. To use mlflow features in your

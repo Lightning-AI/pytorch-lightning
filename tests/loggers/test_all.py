@@ -14,7 +14,7 @@ from pytorch_lightning.loggers import (
     CometLogger,
     WandbLogger,
 )
-from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import EvalModelTemplate
 
 
@@ -135,7 +135,7 @@ class RankZeroLoggerCheck(Callback):
 
     def on_fit_start(self, trainer):
         if trainer.global_rank > 0:
-            assert isinstance(trainer.logger, DummyLogger)
+            assert isinstance(trainer.logger.experiment, DummyExperiment)
 
     def on_batch_start(self, trainer, pl_module):
         if trainer.global_rank > 0:

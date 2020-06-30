@@ -17,7 +17,7 @@ except ImportError:  # pragma: no-cover
     Run = None
     _WANDB_AVAILABLE = False
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -95,6 +95,7 @@ class WandbLogger(LightningLoggerBase):
         return state
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
 
