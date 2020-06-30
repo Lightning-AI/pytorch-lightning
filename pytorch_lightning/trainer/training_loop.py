@@ -800,7 +800,6 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_backward'):
             # scale loss for 16 bit
             if self.precision == 16 and not self.on_tpu:
-                import pdb; pdb.set_trace()
                 closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
 
                 # enter amp context
@@ -813,6 +812,7 @@ class TrainerTrainLoopMixin(ABC):
 
             # exit amp context
             if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
+                import pdb; pdb.set_trace()
                 a, b, c = None, None, None
                 context.__exit__(a, b, c)
 
