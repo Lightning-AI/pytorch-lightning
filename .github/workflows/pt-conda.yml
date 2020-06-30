@@ -1,4 +1,4 @@
-name: PyTorch & Conda compatibility
+name: PyTorch & Conda
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
