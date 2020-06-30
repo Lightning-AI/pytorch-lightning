@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       # max-parallel: 6
       matrix:
-        os: [ubuntu-18.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04, windows-2019, macOS-10.15]
         python-version: [3.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
@@ -74,8 +74,6 @@ jobs:
 
     - name: Test Package [only]
       run: |
-        # tox --sitepackages
-        # flake8 .
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         python -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
