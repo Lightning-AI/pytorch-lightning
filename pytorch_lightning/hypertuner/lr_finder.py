@@ -7,7 +7,9 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 import os
+import pickle
 
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers.base import DummyLogger
@@ -17,6 +19,11 @@ from pytorch_lightning.utilities import rank_zero_only
 
 
 class HyperTunerLRFinderMixin(ABC):
+    
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    trainer: Trainer
+    
     def _lr_finder_call_order(self):
         pass  # nothing to check
 
@@ -112,10 +119,13 @@ class HyperTunerLRFinderMixin(ABC):
         model.configure_optimizers = PatchOptimizer(optimizers[0], min_lr, max_lr,
                                                     num_training, mode)
 
-        # Fit, lr & loss logged in callback
+        # Fit
         self.trainer.fit(model,
                          train_dataloader=train_dataloader,
                          val_dataloaders=val_dataloaders)
+        # Load results save to file
+        with open('_lr_finder_results.pkl', 'rb') as file:
+            lr_finder.results = pickle.load(file)
         lr_finder._total_batch_idx = self.trainer.total_batch_idx  # for debug purpose
         lr_finder.results['lr'].pop(-1)
 
@@ -123,9 +133,10 @@ class HyperTunerLRFinderMixin(ABC):
         if self.trainer.global_step != num_training:
             log.info('LR finder stopped early due to diverging loss.')
 
-        # Reset model state
+        # Reset model state, delete temp files
         self.trainer.restore(str(save_path), on_gpu=self.trainer.on_gpu)
         os.remove(save_path)
+        os.remove('_lr_finder_results.pkl')
 
         # Finish by resetting variables so trainer is ready to fit model
         self.__lr_finder_restore_params(model)
@@ -312,6 +323,11 @@ class LRFinderCallback(Callback):
 
         self.results['loss'].append(smoothed_loss)
 
+    @rank_zero_only
+    def on_train_end(self, trainer, pl_module):
+        with open('_lr_finder_results.pkl', 'wb') as file:
+            pickle.dump(self.results, file, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 class PatchOptimizer(object):
     def __init__(self, optimizers, min_lr, max_lr, num_training, mode):
@@ -350,7 +366,7 @@ class LinearLearningRateScheduler(_LRScheduler):
                  last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(LinearLearningRateScheduler, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1
@@ -387,7 +403,7 @@ class ExponentialLearningRateScheduler(_LRScheduler):
                  last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        super(ExponentialLearningRateScheduler, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
         curr_iter = self.last_epoch + 1

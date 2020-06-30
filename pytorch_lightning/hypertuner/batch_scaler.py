@@ -11,8 +11,8 @@ import torch
 from torch import Tensor
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
@@ -21,6 +21,12 @@ from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_set
 
 
 class HyperTunerBatchScalerMixin(ABC):
+    
+    # this is just a summary on variables used in this abstract class,
+    #  the proper values/initialisation should be done in child class
+    _lr_find_called: bool
+    trainer: Trainer
+    
     def _batch_scaler_call_order(self):
         if self._lr_find_called:
             rank_zero_warn(
@@ -302,7 +308,7 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
         until an OOM error is encountered. Hereafter, the batch size is further
         refined using a binary search """
     batch_scaler = BatchScaler()
-    high = None
+    high, low = None, None
     count = 0
     while True:
         garbage_collection_cuda()
