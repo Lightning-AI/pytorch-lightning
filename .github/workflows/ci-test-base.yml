@@ -14,7 +14,7 @@ on:
 # on: [push, pull_request]
 
 jobs:
-  pytest:
+  doctest:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -81,7 +81,7 @@ jobs:
           --ignore=pytorch_lightning/loggers/neptune.py \
           --ignore=pytorch_lightning/loggers/test_tube.py \
           --ignore=pytorch_lightning/loggers/wandb.py \
-          --ignore=pytorch_lightning/metrics/
+          --ignore=pytorch_lightning/metrics/sklearns.py
         # coverage report
 
     - name: Upload pytest test results
