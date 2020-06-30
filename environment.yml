@@ -33,6 +33,9 @@ dependencies:
     # Optional
     - scipy>=0.13.3
     - scikit-learn>=0.20.0
+    - matplotlib>=3.1.1
+    - omegaconf>=2.0.0
+    - torchtext>=0.3.1
 
     - pip:
         - test-tube>=0.7.5
@@ -40,3 +43,4 @@ dependencies:
         - comet_ml>=1.0.56
         - wandb>=0.8.21
         - neptune-client>=0.4.4
+        - horovod>=0.19.1

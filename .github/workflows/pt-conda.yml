@@ -81,13 +81,13 @@ jobs:
     #    conda install pytorch=${{ matrix.pytorch-version }} --name ci-torch --channel pytorch-nightly
     #  shell: bash
 
-    - name: Define environemnt
-      run: |
-        # conda env update --file environment.yml --name ci-torch
-        python --version
-        conda info
-        conda list
-      shell: bash -l {0}
+    #- name: Define environemnt
+    #  run: |
+    #    # conda env update --file environment.yml --name ci-torch
+    #    python --version
+    #    conda info
+    #    conda list
+    #  shell: bash -l {0}
 
     - name: Reinstall Horovod if necessary
       if: runner.os != 'windows' && matrix.python-version != '3.8'
