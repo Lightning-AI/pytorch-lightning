@@ -76,6 +76,59 @@ class Trainer(
     TrainerDeprecatedAPITillVer0_9,
     TrainerDeprecatedAPITillVer0_10,
 ):
+    """
+    Example:
+
+        >>> import torch
+        >>> from torch.nn import functional as F
+        >>> from torch.utils.data import Dataset, DataLoader
+        >>> class AAA:
+        ...     def __init__(self):
+        ...         self.a = 1
+
+        >>> # Define model
+        >>> class SimpleModel(LightningModule):
+        ...     def __init__(self):
+        ...         super().__init__()
+        ...         self.l1 = torch.nn.Linear(64, 4)
+        ...
+        ...     def forward(self, x):
+        ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+        ...
+        ...     def training_step(self, batch, batch_nb):
+        ...         x, y = batch
+        ...         loss = F.cross_entropy(self(x), y)
+        ...         return {'loss': loss, 'log': {'train_loss': loss}}
+        ...
+        ...     def test_step(self, batch, batch_nb):
+        ...         x, y = batch
+        ...         loss = F.cross_entropy(self(x), y)
+        ...         return {'loss': loss, 'log': {'train_loss': loss}}
+        ...
+        ...     def configure_optimizers(self):
+        ...         return torch.optim.Adam(self.parameters(), lr=0.02)
+        ...
+        >>> # Define dataset
+        >>> class SimpleDataset(Dataset):
+        ...     def __init__(self, num_samples=200):
+        ...         self.input_seq = torch.randn(num_samples, 64)
+        ...         top, bottom = self.input_seq.chunk(2, -1)
+        ...         self.output_seq = top + bottom.roll(shifts=1, dims=-1)
+        ...
+        ...     def __len__(self):
+        ...         return len(self.input_seq)
+        ...
+        ...     def __getitem__(self, item):
+        ...         return self.input_seq[item], self.output_seq[item]
+        ...
+        >>> train_loader = DataLoader(SimpleDataset(), batch_size=16)
+        >>> #define trainer and run
+        >>> model = SimpleModel()
+        >>> trainer = Trainer(max_epochs=1)
+        >>> trainer.fit(model, train_loader)
+        1
+
+    """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(

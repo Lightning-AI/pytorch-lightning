@@ -108,9 +108,8 @@ But if you don't want to use the values saved in the checkpoint, pass in your ow
 
         def __init__(self, in_dim, out_dim):
             super().__init__()
-            self.in_dim = in_dim
-            self.out_dim = out_dim
-            self.l1 = nn.Linear(self.in_dim, self.out_dim)
+            self.save_hyperparameters()
+            self.l1 = nn.Linear(self.hparams.in_dim, self.hparams.out_dim)
 
 you can restore the model like this
 
