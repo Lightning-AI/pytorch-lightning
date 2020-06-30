@@ -133,12 +133,11 @@ class RankZeroLoggerCheck(Callback):
     # this class has to be defined outside the test function, otherwise we get pickle error
     # due to the way ddp process is launched
 
-    def on_fit_start(self, trainer):
-        assert trainer.is_global_zero or isinstance(trainer.logger.experiment, DummyExperiment)
-
     def on_batch_start(self, trainer, pl_module):
-        # test that dummy experiment accepts any call
-        assert trainer.is_global_zero or pl_module.logger.experiment.something(foo="bar") is None
+        if not trainer.is_global_zero:
+            # test that dummy experiment accepts any call
+            assert isinstance(trainer.logger.experiment, DummyExperiment)
+            assert pl_module.logger.experiment.something(foo="bar") is None
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
