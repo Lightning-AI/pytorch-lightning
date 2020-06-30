@@ -805,7 +805,7 @@ class TrainerTrainLoopMixin(ABC):
             # do backward pass
             if NATIVE_AMP_AVALAIBLE:
                 with amp.scale_loss(closure_loss, optimizer) as scaled_loss:
-                    model_ref.backward(self, closure_loss, optimizer, opt_idx)
+                    model_ref.backward(self, scaled_loss, optimizer, opt_idx)
             else:
                 model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
