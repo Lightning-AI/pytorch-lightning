@@ -21,12 +21,12 @@ from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_set
 
 
 class HyperTunerBatchScalerMixin(ABC):
-    
+
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     _lr_find_called: bool
     trainer: Trainer
-    
+
     def _batch_scaler_call_order(self):
         if self._lr_find_called:
             rank_zero_warn(
@@ -147,9 +147,8 @@ class HyperTunerBatchScalerMixin(ABC):
         self.trainer.callbacks = []  # not needed before full run
         self.trainer.checkpoint_callback = False  # required for saving
         self.trainer.early_stop_callback = None
-        self.trainer.enable_early_stop = False
         self.trainer.train_percent_check = 1.0
-        self.trainer.optimizers, self.trainer.schedulers = [], []  # required for saving
+        self.trainer.optimizers, self.trainer.lr_schedulers = [], []  # required for saving
         self.trainer.model = model  # required for saving
 
     def __scale_batch_restore_params(self):

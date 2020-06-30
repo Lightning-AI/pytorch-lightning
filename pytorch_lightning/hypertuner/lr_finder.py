@@ -19,11 +19,11 @@ from pytorch_lightning.utilities import rank_zero_only
 
 
 class HyperTunerLRFinderMixin(ABC):
-    
+
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
     trainer: Trainer
-    
+
     def _lr_finder_call_order(self):
         pass  # nothing to check
 
@@ -167,8 +167,7 @@ class HyperTunerLRFinderMixin(ABC):
         self.trainer.max_steps = num_training + 1
         self.trainer.checkpoint_callback = False
         self.trainer.early_stop_callback = None
-        self.trainer.enable_early_stop = False
-        self.trainer.optimizers, self.trainer.schedulers = [], [],
+        self.trainer.optimizers, self.trainer.lr_schedulers = [], [],
         self.trainer.model = model
         if monitor_val != 'loss':
             self.trainer.val_check_interval = 1
@@ -359,6 +358,9 @@ class LinearLearningRateScheduler(_LRScheduler):
         https://github.com/davidtvs/pytorch-lr-finder/blob/master/torch_lr_finder/lr_finder.py
     """
 
+    last_epoch: int
+    base_lrs: List[float]
+
     def __init__(self,
                  optimizer: torch.optim.Optimizer,
                  end_lr: float,
@@ -395,6 +397,9 @@ class ExponentialLearningRateScheduler(_LRScheduler):
     Inspired by:
         https://github.com/davidtvs/pytorch-lr-finder/blob/master/torch_lr_finder/lr_finder.py
     """
+
+    last_epoch: int
+    base_lrs: List[float]
 
     def __init__(self,
                  optimizer: torch.optim.Optimizer,
