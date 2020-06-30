@@ -946,7 +946,9 @@ class Trainer(
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
-            self.load_spawn_weights(model)
+            if self.on_colab_kaggle:
+                self.load_spawn_weights(model)
+
             self.model = model
 
         # ON CPU
