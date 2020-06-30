@@ -33,6 +33,11 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
+import warnings
+
+# warnings to ignore
+warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
+                                          'please use torch.distributed.ReduceOp instead')
 
 try:
     from apex import amp
@@ -359,8 +364,6 @@ class Trainer(
             default_root_dir = os.getcwd()
         self.default_root_dir = default_root_dir
 
-        self.configure_logger(logger)
-
         # init callbacks
         self.callbacks = callbacks or []
 
@@ -500,9 +503,9 @@ class Trainer(
         self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
+        self.configure_logger(logger)
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
-
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -843,7 +846,6 @@ class Trainer(
 
         """
         # bind logger and other properties
-        model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
         # clean hparams
