@@ -277,7 +277,6 @@ class LRFinderCallback(Callback):
             log.exception('Failed to compute suggesting for `lr`. There might not be enough points.')
             self._optimal_idx = None
 
-    @rank_zero_only
     def on_batch_start(self, trainer, pl_module):
         """ Called before each training batch, logs the lr that will be used """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
@@ -288,7 +287,6 @@ class LRFinderCallback(Callback):
 
         self.results['lr'].append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    @rank_zero_only
     def on_batch_end(self, trainer, pl_module):
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
