@@ -120,13 +120,17 @@ class Trainer(
         ...     def __getitem__(self, item):
         ...         return self.input_seq[item], self.output_seq[item]
         ...
-        >>> train_loader = DataLoader(SimpleDataset(), batch_size=16)
+        >>> train_loader = DataLoader(SimpleDataset(), batch_size=8)
         >>> #define trainer and run
         >>> model = SimpleModel()
-        >>> trainer = Trainer(max_epochs=1)
-        >>> res = trainer.fit(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        Epoch 1: 100%|##########| 13/13 [...]
+        >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
+        >>> trainer.fit(model, train_loader)
+        1
         >>> res = trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        --------------------------------------------------------------------------------
+        TEST RESULTS
+        ...
+        --------------------------------------------------------------------------------
 
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
