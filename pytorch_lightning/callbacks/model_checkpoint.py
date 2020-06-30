@@ -226,6 +226,7 @@ class ModelCheckpoint(Callback):
         filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
         return filepath
 
+    @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         """
         Determine model checkpoint save directory at runtime. References attributes from the
