@@ -18,7 +18,7 @@ from pytorch_lightning.metrics.functional.classification import (
     dice_score,
     iou,
 )
-from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
+from pytorch_lightning.metrics.metric import TensorMetric
 
 
 class Accuracy(TensorMetric):
@@ -123,7 +123,7 @@ class ConfusionMatrix(TensorMetric):
                                 normalize=self.normalize)
 
 
-class PrecisionRecall(TensorCollectionMetric):
+class PrecisionRecall(TensorMetric):
     """
     Computes the precision recall curve
 
@@ -515,7 +515,7 @@ class F1(TensorMetric):
                         reduction=self.reduction)
 
 
-class ROC(TensorCollectionMetric):
+class ROC(TensorMetric):
     """
     Computes the Receiver Operator Characteristic (ROC)
 
@@ -576,7 +576,7 @@ class ROC(TensorCollectionMetric):
                    pos_label=self.pos_label)
 
 
-class MulticlassROC(TensorCollectionMetric):
+class MulticlassROC(TensorMetric):
     """
     Computes the multiclass ROC
 
@@ -642,7 +642,7 @@ class MulticlassROC(TensorCollectionMetric):
                               num_classes=self.num_classes)
 
 
-class MulticlassPrecisionRecall(TensorCollectionMetric):
+class MulticlassPrecisionRecall(TensorMetric):
     """Computes the multiclass PR Curve
 
     Example:

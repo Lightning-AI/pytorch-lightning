@@ -63,7 +63,7 @@ def _apply_to_outputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Calla
     return decorator_fn
 
 
-def convert_to_tensor(data: Any) -> Any:
+def convert_to_tensor(data: Any, dtype=None, device=None) -> Any:
     """
     Maps all kind of collections and numbers to tensors.
 
@@ -74,12 +74,12 @@ def convert_to_tensor(data: Any) -> Any:
         the converted data
     """
     if isinstance(data, numbers.Number):
-        return torch.tensor([data])
+        return torch.tensor([data], dtype=dtype, device=device)
     # is not array of object
     elif isinstance(data, np.ndarray) and np_str_obj_array_pattern.search(data.dtype.str) is None:
-        return torch.from_numpy(data)
+        return torch.from_numpy(data).to(device=device, dtype=dtype)
     elif isinstance(data, torch.Tensor):
-        return data
+        return data.to(device=device, dtype=dtype)
 
     raise TypeError(f"The given type ('{type(data).__name__}') cannot be converted to a tensor!")
 
@@ -127,7 +127,7 @@ def _tensor_metric_output_conversion(func_to_decorate: Callable) -> Callable:
     Return:
         Callable: the decorated function
     """
-    return _apply_to_outputs(_convert_to_tensor)(func_to_decorate)
+    return _apply_to_outputs(convert_to_tensor)(func_to_decorate)
 
 
 def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
@@ -218,6 +218,7 @@ def _tensor_collection_metric_conversion(func_to_decorate: Callable) -> Callable
 def sync_ddp_if_available(result: Union[torch.Tensor],
                           group: Optional[Any] = None,
                           reduce_op: Optional[Any] = None,
+                          ddp_normalize = False,
                           ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -242,7 +243,10 @@ def sync_ddp_if_available(result: Union[torch.Tensor],
         torch.distributed.barrier(group=group)
         torch.distributed.all_reduce(result, op=reduce_op, group=group,
                                      async_op=False)
-
+        
+        if ddp_normalize:
+            result / torch.distributed.get_world_size(group)
+        
     return result
 
 

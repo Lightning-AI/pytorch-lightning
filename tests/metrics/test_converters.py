@@ -8,11 +8,11 @@ import tests.base.utils as tutils
 from pytorch_lightning.metrics.converters import (
     _apply_to_inputs,
     _apply_to_outputs,
-    _convert_to_tensor,
-    _convert_to_numpy,
+    convert_to_tensor,
+    convert_to_numpy,
     _numpy_metric_conversion,
     _tensor_metric_conversion,
-    _sync_ddp_if_available,
+    sync_ddp_if_available,
     tensor_metric,
     numpy_metric
 )
@@ -61,14 +61,14 @@ def test_apply_to_outputs():
 
 def test_convert_to_tensor():
     for test_item in [1., np.array([1.])]:
-        result_tensor = _convert_to_tensor(test_item)
+        result_tensor = convert_to_tensor(test_item)
         assert isinstance(result_tensor, torch.Tensor)
         assert result_tensor.item() == 1.
 
 
 def test_convert_to_numpy():
     for test_item in [1., torch.tensor([1.])]:
-        result = _convert_to_numpy(test_item)
+        result = convert_to_numpy(test_item)
         assert isinstance(result, np.ndarray)
         assert result.item() == 1.
 
@@ -118,7 +118,7 @@ def _ddp_test_fn(rank, worldsize):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.], device='cuda:0')
 
-    reduced_tensor = _sync_ddp_if_available(tensor)
+    reduced_tensor = sync_ddp_if_available(tensor)
 
     assert reduced_tensor.item() == dist.get_world_size(), \
         'Sync-Reduce does not work properly with DDP and Tensors'
@@ -141,7 +141,7 @@ def test_sync_reduce_simple():
     """Make sure sync-reduce works without DDP"""
     tensor = torch.tensor([1.], device='cpu')
 
-    reduced_tensor = _sync_ddp_if_available(tensor)
+    reduced_tensor = sync_ddp_if_available(tensor)
 
     assert torch.allclose(tensor, reduced_tensor), \
         'Sync-Reduce does not work properly without DDP and Tensors'

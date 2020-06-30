@@ -45,7 +45,6 @@ def test_confusion_matrix(normalize):
 
     target = (torch.arange(120) % 3).view(-1, 1)
     pred = target.clone()
-
     cm = conf_matrix(pred, target)
     assert isinstance(cm, torch.Tensor)
 
