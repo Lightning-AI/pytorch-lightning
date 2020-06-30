@@ -29,18 +29,18 @@ RUN conda create -y --name container python=$PYTHON_VERSION
 SHELL ["conda", "run", "-n", "container", "/bin/bash", "-c"]
 RUN conda install -y python=$PYTHON_VERSION mkl
 
-RUN pip uninstall -y torch
-# TODO: Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m.
-RUN gsutil cp 'gs://tpu-pytorch/wheels/torch-nightly-cp36-cp36m-linux_x86_64.whl' .
-RUN gsutil cp 'gs://tpu-pytorch/wheels/torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' .
-RUN gsutil cp 'gs://tpu-pytorch/wheels/torchvision-nightly-cp36-cp36m-linux_x86_64.whl' .
-RUN pip install 'torch-nightly-cp36-cp36m-linux_x86_64.whl'
-RUN pip install 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl'
-RUN pip install 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl'
-RUN rm 'torch-nightly-cp36-cp36m-linux_x86_64.whl'
-RUN rm 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl'
-RUN rm 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl'
-RUN apt-get install -y libomp5
+RUN pip uninstall -y torch && \
+# TODO: Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
+    gsutil cp 'gs://tpu-pytorch/wheels/torch-nightly-cp36-cp36m-linux_x86_64.whl' . && \
+    gsutil cp 'gs://tpu-pytorch/wheels/torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' . && \
+    gsutil cp 'gs://tpu-pytorch/wheels/torchvision-nightly-cp36-cp36m-linux_x86_64.whl' . && \
+    pip install 'torch-nightly-cp36-cp36m-linux_x86_64.whl' && \
+    pip install 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' && \
+    pip install 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl' && \
+    rm 'torch-nightly-cp36-cp36m-linux_x86_64.whl' && \
+    rm 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' && \
+    rm 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl' && \
+    apt-get install -y libomp5
 
 ENV LD_LIBRARY_PATH=root/miniconda3/envs/container/lib
 

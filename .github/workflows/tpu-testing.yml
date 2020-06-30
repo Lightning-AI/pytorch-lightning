@@ -1,9 +1,12 @@
-name: Run TPU tests on current PR.
+name: TPU tests
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
