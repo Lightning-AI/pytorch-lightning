@@ -112,6 +112,7 @@ class ModelCheckpoint(Callback):
             if os.path.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
             else:
+                filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
             os.makedirs(self.dirpath, exist_ok=True)
         self.save_last = save_last
@@ -175,8 +176,8 @@ class ModelCheckpoint(Callback):
 
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
-                f'{current} is supposed to be a torch.Tensor. Saving checkpoint may not work correctly. '
-                f'HINT: check the value of {self.monitor} in your validation loop', RuntimeWarning
+                f'{current} is supposed to be a `torch.Tensor`. Saving checkpoint may not work correctly.'
+                f' HINT: check the value of {self.monitor} in your validation loop', RuntimeWarning
             )
             current = torch.tensor(current)
 
@@ -225,10 +226,45 @@ class ModelCheckpoint(Callback):
         filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
         return filepath
 
+    def on_train_start(self, trainer, pl_module):
+        """
+        Determine model checkpoint save directory at runtime. References attributes from the
+        Trainer's logger to determine where to save checkpoints.
+        """
+        if self.dirpath is not None:
+            return  # short circuit
+
+        self.filename = '{epoch}'
+
+        if trainer.logger is not None and trainer.logger.experiment is not None:
+            # weights_save_path overrides anything
+            if getattr(trainer, 'weights_save_path', None) is not None:
+                save_dir = trainer.weights_save_path
+            else:
+                save_dir = (getattr(trainer.logger, 'save_dir', None)
+                            or getattr(trainer.logger, '_save_dir', None)
+                            or trainer.default_root_dir)
+
+            version = trainer.logger.version if isinstance(
+                trainer.logger.version, str) else f'version_{trainer.logger.version}'
+            ckpt_path = os.path.join(
+                save_dir,
+                trainer.logger.name,
+                version,
+                "checkpoints"
+            )
+        else:
+            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
+
+        self.dirpath = ckpt_path
+        os.makedirs(self.dirpath, exist_ok=True)
+        trainer.ckpt_path = ckpt_path
+        trainer.weights_save_path = ckpt_path
+
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
-        if trainer.proc_rank != 0:
+        if trainer.global_rank != 0:
             return
 
         metrics = trainer.callback_metrics
@@ -258,9 +294,11 @@ class ModelCheckpoint(Callback):
 
             if not isinstance(current, torch.Tensor):
                 rank_zero_warn(
-                    f'The metric you returned {current} must be a Torch.Tensor instance, checkpoint not saved '
-                    f'HINT: what is the value of {self.monitor} in validation_end()?', RuntimeWarning
+                    f'The metric you returned {current} must be a `torch.Tensor` instance, checkpoint not saved'
+                    f' HINT: what is the value of {self.monitor} in validation_epoch_end()?', RuntimeWarning
                 )
+                if current is not None:
+                    current = torch.tensor(current)
 
             if current is None:
                 rank_zero_warn(

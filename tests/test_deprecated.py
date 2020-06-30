@@ -1,7 +1,9 @@
 """Test deprecated functionality which will be removed in vX.Y.Z"""
+import random
 import sys
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
@@ -13,75 +15,40 @@ def _soft_unimport_module(str_module):
         del sys.modules[str_module]
 
 
-def test_tbd_remove_in_v0_8_0_module_imports():
-    _soft_unimport_module("pytorch_lightning.logging.comet_logger")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.logging.comet_logger import CometLogger  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.logging.mlflow_logger")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.logging.mlflow_logger import MLFlowLogger  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.logging.test_tube_logger")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.logging.test_tube_logger import TestTubeLogger  # noqa: F811
+def test_tbd_remove_in_v0_10_0_trainer():
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(overfit_pct=rnd_val)
+    assert trainer.overfit_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.overfit_pct == rnd_val
 
-    _soft_unimport_module("pytorch_lightning.pt_overrides.override_data_parallel")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.pt_overrides.override_data_parallel import (  # noqa: F811
-            LightningDataParallel, LightningDistributedDataParallel)
-    _soft_unimport_module("pytorch_lightning.overrides.override_data_parallel")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.overrides.override_data_parallel import (  # noqa: F811
-            LightningDataParallel, LightningDistributedDataParallel)
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(train_percent_check=rnd_val)
+    assert trainer.limit_train_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.train_percent_check == rnd_val
 
-    _soft_unimport_module("pytorch_lightning.core.model_saving")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.core.model_saving import ModelIO  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.core.root_module")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.core.root_module import LightningModule  # noqa: F811
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(val_percent_check=rnd_val)
+    assert trainer.limit_val_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.val_percent_check == rnd_val
 
-    _soft_unimport_module("pytorch_lightning.root_module.decorators")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.root_module.decorators import data_loader  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.root_module.grads")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.root_module.grads import GradInformation  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.root_module.hooks")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.root_module.hooks import ModelHooks  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.root_module.memory")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.root_module.memory import ModelSummary  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.root_module.model_saving")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.root_module.model_saving import ModelIO  # noqa: F811
-    _soft_unimport_module("pytorch_lightning.root_module.root_module")
-    with pytest.deprecated_call(match='v0.8.0'):
-        from pytorch_lightning.root_module.root_module import LightningModule  # noqa: F811
+    rnd_val = random.random()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer = Trainer(test_percent_check=rnd_val)
+    assert trainer.limit_test_batches == rnd_val
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.test_percent_check == rnd_val
 
-
-def test_tbd_remove_in_v0_8_0_trainer():
-    mapping_old_new = {
-        'gradient_clip': 'gradient_clip_val',
-        'nb_gpu_nodes': 'num_nodes',
-        'max_nb_epochs': 'max_epochs',
-        'min_nb_epochs': 'min_epochs',
-        'nb_sanity_val_steps': 'num_sanity_val_steps',
-        'default_save_path': 'default_root_dir',
-    }
-    # skip 0 since it may be interested as False
-    kwargs = {k: (i + 1) for i, k in enumerate(mapping_old_new)}
-
-    trainer = Trainer(**kwargs)
-
-    for attr_old in mapping_old_new:
-        attr_new = mapping_old_new[attr_old]
-        with pytest.deprecated_call(match='v0.8.0'):
-            _ = getattr(trainer, attr_old)
-        assert kwargs[attr_old] == getattr(trainer, attr_old), \
-            'Missing deprecated attribute "%s"' % attr_old
-        assert kwargs[attr_old] == getattr(trainer, attr_new), \
-            'Wrongly passed deprecated argument "%s" to attribute "%s"' % (attr_old, attr_new)
+    trainer = Trainer()
+    with pytest.deprecated_call(match='v0.10.0'):
+        trainer.proc_rank = 0
+    with pytest.deprecated_call(match='v0.10.0'):
+        assert trainer.proc_rank == trainer.global_rank
 
 
 def test_tbd_remove_in_v0_9_0_trainer():
@@ -129,16 +96,16 @@ class ModelVer0_6(EvalModelTemplate):
         return self.dataloader(train=False)
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        return {'val_loss': 0.6}
+        return {'val_loss': torch.tensor(0.6)}
 
     def validation_end(self, outputs):
-        return {'val_loss': 0.6}
+        return {'val_loss': torch.tensor(0.6)}
 
     def test_dataloader(self):
         return self.dataloader(train=False)
 
     def test_end(self, outputs):
-        return {'test_loss': 0.6}
+        return {'test_loss': torch.tensor(0.6)}
 
 
 class ModelVer0_7(EvalModelTemplate):
@@ -148,43 +115,42 @@ class ModelVer0_7(EvalModelTemplate):
         return self.dataloader(train=False)
 
     def validation_step(self, batch, batch_idx, *args, **kwargs):
-        return {'val_loss': 0.7}
+        return {'val_loss': torch.tensor(0.7)}
 
     def validation_end(self, outputs):
-        return {'val_loss': 0.7}
+        return {'val_loss': torch.tensor(0.7)}
 
     def test_dataloader(self):
         return self.dataloader(train=False)
 
     def test_end(self, outputs):
-        return {'test_loss': 0.7}
+        return {'test_loss': torch.tensor(0.7)}
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
-    hparams = EvalModelTemplate.get_default_hparams()
 
-    model = ModelVer0_6(hparams)
+    model = ModelVer0_6()
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         trainer.test(model)
-    assert trainer.callback_metrics == {'test_loss': 0.6}
+    assert trainer.callback_metrics == {'test_loss': torch.tensor(0.6)}
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         # TODO: why `dataloder` is required if it is not used
         result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
-    assert result == {'val_loss': 0.6}
+    assert result == {'val_loss': torch.tensor(0.6)}
 
-    model = ModelVer0_7(hparams)
+    model = ModelVer0_7()
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         trainer.test(model)
-    assert trainer.callback_metrics == {'test_loss': 0.7}
+    assert trainer.callback_metrics == {'test_loss': torch.tensor(0.7)}
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         # TODO: why `dataloder` is required if it is not used
         result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
-    assert result == {'val_loss': 0.7}
+    assert result == {'val_loss': torch.tensor(0.7)}

@@ -23,7 +23,7 @@ class HyperTunerLRFinderMixin(ABC):
     def lr_find(self,
                 model: LightningModule,
                 train_dataloader: Optional[DataLoader] = None,
-                val_dataloaders: Optional[DataLoader] = None,
+                val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
                 monitor_val='loss',
                 min_lr: float = 1e-8,
                 max_lr: float = 1,

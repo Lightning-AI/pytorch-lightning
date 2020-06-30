@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 import torch
 
-import tests.base.utils as tutils
-from benchmarks.parity_modules import ParityModuleRNN, ParityModuleMNIST
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
+from tests.base.models import ParityModuleRNN, ParityModuleMNIST
 
 
 @pytest.mark.parametrize('cls_model,max_diff', [

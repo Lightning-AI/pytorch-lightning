@@ -1,16 +1,16 @@
 import os
 import platform
-from collections import namedtuple
 
 import pytest
 import torch
 from packaging.version import parse as version_parse
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
-from tests.base import EvalModelTemplate
 from pytorch_lightning.callbacks import ModelCheckpoint
+from tests.base import EvalModelTemplate
 
 
 def test_cpu_slurm_save_load(tmpdir):
@@ -24,11 +24,12 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        train_percent_check=0.2,
-        val_percent_check=0.2,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     result = trainer.fit(model)
     real_global_step = trainer.global_step
@@ -54,13 +55,14 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(tmpdir, logger)
+    saved_filepath = trainer.hpc_save(trainer.weights_save_path, logger)
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
     logger = tutils.get_default_logger(tmpdir, version=version)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
         checkpoint_callback=ModelCheckpoint(tmpdir),
@@ -91,14 +93,14 @@ def test_early_stopping_cpu_model(tmpdir):
         early_stop_callback=stopping,
         max_epochs=2,
         gradient_clip_val=1.0,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         track_grad_norm=2,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
     # test freeze on cpu
     model.freeze()
@@ -119,15 +121,15 @@ def test_multi_cpu_model_ddp(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         gpus=None,
         num_processes=2,
-        distributed_backend='ddp_cpu'
+        distributed_backend='ddp_cpu',
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_lbfgs_cpu_model(tmpdir):
@@ -137,8 +139,8 @@ def test_lbfgs_cpu_model(tmpdir):
         max_epochs=1,
         progress_bar_refresh_rate=0,
         weights_summary='top',
-        train_percent_check=0.2,
-        val_percent_check=0.2,
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -146,7 +148,7 @@ def test_lbfgs_cpu_model(tmpdir):
                    learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
-    tutils.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
+    tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
 
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
@@ -155,14 +157,14 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gradient_clip_val=1.0,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         progress_bar_refresh_rate=0,
-        train_percent_check=0.01,
-        val_percent_check=0.01,
+        limit_train_batches=0.01,
+        limit_val_batches=0.01,
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test_without_loggers(trainer_options, model)
+    tpipes.run_model_test_without_loggers(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -184,11 +186,11 @@ def test_running_test_after_fitting(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        test_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
     )
     result = trainer.fit(model)
 
@@ -212,14 +214,15 @@ def test_running_test_no_val(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        test_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        limit_test_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
-        early_stop_callback=False
+        early_stop_callback=False,
     )
     result = trainer.fit(model)
 
@@ -231,53 +234,6 @@ def test_running_test_no_val(tmpdir):
     tutils.assert_ok_model_acc(trainer)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_single_gpu_batch_parse():
-    trainer = Trainer()
-
-    # batch is just a tensor
-    batch = torch.rand(2, 3)
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch.device.index == 0 and batch.type() == 'torch.cuda.FloatTensor'
-
-    # tensor list
-    batch = [torch.rand(2, 3), torch.rand(2, 3)]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0].device.index == 0 and batch[0].type() == 'torch.cuda.FloatTensor'
-    assert batch[1].device.index == 0 and batch[1].type() == 'torch.cuda.FloatTensor'
-
-    # tensor list of lists
-    batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
-    assert batch[0][1].device.index == 0 and batch[0][1].type() == 'torch.cuda.FloatTensor'
-
-    # tensor dict
-    batch = [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)}]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
-    assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
-
-    # tuple of tensor list and list of tensor dict
-    batch = ([torch.rand(2, 3) for _ in range(2)],
-             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
-
-    assert batch[1][0]['a'].device.index == 0
-    assert batch[1][0]['a'].type() == 'torch.cuda.FloatTensor'
-
-    assert batch[1][0]['b'].device.index == 0
-    assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
-
-    # namedtuple of tensor
-    BatchType = namedtuple('BatchType', ['a', 'b'])
-    batch = [BatchType(a=torch.rand(2, 3), b=torch.rand(2, 3)) for _ in range(2)]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
-    assert batch[0].a.device.index == 0
-    assert batch[0].a.type() == 'torch.cuda.FloatTensor'
-
-
 def test_simple_cpu(tmpdir):
     """Verify continue training session on CPU."""
     model = EvalModelTemplate()
@@ -286,8 +242,8 @@ def test_simple_cpu(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.1,
+        limit_val_batches=0.1,
+        limit_train_batches=20,
     )
     result = trainer.fit(model)
 
@@ -301,13 +257,13 @@ def test_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
     )
 
     model = EvalModelTemplate()
 
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_all_features_cpu_model(tmpdir):
@@ -315,17 +271,17 @@ def test_all_features_cpu_model(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         gradient_clip_val=1.0,
-        overfit_pct=0.20,
+        overfit_batches=0.20,
         track_grad_norm=2,
         progress_bar_refresh_rate=0,
         accumulate_grad_batches=2,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
 def test_tbptt_cpu_model(tmpdir):
@@ -390,9 +346,9 @@ def test_tbptt_cpu_model(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         truncated_bptt_steps=truncated_bptt_steps,
-        val_percent_check=0,
+        limit_val_batches=0,
         weights_summary=None,
-        early_stop_callback=False
+        early_stop_callback=False,
     )
     result = trainer.fit(model)
 

@@ -12,9 +12,9 @@ references:
       command: |
         sudo apt-get update && sudo apt-get install -y cmake
         pip install "$TORCH_VERSION"
-        pip install -r requirements.txt -q
+        pip install -r requirements/base.txt -q
         sudo pip install pytest -q
-        pip install -r ./tests/requirements-devel.txt -q
+        pip install -r requirements/devel.txt -q
 
   tests: &tests
    run:
@@ -28,7 +28,7 @@ references:
    run:
      name: PL Examples
      command: |
-       pip install -r ./pl_examples/requirements.txt --user
+       pip install -r ./requirements/examples.txt --user
        python --version ; pip --version ; pip list
        py.test pl_examples -v --junitxml=test-reports/pytest_junit.xml
      no_output_timeout: 20m
@@ -64,8 +64,12 @@ references:
      name: Make Documentation
      command: |
        # First run the same pipeline as Read-The-Docs
-       sudo apt-get update && sudo apt-get install -y cmake
-       sudo pip install -r docs/requirements.txt
+       # apt-get update && apt-get install -y cmake
+       # using: https://hub.docker.com/r/readthedocs/build
+       # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
+       pyenv global 3.7.3
+       python --version
+       pip install -r requirements/docs.txt
        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
 
   test_docs: &test_docs
@@ -73,15 +77,16 @@ references:
      name: Testing Documentation
      command: |
        # Second run examples in docs
+       bash tests/install_AMP.sh
        sudo apt-get update && sudo apt-get install -y cmake
-       sudo pip install -r docs/requirements.txt
+       sudo pip install -r requirements/docs.txt
        cd docs; make doctest; make coverage
 
 jobs:
 
   Build-Docs:
     docker:
-      - image: circleci/python:3.7
+      - image: readthedocs/build:latest
     steps:
       - checkout
       - *make_docs
@@ -173,10 +178,10 @@ workflows:
   version: 2
   build:
     jobs:
-      - Formatting
-      - Build-Docs
+      #- Formatting
+      #- Build-Docs
       - PyTorch-v1_3
       - PyTorch-v1_4
       - PyTorch-v1_5
-      - Install-pkg
+      #- Install-pkg
       - Examples

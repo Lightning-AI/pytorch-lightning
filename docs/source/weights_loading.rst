@@ -29,20 +29,20 @@ Automatic saving
 Checkpointing is enabled by default to the current working directory.
 To change the checkpoint path pass in:
 
-.. testcode::
+.. code-block:: python
 
-    trainer = Trainer(default_save_path='/your/path/to/save/checkpoints')
+    trainer = Trainer(default_root_dir='/your/path/to/save/checkpoints')
 
 To modify the behavior of checkpointing pass in your own callback.
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.callbacks import ModelCheckpoint
 
     # DEFAULTS used by the Trainer
     checkpoint_callback = ModelCheckpoint(
         filepath=os.getcwd(),
-        save_top_k=True,
+        save_top_k=1,
         verbose=True,
         monitor='val_loss',
         mode='min',

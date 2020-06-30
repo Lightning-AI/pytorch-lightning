@@ -4,9 +4,10 @@ Module to describe gradients
 from typing import Dict, Union
 
 import torch
+from torch.nn import Module
 
 
-class GradInformation(torch.nn.Module):
+class GradInformation(Module):
 
     def grad_norm(self, norm_type: Union[float, int, str]) -> Dict[str, float]:
         """Compute each parameter's gradient's norm and their overall norm.

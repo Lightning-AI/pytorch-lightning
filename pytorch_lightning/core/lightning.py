@@ -1,6 +1,7 @@
 import collections
 import inspect
 import os
+import re
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
@@ -20,7 +21,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, PRIMITIVE_TYPES, ALLOWED_CONFIG_TYPES
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
@@ -52,7 +52,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: Pointer to the logger object
         self.logger = None
-        self.example_input_array = None
 
         #: True if using dp
         self.use_dp = False
@@ -74,6 +73,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         #: device reference
         self._device = torch.device('cpu')
+
+        # optionally can be set by user
+        self._example_input_array = None
+
+    @property
+    def example_input_array(self) -> Any:
+        return self._example_input_array
+
+    @example_input_array.setter
+    def example_input_array(self, example: Any) -> None:
+        self._example_input_array = example
 
     @property
     def on_gpu(self):
@@ -99,7 +109,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     self.print(x, 'in forward')
 
         """
-        if self.trainer.proc_rank == 0:
+        if self.trainer.is_global_zero:
             print(*args, **kwargs)
 
     @abstractmethod
@@ -111,6 +121,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Normally you'd call ``self()`` from your :meth:`training_step` method.
         This makes it easy to write a complex system for training with the outputs
         you'd want in a prediction setting.
+
+        You may also find the :func:`~pytorch_lightning.core.decorators.auto_move_data` decorator useful
+        when using the module outside Lightning in a production setting.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
@@ -922,7 +935,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def init_ddp_connection(
             self,
-            proc_rank: int,
+            global_rank: int,
             world_size: int,
             is_slurm_managing_tasks: bool = True
     ) -> None:
@@ -933,7 +946,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         for SLURM managed cluster.
 
         Args:
-            proc_rank: The current process rank within the node.
+            global_rank: The global process idx.
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
@@ -942,22 +955,22 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             self._init_slurm_connection()
 
         if 'MASTER_ADDR' not in os.environ:
-            log.warning("MASTER_ADDR environment variable is not defined. Set as localhost")
+            rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
             os.environ['MASTER_ADDR'] = '127.0.0.1'
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
 
         if 'MASTER_PORT' not in os.environ:
-            log.warning("MASTER_PORT environment variable is not defined. Set as 12910")
+            rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
             os.environ['MASTER_PORT'] = '12910'
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         if 'WORLD_SIZE' in os.environ and int(os.environ['WORLD_SIZE']) != world_size:
-            log.warning(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                        f"is not equal to the computed world size ({world_size}). Ignored.")
+            rank_zero_warn(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
+                           f"is not equal to the computed world size ({world_size}). Ignored.")
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
-        log.info(f"initializing ddp: LOCAL_RANK: {proc_rank}/{world_size - 1} WORLD_SIZE:{world_size}")
-        torch_distrib.init_process_group(torch_backend, rank=proc_rank, world_size=world_size)
+        log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
+        torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
     def configure_apex(
             self,
@@ -990,9 +1003,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     return model, optimizers
         """
-        model, optimizers = amp.initialize(
-            model, optimizers, opt_level=amp_level,
-        )
+        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
 
         return model, optimizers
 
@@ -1121,6 +1132,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: Optimizer,
             optimizer_idx: int,
             second_order_closure: Optional[Callable] = None,
+            on_tpu: bool = False,
+            using_native_amp: bool = False,
+            using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1134,19 +1148,21 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers this indexes into that list.
             second_order_closure: closure for second order methods
+            on_tpu: true if TPU backward is required
+            using_native_amp: True if using native amp
+            using_lbfgs: True if the matching optimizer is lbfgs
 
         Examples:
             .. code-block:: python
 
                 # DEFAULT
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure=None):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     optimizer.step()
-                    optimizer.zero_grad()
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure=None):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
@@ -1170,7 +1186,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                 # learning rate warm-up
                 def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, second_order_closure=None):
+                                    optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -1186,30 +1202,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
-        if self.trainer.use_tpu and XLA_AVAILABLE:
+        if on_tpu:
             xm.optimizer_step(optimizer)
-        elif isinstance(optimizer, torch.optim.LBFGS):
-
-            # native amp + lbfgs is a no go right now
-            if self.trainer.use_amp and self.trainer.use_native_amp:
-                raise MisconfigurationException(
-                    'native PyTorch amp and lbfgs are not compatible.'
-                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+        elif using_native_amp:
+            self.trainer.scaler.step(optimizer)
+        elif using_lbfgs:
             optimizer.step(second_order_closure)
         else:
-            if self.trainer.use_amp and self.trainer.use_native_amp:
-                self.trainer.scaler.step(optimizer)
-            else:
-                optimizer.step()
+            optimizer.step()
 
-        # in native 16-bit we need to update scaler after optimizer step
-        if self.trainer.use_amp and self.trainer.use_native_amp:
-            self.trainer.scaler.update()
-
-        # model hook
-        self.on_before_zero_grad(optimizer)
-
-        # clear gradients
+    def optimizer_zero_grad(self,
+                            epoch: int,
+                            batch_idx: int,
+                            optimizer: Optimizer,
+                            optimizer_idx: int):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
@@ -1279,23 +1285,46 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
-        In distributed (GPU, TPU), this will only be called once.
+
+        .. warning:: DO NOT set state to the model (use `setup` instead)
+            since this is NOT called on every GPU in DDP/TPU
+
+        Example::
+
+            def prepare_data(self):
+                # good
+                download_data()
+                tokenize()
+                etc()
+
+                # bad
+                self.split = data_split
+                self.some_state = some_other_state()
+
+        In DDP prepare_data can be called in two ways (using Trainer(prepare_data_per_node)):
+
+        1. Once per node. This is the default and is only called on LOCAL_RANK=0.
+        2. Once in total. Only called on GLOBAL_RANK=0.
+
+        Example::
+
+            # DEFAULT
+            # called once per node on LOCAL_RANK=0 of that node
+            Trainer(prepare_data_per_node=True)
+
+            # call on GLOBAL_RANK=0 (great for shared file systems)
+            Trainer(prepare_data_per_node=False)
+
         This is called before requesting the dataloaders:
 
         .. code-block:: python
 
             model.prepare_data()
+                if ddp/tpu: init()
+            model.setup(step)
             model.train_dataloader()
             model.val_dataloader()
             model.test_dataloader()
-
-        Examples:
-            .. code-block:: python
-
-                def prepare_data(self):
-                    download_imagenet()
-                    clean_imagenet()
-                    cache_imagenet()
         """
 
     def train_dataloader(self) -> DataLoader:
@@ -1444,9 +1473,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             will have an argument ``dataset_idx`` which matches the order here.
         """
 
-    def summarize(self, mode: str) -> None:
+    def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
         model_summary = ModelSummary(self, mode=mode)
-        log.info('\n' + model_summary.__str__())
+        log.info('\n' + str(model_summary))
+        return model_summary
 
     def freeze(self) -> None:
         r"""
@@ -1679,4 +1709,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @hparams.setter
     def hparams(self, hp: Union[dict, Namespace, Any]):
-        self.save_hyperparameters(hp, frame=inspect.currentframe().f_back.f_back)
+        hparams_assignment_name = self.__get_hparams_assignment_variable()
+        self._hparams_name = hparams_assignment_name
+        self._set_hparams(hp)
+
+    def __get_hparams_assignment_variable(self):
+        """
+        looks at the code of the class to figure out what the user named self.hparams
+        this only happens when the user explicitly sets self.hparams
+        """
+        try:
+            class_code = inspect.getsource(self.__class__)
+            lines = class_code.split('\n')
+            for line in lines:
+                line = re.sub(r"\s+", "", line, flags=re.UNICODE)
+                if '.hparams=' in line:
+                    return line.split('=')[1]
+        except Exception as e:
+            return 'hparams'
+
+        return None

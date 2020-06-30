@@ -17,7 +17,7 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
 quickly becomes onerous and starts distracting from the core research code.
 
----------
+----------------
 
 Goal of this guide
 ------------------
@@ -32,7 +32,7 @@ to use inheritance to very quickly create an AutoEncoder.
 .. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
     of research to illustrate.
 
----------
+----------------
 
 Installing Lightning
 --------------------
@@ -49,7 +49,13 @@ Or without conda environments, anywhere you can use pip.
 
     pip install pytorch-lightning
 
----------
+Or with conda
+
+.. code-block:: bash
+
+    conda install pytorch-lightning -c conda-forge
+
+----------------
 
 Lightning Philosophy
 --------------------
@@ -111,7 +117,7 @@ In Lightning this code is abstracted out by `Callbacks`.
     generated = decoder(z)
     self.experiment.log('images', generated)
 
----------
+----------------
 
 Elements of a research project
 ------------------------------
@@ -250,14 +256,14 @@ under the `train_dataloader` method. This is great because if you run into a pro
 to figure out how they prepare their training data you can just look in the `train_dataloader` method.
 
 Usually though, we want to separate the things that write to disk in data-processing from
-things like transforms which happen in memory.
+things like transforms which happen in memory. This is only relevant in multi-GPU or TPU training.
 
 .. testcode::
 
     class LitMNIST(LightningModule):
 
         def prepare_data(self):
-            # download only
+            # download only (not called on every GPU, just the root GPU per node)
             MNIST(os.getcwd(), train=True, download=True)
 
         def train_dataloader(self):
@@ -271,6 +277,9 @@ things like transforms which happen in memory.
 Doing it in the `prepare_data` method ensures that when you have
 multiple GPUs you won't overwrite the data. This is a contrived example
 but it gets more complicated with things like NLP or Imagenet.
+
+`prepare_data` gets called on the `LOCAL_RANK=0` GPU per node. If your nodes share a file system,
+set `Trainer(prepare_data_per_node=False)` and it will be code from node=0, gpu=0 only.
 
 In general fill these methods with the following:
 
@@ -292,6 +301,31 @@ In general fill these methods with the following:
             # dataset creation
             # return a DataLoader
             ...
+
+Models defined by data
+^^^^^^^^^^^^^^^^^^^^^^
+Sometimes a model needs to know about the data to be built (ie: number of classes or vocab size).
+In this case we recommend the following:
+
+1. use `prepare_data` to download and process the dataset.
+2. use `setup` to do splits, and build your model internals
+
+.. testcode::
+
+    class LitMNIST(LightningModule):
+
+        def __init__(self):
+            self.l1 = None
+
+        def prepare_data(self):
+            download_data()
+            tokenize()
+
+        def setup(self, step):
+            # step is either 'fit' or 'test' 90% of the time not relevant
+            data = load_data()
+            num_classes = data.classes
+            self.l1 = nn.Linear(..., num_classes)
 
 Optimizer
 ^^^^^^^^^
@@ -374,7 +408,7 @@ in the LightningModule
 Again, this is the same PyTorch code except that it has been organized by the LightningModule.
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
 
----------
+----------------
 
 Training
 --------
@@ -529,16 +563,21 @@ will cause all sorts of issues.
 To solve this problem, move the download code to the `prepare_data` method in the LightningModule.
 In this method we do all the preparation we need to do once (instead of on every gpu).
 
+`prepare_data` can be called in two ways, once per node or only on the root node (`Trainer(prepare_data_per_node=False)`).
+
 .. testcode::
 
     class LitMNIST(LightningModule):
         def prepare_data(self):
+            # download only
+            MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
+            MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
+
+        def setup(self, stage):
             # transform
             transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
-            # download
-            mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
-            mnist_test = MNIST(os.getcwd(), train=False, download=True, transform=transform)
+            MNIST(os.getcwd(), train=True, download=False, transform=transform)
+            MNIST(os.getcwd(), train=False, download=False, transform=transform)
 
             # train/val split
             mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
@@ -580,11 +619,11 @@ Notice the epoch is MUCH faster!
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
 
----------
+----------------
 
 .. include:: hyperparameters.rst
 
----------
+----------------
 
 Validating
 ----------
@@ -663,7 +702,7 @@ in the validation loop, you won't need to potentially wait a full epoch to find 
 
 .. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
 
----------
+----------------
 
 Testing
 -------
@@ -734,7 +773,7 @@ You can also run the test from a saved lightning model
 
 .. warning:: .test() is not stable yet on TPUs. We're working on getting around the multiprocessing challenges.
 
----------
+----------------
 
 Predicting
 ----------
@@ -835,7 +874,7 @@ Or maybe we have a model that we use to do generation
 How you split up what goes in `forward` vs `training_step` depends on how you want to use this model for
 prediction.
 
----------
+----------------
 
 Extensibility
 -------------
@@ -896,7 +935,7 @@ you could do your own:
 Every single part of training is configurable this way.
 For a full list look at `LightningModule <lightning-module.rst>`_.
 
----------
+----------------
 
 Callbacks
 ---------
@@ -933,10 +972,10 @@ And pass the callbacks into the trainer
 .. note::
     See full list of 12+ hooks in the :ref:`callbacks`.
 
----------
+----------------
 
 .. include:: child_modules.rst
 
----------
+----------------
 
 .. include:: transfer_learning.rst

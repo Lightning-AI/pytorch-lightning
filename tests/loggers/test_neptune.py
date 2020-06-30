@@ -82,8 +82,8 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
         trainer = Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,
-            train_percent_check=0.05,
-            logger=logger
+            limit_train_batches=0.05,
+            logger=logger,
         )
         trainer.fit(model)
         return logger

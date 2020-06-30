@@ -1,14 +1,16 @@
-import os
+from collections import namedtuple
 
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.core import memory
-from pytorch_lightning.trainer.distrib_parts import parse_gpu_ids, determine_root_gpu_device
+from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
 PRETEND_N_OF_GPUS = 16
 
@@ -21,13 +23,13 @@ def test_single_gpu_model(tmpdir, gpus):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
         gpus=gpus
     )
 
     model = EvalModelTemplate()
-    tutils.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.mark.spawn
@@ -40,8 +42,8 @@ def test_multi_gpu_model(tmpdir, backend):
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         gpus=[0, 1],
         distributed_backend=backend,
     )
@@ -62,13 +64,15 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    trainer_options = dict(default_root_dir=tmpdir,
-                           progress_bar_refresh_rate=0,
-                           max_epochs=1,
-                           train_percent_check=0.1,
-                           val_percent_check=0.1,
-                           gpus=[0, 1],
-                           distributed_backend='ddp')
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        gpus=[0, 1],
+        distributed_backend='ddp'
+    )
 
     model = EvalModelTemplate()
     fit_options = dict(train_dataloader=model.train_dataloader(),
@@ -87,14 +91,14 @@ def test_multi_gpu_none_backend(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
         gpus='-1'
     )
 
     model = EvalModelTemplate()
     with pytest.warns(UserWarning):
-        tutils.run_model_test(trainer_options, model)
+        tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.fixture
@@ -171,7 +175,7 @@ def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_
 ])
 def test_root_gpu_property_0_raising(mocked_device_count_0, gpus, expected_root_gpu, distributed_backend):
     with pytest.raises(MisconfigurationException):
-        Trainer(gpus=gpus, distributed_backend=distributed_backend).root_gpu
+        Trainer(gpus=gpus, distributed_backend=distributed_backend)
 
 
 @pytest.mark.gpus_param_tests
@@ -202,7 +206,7 @@ def test_determine_root_gpu_device(gpus, expected_root_gpu):
     pytest.param('-1', list(range(PRETEND_N_OF_GPUS)), id="'-1' - use all gpus"),
 ])
 def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
-    assert parse_gpu_ids(gpus) == expected_gpu_ids
+    assert _parse_gpu_ids(gpus) == expected_gpu_ids
 
 
 @pytest.mark.gpus_param_tests
@@ -218,24 +222,112 @@ def test_parse_gpu_ids(mocked_device_count, gpus, expected_gpu_ids):
 ])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, gpus):
     with pytest.raises(MisconfigurationException):
-        parse_gpu_ids(gpus)
+        _parse_gpu_ids(gpus)
 
 
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize("gpus", [[1, 2, 19], -1, '-1'])
 def test_parse_gpu_fail_on_non_existent_id(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
-        parse_gpu_ids(gpus)
+        _parse_gpu_ids(gpus)
 
 
 @pytest.mark.gpus_param_tests
 def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
     with pytest.raises(MisconfigurationException):
-        parse_gpu_ids([1, 2, 19])
+        _parse_gpu_ids([1, 2, 19])
 
 
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize("gpus", [-1, '-1'])
 def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
-        parse_gpu_ids(gpus)
+        _parse_gpu_ids(gpus)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_single_gpu_batch_parse():
+    trainer = Trainer()
+
+    # batch is just a tensor
+    batch = torch.rand(2, 3)
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch.device.index == 0 and batch.type() == 'torch.cuda.FloatTensor'
+
+    # tensor list
+    batch = [torch.rand(2, 3), torch.rand(2, 3)]
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0].device.index == 0 and batch[0].type() == 'torch.cuda.FloatTensor'
+    assert batch[1].device.index == 0 and batch[1].type() == 'torch.cuda.FloatTensor'
+
+    # tensor list of lists
+    batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
+    assert batch[0][1].device.index == 0 and batch[0][1].type() == 'torch.cuda.FloatTensor'
+
+    # tensor dict
+    batch = [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)}]
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
+    assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
+
+    # tuple of tensor list and list of tensor dict
+    batch = ([torch.rand(2, 3) for _ in range(2)],
+             [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
+
+    assert batch[1][0]['a'].device.index == 0
+    assert batch[1][0]['a'].type() == 'torch.cuda.FloatTensor'
+
+    assert batch[1][0]['b'].device.index == 0
+    assert batch[1][0]['b'].type() == 'torch.cuda.FloatTensor'
+
+    # namedtuple of tensor
+    BatchType = namedtuple('BatchType', ['a', 'b'])
+    batch = [BatchType(a=torch.rand(2, 3), b=torch.rand(2, 3)) for _ in range(2)]
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    assert batch[0].a.device.index == 0
+    assert batch[0].a.type() == 'torch.cuda.FloatTensor'
+
+    # non-Tensor that has `.to()` defined
+    class CustomBatchType:
+        def __init__(self):
+            self.a = torch.rand(2, 2)
+
+        def to(self, *args, **kwargs):
+            self.a = self.a.to(*args, **kwargs)
+            return self
+
+    batch = trainer.transfer_batch_to_gpu(CustomBatchType())
+    assert batch.a.type() == 'torch.cuda.FloatTensor'
+
+    # torchtext.data.Batch
+    samples = [
+        {'text': 'PyTorch Lightning is awesome!', 'label': 0},
+        {'text': 'Please make it work with torchtext', 'label': 1}
+    ]
+
+    text_field = Field()
+    label_field = LabelField()
+    fields = {
+        'text': ('text', text_field),
+        'label': ('label', label_field)
+    }
+
+    examples = [Example.fromdict(sample, fields) for sample in samples]
+    dataset = Dataset(
+        examples=examples,
+        fields=fields.values()
+    )
+
+    # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
+    text_field.build_vocab(dataset)
+    label_field.build_vocab(dataset)
+
+    batch = Batch(data=examples, dataset=dataset)
+    batch = trainer.transfer_batch_to_gpu(batch, 0)
+
+    assert batch.text.type() == 'torch.cuda.LongTensor'
+    assert batch.label.type() == 'torch.cuda.LongTensor'

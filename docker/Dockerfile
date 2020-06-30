@@ -31,10 +31,10 @@ RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest
 ENV PATH /home/containeruser/conda/bin:$PATH
 
 # install dependencies
-RUN pip install torch==$PYTORCH_VERSION
+RUN pip install torch==$PYTORCH_VERSION  -f https://download.pytorch.org/whl/torch_stable.html
 RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git --single-branch --branch $LIGHTNING_VERSION && \
     pip install ./pytorch-lightning && \
-    pip install -r pytorch-lightning/requirements-extra.txt && \
+    pip install -r pytorch-lightning/requirements/extra.txt && \
     rm -rf pytorch-lightning
 
 RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"

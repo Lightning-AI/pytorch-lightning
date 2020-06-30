@@ -6,24 +6,30 @@ import os
 import torch
 import yaml
 from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 
 PRIMITIVE_TYPES = (bool, int, float, str)
-ALLOWED_CONFIG_TYPES = (AttributeDict, dict, Namespace)
+ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 try:
     from omegaconf import Container
 except ImportError:
-    pass
-else:
-    ALLOWED_CONFIG_TYPES = ALLOWED_CONFIG_TYPES + (Container, )
+    Container = None
+
+# the older shall be on the top
+CHECKPOINT_PAST_HPARAMS_KEYS = (
+    'hparams',
+    'module_arguments',  # used in 0.7.6
+)
 
 
 class ModelIO(object):
-    CHECKPOINT_KEY_HYPER_PARAMS = 'hyper_parameters'
-    CHECKPOINT_NAME_HYPER_PARAMS = 'hparams_name'
+    CHECKPOINT_HYPER_PARAMS_KEY = 'hyper_parameters'
+    CHECKPOINT_HYPER_PARAMS_NAME = 'hparams_name'
+    CHECKPOINT_HYPER_PARAMS_TYPE = 'hparams_type'
 
     @classmethod
     def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
@@ -52,10 +58,10 @@ class ModelIO(object):
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to `__init__`  in the checkpoint under `module_arguments`
 
-        Any arguments specified through \*args and \*\*kwargs will override args stored in `module_arguments`.
+        Any arguments specified through \*args and \*\*kwargs will override args stored in `hparams`.
 
         Args:
-            checkpoint_path: Path to checkpoint.
+            checkpoint_path: Path to checkpoint. This can also be a URL.
             args: Any positional args needed to init the model.
             map_location:
                 If your checkpoint saved a GPU model and you now load on CPUs
@@ -131,9 +137,9 @@ class ModelIO(object):
                 y_hat = pretrained_model(x)
         """
         if map_location is not None:
-            checkpoint = torch.load(checkpoint_path, map_location=map_location)
+            checkpoint = pl_load(checkpoint_path, map_location=map_location)
         else:
-            checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
+            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         # add the hparams from csv file to checkpoint
         if tags_csv is not None:
@@ -152,34 +158,52 @@ class ModelIO(object):
             hparams['on_gpu'] = False
 
             # overwrite hparams by the given file
-            checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS] = hparams
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
 
-        # override the module_arguments with values that were passed in
-        checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS].update(kwargs)
+        # for past checkpoint need to add the new key
+        if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
+        # override the hparams with values that were passed in
+        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], *args, **kwargs):
-
+    def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, **cls_kwargs):
+        cls_spec = inspect.getfullargspec(cls.__init__)
+        cls_init_args_name = inspect.signature(cls).parameters.keys()
         # pass in the values we saved automatically
-        if cls.CHECKPOINT_KEY_HYPER_PARAMS in checkpoint:
-            # todo add some back compatibility
-            model_args = checkpoint[cls.CHECKPOINT_KEY_HYPER_PARAMS]
-            args_name = checkpoint.get(cls.CHECKPOINT_NAME_HYPER_PARAMS)
-            init_args_name = inspect.signature(cls).parameters.keys()
-            if args_name == 'kwargs':
-                cls_kwargs = {k: v for k, v in model_args.items() if k in init_args_name}
-                kwargs.update(**cls_kwargs)
-            elif args_name:
-                if args_name in init_args_name:
-                    kwargs.update({args_name: model_args})
-            else:
-                args = (model_args, ) + args
+        if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+            model_args = {}
 
+            # add some back compatibility, the actual one shall be last
+            for hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
+                if hparam_key in checkpoint:
+                    model_args.update(checkpoint[hparam_key])
+
+            model_args = _convert_loaded_hparams(model_args, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+
+            args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
+
+            if args_name == 'kwargs':
+                # in case the class cannot take any extra argument filter only the possible
+                cls_kwargs.update(**model_args)
+            elif args_name:
+                if args_name in cls_init_args_name:
+                    cls_kwargs.update({args_name: model_args})
+            else:
+                cls_args = (model_args,) + cls_args
+
+        if not cls_spec.varkw:
+            # filter kwargs according to class init unless it allows any argument via kwargs
+            cls_kwargs = {k: v for k, v in cls_kwargs.items() if k in cls_init_args_name}
+
+        # prevent passing positional arguments if class does not accept any
+        if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
+            cls_args, cls_kwargs = [], {}
+        model = cls(*cls_args, **cls_kwargs)
         # load the state_dict on the model automatically
-        model = cls(*args, **kwargs)
         model.load_state_dict(checkpoint['state_dict'])
 
         # give model a chance to load something
@@ -227,6 +251,18 @@ class ModelIO(object):
         """
 
 
+def _convert_loaded_hparams(model_args: dict, hparams_type: Union[Callable, str] = None) -> object:
+    """Convert hparams according given type in callable or string (past) format"""
+    # if not hparams type define
+    if not hparams_type:
+        return model_args
+    # if past checkpoint loaded, convert str to callable
+    if isinstance(hparams_type, str):
+        hparams_type = AttributeDict
+    # convert hparams
+    return hparams_type(model_args)
+
+
 def update_hparams(hparams: dict, updates: dict) -> None:
     """
     Overrides hparams with new values
@@ -262,7 +298,7 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     """Load hparams from a file.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
-    >>> path_csv = './testing-hparams.csv'
+    >>> path_csv = os.path.join('.', 'testing-hparams.csv')
     >>> save_hparams_to_tags_csv(path_csv, hparams)
     >>> hparams_new = load_hparams_from_tags_csv(path_csv)
     >>> vars(hparams) == hparams_new
@@ -287,7 +323,7 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
 
-    with open(tags_csv, 'w') as fp:
+    with open(tags_csv, 'w', newline='') as fp:
         fieldnames = ['key', 'value']
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writerow({'key': 'key', 'value': 'value'})
@@ -317,11 +353,25 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
 
 
 def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
+    """
+    Args:
+        config_yaml: path to new YAML file
+        hparams: parameters to be saved
+    """
     if not os.path.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
 
+    if Container is not None and isinstance(hparams, Container):
+        from omegaconf import OmegaConf
+        OmegaConf.save(hparams, config_yaml, resolve=True)
+        return
+
+    # saving the standard way
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
+    elif isinstance(hparams, AttributeDict):
+        hparams = dict(hparams)
+    assert isinstance(hparams, dict)
 
     with open(config_yaml, 'w', newline='') as fp:
         yaml.dump(hparams, fp)

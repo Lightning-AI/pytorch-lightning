@@ -8,7 +8,8 @@ import sys
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from tests.base.models import TestGAN
@@ -61,8 +62,8 @@ def test_horovod_cpu(tmpdir):
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         distributed_backend='horovod',
         deterministic=True,
     )
@@ -78,8 +79,8 @@ def test_horovod_cpu_implicit(tmpdir):
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         deterministic=True,
     )
     _run_horovod(trainer_options)
@@ -96,8 +97,8 @@ def test_horovod_multi_gpu(tmpdir):
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
         distributed_backend='horovod'
@@ -131,13 +132,13 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         default_root_dir=str(tmpdir),
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
         distributed_backend='horovod'
     )
-    tutils.run_model_test_without_loggers(trainer_options, model)
+    tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
@@ -149,10 +150,10 @@ def test_horovod_multi_optimizer(tmpdir):
         default_root_dir=str(tmpdir),
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
 
     # fit model

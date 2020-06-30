@@ -1,25 +1,34 @@
 import glob
 import math
 import os
+import pickle
+import sys
 import types
 from argparse import Namespace
+from pathlib import Path
 
+import cloudpickle
 import pytest
 import torch
+from omegaconf import OmegaConf
 
-import tests.base.utils as tutils
-from pytorch_lightning import Callback, LightningModule
-from pytorch_lightning import Trainer
+import tests.base.develop_utils as tutils
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from pytorch_lightning.core.saving import (
+    load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-def test_no_val_module(tmpdir):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', str(tmpdir))
 
     model = EvalModelTemplate()
 
@@ -27,9 +36,10 @@ def test_no_val_module(tmpdir):
     logger = tutils.get_default_logger(tmpdir)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     # fit model
     result = trainer.fit(model)
@@ -42,20 +52,24 @@ def test_no_val_module(tmpdir):
 
     # assert ckpt has hparams
     ckpt = torch.load(new_weights_path)
-    assert LightningModule.CHECKPOINT_KEY_HYPER_PARAMS in ckpt.keys(), 'module_arguments missing from checkpoints'
+    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'module_arguments missing from checkpoints'
 
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
+        checkpoint_path=ckpt_path,
         hparams_file=hparams_path
     )
     model_2.eval()
 
 
-def test_no_val_end_module(tmpdir):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     model = EvalModelTemplate()
 
@@ -64,9 +78,10 @@ def test_no_val_end_module(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     result = trainer.fit(model)
 
@@ -80,8 +95,9 @@ def test_no_val_end_module(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
+        checkpoint_path=ckpt_path,
         hparams_file=hparams_path
     )
     model_2.eval()
@@ -94,13 +110,17 @@ def test_gradient_accumulation_scheduling(tmpdir):
 
     # test incorrect configs
     with pytest.raises(IndexError):
-        assert Trainer(accumulate_grad_batches={0: 3, 1: 4, 4: 6})
+        assert Trainer(accumulate_grad_batches={-1: 3, 1: 4, 4: 6})
+    with pytest.raises(IndexError):
         assert Trainer(accumulate_grad_batches={-2: 3})
 
     with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
+    with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     # test optimizer call freq matches scheduler
@@ -149,8 +169,8 @@ def test_gradient_accumulation_scheduling(tmpdir):
     schedule = {1: 2, 3: 4}
 
     trainer = Trainer(accumulate_grad_batches=schedule,
-                      train_percent_check=0.1,
-                      val_percent_check=0.1,
+                      limit_train_batches=0.1,
+                      limit_val_batches=0.1,
                       max_epochs=2,
                       default_root_dir=tmpdir)
 
@@ -259,7 +279,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
-        trainer.callback_metrics = {'val_loss': loss}
+        trainer.callback_metrics = {'val_loss': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(tmpdir))
@@ -279,8 +299,9 @@ def test_model_checkpoint_only_weights(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True)
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True),
     )
     # fit model
     result = trainer.fit(model)
@@ -318,8 +339,11 @@ def test_model_freeze_unfreeze():
     model.unfreeze()
 
 
-def test_resume_from_checkpoint_epoch_restored(tmpdir):
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs"""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
 
     hparams = EvalModelTemplate.get_default_hparams()
 
@@ -351,8 +375,8 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.65,
-        val_percent_check=1,
+        limit_train_batches=0.65,
+        limit_val_batches=1,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -371,10 +395,14 @@ def test_resume_from_checkpoint_epoch_restored(tmpdir):
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
     checkpoints = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, '*.ckpt')))
+    if url_ckpt:
+        # transform local paths into url checkpoints
+        ip, port = tmpdir_server
+        checkpoints = [f'http://{ip}:{port}/' + os.path.basename(check) for check in checkpoints]
 
     for check in checkpoints:
         next_model = _new_model()
-        state = torch.load(check)
+        state = pl_load(check)
 
         # Resume training
         trainer_options['max_epochs'] = 2
@@ -394,7 +422,7 @@ def _init_steps_model():
     num_train_samples = math.floor(len(model.train_dataloader()) * train_percent)
 
     trainer_options = dict(
-        train_percent_check=train_percent,
+        limit_train_batches=train_percent,
     )
     return model, trainer_options, num_train_samples
 
@@ -444,7 +472,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
-        max_epochs=2
+        max_epochs=7
     )
 
     # define less min steps than 1 epoch
@@ -521,8 +549,54 @@ def test_testpass_overrides(tmpdir):
     Trainer().test(model)
 
 
-def test_disabled_validation():
-    """Verify that `val_percent_check=0` disables the validation loop unless `fast_dev_run=True`."""
+@pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
+@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
+    hparams = EvalModelTemplate.get_default_hparams()
+
+    loaded_checkpoint_path = ''
+
+    class TestBestModel(EvalModelTemplate):
+        @classmethod
+        def load_from_checkpoint(cls, checkpoint_path, *args, **kwargs):
+            nonlocal loaded_checkpoint_path
+            loaded_checkpoint_path = checkpoint_path
+            return super().load_from_checkpoint(checkpoint_path, *args, **kwargs)
+
+    model = TestBestModel(**hparams)
+    trainer = Trainer(
+        max_epochs=2,
+        progress_bar_refresh_rate=0,
+        default_root_dir=tmpdir,
+        checkpoint_callback=ModelCheckpoint(save_top_k=save_top_k),
+    )
+    trainer.fit(model)
+    if ckpt_path == 'best':
+        # ckpt_path is 'best', meaning we load the best weights
+        if save_top_k <= 0:
+            with pytest.raises(MisconfigurationException, match='.*is not configured to save the best.*'):
+                trainer.test(ckpt_path=ckpt_path)
+        else:
+            trainer.test(ckpt_path=ckpt_path)
+            assert loaded_checkpoint_path == trainer.checkpoint_callback.best_model_path
+    elif ckpt_path is None:
+        # ckpt_path is None, meaning we don't load any checkpoints and
+        # use the weights from the end of training
+        trainer.test(ckpt_path=ckpt_path)
+        assert loaded_checkpoint_path == ''
+    else:
+        # specific checkpoint, pick one from saved ones
+        if save_top_k == 0:
+            with pytest.raises(FileNotFoundError):
+                trainer.test(ckpt_path='random.ckpt')
+        else:
+            ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0].absolute())
+            trainer.test(ckpt_path=ckpt_path)
+            assert loaded_checkpoint_path == ckpt_path
+
+
+def test_disabled_validation(tmpdir):
+    """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
     class CurrentModel(EvalModelTemplate):
 
@@ -541,25 +615,26 @@ def test_disabled_validation():
     model = CurrentModel(**hparams)
 
     trainer_options = dict(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.0,
+        limit_train_batches=0.4,
+        limit_val_batches=0.0,
         fast_dev_run=False,
     )
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    # check that val_percent_check=0 turns off validation
+    # check that limit_val_batches=0 turns off validation
     assert result == 1, 'training failed to complete'
     assert trainer.current_epoch == 1
     assert not model.validation_step_invoked, \
-        '`validation_step` should not run when `val_percent_check=0`'
+        '`validation_step` should not run when `limit_val_batches=0`'
     assert not model.validation_epoch_end_invoked, \
-        '`validation_epoch_end` should not run when `val_percent_check=0`'
+        '`validation_epoch_end` should not run when `limit_val_batches=0`'
 
-    # check that val_percent_check has no influence when fast_dev_run is turned on
+    # check that limit_val_batches has no influence when fast_dev_run is turned on
     model = CurrentModel(**hparams)
     trainer_options.update(fast_dev_run=True)
     trainer = Trainer(**trainer_options)
@@ -593,7 +668,7 @@ def test_nan_loss_detection(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(model.test_batch_inf_loss + 1),
-        terminate_on_nan=True
+        terminate_on_nan=True,
     )
 
     with pytest.raises(ValueError, match=r'.*The loss returned in `training_step` is nan or inf.*'):
@@ -618,7 +693,7 @@ def test_nan_params_detection(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(model.test_batch_nan + 1),
-        terminate_on_nan=True
+        terminate_on_nan=True,
     )
 
     with pytest.raises(ValueError, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
@@ -642,20 +717,31 @@ def test_trainer_interrupted_flag(tmpdir):
         def on_batch_start(self, trainer, pl_module):
             raise KeyboardInterrupt
 
+    class HandleInterruptCallback(Callback):
+        def __init__(self):
+            super().__init__()
+            self.exc_info = None
+
+        def on_keyboard_interrupt(self, trainer, pl_module):
+            self.exc_info = sys.exc_info()
+
     interrupt_callback = InterruptCallback()
+    handle_interrupt_callback = HandleInterruptCallback()
 
     trainer = Trainer(
-        callbacks=[interrupt_callback],
+        callbacks=[interrupt_callback, handle_interrupt_callback],
         max_epochs=1,
-        val_percent_check=0.1,
-        train_percent_check=0.2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
         logger=False,
         default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
+    assert handle_interrupt_callback.exc_info is None
     trainer.fit(model)
     assert trainer.interrupted
+    assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
 
 
 def test_gradient_clipping(tmpdir):
@@ -671,10 +757,12 @@ def test_gradient_clipping(tmpdir):
         grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
         assert (grad_norm - 1.0).abs() < 0.01, "Gradient norm != 1.0: {grad_norm}".format(grad_norm=grad_norm)
 
-    trainer = Trainer(max_steps=1,
-                      max_epochs=1,
-                      gradient_clip_val=1.0,
-                      default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_steps=1,
+        max_epochs=1,
+        gradient_clip_val=1.0,
+        default_root_dir=tmpdir,
+    )
 
     # for the test
     model.optimizer_step = _optimizer_step
@@ -685,7 +773,7 @@ def test_gradient_clipping(tmpdir):
 
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
-        default_save_path=tmpdir,
+        default_root_dir=tmpdir,
     )
     # Only run if CUDA is available
     if not torch.cuda.is_available():
@@ -696,6 +784,28 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+
+
+@pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id', 'error_expected'], [
+    pytest.param(1, None, False),
+    pytest.param(8, None, False),
+    pytest.param([1], 1, False),
+    pytest.param([8], 8, False),
+    pytest.param('1,', 1, False),
+    pytest.param('1', None, False),
+    pytest.param('9, ', 9, True),
+    pytest.param([9], 9, True),
+    pytest.param([0], 0, True),
+    pytest.param(2, None, True),
+    pytest.param(10, None, True),
+])
+def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
+    if error_expected:
+        with pytest.raises(MisconfigurationException, match=r'.*tpu_cores` can only be 1, 8 or [<1-8>]*'):
+            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+        assert trainer.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
@@ -824,3 +934,21 @@ def test_trainer_subclassing():
     # when we pass in an unknown arg, the base class should complain
     with pytest.raises(TypeError, match=r"__init__\(\) got an unexpected keyword argument 'abcdefg'"):
         TrainerSubclass(abcdefg='unknown_arg')
+
+
+@pytest.mark.parametrize('trainer_params', [
+    OmegaConf.create({'max_epochs': 1, 'gpus': 1}),
+    OmegaConf.create({'max_epochs': 1, 'gpus': [0]}),
+])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_trainer_omegaconf(trainer_params):
+    Trainer(**trainer_params)
+
+
+def test_trainer_pickle(tmpdir):
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
+    pickle.dumps(trainer)
+    cloudpickle.dumps(trainer)

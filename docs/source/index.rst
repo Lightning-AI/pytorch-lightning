@@ -13,6 +13,7 @@ PyTorch Lightning Documentation
 
    new-project
    introduction_guide
+   performance
 
 .. toctree::
    :maxdepth: 2
@@ -25,6 +26,7 @@ PyTorch Lightning Documentation
    lightning-module
    loggers
    metrics
+   hooks
    trainer
    
 .. toctree::
@@ -33,6 +35,7 @@ PyTorch Lightning Documentation
    :caption: Community Examples
 
    Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>
+   Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>
    FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>
    Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
    Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
@@ -53,6 +56,7 @@ PyTorch Lightning Documentation
    :caption: Tutorials
 
    From PyTorch to PyTorch Lightning <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
+   Video on how to refactor PyTorch into PyTorch Lightning <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1

@@ -3,7 +3,7 @@ import pickle
 
 import pytest
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import (
     TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
@@ -25,7 +25,6 @@ def _get_logger_args(logger_class, save_dir):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
@@ -52,8 +51,8 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        train_percent_check=0.2,
-        val_percent_check=0.5,
+        limit_train_batches=0.2,
+        limit_val_batches=0.5,
         fast_dev_run=True,
     )
     trainer.fit(model)
@@ -72,7 +71,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
@@ -90,7 +88,7 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     trainer = Trainer(
         max_epochs=1,
-        logger=logger
+        logger=logger,
     )
     pkl_bytes = pickle.dumps(trainer)
 
@@ -109,8 +107,8 @@ def test_logger_reset_correctly(tmpdir, extra_params):
     model = EvalModelTemplate()
 
     trainer = Trainer(
-        default_save_path=tmpdir,
-        **extra_params
+        default_root_dir=tmpdir,
+        **extra_params,
     )
     logger1 = trainer.logger
     trainer.fit(model)

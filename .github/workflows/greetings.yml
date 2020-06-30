@@ -5,7 +5,7 @@ on: [issues]  # pull_request
 
 jobs:
   greeting:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/first-interaction@v1
       with:

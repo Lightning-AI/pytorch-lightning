@@ -4,7 +4,6 @@ TensorBoard
 """
 
 import os
-import yaml
 from argparse import Namespace
 from typing import Optional, Dict, Union, Any
 from warnings import warn
@@ -144,12 +143,6 @@ class TensorBoardLogger(LightningLoggerBase):
     @rank_zero_only
     def save(self) -> None:
         super().save()
-        try:
-            self.experiment.flush()
-        except AttributeError:
-            # you are using PT version (<v1.2) which does not have implemented flush
-            self.experiment._get_file_writer().flush()
-
         dir_path = self.log_dir
         if not os.path.isdir(dir_path):
             dir_path = self.save_dir

@@ -13,6 +13,8 @@ Hyperparameters
 Lightning has utilities to interact seamlessly with the command line ArgumentParser
 and plays well with the hyperparameter optimization framework of your choice.
 
+----------
+
 ArgumentParser
 ^^^^^^^^^^^^^^
 Lightning is designed to augment a lot of the functionality of the built-in Python ArgumentParser
@@ -30,6 +32,7 @@ This allows you to call your program like so:
 
     python trainer.py --layer_1_dim 64
 
+----------
 
 Argparser Best Practices
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -100,6 +103,8 @@ Finally, make sure to start the training like so:
     dict_args = vars(args)
     model = LitModel(**dict_args)
 
+----------
+
 LightningModule hyperparameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Often times we train many versions of a model. You might share that model or come back to it a few months later
@@ -121,7 +126,7 @@ makes those values available via `self.hparams`.
             self.save_hyperparameters()
 
             # equivalent
-            self.save_hyperparameters(['layer_1_dim', 'learning_rate'])
+            self.save_hyperparameters('layer_1_dim', 'learning_rate')
 
             # this now works
             self.hparams.layer_1_dim
@@ -140,7 +145,7 @@ In that case, choose only a few
             self.loss_fx = loss_fx
 
             # call this to save (layer_1_dim=128) to the checkpoint
-            self.save_hyperparameters(['layer_1_dim'])
+            self.save_hyperparameters('layer_1_dim')
 
     # to load specify the other args
     model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
@@ -188,6 +193,7 @@ In that case, choose only a few
     # this works
     model.hparams.anything
 
+----------
 
 Trainer args
 ^^^^^^^^^^^^
@@ -204,6 +210,7 @@ To recap, add ALL possible trainer flags to the argparser and init the Trainer t
     # or if you need to pass in callbacks
     trainer = Trainer.from_argparse_args(hparams, checkpoint_callback=..., callbacks=[...])
 
+----------
 
 Multiple Lightning Modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -283,6 +290,8 @@ and now we can train MNIST or the GAN using the command line interface!
 
     $ python main.py --model_name gan --encoder_layers 24
     $ python main.py --model_name mnist --layer_1_dim 128
+
+----------
 
 Hyperparameter Optimization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

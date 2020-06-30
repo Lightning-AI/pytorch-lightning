@@ -8,20 +8,20 @@ import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback, ProgressBarBase
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.seed import seed_everything
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
+from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_8, TrainerDeprecatedAPITillVer0_9
+from pytorch_lightning.trainer.deprecated_api import (
+    TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin, parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus)
+    TrainerDPMixin, _parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus, _parse_tpu_cores)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -31,7 +31,7 @@ from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 
 try:
     from apex import amp
@@ -51,7 +51,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -59,85 +59,82 @@ else:
 
 class Trainer(
     TrainerIOMixin,
+    TrainerCallbackHookMixin,
+    TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerAMPMixin,
     TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
-    TrainerModelHooksMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerEvaluationLoopMixin,
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
-    TrainerCallbackHookMixin,
-    TrainerDeprecatedAPITillVer0_8,
+    TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_9,
+    TrainerDeprecatedAPITillVer0_10,
 ):
-    DEPRECATED_IN_0_8 = (
-        'gradient_clip', 'nb_gpu_nodes', 'max_nb_epochs', 'min_nb_epochs',
-        'add_row_log_interval', 'nb_sanity_val_steps', 'tng_tqdm_dic',
-    )
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
-            self,
-            logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
-            checkpoint_callback: Union[ModelCheckpoint, bool] = True,
-            early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
-            callbacks: Optional[List[Callback]] = None,
-            default_root_dir: Optional[str] = None,
-            gradient_clip_val: float = 0,
-            process_position: int = 0,
-            num_nodes: int = 1,
-            num_processes: int = 1,
-            gpus: Optional[Union[List[int], str, int]] = None,
-            auto_select_gpus: bool = False,
-            tpu_cores: Optional[Union[List[int], int]] = None,
-            log_gpu_memory: Optional[str] = None,
-            progress_bar_refresh_rate: int = 1,
-            overfit_pct: float = 0.0,
-            track_grad_norm: Union[int, float, str] = -1,
-            check_val_every_n_epoch: int = 1,
-            fast_dev_run: bool = False,
-            accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
-            max_epochs: int = 1000,
-            min_epochs: int = 1,
-            max_steps: Optional[int] = None,
-            min_steps: Optional[int] = None,
-            train_percent_check: float = 1.0,
-            val_percent_check: float = 1.0,
-            test_percent_check: float = 1.0,
-            val_check_interval: float = 1.0,
-            log_save_interval: int = 100,
-            row_log_interval: int = 10,
-            add_row_log_interval=None,  # backward compatible, todo: remove in v0.8.0
-            distributed_backend: Optional[str] = None,
-            precision: int = 32,
-            print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
-            weights_summary: Optional[str] = 'top',
-            weights_save_path: Optional[str] = None,
-            num_sanity_val_steps: int = 2,
-            truncated_bptt_steps: Optional[int] = None,
-            resume_from_checkpoint: Optional[str] = None,
-            profiler: Optional[Union[BaseProfiler, bool]] = None,
-            benchmark: bool = False,
-            deterministic: bool = False,
-            reload_dataloaders_every_epoch: bool = False,
-            replace_sampler_ddp: bool = True,
-            terminate_on_nan: bool = False,
+        self,
+        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+        checkpoint_callback: Union[ModelCheckpoint, bool] = True,
+        early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        callbacks: Optional[List[Callback]] = None,
+        default_root_dir: Optional[str] = None,
+        gradient_clip_val: float = 0,
+        process_position: int = 0,
+        num_nodes: int = 1,
+        num_processes: int = 1,
+        gpus: Optional[Union[List[int], str, int]] = None,
+        auto_select_gpus: bool = False,
+        tpu_cores: Optional[Union[List[int], str, int]] = None,
+        log_gpu_memory: Optional[str] = None,
+        progress_bar_refresh_rate: int = 1,
+        overfit_batches: Union[int, float] = 0.0,
+        track_grad_norm: Union[int, float, str] = -1,
+        check_val_every_n_epoch: int = 1,
+        fast_dev_run: bool = False,
+        accumulate_grad_batches: Union[int, Dict[int, int], List[list]] = 1,
+        max_epochs: int = 1000,
+        min_epochs: int = 1,
+        max_steps: Optional[int] = None,
+        min_steps: Optional[int] = None,
+        limit_train_batches: Union[int, float] = 1.0,
+        limit_val_batches: Union[int, float] = 1.0,
+        limit_test_batches: Union[int, float] = 1.0,
+        val_check_interval: Union[int, float] = 1.0,
+        log_save_interval: int = 100,
+        row_log_interval: int = 50,
+        distributed_backend: Optional[str] = None,
+        precision: int = 32,
+        print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
+        weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
+        weights_save_path: Optional[str] = None,
+        num_sanity_val_steps: int = 2,
+        truncated_bptt_steps: Optional[int] = None,
+        resume_from_checkpoint: Optional[str] = None,
+        profiler: Optional[Union[BaseProfiler, bool]] = None,
+        benchmark: bool = False,
+        deterministic: bool = False,
+        reload_dataloaders_every_epoch: bool = False,
+        auto_lr_find: Union[bool, str] = False,
+        replace_sampler_ddp: bool = True,
+        terminate_on_nan: bool = False,
+        auto_scale_batch_size: Union[str, bool] = False,
+        prepare_data_per_node: bool = True,
+        amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
+        num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
+        use_amp=None,  # backward compatible, todo: remove in v0.9.0
+        show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
+        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
+        overfit_pct: float = None  # backward compatible, todo: remove in v1.0.0
             auto_lr_find: Optional[Union[bool, str]] = None,  # backward comp todo: remove in v0.9.0
             auto_scale_batch_size: Optional[Union[str, bool]] = None,  # backward comp. todo: remove in v0.9.0
-            num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
-            amp_level: str = 'O1',  # backward compatible, todo: remove in v0.8.0
-            default_save_path=None,  # backward compatible, todo: remove in v0.8.0
-            gradient_clip=None,  # backward compatible, todo: remove in v0.8.0
-            nb_gpu_nodes=None,  # backward compatible, todo: remove in v0.8.0
-            max_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            min_nb_epochs=None,  # backward compatible, todo: remove in v0.8.0
-            use_amp=None,  # backward compatible, todo: remove in v0.9.0
-            show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
-            nb_sanity_val_steps=None,  # backward compatible, todo: remove in v0.8.0
     ):
         r"""
 
@@ -153,11 +150,6 @@ class Trainer(
             callbacks: Add a list of callbacks.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed
-
-            default_save_path:
-                .. warning:: .. deprecated:: 0.7.3
-
-                    Use `default_root_dir` instead. Will remove 0.9.0.
 
             gradient_clip_val: 0 means don't clip.
 
@@ -199,7 +191,12 @@ class Trainer(
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
-            overfit_pct: How much of training-, validation-, and test dataset to check.
+            overfit_batches: Overfit a percent of training data (float) or a set number of batches (int). Default: 0.0
+
+            overfit_pct:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `overfit_batches` instead. Will be removed in 0.10.0.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm.
 
@@ -227,11 +224,26 @@ class Trainer(
 
             min_steps: Force training for at least these number of steps. Disabled by default (None).
 
-            train_percent_check: How much of training dataset to check.
+            limit_train_batches: How much of training dataset to check (floats = percent, int = num_batches)
 
-            val_percent_check: How much of validation dataset to check.
+            limit_val_batches: How much of validation dataset to check (floats = percent, int = num_batches)
 
-            test_percent_check: How much of test dataset to check.
+            limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
+
+            train_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_train_batches` instead. Will remove v0.10.0.
+
+            val_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_val_batches` instead. Will remove v0.10.0.
+
+            test_percent_check:
+                .. warning:: .. deprecated:: 0.8.0
+
+                    Use `limit_test_batches` instead. Will remove v0.10.0.
 
             val_check_interval: How often within one training epoch to check the validation set
 
@@ -244,7 +256,7 @@ class Trainer(
 
                     Use `row_log_interval` instead. Will remove 0.9.0.
 
-            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn)
+            distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
             use_amp:
                 .. warning:: .. deprecated:: 0.7.0
@@ -269,14 +281,10 @@ class Trainer(
 
             num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
 
-            nb_sanity_val_steps:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `num_sanity_val_steps` instead. Will remove 0.8.0.
-
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
+                This can be a URL.
 
             profiler:  To profile individual steps during training and assist in
 
@@ -303,6 +311,9 @@ class Trainer(
 
                     Has no effect. Please use tuner class instead.
                     Will remove 0.9.0.
+
+            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
+                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
         """
         super().__init__()
 
@@ -313,8 +324,66 @@ class Trainer(
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
 
-        # Init callbacks
+        # init the default rank if exists
+        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
+        # this way we only show it on rank 0
+        if 'LOCAL_RANK' in os.environ:
+            rank_zero_only.rank = os.environ['LOCAL_RANK']
+
+        # training bookeeping
+        self.total_batch_idx = 0
+        self.running_loss = TensorRunningAccum(window_length=20)
+        self.batch_idx = 0
+        self.progress_bar_metrics = {}
+        self.callback_metrics = {}
+        self.num_training_batches = 0
+        self.num_val_batches = []
+        self.num_test_batches = []
+        self.train_dataloader = None
+        self.test_dataloaders = None
+        self.val_dataloaders = None
+
+        # training state
+        self.model = None
+        self.testing = False
+        self.disable_validation = False
+        self.prepare_data_per_node = prepare_data_per_node
+        self.lr_schedulers = []
+        self.optimizers = None
+        self.optimizer_frequencies = []
+        self.global_step = 0
+        self.current_epoch = 0
+        self.interrupted = False
+        self.should_stop = False
+
+        # set default save path if user didn't provide one
+        if default_root_dir is None:
+            default_root_dir = os.getcwd()
+        self.default_root_dir = default_root_dir
+
+        self.configure_logger(logger)
+
+        # init callbacks
         self.callbacks = callbacks or []
+
+        # configure early stop callback
+        # creates a default one if none passed in
+        early_stop_callback = self.configure_early_stopping(early_stop_callback)
+        if early_stop_callback:
+            self.callbacks.append(early_stop_callback)
+
+        # configure checkpoint callback
+        # it is important that this is the last callback to run
+        # pass through the required args to figure out defaults
+        self.weights_save_path = weights_save_path
+        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
+        if checkpoint_callback:
+            self.callbacks.append(checkpoint_callback)
+
+        # TODO refactor codebase (tests) to not directly reach into these callbacks
+        self.checkpoint_callback = checkpoint_callback
+        self.early_stop_callback = early_stop_callback
+
         self.on_init_start()
 
         # benchmarking
@@ -323,20 +392,9 @@ class Trainer(
 
         # Transfer params
         self.num_nodes = num_nodes
-        # Backward compatibility, TODO: remove in v0.8.0
-        if nb_gpu_nodes is not None:
-            rank_zero_warn("Argument `nb_gpu_nodes` has renamed to `num_nodes` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.num_gpu_nodes = nb_gpu_nodes
         self.log_gpu_memory = log_gpu_memory
 
         self.gradient_clip_val = gradient_clip_val
-        # Backward compatibility, TODO: remove in v0.8.0
-        if gradient_clip is not None:
-            rank_zero_warn("Argument `gradient_clip` has renamed to `gradient_clip_val` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.gradient_clip = gradient_clip
-
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
@@ -353,13 +411,10 @@ class Trainer(
 
         if tpu_cores is None:
             tpu_cores = num_tpu_cores
-        self.on_tpu = tpu_cores is not None
-        self.tpu_cores = tpu_cores
-        assert self.tpu_cores in (1, 8, None) or (
-            isinstance(self.tpu_cores, (list, tuple, set)) and len(self.tpu_cores) == 1
-        ), '`tpu_cores` can only be 1, 8 or [<1-8>]'
+        self.tpu_cores = _parse_tpu_cores(tpu_cores)
+        self.on_tpu = self.tpu_cores is not None
 
-        self.tpu_id = tpu_cores[0] if isinstance(tpu_cores, list) else None
+        self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
@@ -368,30 +423,11 @@ class Trainer(
         self.weights_summary = weights_summary
 
         self.max_epochs = max_epochs
-        # Backward compatibility, TODO: remove in v0.8.0
-        if max_nb_epochs is not None:
-            rank_zero_warn("Argument `max_nb_epochs` has renamed to `max_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.max_nb_epochs = max_nb_epochs
-
         self.min_epochs = min_epochs
-        # Backward compatibility, TODO: remove in v0.8.0
-        if min_nb_epochs is not None:
-            rank_zero_warn("Argument `min_nb_epochs` has renamed to `min_epochs` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.min_nb_epochs = min_nb_epochs
-
         self.max_steps = max_steps
         self.min_steps = min_steps
 
         self.num_sanity_val_steps = num_sanity_val_steps
-        # Backward compatibility, TODO: remove in v0.8.0
-        if nb_sanity_val_steps is not None:
-            rank_zero_warn("Argument `nb_sanity_val_steps` has renamed to "
-                           "`num_sanity_val_steps` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            self.nb_sanity_val_steps = nb_sanity_val_steps
-
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
@@ -423,58 +459,13 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
-            log.info('Running in fast_dev_run mode: will run a full train,'
-                     ' val and test loop using a single batch')
-
-        # set default save path if user didn't provide one
-        self.default_root_dir = default_root_dir
-
-        # Backward compatibility, TODO: remove in v0.8.0
-        if default_save_path is not None:
-            self.default_root_dir = default_save_path
-
-        if self.default_root_dir is None:
-            self.default_root_dir = os.getcwd()
-
-        # training bookeeping
-        self.total_batch_idx = 0
-        self.running_loss = TensorRunningAccum(window_length=20)
-        self.batch_idx = 0
-        self.progress_bar_metrics = {}
-        self.callback_metrics = {}
-        self.num_val_batches = 0
-        self.num_training_batches = 0
-        self.num_test_batches = 0
-        self.train_dataloader = None
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-
-        # training state
-        self.model = None
-        self.testing = False
-        self.disable_validation = False
-        self.lr_schedulers = []
-        self.optimizers = None
-        self.optimizer_frequencies = []
-        self.global_step = 0
-        self.current_epoch = 0
-        self.interrupted = False
-
-        # configure logger
-        self.configure_logger(logger)
+            rank_zero_info('Running in fast_dev_run mode: will run a full train,'
+                           ' val and test loop using a single batch')
 
         # configure profiler
         if profiler is True:
             profiler = SimpleProfiler()
         self.profiler = profiler or PassThroughProfiler()
-
-        # configure early stop callback
-        # creates a default one if none passed in
-        self.configure_early_stopping(early_stop_callback)
-
-        # configure checkpoint callback
-        self.checkpoint_callback = checkpoint_callback
-        self.weights_save_path = weights_save_path
 
         # accumulated grads
         self.accumulate_grad_batches = accumulate_grad_batches
@@ -486,7 +477,7 @@ class Trainer(
         else:
             self.gpus = gpus
 
-        self.data_parallel_device_ids = parse_gpu_ids(self.gpus)
+        self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
 
@@ -503,14 +494,15 @@ class Trainer(
         if self.on_tpu:
             self.init_tpu()
 
-        # init flags for SLURM+ddp to work
-        self.proc_rank = 0
+        # init flags for SLURM+DDP to work
         self.world_size = 1
         self.interactive_ddp_procs = []
         self.configure_slurm_ddp(self.num_nodes)
         self.node_rank = self.determine_ddp_node_rank()
+        self.local_rank = self.determine_local_rank()
+        self.global_rank = 0
 
-        # nvidia setup
+        # NVIDIA setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         # backward compatibility
@@ -523,30 +515,56 @@ class Trainer(
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
 
-        # backward compatibility
-        if add_row_log_interval is not None:
-            rank_zero_warn("`add_row_log_interval` has renamed to `row_log_interval` since v0.5.0"
-                           " and this method will be removed in v0.8.0", DeprecationWarning)
-            if not row_log_interval:  # in case you did not set the proper value
-                row_log_interval = add_row_log_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
-        self.overfit_pct = overfit_pct
-        self.determine_data_use_amount(train_percent_check, val_percent_check,
-                                       test_percent_check, overfit_pct)
+        # TODO: remove in 0.10.0
+        if overfit_pct is not None:
+            rank_zero_warn("Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            overfit_batches = overfit_pct
+
+        # convert floats to ints
+        self.overfit_batches = _determine_limit_batches(overfit_batches)
+
+        # TODO: remove in 0.10.0
+        if val_percent_check is not None:
+            rank_zero_warn("Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            limit_val_batches = val_percent_check
+
+        # TODO: remove in 0.10.0
+        if test_percent_check is not None:
+            rank_zero_warn("Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            limit_test_batches = test_percent_check
+
+        # TODO: remove in 0.10.0
+        if train_percent_check is not None:
+            rank_zero_warn("Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            limit_train_batches = train_percent_check
+
+        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
+        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
+        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
         # These are the only lines needed after v0.8.0
         # we wrap the user's forward with autocast and give it back at the end of fit
         self.autocast_original_forward = None
-        self.use_native_amp = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         self.precision = precision
         self.scaler = None
 
-        # TODO: remove for v0.8.0
+        # Backward compatibility, TODO: remove in v0.9.0
+        if use_amp is not None:
+            rank_zero_warn("Argument `use_amp` is now set by `precision` since v0.7.0"
+                           " and this method will be removed in v0.9.0", DeprecationWarning)
+            self.precision = 16 if use_amp else 32
+
         self.amp_level = amp_level
-        self.init_amp(use_amp)
+        self.init_amp()
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -554,7 +572,11 @@ class Trainer(
         self.on_init_end()
 
     @property
-    def slurm_job_id(self) -> int:
+    def is_global_zero(self) -> bool:
+        return self.global_rank == 0
+
+    @property
+    def slurm_job_id(self) -> Optional[int]:
         try:
             job_id = os.environ['SLURM_JOB_ID']
             job_id = int(job_id)
@@ -604,6 +626,7 @@ class Trainer(
              ('max_epochs', (<class 'int'>,), 1000),
              ...
              ('precision', (<class 'int'>,), 32),
+             ('prepare_data_per_node', (<class 'bool'>,), True),
              ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
@@ -702,7 +725,7 @@ class Trainer(
             else:
                 use_type = arg_types[0]
 
-            if arg == 'gpus':
+            if arg == 'gpus' or arg == 'tpu_cores':
                 use_type = Trainer._allowed_type
                 arg_default = Trainer._arg_default
 
@@ -845,10 +868,14 @@ class Trainer(
         # check that model is configured correctly
         self.check_model_configuration(model)
 
-        # download the data and do whatever transforms we need
-        # do before any spawn calls so that the model can assign properties
-        # only on proc 0 because no spawn has happened yet
-        if not self._is_data_prepared:
+        # callbacks
+        self.on_fit_start()
+        if self.is_function_implemented('on_fit_start', model):
+            model.on_fit_start()
+
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+        if self.can_prepare_data():
             model.prepare_data()
             self._is_data_prepared = True
 
@@ -861,6 +888,7 @@ class Trainer(
             # torchelastic or general non_slurm ddp2
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
+
             self.ddp_train(task, model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
@@ -872,18 +900,20 @@ class Trainer(
                 task = int(os.environ['LOCAL_RANK'])
                 self.ddp_train(task, model)
 
-            elif self.distributed_backend == 'cpu_ddp':
-                self.__set_random_port()
+            elif self.distributed_backend == 'ddp_cpu':
+                self.set_random_port()
                 self.model = model
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
 
             elif self.distributed_backend == 'ddp_spawn':
+                self.set_random_port()
                 model.share_memory()
 
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
             elif self.distributed_backend == 'ddp':
+                self.set_random_port()
                 self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
@@ -898,7 +928,10 @@ class Trainer(
             self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
-            log.info(f'training on {self.tpu_cores} TPU cores')
+            rank_zero_info(f'training on {self.tpu_cores} TPU cores')
+
+            if not XLA_AVAILABLE:
+                raise MisconfigurationException('No TPU devices found.')
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
@@ -922,27 +955,38 @@ class Trainer(
             if self.use_amp:
                 raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
+            # call setup after the ddp process has connected
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
+
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
             self.run_pretrain_routine(model)
 
+        # callbacks
+        self.on_fit_end()
+
+        # model hooks
+        if self.is_function_implemented('on_fit_end'):
+            model.on_fit_end()
+
+        self.teardown('fit')
+        if self.is_function_implemented('teardown'):
+            model.teardown('fit')
+
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return 1
 
-    def __set_random_port(self):
-        """
-        When running DDP NOT managed by SLURM, the ports might collide
-        :return:
-        """
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            import random
-            default_port = random.randint(10000, 19000)
-            os.environ['MASTER_PORT'] = str(default_port)
+    def can_prepare_data(self):
+        if self.prepare_data_per_node:
+            return self.local_rank == 0
+
+        else:
+            return self.node_rank == 0 and self.local_rank == 0
 
     def _attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -973,7 +1017,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.use_native_amp and self.precision == 16:
+        if NATIVE_AMP_AVALAIBLE and self.precision == 16:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -999,19 +1043,17 @@ class Trainer(
         self.register_slurm_signal_handlers()
 
         # print model summary
-        # TODO: remove self.testing condition because model.summarize() is wiping out the weights
-        if self.proc_rank == 0 and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ['full', 'top']:
+        if self.is_global_zero and self.weights_summary is not None and not self.testing:
+            if self.weights_summary in ModelSummary.MODES:
                 ref_model.summarize(mode=self.weights_summary)
             else:
-                raise MisconfigurationException("weights_summary can be None, 'full' or 'top'")
+                raise MisconfigurationException(
+                    "weights_summary can be None, " + ", ".join(ModelSummary.MODES)
+                )
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
         self.model = model
-
-        # set up checkpoint callback
-        self.configure_checkpoint_callback()
 
         # restore training and model before hpc call
         self.restore_weights(model)
@@ -1024,7 +1066,7 @@ class Trainer(
             return
 
         # check if we should run validation during training
-        self.disable_validation = not (self.is_overridden('validation_step') and self.val_percent_check > 0) \
+        self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
             and not self.fast_dev_run
 
         # run tiny validation (if validation defined)
@@ -1036,17 +1078,16 @@ class Trainer(
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
+            num_loaders = len(self.val_dataloaders)
+            max_batches = [self.num_sanity_val_steps] * num_loaders
             eval_results = self._evaluate(model,
                                           self.val_dataloaders,
-                                          self.num_sanity_val_steps,
+                                          max_batches,
                                           False)
             _, _, _, callback_metrics, _ = self.process_output(eval_results)
+            self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
-
-            # verify that early stop has conditioned on a metric that exists
-            if self.enable_early_stop:
-                self.early_stop_callback._validate_condition_metric(callback_metrics)
 
         # clear cache before training
         if self.on_gpu and self.root_gpu is not None:
@@ -1061,7 +1102,8 @@ class Trainer(
     def test(
             self,
             model: Optional[LightningModule] = None,
-            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            ckpt_path: Optional[str] = 'best'
     ):
         r"""
 
@@ -1073,10 +1115,13 @@ class Trainer(
             test_dataloaders: Either a single
                 Pytorch Dataloader or a list of them, specifying validation samples.
 
+            ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
+                If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
         Example::
 
             # Option 1
-            # run test after fitting
+            # run test with the best checkpoint from ``ModelCheckpoint`` after fitting.
             test = DataLoader(...)
             trainer = Trainer()
             model = LightningModule()
@@ -1085,12 +1130,48 @@ class Trainer(
             trainer.test(test_dataloaders=test)
 
             # Option 2
-            # run test from a loaded model
+            # run test with the specified checkpoint after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path='path/to/checkpoint.ckpt')
+
+            # Option 3
+            # run test with the weights from the end of training after fitting
+            test = DataLoader(...)
+            trainer = Trainer()
+            model = LightningModule()
+
+            trainer.fit(model)
+            trainer.test(test_dataloaders=test, ckpt_path=None)
+
+            # Option 4
+            # run test from a loaded model. ``ckpt_path`` is ignored in this case.
             test = DataLoader(...)
             model = LightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        self.setup('test')
+        model_ref = self.model if model is None else model
+        if self.is_function_implemented('setup', model_ref):
+            model_ref.setup('test')
+
+        self.barrier('test_setup')
+
+        if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+            raise MisconfigurationException(
+                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
+
+        # if model is not given (None), ckpt_path is given,
+        # load the given checkpoint for testing
+        if model is None and ckpt_path is not None:
+            # ckpt_path is 'best' so load the best model
+            if ckpt_path == 'best':
+                ckpt_path = self.checkpoint_callback.best_model_path
+            model = self.get_model().load_from_checkpoint(ckpt_path)
 
         self.testing = True
 
@@ -1118,6 +1199,11 @@ class Trainer(
             self.run_evaluation(test_mode=True)
 
         self.testing = False
+
+        self.teardown('test')
+        if self.is_function_implemented('teardown'):
+            model_ref = self.get_model()
+            model_ref.teardown('test')
 
     def check_model_configuration(self, model: LightningModule):
         r"""
@@ -1177,6 +1263,14 @@ class Trainer(
                 raise MisconfigurationException('You have defined `test_step()` but did not'
                                                 ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
 
+    def barrier(self, name):
+        if self.use_ddp or self.use_ddp2:
+            torch_distrib.barrier()
+
+        if self.on_tpu and XLA_AVAILABLE:
+            # wait for all processes to catch up
+            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
+
 
 class _PatchDataLoader(object):
     r"""
@@ -1187,7 +1281,6 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
-
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 
@@ -1198,3 +1291,14 @@ class _PatchDataLoader(object):
 
     def __call__(self) -> Union[List[DataLoader], DataLoader]:
         return self.dataloader
+
+
+def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+    if 0 <= batches <= 1:
+        return batches
+    elif batches > 1 and batches % 1.0 == 0:
+        return int(batches)
+    else:
+        raise MisconfigurationException(
+            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+        )

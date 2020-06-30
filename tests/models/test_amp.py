@@ -3,7 +3,8 @@ import os
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -20,7 +21,7 @@ def test_amp_single_gpu(tmpdir, backend):
         max_epochs=1,
         gpus=1,
         distributed_backend=backend,
-        precision=16
+        precision=16,
     )
 
     model = EvalModelTemplate()
@@ -45,13 +46,40 @@ def test_amp_multi_gpu(tmpdir, backend):
         # gpus=2,
         gpus='0, 1',  # test init with gpu string
         distributed_backend=backend,
-        precision=16
+        precision=16,
     )
 
     # tutils.run_model_test(trainer_options, model)
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
     assert result
+
+
+@pytest.mark.spawn
+@pytest.mark.parametrize("backend", ['dp', 'ddp'])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_wandb(tmpdir, backend):
+    """Make sure DP/DDP + AMP work."""
+    from pytorch_lightning.loggers import WandbLogger
+    tutils.set_random_master_port()
+
+    model = EvalModelTemplate()
+    logger = WandbLogger(name='utest')
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        distributed_backend=backend,
+        precision=16,
+        logger=logger,
+
+    )
+    # tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result
+    trainer.test(model)
 
 
 @pytest.mark.spawn
@@ -72,6 +100,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
         distributed_backend='ddp',
@@ -98,12 +127,12 @@ def test_cpu_model_with_amp(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.4,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
         precision=16
     )
 
     model = EvalModelTemplate()
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
-        tutils.run_model_test(trainer_options, model, on_gpu=False)
+        tpipes.run_model_test(trainer_options, model, on_gpu=False)

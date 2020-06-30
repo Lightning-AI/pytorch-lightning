@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.8.0rc1'
+__version__ = '0.8.4-dev'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -50,12 +50,11 @@ if __LIGHTNING_SETUP__:
     sys.stdout.write(f'Partial import of `{__name__}` during the build process.\n')  # pragma: no-cover
     # We are not importing the rest of the lightning during the build process, as it may not be compiled yet
 else:
-    from pytorch_lightning.core import LightningModule
-    from pytorch_lightning.trainer import Trainer
-    from pytorch_lightning.trainer.seed import seed_everything
+    from pytorch_lightning.core import LightningModule, data_loader
     from pytorch_lightning.hypertuner import HyperTuner
     from pytorch_lightning.callbacks import Callback
-    from pytorch_lightning.core import data_loader
+    from pytorch_lightning.trainer import Trainer
+    from pytorch_lightning.utilities.seed import seed_everything
 
     __all__ = [
         'Trainer',
