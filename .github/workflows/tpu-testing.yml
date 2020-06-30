@@ -94,7 +94,12 @@ jobs:
         exit $status_code
 
     - name: Upload coverage to Codecov
-      run: |
-        # see: https://docs.codecov.io/docs/merging-reports
-        codecov --file ./xx01 --token ${{ secrets.CODECOV_TOKEN }} -cF gpu pytests
+      uses: codecov/codecov-action@v1
       if: always()
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./xx01
+        flags: tpu,pytest
+        # env_vars: OS,PYTHON
+        # name: codecov-umbrella
+        fail_ci_if_error: true
