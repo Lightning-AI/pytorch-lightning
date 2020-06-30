@@ -90,7 +90,7 @@ class Trainer(
         >>> class SimpleModel(LightningModule):
         ...     def __init__(self):
         ...         super().__init__()
-        ...         self.l1 = torch.nn.Linear(64, 4)
+        ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
         ...
         ...     def forward(self, x):
         ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
@@ -112,8 +112,7 @@ class Trainer(
         >>> class SimpleDataset(Dataset):
         ...     def __init__(self, num_samples=200):
         ...         self.input_seq = torch.randn(num_samples, 64)
-        ...         top, bottom = self.input_seq.chunk(2, -1)
-        ...         self.output_seq = top + bottom.roll(shifts=1, dims=-1)
+        ...         self.output_seq = torch.randint(0, 4, (num_samples,))
         ...
         ...     def __len__(self):
         ...         return len(self.input_seq)
@@ -125,8 +124,9 @@ class Trainer(
         >>> #define trainer and run
         >>> model = SimpleModel()
         >>> trainer = Trainer(max_epochs=1)
-        >>> trainer.fit(model, train_loader)
-        1
+        >>> res = trainer.fit(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        Epoch 1: 100%|##########| 13/13 [...]
+        >>> res = trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
 
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
