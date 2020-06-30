@@ -363,7 +363,11 @@ class TrainerEvaluationLoopMixin(ABC):
             if isinstance(v, dict):
                 self.reduce_eval_ddp(v)
             elif isinstance(v, torch.Tensor):
-                v = dist.all_reduce(v)
+                print('-'*100)
+                print(v)
+                dist.all_reduce(v)
+                print(v)
+                print('-'*100)
                 eval_results[k] = v
 
     def run_evaluation(self, test_mode: bool = False):
