@@ -66,3 +66,20 @@ you can trust the implementations and use them to bootstrap your resarch much fa
 
             logs = {"loss": loss}
             return {"loss": loss, "log": logs}
+
+----------
+
+Example 3: Callbacks
+--------------------
+We also have a collection of callbacks.
+
+.. code-block:: python
+
+    from pl_bolts.callbacks import PrintTableMetricsCallback
+    import pytorch_lightning as pl
+
+    trainer = pl.Trainer(callbacks=[PrintTableMetricsCallback()])
+
+    # loss│train_loss│val_loss│epoch
+    # ──────────────────────────────
+    # 2.2541470527648926│2.2541470527648926│2.2158432006835938│0
