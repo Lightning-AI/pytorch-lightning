@@ -61,6 +61,7 @@ conda install pytorch-lightning -c conda-forge
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [stable](https://pytorch-lightning.readthedocs.io/en/stable)
+- [0.8.4](https://pytorch-lightning.readthedocs.io/en/0.8.4/)
 - [0.8.3](https://pytorch-lightning.readthedocs.io/en/0.8.3/)
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
 - [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
@@ -68,7 +69,7 @@ conda install pytorch-lightning -c conda-forge
 - [0.7.3](https://pytorch-lightning.readthedocs.io/en/0.7.3/)
 - [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
 - [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
-- [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
+- [0.5.3](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
 ## Refactoring your PyTorch code + benefits + full walk-through
 [![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
