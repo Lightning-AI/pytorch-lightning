@@ -1,7 +1,11 @@
 Bolts
 =====
-`PyTorch Lightning Bolts <https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_, is our official collection
+`PyTorch Lightning Bolts <https://pytorch-lightning-bolts.readthedocs.io/en/latest/>`_, is our official collection
 of prebuilt models across many research domains.
+
+.. code-block:: bash
+
+    pip install pytorch-lightning-bolts
 
 In bolts we have:
 
