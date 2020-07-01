@@ -144,9 +144,8 @@ class TrainerDataLoadingMixin(ABC):
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
-        # don't manipulate iterable datasets
         is_dataloader = isinstance(dataloader, DataLoader)
-
+        # don't manipulate iterable datasets
         is_iterable_ds = _has_iterable_dataset(dataloader)
 
         if not is_dataloader or is_iterable_ds:
