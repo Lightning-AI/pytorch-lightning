@@ -13,9 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          cmake \
          git \
          curl \
-         ca-certificates \
-	 && apt-get clean \
-         && rm -rf /var/lib/apt/lists/*
+         ca-certificates
 
 # Install conda and python.
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
@@ -44,9 +42,7 @@ RUN pip uninstall -y torch && \
     rm 'torch-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
     rm 'torch_xla-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
     rm 'torchvision-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
-    apt-get install -y --no-install-recommends libomp5 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y libomp5
 
 ENV LD_LIBRARY_PATH=root/miniconda3/envs/container/lib
 
