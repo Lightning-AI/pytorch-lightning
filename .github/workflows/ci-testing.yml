@@ -115,14 +115,8 @@ jobs:
         key: pl-dataset
 
     - name: Tests
-      # env:
-      #   TOXENV: py${{ matrix.python-version }}
       run: |
-        # tox --sitepackages
-        # flake8 .
-        # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
-        # coverage report
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
@@ -132,21 +126,7 @@ jobs:
       # Use always() to always run this step to publish test results when there are test failures
       if: always()
 
-    - name: Package Setup
+    - name: Statistics
+      if: success()
       run: |
-        check-manifest
-        python setup.py check --metadata --strict
-        python setup.py sdist
-        twine check dist/*
-
-    #- name: Try install package
-    #  if: ! startsWith(matrix.os, 'windows')
-    #  run: |
-    #    virtualenv vEnv ; source vEnv/bin/activate
-    #    pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
-    #    deactivate ; rm -rf vEnv
-
-    #- name: Statistics
-    #  if: success()
-    #  run: |
-    #     coverage report
+         coverage report
