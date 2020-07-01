@@ -52,7 +52,7 @@ jobs:
       with:
           # auto-update-conda: true
           auto-activate-base: false
-          miniconda-version: 'latest'
+          miniconda-version: 4.7.12
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           activate-environment: pl-env
