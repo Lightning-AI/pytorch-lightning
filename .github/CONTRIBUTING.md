@@ -161,7 +161,7 @@ To setup a local development environment, install both local and test dependenci
 ```bash
 python -m pip install -r requirements/devel.txt
 python -m pip install -r requirements/examples.txt
-python -m pip pre-commit install
+python -m pip install pre-commit
 ```
 
 You can run the full test-case in your terminal via this bash script:
