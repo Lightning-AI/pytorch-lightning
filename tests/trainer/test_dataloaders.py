@@ -2,6 +2,7 @@ import platform
 
 import pytest
 import torch
+from packaging.version import parse
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import Subset, IterableDataset
 
@@ -488,6 +489,11 @@ def test_warning_with_few_workers(tmpdir, ckpt_path):
         trainer.test(**test_options)
 
 
+@pytest.mark.xfail(
+    parse(torch.__version__) < parse("1.4.0"),
+    reason="IterableDataset with __len__ before 1.4 raises",
+    raises=TypeError
+)
 def test_warning_with_iterable_dataset_and_len(tmpdir):
     """ Tests that a warning messages is shown when an IterableDataset defines `__len__`. """
     model = EvalModelTemplate()
