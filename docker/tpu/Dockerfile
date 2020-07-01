@@ -58,8 +58,8 @@ RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
 # the source code where the tests live.
 RUN if [ $TEST_IMAGE -eq 1 ] ; then \
         pip install -r pytorch-lightning/requirements/test.txt ; \
-    fi && \
-    rm -rf pytorch-lightning
+    else rm -rf pytorch-lightning ; \
+    fi
 
 RUN conda init bash
 RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
