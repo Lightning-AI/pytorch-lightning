@@ -297,11 +297,7 @@ class TrainerDataLoadingMixin(ABC):
         # datasets could be none, 1 or 2+
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                try:
-                    num_batches = len(dataloader)
-                except (TypeError, NotImplementedError):
-                    num_batches = float('inf')
-
+                num_batches = len(dataloader) if _has_len(dataloader) else float('inf')
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
 
                 # percent or num_steps
