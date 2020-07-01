@@ -129,11 +129,6 @@ class Trainer(
         >>> trainer.fit(model, train_loader)
         1
         >>> trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        --------------------------------------------------------------------------------
-        TEST RESULTS
-        ...
-        --------------------------------------------------------------------------------
-
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
@@ -1142,8 +1137,11 @@ class Trainer(
                                           self.val_dataloaders,
                                           max_batches,
                                           False)
-            _, _, _, callback_metrics, _ = self.process_output(eval_results)
-            self.callback_metrics = callback_metrics
+
+            # allow no returns from eval
+            if eval_results is not None and len(eval_results) > 0:
+                _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
 
