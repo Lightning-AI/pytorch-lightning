@@ -76,7 +76,8 @@ jobs:
         job_name=${job_name% created} && \
         echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
         i=0 && \
-        max_checks=10 && \
+        # 30 checks spaced 30s apart = 900s total.
+        max_checks=30 && \
         status_code=2 && \
         # Check on the job periodically. Set the status code depending on what
         # happened to the job in Kubernetes. If we try max_checks times and
