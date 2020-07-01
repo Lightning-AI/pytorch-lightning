@@ -341,9 +341,10 @@ class TrainerEvaluationLoopMixin(ABC):
             elif self.is_overridden('validation_epoch_end', model=model):
                 eval_results = model.validation_epoch_end(outputs)
 
-                # aggregate ddp stats across
-                if self.use_ddp or self.use_ddp2:
-                    self.reduce_eval_ddp(eval_results)
+        # aggregate ddp stats across
+        has_content = eval_results is not None and len(eval_results) > 0
+        if has_content and (self.use_ddp or self.use_ddp2):
+            self.reduce_eval_ddp(eval_results)
 
         # enable train mode again
         model.train()
@@ -406,23 +407,26 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # add metrics to prog bar
-        self.add_progress_bar_metrics(prog_bar_metrics)
+        # enable no returns
+        if eval_results is not None and len(eval_results) > 0:
+            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # log results of test
-        if test_mode and self.is_global_zero:
-            print('-' * 80)
-            print('TEST RESULTS')
-            pprint(callback_metrics)
-            print('-' * 80)
+            # add metrics to prog bar
+            self.add_progress_bar_metrics(prog_bar_metrics)
 
-        # log metrics
-        self.log_metrics(log_metrics, {})
+            # log results of test
+            if test_mode and self.is_global_zero:
+                print('-' * 80)
+                print('TEST RESULTS')
+                pprint(callback_metrics)
+                print('-' * 80)
 
-        # track metrics for callbacks
-        self.callback_metrics.update(callback_metrics)
+            # log metrics
+            self.log_metrics(log_metrics, {})
+
+            # track metrics for callbacks
+            self.callback_metrics.update(callback_metrics)
 
         # hook
         model.on_post_performance_check()
