@@ -4,9 +4,9 @@ FROM google/cloud-sdk:slim
 ARG GITHUB_REF=refs/heads/master
 ARG TEST_IMAGE=0
 
-# TODO: This Dockerfile installs pytorch/xla 3.6 wheels. There are also 3.7
+# This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6
 # wheels available; see below.
-ENV PYTHON_VERSION=3.6
+ENV PYTHON_VERSION=3.7
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
          build-essential \
