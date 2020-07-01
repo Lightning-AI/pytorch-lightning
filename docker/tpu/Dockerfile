@@ -33,16 +33,16 @@ SHELL ["/root/miniconda3/bin/conda", "run", "-n", "container", "/bin/bash", "-c"
 RUN conda install -y python=$PYTHON_VERSION mkl
 
 RUN pip uninstall -y torch && \
-# TODO: Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
-    gsutil cp 'gs://tpu-pytorch/wheels/torch-nightly-cp36-cp36m-linux_x86_64.whl' . && \
-    gsutil cp 'gs://tpu-pytorch/wheels/torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' . && \
-    gsutil cp 'gs://tpu-pytorch/wheels/torchvision-nightly-cp36-cp36m-linux_x86_64.whl' . && \
-    pip install 'torch-nightly-cp36-cp36m-linux_x86_64.whl' && \
-    pip install 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' && \
-    pip install 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl' && \
-    rm 'torch-nightly-cp36-cp36m-linux_x86_64.whl' && \
-    rm 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' && \
-    rm 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl' && \
+    # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
+    gsutil cp 'gs://tpu-pytorch/wheels/torch-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' . && \
+    gsutil cp 'gs://tpu-pytorch/wheels/torch_xla-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' . && \
+    gsutil cp 'gs://tpu-pytorch/wheels/torchvision-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' . && \
+    pip install 'torch-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
+    pip install 'torch_xla-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
+    pip install 'torchvision-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
+    rm 'torch-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
+    rm 'torch_xla-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
+    rm 'torchvision-nightly-cp${PYTHON_VERSION/./}-cp${PYTHON_VERSION/./}m-linux_x86_64.whl' && \
     apt-get install -y --no-install-recommends libomp5 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
