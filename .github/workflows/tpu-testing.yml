@@ -93,13 +93,14 @@ jobs:
         gcloud container images delete "$IMAGE:$GITHUB_RUN_ID" --force-delete-tags && \
         exit $status_code
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
-      if: always()
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./xx01
-        flags: tpu,pytest
-        # env_vars: OS,PYTHON
-        # name: codecov-umbrella
-        fail_ci_if_error: true
+    # todo: to be used after enable merging reports from different CIs
+    #- name: Upload coverage to Codecov
+    #  uses: codecov/codecov-action@v1
+    #  if: always()
+    #  with:
+    #    token: ${{ secrets.CODECOV_TOKEN }}
+    #    file: ./xx01
+    #    flags: tpu,pytest
+    #    # env_vars: OS,PYTHON
+    #    # name: codecov-umbrella
+    #    fail_ci_if_error: true
