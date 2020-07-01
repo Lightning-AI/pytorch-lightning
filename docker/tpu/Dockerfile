@@ -28,7 +28,8 @@ ENV PATH=/root/miniconda3/bin:$PATH
 RUN conda create -y --name container python=$PYTHON_VERSION
 
 # Run the rest of commands within the new conda env.
-SHELL ["conda", "run", "-n", "container", "/bin/bash", "-c"]
+# Use absolute path to appease Codefactor.
+SHELL ["/root/miniconda3/bin/conda", "run", "-n", "container", "/bin/bash", "-c"]
 RUN conda install -y python=$PYTHON_VERSION mkl
 
 RUN pip uninstall -y torch && \
@@ -42,7 +43,7 @@ RUN pip uninstall -y torch && \
     rm 'torch-nightly-cp36-cp36m-linux_x86_64.whl' && \
     rm 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' && \
     rm 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl' && \
-    apt-get install -y libomp5 && \
+    apt-get install -y --no-install-recommends libomp5 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
