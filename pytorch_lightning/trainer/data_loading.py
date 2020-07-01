@@ -63,7 +63,7 @@ def _has_len(dataloader: DataLoader) -> bool:
     except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
         has_len = False
 
-    if has_len and _has_iterable_dataset(dataloader) and parse(torch.__version__) >= parse("1.4.0"):
+    if has_len and _has_iterable_dataset(dataloader) and version.parse(torch.__version__) >= version.parse("1.4.0"):
         rank_zero_warn(
             'Your `IterableDataset` has `__len__` defined.'
             ' In combination with multi-processing data loading (e.g. batch size > 1),'
