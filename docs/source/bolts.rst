@@ -1,7 +1,6 @@
 Bolts
 =====
-
-PyTorch Lightning Bolts `<https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_, is our official collection
+`PyTorch Lightning Bolts <https://github.com/PyTorchLightning/pytorch-lightning-bolts>`_, is our official collection
 of prebuilt models across many research domains.
 
 In bolts we have:
