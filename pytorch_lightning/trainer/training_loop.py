@@ -776,6 +776,7 @@ class TrainerTrainLoopMixin(ABC):
             # PROCESS THE RESULT
             # ----------------------------
             # format and reduce outputs accordingly
+            training_step_output_for_epoch_end = training_step_output
             training_step_output = self.process_output(training_step_output, train=True)
 
             # TODO: temporary part of structured results PR
@@ -788,7 +789,7 @@ class TrainerTrainLoopMixin(ABC):
             )
 
             # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-            training_step_output_for_epoch_end = recursive_detach(training_step_output)
+            training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
 
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
@@ -801,8 +802,21 @@ class TrainerTrainLoopMixin(ABC):
             if self.precision == 16 and not self.on_tpu:
                 closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
 
+                # enter amp context
+                if not NATIVE_AMP_AVALAIBLE:
+                    context = closure_loss
+                    closure_loss = closure_loss.__enter__()
+
             # do backward pass
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
+
+            # exit amp context
+            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
+                a, b, c = None, None, None
+                error = context.__exit__(a, b, c)
+                if error:
+                    rank_zero_warn(a, b, c)
+                    raise Exception('apex unscale error')
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()

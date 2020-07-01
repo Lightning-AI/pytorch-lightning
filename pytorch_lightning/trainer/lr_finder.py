@@ -1,6 +1,8 @@
 """
 Trainer Learning Rate Finder
 """
+import os
+import importlib
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence, Tuple, List, Union
 
@@ -8,8 +10,14 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
-import os
+
+# check if ipywidgets is installed before importing tqdm.auto
+# to ensure it won't fail and a progress bar is displayed
+if importlib.util.find_spec('ipywidgets') is not None:
+    from tqdm.auto import tqdm
+else:
+    from tqdm import tqdm
+
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback

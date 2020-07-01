@@ -58,7 +58,7 @@ class DeterministicModel(LightningModule):
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
 
         self.training_step_called = True
-        return {'loss': acc, 'log': logs, 'progress_bar': pbar}
+        return {'loss': acc, 'log': logs, 'progress_bar': pbar, 'train_step_test': torch.tensor(549).type_as(acc)}
 
     def training_step_for_step_end_dict(self, batch, batch_idx):
         """sends outputs to training_batch_end"""
@@ -89,11 +89,11 @@ class DeterministicModel(LightningModule):
         assert 'pbar_acc1' in output
         assert 'pbar_acc2' in output
 
-        logs = {'log_acc1': output['log_acc1'], 'log_acc2': output['log_acc2']}
-        pbar = {'pbar_acc1': output['pbar_acc1'], 'pbar_acc2': output['pbar_acc2']}
+        logs = {'log_acc1': output['log_acc1'] + 2, 'log_acc2': output['log_acc2'] + 2}
+        pbar = {'pbar_acc1': output['pbar_acc1'] + 2, 'pbar_acc2': output['pbar_acc2'] + 2}
 
         acc = output['loss']
-        return {'loss': acc, 'log': logs, 'progress_bar': pbar}
+        return {'loss': acc, 'log': logs, 'progress_bar': pbar, 'train_step_end': acc}
 
     def training_epoch_end_dict(self, outputs):
         self.training_epoch_end_called = True
@@ -104,12 +104,14 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert len(outputs) == 4
             for batch_out in outputs:
-                assert len(batch_out.keys()) == 5
-                keys = ['batch_loss', 'pbar_on_batch_end', 'log_metrics', 'callback_metrics']
+                assert len(batch_out.keys()) == 4
+                assert self.count_num_graphs(batch_out) == 0
+                last_key = 'train_step_end' if self.training_step_end_called else 'train_step_test'
+                keys = ['loss', 'log', 'progress_bar', last_key]
                 for key in keys:
                     assert key in batch_out
 
-        prototype_loss = outputs[0]['batch_loss']
+        prototype_loss = outputs[0]['loss']
         logs = {'epoch_end_log_1': torch.tensor(178).type_as(prototype_loss)}
         pbar = {'epoch_end_pbar_1': torch.tensor(234).type_as(prototype_loss)}
 

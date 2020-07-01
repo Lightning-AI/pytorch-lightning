@@ -12,7 +12,7 @@ except ImportError:  # pragma: no-cover
     Experiment = None
     _TEST_TUBE_AVAILABLE = False
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
@@ -77,6 +77,7 @@ class TestTubeLogger(LightningLoggerBase):
         self._experiment = None
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> Experiment:
         r"""
 
