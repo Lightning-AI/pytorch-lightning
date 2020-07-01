@@ -51,19 +51,23 @@ jobs:
     - name: Configure Docker
       run: |-
         gcloud --quiet auth configure-docker
+      shell: bash
     - name: Build and Push Docker Image
       run: |
         cd main/docker/tpu
         docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
         docker push "$IMAGE:$GITHUB_RUN_ID"
+      shell: bash
 
     - name: Install jsonnet
       run: |-
         go get github.com/google/go-jsonnet/cmd/jsonnet
+      shell: bash
     # Get the GKE credentials so we can deploy to the cluster
     # Use either zone or region depending on cluster setup.
     - run: |-
         gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+      shell: bash
 
     - name: Deploy the job on the kubernetes cluster
       run: |-
@@ -92,6 +96,7 @@ jobs:
         echo "Done with log retrieval attempt." && \
         gcloud container images delete "$IMAGE:$GITHUB_RUN_ID" --force-delete-tags && \
         exit $status_code
+      shell: bash
 
     # todo: to be used after enable merging reports from different CIs
     #- name: Upload coverage to Codecov
