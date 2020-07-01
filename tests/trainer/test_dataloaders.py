@@ -492,6 +492,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
     """ Tests that a warning messages is shown when an IterableDataset defines `__len__`. """
     model = EvalModelTemplate()
     original_dataset = model.train_dataloader().dataset
+
     class IterableWithLen(IterableDataset):
 
         def __iter__(self):
