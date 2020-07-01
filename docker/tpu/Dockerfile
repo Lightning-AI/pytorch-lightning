@@ -13,7 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          cmake \
          git \
          curl \
-         ca-certificates
+         ca-certificates \
+	 && apt-get clean \
+         && rm -rf /var/lib/apt/lists/*
 
 # Install conda and python.
 RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
@@ -40,7 +42,9 @@ RUN pip uninstall -y torch && \
     rm 'torch-nightly-cp36-cp36m-linux_x86_64.whl' && \
     rm 'torch_xla-nightly-cp36-cp36m-linux_x86_64.whl' && \
     rm 'torchvision-nightly-cp36-cp36m-linux_x86_64.whl' && \
-    apt-get install -y libomp5
+    apt-get install -y libomp5 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV LD_LIBRARY_PATH=root/miniconda3/envs/container/lib
 
