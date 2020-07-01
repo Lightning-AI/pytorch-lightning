@@ -29,6 +29,12 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
+   :name: Bolts
+   :caption: Bolts
+
+
+.. toctree::
+   :maxdepth: 1
    :name: Community Examples
    :caption: Community Examples
 
