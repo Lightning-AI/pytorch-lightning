@@ -1,11 +1,11 @@
 import multiprocessing
 import platform
 from abc import ABC, abstractmethod
+from distutils.version import LooseVersion
 from typing import Union, List, Tuple, Callable, Optional
 
 import torch
 import torch.distributed as torch_distrib
-from packaging.version import parse
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
@@ -63,7 +63,7 @@ def _has_len(dataloader: DataLoader) -> bool:
     except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
         has_len = False
 
-    if has_len and _has_iterable_dataset(dataloader) and version.parse(torch.__version__) >= version.parse("1.4.0"):
+    if has_len and _has_iterable_dataset(dataloader) and LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
         rank_zero_warn(
             'Your `IterableDataset` has `__len__` defined.'
             ' In combination with multi-processing data loading (e.g. batch size > 1),'
