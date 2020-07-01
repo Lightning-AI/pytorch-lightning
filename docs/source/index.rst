@@ -32,6 +32,7 @@ PyTorch Lightning Documentation
    :name: Bolts
    :caption: Bolts
 
+   bolts
 
 .. toctree::
    :maxdepth: 1
