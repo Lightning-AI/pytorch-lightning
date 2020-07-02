@@ -151,6 +151,7 @@ class EarlyStopping(Callback):
         print('-' * 100)
         print('RUNNING EARLY STOP CHECK', trainer.global_rank)
         print('stop:', trainer.should_stop)
+        print('epoch', trainer.current_epoch)
         print('-' * 100)
 
     def on_train_end(self, trainer, pl_module):
