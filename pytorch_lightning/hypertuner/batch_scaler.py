@@ -98,7 +98,7 @@ class HyperTunerBatchScalerMixin(ABC):
         save_path = os.path.join(self.trainer.default_root_dir, 'temp_model.ckpt')
         self.trainer.save_checkpoint(str(save_path))
 
-        # Initially we just double in size until an OOM is encountered
+        # Run search algorithm
         new_size = _adjust_batch_size(self.trainer, value=init_val)  # initially set to init_val
         if mode == 'power':
             batch_scaler = _run_power_scaling(self.trainer, model, new_size, attribute_name, max_trials)
@@ -109,9 +109,7 @@ class HyperTunerBatchScalerMixin(ABC):
         garbage_collection_cuda()
 
         # Convert times to work on same data amount
-        max_batch_size = max(bs for bs, suc in zip(batch_scaler.results['batch_size'],
-                                                   batch_scaler.results['fits_in_memory']) if suc)
-        batch_scaler.results['time'] = [t * max_batch_size / bs for t, bs in
+        batch_scaler.results['time'] = [t / bs for t, bs in
                                         zip(batch_scaler.results['time'],
                                             batch_scaler.results['batch_size'])]
 
@@ -123,6 +121,9 @@ class HyperTunerBatchScalerMixin(ABC):
         self.__scale_batch_restore_params()
         if self.trainer.progress_bar_callback:
             self.trainer.progress_bar_callback.enable()
+
+        # Reset model logger
+        model.logger = self.trainer.logger
 
         # Log that method was called and return object
         self._scale_batch_size_called = True

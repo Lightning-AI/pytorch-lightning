@@ -100,9 +100,6 @@ class HyperTuner(HyperTunerLRFinderMixin, HyperTunerBatchScalerMixin):
             self._call_internally(model, self.lr_find,
                                   self.auto_lr_find, 'learning_rate')
 
-        # Reset model logger
-        model.logger = self.trainer.logger
-
     def _call_internally(self, model, method, attribute, default):
         attribute = attribute if isinstance(attribute, str) else default
 

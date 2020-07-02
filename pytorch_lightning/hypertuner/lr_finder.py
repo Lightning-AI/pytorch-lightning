@@ -1,29 +1,31 @@
 """
 HyperTuner learning rate finder
 """
-from pytorch_lightning.utilities import rank_zero_only
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.trainer import Trainer
 import os
 import importlib
 from abc import ABC
-from typing import Optional, Union, List
+from typing import Optional, List, Union
 
+import pickle
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
-import pickle
 
+# check if ipywidgets is installed before importing tqdm.auto
+# to ensure it won't fail and a progress bar is displayed
 if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm
 else:
     from tqdm import tqdm
 
+from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import rank_zero_only
 
 class HyperTunerLRFinderMixin(ABC):
 
@@ -150,6 +152,9 @@ class HyperTunerLRFinderMixin(ABC):
         self.__lr_finder_restore_params(model)
         if self.trainer.progress_bar_callback:
             self.trainer.progress_bar_callback.enable()
+
+        # Reset model logger
+        model.logger = self.trainer.logger
 
         # Log that method was called and return object
         self._lr_find_called = True
