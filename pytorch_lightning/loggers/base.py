@@ -109,6 +109,7 @@ class LightningLoggerBase(ABC):
             agg_keys = {}
             num_keys = 0
             for met in self._metrics_to_agg:
+                print(list(met.keys()))
                 agg_keys.update(list(met.keys()))
                 num_keys += met(met)
 
