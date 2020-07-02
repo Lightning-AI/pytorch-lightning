@@ -76,7 +76,6 @@ jobs:
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
         coverage run --source pytorch_lightning -m pytest pytorch_lightning -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml --ignore=pytorch_lightning/loggers/comet.py --ignore=pytorch_lightning/loggers/mlflow.py --ignore=pytorch_lightning/loggers/neptune.py --ignore=pytorch_lightning/loggers/test_tube.py --ignore=pytorch_lightning/loggers/wandb.py --ignore=pytorch_lightning/metrics/sklearns.py
-        # coverage report
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
@@ -86,11 +85,18 @@ jobs:
       # Use always() to always run this step to publish test results when there are test failures
       if: always()
 
+    - name: Statistics
+      if: success()
+      run: |
+        coverage report
+        coverage xml
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        file: coverage.xml
         flags: cpu,pytest
         env_vars: ${{ runner.os }},python${{ matrix.python-version }}
         name: pl-coverage
