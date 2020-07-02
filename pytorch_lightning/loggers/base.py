@@ -103,8 +103,8 @@ class LightningLoggerBase(ABC):
             agg_mets = self._metrics_to_agg[0]
         else:
             # pop out 'epoch' because it is a metric automatically added in by log_metrics and will count as a duplicate
-            for mets in self._metrics_to_agg:
-                mets.pop("epoch")
+            for i in range(len(self._metrics_to_agg)):
+                self._metrics_to_agg[i].pop("epoch")
 
             # check if dictionary keys are unique
             agg_keys = set([key for mets in self._metrics_to_agg for key in mets.keys()])
