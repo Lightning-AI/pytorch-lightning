@@ -92,7 +92,7 @@ class CometLogger(LightningLoggerBase):
             This is used to determine version number
         experiment_name: Optional. String representing the name for this particular experiment on Comet.ml.
         experiment_key: Optional. If set, restores from existing experiment.
-        online: Required if api_key and save_dir are both given. This determines whether
+        offline: If api_key and save_dir are both given, this determines whether
             the experiment will be in online or offline mode. This is useful if you use
             save_dir to control the checkpoints directory and have a ~/.comet.config
             file but still want to run offline experiments.
@@ -106,7 +106,7 @@ class CometLogger(LightningLoggerBase):
                  rest_api_key: Optional[str] = None,
                  experiment_name: Optional[str] = None,
                  experiment_key: Optional[str] = None,
-                 online: bool = True,
+                 offline: bool = False,
                  **kwargs):
 
         if not _COMET_AVAILABLE:
@@ -119,7 +119,7 @@ class CometLogger(LightningLoggerBase):
         api_key = api_key or get_api_key(None, get_config())
 
         if api_key is not None and save_dir is not None:
-            self.mode = "online" if online else "offline"
+            self.mode = "offline" if offline else "online"
             self.api_key = api_key
             self._save_dir = save_dir
         elif api_key is not None:
