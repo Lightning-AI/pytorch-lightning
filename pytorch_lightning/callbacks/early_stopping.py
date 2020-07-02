@@ -170,11 +170,11 @@ class EarlyStopping(Callback):
             trainer.should_stop = stop
             dist.barrier()
 
-        # if trainer.use_tpu:
-        #     metric = metric.to(pl_module.device)
-        #     xm.all_reduce('sum', [metric])
-        #     metric = metric / trainer.world_size
-
+        if trainer.use_tpu:
+            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
+            xm.all_reduce('max', [stop])
+            trainer.should_stop = stop
+            dist.barrier()
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
