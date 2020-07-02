@@ -147,9 +147,6 @@ class EarlyStopping(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
 
-        # make sure the metric is consistent across processes
-        current = self._reduce_metric(trainer, pl_module, current)
-
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
@@ -161,22 +158,26 @@ class EarlyStopping(Callback):
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
-            dist.barrier()
+        # stop every ddp process
+        if trainer.should_stop:
+            print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
+            self._stop_distributed_training(trainer)
+            print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
 
-    def _reduce_metric(self, trainer, pl_module, metric):
+    def _stop_distributed_training(self, trainer):
 
         # in ddp, reduce the stopping metric so every process conditions the same
         if trainer.use_ddp or trainer.use_ddp2:
-            metric = metric.to(pl_module.device)
-            dist.all_reduce(metric, op=dist.reduce_op.SUM)
-            metric = metric / trainer.world_size
+            stop = torch.tensor(1, device=trainer.device)
+            dist.all_reduce(stop, op=dist.reduce_op.MAX)
+            trainer.should_stop = stop.item()
+            dist.barrier()
 
-        if trainer.use_tpu:
-            metric = metric.to(pl_module.device)
-            xm.all_reduce('sum', [metric])
-            metric = metric / trainer.world_size
+        # if trainer.use_tpu:
+        #     metric = metric.to(pl_module.device)
+        #     xm.all_reduce('sum', [metric])
+        #     metric = metric / trainer.world_size
 
-        return metric
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
