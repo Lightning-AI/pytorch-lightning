@@ -134,7 +134,6 @@ class EarlyStopping(Callback):
 
     def _run_early_stopping_check(self, trainer, pl_module):
         print(f'{trainer.global_rank}' * 100)
-        print('RUNNING EARLY STOP CHECK', trainer.global_rank)
         logs = trainer.callback_metrics
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
@@ -153,18 +152,15 @@ class EarlyStopping(Callback):
             # check flag across all GPUs
             if trainer.use_ddp or trainer.use_ddp2:
                 should_stop = torch.tensor(int(should_stop), device=pl_module.device)
-                print(should_stop)
                 dist.all_reduce(should_stop, op=dist.ReduceOp.MAX)
-                print(should_stop)
+
+            print(f'RANK: {trainer.global_rank} SHOULD STOP: {should_stop} BEST: {self.best_score}')
 
             # do actual stop
             if should_stop:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
-        print('stop:', trainer.should_stop)
-        print('epoch', trainer.current_epoch)
-        print('metric value', self.best_score)
         print(f'{trainer.global_rank}' * 100)
 
     def on_train_end(self, trainer, pl_module):
