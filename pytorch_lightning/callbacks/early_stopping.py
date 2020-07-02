@@ -168,7 +168,8 @@ class EarlyStopping(Callback):
         # in ddp, reduce the stopping metric so every process conditions the same
         if trainer.use_ddp or trainer.use_ddp2:
             metric = metric.to(pl_module.device)
-            dist.all_reduce(metric, op=dist.reduce_op.AVG)
+            dist.all_reduce(metric, op=dist.reduce_op.SUM)
+            metric = metric / trainer.world_size
 
         if trainer.use_tpu:
             metric = metric.to(pl_module.device)
