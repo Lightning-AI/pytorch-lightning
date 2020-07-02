@@ -158,7 +158,7 @@ class EarlyStopping(Callback):
 
             # do actual stop
             print(f'RANK: {trainer.global_rank}, SHOULD STOP: {should_stop}, EPOCH: {trainer.current_epoch}')
-            if should_stop.item():
+            if bool(should_stop.item()):
                 print(f'RANK: {trainer.global_rank}, STOPPING...')
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
