@@ -148,6 +148,10 @@ class EarlyStopping(Callback):
             if self.wait_count >= self.patience:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
+        print('-' * 100)
+        print('RUNNING EARLY STOP CHECK', trainer.global_rank)
+        print('stop:', trainer.should_stop)
+        print('-' * 100)
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:

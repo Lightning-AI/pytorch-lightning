@@ -389,6 +389,9 @@ class TrainerTrainLoopMixin(ABC):
                                  f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                                  ' not been met. Training will continue...')
 
+            print('-' * 100)
+            print('SHUTTING DOWN', self.global_rank)
+            print('-' * 100)
             self.run_training_teardown()
 
         except KeyboardInterrupt:
