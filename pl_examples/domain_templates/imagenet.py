@@ -187,7 +187,14 @@ class ImageNetLightningModel(LightningModule):
         return self.validation_step(*args, **kwargs)
 
     def test_epoch_end(self, *args, **kwargs):
-        return self.validation_epoch_end(*args, **kwargs)
+        outputs = self.validation_epoch_end(*args, **kwargs)
+        replace_val = lambda x: {k.replace('val', 'test'):v for k,v in x.items()}
+        outputs = {
+            'test_loss': outputs['val_loss'],
+            'progress_bar': replace_val(outputs['progress_bar']),
+            'log': replace_val(outputs['log']),
+        }
+        return outputs
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
