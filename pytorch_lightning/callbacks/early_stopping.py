@@ -169,7 +169,7 @@ class EarlyStopping(Callback):
         if trainer.use_ddp or trainer.use_ddp2:
             stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
             dist.all_reduce(stop, op=dist.reduce_op.MAX)
-            trainer.should_stop = stop.item()
+            trainer.should_stop = int(stop.item())
             dist.barrier()
 
         # if trainer.use_tpu:
