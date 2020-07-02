@@ -167,7 +167,7 @@ class EarlyStopping(Callback):
 
         # in ddp, reduce the stopping metric so every process conditions the same
         if trainer.use_ddp or trainer.use_ddp2:
-            stop = torch.tensor(1, device=pl_module.device)
+            stop = torch.tensor(trainer.should_stop, device=pl_module.device)
             dist.all_reduce(stop, op=dist.reduce_op.MAX)
             trainer.should_stop = stop.item()
             dist.barrier()
