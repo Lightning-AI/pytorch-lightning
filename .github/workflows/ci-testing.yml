@@ -137,7 +137,6 @@ jobs:
       if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./xx01
         flags: cpu,pytest
         env_vars: ${{ runner.os }},python${{ matrix.python-version }}
         name: pl-coverage
