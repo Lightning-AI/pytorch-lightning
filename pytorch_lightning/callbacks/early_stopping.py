@@ -9,6 +9,7 @@ from copy import deepcopy
 
 import numpy as np
 import torch
+import torch.distributed as dist
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -145,9 +146,18 @@ class EarlyStopping(Callback):
             self.wait_count = 0
         else:
             self.wait_count += 1
-            if self.wait_count >= self.patience:
+            should_stop = self.wait_count >= self.patience
+
+            # check flag across all GPUs
+            should_stop = torch.tensor(should_stop)
+            if trainer.use_ddp or trainer.use_ddp2:
+                dist.all_reduce(should_stop, op=dist.ReduceOp.Max)
+
+            # do actual stop
+            if should_stop:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
+
         print('-' * 100)
         print('RUNNING EARLY STOP CHECK', trainer.global_rank)
         print('stop:', trainer.should_stop)
