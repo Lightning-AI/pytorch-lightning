@@ -102,7 +102,24 @@ class LightningLoggerBase(ABC):
         elif len(self._metrics_to_agg) == 1:
             agg_mets = self._metrics_to_agg[0]
         else:
-            agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
+            # pop out 'epoch' because it is a metric automatically added in by log_metrics and will count as a
+            # duplicate. If you want to get rid of this, I would suggest you should get rid of `scalar_metrics[
+            # 'epoch'] = self.current_epoch` in TrainerLoggingMixin.log_metrics()
+            # check if dictionary keys are unique
+            agg_keys = {}
+            num_keys = 0
+            for met in self._metrics_to_agg:
+                agg_keys.update(list(met.keys()))
+                num_keys += met(met)
+
+            if len(agg_keys) == num_keys:
+                # if dictionary keys are unique
+                agg_mets = self._metrics_to_agg[0]
+                for mets in self._metrics_to_agg[1:]:
+                    agg_mets.update(mets)
+            else:
+                agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
+
         return self._prev_step, agg_mets
 
     def _finalize_agg_metrics(self):

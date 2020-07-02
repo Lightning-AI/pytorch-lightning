@@ -455,7 +455,6 @@ class TrainerTrainLoopMixin(ABC):
                 model.on_train_epoch_start()
 
     def run_training_epoch(self):
-
         # get model
         model = self.get_model()
 
@@ -525,13 +524,15 @@ class TrainerTrainLoopMixin(ABC):
             # -----------------------------------------
             self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
+            # progress global step according to grads progress. If it is the last batch, we will increment the
+            # global_step after the loop is finished
+            if not is_last_batch:
+                self.increment_accumulated_grad_global_step()
+
             # update LR schedulers
             monitor_metrics = deepcopy(self.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
-
-            # progress global step according to grads progress
-            self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
@@ -554,6 +555,9 @@ class TrainerTrainLoopMixin(ABC):
 
         # epoch end hook
         self.run_on_epoch_end_hook(model)
+
+        # increate global step by one to progress to the next epoch
+        self.global_step += 1
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
@@ -650,8 +654,6 @@ class TrainerTrainLoopMixin(ABC):
         # EPOCH END STEP IF DEFINED
         # --------------------------
         if self.is_overridden('training_epoch_end', model=model):
-            self.global_step += 1
-
             if is_result_obj:
                 # with result object gather across time and training steps so each opt idx has a single result obj
                 epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
