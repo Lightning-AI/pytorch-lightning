@@ -11,15 +11,14 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 def to_onehot(
         tensor: torch.Tensor,
-        n_classes: Optional[int] = None,
+        num_classes: Optional[int] = None,
 ) -> torch.Tensor:
     """
     Converts a dense label tensor to one-hot format
 
     Args:
         tensor: dense label tensor, with shape [N, d1, d2, ...]
-
-        n_classes: number of classes C
+        num_classes: number of classes C (default: None)
 
     Output:
         A sparse label tensor with shape [N, C, d1, d2, ...]
@@ -33,16 +32,19 @@ def to_onehot(
                 [0, 0, 0, 1]])
 
     """
-    if n_classes is None:
-        n_classes = int(tensor.max().detach().item() + 1)
+    if num_classes is None:
+        num_classes = int(tensor.max().detach().item() + 1)
     dtype, device, shape = tensor.dtype, tensor.device, tensor.shape
-    tensor_onehot = torch.zeros(shape[0], n_classes, *shape[1:],
+    tensor_onehot = torch.zeros(shape[0], num_classes, *shape[1:],
                                 dtype=dtype, device=device)
     index = tensor.long().unsqueeze(1).expand_as(tensor_onehot)
     return tensor_onehot.scatter_(1, index, 1.0)
 
 
-def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
+def to_categorical(
+        tensor: torch.Tensor,
+        argmax_dim: int = 1
+) -> torch.Tensor:
     """
     Converts a tensor of probabilities to a dense label tensor
 
@@ -66,10 +68,10 @@ def to_categorical(tensor: torch.Tensor, argmax_dim: int = 1) -> torch.Tensor:
 def get_num_classes(
         pred: torch.Tensor,
         target: torch.Tensor,
-        num_classes: Optional[int],
+        num_classes: Optional[int] = None,
 ) -> int:
     """
-    Returns the number of classes for a given prediction and target tensor.
+    Calculates the number of classes for a given prediction and target tensor.
 
         Args:
             pred: predicted values
@@ -105,10 +107,10 @@ def stat_scores(
         target: target tensor
         class_index: class to calculate over
         argmax_dim: if pred is a tensor of probabilities, this indicates the
-            axis the argmax transformation will be applied over
+            axis the argmax transformation will be applied over (default: 1)
 
     Return:
-        True Positive, False Positive, True Negative, False Negative
+        True Positive, False Positive, True Negative, False Negative, SUP
 
     Example:
 
@@ -145,12 +147,12 @@ def stat_scores_multiple_classes(
     Args:
         pred: prediction tensor
         target: target tensor
-        class_index: class to calculate over
+        num_classes: number of classes if known (default: None)
         argmax_dim: if pred is a tensor of probabilities, this indicates the
-            axis the argmax transformation will be applied over
+            axis the argmax transformation will be applied over (default: 1)
 
     Return:
-        True Positive, False Positive, True Negative, False Negative
+        True Positive, False Positive, True Negative, False Negative, SUPS
 
     Example:
 
@@ -197,7 +199,7 @@ def accuracy(
     Args:
         pred: predicted labels
         target: ground truth labels
-        num_classes: number of classes
+        num_classes: number of classes (default: None)
         reduction: a method for reducing accuracies over labels (default: takes the mean)
            Available reduction methods:
 
@@ -240,7 +242,7 @@ def confusion_matrix(
     Args:
         pred: estimated targets
         target: ground truth labels
-        normalize: normalizes confusion matrix
+        normalize: normalizes confusion matrix (default: False)
 
     Return:
         Tensor, confusion matrix C [num_classes, num_classes ]
@@ -280,7 +282,7 @@ def precision_recall(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes
+        num_classes: number of classes (default: None)
         reduction: method for reducing precision-recall values (default: takes the mean)
            Available reduction methods:
 
@@ -329,7 +331,7 @@ def precision(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes
+        num_classes: number of classes (default: None)
         reduction: method for reducing precision values (default: takes the mean)
            Available reduction methods:
 
@@ -364,7 +366,7 @@ def recall(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes
+        num_classes: number of classes (default: None)
         reduction: method for reducing recall values (default: takes the mean)
            Available reduction methods:
 
@@ -405,7 +407,7 @@ def fbeta_score(
             beta > 1 more weight to recall
             beta = 0: only precision
             beta -> inf: only recall
-        num_classes: number of classes
+        num_classes: number of classes (default: None)
         reduction: method for reducing F-score (default: takes the mean)
            Available reduction methods:
 
@@ -450,7 +452,7 @@ def f1_score(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes
+        num_classes: number of classes (default: None)
         reduction: method for reducing F1-score (default: takes the mean)
            Available reduction methods:
 
@@ -510,7 +512,6 @@ def _binary_clf_curve(
         # express fps as a cumsum to ensure fps is increasing even in
         # the presence of floating point errors
         fps = torch.cumsum((1 - target) * weight, dim=0)[threshold_idxs]
-
     else:
         fps = 1 + threshold_idxs - tps
 
@@ -529,7 +530,7 @@ def roc(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights
+        sample_weight: sample weights (default: None)
         pos_label: the label for the positive class (default: 1)
 
     Return:
@@ -583,7 +584,7 @@ def multiclass_roc(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights
+        sample_weight: sample weights (default: None)
         num_classes: number of classes (default: None, computes automatically from data)
 
     Return:
@@ -627,7 +628,7 @@ def precision_recall_curve(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights
+        sample_weight: sample weights (default: None)
         pos_label: the label for the positive class (default: 1.)
 
     Return:
@@ -685,8 +686,8 @@ def multiclass_precision_recall_curve(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weight
-        num_classes: number of classes
+        sample_weight: sample weight (default: None)
+        num_classes: number of classes (default: None)
 
     Return:
         number of classes, precision, recall, thresholds
@@ -722,14 +723,18 @@ def multiclass_precision_recall_curve(
     return tuple(class_pr_vals)
 
 
-def auc(x: torch.Tensor, y: torch.Tensor, reorder: bool = True) -> torch.Tensor:
+def auc(
+        x: torch.Tensor,
+        y: torch.Tensor,
+        reorder: bool = True
+) -> torch.Tensor:
     """
     Computes Area Under the Curve (AUC) using the trapezoidal rule
 
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing.
+        reorder: reorder coordinates, so they are increasing (default: True)
 
     Return:
         Tensor containing AUC score (float)
@@ -799,8 +804,11 @@ def auroc(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights
+        sample_weight: sample weights (default: None)
         pos_label: the label for the positive class (default: 1.)
+
+    Return:
+        Tensor containing ROCAUC score
 
     Example:
 
@@ -824,12 +832,16 @@ def average_precision(
         pos_label: int = 1.,
 ) -> torch.Tensor:
     """
+    Compute average precision from prediction scores
 
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights
+        sample_weight: sample weights (default: None)
         pos_label: the label for the positive class (default: 1.)
+
+    Return:
+        Tensor containing average precision score
 
     Example:
 
@@ -856,18 +868,23 @@ def dice_score(
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
+    Compute dice score from prediction scores
+
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        bg: whether to also compute dice for the background
+        bg: whether to also compute dice for the background (default: False)
         nan_score: score to return, if a NaN occurs during computation (denom zero)
-        no_fg_score: score to return, if no foreground pixel was found in target
+        no_fg_score: score to return, if no foreground pixel was found in target (default: 0.0)
         reduction: a method for reducing accuracies over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
             - none: pass array
             - sum: add elements
+    
+    Return:
+        Tensor containing dice score
 
     Example:
 
@@ -880,10 +897,10 @@ def dice_score(
         tensor(0.2500)
 
     """
-    n_classes = pred.shape[1]
+    num_classes = pred.shape[1]
     bg = (1 - int(bool(bg)))
-    scores = torch.zeros(n_classes - bg, device=pred.device, dtype=torch.float32)
-    for i in range(bg, n_classes):
+    scores = torch.zeros(num_classes - bg, device=pred.device, dtype=torch.float32)
+    for i in range(bg, num_classes):
         if not (target == i).any():
             # no foreground class
             scores[i - bg] += no_fg_score
@@ -903,31 +920,32 @@ def dice_score(
     return reduce(scores, reduction=reduction)
 
 
-def iou(pred: torch.Tensor, target: torch.Tensor,
-        num_classes: Optional[int] = None, remove_bg: bool = False,
-        reduction: str = 'elementwise_mean'):
+def iou(
+        pred: torch.Tensor,
+        target: torch.Tensor,
+        num_classes: Optional[int] = None,
+        remove_bg: bool = False,
+        reduction: str = 'elementwise_mean'
+) -> torch.Tensor:
     """
     Intersection over union, or Jaccard index calculation.
 
     Args:
         pred: Tensor containing predictions
-
         target: Tensor containing targets
-
-        num_classes: Optionally specify the number of classes
-
+        num_classes: Optionally specify the number of classes (default: None)
         remove_bg: Flag to state whether a background class has been included
             within input parameters. If true, will remove background class. If
-            false, return IoU over all classes.
+            false, return IoU over all classes (default: False)
             Assumes that background is '0' class in input tensor
-
         reduction: a method for reducing IoU over labels (default: takes the mean)
             Available reduction methods:
+
             - elementwise_mean: takes the mean
             - none: pass array
             - sum: add elements
 
-    Returns:
+    Return:
         IoU score : Tensor containing single value if reduction is
         'elementwise_mean', or number of classes if reduction is 'none'
 
