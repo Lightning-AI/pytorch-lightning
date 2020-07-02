@@ -106,7 +106,7 @@ class LightningLoggerBase(ABC):
             # duplicate. If you want to get rid of this, I would suggest you should get rid of `scalar_metrics[
             # 'epoch'] = self.current_epoch` in TrainerLoggingMixin.log_metrics()
             # check if dictionary keys are unique
-            agg_keys = {}
+            agg_keys = set()
             num_keys = 0
             for met in self._metrics_to_agg:
                 print(list(met.keys()))
