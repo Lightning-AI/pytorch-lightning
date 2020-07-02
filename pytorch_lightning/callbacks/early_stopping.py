@@ -133,7 +133,6 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer, pl_module)
 
     def _run_early_stopping_check(self, trainer, pl_module):
-        print(f'{trainer.global_rank}' * 100)
         logs = trainer.callback_metrics
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
@@ -160,8 +159,6 @@ class EarlyStopping(Callback):
             if should_stop:
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
-
-        print(f'{trainer.global_rank}' * 100)
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
