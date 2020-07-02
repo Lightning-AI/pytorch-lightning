@@ -161,14 +161,14 @@ class EarlyStopping(Callback):
         # stop every ddp process
         if trainer.should_stop:
             print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
-            self._stop_distributed_training(trainer)
+            self._stop_distributed_training(trainer, pl_module)
             print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
 
-    def _stop_distributed_training(self, trainer):
+    def _stop_distributed_training(self, trainer, pl_module):
 
         # in ddp, reduce the stopping metric so every process conditions the same
         if trainer.use_ddp or trainer.use_ddp2:
-            stop = torch.tensor(1, device=trainer.device)
+            stop = torch.tensor(1, device=pl_module.device)
             dist.all_reduce(stop, op=dist.reduce_op.MAX)
             trainer.should_stop = stop.item()
             dist.barrier()
