@@ -151,7 +151,9 @@ class EarlyStopping(Callback):
             # check flag across all GPUs
             should_stop = torch.tensor(int(should_stop), device=pl_module.device)
             if trainer.use_ddp or trainer.use_ddp2:
+                print(f'RANK: {trainer.global_rank} REDUCING...')
                 dist.all_reduce(should_stop, op=dist.reduce_op.MAX)
+                print(f'RANK: {trainer.global_rank} REDUCED...')
                 dist.barrier()
 
             print(f'RANK: {trainer.global_rank} SHOULD STOP: {should_stop} BEST: {self.best_score}')
