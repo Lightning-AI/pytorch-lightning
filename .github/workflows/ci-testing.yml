@@ -131,3 +131,14 @@ jobs:
       if: success()
       run: |
          coverage report
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      if: always()
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./xx01
+        flags: cpu,pytest
+        env_vars: ${{ runner.os }},python${{ matrix.python-version }}
+        name: pl-coverage
+        fail_ci_if_error: true

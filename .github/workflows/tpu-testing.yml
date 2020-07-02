@@ -17,7 +17,7 @@ env:
 jobs:
   setup-build-publish-deploy:
     name: tpu-testing-job
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - name: Install Go
@@ -99,7 +99,6 @@ jobs:
         exit $status_code
       shell: bash
 
-    # todo: to be used after enable merging reports from different CIs
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       if: always()
@@ -107,7 +106,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./xx01
         flags: tpu,pytest
-        # env_vars: OS,PYTHON
-        # name: codecov-umbrella
+        env_vars: ${{ runner.os }},python
+        name: pl-coverage
         fail_ci_if_error: true
 
