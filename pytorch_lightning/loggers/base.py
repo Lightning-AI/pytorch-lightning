@@ -102,7 +102,17 @@ class LightningLoggerBase(ABC):
         elif len(self._metrics_to_agg) == 1:
             agg_mets = self._metrics_to_agg[0]
         else:
-            agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
+            # check if dictionary keys are unique
+            agg_keys = set([key for mets in self._metrics_to_agg for key in mets.keys()])
+            num_keys = sum([len(mets) for mets in self._metrics_to_agg])
+
+            if len(agg_keys) == num_keys:
+                agg_mets = self._metrics_to_agg[0]
+                for mets in self._metrics_to_agg[1:]:
+                    agg_mets.update(mets)
+            else:
+                agg_mets = merge_dicts(self._metrics_to_agg, self._agg_key_funcs, self._agg_default_func)
+
         return self._prev_step, agg_mets
 
     def _finalize_agg_metrics(self):
