@@ -162,8 +162,31 @@ def test_multi_gpu_model(tmpdir, backend):
 
     trainer = Trainer(**trainer_options)
     tuner = HyperTuner(trainer)
-    batch_scaler = tuner.scale_batch_size(model)
+    batch_scaler = tuner.scale_batch_size(model, max_trials=10)
     after_batch_size = batch_scaler.suggestion()
 
     assert before_batch_size != after_batch_size, \
+        'Learning rate was not altered after running learning rate finder'
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_amp_support(tmpdir):
+    """ Make sure AMP works with learning rate finder """
+    tutils.set_random_master_port()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    before_lr = hparams.get('learning_rate')
+
+    trainer_options = Trainer(
+        default_root_dir=tmpdir,
+        precision=16,
+        gpus=1
+    )
+    trainer = Trainer(**trainer_options)
+    tuner = HyperTuner(trainer)
+    lrfinder = tuner.scale_batch_size(model, max_trials=10)
+    after_lr = lrfinder.suggestion()
+
+    assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'

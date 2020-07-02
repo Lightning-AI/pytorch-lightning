@@ -1,6 +1,13 @@
 """
 HyperTuner learning rate finder
 """
+from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning import _logger as log
+from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.trainer import Trainer
 import os
 import importlib
 from abc import ABC
@@ -16,14 +23,6 @@ if importlib.util.find_spec('ipywidgets') is not None:
     from tqdm.auto import tqdm
 else:
     from tqdm import tqdm
-
-from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_only
 
 
 class HyperTunerLRFinderMixin(ABC):

@@ -9,12 +9,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `HyperTuner` class, refactor of learning rate finder and batch scaler ([1998](https://github.com/PyTorchLightning/pytorch-lightning/pull/1998))
 
 ### Changed
 
 
 ### Deprecated
 
+- `auto_lr_find` and `auto_scale_batch_size` is deprecated, use new hypertuner class ([1998](https://github.com/PyTorchLightning/pytorch-lightning/pull/1998))
 
 ### Removed
 
@@ -55,8 +57,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Added TorchText support for moving data to GPU ([#2379](https://github.com/PyTorchLightning/pytorch-lightning/pull/2379))
-
-- Added `HyperTuner` class, refactor of learning rate finder and batch scaler ([1998](https://github.com/PyTorchLightning/pytorch-lightning/pull/1998))
 
 ### Changed
 

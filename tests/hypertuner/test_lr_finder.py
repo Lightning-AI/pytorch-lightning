@@ -78,42 +78,43 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-def test_tuner_arg_bool(tmpdir):
-    """ Test that setting tuner arg to bool works """
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-    before_lr = hparams.get('learning_rate')
-
-    # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        auto_lr_find=True,
-    )
-    tuner = HyperTuner(trainer, auto_lr_find=True)
-
-    tuner.tune(model)
-    after_lr = model.learning_rate
-    assert before_lr != after_lr, \
-        'Learning rate was not altered after running learning rate finder'
-
-
-def test_tuner_arg_str(tmpdir):
+@pytest.mark.parametrize("input_type", [True, 'field', 'hparams_field', 'hparams_dict'])
+def test_tuner_arg(tmpdir, input_type):
     """ Test that setting tuner arg to string works """
     model = EvalModelTemplate()
-    model.my_fancy_lr = 1.0  # update with non-standard field
 
-    before_lr = model.my_fancy_lr
+    before_lr = 1.0
+    if input_type == 'field':
+        model.my_fancy_lr = before_lr
+        name = 'my_fancy_lr'
+    elif input_type == 'hparams_field':
+        model.hparams.my_fancy_lr2 = before_lr
+        name = 'my_fancy_lr2'
+    elif input_type == 'hparams_dict':
+        model.hparams['my_fancy_lr3'] = before_lr
+        name = 'my_fancy_lr3'
+    else:
+        model.learning_rate = before_lr
+        name = True
+
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find='my_fancy_lr',
     )
-    tuner = HyperTuner(trainer, auto_lr_find='my_fancy_lr')
 
+    tuner = HyperTuner(trainer, auto_lr_find=name)
     tuner.tune(model)
-    after_lr = model.my_fancy_lr
+
+    if input_type == 'field':
+        after_lr = model.my_fancy_lr
+    elif input_type == 'hparams_field':
+        after_lr = model.hparams.my_fancy_lr2
+    elif input_type == 'hparams_dict':
+        after_lr = model.hparams['my_fancy_lr3']
+    else:
+        after_lr = model.learning_rate
+
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
 
@@ -212,8 +213,8 @@ def test_suggestion_with_non_finite_values(tmpdir):
 @pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model(tmpdir, backend):
-    """Make sure DDP works."""
+def test_multi_gpu_support(tmpdir, backend):
+    """Make sure DDP works with learning rate finder."""
     tutils.set_random_master_port()
 
     trainer_options = Trainer(
@@ -229,7 +230,30 @@ def test_multi_gpu_model(tmpdir, backend):
 
     trainer = Trainer(**trainer_options)
     tuner = HyperTuner(trainer)
-    lrfinder = tuner.lr_find(model)
+    lrfinder = tuner.lr_find(model, num_training=30)
+    after_lr = lrfinder.suggestion()
+
+    assert before_lr != after_lr, \
+        'Learning rate was not altered after running learning rate finder'
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_amp_support(tmpdir):
+    """ Make sure AMP works with learning rate finder """
+    tutils.set_random_master_port()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    before_lr = hparams.get('learning_rate')
+
+    trainer_options = Trainer(
+        default_root_dir=tmpdir,
+        precision=16,
+        gpus=1
+    )
+    trainer = Trainer(**trainer_options)
+    tuner = HyperTuner(trainer)
+    lrfinder = tuner.lr_find(model, num_training=30)
     after_lr = lrfinder.suggestion()
 
     assert before_lr != after_lr, \
