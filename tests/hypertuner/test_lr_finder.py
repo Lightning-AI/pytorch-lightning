@@ -249,7 +249,8 @@ def test_amp_support(tmpdir):
     trainer_options = Trainer(
         default_root_dir=tmpdir,
         precision=16,
-        gpus=1
+        gpus=1,
+        distributed_backend='dp'
     )
     trainer = Trainer(**trainer_options)
     tuner = HyperTuner(trainer)
