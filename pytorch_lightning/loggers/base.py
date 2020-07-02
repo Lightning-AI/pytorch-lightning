@@ -105,7 +105,7 @@ class LightningLoggerBase(ABC):
             # pop out 'epoch' because it is a metric automatically added in by log_metrics and will count as a
             # duplicate. If you want to get rid of this, I would suggest you should get rid of `scalar_metrics[
             # 'epoch'] = self.current_epoch` in TrainerLoggingMixin.log_metrics()
-            for i in range(len(self._metrics_to_agg)):
+            for i in range(1, len(self._metrics_to_agg)):
                 self._metrics_to_agg[i].pop("epoch")
 
             # check if dictionary keys are unique
