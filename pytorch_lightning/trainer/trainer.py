@@ -32,6 +32,11 @@ from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
+import warnings
+
+# warnings to ignore
+warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
+                                          'please use torch.distributed.ReduceOp instead')
 
 try:
     from apex import amp
@@ -74,6 +79,55 @@ class Trainer(
     TrainerDeprecatedAPITillVer0_9,
     TrainerDeprecatedAPITillVer0_10,
 ):
+    """
+    Example:
+
+        >>> import torch
+        >>> from torch.nn import functional as F
+        >>> from torch.utils.data import Dataset, DataLoader
+
+        >>> # Define model
+        >>> class SimpleModel(LightningModule):
+        ...     def __init__(self):
+        ...         super().__init__()
+        ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+        ...
+        ...     def forward(self, x):
+        ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+        ...
+        ...     def training_step(self, batch, batch_nb):
+        ...         x, y = batch
+        ...         loss = F.cross_entropy(self(x), y)
+        ...         return {'loss': loss, 'log': {'train_loss': loss}}
+        ...
+        ...     def test_step(self, batch, batch_nb):
+        ...         x, y = batch
+        ...         loss = F.cross_entropy(self(x), y)
+        ...         return {'loss': loss, 'log': {'train_loss': loss}}
+        ...
+        ...     def configure_optimizers(self):
+        ...         return torch.optim.Adam(self.parameters(), lr=0.02)
+        ...
+        >>> # Define dataset
+        >>> class SimpleDataset(Dataset):
+        ...     def __init__(self, num_samples=200):
+        ...         self.input_seq = torch.randn(num_samples, 64)
+        ...         self.output_seq = torch.randint(0, 4, (num_samples,))
+        ...
+        ...     def __len__(self):
+        ...         return len(self.input_seq)
+        ...
+        ...     def __getitem__(self, item):
+        ...         return self.input_seq[item], self.output_seq[item]
+        ...
+        >>> train_loader = DataLoader(SimpleDataset(), batch_size=8)
+        >>> model = SimpleModel()
+        >>> # Define Trainer and fit model
+        >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
+        >>> trainer.fit(model, train_loader)
+        1
+        >>> trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
@@ -358,8 +412,6 @@ class Trainer(
             default_root_dir = os.getcwd()
         self.default_root_dir = default_root_dir
 
-        self.configure_logger(logger)
-
         # init callbacks
         self.callbacks = callbacks or []
 
@@ -509,9 +561,9 @@ class Trainer(
         self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
+        self.configure_logger(logger)
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
-
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -852,7 +904,6 @@ class Trainer(
 
         """
         # bind logger and other properties
-        model.logger = self.logger
         self.copy_trainer_model_properties(model)
 
         # clean hparams
@@ -943,7 +994,9 @@ class Trainer(
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
-            self.load_spawn_weights(model)
+            if self.on_colab_kaggle:
+                self.load_spawn_weights(model)
+
             self.model = model
 
         # ON CPU
@@ -1081,8 +1134,11 @@ class Trainer(
                                           self.val_dataloaders,
                                           max_batches,
                                           False)
-            _, _, _, callback_metrics, _ = self.process_output(eval_results)
-            self.callback_metrics = callback_metrics
+
+            # allow no returns from eval
+            if eval_results is not None and len(eval_results) > 0:
+                _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
 
@@ -1188,7 +1244,7 @@ class Trainer(
             # attempt to load weights from a spawn
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             test_model = self.model
-            if os.path.exists(path):
+            if os.path.exists(path) and self.on_colab_kaggle:
                 test_model = self.load_spawn_weights(self.model)
 
             self.fit(test_model)

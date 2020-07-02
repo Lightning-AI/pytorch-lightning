@@ -139,6 +139,7 @@ exclude_patterns = [
     'api/pytorch_lightning.rst',
     'api/pl_examples.*',
     'api/modules.rst',
+    'PULL_REQUEST_TEMPLATE.md',
 
     # deprecated/renamed:
     'api/pytorch_lightning.logging.*',  # TODO: remove in v0.9.0

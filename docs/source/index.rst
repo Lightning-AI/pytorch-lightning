@@ -31,13 +31,19 @@ PyTorch Lightning Documentation
    
 .. toctree::
    :maxdepth: 1
+   :name: Bolts
+   :caption: Bolts
+
+   bolts
+
+.. toctree::
+   :maxdepth: 1
    :name: Community Examples
    :caption: Community Examples
 
    Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>
    Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>
    FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>
-   Generative Adversarial Network <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0>
    Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
    Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>
    MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>
@@ -101,7 +107,6 @@ PyTorch Lightning Documentation
    CODE_OF_CONDUCT.md
    CONTRIBUTING.md
    BECOMING_A_CORE_CONTRIBUTOR.md
-   PULL_REQUEST_TEMPLATE.md
    governance.md
 
 Indices and tables

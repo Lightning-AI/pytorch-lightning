@@ -17,7 +17,7 @@ except ImportError:  # pragma: no-cover
     Run = None
     _WANDB_AVAILABLE = False
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -95,6 +95,7 @@ class WandbLogger(LightningLoggerBase):
         return state
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
 
@@ -128,6 +129,8 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
         self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
 
     @property

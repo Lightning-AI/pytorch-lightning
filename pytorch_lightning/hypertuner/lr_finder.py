@@ -1,3 +1,8 @@
+"""
+HyperTuner learning rate finder
+"""
+import os
+import importlib
 from abc import ABC
 from typing import Optional, Union, List
 
@@ -5,9 +10,12 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
-import os
 import pickle
+
+if importlib.util.find_spec('ipywidgets') is not None:
+    from tqdm.auto import tqdm
+else:
+    from tqdm import tqdm
 
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
@@ -80,9 +88,10 @@ class HyperTunerLRFinderMixin(ABC):
             # Setup model and trainer
             model = MyModelClass(hparams)
             trainer = pl.Trainer()
+            tuner = pl.HyperTuner(trainer)
 
             # Run lr finder
-            lr_finder = trainer.lr_find(model, ...)
+            lr_finder = tuner.lr_find(model, ...)
         """
         # Check for correct call order
         self._lr_finder_call_order()

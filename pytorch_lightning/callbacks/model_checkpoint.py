@@ -226,6 +226,7 @@ class ModelCheckpoint(Callback):
         filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
         return filepath
 
+    @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         """
         Determine model checkpoint save directory at runtime. References attributes from the
@@ -236,7 +237,7 @@ class ModelCheckpoint(Callback):
 
         self.filename = '{epoch}'
 
-        if trainer.logger is not None and trainer.logger.experiment is not None:
+        if trainer.logger is not None:
             # weights_save_path overrides anything
             if getattr(trainer, 'weights_save_path', None) is not None:
                 save_dir = trainer.weights_save_path
@@ -257,6 +258,9 @@ class ModelCheckpoint(Callback):
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
         self.dirpath = ckpt_path
+
+        assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
+
         os.makedirs(self.dirpath, exist_ok=True)
         trainer.ckpt_path = ckpt_path
         trainer.weights_save_path = ckpt_path
@@ -312,6 +316,8 @@ class ModelCheckpoint(Callback):
         else:
             if self.verbose > 0:
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
+
+            assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath)
 
     def _do_check_save(self, filepath, current, epoch):

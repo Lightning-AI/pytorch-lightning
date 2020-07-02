@@ -132,6 +132,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from torch import distributed as dist
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -163,6 +164,7 @@ class TrainerEvaluationLoopMixin(ABC):
     model: LightningModule
     num_test_batches: List[int]
     num_val_batches: int
+    world_size: int
     fast_dev_run: ...
     process_output: ...
     progress_bar_dict: ...
@@ -339,6 +341,11 @@ class TrainerEvaluationLoopMixin(ABC):
             elif self.is_overridden('validation_epoch_end', model=model):
                 eval_results = model.validation_epoch_end(outputs)
 
+        # aggregate ddp stats across
+        has_content = eval_results is not None and len(eval_results) > 0
+        if has_content and (self.use_ddp or self.use_ddp2):
+            self.reduce_eval_ddp(eval_results)
+
         # enable train mode again
         model.train()
 
@@ -346,6 +353,19 @@ class TrainerEvaluationLoopMixin(ABC):
         torch.set_grad_enabled(True)
 
         return eval_results
+
+    def reduce_eval_ddp(self, eval_results):
+        # ignore bad inputs
+        if eval_results is None or len(eval_results) == 0:
+            return
+
+        for k, v in eval_results.items():
+            if isinstance(v, dict):
+                self.reduce_eval_ddp(v)
+            elif isinstance(v, torch.Tensor):
+                dist.all_reduce(v, op=dist.reduce_op.SUM)
+                v = v / self.world_size
+                eval_results[k] = v
 
     def run_evaluation(self, test_mode: bool = False):
         # hook
@@ -387,23 +407,26 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # add metrics to prog bar
-        self.add_progress_bar_metrics(prog_bar_metrics)
+        # enable no returns
+        if eval_results is not None and len(eval_results) > 0:
+            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # log results of test
-        if test_mode and self.is_global_zero:
-            print('-' * 80)
-            print('TEST RESULTS')
-            pprint(callback_metrics)
-            print('-' * 80)
+            # add metrics to prog bar
+            self.add_progress_bar_metrics(prog_bar_metrics)
 
-        # log metrics
-        self.log_metrics(log_metrics, {})
+            # log results of test
+            if test_mode and self.is_global_zero:
+                print('-' * 80)
+                print('TEST RESULTS')
+                pprint(callback_metrics)
+                print('-' * 80)
 
-        # track metrics for callbacks
-        self.callback_metrics.update(callback_metrics)
+            # log metrics
+            self.log_metrics(log_metrics, {})
+
+            # track metrics for callbacks
+            self.callback_metrics.update(callback_metrics)
 
         # hook
         model.on_post_performance_check()
