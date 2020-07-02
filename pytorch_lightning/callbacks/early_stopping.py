@@ -149,8 +149,8 @@ class EarlyStopping(Callback):
             should_stop = self.wait_count >= self.patience
 
             # check flag across all GPUs
-            should_stop = torch.tensor(should_stop)
             if trainer.use_ddp or trainer.use_ddp2:
+                should_stop = torch.tensor(should_stop, device=pl_module.device)
                 dist.all_reduce(should_stop, op=dist.ReduceOp.MAX)
 
             # do actual stop
