@@ -158,7 +158,7 @@ class EarlyStopping(Callback):
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
-        # stop every ddp process
+        # stop every ddp process if any world process decides to stop
         self._stop_distributed_training(trainer, pl_module)
 
     def _stop_distributed_training(self, trainer, pl_module):
