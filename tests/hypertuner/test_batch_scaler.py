@@ -169,6 +169,7 @@ def test_multi_gpu_model(tmpdir, backend):
         'Learning rate was not altered after running learning rate finder'
 
 
+@pytest.mark.spawn
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_amp_support(tmpdir):
     """ Make sure AMP works with learning rate finder """
