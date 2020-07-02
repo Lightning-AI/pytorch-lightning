@@ -166,8 +166,8 @@ class EarlyStopping(Callback):
         # in ddp make sure all processes stop when one is flagged
         if trainer.use_ddp or trainer.use_ddp2:
             stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
-            dist.all_reduce(stop, op=dist.reduce_op.MAX)
-            trainer.should_stop = stop
+            dist.all_reduce(stop, op=dist.reduce_op.SUM)
+            trainer.should_stop = stop == trainer.world_size
             dist.barrier()
 
         if trainer.use_tpu:
