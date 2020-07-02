@@ -111,7 +111,7 @@ class LightningLoggerBase(ABC):
             for met in self._metrics_to_agg:
                 print(list(met.keys()))
                 agg_keys.update(list(met.keys()))
-                num_keys += met(met)
+                num_keys += len(met)
 
             if len(agg_keys) == num_keys:
                 # if dictionary keys are unique
