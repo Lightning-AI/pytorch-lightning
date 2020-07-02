@@ -439,6 +439,7 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
+            print("batch_idx: ", batch_idx, "self.global_step", self.global_step)
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
                 break
