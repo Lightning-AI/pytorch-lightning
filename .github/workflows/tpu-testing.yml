@@ -18,6 +18,8 @@ jobs:
   setup-build-publish-deploy:
     name: tpu-testing-job
     runs-on: ubuntu-20.04
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 50
 
     steps:
     - name: Install Go
@@ -109,4 +111,3 @@ jobs:
         env_vars: ${{ runner.os }},python
         name: pl-coverage
         fail_ci_if_error: true
-
