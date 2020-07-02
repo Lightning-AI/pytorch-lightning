@@ -172,8 +172,8 @@ class EarlyStopping(Callback):
 
         if trainer.use_tpu:
             stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
-            xm.all_reduce('max', [stop])
-            trainer.should_stop = stop
+            xm.all_reduce('sum', [stop])
+            trainer.should_stop = stop == trainer.world_size
             dist.barrier()
 
     def on_train_end(self, trainer, pl_module):
