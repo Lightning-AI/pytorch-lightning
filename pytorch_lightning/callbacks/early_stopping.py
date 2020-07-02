@@ -17,6 +17,12 @@ from pytorch_lightning.utilities import rank_zero_warn
 
 torch_inf = torch.tensor(np.Inf)
 
+try:
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 class EarlyStopping(Callback):
     r"""
@@ -141,12 +147,7 @@ class EarlyStopping(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
 
-        # in ddp, reduce the stopping metric so every process conditions the same
-        if trainer.use_ddp or trainer.use_ddp2:
-            print(f'RANK: {trainer.global_rank}, BEFORE: {current}')
-            current = current.to(pl_module.device)
-            dist.all_reduce(current, op=dist.reduce_op.MAX)
-            print(f'RANK: {trainer.global_rank}, AFTER: {current}')
+        current = self._reduce_metric(trainer, pl_module, current)
 
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
@@ -161,6 +162,20 @@ class EarlyStopping(Callback):
                 trainer.should_stop = True
 
             dist.barrier()
+
+    def _reduce_metric(self, trainer, pl_module, metric):
+
+        # in ddp, reduce the stopping metric so every process conditions the same
+        if trainer.use_ddp or trainer.use_ddp2:
+            metric = metric.to(pl_module.device)
+            dist.all_reduce(metric, op=dist.reduce_op.AVG)
+
+        if trainer.use_tpu:
+            metric = metric.to(pl_module.device)
+            xm.all_reduce('sum', [metric])
+            metric = metric / trainer.world_size
+
+        return metric
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
