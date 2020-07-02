@@ -147,6 +147,7 @@ class EarlyStopping(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
 
+        # make sure the metric is consistent across processes
         current = self._reduce_metric(trainer, pl_module, current)
 
         if self.monitor_op(current - self.min_delta, self.best_score):
@@ -157,7 +158,6 @@ class EarlyStopping(Callback):
             should_stop = self.wait_count >= self.patience
 
             if bool(should_stop):
-                print(f'RANK: {trainer.global_rank}, STOPPING...')
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
 
