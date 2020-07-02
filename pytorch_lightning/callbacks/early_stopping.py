@@ -154,7 +154,6 @@ class EarlyStopping(Callback):
                 print(f'RANK: {trainer.global_rank} REDUCING...')
                 dist.all_reduce(should_stop, op=dist.reduce_op.MAX)
                 print(f'RANK: {trainer.global_rank} REDUCED...')
-                dist.barrier()
 
             print(f'RANK: {trainer.global_rank} SHOULD STOP: {should_stop} BEST: {self.best_score}')
 
@@ -164,6 +163,8 @@ class EarlyStopping(Callback):
                 print(f'RANK: {trainer.global_rank}, STOPPING...')
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
+
+            dist.barrier()
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
