@@ -46,7 +46,12 @@ def test_imagenet(tmpdir, cli_args):
                 _make_image(os.path.join(tmpdir, split, class_id, str(image_id)+'.JPEG'))
 
     cli_args = cli_args.split(' ') if cli_args else []
-    cli_args += ['--data-path', tmpdir]
+    cli_args += ['--data-path', str(tmpdir)]
+    # Test training
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
+        run_cli()
+    # Test evaluate
+    cli_args += ['--evaluate']
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         run_cli()
 
