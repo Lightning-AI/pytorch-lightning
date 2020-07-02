@@ -882,7 +882,7 @@ def dice_score(
             - elementwise_mean: takes the mean
             - none: pass array
             - sum: add elements
-    
+
     Return:
         Tensor containing dice score
 
