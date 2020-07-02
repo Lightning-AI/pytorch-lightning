@@ -483,8 +483,8 @@ class TrainerTrainLoopMixin(ABC):
 
             # progress global step according to grads progress. If it is the last batch, we will increment the
             # global_step after the loop is finished
-            # if not is_last_batch:
-            self.increment_accumulated_grad_global_step()
+            if not is_last_batch:
+                self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
@@ -509,7 +509,7 @@ class TrainerTrainLoopMixin(ABC):
         self.run_on_epoch_end_hook(model)
 
         # increate global step by one to progress to the next epoch
-        # self.global_step += 1
+        self.global_step += 1
 
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
