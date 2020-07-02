@@ -57,7 +57,7 @@ RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
 # If using this image for tests, intall more dependencies and don't delete
 # the source code where the tests live.
 RUN if [ $TEST_IMAGE -eq 1 ] ; then \
-        pip install -r pytorch-lightning/requirements/test.txt ; \
+        pip install -r pytorch-lightning/requirements/devel.txt ; \
     else \
         rm -rf pytorch-lightning ; \
     fi
