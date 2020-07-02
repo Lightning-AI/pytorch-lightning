@@ -421,7 +421,6 @@ class TrainerTrainLoopMixin(ABC):
                 model.on_epoch_start()
 
     def run_training_epoch(self):
-
         # get model
         model = self.get_model()
 
