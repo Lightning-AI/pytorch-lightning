@@ -159,10 +159,9 @@ class EarlyStopping(Callback):
                 trainer.should_stop = True
 
         # stop every ddp process
-        if trainer.should_stop:
-            print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
-            self._stop_distributed_training(trainer, pl_module)
-            print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
+        print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
+        self._stop_distributed_training(trainer, pl_module)
+        print(f'EARLY STOPPING.  RANK {trainer.global_rank}, TRAINER: {trainer.should_stop}')
 
     def _stop_distributed_training(self, trainer, pl_module):
 
