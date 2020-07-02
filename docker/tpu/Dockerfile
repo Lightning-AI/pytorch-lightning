@@ -6,7 +6,7 @@ ARG TEST_IMAGE=0
 
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6
 # wheels available; see below.
-ENV PYTHON_VERSION=3.6
+ENV PYTHON_VERSION=3.7
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
          build-essential \
@@ -56,8 +56,13 @@ RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
 
 # If using this image for tests, intall more dependencies and don't delete
 # the source code where the tests live.
-RUN if [ $TEST_IMAGE -eq 1 ] ; then \
-        pip install -r pytorch-lightning/requirements/devel.txt ; \
+RUN \
+    # drop Horovod
+    python -c "fname = './pytorch-lightning/requirements/extra.txt' ; lines = [ln for ln in open(fname).readlines() if not ln.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    # TODO: use conda sources if possible
+    pip install -r pytorch-lightning/requirements/extra.txt ; && \
+    if [ $TEST_IMAGE -eq 1 ] ; then \
+        pip install -r pytorch-lightning/requirements/test.txt ; \
     else \
         rm -rf pytorch-lightning ; \
     fi
