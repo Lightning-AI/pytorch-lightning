@@ -180,6 +180,15 @@ class ImageNetLightningModel(LightningModule):
         )
         return val_loader
 
+    def test_dataloader(self, *args, **kwargs):
+        return self.val_dataloader(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs):
+        return self.validation_step(*args, **kwargs)
+
+    def test_epoch_end(self, *args, **kwargs):
+        return self.validation_epoch_end(*args, **kwargs)
+
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = ArgumentParser(parents=[parent_parser])
@@ -256,7 +265,9 @@ def main(args: Namespace) -> None:
     )
 
     if args.evaluate:
-        trainer.test()
+        if args.resume is not None:
+            model.load_state_dict(torch.load(args.resume, map_location='cpu')['state_dict'])
+        trainer.test(model)
     else:
         trainer.fit(model)
 
