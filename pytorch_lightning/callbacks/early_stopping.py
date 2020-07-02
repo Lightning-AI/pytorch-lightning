@@ -141,6 +141,13 @@ class EarlyStopping(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current)
 
+        # in ddp, reduce the stopping metric so every process conditions the same
+        if trainer.use_ddp or trainer.use_ddp2:
+            print(f'RANK: {trainer.global_rank}, BEFORE: {current}')
+            current = current.to(pl_module.device)
+            dist.all_reduce(current, op=dist.reduce_op.MAX)
+            print(f'RANK: {trainer.global_rank}, AFTER: {current}')
+
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
@@ -148,18 +155,7 @@ class EarlyStopping(Callback):
             self.wait_count += 1
             should_stop = self.wait_count >= self.patience
 
-            # check flag across all GPUs
-            should_stop = torch.tensor(int(should_stop), device=pl_module.device)
-            if trainer.use_ddp or trainer.use_ddp2:
-                print(f'RANK: {trainer.global_rank} REDUCING...')
-                dist.all_reduce(should_stop, op=dist.reduce_op.MAX)
-                print(f'RANK: {trainer.global_rank} REDUCED...')
-
-            print(f'RANK: {trainer.global_rank} SHOULD STOP: {should_stop} BEST: {self.best_score}')
-
-            # do actual stop
-            print(f'RANK: {trainer.global_rank}, SHOULD STOP: {should_stop}, EPOCH: {trainer.current_epoch}')
-            if bool(should_stop.item()):
+            if bool(should_stop):
                 print(f'RANK: {trainer.global_rank}, STOPPING...')
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
