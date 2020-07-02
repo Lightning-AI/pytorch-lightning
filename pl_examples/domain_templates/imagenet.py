@@ -219,7 +219,7 @@ class ImageNetLightningModel(LightningModule):
         return parser
 
 
-def get_args():
+def run_cli():
     parent_parser = ArgumentParser(add_help=False)
     parent_parser.add_argument('--data-path', metavar='DIR', type=str,
                                help='path to dataset')
@@ -236,7 +236,8 @@ def get_args():
     parent_parser.add_argument('--resume', default=None, type=str, metavar='PATH',
                                help='path to latest checkpoint (default: none)')
     parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
-    return parser.parse_args()
+    args = parser.parse_args()
+    main(args)
 
 
 def main(args: Namespace) -> None:
@@ -273,4 +274,4 @@ def main(args: Namespace) -> None:
 
 
 if __name__ == '__main__':
-    main(get_args())
+    run_cli()
