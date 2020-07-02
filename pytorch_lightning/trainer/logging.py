@@ -51,7 +51,6 @@ class TrainerLoggingMixin(ABC):
             grad_norm_dic (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
-        print("metrics", metrics)
         # add gpu memory
         if self.on_gpu and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
