@@ -79,10 +79,11 @@ class CometLogger(LightningLoggerBase):
         >>> trainer = Trainer(logger=comet_logger)
 
     Args:
-        api_key: Required in online mode. API key, found on Comet.ml. If neither api_key nor save_dir are
-            given, this will be loaded from the environment variable COMET_API_KEY or ~/.comet_config, if
-            either exists.
-        save_dir: Required in offline mode. The path for the directory to save local comet logs
+        api_key: Required in online mode. API key, found on Comet.ml. If not given, this
+            will be loaded from the environment variable COMET_API_KEY or ~/.comet.config
+            if either exists.
+        save_dir: Required in offline mode. The path for the directory to save local
+            comet logs. If given, this also sets the directory for saving checkpoints.
         workspace: Optional. Name of workspace for this user
         project_name: Optional. Send your experiment to a specific project.
             Otherwise will be sent to Uncategorized Experiments.
@@ -91,6 +92,10 @@ class CometLogger(LightningLoggerBase):
             This is used to determine version number
         experiment_name: Optional. String representing the name for this particular experiment on Comet.ml.
         experiment_key: Optional. If set, restores from existing experiment.
+        online: Required if api_key and save_dir are both given. This determines whether
+            the experiment will be in online or offline mode. This is useful if you use
+            save_dir to control the checkpoints directory and have a ~/.comet.config
+            file but still want to run offline experiments.
     """
 
     def __init__(self,
@@ -101,6 +106,7 @@ class CometLogger(LightningLoggerBase):
                  rest_api_key: Optional[str] = None,
                  experiment_name: Optional[str] = None,
                  experiment_key: Optional[str] = None,
+                 online: bool = True,
                  **kwargs):
 
         if not _COMET_AVAILABLE:
@@ -111,24 +117,23 @@ class CometLogger(LightningLoggerBase):
         self._save_dir = save_dir
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
-        if api_key is not None:
+        api_key = api_key or get_api_key(None, get_config())
+
+        if api_key is not None and save_dir is not None:
+            self.mode = "online" if online else "offline"
+            self.api_key = api_key
+            self.save_dir = save_dir
+        elif api_key is not None:
             self.mode = "online"
             self.api_key = api_key
         elif save_dir is not None:
             self.mode = "offline"
             self._save_dir = save_dir
         else:
-            # for backwards-compatibility, we have to check api_key then save_dir and
-            # only then use ~/.comet.config or the environment variable
-            api_key = get_api_key(None, get_config())
-            if api_key is not None:
-                self.mode = "online"
-                self.api_key = api_key
-            else:
-                # If neither api_key nor save_dir are passed as arguments, raise an exception
-                raise MisconfigurationException(
-                    "CometLogger requires either api_key or save_dir during initialization."
-                )
+            # If neither api_key nor save_dir are passed as arguments, raise an exception
+            raise MisconfigurationException(
+                "CometLogger requires either api_key or save_dir during initialization."
+            )
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
