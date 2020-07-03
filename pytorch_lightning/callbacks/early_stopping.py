@@ -180,7 +180,8 @@ class EarlyStopping(Callback):
             xm.all_reduce('sum', [stop])
             torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
             print(type(stop))
-            print(stop.item())
+            print(stop)
+            print(stop.detach())
             trainer.should_stop = int(stop.item()) == trainer.world_size
 
     def on_train_end(self, trainer, pl_module):
