@@ -150,7 +150,8 @@ class EarlyStopping(Callback):
             current = torch.tensor(current, device=pl_module.device)
 
         if trainer.use_tpu and XLA_AVAILABLE:
-            current = current.item()
+            self.min_delta = torch.tensor(self.min_delta, device=pl_module.device)
+            self.best_score = torch.tensor(self.best_score, device=pl_module.device)
 
         print('-' * 100)
         print('EVAL')
