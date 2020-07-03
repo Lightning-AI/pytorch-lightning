@@ -150,7 +150,7 @@ class EarlyStopping(Callback):
             current = torch.tensor(current, device=pl_module.device)
 
         if trainer.use_tpu and XLA_AVAILABLE:
-            current = current.item()
+            current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
