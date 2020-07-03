@@ -18,11 +18,13 @@ from pytorch_lightning.utilities import rank_zero_warn
 torch_inf = torch.tensor(np.Inf)
 
 try:
+    import torch_xla
     import torch_xla.core.xla_model as xm
 except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
+
 
 class EarlyStopping(Callback):
     r"""
@@ -173,7 +175,7 @@ class EarlyStopping(Callback):
         if trainer.use_tpu:
             stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
             xm.all_reduce('sum', [stop])
-            dist.barrier()
+            torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
             trainer.should_stop = stop == trainer.world_size
 
     def on_train_end(self, trainer, pl_module):
