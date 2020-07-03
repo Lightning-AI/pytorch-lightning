@@ -477,7 +477,6 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
-            print("batch_idx", batch_idx, "self.global_step", self.global_step)
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
                 break
@@ -558,7 +557,6 @@ class TrainerTrainLoopMixin(ABC):
         self.run_on_epoch_end_hook(model)
 
         # increate global step by one to progress to the next epoch
-        # self.global_step += 1
         self.increment_accumulated_grad_global_step()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
