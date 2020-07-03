@@ -51,8 +51,7 @@ RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
     cd pytorch-lightning && \
     git fetch origin $GITHUB_REF:CI && \
     git checkout CI && \
-    cd .. && \
-    pip install --requirement ./pytorch-lightning/requirements/base.txt
+    pip install --requirement ./requirements/base.txt
 
 # If using this image for tests, intall more dependencies and don't delete
 # the source code where the tests live.
@@ -68,7 +67,7 @@ RUN \
     fi
 
 RUN conda init bash
-RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
+#RUN python -c "import torch; print(torch.__version__)"
 
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
