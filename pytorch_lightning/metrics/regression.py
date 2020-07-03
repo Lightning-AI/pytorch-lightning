@@ -2,7 +2,7 @@ import torch.nn.functional as F
 import torch
 from pytorch_lightning.metrics.metric import Metric
 
-__all__ = ['MSE', 'RMSE', 'MAE', 'RMSLE']
+__all__ = ['MSE', 'RMSE', 'MAE', 'RMSLE', 'PSNR']
 
 
 class MSE(Metric):
@@ -194,9 +194,10 @@ class PSNR(Metric):
     Computes the peak signal-to-noise ratio metric
     """
  
-    def __init__(self, base: int = 10):
+    def __init__(self, data_range: float = None, base: int = 10):
         """
         Args:
+            data_range: the range of the data. If None, it is determined from the data (max - min).
             base: a base of a logarithm to use (default: 10)
 
 
@@ -208,16 +209,16 @@ class PSNR(Metric):
             >>> metric(pred, target)
             tensor([2.5527])
         """
-        self.base = torch.tensor(float(base))
+        super().__init__(name='psnr')
+        self.data_range = data_range
+        self.base = torch.tensor([float(base)])
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        mse = F.mse_loss(pred.view(-1), torch.view(-1))
-
-        # The calculation is troublesome because it is dependant of the maximum value possible.
-        # For integer inputs that should not be a problem (it's 255) but for floats there is a problem
-        # because the floats can be in [0, 1] range or they can be normalized with unknown mean and variance.
-        # Since mean and variance are unknown, we cannot know what's the maximum value to use in calculation.
-        # This implementation, therefore, finds the maximum empirically.
-        maximum = max(torch.max(torch.abs(pred)), torch.max(torch.abs(target)))
-        psnr_base_e = 2 * torch.log(maximum) - torch.log(mse)
+        if self.data_range is None:
+            data_range = max(target.max() - target.min(), pred.max() - pred.min())
+        else:
+            data_range = torch.tensor(float(self.data_range))
+        mse = F.mse_loss(pred.view(-1), target.view(-1))
+        # numerical precision tricks
+        psnr_base_e = 2 * torch.log(data_range) - torch.log(mse)
         return psnr_base_e * (10 / torch.log(self.base))  # change the logarithm basis
