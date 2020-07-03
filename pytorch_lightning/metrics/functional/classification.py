@@ -201,11 +201,11 @@ def accuracy(
         target: ground truth labels
         num_classes: number of classes (default: None)
         reduction: a method for reducing accuracies over labels (default: takes the mean)
-           Available reduction methods:
+            Available reduction methods:
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Return:
          A Tensor with the classification score.
@@ -284,11 +284,11 @@ def precision_recall(
         target: ground-truth labels
         num_classes: number of classes (default: None)
         reduction: method for reducing precision-recall values (default: takes the mean)
-           Available reduction methods:
+            Available reduction methods:
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Return:
         Tensor with precision and recall
@@ -333,11 +333,11 @@ def precision(
         target: ground-truth labels
         num_classes: number of classes (default: None)
         reduction: method for reducing precision values (default: takes the mean)
-           Available reduction methods:
+            Available reduction methods:
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Return:
         Tensor with precision.
@@ -368,11 +368,11 @@ def recall(
         target: ground-truth labels
         num_classes: number of classes (default: None)
         reduction: method for reducing recall values (default: takes the mean)
-           Available reduction methods:
+            Available reduction methods:
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Return:
         Tensor with recall.
@@ -409,11 +409,11 @@ def fbeta_score(
             beta -> inf: only recall
         num_classes: number of classes (default: None)
         reduction: method for reducing F-score (default: takes the mean)
-           Available reduction methods:
+            Available reduction methods:
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements.
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements.
 
     Return:
         Tensor with the value of F-score. It is a value between 0-1.
@@ -454,11 +454,11 @@ def f1_score(
         target: ground-truth labels
         num_classes: number of classes (default: None)
         reduction: method for reducing F1-score (default: takes the mean)
-           Available reduction methods:
+            Available reduction methods:
 
-           - elementwise_mean: takes the mean
-           - none: pass array
-           - sum: add elements.
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements.
 
     Return:
          Tensor containing F1-score
