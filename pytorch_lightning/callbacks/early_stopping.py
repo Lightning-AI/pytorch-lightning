@@ -151,6 +151,12 @@ class EarlyStopping(Callback):
             self.min_delta = torch.tensor(self.min_delta, device=pl_module.device)
             self.best_score = torch.tensor(self.best_score, device=pl_module.device)
 
+        print('-' * 100)
+        print('EVAL')
+        print(current)
+        print(self.min_delta)
+        print(self.best_score)
+        print('-' * 100)
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
