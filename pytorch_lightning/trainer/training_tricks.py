@@ -99,7 +99,7 @@ class TrainerTrainingTricksMixin(ABC):
         if isinstance(accumulate_grad_batches, dict):
             self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
         elif isinstance(accumulate_grad_batches, int):
-            schedule = {1: accumulate_grad_batches}
+            schedule = {0: accumulate_grad_batches}
             self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
