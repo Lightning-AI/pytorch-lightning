@@ -7,6 +7,8 @@ ARG TEST_IMAGE=0
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
 ENV PYTHON_VERSION=3.7
 
+SHELL ["/bin/bash", "-c"]
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python${PYTHON_VERSION} \
         python${PYTHON_VERSION}-dev \
@@ -29,8 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1
 
-SHELL ["/bin/bash", "-c"]
-
 RUN py_version=${PYTHON_VERSION/./} && \
     # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
     gsutil cp "gs://tpu-pytorch/wheels/torch-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
@@ -43,6 +43,10 @@ RUN py_version=${PYTHON_VERSION/./} && \
     rm "torch_xla-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
     rm "torchvision-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
     pip install mkl
+
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/"
+
+RUN python -c "import torch; print(torch.__version__)"
 
 # Install pytorch-lightning at the current PR, plus dependencies.
 RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
