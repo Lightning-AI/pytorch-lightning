@@ -43,6 +43,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.states import _TrainerStateSwitcher, TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
@@ -396,12 +397,15 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
+        self.state = TrainerState.INITIALIZE
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
 
         # init callbacks
         self.callbacks = callbacks or []
+
+        self.callbacks.append(_TrainerStateSwitcher())
 
         # configure early stop callback
         # creates a default one if none passed in
