@@ -52,7 +52,7 @@ RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
     git fetch origin $GITHUB_REF:CI && \
     git checkout CI && \
     cd .. && \
-    pip install ./pytorch-lightning
+    pip install --requirement ./pytorch-lightning/requirements/base.txt
 
 # If using this image for tests, intall more dependencies and don't delete
 # the source code where the tests live.
