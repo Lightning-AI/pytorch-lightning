@@ -60,7 +60,7 @@ jobs:
       shell: bash
     - name: Build and Push Docker Image
       run: |
-        cd docker/tpu
+        cd docker/tpu-tests
         docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
         docker push "$IMAGE:$GITHUB_RUN_ID"
       shell: bash
@@ -77,7 +77,7 @@ jobs:
 
     - name: Deploy the job on the kubernetes cluster
       run: |-
-        job_name=$(jsonnet -J ml-testing-accelerators/ docker/tpu/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
+        job_name=$(jsonnet -J ml-testing-accelerators/ docker/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
         echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
