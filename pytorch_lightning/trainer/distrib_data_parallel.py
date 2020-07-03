@@ -419,7 +419,8 @@ class TrainerDDPMixin(ABC):
             full_path = abspath(command[0])
 
         command[0] = full_path
-        command = ['python'] + command
+        # use the same python interpreter and actually running
+        command = [sys.executable] + command
 
         # since this script sets the visible devices we replace the gpus flag with a number
         num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
