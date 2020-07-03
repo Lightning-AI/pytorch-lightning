@@ -153,6 +153,9 @@ All you need to do is submit the following command:
     --conda-env=torch-xla-nightly
     -- python /usr/share/torch-xla-0.5/pytorch/xla/test/test_train_imagenet.py --fake_data
 
+See `this guide <https://cloud.google.com/tpu/docs/tutorials/pytorch-pod>`_
+on how to set up the instance groups and VMs needed to run TPU Pods.
+
 ----------------
 
 16 bit precision
