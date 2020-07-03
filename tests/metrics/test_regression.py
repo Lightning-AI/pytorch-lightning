@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from pytorch_lightning.metrics.regression import (
-    MAE, MSE, RMSE, RMSLE
+    MAE, MSE, RMSE, RMSLE, PSNR
 )
 
 
@@ -62,5 +62,29 @@ def test_rmsle(pred, target, exp):
     score = rmsle(pred=torch.tensor(pred),
                   target=torch.tensor(target))
 
+    assert isinstance(score, torch.Tensor)
+    assert pytest.approx(score.item(), rel=1e-3) == exp
+
+@pytest.mark.parametrize(['pred', 'target', 'exp'], [
+    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.], 15.563),
+    pytest.param([4., 3., 2., 1.,], [1., 4., 3., 2.,], 4.7712)
+])
+def test_psnr(pred, target, exp):
+    psnr = PSNR()
+    assert psnr.name == 'psnr'
+    score = psnr(pred=torch.tensor(pred),
+                 target=torch.tensor(target))
+    assert isinstance(score, torch.Tensor)
+    assert pytest.approx(score.item(), rel=1e-3) == exp
+
+@pytest.mark.parametrize(['pred', 'target', 'exp'], [
+    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.], 41.589),
+    pytest.param([3., 3., 2., 1.,], [1., 4., 3., 2.,], 22.130)
+])
+def test_psnr_base_e_wider_range(pred, target, exp):
+    psnr = PSNR(data_range=4, base=2.718281828459045)
+    assert psnr.name == 'psnr'
+    score = psnr(pred=torch.tensor(pred),
+                 target=torch.tensor(target))
     assert isinstance(score, torch.Tensor)
     assert pytest.approx(score.item(), rel=1e-3) == exp
