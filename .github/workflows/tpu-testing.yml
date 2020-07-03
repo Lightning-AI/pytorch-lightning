@@ -108,22 +108,24 @@ jobs:
     - name: Statistics
       if: success()
       run: |
-        mv ./xx01 coverage.xml
-        sudo pip install pycobertura
-        pycobertura show coverage.xml
+        mv ./xx01 coverage
+        # TODO: add human readable report
+        cat coverage
+        #  sudo pip install pycobertura
+        #  pycobertura show coverage.xml
 
     - name: Upload coverage results
       uses: actions/upload-artifact@master
       with:
         name: coverage-TPU
-        path: coverage.xml
+        path: coverage
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: coverage.xml
+        file: coverage
         flags: tpu,pytest
         env_vars: ${{ runner.os }},python
         name: TPU-coverage
