@@ -11,10 +11,7 @@ seed_everything(234)
 
 
 def main(args):
-    """
-    Main training routine specific for this project
-    :param args:
-    """
+    """ Main training routine specific for this project. """
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
