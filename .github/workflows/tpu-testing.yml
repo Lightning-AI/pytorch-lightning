@@ -105,8 +105,8 @@ jobs:
       if: success()
       run: |
         mv ./xx01 coverage.xml
-        pip install pycobertura
-        python -m pycobertura show coverage.xml
+        sudo pip install pycobertura
+        pycobertura show coverage.xml
 
     - name: Upload coverage results
       uses: actions/upload-artifact@master
