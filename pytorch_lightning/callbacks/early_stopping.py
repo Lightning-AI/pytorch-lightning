@@ -147,7 +147,7 @@ class EarlyStopping(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
 
-        if self.monitor_op(current - self.min_delta, self.best_score):
+        if self.monitor_op(current - self.min_delta, self.best_score.to(pl_module.device)):
             self.best_score = current
             self.wait_count = 0
         else:
