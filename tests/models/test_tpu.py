@@ -24,6 +24,27 @@ else:
     pytest.param([1], 'xla:1'),
     pytest.param([8], 'xla:8'),
 ])
+def test_early_stop_checkpoints_on_tpu(tmpdir, tpu_cores, expected_device):
+    """Test if single TPU core training works"""
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        early_stop_callback=True,
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        tpu_cores=tpu_cores,
+    )
+    trainer.fit(model)
+    assert torch_xla._XLAC._xla_get_default_device() == expected_device
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
+    pytest.param([1], 'xla:1'),
+    pytest.param([8], 'xla:8'),
+])
 def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
     """Test if single TPU core training works"""
     model = EvalModelTemplate()
