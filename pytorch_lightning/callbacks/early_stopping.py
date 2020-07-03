@@ -176,7 +176,7 @@ class EarlyStopping(Callback):
             trainer.should_stop = stop == trainer.world_size
 
         if trainer.use_tpu:
-            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
+            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device, dtype=torch.int32)
             xm.all_reduce('sum', [stop])
             torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
             trainer.should_stop = int(stop.item()) == trainer.world_size
