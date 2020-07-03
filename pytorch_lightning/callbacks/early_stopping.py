@@ -9,12 +9,21 @@ from copy import deepcopy
 
 import numpy as np
 import torch
+import torch.distributed as dist
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 
 torch_inf = torch.tensor(np.Inf)
+
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 
 class EarlyStopping(Callback):
@@ -138,16 +147,37 @@ class EarlyStopping(Callback):
 
         current = logs.get(self.monitor)
         if not isinstance(current, torch.Tensor):
-            current = torch.tensor(current)
+            current = torch.tensor(current, device=pl_module.device)
 
-        if self.monitor_op(current - self.min_delta, self.best_score):
+        if self.monitor_op(current - self.min_delta, self.best_score.to(pl_module.device)):
             self.best_score = current
             self.wait_count = 0
         else:
             self.wait_count += 1
-            if self.wait_count >= self.patience:
+            should_stop = self.wait_count >= self.patience
+
+            if bool(should_stop):
                 self.stopped_epoch = trainer.current_epoch
                 trainer.should_stop = True
+
+        # stop every ddp process if any world process decides to stop
+        self._stop_distributed_training(trainer, pl_module)
+
+    def _stop_distributed_training(self, trainer, pl_module):
+
+        # in ddp make sure all processes stop when one is flagged
+        if trainer.use_ddp or trainer.use_ddp2:
+            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
+            dist.all_reduce(stop, op=dist.reduce_op.SUM)
+            dist.barrier()
+            trainer.should_stop = stop == trainer.world_size
+
+        # if trainer.use_tpu:
+        #     stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
+        #     xm.all_reduce('sum', [stop])
+        #     print(type(stop))
+        #     torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
+        #     trainer.should_stop = stop.item() == trainer.world_size
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
