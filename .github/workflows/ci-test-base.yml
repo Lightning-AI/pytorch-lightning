@@ -99,5 +99,5 @@ jobs:
         file: coverage.xml
         flags: cpu,pytest
         env_vars: ${{ runner.os }},python${{ matrix.python-version }}
-        name: pl-coverage
+        name: Base-coverage
         fail_ci_if_error: true
