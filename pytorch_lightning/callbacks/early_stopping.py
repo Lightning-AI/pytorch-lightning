@@ -148,8 +148,9 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
-            self.min_delta = torch.tensor(self.min_delta, device=pl_module.device)
-            self.best_score = torch.tensor(self.best_score, device=pl_module.device)
+
+        self.min_delta = torch.tensor(self.min_delta, device=pl_module.device)
+        self.best_score = torch.tensor(self.best_score, device=pl_module.device)
 
         print('-' * 100)
         print('EVAL')
