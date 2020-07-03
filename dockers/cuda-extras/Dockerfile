@@ -1,11 +1,12 @@
 # Existing images:
+# --build-arg TORCH_VERSION=1.6 --build-arg CUDA_VERSION=10.1
 # --build-arg TORCH_VERSION=1.5 --build-arg CUDA_VERSION=10.1
 # --build-arg TORCH_VERSION=1.4 --build-arg CUDA_VERSION=10.1
 # --build-arg TORCH_VERSION=1.3 --build-arg CUDA_VERSION=10.1
 # --build-arg TORCH_VERSION=1.2 --build-arg CUDA_VERSION=10.0
 # --build-arg TORCH_VERSION=1.1.0 --build-arg CUDA_VERSION=10.0 --build-arg CUDNN_VERSION=7.5
 
-ARG TORCH_VERSION=1.4
+ARG TORCH_VERSION=1.6
 ARG CUDA_VERSION=10.1
 ARG CUDNN_VERSION=7
 
@@ -31,6 +32,6 @@ RUN apt-get update && apt-get install -y cmake && \
     bash install_AMP.sh && \
     pip install -r requirements.txt --user && \
     pip install -r requirements-extra.txt --user && \
-    pip install -r requirements-tests.txt --user && \
+    # pip install -r requirements-tests.txt --user && \
     rm requirements* && \
     pip list
