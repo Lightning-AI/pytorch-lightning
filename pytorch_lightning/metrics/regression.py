@@ -188,11 +188,12 @@ class RMSLE(Metric):
         """
         return F.mse_loss(torch.log(pred + 1), torch.log(target + 1), self.reduction)
 
+
 class PSNR(Metric):
     """
     Computes the peak signal-to-noise ratio metric
     """
-    
+ 
     def __init__(self, base: int = 10):
         """
         Args:
@@ -200,7 +201,7 @@ class PSNR(Metric):
 
 
         Example:
-            
+ 
             >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
             >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
             >>> metric = PSNR()
@@ -208,7 +209,6 @@ class PSNR(Metric):
             tensor([2.5527])
         """
         self.base = torch.tensor(float(base))
-
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         mse = F.mse_loss(pred.view(-1), torch.view(-1))
@@ -219,6 +219,5 @@ class PSNR(Metric):
         # Since mean and variance are unknown, we cannot know what's the maximum value to use in calculation.
         # This implementation, therefore, finds the maximum empirically.
         maximum = max(torch.max(torch.abs(pred)), torch.max(torch.abs(target)))
-        PSNR_base_e = 2*torch.log(maximum) - torch.log(mse)
-        return PSNR_base_e * (10 / torch.log(self.base)) # change the logarithm basis
-
+        psnr_base_e = 2 * torch.log(maximum) - torch.log(mse)
+        return psnr_base_e * (10 / torch.log(self.base))  # change the logarithm basis
