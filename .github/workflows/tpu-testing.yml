@@ -105,14 +105,16 @@ jobs:
     - name: Statistics
       if: success()
       run: |
-        cat ./xx01
+        mv ./xx01 coverage.xml
+        pip install pycobertura
+        pycobertura show coverage.xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./xx01
+        file: coverage.xml
         flags: tpu,pytest
         env_vars: ${{ runner.os }},python
         name: pl-coverage
