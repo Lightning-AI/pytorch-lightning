@@ -14,7 +14,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_running_test_pretrained_model_distrib(tmpdir, backend):
