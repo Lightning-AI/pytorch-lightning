@@ -148,8 +148,10 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
+            self.min_delta = torch.tensor(self.min_delta, device=pl_module.device)
+            self.best_score = torch.tensor(self.best_score, device=pl_module.device)
 
-        if self.monitor_op(current - self.min_delta, self.best_score.to(pl_module.device)):
+        if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
         else:
@@ -172,12 +174,11 @@ class EarlyStopping(Callback):
             dist.barrier()
             trainer.should_stop = stop == trainer.world_size
 
-        # if trainer.use_tpu:
-        #     stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
-        #     xm.all_reduce('sum', [stop])
-        #     print(type(stop))
-        #     torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
-        #     trainer.should_stop = stop.item() == trainer.world_size
+        if trainer.use_tpu:
+            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
+            xm.all_reduce('sum', [stop])
+            torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
+            trainer.should_stop = stop.item() == trainer.world_size
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
