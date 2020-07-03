@@ -109,8 +109,7 @@ class LightningLoggerBase(ABC):
             agg_keys = set()
             num_keys = 0
             for met in self._metrics_to_agg:
-                met.pop("epoch")
-                agg_keys.update(list(met.keys()))
+                agg_keys.update(list([x for x in met.keys() if x != "epoch"]))
                 num_keys += len(met)
 
             if len(agg_keys) == num_keys:
