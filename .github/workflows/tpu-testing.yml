@@ -27,6 +27,10 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: 1.14.x
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
 
     - name: Checkout Pytorch Lightning
       uses: actions/checkout@v2
