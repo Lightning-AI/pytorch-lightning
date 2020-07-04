@@ -449,7 +449,6 @@ class TrainerTrainLoopMixin(ABC):
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
-            print(f'TRAINING LOOP 452: {self.global_rank}')
             batch_output = self.run_training_batch(batch, batch_idx)
 
             # only track outputs when user implements training_epoch_end
@@ -466,7 +465,6 @@ class TrainerTrainLoopMixin(ABC):
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
-            print(f'TRAINING LOOP 469: {self.global_rank}')
             should_check_val = self.should_check_val(batch_idx, is_last_batch)
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=False)
@@ -474,17 +472,14 @@ class TrainerTrainLoopMixin(ABC):
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
             # -----------------------------------------
-            print(f'TRAINING LOOP 477: {self.global_rank}')
             self.save_loggers_in_training_loop(batch_idx)
 
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            print(f'TRAINING LOOP 483: {self.global_rank}')
             self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
             # progress global step according to grads progress
-            print(f'TRAINING LOOP 487: {self.global_rank}')
             self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
