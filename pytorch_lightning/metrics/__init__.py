@@ -51,6 +51,7 @@ __regression_metrics = [
     'MSE',
     'RMSE',
     'MAE',
-    'RMSLE'
+    'RMSLE',
+    'PSNR'
 ]
 __all__ = __regression_metrics + __classification_metrics + ['SklearnMetric']
