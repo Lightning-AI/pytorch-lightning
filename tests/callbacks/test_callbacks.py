@@ -259,29 +259,30 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_batch_start_called
 
 
+class TestCallback(Callback):
+    def __init__(self):
+        super().__init__()
+        self.a = 0
+        self.b = "test"
+        self.c = 0.0
+
+    def on_train_start(self, trainer, pl_module):
+        # change values to be different than object initialization
+        self.a = 1
+        self.b = "changed"
+        self.c = 99.99
+
+    def on_save_checkpoint(self, trainer, pl_module):
+        return {"a": self.a, "b": self.b, "c": self.c}
+
+    def on_load_checkpoint(self, checkpointed_state):
+        self.a = checkpointed_state["a"]
+        self.b = checkpointed_state["b"]
+        self.c = checkpointed_state["c"]
+
+
 def test_callback_checkpointing(tmpdir):
     """Test persisting callback state in checkpoints."""
-
-    class TestCallback(Callback):
-        def __init__(self):
-            super().__init__()
-            self.a = 0
-            self.b = "test"
-            self.c = 0.0
-
-        def on_train_start(self, trainer, pl_module):
-            # change values to be different than object initialization
-            self.a = 1
-            self.b = "changed"
-            self.c = 99.99
-
-        def on_save_checkpoint(self, trainer, pl_module):
-            return {"a": self.a, "b": self.b, "c": self.c}
-
-        def on_load_checkpoint(self, checkpointed_state):
-            self.a = checkpointed_state["a"]
-            self.b = checkpointed_state["b"]
-            self.c = checkpointed_state["c"]
 
     test_callback = TestCallback()
 
