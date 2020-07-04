@@ -44,7 +44,9 @@ steps:
     #- cd docs; make doctest; make coverage
     - coverage report
     # see: https://docs.codecov.io/docs/merging-reports
-    - codecov --token $CODECOV_TOKEN # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
+    - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
+    # --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG --pr $DRONE_PULL_REQUEST
+    # - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --build $DRONE_BUILD_NUMBER
     - python tests/collect_env_details.py
 
 trigger:

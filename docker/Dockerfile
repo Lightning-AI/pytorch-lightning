@@ -20,7 +20,7 @@ WORKDIR /home/containeruser
          
    
 # install conda and python
-RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b -p /home/containeruser/conda && \
     rm ~/miniconda.sh && \
@@ -31,8 +31,8 @@ RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest
 ENV PATH /home/containeruser/conda/bin:$PATH
 
 # install dependencies
-RUN pip install torch==$PYTORCH_VERSION  -f https://download.pytorch.org/whl/torch_stable.html
-RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git --single-branch --branch $LIGHTNING_VERSION && \
+RUN pip install torch==$PYTORCH_VERSION  -f https://download.pytorch.org/whl/torch_stable.html && \
+    git clone https://github.com/PyTorchLightning/pytorch-lightning.git --single-branch --branch $LIGHTNING_VERSION && \
     pip install ./pytorch-lightning && \
     pip install -r pytorch-lightning/requirements/extra.txt && \
     rm -rf pytorch-lightning
