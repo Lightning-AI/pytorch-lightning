@@ -160,6 +160,8 @@ class ModelCheckpoint(Callback):
             os.remove(filepath)
 
     def _save_model(self, filepath):
+        print(f'CREATING DIR, RANK {self._rank}')
+
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
@@ -261,6 +263,7 @@ class ModelCheckpoint(Callback):
 
         assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
 
+        print(f'CREATING DIR, RANK {self._rank}. on TRAIN START')
         os.makedirs(self.dirpath, exist_ok=True)
         trainer.ckpt_path = ckpt_path
         trainer.weights_save_path = ckpt_path
@@ -317,6 +320,7 @@ class ModelCheckpoint(Callback):
             if self.verbose > 0:
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
 
+            print(f'saving model, RANK {self._rank}. on TRAIN START')
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath)
 
