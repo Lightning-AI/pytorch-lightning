@@ -12,10 +12,10 @@ or with specific arguments
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:py36 \
+    -t pytorch-lightning:py38 \
     -f docker/Dockerfile \
-    --build-arg PYTHON_VERSION=3.6 \
-    --build-arg PYTORCH_VERSION=1.3 \
+    --build-arg PYTHON_VERSION=3.8 \
+    --build-arg PYTORCH_VERSION=1.4 \
     .
 ```
 
