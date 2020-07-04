@@ -32,7 +32,7 @@ def psnr(
     if data_range is None:
         data_range = max(target.max() - target.min(), pred.max() - pred.min())
     else:
-        data_range = torch.tensor(data_range)
+        data_range = torch.tensor(float(data_range))
     mse = F.mse_loss(pred.view(-1), target.view(-1), reduction=reduction)
     psnr_base_e = 2 * torch.log(data_range) - torch.log(mse)
-    return psnr_base_e * (10 / torch.log(base))
+    return psnr_base_e * (10 / torch.log(torch.tensor(base)))
