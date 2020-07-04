@@ -91,13 +91,13 @@ def test_psnr(pred, target, exp):
 
 @pytest.mark.parametrize(['pred', 'target', 'exp'], [
     pytest.param(
-        [0., 1., 2., 3.],
-        [0., 1., 2., 2.],
+        [0., 1., 2., 3.], 
+        [0., 1., 2., 2.], 
         ski_psnr(np.array([0., 1., 2., 3.]), np.array([0., 1., 2., 2.]), data_range=4) * np.log(10)
     ),
     pytest.param(
-        [4., 3., 2., 1.,],
-        [1., 4., 3., 2.,],
+        [4., 3., 2., 1.,], 
+        [1., 4., 3., 2.,], 
         ski_psnr(np.array([4., 3., 2., 1.]), np.array([1., 4., 3., 2.]), data_range=4) * np.log(10)
     )
 ])
