@@ -135,13 +135,15 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule_expected):
                       default_root_dir=tmpdir)
 
     # test optimizer call freq matches scheduler
-    def _optimizer_step(epoch, batch_idx, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def _optimizer_step(epoch, batch_idx, optimizer, optimizer_idx,
+                        second_order_closure=None, on_tpu=False,
+                        using_native_amp=False, using_lbfgs=False):
         # only test the first 12 batches in epoch
         if batch_idx < 12:
             if epoch == 0:
                 # reset counter when starting epoch
-                if batch_idx == expected[0]-1:
-                    model.prev_called_batch_idx = expected[0]-1
+                if batch_idx == expected[0] - 1:
+                    model.prev_called_batch_idx = expected[0] - 1
 
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[0]
@@ -151,8 +153,8 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule_expected):
 
             elif 1 <= epoch <= 2:
                 # reset counter when starting epoch
-                if batch_idx == expected[1]-1:
-                    model.prev_called_batch_idx = expected[1]-1
+                if batch_idx == expected[1] - 1:
+                    model.prev_called_batch_idx = expected[1] - 1
 
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[1]
@@ -161,8 +163,8 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule_expected):
                 model.prev_called_batch_idx += expected[1]
 
             else:
-                if batch_idx == expected[2]-1:
-                    model.prev_called_batch_idx = expected[2]-1
+                if batch_idx == expected[2] - 1:
+                    model.prev_called_batch_idx = expected[2] - 1
 
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[2]
