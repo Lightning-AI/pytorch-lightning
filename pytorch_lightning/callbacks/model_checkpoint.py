@@ -160,7 +160,7 @@ class ModelCheckpoint(Callback):
             os.remove(filepath)
 
     def _save_model(self, filepath):
-        print(f'CREATING DIR, RANK {self._rank}')
+        print(f'SAVE MODEL, RANK {self._rank}')
 
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -270,9 +270,13 @@ class ModelCheckpoint(Callback):
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
+        print(f'ON VALIDATION END, RANK: {self._rank}. GLOBAL: {trainer.global_rank}')
+
         # only run on main process
         if trainer.global_rank != 0:
             return
+
+        print(f'ON VALIDATION END 2, RANK: {self._rank}. GLOBAL: {trainer.global_rank}')
 
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
