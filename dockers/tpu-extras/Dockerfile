@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         wget \
-        zip \
+        unzip \
         ca-certificates \
         libomp5 \
     && \
