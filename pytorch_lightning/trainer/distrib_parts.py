@@ -185,6 +185,8 @@ class TrainerDPMixin(ABC):
         self.run_pretrain_routine(model)
 
     def tpu_train(self, tpu_core_idx, model):
+        print(f'TPU_TRAIN RANK: {tpu_core_idx}')
+
         # call setup after the ddp process has connected
         self.setup('fit')
         if self.is_function_implemented('setup', model):

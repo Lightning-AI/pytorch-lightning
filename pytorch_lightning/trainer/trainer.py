@@ -464,6 +464,7 @@ class Trainer(
         self.tpu_cores = _parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
 
+        # enable training on a particular core
         self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
 
         if num_processes != 1 and distributed_backend != "ddp_cpu":
@@ -990,11 +991,20 @@ class Trainer(
             # track for predict
             self.model = model
 
-            # train
+            # train on a particular core
             if self.tpu_id is not None:
                 self.tpu_train(self.tpu_id, model)
+
+            # train on all cores
             else:
-                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
+                xmp.spawn(self.tpu_train,
+                          args=(model,),
+                          nprocs=self.tpu_cores - 1,
+                          start_method=start_method,
+                          join=False)
+
+                print('training TPU core main')
+                self.tpu_train(0, self.tpu_cores - 1)
 
             self.model = model
 
