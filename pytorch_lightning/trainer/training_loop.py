@@ -346,9 +346,11 @@ class TrainerTrainLoopMixin(ABC):
             for epoch in range(self.current_epoch, self.max_epochs):
                 print(f'TRAIN LOOP 347: {self.global_rank}')
                 # reset train dataloader
+                torch_xla.core.xla_model.rendezvous("pl.Train_loop.reload_data")
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 print(f'TRAIN LOOP 351: {self.global_rank}')
+
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if (self.use_ddp or self.use_horovod) \
                         and hasattr(self.train_dataloader, 'sampler') \
