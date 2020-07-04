@@ -238,6 +238,14 @@ class LightningLoggerBase(ABC):
         self.save()
 
     @property
+    def save_dir(self) -> Optional[str]:
+        """
+        Return the root directory where experiment logs get saved, or `None` if the logger does not
+        save data locally.
+        """
+        return None
+
+    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""

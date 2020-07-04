@@ -50,7 +50,7 @@ class TensorBoardLogger(LightningLoggerBase):
                  version: Optional[Union[int, str]] = None,
                  **kwargs):
         super().__init__()
-        self.save_dir = save_dir
+        self._save_dir = save_dir
         self._name = name
         self._version = version
 
@@ -81,6 +81,10 @@ class TensorBoardLogger(LightningLoggerBase):
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         log_dir = os.path.join(self.root_dir, version)
         return log_dir
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
 
     @property
     @rank_zero_experiment

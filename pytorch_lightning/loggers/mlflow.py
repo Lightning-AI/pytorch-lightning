@@ -87,7 +87,7 @@ class MLFlowLogger(LightningLoggerBase):
         self._mlflow_client = MlflowClient(self._tracking_uri)
 
     @property
-    def save_dir(self):
+    def save_dir(self) -> Optional[str]:
         """
         The root file directory in which MLflow experiments are saved.
 

@@ -112,7 +112,7 @@ class CometLogger(LightningLoggerBase):
             self.api_key = api_key
         elif save_dir is not None:
             self.mode = "offline"
-            self.save_dir = save_dir
+            self._save_dir = save_dir
         else:
             # If neither api_key nor save_dir are passed as arguments, raise an exception
             raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
@@ -218,6 +218,10 @@ class CometLogger(LightningLoggerBase):
         """
         self.experiment.end()
         self.reset_experiment()
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
 
     @property
     def name(self) -> str:
