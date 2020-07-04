@@ -173,6 +173,7 @@ else:
     APEX_AVAILABLE = True
 
 try:
+    import torch_xla
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
 except ImportError:
@@ -506,6 +507,9 @@ class TrainerTrainLoopMixin(ABC):
         # epoch end hook
         print(f'TRAINING LOOP 511: {self.global_rank}')
         self.run_on_epoch_end_hook(model)
+
+        if self.use_tpu:
+            torch_xla.core.xla_model.rendezvous("pl.ModelCheckpoint.on_validation_end")
 
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
