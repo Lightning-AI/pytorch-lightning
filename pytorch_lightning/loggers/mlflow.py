@@ -108,10 +108,14 @@ class MLFlowLogger(LightningLoggerBase):
 
     @property
     def run_id(self):
+        # create the experiment if it does not exist to get the run id
+        _ = self.experiment
         return self._run_id
 
     @property
     def experiment_id(self):
+        # create the experiment if it does not exist to get the experiment id
+        _ = self.experiment
         return self._experiment_id
 
     @rank_zero_only
