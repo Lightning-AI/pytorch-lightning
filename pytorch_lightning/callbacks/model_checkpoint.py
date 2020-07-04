@@ -344,8 +344,7 @@ class ModelCheckpoint(Callback):
 
     def _do_check_save(self, filepath, current, epoch):
         # remove kth
-        print(f'DO CHECK SAVE, RANK: {self._rank}')
-        torch_xla.core.xla_model.rendezvous("pl.ModelCheckpoint.do_check_save")
+        print(f'DO CHECK SAVE 347, RANK: {self._rank}')
 
         del_list = []
         if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
@@ -353,6 +352,7 @@ class ModelCheckpoint(Callback):
             self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
 
+        print(f'DO CHECK SAVE 355, RANK: {self._rank}')
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == self.save_top_k:
             # monitor dict has reached k elements
@@ -361,20 +361,22 @@ class ModelCheckpoint(Callback):
                                            key=self.best_k_models.get)
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
+        print(f'DO CHECK SAVE 364, RANK: {self._rank}')
         _op = min if self.mode == 'min' else max
         self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
         self.best_model_score = self.best_k_models[self.best_model_path]
 
+        print(f'DO CHECK SAVE 369, RANK: {self._rank}')
         if self.verbose > 0:
             log.info(
                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                 f' {current:0.5f} (best {self.best_model_score:0.5f}), saving model to'
                 f' {filepath} as top {self.save_top_k}')
+        print(f'DO CHECK SAVE 375, RANK: {self._rank}')
         self._save_model(filepath)
-        print(f'DO CHECK SAVE END, RANK: {self._rank}')
+        print(f'DO CHECK SAVE 377, RANK: {self._rank}')
 
         for cur_path in del_list:
             if cur_path != filepath:
                 self._del_model(cur_path)
-
-        print(f'DO CHECK END (save end): {self._rank}')
+        print(f'DO CHECK SAVE 382, RANK: {self._rank}')
