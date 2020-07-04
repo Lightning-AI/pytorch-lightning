@@ -72,8 +72,12 @@ class MLFlowLogger(LightningLoggerBase):
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
-        if not tracking_uri and save_dir:
-            tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
+        import os
+        if not tracking_uri:
+            if save_dir:
+                tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
+            else:
+                tracking_uri = f'{LOCAL_FILE_URI_PREFIX}.{os.sep}mlruns'
 
         self._experiment_name = experiment_name
         self.tags = tags
