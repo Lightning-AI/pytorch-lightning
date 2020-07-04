@@ -130,4 +130,16 @@ jobs:
     - name: Statistics
       if: success()
       run: |
-         coverage report
+        coverage report
+        coverage xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      if: always()
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: coverage.xml
+        flags: cpu,pytest
+        env_vars: ${{ runner.os }},python${{ matrix.python-version }}
+        name: CPU-coverage
+        fail_ci_if_error: true
