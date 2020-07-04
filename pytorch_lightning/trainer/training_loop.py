@@ -344,9 +344,11 @@ class TrainerTrainLoopMixin(ABC):
         try:
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
+                print(f'TRAIN LOOP 347: {self.global_rank}')
                 # reset train dataloader
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
+                print(f'TRAIN LOOP 351: {self.global_rank}')
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 if (self.use_ddp or self.use_horovod) \
                         and hasattr(self.train_dataloader, 'sampler') \
@@ -370,17 +372,20 @@ class TrainerTrainLoopMixin(ABC):
                 # -----------------
                 self.run_training_epoch()
 
+                print(f'TRAIN LOOP 373: {self.global_rank}')
                 if self.max_steps and self.max_steps <= self.global_step:
                     self.run_training_teardown()
                     return
 
                 # update LR schedulers
+                print(f'TRAIN LOOP 378: {self.global_rank}')
                 self.update_learning_rates(interval='epoch')
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
+                print(f'TRAIN LOOP 386: {self.global_rank}')
                 if self.should_stop:
                     if (met_min_epochs and met_min_steps) or self.fast_dev_run:
                         self.run_training_teardown()
@@ -507,9 +512,6 @@ class TrainerTrainLoopMixin(ABC):
         # epoch end hook
         print(f'TRAINING LOOP 511: {self.global_rank}')
         self.run_on_epoch_end_hook(model)
-
-        if self.use_tpu:
-            torch_xla.core.xla_model.rendezvous("pl.ModelCheckpoint.on_validation_end")
 
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
