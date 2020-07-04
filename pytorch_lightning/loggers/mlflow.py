@@ -55,10 +55,11 @@ class MLFlowLogger(LightningLoggerBase):
     Args:
         experiment_name: The name of the experiment
         tracking_uri: Address of local or remote tracking server.
-            If not provided, defaults to the service set by ``mlflow.tracking.set_tracking_uri``.
+            If not provided, defaults to `file:<save_dir>`.
         tags: A dictionary tags for the experiment.
         save_dir: A path to a local directory where the MLflow runs get saved.
-            Defaults to `file:/<tracking_uri>` if <tracking_uri> is
+            Defaults to `./mlflow` if `tracking_uri` is not provided.
+            Has no effect if `tracking_uri` is provided.
 
     """
 
