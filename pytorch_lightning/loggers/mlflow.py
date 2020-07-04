@@ -82,25 +82,7 @@ class MLFlowLogger(LightningLoggerBase):
         self._experiment_name = experiment_name
         self.tags = tags
         self._tracking_uri = tracking_uri
-        mlflow.set_tracking_uri(tracking_uri)
-        mlflow.set_experiment(self._experiment_name)
-        exp = mlflow.get_experiment_by_name(self._experiment_name)
-        self._experiment_id = exp.experiment_id
-        run = mlflow.active_run() or mlflow.start_run(experiment_id=exp.experiment_id)
-        self._run_id = run.info.run_id
         self._mlflow_client = MlflowClient(self._tracking_uri)
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """
-        The root file directory in which MLflow experiments are saved.
-
-        Return:
-            Local path to the root experiment directory if the tracking uri is local.
-            Otherwhise returns `None`.
-        """
-        if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
-            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
 
     @property
     @rank_zero_experiment
@@ -114,6 +96,17 @@ class MLFlowLogger(LightningLoggerBase):
             self.logger.experiment.some_mlflow_function()
 
         """
+        expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
+
+        if expt:
+            self._experiment_id = expt.experiment_id
+        else:
+            log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
+            self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
+
+        run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
+        self._run_id = run.info.run_id
+
         return self._mlflow_client
 
     @property
@@ -148,6 +141,18 @@ class MLFlowLogger(LightningLoggerBase):
         status = 'FINISHED' if status == 'success' else status
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        """
+        The root file directory in which MLflow experiments are saved.
+
+        Return:
+            Local path to the root experiment directory if the tracking uri is local.
+            Otherwhise returns `None`.
+        """
+        if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
+            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
 
     @property
     def name(self) -> str:
