@@ -78,7 +78,7 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: dockers/tpu-base/Dockerfile
+          dockerfile: dockers/tpu-extras/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }}
-          tags: "XLA-base-py${{ matrix.python_version }}"
+          tags: "XLA-extras-py${{ matrix.python_version }}"
         timeout-minutes: 25
