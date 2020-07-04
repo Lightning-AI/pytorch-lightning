@@ -29,7 +29,7 @@ def psnr(
         >>> metric = PSNR()
         >>> metric(pred, target)
         tensor(2.5527)
-        """
+    """
 
     if data_range is None:
         data_range = max(target.max() - target.min(), pred.max() - pred.min())
