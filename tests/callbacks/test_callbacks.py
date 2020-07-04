@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 import pytest
 import torch
@@ -12,25 +13,19 @@ from tests.base import EvalModelTemplate
 
 
 def test_early_stopping_functionality(tmpdir):
-
     class CurrentModel(EvalModelTemplate):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
             val_loss = losses[self.current_epoch]
-            return {'val_loss': torch.tensor(val_loss)}
+            return {"val_loss": torch.tensor(val_loss)}
 
     model = CurrentModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        overfit_batches=0.20,
-        max_epochs=20,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, early_stop_callback=True, overfit_batches=0.20, max_epochs=20,)
     result = trainer.fit(model)
     print(trainer.current_epoch)
 
-    assert trainer.current_epoch == 5, 'early_stopping failed'
+    assert trainer.current_epoch == 5, "early_stopping failed"
 
 
 def test_trainer_callback_system(tmpdir):
@@ -264,34 +259,77 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_batch_start_called
 
 
+def test_callback_checkpointing(tmpdir):
+    """Test persisting callback state in checkpoints."""
+
+    class TestCallback(Callback):
+        def __init__(self):
+            super().__init__()
+            self.a = 0
+            self.b = "test"
+            self.c = 0.0
+
+        def on_train_start(self, trainer, pl_module):
+            # change values to be different than object initialization
+            self.a = 1
+            self.b = "changed"
+            self.c = 99.99
+
+        def on_save_checkpoint(self, trainer, pl_module):
+            return {"a": self.a, "b": self.b, "c": self.c}
+
+        def on_load_checkpoint(self, checkpointed_state):
+            self.a = checkpointed_state["a"]
+            self.b = checkpointed_state["b"]
+            self.c = checkpointed_state["c"]
+
+    test_callback = TestCallback()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        callbacks=[test_callback],
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        progress_bar_refresh_rate=0,
+    )
+    trainer = Trainer(**trainer_options)
+
+    trainer.fit(model)
+    checkpoint_path = os.path.join(tmpdir, "model.ckpt")
+    trainer.save_checkpoint(checkpoint_path)
+
+    new_trainer = Trainer(**trainer_options, resume_from_checkpoint=checkpoint_path)
+    assert vars(new_trainer.callbacks[0]) == {"a": 1, "b": "changed", "c": 99.99}
+
+
 def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
 
     class CurrentModel(EvalModelTemplate):
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
-            output.update({'my_train_metric': output['loss']})  # could be anything else
+            output.update({"my_train_metric": output["loss"]})  # could be anything else
             return output
 
     model = CurrentModel()
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=stopping,
-        overfit_batches=0.20,
-        max_epochs=2,
-    )
+    stopping = EarlyStopping(monitor="my_train_metric", min_delta=0.1)
+    trainer = Trainer(default_root_dir=tmpdir, early_stop_callback=stopping, overfit_batches=0.20, max_epochs=2,)
     result = trainer.fit(model)
 
-    assert result == 1, 'training failed to complete'
+    assert result == 1, "training failed to complete"
     assert trainer.current_epoch < trainer.max_epochs
 
 
 def test_pickling(tmpdir):
     import pickle
+
     early_stopping = EarlyStopping()
     ckpt = ModelCheckpoint(tmpdir)
 
@@ -305,7 +343,7 @@ def test_pickling(tmpdir):
     assert vars(ckpt) == vars(ckpt_loaded)
 
 
-@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+@pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
@@ -313,12 +351,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        checkpoint_callback=checkpoint,
-        overfit_batches=0.20,
-        max_epochs=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2,)
     trainer.fit(model)
 
     # These should be different if the dirpath has be overridden
@@ -326,8 +359,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
 
 @pytest.mark.parametrize(
-    'logger_version,expected',
-    [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+    "logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")],
 )
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
@@ -335,12 +367,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        overfit_batches=0.2,
-        max_epochs=2,
-        logger=logger,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger,)
     trainer.fit(model)
 
     ckpt_version = Path(trainer.ckpt_path).parent.name

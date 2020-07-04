@@ -330,20 +330,20 @@ class TrainerIOMixin(ABC):
 
         if not weights_only:
 
-            # TODO support more generic way for callbacks to persist a state_dict in a checkpoint
-            checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-            early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+            # TODO delete from here =============================================================
+            # checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+            # early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
-            if checkpoint_callbacks:
-                # we add the official checkpoint callback to the end of the list
-                # extra user provided callbacks will not be persisted yet
-                checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
-                checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
+            # if checkpoint_callbacks:
+            #     # we add the official checkpoint callback to the end of the list
+            #     # extra user provided callbacks will not be persisted yet
+            #     checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
+            #     checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
+            # TODO delete to here ===============================================================
 
-            if early_stopping_callbacks and checkpoint_callbacks:
-                # we add the official early stopping callback to the end of the list
-                # extra user provided callbacks will not be persisted yet
-                checkpoint['early_stop_callback_state_dict'] = early_stopping_callbacks[-1].state_dict()
+            # save callbacks
+            callback_states = self.on_save_checkpoint()
+            checkpoint['callbacks'] = callback_states
 
             # save optimizers
             optimizer_states = []
@@ -412,25 +412,32 @@ class TrainerIOMixin(ABC):
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
-        # TODO support more generic way for callbacks to load callback state_dicts
-        checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-        early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
+        # TODO delete from here =============================================================
+        # checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+        # early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
-        if checkpoint_callbacks:
-            if 'checkpoint_callback_best_model_score' in checkpoint:
-                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best_model_score']
-            else:
-                # Old naming until version 0.7.6
-                rank_zero_warn(
-                    'Loading a checkpoint created with an old version of Lightning; '
-                    'this will not be supported in the future.'
-                )
-                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best']
-            checkpoint_callbacks[-1].best_model_path = checkpoint['checkpoint_callback_best_model_path']
+        # if checkpoint_callbacks:
+        #     if 'checkpoint_callback_best_model_score' in checkpoint:
+        #         checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best_model_score']
+        #     else:
+        #         # Old naming until version 0.7.6
+        #         rank_zero_warn(
+        #             'Loading a checkpoint created with an old version of Lightning; '
+        #             'this will not be supported in the future.'
+        #         )
+        #         checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best']
+        #     checkpoint_callbacks[-1].best_model_path = checkpoint['checkpoint_callback_best_model_path']
 
-        if early_stopping_callbacks:
-            state = checkpoint['early_stop_callback_state_dict']
-            early_stopping_callbacks[-1].load_state_dict(state)
+        # if early_stopping_callbacks:
+        #     state = checkpoint['early_stop_callback_state_dict']
+        #     early_stopping_callbacks[-1].load_state_dict(state)
+        # TODO delete to here ===============================================================
+
+        # TODO check for outdated checkpoint files and request user run an upgrade script
+        # TODO write an upgrade script that changes checkpoint files to new format
+
+        # load callback states
+        self.on_load_checkpoint(checkpoint)
 
         self.global_step = checkpoint['global_step']
         self.current_epoch = checkpoint['epoch']

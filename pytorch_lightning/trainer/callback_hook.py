@@ -1,4 +1,5 @@
 from abc import ABC
+from copy import deepcopy
 from typing import Callable, List
 
 from pytorch_lightning.callbacks import Callback
@@ -125,3 +126,22 @@ class TrainerCallbackHookMixin(ABC):
         """Called when the training is interrupted by KeyboardInterrupt."""
         for callback in self.callbacks:
             callback.on_keyboard_interrupt(self, self.get_model())
+
+    def on_save_checkpoint(self):
+        """Called when saving a model checkpoint."""
+        callback_states = {}
+        for callback in self.callbacks:
+            callback_class = type(callback)
+            state = callback.on_save_checkpoint(self, self.get_model())
+            if state:
+                callback_states[callback_class] = state
+        return callback_states
+
+    def on_load_checkpoint(self, checkpoint):
+        """Called when the training is interrupted by KeyboardInterrupt."""
+        callback_states = checkpoint.get('callbacks')
+        for callback in self.callbacks:
+            state = callback_states.get(type(callback))
+            if state:
+                state = deepcopy(state)
+                callback.on_load_checkpoint(state)
