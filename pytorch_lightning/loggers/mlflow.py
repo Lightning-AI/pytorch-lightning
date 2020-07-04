@@ -66,23 +66,21 @@ class MLFlowLogger(LightningLoggerBase):
                  experiment_name: str = 'default',
                  tracking_uri: Optional[str] = None,
                  tags: Optional[Dict[str, Any]] = None,
-                 save_dir: Optional[str] = None):
+                 save_dir: Optional[str] = './mlruns'):
 
         if not _MLFLOW_AVAILABLE:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
-        import os
         if not tracking_uri:
-            if save_dir:
-                tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
-            else:
-                tracking_uri = f'{LOCAL_FILE_URI_PREFIX}.{os.sep}mlruns'
+            tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
 
         self._experiment_name = experiment_name
-        self.tags = tags
+        self._experiment_id = None
         self._tracking_uri = tracking_uri
-        self._mlflow_client = MlflowClient(self._tracking_uri)
+        self._run_id = None
+        self.tags = tags
+        self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
     @rank_zero_experiment
@@ -106,7 +104,6 @@ class MLFlowLogger(LightningLoggerBase):
 
         run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
         self._run_id = run.info.run_id
-
         return self._mlflow_client
 
     @property
