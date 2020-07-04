@@ -28,7 +28,7 @@ def psnr(
         >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
         >>> metric = PSNR()
         >>> metric(pred, target)
-        tensor([2.5527])
+        tensor(2.5527)
         """
 
     if data_range is None:
