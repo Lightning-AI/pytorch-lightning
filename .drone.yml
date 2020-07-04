@@ -31,6 +31,8 @@ steps:
     - pip install pip -U
     - pip --version
     - nvidia-smi
+    - echo $DRONE_PULL_REQUEST
+    - echo $DRONE_COMMIT
     #- bash ./tests/install_AMP.sh
     - apt-get update && apt-get install -y cmake
     - pip install -r ./requirements/base.txt --user -q
@@ -44,7 +46,7 @@ steps:
     #- cd docs; make doctest; make coverage
     - coverage report
     # see: https://docs.codecov.io/docs/merging-reports
-    - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux,python3.7 --build $DRONE_BUILD_NUMBER
+    - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux,python3.7 --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
     # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
     # - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --build $DRONE_BUILD_NUMBER
     - python tests/collect_env_details.py
