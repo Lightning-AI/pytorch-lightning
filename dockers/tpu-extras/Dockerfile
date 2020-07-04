@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         wget \
+        zip \
         ca-certificates \
         libomp5 \
     && \
@@ -40,18 +41,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pip install mkl && \
 
 # Cleaning
-    apt-get -y remove \
-        wget \
-    && \
     apt-get autoremove -y && \
     apt-get clean
 
-# Install pytorch-lightning at the current PR, plus dependencies.
-RUN apt-get install -y \
-        wget \
-        zip \
-    && \
-
+# Install pytorch-lightning dependencies.
+RUN \
 # Get package
     wget https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip --progress=bar:force:noscroll && \
     unzip master.zip && \
@@ -64,15 +58,7 @@ RUN apt-get install -y \
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
     pip install --requirement ./requirements/extra.txt && \
     cd .. && \
-    rm -rf pytorch-lightning-master && \
-
-# Cleaning
-    apt-get -y remove \
-        wget \
-        zip \
-    && \
-    apt-get autoremove -y && \
-    apt-get clean
+    rm -rf pytorch-lightning-master
 
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/"
 
