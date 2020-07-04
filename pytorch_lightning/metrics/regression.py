@@ -196,7 +196,7 @@ class PSNR(Metric):
     """
     Computes the peak signal-to-noise ratio metric
     """
- 
+
     def __init__(self, data_range: float = None, base: int = 10, reduction: str = 'elementwise_mean'):
         """
         Args:
@@ -206,7 +206,7 @@ class PSNR(Metric):
 
 
         Example:
- 
+
             >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
             >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
             >>> metric = PSNR()

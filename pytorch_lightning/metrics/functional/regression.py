@@ -3,6 +3,7 @@ from torch.nn import functional as F
 
 from pytorch_lightning.metrics.functional.reduction import reduce
 
+
 def psnr(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -22,6 +23,7 @@ def psnr(
 
     Example:
 
+        >>> from pytorch_lightning.metrics.regression import PSNR
         >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
         >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
         >>> metric = PSNR()

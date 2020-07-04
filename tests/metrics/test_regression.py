@@ -67,6 +67,7 @@ def test_rmsle(pred, target, exp):
     assert isinstance(score, torch.Tensor)
     assert pytest.approx(score.item(), rel=1e-3) == exp
 
+
 @pytest.mark.parametrize(['pred', 'target', 'exp'], [
     pytest.param(
         [0., 1., 2., 3.],
@@ -87,6 +88,7 @@ def test_psnr(pred, target, exp):
     assert isinstance(score, torch.Tensor)
     assert pytest.approx(score.item(), rel=1e-3) == exp
 
+
 @pytest.mark.parametrize(['pred', 'target', 'exp'], [
     pytest.param(
         [0., 1., 2., 3.],
@@ -99,7 +101,6 @@ def test_psnr(pred, target, exp):
         ski_psnr(np.array([4., 3., 2., 1.]), np.array([1., 4., 3., 2.]), data_range=4) * np.log(10)
     )
 ])
-
 def test_psnr_base_e_wider_range(pred, target, exp):
     psnr = PSNR(data_range=4, base=2.718281828459045)
     assert psnr.name == 'psnr'
