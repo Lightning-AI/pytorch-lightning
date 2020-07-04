@@ -316,7 +316,9 @@ class ModelCheckpoint(Callback):
                     f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
                 )
             elif self.check_monitor_top_k(current):
+                print(f'DO CHECK SAVE START, RANK: {self._rank}')
                 self._do_check_save(filepath, current, epoch)
+                print(f'DO CHECK SAVE END, RANK: {self._rank}')
             elif self.verbose > 0:
                 log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}')
 
