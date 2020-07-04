@@ -5,6 +5,7 @@ from pytorch_lightning.metrics.regression import (
     RMSE,
     MAE,
     RMSLE,
+    PSNR
 )
 from pytorch_lightning.metrics.classification import (
     Accuracy,
