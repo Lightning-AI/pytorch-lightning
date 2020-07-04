@@ -18,6 +18,15 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
+
+
 class ModelCheckpoint(Callback):
     r"""
     Save the model after every epoch if it improves.
@@ -329,6 +338,9 @@ class ModelCheckpoint(Callback):
             print(f'saving model, RANK {self._rank}. on TRAIN START')
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath)
+
+            if trainer.use_tpu:
+                torch_xla.core.xla_model.rendezvous("pl.ModelCheckpoint.on_validation_end")
 
     def _do_check_save(self, filepath, current, epoch):
         # remove kth
