@@ -69,11 +69,10 @@ class TestModel(ModelTemplateData,
         Simple model for testing
         :return:
         """
-        pass
-        # self.c_d1 = nn.Linear(
-        #     in_features=self.in_features,
-        #     out_features=self.hidden_dim
-        # )
+        self.c_d1 = nn.Linear(
+            in_features=self.in_features,
+            out_features=self.hidden_dim
+        )
         # self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
         # self.c_d1_drop = nn.Dropout(self.drop_prob)
         #
