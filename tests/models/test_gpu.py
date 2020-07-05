@@ -18,6 +18,11 @@ def test_num_training_batches(self):
     """
     Tests that the correct number of batches are allocated
     """
+    model = EvalModelTemplate()
+    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
+    trainer.fit(model)
+
+    assert trainer.num_training_batches == 10
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
