@@ -960,7 +960,6 @@ class Trainer(
                 self.set_random_port()
                 model.share_memory()
 
-                import pdb; pdb.set_trace()
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
 
