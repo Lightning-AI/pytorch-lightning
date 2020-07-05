@@ -103,8 +103,13 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     model_2.eval()
 
 
-@pytest.mark.parametrize('schedule_expected', [({1: 2, 3: 4}, [1, 2, 4]), (3, [3, 3, 3]), (4, [4, 4, 4])])
-def test_gradient_accumulation_scheduling(tmpdir, schedule_expected):
+@pytest.mark.parametrize(['schedule', 'expected'], [
+        pytest.param({1: 2, 3: 4}, [1, 2, 4]), 
+        pytest.param(3, [3, 3, 3]), 
+        pytest.param(4, [4, 4, 4])
+    ]
+)
+def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     """
     Test grad accumulation by the freq of optimizer updates
     """
@@ -125,8 +130,6 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule_expected):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
     model = EvalModelTemplate()
-    schedule = schedule_expected[0]
-    expected = schedule_expected[1]
 
     trainer = Trainer(accumulate_grad_batches=schedule,
                       limit_train_batches=0.8,
