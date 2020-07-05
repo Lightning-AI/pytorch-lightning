@@ -122,9 +122,9 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
         # early_stop_callback=True,
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
+        # max_epochs=50,
+        # limit_train_batches=10,
+        # limit_val_batches=10,
         gpus=[0, 1],
         distributed_backend='dp',
     )
