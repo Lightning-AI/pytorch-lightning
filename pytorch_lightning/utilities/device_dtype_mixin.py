@@ -107,7 +107,7 @@ class DeviceDtypeModuleMixin(Module):
         """
 
         self._device = torch.device('cuda', index=device)
-        return self.cuda(device=device)
+        return super().cuda(device=device)
 
     def cpu(self) -> Module:
         """Moves all model parameters and buffers to the CPU.

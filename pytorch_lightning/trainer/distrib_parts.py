@@ -229,11 +229,11 @@ class TrainerDPMixin(ABC):
         if self.is_function_implemented('setup', model):
             model.setup('fit')
 
+        model.cuda(self.root_gpu)
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-        model.cuda(self.root_gpu)
 
         # hack forward to do autocast for the user
         model_autocast_original_forward = model.forward
