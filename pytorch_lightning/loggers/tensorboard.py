@@ -108,7 +108,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @experiment.setter
     def experiment(self, exp):
-        self.experiment = exp
+        self._experiment = exp
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
