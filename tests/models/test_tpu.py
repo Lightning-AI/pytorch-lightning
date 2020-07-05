@@ -36,8 +36,9 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
         limit_train_batches=0.4,
         limit_val_batches=0.4
     )
-
+    print('AAAAAAAAAAAAAAAAAAAAAAA')
     model = EvalModelTemplate()
+    print('BBBBBBBBBBBBBBBBBB')
     print('-' * 100)
     print(tpipes)
     print('-' * 100)
