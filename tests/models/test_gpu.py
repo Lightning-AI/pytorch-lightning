@@ -20,6 +20,8 @@ from warnings import warn
 def test_multi_gpu_model(tmpdir, backend):
 
     def f():
+        from tests.base import EvalModelTemplate
+
         trainer_options = dict(
             default_root_dir=tmpdir,
             max_epochs=1,
