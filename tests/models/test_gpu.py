@@ -32,7 +32,7 @@ def test_single_gpu_model(tmpdir, gpus):
     tpipes.run_model_test(trainer_options, model)
 
 
-@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
+@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2', 'ddp_spawn'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
     """Make sure DDP works."""
