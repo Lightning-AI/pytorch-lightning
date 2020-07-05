@@ -21,6 +21,8 @@ def test_multi_gpu_model(tmpdir, backend):
     def f():
 
         try:
+            tutils.set_random_master_port()
+
             trainer_options = dict(
                 default_root_dir=tmpdir,
                 max_epochs=1,
