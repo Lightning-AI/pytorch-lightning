@@ -63,7 +63,7 @@ class TestModel(ModelTemplateData,
 
         # build model
         self.c_d1 = nn.Linear(
-            in_features=10,
+            in_features=784,
             out_features=20
         )
         print('-' * 100)
