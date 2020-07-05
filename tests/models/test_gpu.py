@@ -18,7 +18,7 @@ from warnings import warn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
 
-    def f():
+    def f(queue, tmpdir, backend):
 
         try:
             tutils.set_random_master_port()
@@ -43,14 +43,20 @@ def test_multi_gpu_model(tmpdir, backend):
             # test memory helper functions
             memory.get_memory_profile('min_max')
             assert 34 == 12, 'debug'
+
+            queue.put(1)
         except Exception as e:
-            assert 22 == 12, 'failed'
+            queue.put(-1)
 
+    from multiprocessing import Process, Queue
+    queue = Queue()
 
-    import threading
+    p = Process(target=f, args=(queue, tmpdir, backend))
+    p.start()
+    p.join() # this blocks until the process terminates
+    result = queue.get()
 
-    t = threading.Thread(name=backend, target=f)
-    t.start()
+    assert result[0] == 1
 
 #
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
