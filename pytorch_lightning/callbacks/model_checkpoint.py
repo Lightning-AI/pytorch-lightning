@@ -267,8 +267,6 @@ class ModelCheckpoint(Callback):
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
-        import pdb; pdb.set_trace()
-
         # only run on main process
         if trainer.global_rank != 0:
             return
@@ -321,6 +319,8 @@ class ModelCheckpoint(Callback):
 
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath)
+
+        print(f'RANK: {trainer.global_rank}, PATH: {filepath}')
 
     def _do_check_save(self, filepath, current, epoch):
         # remove kth
