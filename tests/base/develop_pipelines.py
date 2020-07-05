@@ -38,6 +38,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
 
 def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
+    assert True == False, 'bug'
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
