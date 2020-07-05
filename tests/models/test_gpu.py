@@ -153,6 +153,7 @@ def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     trainer_options = dict(
         default_root_dir=tmpdir,
+        distributed_backend=None,
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.1,
@@ -162,7 +163,6 @@ def test_multi_gpu_none_backend(tmpdir):
 
     model = EvalModelTemplate()
     with pytest.warns(UserWarning):
-        import pdb; pdb.set_trace()
         tpipes.run_model_test(trainer_options, model)
 #
 #
