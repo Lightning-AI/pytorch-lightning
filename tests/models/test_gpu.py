@@ -162,6 +162,7 @@ def test_multi_gpu_none_backend(tmpdir):
 
     model = EvalModelTemplate()
     with pytest.warns(UserWarning):
+        import pdb; pdb.set_trace()
         tpipes.run_model_test(trainer_options, model)
 #
 #
