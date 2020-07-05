@@ -66,6 +66,9 @@ class TestModel(ModelTemplateData,
             in_features=10,
             out_features=20
         )
+        print('-' * 100)
+        print(in_features)
+        print('-' * 100)
         assert 72 == 71, 'b'
 
     # def __build_model(self, in_features, hidden_dim):
