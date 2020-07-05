@@ -62,7 +62,6 @@ class TestModel(ModelTemplateData,
         # self.example_input_array = torch.rand(5, 28 * 28)
 
         # build model
-        assert 67 == 65, 'a'
         self.c_d1 = nn.Linear(
             in_features=in_features,
             out_features=hidden_dim
