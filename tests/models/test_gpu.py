@@ -65,7 +65,6 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     assert 1 == 2, 'a'
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.parametrize('gpus', [1, [0], [1]])
 def test_single_gpu_model(tmpdir, gpus):
