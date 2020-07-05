@@ -30,7 +30,7 @@ def test_multi_gpu_model(tmpdir, backend):
             distributed_backend=backend,
         )
 
-        model = TestModel(12)
+        model = EvalModelTemplate()
         assert model.drop_prob == 15, 'debug'
 
         # tutils.run_model_test(trainer_options, model)

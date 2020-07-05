@@ -87,6 +87,7 @@ class TestModel(ModelTemplateData,
     def forward(self, x):
         return x
 
+
 class EvalModelTemplate(
     ModelTemplateData,
     ModelTemplateUtils,
