@@ -321,7 +321,7 @@ class ModelCheckpoint(Callback):
             self._save_model(filepath)
 
         import pdb; pdb.set_trace()
-        print('&&' * 100)
+        assert 1 == 2
         print(f'RANK: {trainer.global_rank}, PATH: {filepath}')
         print('&&' * 100)
 
