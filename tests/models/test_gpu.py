@@ -14,10 +14,9 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 
 
-@pytest.fake_process
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 @pytest.mark.parametrize('gpus', [1, [0], [1]])
-def test_single_gpu_model(tmpdir, gpus, fake_process):
+def test_single_gpu_model(tmpdir, gpus):
     """Make sure single GPU works (DP mode)."""
     trainer_options = dict(
         default_root_dir=tmpdir,
