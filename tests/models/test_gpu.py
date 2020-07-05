@@ -16,7 +16,7 @@ from warnings import warn
 import torch.distributed as dist
 
 
-def decorator(func):
+def decorator(func, *args, **kwargs):
 
     def wrapper():
         from multiprocessing import Process, Queue
@@ -24,7 +24,7 @@ def decorator(func):
 
         def inner_f(queue):
             try:
-                func()
+                func(*args, **kwargs)
                 queue.put(1)
             except Exception as e:
                 import traceback
