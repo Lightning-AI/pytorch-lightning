@@ -53,7 +53,7 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
-@pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
+#@pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
