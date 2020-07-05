@@ -64,10 +64,10 @@ class TestModel(ModelTemplateData,
         # build model
         self.c_d1 = nn.Linear(
             in_features=784,
-            out_features=20
+            out_features=10
         )
         print('-' * 100)
-        print(in_features)
+        print(in_features, out_features)
         print('-' * 100)
         assert 72 == 71, 'b'
 
