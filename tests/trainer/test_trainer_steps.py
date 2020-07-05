@@ -14,6 +14,7 @@ def test_training_step_dict(tmpdir):
         default_root_dir=tmpdir,
         fast_dev_run=True,
         precision=16,
+        gpus=1,
         weights_summary=None,
     )
     trainer.fit(model)
