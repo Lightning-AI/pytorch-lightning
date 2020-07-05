@@ -44,7 +44,7 @@ class TestModel(ModelTemplateData,
     ):
         # init superclass
         super().__init__()
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
 
         self.drop_prob = drop_prob
         self.batch_size = batch_size
