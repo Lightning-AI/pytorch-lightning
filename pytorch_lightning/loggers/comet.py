@@ -133,10 +133,7 @@ class CometLogger(LightningLoggerBase):
             self.comet_api = None
 
         if experiment_name:
-            try:
-                self.name = experiment_name
-            except TypeError:
-                log.exception("Failed to set experiment name for comet.ml logger")
+            self.experiment.set_name(experiment_name)
         self._kwargs = kwargs
 
     @property
@@ -226,10 +223,6 @@ class CometLogger(LightningLoggerBase):
     @property
     def name(self) -> str:
         return str(self.experiment.project_name)
-
-    @name.setter
-    def name(self, value: str) -> None:
-        self.experiment.set_name(value)
 
     @property
     def version(self) -> str:
