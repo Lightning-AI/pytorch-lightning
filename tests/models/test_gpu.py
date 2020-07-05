@@ -42,9 +42,9 @@ def decorator(func):
 
     return wrapper
 
-@decorator
 @pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@decorator
 def test_multi_gpu_model_test(tmpdir, backend):
     tutils.set_random_master_port()
 
