@@ -450,7 +450,7 @@ class TrainerTrainLoopMixin(ABC):
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
             batch_output = self.run_training_batch(batch, batch_idx)
-
+            import pdb; pdb.set_trace()
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
@@ -540,7 +540,6 @@ class TrainerTrainLoopMixin(ABC):
             self.callback_metrics.update(callback_epoch_metrics)
 
             # add metrics to progress_bar
-            import pdb; pdb.set_trace()
             self.add_progress_bar_metrics(_processed_outputs[1])
 
     def sync_horovod(self):
@@ -676,7 +675,6 @@ class TrainerTrainLoopMixin(ABC):
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        import pdb; pdb.set_trace()
         self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
         result = AttributeDict(
@@ -783,7 +781,6 @@ class TrainerTrainLoopMixin(ABC):
             training_step_output_for_epoch_end = training_step_output
             training_step_output = self.process_output(training_step_output, train=True)
 
-            import pdb; pdb.set_trace()
             # TODO: temporary part of structured results PR
             training_step_output = AttributeDict(
                 batch_loss=training_step_output[0],
