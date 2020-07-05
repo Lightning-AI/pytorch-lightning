@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, TestModel
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 from warnings import warn
@@ -31,8 +31,8 @@ def test_multi_gpu_model(tmpdir, backend):
             distributed_backend=backend,
         )
 
-        # model = EvalModelTemplate()
-        assert 32 == 12, 'debug'
+        model = TestModel(12)
+        assert model.test == 15, 'debug'
 
         # tutils.run_model_test(trainer_options, model)
         trainer = Trainer(**trainer_options)

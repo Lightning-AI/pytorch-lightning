@@ -16,6 +16,12 @@ from tests.base.model_valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.model_valid_steps import ValidationStepVariations
 
 
+class TestModel(LightningModule):
+
+    def __init__(self, test):
+        super().__init__()
+        self.test = test
+
 class EvalModelTemplate(
     ModelTemplateData,
     ModelTemplateUtils,
