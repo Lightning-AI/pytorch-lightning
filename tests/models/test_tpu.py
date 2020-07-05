@@ -27,6 +27,8 @@ else:
     pytest.param([8], 'xla:8'),
 ])
 def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
+    assert True == False, 'bug'
+
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
