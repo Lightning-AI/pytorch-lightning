@@ -107,7 +107,6 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif((platform.system() == "Darwin" and

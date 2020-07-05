@@ -21,7 +21,7 @@ else:
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
+@pytest.mark.parametrize("tpu_cores", [1, [1], 8])
 def test_base_tpu_model(tmpdir, tpu_cores):
     """Make sure model trains on TPU."""
     trainer_options = dict(
