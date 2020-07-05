@@ -133,8 +133,8 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
         gpus=[0, 1],
         distributed_backend='ddp_spawn'
     )
