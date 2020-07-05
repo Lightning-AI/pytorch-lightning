@@ -16,6 +16,8 @@ PRETEND_N_OF_GPUS = 16
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
+    tutils.set_random_master_port()
+
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     trainer_options = dict(
         default_root_dir=tmpdir,
