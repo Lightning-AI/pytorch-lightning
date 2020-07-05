@@ -24,8 +24,8 @@ def test_multi_gpu_none_backend(tmpdir):
         distributed_backend='ddp_spawn',
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
         gpus=2
     )
 
