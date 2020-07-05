@@ -29,6 +29,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         distributed_backend='ddp_spawn',
     )
 
+    model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model)
 
 #
