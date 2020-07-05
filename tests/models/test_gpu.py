@@ -19,6 +19,9 @@ import torch.distributed as dist
 def decorator(func):
 
     def wrapper(*args, **kwargs):
+        print('-' * 100)
+        print(*args, **kwargs)
+        print('-' * 100)
         from multiprocessing import Process, Queue
         queue = Queue()
 
@@ -39,8 +42,8 @@ def decorator(func):
 
     return wrapper
 
-@pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
 @decorator
+@pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_test(tmpdir, backend):
     tutils.set_random_master_port()
