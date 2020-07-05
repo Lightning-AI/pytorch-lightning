@@ -508,8 +508,8 @@ class TrainerTrainLoopMixin(ABC):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
         should_activate = not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val)
-        assert 1 == 2
         if should_activate:
+            assert 1 == 2
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
