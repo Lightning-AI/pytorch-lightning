@@ -41,10 +41,9 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@pytest.mark.parametrize("backend", ['dp', 'ddp_spawn'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @tutils.pl_multi_process_test
-def test_multi_gpu_model(tmpdir, backend):
+def test_multi_gpu_model(tmpdir):
     tutils.set_random_master_port()
 
     trainer_options = dict(
@@ -53,7 +52,7 @@ def test_multi_gpu_model(tmpdir, backend):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         gpus=[0, 1],
-        distributed_backend=backend,
+        distributed_backend='ddp_spawn',
         progress_bar_refresh_rate=0
     )
 
