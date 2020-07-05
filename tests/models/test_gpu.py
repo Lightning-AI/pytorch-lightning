@@ -66,48 +66,48 @@ def test_multi_gpu_model_test(tmpdir, backend):
     memory.get_memory_profile('min_max')
 
 
-@pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model(tmpdir, backend):
-
-    def f(queue, tmpdir, backend):
-
-        try:
-            tutils.set_random_master_port()
-
-            trainer_options = dict(
-                default_root_dir=tmpdir,
-                max_epochs=1,
-                limit_train_batches=0.4,
-                limit_val_batches=0.2,
-                gpus=[0, 1],
-                distributed_backend=backend,
-                progress_bar_refresh_rate=0
-            )
-
-            model = EvalModelTemplate()
-
-            # tutils.run_model_test(trainer_options, model)
-            trainer = Trainer(**trainer_options)
-            result = trainer.fit(model)
-            assert result
-
-            # test memory helper functions
-            memory.get_memory_profile('min_max')
-            queue.put(1)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            queue.put(-1)
-
-    from multiprocessing import Process, Queue
-    queue = Queue()
-
-    p = Process(target=f, args=(queue, tmpdir, backend))
-    p.start()
-    p.join()
-    result = queue.get()
-    assert result == 1
+# @pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
+# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+# def test_multi_gpu_model(tmpdir, backend):
+#
+#     def f(queue, tmpdir, backend):
+#
+#         try:
+#             tutils.set_random_master_port()
+#
+#             trainer_options = dict(
+#                 default_root_dir=tmpdir,
+#                 max_epochs=1,
+#                 limit_train_batches=0.4,
+#                 limit_val_batches=0.2,
+#                 gpus=[0, 1],
+#                 distributed_backend=backend,
+#                 progress_bar_refresh_rate=0
+#             )
+#
+#             model = EvalModelTemplate()
+#
+#             # tutils.run_model_test(trainer_options, model)
+#             trainer = Trainer(**trainer_options)
+#             result = trainer.fit(model)
+#             assert result
+#
+#             # test memory helper functions
+#             memory.get_memory_profile('min_max')
+#             queue.put(1)
+#         except Exception as e:
+#             import traceback
+#             traceback.print_exc()
+#             queue.put(-1)
+#
+#     from multiprocessing import Process, Queue
+#     queue = Queue()
+#
+#     p = Process(target=f, args=(queue, tmpdir, backend))
+#     p.start()
+#     p.join()
+#     result = queue.get()
+#     assert result == 1
 #
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 # @pytest.mark.parametrize('gpus', [1, [0], [1]])
