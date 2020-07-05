@@ -44,8 +44,6 @@ def test_multi_gpu_model(tmpdir, backend):
 
             # test memory helper functions
             memory.get_memory_profile('min_max')
-            assert 34 == 12, 'debug'
-
             queue.put(1)
         except Exception as e:
             if backend == 'ddp':
