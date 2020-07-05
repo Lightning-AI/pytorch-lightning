@@ -28,8 +28,8 @@ def test_multi_gpu_none_backend(tmpdir):
     )
 
     model = EvalModelTemplate()
-    with pytest.warns(UserWarning):
-        tpipes.run_model_test(trainer_options, model)
+    # with pytest.warns(UserWarning):
+    tpipes.run_model_test(trainer_options, model)
 
 
 def test_multi_gpu_model_dp(tmpdir):
