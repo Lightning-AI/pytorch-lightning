@@ -18,7 +18,7 @@ import torch.distributed as dist
 
 def decorator(func, *args, **kwargs):
 
-    def wrapper():
+    def wrapper(func, *args, **kwargs):
         from multiprocessing import Process, Queue
         queue = Queue()
 
