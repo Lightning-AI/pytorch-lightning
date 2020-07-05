@@ -117,10 +117,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     )
 
     model = EvalModelTemplate()
-    # tutils.run_model_test(trainer_options, model)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
+    tutils.run_model_test(trainer_options, model)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -139,10 +136,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     )
 
     model = EvalModelTemplate()
-    # tutils.run_model_test(trainer_options, model)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
+    tutils.run_model_test(trainer_options, model)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
