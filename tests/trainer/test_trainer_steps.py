@@ -36,10 +36,9 @@ def test_training_step_dict(tmpdir):
     assert out.batch_log_metrics['log_acc1'] == 12.0
     assert out.batch_log_metrics['log_acc2'] == 7.0
 
-    print(out)
     train_step_out = out.training_step_output_for_epoch_end
     pbar_metrics = train_step_out['progress_bar']
-    assert train_step_out['loss'] == (42.0 * 3) + (15.0 * 3)
+    assert out['loss'] == (42.0 * 3) + (15.0 * 3)
     assert 'log' in train_step_out
     assert 'progress_bar' in train_step_out
     assert train_step_out['train_step_test'] == 549
