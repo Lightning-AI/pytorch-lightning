@@ -95,11 +95,8 @@ def set_random_master_port():
     os.environ['MASTER_PORT'] = str(port)
 
 
-def init_checkpoint_callback(logger, path_dir=None):
-    exp_path = logger.save_dir
-    ckpt_dir = os.path.join(exp_path, 'checkpoints')
-    os.mkdir(ckpt_dir)
-    checkpoint = ModelCheckpoint(ckpt_dir)
+def init_checkpoint_callback(logger):
+    checkpoint = ModelCheckpoint(logger.save_dir)
     return checkpoint
 
 
