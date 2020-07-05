@@ -14,11 +14,11 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
 
+    def f():
     # """Make sure DDP works."""
     # tutils.set_random_master_port()
     #
@@ -39,7 +39,13 @@ def test_multi_gpu_model(tmpdir, backend):
     #
     # # test memory helper functions
     # memory.get_memory_profile('min_max')
-    assert 34 == 12, 'debug'
+        print(backend)
+        assert 34 == 12, 'debug'
+
+    import threading
+
+    t = threading.Thread(name=backend, target=f)
+    t.start()
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
