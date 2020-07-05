@@ -22,6 +22,9 @@ class TestModel(LightningModule):
         super().__init__()
         self.test = test
 
+    def forward(self, x):
+        return x
+
 class EvalModelTemplate(
     ModelTemplateData,
     ModelTemplateUtils,
