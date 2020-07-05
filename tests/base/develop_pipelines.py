@@ -46,6 +46,9 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     logger = get_default_logger(save_dir, version=version)
     trainer_options.update(logger=logger)
 
+    import pickle
+    pickle.dumps(logger)
+
     if 'checkpoint_callback' not in trainer_options:
         # logger file to get weights
         checkpoint = init_checkpoint_callback(logger)
