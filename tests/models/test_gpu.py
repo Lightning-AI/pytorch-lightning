@@ -12,6 +12,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
+from warnings import warn
 
 
 @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
@@ -39,9 +40,8 @@ def test_multi_gpu_model(tmpdir, backend):
     #
     # # test memory helper functions
     # memory.get_memory_profile('min_max')
-        print('-' * 100)
-        print(backend)
-        print('-' * 100)
+        warn('-' * 100)
+        warn(backend)
         assert 34 == 12, 'debug'
 
     import threading
