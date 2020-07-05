@@ -63,8 +63,8 @@ class TestModel(ModelTemplateData,
 
         # build model
         self.c_d1 = nn.Linear(
-            in_features=784,
-            out_features=10
+            in_features=in_features,
+            out_features=out_features
         )
         print('-' * 100)
         print(in_features, out_features)
