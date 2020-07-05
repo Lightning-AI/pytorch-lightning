@@ -20,7 +20,7 @@ import functools
 def decorator(func):
 
     @functools.wraps(func)
-    def wrapper(*args):
+    def wrapper(*args, **kwargs):
         print('-' * 100)
         tmpdir, a = args
         print("args: ", tmpdir)
