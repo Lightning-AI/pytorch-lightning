@@ -96,10 +96,9 @@ def set_random_master_port():
 
 
 def init_checkpoint_callback(logger, path_dir=None):
-    exp_path = get_data_path(logger, path_dir=path_dir)
+    exp_path = logger.save_dir
     ckpt_dir = os.path.join(exp_path, 'checkpoints')
     os.mkdir(ckpt_dir)
-    import pdb; pdb.set_trace()
     checkpoint = ModelCheckpoint(ckpt_dir)
     return checkpoint
 
