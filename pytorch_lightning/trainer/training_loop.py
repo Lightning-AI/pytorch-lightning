@@ -468,7 +468,7 @@ class TrainerTrainLoopMixin(ABC):
             # -----------------------------------------
             should_check_val = self.should_check_val(batch_idx, is_last_batch)
             print('-' * 100)
-            print(f'RANK: {self.global_rank}', should_check_val, is_last_batch)
+            print(f'RANK: {self.global_rank}', should_check_val, is_last_batch, batch_idx)
             print('-' * 100)
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=False)
