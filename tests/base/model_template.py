@@ -63,8 +63,8 @@ class TestModel(ModelTemplateData,
 
         # build model
         self.c_d1 = nn.Linear(
-            in_features=in_features,
-            out_features=hidden_dim
+            in_features=10,
+            out_features=20
         )
         assert 72 == 71, 'b'
 
