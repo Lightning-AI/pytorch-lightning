@@ -1320,7 +1320,8 @@ class Trainer(
 
     def barrier(self, name):
         if self.use_ddp or self.use_ddp2:
-            torch_distrib.barrier()
+            pass
+            # torch_distrib.barrier()
 
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
