@@ -67,22 +67,22 @@ class TestModel(ModelTemplateData,
             out_features=hidden_dim
         )
 
-    def __build_model(self, in_features, hidden_dim):
-        """
-        Simple model for testing
-        :return:
-        """
-        self.c_d1 = nn.Linear(
-            in_features=in_features,
-            out_features=hidden_dim
-        )
-        # self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
-        # self.c_d1_drop = nn.Dropout(self.drop_prob)
-        #
-        # self.c_d2 = nn.Linear(
-        #     in_features=self.hidden_dim,
-        #     out_features=self.out_features
-        # )
+    # def __build_model(self, in_features, hidden_dim):
+    #     """
+    #     Simple model for testing
+    #     :return:
+    #     """
+    #     self.c_d1 = nn.Linear(
+    #         in_features=in_features,
+    #         out_features=hidden_dim
+    #     )
+    #     # self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
+    #     # self.c_d1_drop = nn.Dropout(self.drop_prob)
+    #     #
+    #     # self.c_d2 = nn.Linear(
+    #     #     in_features=self.hidden_dim,
+    #     #     out_features=self.out_features
+    #     # )
 
     def forward(self, x):
         return x
