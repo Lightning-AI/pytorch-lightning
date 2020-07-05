@@ -36,14 +36,16 @@ def get_default_logger(save_dir, version=None):
 
 
 def get_data_path(expt_logger, path_dir=None):
-    import pdb; pdb.set_trace()
     # some calls contain only experiment not complete logger
     expt = expt_logger.experiment if hasattr(expt_logger, 'experiment') else expt_logger
+
     # each logger has to have these attributes
     name, version = expt_logger.name, expt_logger.version
+
     # only the test-tube experiment has such attribute
     if hasattr(expt, 'get_data_path'):
         return expt.get_data_path(name, version)
+
     # the other experiments...
     if not path_dir:
         if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
@@ -51,6 +53,7 @@ def get_data_path(expt_logger, path_dir=None):
         else:
             path_dir = TEMP_PATH
     path_expt = os.path.join(path_dir, name, 'version_%s' % version)
+
     # try if the new sub-folder exists, typical case for test-tube
     if not os.path.isdir(path_expt):
         path_expt = path_dir
