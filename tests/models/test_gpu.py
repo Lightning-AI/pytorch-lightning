@@ -57,7 +57,7 @@ def test_multi_gpu_model(tmpdir, backend):
     p.join() # this blocks until the process terminates
     result = queue.get()
 
-    assert result[0] == 1
+    assert result == 1
 
 #
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
