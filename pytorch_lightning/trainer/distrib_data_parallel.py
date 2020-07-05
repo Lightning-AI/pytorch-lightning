@@ -250,6 +250,7 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus == 1:
                 self.single_gpu = True
             elif self.num_gpus > 1:
+                import pdb; pdb.set_trace()
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
                                ' Setting distributed_backend=ddp_spawn for you.')
