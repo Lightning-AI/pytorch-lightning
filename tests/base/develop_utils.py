@@ -31,7 +31,7 @@ def assert_speed_parity_absolute(pl_times, pt_times, nb_epochs, max_diff: float 
 
 def get_default_logger(save_dir, version=None):
     # set up logger object without actually saving logs
-    logger = TensorBoardLogger(save_dir, name='lightning_logs', version=version)
+    logger = TensorBoardLogger(save_dir, version=version)
     return logger
 
 

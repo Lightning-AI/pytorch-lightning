@@ -48,9 +48,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     trainer_options.update(logger=logger)
 
     if 'checkpoint_callback' not in trainer_options:
-        # logger file to get weights
-        checkpoint = ModelCheckpoint(save_dir)
-        trainer_options.update(checkpoint_callback=checkpoint)
+        trainer_options.update(checkpoint_callback=True)
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -60,7 +58,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.dirpath)
+    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
