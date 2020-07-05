@@ -19,13 +19,16 @@ except ImportError:
 else:
     TPU_AVAILABLE = True
 
-
+@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
     pytest.param([1], 'xla:1'),
     pytest.param([8], 'xla:8'),
 ])
 def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
+    from tests.base import EvalModelTemplate
+    import tests.base.develop_pipelines as tpipes
+
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
