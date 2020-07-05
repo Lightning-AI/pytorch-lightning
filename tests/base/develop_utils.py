@@ -61,6 +61,7 @@ def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelT
     path_expt_dir = get_data_path(logger, path_dir=path_expt)
     hparams_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_HPARAMS_FILE)
 
+    import pdb; pdb.set_trace()
     checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
     weights_dir = os.path.join(root_weights_dir, checkpoints[0])
 
