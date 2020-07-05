@@ -15,6 +15,7 @@ PRETEND_N_OF_GPUS = 16
 from warnings import warn
 import torch.distributed as dist
 
+
 @pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
@@ -39,8 +40,6 @@ def test_multi_gpu_model(tmpdir, backend):
             # tutils.run_model_test(trainer_options, model)
             trainer = Trainer(**trainer_options)
             result = trainer.fit(model)
-            if backend == 'ddp':
-                dist.destroy_process_group()
             assert result
 
             # test memory helper functions
