@@ -39,7 +39,6 @@ def test_multi_gpu_model_dp(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @tutils.pl_multi_process_test
 def test_multi_gpu_model_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
@@ -62,7 +61,6 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
-    assert 1 == 2, 'a'
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
