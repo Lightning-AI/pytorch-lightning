@@ -148,12 +148,17 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     CometLogger,
-    #MLFlowLogger,
+    MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
     WandbLogger,
 ])
-def test_logger_created_on_rank_zero_only(tmpdir, logger_class):
+def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
+    # prevent comet logger from trying to print at exit, since
+    # pytest's stdout/stderr redirection breaks it
+    import atexit
+    monkeypatch.setattr(atexit, 'register', lambda _: None)
+
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = EvalModelTemplate()
