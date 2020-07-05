@@ -58,6 +58,11 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
+    if trainer.global_rank > 0:
+        # on higher ranks, the checkpoint callback has dirpath undefined
+        # we want to test checkpointing on rank 0 only
+        return
+
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.dirpath)
 
     # test new model accuracy
