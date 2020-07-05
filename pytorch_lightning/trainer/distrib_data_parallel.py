@@ -122,6 +122,7 @@ import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
+from torch import distributed as dist
 
 import torch
 from pytorch_lightning import _logger as log
@@ -536,6 +537,8 @@ class TrainerDDPMixin(ABC):
 
         # continue training routine
         self.run_pretrain_routine(model)
+
+        dist.destroy_process_group()
 
     def save_spawn_weights(self, model):
         """
