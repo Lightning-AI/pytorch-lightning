@@ -52,8 +52,9 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         checkpoint = ModelCheckpoint(save_dir)
         trainer_options.update(checkpoint_callback=checkpoint)
 
-    # fit model
+    import pdb; pdb.set_trace()
 
+    # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
