@@ -39,7 +39,9 @@ def test_multi_gpu_model(tmpdir, backend):
     #
     # # test memory helper functions
     # memory.get_memory_profile('min_max')
+        print('-' * 100)
         print(backend)
+        print('-' * 100)
         assert 34 == 12, 'debug'
 
     import threading
