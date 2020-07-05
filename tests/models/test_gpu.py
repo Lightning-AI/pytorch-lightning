@@ -15,9 +15,9 @@ PRETEND_N_OF_GPUS = 16
 from warnings import warn
 
 
-# @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
+@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model(tmpdir):
+def test_multi_gpu_model(tmpdir, backend):
 
     def f():
 
@@ -43,13 +43,10 @@ def test_multi_gpu_model(tmpdir):
         assert 34 == 12, 'debug'
 
     import threading
-    for backend in ['dp', 'ddp', 'ddp2']:
-        try:
-            t = threading.Thread(name=backend, target=f)
-            t.start()
-            t.join()
-        except Exception as e:
-            raise Exception(e)
+
+    t = threading.Thread(name=backend, target=f)
+    t.start()
+    t.join()
 
 
 #
