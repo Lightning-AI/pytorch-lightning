@@ -14,6 +14,12 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 
 
+def test_num_training_batches(self):
+    """
+    Tests that the correct number of batches are allocated
+    """
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     """Make sure DDP works. with early stopping"""
