@@ -44,7 +44,7 @@ class TestModel(ModelTemplateData,
     ):
         # init superclass
         super().__init__()
-        # self.save_hyperparameters()
+        self.save_hyperparameters()
 
         self.drop_prob = drop_prob
         self.batch_size = batch_size
@@ -62,6 +62,8 @@ class TestModel(ModelTemplateData,
         # self.example_input_array = torch.rand(5, 28 * 28)
 
         # build model
+        import torch.nn as nn
+
         self.c_d1 = nn.Linear(
             in_features=in_features,
             out_features=hidden_dim
