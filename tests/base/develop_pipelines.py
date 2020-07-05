@@ -16,6 +16,12 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
+    if trainer.global_rank > 0:
+        # on higher ranks the checkpoint location is unknown
+        # we want to test checkpointing on rank 0 only
+        assert not hasattr(trainer, 'ckpt_path')
+        return
+
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
         trainer.checkpoint_callback.dirpath,
