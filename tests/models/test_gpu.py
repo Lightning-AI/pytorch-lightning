@@ -46,6 +46,8 @@ def test_multi_gpu_model(tmpdir, backend):
 
     t = threading.Thread(name=backend, target=f)
     t.start()
+    t.join()
+
 
 #
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
