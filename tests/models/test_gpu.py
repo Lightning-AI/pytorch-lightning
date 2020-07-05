@@ -29,8 +29,8 @@ def test_multi_gpu_model(tmpdir, backend):
             distributed_backend=backend,
         )
 
-        assert 32 == 12, 'debug'
         model = EvalModelTemplate()
+        assert 32 == 12, 'debug'
 
         # tutils.run_model_test(trainer_options, model)
         trainer = Trainer(**trainer_options)
