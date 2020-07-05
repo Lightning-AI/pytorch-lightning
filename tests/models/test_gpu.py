@@ -20,7 +20,7 @@ import functools
 def decorator(func):
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(args, args2):
         print('-' * 100)
         print("args: ", args)
         assert 2 == 1
