@@ -440,6 +440,10 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
+            # stop epoch if we limited the number of training batches
+            if batch_idx >= self.num_training_batches:
+                break
+
             self.batch_idx = batch_idx
             model.global_step = self.global_step
 
@@ -487,10 +491,6 @@ class TrainerTrainLoopMixin(ABC):
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
             if self.fast_dev_run or self.should_stop:
-                break
-
-            # stop epoch if we limited the number of training batches
-            if batch_idx >= self.num_training_batches:
                 break
 
         # let ddp devices catch up when using horovod
