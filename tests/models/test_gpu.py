@@ -56,6 +56,8 @@ def test_multi_gpu_model(tmpdir, backend):
     # test memory helper functions
     memory.get_memory_profile('min_max')
 
+    assert 34 == 12, 'debug'dd
+
 
 @pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
