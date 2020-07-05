@@ -20,6 +20,8 @@ class TestModel(LightningModule):
 
     def __init__(self, test):
         super().__init__()
+        self.save_hyperparameters()
+
         self.test = test
 
     def forward(self, x):
