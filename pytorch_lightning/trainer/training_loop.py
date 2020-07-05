@@ -540,6 +540,7 @@ class TrainerTrainLoopMixin(ABC):
             self.callback_metrics.update(callback_epoch_metrics)
 
             # add metrics to progress_bar
+            import pdb; pdb.set_trace()
             self.add_progress_bar_metrics(_processed_outputs[1])
 
     def sync_horovod(self):
