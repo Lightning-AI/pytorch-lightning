@@ -50,6 +50,7 @@ def test_multi_gpu_model(tmpdir, backend):
                 dist.destroy_process_group()
 
             queue.put(-1)
+            queue.put(e)
 
     from multiprocessing import Process, Queue
     queue = Queue()
@@ -58,6 +59,7 @@ def test_multi_gpu_model(tmpdir, backend):
     p.start()
     p.join()
     result = queue.get()
+    print(result)
     assert result == 1
 
 #
