@@ -20,9 +20,8 @@ class TestModel(LightningModule):
 
     def __init__(self, test):
         super().__init__()
-        self.save_hyperparameters()
-
         self.test = test
+        assert 'a' == 'b'
 
     def forward(self, x):
         return x
