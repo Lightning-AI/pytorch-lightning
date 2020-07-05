@@ -22,7 +22,7 @@ def decorator(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         print('-' * 100)
-        print(*args, **kwargs)
+        print(args[0])
         print('-' * 100)
         # from multiprocessing import Process, Queue
         # queue = Queue()
