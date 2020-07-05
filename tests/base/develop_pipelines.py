@@ -68,7 +68,8 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     if not isinstance(test_loaders, list):
         test_loaders = [test_loaders]
 
-    [run_prediction(dataloader, pretrained_model) for dataloader in test_loaders]
+    for dataloader in test_loaders:
+        run_prediction(dataloader, pretrained_model)
 
     if with_hpc:
         if trainer.use_ddp or trainer.use_ddp2:
@@ -84,9 +85,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
 
 def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     # run prediction on 1 batch
-    for batch in dataloader:
-        break
-
+    batch = next(iter(dataloader))
     x, y = batch
     x = x.view(x.size(0), -1)
 
