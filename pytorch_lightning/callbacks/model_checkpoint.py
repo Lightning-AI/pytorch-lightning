@@ -320,8 +320,7 @@ class ModelCheckpoint(Callback):
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath)
 
-        import pdb; pdb.set_trace()
-        assert 1 == 2
+        print('&&' * 100)
         print(f'RANK: {trainer.global_rank}, PATH: {filepath}')
         print('&&' * 100)
 
