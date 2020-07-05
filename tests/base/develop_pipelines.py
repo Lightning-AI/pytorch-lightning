@@ -104,4 +104,5 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     print('-' * 100)
     print(acc)
     print('-' * 100)
+    assert acc == 1.0
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
