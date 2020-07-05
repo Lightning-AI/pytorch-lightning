@@ -227,7 +227,7 @@ class TrainerDataLoadingMixin(ABC):
         # if int passed in, val checks that often
         # otherwise, it checks in [0, 1.0] % range of a training epoch
         if isinstance(self.val_check_interval, int):
-            self.val_check_batch = self.val_check_interval
+            self.val_check_batch = self.val_check_interval - 1
             if self.val_check_batch > self.num_training_batches:
                 raise ValueError(
                     f'`val_check_interval` ({self.val_check_interval}) must be less than or equal '
