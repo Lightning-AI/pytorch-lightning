@@ -191,7 +191,6 @@ class ModelHooks(Module):
     def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
         if NATIVE_AMP_AVALAIBLE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
 

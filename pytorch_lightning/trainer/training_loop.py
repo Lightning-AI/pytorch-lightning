@@ -636,6 +636,7 @@ class TrainerTrainLoopMixin(ABC):
                 # ------------------------------
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
                 batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
+
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
 
                 # track hiddens
@@ -741,6 +742,7 @@ class TrainerTrainLoopMixin(ABC):
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_lbfgs=True)
 
+
             # when using 16-bit
             else:
                 native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
@@ -796,6 +798,9 @@ class TrainerTrainLoopMixin(ABC):
         # (if accumulate_grad_batches = 1 no effect)
         closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
 
+        # the loss will get scaled for amp. avoid any modifications to it
+        untouched_loss = closure_loss.detach().clone()
+
         # backward pass
         model_ref = self.get_model()
         with self.profiler.profile('model_backward'):
@@ -834,7 +839,7 @@ class TrainerTrainLoopMixin(ABC):
                 model_ref.on_after_backward()
 
         result = AttributeDict(
-            loss=closure_loss,
+            loss=untouched_loss,
             training_step_output=training_step_output,
             training_step_output_for_epoch_end=training_step_output_for_epoch_end,
             hiddens=training_step_output.hiddens,
