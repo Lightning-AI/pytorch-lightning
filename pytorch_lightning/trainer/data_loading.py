@@ -221,7 +221,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.num_training_batches = len(self.train_dataloader)
                 self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
             else:
-                self.num_training_batches = self.limit_train_batches
+                self.num_training_batches = min(len(self.train_dataloader), self.limit_train_batches)
 
         # determine when to check validation
         # if int passed in, val checks that often
