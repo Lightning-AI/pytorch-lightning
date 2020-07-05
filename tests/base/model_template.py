@@ -62,16 +62,16 @@ class TestModel(ModelTemplateData,
         # self.example_input_array = torch.rand(5, 28 * 28)
 
         # build model
-        self.__build_model()
+        self.__build_model(in_features, hidden_dim)
 
-    def __build_model(self):
+    def __build_model(self, in_features, hidden_dim):
         """
         Simple model for testing
         :return:
         """
         self.c_d1 = nn.Linear(
-            in_features=10,
-            out_features=20
+            in_features=in_features,
+            out_features=hidden_dim
         )
         # self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
         # self.c_d1_drop = nn.Dropout(self.drop_prob)
