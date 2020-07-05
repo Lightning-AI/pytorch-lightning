@@ -1,7 +1,11 @@
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+import pytest
+import torch
 
 
+@pytest.mark.spawn
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_training_step_dict(tmpdir):
     """
     Tests that only training_step can be used
@@ -13,6 +17,8 @@ def test_training_step_dict(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
+        precision=16,
+        gpus=1,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -33,12 +39,15 @@ def test_training_step_dict(tmpdir):
 
     train_step_out = out.training_step_output_for_epoch_end
     pbar_metrics = train_step_out['progress_bar']
-    assert 'loss' in train_step_out
     assert 'log' in train_step_out
     assert 'progress_bar' in train_step_out
     assert train_step_out['train_step_test'] == 549
     assert pbar_metrics['pbar_acc1'] == 17.0
     assert pbar_metrics['pbar_acc2'] == 19.0
+
+    # make sure the optimizer closure returns the correct things
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
 def training_step_with_step_end(tmpdir):

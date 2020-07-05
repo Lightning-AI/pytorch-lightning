@@ -436,7 +436,6 @@ class TrainerDDPMixin(ABC):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
 
-            # import pdb; pdb.set_trace()
             # start process
             proc = subprocess.Popen(command, env=env_copy)
             self.interactive_ddp_procs.append(proc)

@@ -134,7 +134,10 @@ class DeterministicModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0)
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
-        assert loss == 171.0
+        if self.trainer.precision == 16:
+            assert loss > 171 * 1000
+        else:
+            assert loss == 171.0
         loss.backward()
 
 
