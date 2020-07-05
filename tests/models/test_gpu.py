@@ -146,24 +146,23 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model, **fit_options)
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
-#
-#
-# @pytest.mark.spawn
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# def test_multi_gpu_none_backend(tmpdir):
-#     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
-#     trainer_options = dict(
-#         default_root_dir=tmpdir,
-#         progress_bar_refresh_rate=0,
-#         max_epochs=1,
-#         limit_train_batches=0.1,
-#         limit_val_batches=0.1,
-#         gpus='-1'
-#     )
-#
-#     model = EvalModelTemplate()
-#     with pytest.warns(UserWarning):
-#         tpipes.run_model_test(trainer_options, model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_none_backend(tmpdir):
+    """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        gpus='-1'
+    )
+
+    model = EvalModelTemplate()
+    with pytest.warns(UserWarning):
+        tpipes.run_model_test(trainer_options, model)
 #
 #
 # @pytest.fixture
