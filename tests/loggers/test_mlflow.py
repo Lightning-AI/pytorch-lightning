@@ -17,9 +17,10 @@ def test_mlflow_logger_exists(tmpdir):
 
 
 def test_mlflow_logger_dirs_creation(tmpdir):
-    """ Test that the logger creates the folders in the right place. """
+    """ Test that the logger creates the folders and files in the right place. """
     assert not os.listdir(tmpdir)
     logger = MLFlowLogger('test', save_dir=tmpdir)
+    assert logger.save_dir == tmpdir
     assert set(os.listdir(tmpdir)) == {'.trash'}
     run_id = logger.run_id
     exp_id = logger.experiment_id
@@ -29,8 +30,10 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
 
     model = EvalModelTemplate()
-    trainer = Trainer(logger=logger, max_steps=3, limit_val_batches=3)
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
     trainer.fit(model)
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
+    assert trainer.ckpt_path == trainer.weights_save_path == (tmpdir / exp_id / run_id / 'checkpoints')
+    assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
