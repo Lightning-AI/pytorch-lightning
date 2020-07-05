@@ -1,7 +1,9 @@
 import os
 import pickle
+import platform
 from unittest import mock
 
+import pytest
 import wandb
 
 from pytorch_lightning import Trainer
@@ -72,6 +74,12 @@ def test_wandb_pickle(wandb, tmpdir):
     del os.environ['WANDB_MODE']
 
 
+@pytest.mark.skipif(
+    platform.system() == 'Windows',
+    reason='Cannot run in offline mode on windows without api key.'
+    # known issue: https://github.com/wandb/client/issues/366
+    # TODO: remove skipping when issue gets fixed
+)
 def test_wandb_logger_dirs_creation(tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
     logger = WandbLogger(project='project', name='name', save_dir=str(tmpdir), offline=True, anonymous=True)
