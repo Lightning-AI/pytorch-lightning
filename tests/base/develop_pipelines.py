@@ -1,8 +1,6 @@
 import torch
 
-
 from pytorch_lightning import Trainer
-from tests.base import EvalModelTemplate
 from tests.base.develop_utils import load_model_from_checkpoint, init_checkpoint_callback, get_default_logger, \
     reset_seed
 
