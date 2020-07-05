@@ -963,9 +963,6 @@ class Trainer(
                 # spin up peers
                 mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1), join=False)
                 print('in PROC 0')
-
-                from time import sleep
-                sleep(1)
                 self.ddp_train(0, model, is_master=True)
 
             elif self.distributed_backend == 'ddp':

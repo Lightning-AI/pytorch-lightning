@@ -460,6 +460,9 @@ class TrainerDDPMixin(ABC):
         # offset the process id if requested
         process_idx = process_idx + proc_offset
 
+        from time import sleep
+        sleep(proc_offset)
+
         # show progressbar only on progress_rank 0
         if (self.node_rank != 0 or process_idx != 0) and self.progress_bar_callback is not None:
             self.progress_bar_callback.disable()
