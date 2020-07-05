@@ -21,9 +21,6 @@ import functools
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @tutils.pl_multi_process_test
 def test_multi_gpu_model(tmpdir, backend):
-    from multiprocessing import set_start_method
-    set_start_method('spawn')
-
     tutils.set_random_master_port()
 
     trainer_options = dict(
