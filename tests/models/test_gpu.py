@@ -20,26 +20,30 @@ def test_multi_gpu_model(tmpdir, backend):
 
     def f():
 
-        trainer_options = dict(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            limit_train_batches=0.4,
-            limit_val_batches=0.2,
-            gpus=[0, 1],
-            distributed_backend=backend,
-            progress_bar_refresh_rate=0
-        )
+        try:
+            trainer_options = dict(
+                default_root_dir=tmpdir,
+                max_epochs=1,
+                limit_train_batches=0.4,
+                limit_val_batches=0.2,
+                gpus=[0, 1],
+                distributed_backend=backend,
+                progress_bar_refresh_rate=0
+            )
 
-        model = EvalModelTemplate()
+            model = EvalModelTemplate()
 
-        # tutils.run_model_test(trainer_options, model)
-        trainer = Trainer(**trainer_options)
-        result = trainer.fit(model)
-        assert result
+            # tutils.run_model_test(trainer_options, model)
+            trainer = Trainer(**trainer_options)
+            result = trainer.fit(model)
+            assert result
 
-        # test memory helper functions
-        memory.get_memory_profile('min_max')
-        assert 34 == 12, 'debug'
+            # test memory helper functions
+            memory.get_memory_profile('min_max')
+            assert 34 == 12, 'debug'
+        except Exception as e:
+            raise Exception(e)
+
 
     import threading
 
