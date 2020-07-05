@@ -20,7 +20,6 @@ else:
     TPU_AVAILABLE = True
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
     pytest.param([1], 'xla:1'),
