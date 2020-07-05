@@ -70,8 +70,8 @@ class TestModel(ModelTemplateData,
         :return:
         """
         self.c_d1 = nn.Linear(
-            in_features=self.in_features,
-            out_features=self.hidden_dim
+            in_features=10,
+            out_features=20
         )
         # self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
         # self.c_d1_drop = nn.Dropout(self.drop_prob)
