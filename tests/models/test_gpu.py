@@ -26,7 +26,7 @@ def test_multi_gpu_none_backend(tmpdir):
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
-        gpus='-1'
+        gpus=2
     )
 
     model = EvalModelTemplate()
