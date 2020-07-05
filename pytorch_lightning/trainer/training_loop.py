@@ -637,7 +637,6 @@ class TrainerTrainLoopMixin(ABC):
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
                 batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
 
-                import pdb; pdb.set_trace()
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
 
                 # track hiddens
