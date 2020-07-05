@@ -22,23 +22,23 @@ def decorator(func):
         print('-' * 100)
         print(*args, **kwargs)
         print('-' * 100)
-        from multiprocessing import Process, Queue
-        queue = Queue()
-
-        def inner_f(queue, *args, **kwargs):
-            try:
-                func(*args, **kwargs)
-                queue.put(1)
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                queue.put(-1)
-
-        p = Process(target=inner_f, args=args, kwargs=kwargs)
-        p.start()
-        p.join()
-        result = queue.get()
-        assert result == 1
+        # from multiprocessing import Process, Queue
+        # queue = Queue()
+        #
+        # def inner_f(queue, *args, **kwargs):
+        #     try:
+        #         func(*args, **kwargs)
+        #         queue.put(1)
+        #     except Exception as e:
+        #         import traceback
+        #         traceback.print_exc()
+        #         queue.put(-1)
+        #
+        # p = Process(target=inner_f, args=args, kwargs=kwargs)
+        # p.start()
+        # p.join()
+        # result = queue.get()
+        # assert result == 1
 
     return wrapper
 
