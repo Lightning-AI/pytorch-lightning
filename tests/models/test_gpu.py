@@ -57,13 +57,12 @@ def test_multi_gpu_model(tmpdir, backend):
 
         # test memory helper functions
         memory.get_memory_profile('min_max')
+        assert 34 == 12, 'debug'
 
     from multiprocessing import Process, Queue
     p = Process(target=f, args=(tmpdir, backend))
     p.start()
     p.join()
-
-    assert 34 == 12, 'debug'
 
 
 @pytest.mark.spawn
