@@ -24,6 +24,8 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert set(os.listdir(tmpdir)) == {'.trash'}
     run_id = logger.run_id
     exp_id = logger.experiment_id
+
+    # multiple experiment calls should not lead to new experiment folders
     for i in range(2):
         _ = logger.experiment
         assert set(os.listdir(tmpdir)) == {'.trash', exp_id}

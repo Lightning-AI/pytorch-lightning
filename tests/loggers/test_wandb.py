@@ -2,8 +2,14 @@ import os
 import pickle
 from unittest import mock
 
+import wandb
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
+from tests.base import EvalModelTemplate
+
+# fake api key and user
+os.environ.update(WANDB_API_KEY=('X' * 40), WANDB_ENTITY='username')
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -64,3 +70,30 @@ def test_wandb_pickle(wandb, tmpdir):
     assert wandb.init.call_args[1]['id'] == 'the_id'
 
     del os.environ['WANDB_MODE']
+
+
+def test_wandb_logger_dirs_creation(tmpdir):
+    """ Test that the logger creates the folders and files in the right place. """
+    logger = WandbLogger(project='project', name='name', save_dir=str(tmpdir), offline=True, anonymous=True)
+    assert logger.version is None
+    assert logger.name is None
+    assert str(tmpdir) == logger.save_dir
+    assert not os.listdir(tmpdir)
+    # logger.log_metrics({'x': 1})
+    version = logger.version
+
+    # multiple experiment calls should not lead to new experiment folders
+    for _ in range(2):
+        _ = logger.experiment
+
+    wandb_dir = tmpdir / wandb.wandb_dir()
+    runs_folders = [p for p in os.listdir(wandb_dir) if p.endswith(version)]
+    assert len(runs_folders) == 1
+    assert len(os.listdir(wandb_dir / runs_folders[0]))
+
+    model = EvalModelTemplate()
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
+    trainer.fit(model)
+
+    assert trainer.ckpt_path == trainer.weights_save_path == str(tmpdir / 'project' / version / 'checkpoints')
+    assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
