@@ -2,7 +2,6 @@ import torch
 
 # from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base.develop_utils import load_model_from_checkpoint, init_checkpoint_callback, get_default_logger, \
     reset_seed
 
@@ -48,9 +47,12 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     trainer_options.update(logger=logger)
 
     if 'checkpoint_callback' not in trainer_options:
-        trainer_options.update(checkpoint_callback=True)
+        # logger file to get weights
+        checkpoint = init_checkpoint_callback(logger)
+        trainer_options.update(checkpoint_callback=checkpoint)
 
     # fit model
+
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
@@ -58,7 +60,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
+    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.dirpath)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
