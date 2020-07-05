@@ -30,7 +30,13 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     )
 
     model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
+
+    import pdb; pdb.set_trace()
+    print(trainer.checkpoint_callback.best_model_path)
+
+    # tpipes.run_model_test(trainer_options, model)
 
 #
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
