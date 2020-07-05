@@ -91,6 +91,9 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         output = trained_model(batch, 0)
         acc = output['val_acc']
         acc = torch.mean(acc).item()
+        print('-' * 100)
+        print(acc)
+        print('-' * 100)
 
     else:
         y_hat = trained_model(x)
