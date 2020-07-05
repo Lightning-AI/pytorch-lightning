@@ -1037,7 +1037,6 @@ class Trainer(
     def can_prepare_data(self):
         if self.prepare_data_per_node:
             return self.local_rank == 0
-
         else:
             return self.node_rank == 0 and self.local_rank == 0
 
