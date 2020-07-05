@@ -241,8 +241,6 @@ class TrainerDDPMixin(ABC):
         self.use_horovod = False
         self.single_gpu = False
 
-        import pdb;
-        pdb.set_trace()
         if distributed_backend is None:
             if self.has_horovodrun():
                 self._set_horovod_backend()
