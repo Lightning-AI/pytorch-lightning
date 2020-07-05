@@ -16,12 +16,11 @@ from tests.base.model_valid_epoch_ends import ValidationEpochEndVariations
 from tests.base.model_valid_steps import ValidationStepVariations
 
 
-class TestModel(LightningModule):
+class TestModel(ModelTemplateData, LightningModule):
 
     def __init__(self, test):
         super().__init__()
         self.test = test
-        assert 'a' == 'b'
 
     def forward(self, x):
         return x
