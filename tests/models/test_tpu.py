@@ -79,7 +79,6 @@ def test_early_stop_checkpoints_on_tpu(tmpdir, tpu_cores, expected_device):
         limit_val_batches=10,
         tpu_cores=tpu_cores,
     )
-    assert True == False
     trainer.fit(model)
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
