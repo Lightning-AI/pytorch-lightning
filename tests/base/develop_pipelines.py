@@ -103,6 +103,8 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
         acc = torch.tensor(acc)
         acc = acc.item()
 
+    print('-' * 100)
+    print(acc)
     assert acc == 123123
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
