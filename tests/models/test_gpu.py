@@ -16,6 +16,56 @@ from warnings import warn
 import torch.distributed as dist
 
 
+def decorator(func):
+
+    def wrapper():
+        from multiprocessing import Process, Queue
+        queue = Queue()
+
+        def inner_f(queue):
+            try:
+                func()
+                queue.put(1)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                queue.put(-1)
+
+        p = Process(target=inner_f, args=(queue, ))
+        p.start()
+        p.join()
+        result = queue.get()
+        assert result == 1
+
+    return wrapper
+
+@decorator
+@pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model_test(tmpdir, backend):
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=[0, 1],
+        distributed_backend=backend,
+        progress_bar_refresh_rate=0
+    )
+
+    model = EvalModelTemplate()
+
+    # tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result
+
+    # test memory helper functions
+    memory.get_memory_profile('min_max')
+
+
 @pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
@@ -58,7 +108,6 @@ def test_multi_gpu_model(tmpdir, backend):
     p.join()
     result = queue.get()
     assert result == 1
-
 #
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 # @pytest.mark.parametrize('gpus', [1, [0], [1]])
