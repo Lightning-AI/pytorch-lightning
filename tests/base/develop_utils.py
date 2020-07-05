@@ -34,45 +34,6 @@ def get_default_logger(save_dir, version=None):
     return logger
 
 
-def get_data_path(expt_logger, path_dir=None):
-    # some calls contain only experiment not complete logger
-    expt = expt_logger.experiment if hasattr(expt_logger, 'experiment') else expt_logger
-    # each logger has to have these attributes
-    name, version = expt_logger.name, expt_logger.version
-    # only the test-tube experiment has such attribute
-    if hasattr(expt, 'get_data_path'):
-        return expt.get_data_path(name, version)
-    # the other experiments...
-    if not path_dir:
-        if hasattr(expt_logger, 'save_dir') and expt_logger.save_dir:
-            path_dir = expt_logger.save_dir
-        else:
-            path_dir = TEMP_PATH
-    path_expt = os.path.join(path_dir, name, 'version_%s' % version)
-    # try if the new sub-folder exists, typical case for test-tube
-    if not os.path.isdir(path_expt):
-        path_expt = path_dir
-    return path_expt
-
-
-def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate, path_expt=None):
-    # load trained model
-    path_expt_dir = get_data_path(logger, path_dir=path_expt)
-    hparams_path = os.path.join(path_expt_dir, TensorBoardLogger.NAME_HPARAMS_FILE)
-
-    checkpoints = [x for x in os.listdir(root_weights_dir) if '.ckpt' in x]
-    weights_dir = os.path.join(root_weights_dir, checkpoints[0])
-
-    trained_model = module_class.load_from_checkpoint(
-        checkpoint_path=weights_dir,
-        hparams_file=hparams_path
-    )
-
-    assert trained_model is not None, 'loading model failed'
-
-    return trained_model
-
-
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     # this model should get 0.80+ acc
     acc = trainer.progress_bar_dict[key]
@@ -90,9 +51,9 @@ def set_random_master_port():
     os.environ['MASTER_PORT'] = str(port)
 
 
-def init_checkpoint_callback(logger, path_dir=None):
-    exp_path = get_data_path(logger, path_dir=path_dir)
+def init_checkpoint_callback(logger):
+    exp_path = logger.save_dir
     ckpt_dir = os.path.join(exp_path, 'checkpoints')
-    os.mkdir(ckpt_dir)
+    os.makedirs(ckpt_dir, exist_ok=True)
     checkpoint = ModelCheckpoint(ckpt_dir)
     return checkpoint

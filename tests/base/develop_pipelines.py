@@ -1,8 +1,9 @@
 import torch
 
-# from pl_examples import LightningTemplateModel
+
 from pytorch_lightning import Trainer
-from tests.base.develop_utils import load_model_from_checkpoint, init_checkpoint_callback, get_default_logger, \
+from tests.base import EvalModelTemplate
+from tests.base.develop_utils import init_checkpoint_callback, get_default_logger, \
     reset_seed
 
 
@@ -17,11 +18,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = load_model_from_checkpoint(
-        trainer.logger,
-        trainer.checkpoint_callback.dirpath,
-        path_expt=trainer_options.get('default_root_dir'),
-    )
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -63,7 +60,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         # we want to test checkpointing on rank 0 only
         return
 
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.dirpath)
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
