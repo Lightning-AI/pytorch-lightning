@@ -37,6 +37,8 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
         limit_val_batches=0.4
     )
     print('AAAAAAAAAAAAAAAAAAAAAAA')
+    assert True == False, 'bug'
+
     model = EvalModelTemplate()
     print('BBBBBBBBBBBBBBBBBB')
     print('-' * 100)
