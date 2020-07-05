@@ -17,7 +17,7 @@ import torch.distributed as dist
 import functools
 
 
-@pytest.mark.parametrize("backend", ['dp', 'ddp_spawn', 'ddp2'])
+@pytest.mark.parametrize("backend", ['dp', 'ddp_spawn'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @tutils.pl_multi_process_test
 def test_multi_gpu_model(tmpdir, backend):
