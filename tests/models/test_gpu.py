@@ -49,7 +49,7 @@ def test_multi_gpu_model(tmpdir, backend):
 
     t = threading.Thread(name=backend, target=f)
     t.start()
-    # t.join()
+    t.join()
 
 
 #
