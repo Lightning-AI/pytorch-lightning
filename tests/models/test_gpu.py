@@ -56,6 +56,9 @@ def test_multi_gpu_model(tmpdir, backend):
     p.start()
     p.join() # this blocks until the process terminates
     result = queue.get()
+    print('-' * 100)
+    print(result)
+    print('-' * 100)
 
     assert result == 1
 
