@@ -765,7 +765,6 @@ class TrainerTrainLoopMixin(ABC):
         # ---------------------------
         # FORWARD
         # ---------------------------
-        import pdb; pdb.set_trace()
         with self.profiler.profile('model_forward'):
             if self.use_amp and NATIVE_AMP_AVALAIBLE:
                 with torch.cuda.amp.autocast():
