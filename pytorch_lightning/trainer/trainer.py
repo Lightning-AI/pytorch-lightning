@@ -961,7 +961,7 @@ class Trainer(
                 model.share_memory()
 
                 # spin up peers
-                mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1), join=False)
+                mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1), daemon=True)
                 print('in PROC 0')
                 self.ddp_train(0, model, is_master=True)
 
