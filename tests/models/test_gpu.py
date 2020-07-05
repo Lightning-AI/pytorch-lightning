@@ -46,6 +46,9 @@ def test_multi_gpu_model(tmpdir, backend):
 
             queue.put(1)
         except Exception as e:
+            if backend == 'ddp':
+                dist.destroy_process_group()
+
             queue.put(-1)
 
     from multiprocessing import Process, Queue
