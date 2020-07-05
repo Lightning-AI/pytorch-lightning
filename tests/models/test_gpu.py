@@ -14,23 +14,6 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-@pytest.mark.parametrize('gpus', [1, [0], [1]])
-def test_single_gpu_model(tmpdir, gpus):
-    """Make sure single GPU works (DP mode)."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        gpus=gpus
-    )
-
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
-
-
 @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
@@ -62,6 +45,23 @@ def test_multi_gpu_model(tmpdir, backend):
 
     t = threading.Thread(name=backend, target=f)
     t.start()
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.parametrize('gpus', [1, [0], [1]])
+def test_single_gpu_model(tmpdir, gpus):
+    """Make sure single GPU works (DP mode)."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        gpus=gpus
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.mark.spawn
