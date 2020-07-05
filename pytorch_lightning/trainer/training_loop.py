@@ -781,6 +781,7 @@ class TrainerTrainLoopMixin(ABC):
             training_step_output_for_epoch_end = training_step_output
             training_step_output = self.process_output(training_step_output, train=True)
 
+            import pdb; pdb.set_trace()
             # TODO: temporary part of structured results PR
             training_step_output = AttributeDict(
                 batch_loss=training_step_output[0],
