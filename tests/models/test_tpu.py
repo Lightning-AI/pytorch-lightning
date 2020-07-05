@@ -62,7 +62,6 @@ def test_base_tpu_16bit_model(tmpdir, tpu_cores, expected_device):
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
     pytest.param([1], 'xla:1'),
