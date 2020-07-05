@@ -51,6 +51,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         trainer_options.update(checkpoint_callback=checkpoint)
 
     # fit model
+    assert False == True, 'debug'
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
@@ -65,7 +66,6 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     if not isinstance(test_loaders, list):
         test_loaders = [test_loaders]
 
-    assert False == True, 'debug'
     [run_prediction(dataloader, pretrained_model) for dataloader in test_loaders]
 
     if with_hpc:
