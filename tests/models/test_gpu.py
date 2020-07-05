@@ -22,8 +22,11 @@ def test_num_training_batches(self):
     trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
     trainer.fit(model)
 
+    assert len(model.train_dataloader()) == 10
+    assert len(model.val_dataloader()) == 10
+    assert isinstance(trainer.num_val_batches, list)
+    assert trainer.num_val_batches[0] == 10
     assert trainer.num_training_batches == 10
-    assert trainer.num_val_batches ==  1123123
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
