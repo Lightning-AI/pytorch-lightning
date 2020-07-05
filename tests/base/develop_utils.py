@@ -36,6 +36,7 @@ def get_default_logger(save_dir, version=None):
 
 
 def get_data_path(expt_logger, path_dir=None):
+    import pdb; pdb.set_trace()
     # some calls contain only experiment not complete logger
     expt = expt_logger.experiment if hasattr(expt_logger, 'experiment') else expt_logger
     # each logger has to have these attributes
