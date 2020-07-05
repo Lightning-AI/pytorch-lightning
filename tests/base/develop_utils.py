@@ -5,7 +5,7 @@ import numpy as np
 # from pl_examples import LightningTemplateModel
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
 import functools
@@ -37,13 +37,13 @@ def get_default_logger(save_dir, version=None):
 
 def get_data_path(expt_logger, path_dir=None):
     # some calls contain only experiment not complete logger
-    expt = expt_logger.experiment if hasattr(expt_logger, 'experiment') else expt_logger
 
     # each logger has to have these attributes
     name, version = expt_logger.name, expt_logger.version
 
     # only the test-tube experiment has such attribute
-    if hasattr(expt, 'get_data_path'):
+    if isinstance(expt_logger, TestTubeLogger):
+        expt = expt_logger.experiment if hasattr(expt_logger, 'experiment') else expt_logger
         return expt.get_data_path(name, version)
 
     # the other experiments...
