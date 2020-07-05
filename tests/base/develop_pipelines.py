@@ -38,6 +38,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
 
 def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
+    assert False == True, 'debug'
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
@@ -51,7 +52,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         trainer_options.update(checkpoint_callback=checkpoint)
 
     # fit model
-    assert False == True, 'debug'
+
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 

@@ -39,7 +39,7 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
 
     model = EvalModelTemplate()
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
 @pytest.mark.spawn
