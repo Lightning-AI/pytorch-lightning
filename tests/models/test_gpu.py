@@ -17,6 +17,30 @@ import torch.distributed as dist
 import functools
 
 
+def test_multi_gpu_model_dp(tmpdir):
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=[0, 1],
+        distributed_backend='dp',
+        progress_bar_refresh_rate=0
+    )
+
+    model = EvalModelTemplate()
+
+    # tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result
+
+    # test memory helper functions
+    memory.get_memory_profile('min_max')
+
+
 @pytest.mark.parametrize("backend", ['dp', 'ddp_spawn'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @tutils.pl_multi_process_test
