@@ -552,7 +552,6 @@ class Trainer(
         self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
-        import pdb; pdb.set_trace()
         self.configure_logger(logger)
         self.log_save_interval = log_save_interval
         self.val_check_interval = val_check_interval
