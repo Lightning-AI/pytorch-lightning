@@ -60,7 +60,8 @@ def test_multi_gpu_model(tmpdir, backend):
 
     from multiprocessing import Process, Queue
     p = Process(target=f, args=(tmpdir, backend))
-
+    p.start()
+    p.join()
 
     assert 34 == 12, 'debug'
 
