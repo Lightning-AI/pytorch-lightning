@@ -20,32 +20,6 @@ import torch.distributed as dist
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
 
-    def g(queue, tmpdir, backend):
-
-        tutils.set_random_master_port()
-
-        trainer_options = dict(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            limit_train_batches=0.4,
-            limit_val_batches=0.2,
-            gpus=[0, 1],
-            distributed_backend=backend,
-            progress_bar_refresh_rate=0
-        )
-
-        model = EvalModelTemplate()
-
-        # tutils.run_model_test(trainer_options, model)
-        trainer = Trainer(**trainer_options)
-        result = trainer.fit(model)
-        assert result
-
-        # test memory helper functions
-        memory.get_memory_profile('min_max')
-        assert 34 == 12, 'debug'
-        queue.put(1)
-
     def f(queue, tmpdir, backend):
 
         try:
@@ -86,10 +60,6 @@ def test_multi_gpu_model(tmpdir, backend):
     p.start()
     p.join() # this blocks until the process terminates
     result = queue.get()
-    print('-' * 100)
-    print(result)
-    print('-' * 100)
-
     assert result == 1
 
 #
