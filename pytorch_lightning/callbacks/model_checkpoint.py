@@ -338,7 +338,9 @@ class ModelCheckpoint(Callback):
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == 'min' else max
+        print('&' * 100)
         print(self.best_model_path)
+        print('&' * 100)
         self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
         self.best_model_score = self.best_k_models[self.best_model_path]
 
