@@ -58,6 +58,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
+    import pdb; pdb.set_trace()
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
