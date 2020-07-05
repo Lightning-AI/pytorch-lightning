@@ -43,7 +43,7 @@ def test_multi_gpu_model(tmpdir, backend):
         memory.get_memory_profile('min_max')
         assert 34 == 12, 'debug'
     except Exception as e:
-        raise Exception(e)
+        assert 12 == 24, 'test failed'
 
 
     # import threading
