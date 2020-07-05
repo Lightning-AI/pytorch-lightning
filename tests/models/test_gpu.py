@@ -46,11 +46,9 @@ def test_multi_gpu_model(tmpdir, backend):
             memory.get_memory_profile('min_max')
             queue.put(1)
         except Exception as e:
-            # if backend == 'ddp':
-            #     dist.destroy_process_group()
-
+            import traceback
+            traceback.print_exc()
             queue.put(-1)
-            queue.put(e)
 
     from multiprocessing import Process, Queue
     queue = Queue()
@@ -59,9 +57,7 @@ def test_multi_gpu_model(tmpdir, backend):
     p.start()
     p.join()
     result = queue.get()
-    # assert result == 1
-    ex = queue.get()
-    print(ex)
+    assert result == 1
 
 #
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
