@@ -260,6 +260,11 @@ class NeptuneLogger(LightningLoggerBase):
             self.experiment.stop()
 
     @property
+    def save_dir(self) -> Optional[str]:
+        # Neptune does not save any local files
+        return None
+
+    @property
     def name(self) -> str:
         if self.offline_mode:
             return 'offline-name'

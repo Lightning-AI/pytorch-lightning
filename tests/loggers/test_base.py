@@ -1,4 +1,5 @@
 import pickle
+from typing import Optional
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -48,6 +49,15 @@ class CustomLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status):
         self.finalized_status = status
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        """
+        Return the root directory where experiment logs get saved, or `None` if the logger does not
+        save data locally.
+        """
+        return None
+
 
     @property
     def name(self):
