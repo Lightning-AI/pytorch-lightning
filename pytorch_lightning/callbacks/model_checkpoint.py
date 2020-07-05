@@ -267,6 +267,8 @@ class ModelCheckpoint(Callback):
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
+        import pdb; pdb.set_trace()
+
         # only run on main process
         if trainer.global_rank != 0:
             return
