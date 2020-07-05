@@ -189,6 +189,7 @@ class ModelHooks(Module):
         loss.backward()
 
     def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
+        import pdb; pdb.set_trace()
         if NATIVE_AMP_AVALAIBLE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
 
