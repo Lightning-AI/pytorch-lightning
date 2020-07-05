@@ -26,8 +26,6 @@ else:
     pytest.param([8], 'xla:8'),
 ])
 def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
-    assert True == False, 'bug'
-
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -37,15 +35,8 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
         limit_train_batches=0.4,
         limit_val_batches=0.4
     )
-    print('AAAAAAAAAAAAAAAAAAAAAAA')
-    assert True == False, 'bug'
 
     model = EvalModelTemplate()
-    print('BBBBBBBBBBBBBBBBBB')
-    print('-' * 100)
-    print(tpipes)
-    print('-' * 100)
-    assert True == False, 'bug'
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
