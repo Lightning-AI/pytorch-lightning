@@ -40,7 +40,6 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
     pytest.param([1], 'xla:1'),
@@ -63,7 +62,6 @@ def test_base_tpu_16bit_model(tmpdir, tpu_cores, expected_device):
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
     pytest.param([1], 'xla:1'),
@@ -85,7 +83,6 @@ def test_early_stop_checkpoints_on_tpu(tmpdir, tpu_cores, expected_device):
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
     pytest.param([1], 'xla:1'),
@@ -106,7 +103,6 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("tpu_cores", [1, 8])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_multi_core_tpu_model(tmpdir, tpu_cores):
@@ -123,7 +119,6 @@ def test_multi_core_tpu_model(tmpdir, tpu_cores):
     assert trainer.tpu_id is None
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
@@ -143,7 +138,6 @@ def test_dataloaders_passed_to_fit(tmpdir):
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_mixed_precision_with_tpu(tmpdir, tpu_cores):
