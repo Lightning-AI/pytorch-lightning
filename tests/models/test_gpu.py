@@ -26,7 +26,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn',
+        distributed_backend='dp',
     )
 
     model = EvalModelTemplate()
