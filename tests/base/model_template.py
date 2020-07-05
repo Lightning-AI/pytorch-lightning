@@ -62,9 +62,9 @@ class TestModel(ModelTemplateData,
         # self.example_input_array = torch.rand(5, 28 * 28)
 
         # build model
-        self.__build_model()
+        self.build_model()
 
-    def __build_model(self):
+    def build_model(self):
         """
         Simple model for testing
         :return:
