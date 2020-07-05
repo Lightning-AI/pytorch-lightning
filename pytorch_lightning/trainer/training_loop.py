@@ -470,9 +470,6 @@ class TrainerTrainLoopMixin(ABC):
             print('-' * 100)
             print(f'RANK: {self.global_rank}', should_check_val, is_last_batch, batch_idx, self.val_check_batch)
             print('-' * 100)
-            if batch_idx == 400:
-                should_check_val = True
-
             if self.fast_dev_run or should_check_val:
                 self.run_evaluation(test_mode=False)
 
