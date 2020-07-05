@@ -80,7 +80,6 @@ def test_single_gpu_model(tmpdir, gpus):
 
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model)
-    assert 2 == 3
 #
 #
 # @pytest.mark.spawn
