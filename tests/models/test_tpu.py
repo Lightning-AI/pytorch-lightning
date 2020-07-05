@@ -38,7 +38,10 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
     )
 
     model = EvalModelTemplate()
+    print('-' * 100)
     print(tpipes)
+    print('-' * 100)
+    assert True == False, 'bug'
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
