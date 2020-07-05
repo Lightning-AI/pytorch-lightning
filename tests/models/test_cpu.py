@@ -130,6 +130,7 @@ def test_multi_cpu_model_ddp(tmpdir):
 
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    assert True == False, 'spawn bug'
 
 
 def test_lbfgs_cpu_model(tmpdir):
