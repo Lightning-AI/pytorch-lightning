@@ -62,24 +62,25 @@ class TestModel(ModelTemplateData,
         # self.example_input_array = torch.rand(5, 28 * 28)
 
         # build model
-        # self.build_model()
+        self.__build_model()
 
-    def build_model(self):
+    def __build_model(self):
         """
         Simple model for testing
         :return:
         """
-        self.c_d1 = nn.Linear(
-            in_features=self.in_features,
-            out_features=self.hidden_dim
-        )
-        self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
-        self.c_d1_drop = nn.Dropout(self.drop_prob)
-
-        self.c_d2 = nn.Linear(
-            in_features=self.hidden_dim,
-            out_features=self.out_features
-        )
+        pass
+        # self.c_d1 = nn.Linear(
+        #     in_features=self.in_features,
+        #     out_features=self.hidden_dim
+        # )
+        # self.c_d1_bn = nn.BatchNorm1d(self.hidden_dim)
+        # self.c_d1_drop = nn.Dropout(self.drop_prob)
+        #
+        # self.c_d2 = nn.Linear(
+        #     in_features=self.hidden_dim,
+        #     out_features=self.out_features
+        # )
 
     def forward(self, x):
         return x
