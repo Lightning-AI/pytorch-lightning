@@ -725,6 +725,9 @@ class TrainerTrainLoopMixin(ABC):
                 self.hiddens
             ).loss
 
+            import pdb;
+            pdb.set_trace()
+
             # apply TPU optimizer
             if self.use_tpu and XLA_AVAILABLE:
                 model.optimizer_step(self.current_epoch, batch_idx,
@@ -740,6 +743,7 @@ class TrainerTrainLoopMixin(ABC):
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_lbfgs=True)
+
 
             # when using 16-bit
             else:
