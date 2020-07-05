@@ -78,30 +78,51 @@ def test_single_gpu_model(tmpdir, gpus):
 
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model)
-#
-#
-# @pytest.mark.spawn
-# @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# def test_multi_gpu_early_stop(tmpdir, backend):
-#     """Make sure DDP works. with early stopping"""
-#     tutils.set_random_master_port()
-#
-#     trainer_options = dict(
-#         default_root_dir=tmpdir,
-#         early_stop_callback=True,
-#         max_epochs=50,
-#         limit_train_batches=10,
-#         limit_val_batches=10,
-#         gpus=[0, 1],
-#         distributed_backend=backend,
-#     )
-#
-#     model = EvalModelTemplate()
-#     # tutils.run_model_test(trainer_options, model)
-#     trainer = Trainer(**trainer_options)
-#     result = trainer.fit(model)
-#     assert result
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_early_stop_dp(tmpdir):
+    """Make sure DDP works. with early stopping"""
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gpus=[0, 1],
+        distributed_backend='dp',
+    )
+
+    model = EvalModelTemplate()
+    # tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
+    """Make sure DDP works. with early stopping"""
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
+    )
+
+    model = EvalModelTemplate()
+    # tutils.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+    assert result
+
 #
 #
 # @pytest.mark.spawn
