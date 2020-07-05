@@ -57,8 +57,7 @@ def test_multi_gpu_model(tmpdir, backend):
     memory.get_memory_profile('min_max')
 
 
-@pytest.mark.spawn
-@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
+@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2', 'ddp_spawn'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop(tmpdir, backend):
     """Make sure DDP works. with early stopping"""
@@ -81,7 +80,6 @@ def test_multi_gpu_early_stop(tmpdir, backend):
     assert result
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
@@ -106,7 +104,6 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
