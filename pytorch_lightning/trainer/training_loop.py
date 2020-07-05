@@ -838,7 +838,7 @@ class TrainerTrainLoopMixin(ABC):
                 model_ref.on_after_backward()
 
         result = AttributeDict(
-            loss=untouched_loss,
+            loss=closure_loss,
             training_step_output=training_step_output,
             training_step_output_for_epoch_end=training_step_output_for_epoch_end,
             hiddens=training_step_output.hiddens,
