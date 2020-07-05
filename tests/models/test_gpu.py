@@ -32,7 +32,7 @@ def test_multi_gpu_model(tmpdir, backend):
         )
 
         model = TestModel(12)
-        assert model.test == 15, 'debug'
+        assert model.drop_prob == 15, 'debug'
 
         # tutils.run_model_test(trainer_options, model)
         trainer = Trainer(**trainer_options)

@@ -29,9 +29,37 @@ class TestModel(ModelTemplateData,
                 ConfigureOptimizersPool,
                 LightningModule):
 
-    def __init__(self, test):
+    def __init__(
+            self,
+            drop_prob: float = 0.2,
+            batch_size: int = 32,
+            in_features: int = 28 * 28,
+            learning_rate: float = 0.001 * 8,
+            optimizer_name: str = 'adam',
+            data_root: str = PATH_DATASETS,
+            out_features: int = 10,
+            hidden_dim: int = 1000,
+            b1: float = 0.5,
+            b2: float = 0.999
+    ):
+        # init superclass
         super().__init__()
-        self.test = test
+        self.save_hyperparameters()
+
+        self.drop_prob = drop_prob
+        self.batch_size = batch_size
+        self.in_features = in_features
+        self.learning_rate = learning_rate
+        self.optimizer_name = optimizer_name
+        self.data_root = data_root
+        self.out_features = out_features
+        self.hidden_dim = hidden_dim
+        self.b1 = b1
+        self.b2 = b2
+
+        # if you specify an example input, the summary will show input/output for each layer
+        # TODO: to be fixed in #1773
+        # self.example_input_array = torch.rand(5, 28 * 28)
 
     def forward(self, x):
         return x
