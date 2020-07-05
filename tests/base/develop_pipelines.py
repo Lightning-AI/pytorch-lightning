@@ -3,7 +3,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
-from tests.base.develop_utils import init_checkpoint_callback, get_default_logger, \
+from tests.base.develop_utils import load_model_from_checkpoint, init_checkpoint_callback, get_default_logger, \
     reset_seed
 
 
@@ -61,7 +61,11 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         assert not hasattr(trainer, 'ckpt_path')
         return
 
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = load_model_from_checkpoint(
+        trainer.logger,
+        trainer.checkpoint_callback.dirpath,
+        path_expt=trainer_options.get('default_root_dir'),
+    )
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
