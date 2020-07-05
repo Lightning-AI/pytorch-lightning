@@ -56,8 +56,9 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
 
     # test model loading
     if trainer.global_rank > 0:
-        # on higher ranks, the checkpoint callback has dirpath undefined
+        # on higher ranks the checkpoint location is unknown
         # we want to test checkpointing on rank 0 only
+        assert not hasattr(trainer, 'ckpt_path')
         return
 
     pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
