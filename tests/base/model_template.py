@@ -17,7 +17,6 @@ from tests.base.model_valid_steps import ValidationStepVariations
 
 
 class TestModel(ModelTemplateData,
-                ModelTemplateData,
                 ModelTemplateUtils,
                 TrainingStepVariations,
                 ValidationStepVariations,
