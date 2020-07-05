@@ -82,7 +82,6 @@ def test_multi_gpu_early_stop(tmpdir, backend):
     assert result
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
