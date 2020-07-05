@@ -21,11 +21,8 @@ else:
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
-    pytest.param([1], 'xla:1'),
-    pytest.param([8], 'xla:8'),
-])
-def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
+@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
+def test_base_tpu_model(tmpdir, tpu_cores):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -41,11 +38,8 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
-    pytest.param([1], 'xla:1'),
-    pytest.param([8], 'xla:8'),
-])
-def test_base_tpu_16bit_model(tmpdir, tpu_cores, expected_device):
+@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
+def test_base_tpu_16bit_model(tmpdir, tpu_cores):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -60,6 +54,8 @@ def test_base_tpu_16bit_model(tmpdir, tpu_cores, expected_device):
     model = EvalModelTemplate()
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
+
+    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
@@ -136,23 +132,6 @@ def test_dataloaders_passed_to_fit(tmpdir):
         val_dataloaders=model.val_dataloader(),
     )
     assert result, "TPU doesn't work with dataloaders passed to fit()."
-
-
-@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_mixed_precision_with_tpu(tmpdir, tpu_cores):
-    """Test if FP16 TPU core training works"""
-    model = EvalModelTemplate()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        tpu_cores=tpu_cores,
-        precision=16
-    )
-    trainer.fit(model)
-    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id'], [
