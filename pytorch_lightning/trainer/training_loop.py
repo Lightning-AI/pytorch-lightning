@@ -796,9 +796,9 @@ class TrainerTrainLoopMixin(ABC):
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
         closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
-        print(closure_loss)
+
         # the loss will get scaled for amp. avoid any modifications to it
-        # untouched_loss = closure_loss.detach().clone()
+        untouched_loss = closure_loss.detach().clone()
 
         # backward pass
         model_ref = self.get_model()
@@ -838,7 +838,7 @@ class TrainerTrainLoopMixin(ABC):
                 model_ref.on_after_backward()
 
         result = AttributeDict(
-            loss=closure_loss,
+            loss=untouched_loss,
             training_step_output=training_step_output,
             training_step_output_for_epoch_end=training_step_output_for_epoch_end,
             hiddens=training_step_output.hiddens,
