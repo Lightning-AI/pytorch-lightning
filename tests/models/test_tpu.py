@@ -38,6 +38,7 @@ def test_base_tpu_model(tmpdir, tpu_cores, expected_device):
     )
 
     model = EvalModelTemplate()
+    assert False == True, 'debug'
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
