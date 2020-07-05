@@ -544,7 +544,7 @@ def test_dataloader_reinit_for_subclass():
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp',
+        distributed_backend='ddp_spawn',
     )
 
     class CustomDummyObj:

@@ -136,7 +136,7 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         gpus=[0, 1],
-        distributed_backend='ddp'
+        distributed_backend='ddp_spawn'
     )
 
     model = EvalModelTemplate()
