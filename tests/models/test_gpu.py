@@ -65,6 +65,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
+    assert 1 == 2, 'a'
 
 
 #
