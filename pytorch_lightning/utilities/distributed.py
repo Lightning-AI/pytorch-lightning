@@ -22,7 +22,7 @@ except AttributeError:
 
 
 def _warn(*args, **kwargs):
-    warnings.warn(*args, **kwargs)
+    warnings.warn(UserWarning(*args, **kwargs))
 
 
 def _info(*args, **kwargs):
