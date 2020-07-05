@@ -14,13 +14,15 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 from warnings import warn
 import torch.distributed as dist
+import functools
 
 
 def decorator(func):
 
-    def wrapper(*args, **kwargs):
+    @functools.wraps(func)
+    def wrapper(x):
         print('-' * 100)
-        print(*args, **kwargs)
+        print(x)
         print('-' * 100)
         # from multiprocessing import Process, Queue
         # queue = Queue()
