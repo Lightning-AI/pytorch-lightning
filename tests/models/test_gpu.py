@@ -20,28 +20,25 @@ from warnings import warn
 def test_multi_gpu_model(tmpdir, backend):
 
     def f():
-    # """Make sure DDP works."""
-    # tutils.set_random_master_port()
-    #
-    # trainer_options = dict(
-    #     default_root_dir=tmpdir,
-    #     max_epochs=1,
-    #     limit_train_batches=0.4,
-    #     limit_val_batches=0.2,
-    #     gpus=[0, 1],
-    #     distributed_backend=backend,
-    # )
-    #
-    # model = EvalModelTemplate()
-    # # tutils.run_model_test(trainer_options, model)
-    # trainer = Trainer(**trainer_options)
-    # result = trainer.fit(model)
-    # assert result
-    #
-    # # test memory helper functions
-    # memory.get_memory_profile('min_max')
-        warn('-' * 100)
-        warn(backend)
+        trainer_options = dict(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=0.4,
+            limit_val_batches=0.2,
+            gpus=[0, 1],
+            distributed_backend=backend,
+        )
+
+        assert 32 == 12, 'debug'
+        model = EvalModelTemplate()
+
+        # tutils.run_model_test(trainer_options, model)
+        trainer = Trainer(**trainer_options)
+        result = trainer.fit(model)
+        assert result
+
+        # test memory helper functions
+        memory.get_memory_profile('min_max')
         assert 34 == 12, 'debug'
 
     import threading
