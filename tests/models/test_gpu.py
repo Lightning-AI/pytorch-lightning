@@ -56,9 +56,9 @@ def test_multi_gpu_model(tmpdir, backend):
     from multiprocessing import Process, Queue
     queue = Queue()
 
-    p = Process(target=g, args=(queue, tmpdir, backend))
+    p = Process(target=f, args=(queue, tmpdir, backend))
     p.start()
-    p.join() # this blocks until the process terminates
+    p.join()
     result = queue.get()
     assert result == 1
 
