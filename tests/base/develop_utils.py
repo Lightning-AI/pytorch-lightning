@@ -8,6 +8,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
+import functools
 
 
 def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
@@ -96,3 +97,29 @@ def init_checkpoint_callback(logger, path_dir=None):
     os.mkdir(ckpt_dir)
     checkpoint = ModelCheckpoint(ckpt_dir)
     return checkpoint
+
+
+def pl_multi_process_test(func):
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+
+        from multiprocessing import Process, Queue
+        queue = Queue()
+
+        def inner_f(queue, **kwargs):
+            try:
+                func(**kwargs)
+                queue.put(1)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                queue.put(-1)
+
+        p = Process(target=inner_f, args=(queue,), kwargs=kwargs)
+        p.start()
+        p.join()
+        result = queue.get()
+        assert result == 1
+
+    return wrapper
