@@ -12,9 +12,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
-from warnings import warn
-import torch.distributed as dist
-import functools
 
 
 def test_multi_gpu_model_dp(tmpdir):
