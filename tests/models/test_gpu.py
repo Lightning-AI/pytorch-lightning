@@ -28,6 +28,7 @@ def test_multi_gpu_model(tmpdir, backend):
             limit_val_batches=0.2,
             gpus=[0, 1],
             distributed_backend=backend,
+            progress_bar_refresh_rate=0
         )
 
         model = EvalModelTemplate()
