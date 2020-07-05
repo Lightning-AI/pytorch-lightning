@@ -22,7 +22,7 @@ def decorator(func):
         from multiprocessing import Process, Queue
         queue = Queue()
 
-        def inner_f(queue):
+        def inner_f(queue, *args, **kwargs):
             try:
                 func(*args, **kwargs)
                 queue.put(1)
@@ -31,7 +31,7 @@ def decorator(func):
                 traceback.print_exc()
                 queue.put(-1)
 
-        p = Process(target=inner_f, args=(queue, ))
+        p = Process(target=inner_f, args=(queue, *args, **kwargs))
         p.start()
         p.join()
         result = queue.get()
