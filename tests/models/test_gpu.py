@@ -44,9 +44,12 @@ def test_multi_gpu_model(tmpdir):
 
     import threading
     for backend in ['dp', 'ddp', 'ddp2']:
-        t = threading.Thread(name=backend, target=f)
-        t.start()
-        t.join()
+        try:
+            t = threading.Thread(name=backend, target=f)
+            t.start()
+            t.join()
+        except Exception as e:
+            raise Exception(e)
 
 
 #
