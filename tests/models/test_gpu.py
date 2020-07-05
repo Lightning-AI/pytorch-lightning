@@ -35,7 +35,7 @@ def test_single_gpu_model(tmpdir, gpus):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
 
-    def f(tmpdir, backend):
+    def f():
         """Make sure DDP works."""
         tutils.set_random_master_port()
 
@@ -58,10 +58,10 @@ def test_multi_gpu_model(tmpdir, backend):
         memory.get_memory_profile('min_max')
         assert 34 == 12, 'debug'
 
-    from multiprocessing import Process, Queue
-    p = Process(target=f, args=(tmpdir, backend))
-    p.start()
-    p.join()
+    import threading
+
+    t = threading.Thread(name=backend, target=f)
+    t.start()
 
 
 @pytest.mark.spawn
