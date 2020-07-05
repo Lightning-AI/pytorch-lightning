@@ -2,6 +2,7 @@ import torch
 
 # from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base.develop_utils import load_model_from_checkpoint, init_checkpoint_callback, get_default_logger, \
     reset_seed
 
@@ -48,7 +49,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
 
     if 'checkpoint_callback' not in trainer_options:
         # logger file to get weights
-        checkpoint = init_checkpoint_callback(logger)
+        checkpoint = ModelCheckpoint(save_dir)
         trainer_options.update(checkpoint_callback=checkpoint)
 
     # fit model
