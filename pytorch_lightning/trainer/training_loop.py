@@ -725,9 +725,6 @@ class TrainerTrainLoopMixin(ABC):
                 self.hiddens
             ).loss
 
-            import pdb;
-            pdb.set_trace()
-
             # apply TPU optimizer
             if self.use_tpu and XLA_AVAILABLE:
                 model.optimizer_step(self.current_epoch, batch_idx,
@@ -801,7 +798,7 @@ class TrainerTrainLoopMixin(ABC):
         # (if accumulate_grad_batches = 1 no effect)
         closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
 
-        import pdb; pdb.set_trace()
+        # the loss will get scaled for amp. avoid any modifications to it
         untouched_loss = closure_loss.detach().clone()
 
         # backward pass
