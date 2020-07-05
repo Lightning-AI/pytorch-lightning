@@ -675,6 +675,7 @@ class TrainerTrainLoopMixin(ABC):
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
+        import pdb; pdb.set_trace()
         self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
         result = AttributeDict(
