@@ -18,7 +18,11 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    pretrained_model = load_model_from_checkpoint(
+        trainer.logger,
+        trainer.checkpoint_callback.dirpath,
+        path_expt=trainer_options.get('default_root_dir'),
+    )
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
@@ -61,11 +65,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
         assert not hasattr(trainer, 'ckpt_path')
         return
 
-    pretrained_model = load_model_from_checkpoint(
-        trainer.logger,
-        trainer.checkpoint_callback.dirpath,
-        path_expt=trainer_options.get('default_root_dir'),
-    )
+    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.dirpath)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
