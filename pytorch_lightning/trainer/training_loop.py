@@ -634,7 +634,6 @@ class TrainerTrainLoopMixin(ABC):
                 # ------------------------------
                 # POST forward bookkeeping
                 # ------------------------------
-                import pdb; pdb.set_trace()
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
                 batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
@@ -676,6 +675,7 @@ class TrainerTrainLoopMixin(ABC):
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
+        import pdb; pdb.set_trace()
         self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
         result = AttributeDict(
