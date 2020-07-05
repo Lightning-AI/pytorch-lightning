@@ -450,7 +450,7 @@ class TrainerTrainLoopMixin(ABC):
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
             batch_output = self.run_training_batch(batch, batch_idx)
-            import pdb; pdb.set_trace()
+
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             if self.is_overridden('training_epoch_end', model=self.get_model()):
@@ -659,7 +659,6 @@ class TrainerTrainLoopMixin(ABC):
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
 
                     # calculate running loss for display
-                    import pdb; pdb.set_trace()
                     self.running_loss.append(self.batch_loss_value.mean())
 
                     # reset for next set of accumulated grads
