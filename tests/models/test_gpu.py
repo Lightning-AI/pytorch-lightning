@@ -35,26 +35,32 @@ def test_single_gpu_model(tmpdir, gpus):
 @pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model(tmpdir, backend):
-    """Make sure DDP works."""
-    tutils.set_random_master_port()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        gpus=[0, 1],
-        distributed_backend=backend,
-    )
+    def f(tmpdir, backend):
+        """Make sure DDP works."""
+        tutils.set_random_master_port()
 
-    model = EvalModelTemplate()
-    # tutils.run_model_test(trainer_options, model)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
+        trainer_options = dict(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=0.4,
+            limit_val_batches=0.2,
+            gpus=[0, 1],
+            distributed_backend=backend,
+        )
 
-    # test memory helper functions
-    memory.get_memory_profile('min_max')
+        model = EvalModelTemplate()
+        # tutils.run_model_test(trainer_options, model)
+        trainer = Trainer(**trainer_options)
+        result = trainer.fit(model)
+        assert result
+
+        # test memory helper functions
+        memory.get_memory_profile('min_max')
+
+    from multiprocessing import Process, Queue
+    p = Process(target=f, args=(tmpdir, backend))
+
 
     assert 34 == 12, 'debug'
 
