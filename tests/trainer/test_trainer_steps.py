@@ -1,7 +1,11 @@
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+import pytest
+import torch
 
 
+@pytest.mark.spawn
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_training_step_dict(tmpdir):
     """
     Tests that only training_step can be used
