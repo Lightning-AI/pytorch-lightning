@@ -34,7 +34,7 @@ def decorator(func):
                 traceback.print_exc()
                 queue.put(-1)
 
-        p = Process(target=inner_f, args=(queue, *args), kwargs=kwargs)
+        p = Process(target=inner_f, args=args, kwargs=kwargs)
         p.start()
         p.join()
         result = queue.get()
