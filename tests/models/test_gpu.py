@@ -14,21 +14,6 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 PRETEND_N_OF_GPUS = 16
 
 
-def test_num_training_batches(self):
-    """
-    Tests that the correct number of batches are allocated
-    """
-    model = EvalModelTemplate()
-    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
-    trainer.fit(model)
-
-    assert len(model.train_dataloader()) == 10
-    assert len(model.val_dataloader()) == 10
-    assert isinstance(trainer.num_val_batches, list)
-    assert trainer.num_val_batches[0] == 10
-    assert trainer.num_training_batches == 10
-
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     """Make sure DDP works. with early stopping"""
@@ -44,14 +29,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         distributed_backend='ddp_spawn',
     )
 
-    model = EvalModelTemplate()
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-
-    import pdb; pdb.set_trace()
-    print(trainer.checkpoint_callback.best_model_path)
-
-    # tpipes.run_model_test(trainer_options, model)
+    tpipes.run_model_test(trainer_options, model)
 
 #
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")

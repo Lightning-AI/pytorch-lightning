@@ -8,6 +8,33 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+def test_num_training_batches(tmpdir):
+    """
+    Tests that the correct number of batches are allocated
+    """
+    # when we have fewer batches in the dataloader we should use those instead of the limit
+    model = EvalModelTemplate()
+    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
+    trainer.fit(model)
+
+    assert len(model.train_dataloader()) == 10
+    assert len(model.val_dataloader()) == 10
+    assert isinstance(trainer.num_val_batches, list)
+    assert trainer.num_val_batches[0] == 10
+    assert trainer.num_training_batches == 10
+
+    # when we have more batches in the dataloader we should limit them
+    model = EvalModelTemplate()
+    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1)
+    trainer.fit(model)
+
+    assert len(model.train_dataloader()) == 10
+    assert len(model.val_dataloader()) == 10
+    assert isinstance(trainer.num_val_batches, list)
+    assert trainer.num_val_batches[0] == 7
+    assert trainer.num_training_batches == 7
+
+
 def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # Make sure shuffle is correct across loaders initially
