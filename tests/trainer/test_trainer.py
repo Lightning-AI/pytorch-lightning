@@ -103,9 +103,11 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     model_2.eval()
 
 
-@pytest.mark.parametrize(['schedule', 'expected'], [
-        pytest.param({1: 2, 3: 4}, [1, 2, 4]), 
-        pytest.param(3, [3, 3, 3]), 
+@pytest.mark.parametrize(
+    ['schedule', 'expected'],
+    [
+        pytest.param({1: 2, 3: 4}, [1, 2, 4]),
+        pytest.param(3, [3, 3, 3]),
         pytest.param(4, [4, 4, 4])
     ]
 )
