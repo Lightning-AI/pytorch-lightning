@@ -967,6 +967,7 @@ class Trainer(
 
                 # restore main state
                 out = q.get()
+                print(out)
                 # self.checkpoint_callback.best_model_path = path
                 # model.load_state_dict(state)
                 import pdb; pdb.set_trace()
