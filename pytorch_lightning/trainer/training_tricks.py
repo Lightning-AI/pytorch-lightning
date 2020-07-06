@@ -13,6 +13,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 
@@ -135,13 +136,14 @@ class TrainerTrainingTricksMixin(ABC):
                algorithm is terminated
 
         """
-        if not hasattr(model, batch_arg_name):
-            if not hasattr(model.hparams, batch_arg_name):
-                raise MisconfigurationException(
-                    f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
-            log.info(f'Field {batch_arg_name} not found in `model`. '
-                     f'`model.hparams.{batch_arg_name}` will be used instead.')
-            setattr(model, batch_arg_name, getattr(model.hparams, batch_arg_name))
+        if not hasattr(model, batch_arg_name) and not hasattr(model.hparams, batch_arg_name):
+            raise MisconfigurationException(
+                f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
+        elif hasattr(model, batch_arg_name) and hasattr(model.hparams, batch_arg_name):
+            rank_zero_warn(
+                f'Field `model.{batch_arg_name}` and `model.hparams.{batch_arg_name}` are mutually exclusive!'
+                f'`model.{batch_arg_name}` will be used as the initial batch size for scaling.'
+                'If this is not the intended behavior, please remove either one.')
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
@@ -247,9 +249,21 @@ def _adjust_batch_size(trainer,
 
     """
     model = trainer.get_model()
-    batch_size = getattr(model, batch_arg_name)
+    if hasattr(model, batch_arg_name):
+        batch_size = getattr(model, batch_arg_name)
+    else:
+        if isinstance(model.hparams, dict):
+            batch_size = model.hparams[batch_arg_name]
+        else:
+            batch_size = getattr(model.hparams, batch_arg_name)
     if value:
-        setattr(model, batch_arg_name, value)
+        if hasattr(model, batch_arg_name):
+            setattr(model, batch_arg_name, value)
+        else:
+            if isinstance(model.hparams, dict):
+                model.hparams[batch_arg_name] = value
+            else:
+                setattr(model.hparams, batch_arg_name, value)
         new_size = value
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
@@ -257,7 +271,13 @@ def _adjust_batch_size(trainer,
         new_size = int(batch_size * factor)
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-        setattr(model, batch_arg_name, new_size)
+        if hasattr(model, batch_arg_name):
+            setattr(model, batch_arg_name, new_size)
+        else:
+            if isinstance(model.hparams, dict):
+                model.hparams[batch_arg_name] = new_size
+            else:
+                setattr(model.hparams, batch_arg_name, new_size)
     return new_size
 
 
