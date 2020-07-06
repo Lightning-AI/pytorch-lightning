@@ -551,8 +551,7 @@ class TrainerDDPMixin(ABC):
         torch.cuda.empty_cache()
 
         if self.global_rank == 0:
-            q.put(self.checkpoint_callback.best_model_path)
-            q.put(self.get_model().state_dict())
+            q.put([self.checkpoint_callback.best_model_path, self.get_model().state_dict()])
 
     def save_spawn_weights(self, model):
         """
