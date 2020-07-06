@@ -1128,6 +1128,10 @@ class Trainer(
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
             results = self.run_evaluation(test_mode=True)
+            for k, v in results:
+                if isinstance(v, torch.Tensor):
+                    results[k] = v.cpu().item()
+
             return results
 
         # check if we should run validation during training
