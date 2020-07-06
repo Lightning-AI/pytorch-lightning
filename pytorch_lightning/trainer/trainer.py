@@ -1120,7 +1120,7 @@ class Trainer(
         # if cluster resets state, the model will update with the saved weights
         self.model = model
 
-        # restore training and model before hpc call
+        # restore training and model before hpc is called
         self.restore_weights(model)
 
         # when testing requested only run test and return
