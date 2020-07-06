@@ -246,7 +246,6 @@ class TrainerDataLoadingMixin(ABC):
             else:
                 self._check_batch_limits('val_check_interval')
 
-                print(self.num_training_batches)
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
