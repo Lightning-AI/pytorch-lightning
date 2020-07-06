@@ -1173,6 +1173,7 @@ class Trainer(
 
         # CORE TRAINING LOOP
         self.train()
+        import pdb;pdb.set_trace()
 
     def test(
             self,
