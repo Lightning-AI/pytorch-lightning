@@ -8,7 +8,7 @@ def test_ddp_test(tmpdir):
     model = EvalModelTemplate()
     trainer = pl.Trainer(
         default_root_dir=os.getcwd(),
-        max_epochs=10,
+        max_epochs=2,
         limit_train_batches=10,
         limit_val_batches=10,
         gpus=[0, 1],
