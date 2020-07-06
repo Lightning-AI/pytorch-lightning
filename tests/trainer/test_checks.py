@@ -11,7 +11,7 @@ from tests.base import EvalModelTemplate
 
 def test_wrong_train_setting(tmpdir):
     """
-    * Test that an error is thrown when no `training_dataloader()` is defined
+    * Test that an error is thrown when no `train_dataloader()` is defined
     * Test that an error is thrown when no `training_step()` is defined
     """
     tutils.reset_seed()
