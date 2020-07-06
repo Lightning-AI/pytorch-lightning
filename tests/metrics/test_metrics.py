@@ -12,7 +12,7 @@ class DummyTensorMetric(TensorMetric):
     def forward(self, input1, input2):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
-        return 1.
+        return torch.tensor([1.])
 
 
 class DummyNumpyMetric(NumpyMetric):

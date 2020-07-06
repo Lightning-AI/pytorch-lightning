@@ -70,6 +70,10 @@ def convert_to_tensor(data: Any, dtype=None, device=None) -> Any:
     Args:
         data: the data to convert to tensor
 
+        dtype: data type to convert to
+
+        device: device to cast to
+
     Return:
         the converted data
     """
@@ -218,7 +222,7 @@ def _tensor_collection_metric_conversion(func_to_decorate: Callable) -> Callable
 def sync_ddp_if_available(result: Union[torch.Tensor],
                           group: Optional[Any] = None,
                           reduce_op: Optional[Any] = None,
-                          ddp_normalize = False,
+                          ddp_normalize=False,
                           ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
@@ -243,10 +247,10 @@ def sync_ddp_if_available(result: Union[torch.Tensor],
         torch.distributed.barrier(group=group)
         torch.distributed.all_reduce(result, op=reduce_op, group=group,
                                      async_op=False)
-        
+
         if ddp_normalize:
             result / torch.distributed.get_world_size(group)
-        
+
     return result
 
 
