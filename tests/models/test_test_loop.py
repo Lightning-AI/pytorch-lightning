@@ -1,11 +1,12 @@
 import os
 import pytorch_lightning as pl
 from tests.base import EvalModelTemplate
-from tests.base.develop_utils import pl_multi_process_test
+import tests.base.develop_utils as tutils
 
 
-@pl_multi_process_test
+@tutils.pl_multi_process_test
 def test_ddp(tmpdir):
+    tutils.set_random_master_port()
 
     model = EvalModelTemplate()
     trainer = pl.Trainer(
@@ -24,6 +25,7 @@ def test_ddp(tmpdir):
 
 
 def test_ddp_spawn_test(tmpdir):
+    tutils.set_random_master_port()
 
     model = EvalModelTemplate()
     trainer = pl.Trainer(
