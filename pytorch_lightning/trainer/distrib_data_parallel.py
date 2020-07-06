@@ -457,6 +457,8 @@ class TrainerDDPMixin(ABC):
 
         local_rank = 0
         results = self.ddp_train(local_rank, q=None, model=model, is_master=True)
+        del os.environ['WORLD_SIZE']
+
         return results
 
     def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
