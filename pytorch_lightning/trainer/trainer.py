@@ -1128,6 +1128,8 @@ class Trainer(
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
             results = self.run_evaluation(test_mode=True)
+
+            # remove all cuda tensors
             for k, v in results.items():
                 if isinstance(v, torch.Tensor):
                     results[k] = v.cpu().item()
