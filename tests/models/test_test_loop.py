@@ -28,7 +28,7 @@ def test_single_gpu_test(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_dp_spawn_test(tmpdir):
+def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
