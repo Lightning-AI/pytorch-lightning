@@ -555,7 +555,8 @@ class TrainerDDPMixin(ABC):
             q.put(self.checkpoint_callback.best_model_path)
             q.put(results)
 
-        return results
+        if self.global_rank == 0 and self.distributed_backend != 'ddp_spawn':
+            return results
 
     def save_spawn_weights(self, model):
         """
