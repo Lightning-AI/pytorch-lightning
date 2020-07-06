@@ -164,6 +164,10 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+pid = os.getpid()
+rng1 = np.random.RandomState(pid)
+RANDOM_PORTS = rng1.randint(10000, 19999, 100)
+
 
 class TrainerDDPMixin(ABC):
 
@@ -385,10 +389,9 @@ class TrainerDDPMixin(ABC):
         try:
             default_port = os.environ['MASTER_PORT']
         except Exception:
-            # use the process id as a seed to a generator for port only
-            pid = os.getpid()
-            rng1 = np.random.RandomState(pid)
-            default_port = rng1.randint(10000, 19999, 1)[0]
+            global RANDOM_PORTS
+            default_port = RANDOM_PORTS[-1]
+            RANDOM_PORTS = RANDOM_PORTS[:-1]
 
         os.environ['MASTER_PORT'] = str(default_port)
 
