@@ -123,6 +123,7 @@ from time import sleep
 import numpy as np
 from os.path import abspath
 from torch import distributed as dist
+import queue
 
 import torch
 from pytorch_lightning import _logger as log
@@ -455,7 +456,8 @@ class TrainerDDPMixin(ABC):
             sleep(delay)
 
         local_rank = 0
-        self.ddp_train(local_rank, model, is_master=True)
+        results = self.ddp_train(None, local_rank, model, is_master=True)
+        return results
 
     def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
         """
@@ -549,9 +551,11 @@ class TrainerDDPMixin(ABC):
         # clean up memory
         torch.cuda.empty_cache()
 
-        if self.global_rank == 0:
+        if self.global_rank == 0 and q is not None:
             q.put(self.checkpoint_callback.best_model_path)
             q.put(results)
+
+        return results
 
     def save_spawn_weights(self, model):
         """

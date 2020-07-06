@@ -978,7 +978,7 @@ class Trainer(
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
-                self.spawn_ddp_children(model)
+                results = self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
