@@ -1,14 +1,15 @@
 import platform
+from unittest.mock import patch
 
 import pytest
 import torch
 from packaging.version import parse
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Subset, IterableDataset
+from torch.utils.data.dataset import IterableDataset, Subset
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.data_loading import _has_len, _has_iterable_dataset
+from pytorch_lightning.trainer.data_loading import _has_iterable_dataset, _has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -449,7 +450,8 @@ def test_error_on_zero_len_dataloader(tmpdir):
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
-def test_warning_with_few_workers(tmpdir, ckpt_path):
+@patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
+def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
     """ Test that error is raised if dataloader with only a few workers is used """
 
     model = EvalModelTemplate()
@@ -476,16 +478,22 @@ def test_warning_with_few_workers(tmpdir, ckpt_path):
     trainer = Trainer(**trainer_options)
 
     # fit model
-    with pytest.warns(UserWarning, match='train'):
+    with pytest.warns(
+        UserWarning, match='The dataloader, train dataloader, does not have many workers which may be a bottleneck.'
+    ):
         trainer.fit(model, **fit_options)
 
-    with pytest.warns(UserWarning, match='val'):
+    with pytest.warns(
+        UserWarning, match='The dataloader, val dataloader 0, does not have many workers which may be a bottleneck.'
+    ):
         trainer.fit(model, **fit_options)
 
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
     test_options = dict(test_dataloaders=train_dl, ckpt_path=ckpt_path)
-    with pytest.warns(UserWarning, match='test'):
+    with pytest.warns(
+        UserWarning, match='The dataloader, test dataloader 0, does not have many workers which may be a bottleneck.'
+    ):
         trainer.test(**test_options)
 
 
