@@ -964,6 +964,10 @@ class Trainer(
                 q = smp.SimpleQueue()
 
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model, ))
+
+                # restore main state
+                self.checkpoint_callback.best_model_path = q.get()
+                model.load_state_dict(q.get())
                 import pdb; pdb.set_trace()
 
             elif self.distributed_backend == 'ddp':
