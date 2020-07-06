@@ -2,8 +2,11 @@ import os
 import pytorch_lightning as pl
 from tests.base import EvalModelTemplate
 import tests.base.develop_utils as tutils
+import torch
+import pytest
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_single_gpu_test(tmpdir):
     tutils.set_random_master_port()
 
@@ -21,6 +24,7 @@ def test_single_gpu_test(tmpdir):
     assert 'test_acc' in results
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_dp_spawn_test(tmpdir):
     tutils.set_random_master_port()
 
@@ -39,7 +43,7 @@ def test_dp_spawn_test(tmpdir):
     assert 'test_acc' in results
 
 
-@tutils.pl_multi_process_test
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_spawn_test(tmpdir):
     tutils.set_random_master_port()
 
