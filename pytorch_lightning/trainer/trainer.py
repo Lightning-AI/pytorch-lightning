@@ -964,6 +964,8 @@ class Trainer(
                 self.ddp_train(0, model, is_master=True)
                 self.model.cpu()
                 model.cpu()
+                import gc
+                gc.collect()
                 torch.cuda.empty_cache()
                 ctx.join()
 
