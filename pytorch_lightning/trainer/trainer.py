@@ -1220,15 +1220,13 @@ class Trainer(
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
 
-        # if model is not given (None), ckpt_path is given,
-        # load the given checkpoint for testing
+        # load the best checkpoint automatically unless model is given
+        # in which case we use that one
         if model is None and ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
             model = self.get_model().load_from_checkpoint(ckpt_path)
-
-        self.testing = True
 
         if test_dataloaders is not None:
             if model:
@@ -1236,26 +1234,17 @@ class Trainer(
             else:
                 self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
 
-        if model is not None:
-            self.model = model
-            self.fit(model)
+        # sets up testing so we short circuit to eval
+        self.testing = True
 
-        # on tpu, .spawn means we don't have a trained model
-        # TODO: remove TPU spawn
-        elif self.use_tpu:  # pragma: no-cover
-            # attempt to load weights from a spawn
-            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
-            test_model = self.model
-            if os.path.exists(path) and self.on_colab_kaggle:
-                test_model = self.load_spawn_weights(self.model)
+        # run test
+        self.model = model
+        self.fit(model)
 
-            self.fit(test_model)
-        else:
-            self.run_evaluation(test_mode=True)
-
+        # reset the state
         self.testing = False
-
         self.teardown('test')
+
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
             model_ref.teardown('test')
