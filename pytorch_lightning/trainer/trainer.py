@@ -1210,16 +1210,23 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        # --------------------
+        # SETUP HOOK
+        # --------------------
         import pdb; pdb.set_trace()
         self.setup('test')
         model_ref = self.model if model is None else model
         if self.is_function_implemented('setup', model_ref):
             model_ref.setup('test')
 
+        # if user requests the best checkpoint but we don't have it, error
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
 
+        # --------------------
+        # AUTO-LOAD BEST CKPT
+        # --------------------
         # load the best checkpoint automatically unless model is given
         # in which case we use that one
         if model is None and ckpt_path is not None:
@@ -1228,23 +1235,28 @@ class Trainer(
                 ckpt_path = self.checkpoint_callback.best_model_path
             model = self.get_model().load_from_checkpoint(ckpt_path)
 
+        # --------------------
+        # LOAD DATA
+        # --------------------
         if test_dataloaders is not None:
             if model:
                 self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
             else:
                 self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
 
+        # --------------------
+        # RUN TEST SET
+        # --------------------
         # sets up testing so we short circuit to eval
         self.testing = True
-
-        # run test
         self.model = model
         self.fit(model)
-
-        # reset the state
         self.testing = False
-        self.teardown('test')
 
+        # --------------------
+        # TEAR DOWN HOOK
+        # --------------------
+        self.teardown('test')
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
             model_ref.teardown('test')
