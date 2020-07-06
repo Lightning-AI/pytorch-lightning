@@ -39,6 +39,7 @@ def test_dp_spawn_test(tmpdir):
     assert 'test_acc' in results
 
 
+@tutils.pl_multi_process_test
 def test_ddp_spawn_test(tmpdir):
     tutils.set_random_master_port()
 
