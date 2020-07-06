@@ -1268,7 +1268,7 @@ class Trainer(
         self.set_random_port(force=True)
         self.testing = True
         self.model = model
-        self.fit(model)
+        results = self.fit(model)
         self.testing = False
 
         # --------------------
@@ -1278,6 +1278,8 @@ class Trainer(
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
             model_ref.teardown('test')
+
+        return results
 
     def check_model_configuration(self, model: LightningModule):
         r"""
