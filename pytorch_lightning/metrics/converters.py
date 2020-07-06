@@ -10,8 +10,8 @@ from typing import Union, Any, Callable, Optional
 import numpy as np
 import torch
 from torch.utils.data._utils.collate import np_str_obj_array_pattern
-
 from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callable:

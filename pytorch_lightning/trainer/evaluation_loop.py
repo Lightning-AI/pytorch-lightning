@@ -22,7 +22,7 @@ If you have a small dataset you might want to check validation every n epochs
 Set how much of the validation set to check
 -------------------------------------------
 
-If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag.
 
 limit_val_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
@@ -37,7 +37,7 @@ limit_val_batches will be overwritten by overfit_batches if `overfit_batches > 0
 Set how much of the test set to check
 -------------------------------------
 
-If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag.
 
 limit_test_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
@@ -124,15 +124,15 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable, Optional, List
+from typing import Callable, List, Union
 
 import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from torch import distributed as dist
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -144,7 +144,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -164,6 +164,7 @@ class TrainerEvaluationLoopMixin(ABC):
     model: LightningModule
     num_test_batches: List[int]
     num_val_batches: int
+    world_size: int
     fast_dev_run: ...
     process_output: ...
     progress_bar_dict: ...
@@ -222,13 +223,20 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _evaluate(self, model: LightningModule, dataloaders, max_batches: List[int], test_mode: bool = False):
+    def _evaluate(
+        self,
+        model: LightningModule,
+        dataloaders: List[DataLoader],
+        max_batches: Union[int, List[int]],
+        test_mode: bool = False
+    ):
         """Run evaluation code.
 
         Args:
-            model: PT model
-            dataloaders: list of PT dataloaders
-            max_batches: List of scalars
+            model: The model to evaluate.
+            dataloaders: A list of PyTorch dataloaders.
+            max_batches: An integer or list of integers with length of the number of dataloaders. Each
+                entry is the number of batches to process in the corresponding dataloader.
             test_mode:
         """
         # enable eval mode
@@ -243,6 +251,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # bookkeeping
         outputs = []
+
+        # convert max_batches to list
+        if isinstance(max_batches, int):
+            max_batches = [max_batches] * len(dataloaders)
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -274,7 +286,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and self.use_native_amp:
+                if self.use_amp and NATIVE_AMP_AVALAIBLE:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:
@@ -377,23 +389,26 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # add metrics to prog bar
-        self.add_progress_bar_metrics(prog_bar_metrics)
+        # enable no returns
+        if eval_results is not None and len(eval_results) > 0:
+            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # log results of test
-        if test_mode and self.is_global_zero:
-            print('-' * 80)
-            print('TEST RESULTS')
-            pprint(callback_metrics)
-            print('-' * 80)
+            # add metrics to prog bar
+            self.add_progress_bar_metrics(prog_bar_metrics)
 
-        # log metrics
-        self.log_metrics(log_metrics, {})
+            # log results of test
+            if test_mode and self.is_global_zero:
+                print('-' * 80)
+                print('TEST RESULTS')
+                pprint(callback_metrics)
+                print('-' * 80)
 
-        # track metrics for callbacks
-        self.callback_metrics.update(callback_metrics)
+            # log metrics
+            self.log_metrics(log_metrics, {})
+
+            # track metrics for callbacks
+            self.callback_metrics.update(callback_metrics)
 
         # hook
         model.on_post_performance_check()

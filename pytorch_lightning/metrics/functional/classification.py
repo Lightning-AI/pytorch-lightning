@@ -3,6 +3,7 @@ from functools import wraps
 from typing import Optional, Tuple, Callable
 
 import torch
+from torch.nn import functional as F
 
 from pytorch_lightning.metrics.functional.reduction import reduce
 from pytorch_lightning.utilities import rank_zero_warn
@@ -500,8 +501,7 @@ def _binary_clf_curve(
     # the indices associated with the distinct values. We also
     # concatenate a value for the end of the curve.
     distinct_value_indices = torch.where(pred[1:] - pred[:-1])[0]
-    threshold_idxs = torch.cat([distinct_value_indices,
-                                torch.tensor([target.size(0) - 1])])
+    threshold_idxs = F.pad(distinct_value_indices, (0, 1), value=target.size(0) - 1)
 
     target = (target == pos_label).to(torch.long)
     tps = torch.cumsum(target * weight, dim=0)[threshold_idxs]
@@ -844,7 +844,7 @@ def average_precision(
     # Return the step function integral
     # The following works because the last entry of precision is
     # guaranteed to be 1, as returned by precision_recall_curve
-    return -torch.sum(recall[1:] - recall[:-1] * precision[:-1])
+    return -torch.sum((recall[1:] - recall[:-1]) * precision[:-1])
 
 
 def dice_score(

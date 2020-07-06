@@ -31,7 +31,7 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_only
 
@@ -105,6 +105,7 @@ class CometLogger(LightningLoggerBase):
                               ' install it with `pip install comet-ml`.')
         super().__init__()
         self._experiment = None
+        self._save_dir = save_dir
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         if api_key is not None:
@@ -112,7 +113,7 @@ class CometLogger(LightningLoggerBase):
             self.api_key = api_key
         elif save_dir is not None:
             self.mode = "offline"
-            self.save_dir = save_dir
+            self._save_dir = save_dir
         else:
             # If neither api_key nor save_dir are passed as arguments, raise an exception
             raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
@@ -140,6 +141,7 @@ class CometLogger(LightningLoggerBase):
         self._kwargs = kwargs
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> CometBaseExperiment:
         r"""
         Actual Comet object. To use Comet features in your
@@ -192,6 +194,8 @@ class CometLogger(LightningLoggerBase):
             metrics: Dict[str, Union[torch.Tensor, float]],
             step: Optional[int] = None
     ) -> None:
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):
@@ -217,6 +221,10 @@ class CometLogger(LightningLoggerBase):
         self.reset_experiment()
 
     @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
+
+    @property
     def name(self) -> str:
         return str(self.experiment.project_name)
 
@@ -227,3 +235,8 @@ class CometLogger(LightningLoggerBase):
     @property
     def version(self) -> str:
         return self.experiment.id
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_experiment"] = None
+        return state

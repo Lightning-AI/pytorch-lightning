@@ -1,12 +1,12 @@
 import os
 import pickle
-from unittest.mock import patch
+from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 
 
-@patch('pytorch_lightning.loggers.wandb.wandb')
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_logger(wandb):
     """Verify that basic functionality of wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here."""
@@ -29,8 +29,8 @@ def test_wandb_logger(wandb):
     assert logger.version == wandb.init().id
 
 
-@patch('pytorch_lightning.loggers.wandb.wandb')
-def test_wandb_pickle(wandb):
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_wandb_pickle(wandb, tmpdir):
     """Verify that pickling trainer with wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
@@ -38,11 +38,18 @@ def test_wandb_pickle(wandb):
     class Experiment:
         id = 'the_id'
 
+        def project_name(self):
+            return 'the_project_name'
+
     wandb.init.return_value = Experiment()
 
     logger = WandbLogger(id='the_id', offline=True)
 
-    trainer = Trainer(max_epochs=1, logger=logger)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+    )
     # Access the experiment to ensure it's created
     assert trainer.logger.experiment, 'missing experiment'
     pkl_bytes = pickle.dumps(trainer)

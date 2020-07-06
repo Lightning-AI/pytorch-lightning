@@ -21,7 +21,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ModelIO, PRIMITIVE_TYPES, ALLOWED_CONFIG_TYPES
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
@@ -1133,6 +1132,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: Optimizer,
             optimizer_idx: int,
             second_order_closure: Optional[Callable] = None,
+            on_tpu: bool = False,
+            using_native_amp: bool = False,
+            using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1146,19 +1148,21 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers this indexes into that list.
             second_order_closure: closure for second order methods
+            on_tpu: true if TPU backward is required
+            using_native_amp: True if using native amp
+            using_lbfgs: True if the matching optimizer is lbfgs
 
         Examples:
             .. code-block:: python
 
                 # DEFAULT
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure=None):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     optimizer.step()
-                    optimizer.zero_grad()
 
                 # Alternating schedule for optimizer steps (i.e.: GANs)
                 def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                                   second_order_closure=None):
+                                   second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # update generator opt every 2 steps
                     if optimizer_idx == 0:
                         if batch_idx % 2 == 0 :
@@ -1182,7 +1186,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                 # learning rate warm-up
                 def optimizer_step(self, current_epoch, batch_idx, optimizer,
-                                    optimizer_idx, second_order_closure=None):
+                                    optimizer_idx, second_order_closure, on_tpu, using_native_amp, using_lbfgs):
                     # warm up lr
                     if self.trainer.global_step < 500:
                         lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
@@ -1198,30 +1202,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             model hook don't forget to add the call to it before ``optimizer.zero_grad()`` yourself.
 
         """
-        if self.trainer.use_tpu and XLA_AVAILABLE:
+        if on_tpu:
             xm.optimizer_step(optimizer)
-        elif isinstance(optimizer, torch.optim.LBFGS):
-
-            # native amp + lbfgs is a no go right now
-            if self.trainer.use_amp and self.trainer.use_native_amp:
-                raise MisconfigurationException(
-                    'native PyTorch amp and lbfgs are not compatible.'
-                    ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+        elif using_native_amp:
+            self.trainer.scaler.step(optimizer)
+        elif using_lbfgs:
             optimizer.step(second_order_closure)
         else:
-            if self.trainer.use_amp and self.trainer.use_native_amp:
-                self.trainer.scaler.step(optimizer)
-            else:
-                optimizer.step()
+            optimizer.step()
 
-        # in native 16-bit we need to update scaler after optimizer step
-        if self.trainer.use_amp and self.trainer.use_native_amp:
-            self.trainer.scaler.update()
-
-        # model hook
-        self.on_before_zero_grad(optimizer)
-
-        # clear gradients
+    def optimizer_zero_grad(self,
+                            epoch: int,
+                            batch_idx: int,
+                            optimizer: Optimizer,
+                            optimizer_idx: int):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
@@ -1343,11 +1337,19 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         The dataloader you return will not be called every epoch unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
 
-        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+        For data processing use the following pattern:
+
+            - download in :meth:`prepare_data`
+            - process and split in :meth:`setup`
+
+        However, the above are only necessary for distributed processing.
+
+        .. warning:: do not assign state in prepare_data
 
         - :meth:`~pytorch_lightning.trainer.Trainer.fit`
         - ...
         - :meth:`prepare_data`
+        - :meth:`setup`
         - :meth:`train_dataloader`
 
         Note:
@@ -1389,11 +1391,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         The dataloader you return will not be called every epoch unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
 
-        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+        For data processing use the following pattern:
+
+            - download in :meth:`prepare_data`
+            - process and split in :meth:`setup`
+
+        However, the above are only necessary for distributed processing.
+
+        .. warning:: do not assign state in prepare_data
+
 
         - :meth:`~pytorch_lightning.trainer.Trainer.fit`
         - ...
         - :meth:`prepare_data`
+        - :meth:`setup`
         - :meth:`train_dataloader`
         - :meth:`val_dataloader`
         - :meth:`test_dataloader`

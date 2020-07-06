@@ -128,9 +128,8 @@ class ModelVer0_7(EvalModelTemplate):
 
 
 def test_tbd_remove_in_v1_0_0_model_hooks():
-    hparams = EvalModelTemplate.get_default_hparams()
 
-    model = ModelVer0_6(hparams)
+    model = ModelVer0_6()
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
@@ -140,10 +139,10 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         # TODO: why `dataloder` is required if it is not used
-        result = trainer._evaluate(model, dataloaders=[[None]], max_batches=[1])
+        result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': torch.tensor(0.6)}
 
-    model = ModelVer0_7(hparams)
+    model = ModelVer0_7()
 
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
@@ -153,5 +152,5 @@ def test_tbd_remove_in_v1_0_0_model_hooks():
     with pytest.deprecated_call(match='v1.0'):
         trainer = Trainer(logger=False)
         # TODO: why `dataloder` is required if it is not used
-        result = trainer._evaluate(model, dataloaders=[[None]], max_batches=[1])
+        result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
     assert result == {'val_loss': torch.tensor(0.7)}

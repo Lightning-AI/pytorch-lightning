@@ -1,12 +1,20 @@
 import inspect
 import pickle
+import platform
 
 import pytest
 
-import tests.base.utils as tutils
-from pytorch_lightning import Trainer
+import tests.base.develop_utils as tutils
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.loggers import (
-    TensorBoardLogger, MLFlowLogger, NeptuneLogger, TestTubeLogger, CometLogger)
+    TensorBoardLogger,
+    MLFlowLogger,
+    NeptuneLogger,
+    TestTubeLogger,
+    CometLogger,
+    WandbLogger,
+)
+from pytorch_lightning.loggers.base import DummyExperiment
 from tests.base import EvalModelTemplate
 
 
@@ -16,6 +24,8 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(save_dir=str(save_dir))
     if 'offline_mode' in inspect.getfullargspec(logger_class).args:
         logger_args.update(offline_mode=True)
+    if 'offline' in inspect.getfullargspec(logger_class).args:
+        logger_args.update(offline=True)
     return logger_args
 
 
@@ -25,7 +35,6 @@ def _get_logger_args(logger_class, save_dir):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
@@ -69,10 +78,9 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     CometLogger,
-    MLFlowLogger,
+    # MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # TrainsLogger,  # TODO: add this one
     # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
@@ -85,17 +93,25 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
 
+    # this can cause pickle error if the experiment object is not picklable
+    # the logger needs to remove it from the state before pickle
+    _ = logger.experiment
+
     # test pickling loggers
     pickle.dumps(logger)
 
     trainer = Trainer(
         max_epochs=1,
-        logger=logger
+        logger=logger,
     )
     pkl_bytes = pickle.dumps(trainer)
 
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({'acc': 1.0})
+
+    # make sure we restord properly
+    assert trainer2.logger.name == logger.name
+    assert trainer2.logger.save_dir == logger.save_dir
 
 
 @pytest.mark.parametrize("extra_params", [
@@ -110,7 +126,7 @@ def test_logger_reset_correctly(tmpdir, extra_params):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        **extra_params
+        **extra_params,
     )
     logger1 = trainer.logger
     trainer.fit(model)
@@ -121,3 +137,42 @@ def test_logger_reset_correctly(tmpdir, extra_params):
         'Finder altered the logger of trainer'
     assert logger2 == logger3, \
         'Finder altered the logger of model'
+
+
+class RankZeroLoggerCheck(Callback):
+    # this class has to be defined outside the test function, otherwise we get pickle error
+    # due to the way ddp process is launched
+
+    def on_batch_start(self, trainer, pl_module):
+        is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
+        if trainer.is_global_zero:
+            assert not is_dummy
+        else:
+            assert is_dummy
+            assert pl_module.logger.experiment.something(foo="bar") is None
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.parametrize("logger_class", [
+    TensorBoardLogger,
+    CometLogger,
+    #MLFlowLogger,
+    NeptuneLogger,
+    TestTubeLogger,
+    WandbLogger,
+])
+def test_logger_created_on_rank_zero_only(tmpdir, logger_class):
+    logger_args = _get_logger_args(logger_class, tmpdir)
+    logger = logger_class(**logger_args)
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        logger=logger,
+        default_root_dir=tmpdir,
+        distributed_backend='ddp_cpu',
+        num_processes=2,
+        max_steps=1,
+        checkpoint_callback=True,
+        callbacks=[RankZeroLoggerCheck()],
+    )
+    result = trainer.fit(model)
+    assert result == 1

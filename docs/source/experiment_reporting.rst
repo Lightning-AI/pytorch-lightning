@@ -43,7 +43,7 @@ want to log using this trainer flag.
 Log metrics
 ^^^^^^^^^^^
 
-To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, TRAINS, etc...)
+To plot metrics into whatever logger you passed in (tensorboard, comet, neptune, etc...)
 
 1. training_epoch_end, validation_epoch_end, test_epoch_end will all log anything in the "log" key of the return dict.
 
@@ -108,6 +108,24 @@ Here we show the validation loss in the progress bar
         logs = {'val_loss': loss}
         results = {'progress_bar': logs}
         return results
+
+
+----------
+
+Configure console logging
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Lightning logs useful information about the training process and user warnings to the console.
+You can retrieve the Lightning logger and change it to your liking. For example, increase the logging level
+to see fewer messages like so:
+
+.. code-block:: python
+
+    import logging
+    logging.getLogger("lightning").setLevel(logging.ERROR)
+
+Read more about custom Python logging `here <https://docs.python.org/3/library/logging.html>`_.
+
 
 ----------
 

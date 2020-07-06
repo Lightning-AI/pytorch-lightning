@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -50,7 +50,7 @@ class TensorBoardLogger(LightningLoggerBase):
                  version: Optional[Union[int, str]] = None,
                  **kwargs):
         super().__init__()
-        self.save_dir = save_dir
+        self._save_dir = save_dir
         self._name = name
         self._version = version
 
@@ -83,6 +83,11 @@ class TensorBoardLogger(LightningLoggerBase):
         return log_dir
 
     @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
+
+    @property
+    @rank_zero_experiment
     def experiment(self) -> SummaryWriter:
         r"""
         Actual tensorboard object. To use TensorBoard features in your
@@ -96,6 +101,7 @@ class TensorBoardLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
+        assert rank_zero_only.rank == 0, 'tried to init log dirs in non global_rank=0'
         os.makedirs(self.root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
@@ -135,6 +141,8 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
@@ -183,3 +191,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         return max(existing_versions) + 1
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_experiment"] = None
+        return state

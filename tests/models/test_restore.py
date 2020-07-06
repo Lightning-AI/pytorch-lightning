@@ -7,7 +7,8 @@ import cloudpickle
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate
@@ -47,9 +48,9 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.dirpath,
-                                         module_class=EvalModelTemplate)
+    pretrained_model = tutils.load_model_from_checkpoint(logger,
+                                                         trainer.checkpoint_callback.dirpath,
+                                                         module_class=EvalModelTemplate)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
@@ -63,7 +64,7 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tutils.run_prediction(dataloader, pretrained_model)
+        tpipes.run_prediction(dataloader, pretrained_model)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -82,7 +83,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
     )
 
     # fit model
@@ -91,7 +92,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(
+    pretrained_model = tutils.load_model_from_checkpoint(
         logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate
     )
 
@@ -153,6 +154,7 @@ def test_dp_resume(tmpdir):
         max_epochs=1,
         gpus=2,
         distributed_backend='dp',
+        default_root_dir=tmpdir,
     )
 
     # get logger
@@ -202,7 +204,7 @@ def test_dp_resume(tmpdir):
         dp_model.eval()
 
         dataloader = trainer.train_dataloader
-        tutils.run_prediction(dataloader, dp_model, dp=True)
+        tpipes.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
     model = EvalModelTemplate(**hparams)

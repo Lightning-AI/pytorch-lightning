@@ -1,5 +1,4 @@
 import numbers
-from collections import Mapping, Sequence
 from functools import partial
 
 import numpy as np

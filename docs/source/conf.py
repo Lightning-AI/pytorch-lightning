@@ -139,6 +139,7 @@ exclude_patterns = [
     'api/pytorch_lightning.rst',
     'api/pl_examples.*',
     'api/modules.rst',
+    'PULL_REQUEST_TEMPLATE.md',
 
     # deprecated/renamed:
     'api/pytorch_lightning.logging.*',  # TODO: remove in v0.9.0
@@ -416,7 +417,11 @@ import importlib
 import os
 import torch
 
-TORCHVISION_AVAILABLE = importlib.util.find_spec('torchvision')
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+APEX_AVAILABLE = importlib.util.find_spec("apex") is not None
+XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
+
 
 """
 coverage_skip_undoc_in_source = True

@@ -5,6 +5,18 @@ import torch
 
 from pytorch_lightning import _logger as lightning_logger
 from pytorch_lightning.metrics.metric import NumpyMetric
+from pytorch_lightning.utilities import rank_zero_warn
+
+try:
+    from torch.distributed import ReduceOp, group
+except ImportError:
+    class ReduceOp:
+        SUM = None
+
+    class group:
+        WORLD = None
+
+    rank_zero_warn('Unsupported `ReduceOp` for distributed computing.')
 
 
 class SklearnMetric(NumpyMetric):
@@ -20,8 +32,8 @@ class SklearnMetric(NumpyMetric):
     def __init__(
             self,
             metric_name: str,
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
             **kwargs,
     ):
         """
@@ -82,8 +94,8 @@ class Accuracy(SklearnMetric):
     def __init__(
             self,
             normalize: bool = True,
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -136,8 +148,8 @@ class AUC(SklearnMetric):
     """
     def __init__(
             self,
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -174,8 +186,8 @@ class AveragePrecision(SklearnMetric):
     def __init__(
             self,
             average: Optional[str] = 'macro',
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -240,8 +252,8 @@ class ConfusionMatrix(SklearnMetric):
     """
     def __init__(
             self, labels: Optional[Sequence] = None,
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -304,8 +316,8 @@ class F1(SklearnMetric):
             self, labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
             average: Optional[str] = 'macro',
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -397,8 +409,8 @@ class FBeta(SklearnMetric):
             labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
             average: Optional[str] = 'macro',
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -488,8 +500,8 @@ class Precision(SklearnMetric):
             labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
             average: Optional[str] = 'macro',
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -576,8 +588,8 @@ class Recall(SklearnMetric):
             labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
             average: Optional[str] = 'macro',
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -663,8 +675,8 @@ class PrecisionRecallCurve(SklearnMetric):
     def __init__(
             self,
             pos_label: Union[str, int] = 1,
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -737,8 +749,8 @@ class ROC(SklearnMetric):
     def __init__(
             self,
             pos_label: Union[str, int] = 1,
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:
@@ -795,8 +807,8 @@ class AUROC(SklearnMetric):
     def __init__(
             self,
             average: Optional[str] = 'macro',
-            reduce_group: Any = torch.distributed.group.WORLD,
-            reduce_op: Any = torch.distributed.ReduceOp.SUM,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
     ):
         """
         Args:

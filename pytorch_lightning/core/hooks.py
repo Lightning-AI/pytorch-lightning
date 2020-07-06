@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 
 
 try:
@@ -189,9 +189,8 @@ class ModelHooks(Module):
         loss.backward()
 
     def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
-        if self.trainer.use_native_amp:
+        if NATIVE_AMP_AVALAIBLE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
-
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
 
@@ -204,11 +203,11 @@ class ModelHooks(Module):
 
         The data types listed below (and any arbitrary nesting of them) are supported out of the box:
 
-        - :class:`torch.Tensor`
+        - :class:`torch.Tensor` or anything that implements `.to(...)`
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
-        - ``torchtext.data.Batch`` (COMING SOON)
+        - :class:`torchtext.data.batch.Batch`
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 

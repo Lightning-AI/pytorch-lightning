@@ -3,7 +3,8 @@ import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple
+from functools import wraps
+from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple, MutableMapping
 
 import numpy as np
 import torch
@@ -34,7 +35,6 @@ class LightningLoggerBase(ABC):
             agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
             agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
-        self._rank = 0
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
@@ -174,9 +174,9 @@ class LightningLoggerBase(ABC):
 
         def _dict_generator(input_dict, prefixes=None):
             prefixes = prefixes[:] if prefixes else []
-            if isinstance(input_dict, dict):
+            if isinstance(input_dict, MutableMapping):
                 for key, value in input_dict.items():
-                    if isinstance(value, (dict, Namespace)):
+                    if isinstance(value, (MutableMapping, Namespace)):
                         value = vars(value) if isinstance(value, Namespace) else value
                         for d in _dict_generator(value, prefixes + [key]):
                             yield d
@@ -379,3 +379,14 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
+
+
+def rank_zero_experiment(fn: Callable) -> Callable:
+    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+    @wraps(fn)
+    def experiment(self):
+        @rank_zero_only
+        def get_experiment():
+            return fn(self)
+        return get_experiment() or DummyExperiment()
+    return experiment

@@ -127,6 +127,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
 
@@ -139,7 +140,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -171,13 +172,11 @@ class TrainerDDPMixin(ABC):
     num_gpu_nodes: int
     gpus: List[int]
     logger: Union[LightningLoggerBase, bool]
-    checkpoint_callback: Union[ModelCheckpoint, bool]
     data_parallel_device_ids: ...
     distributed_backend: Optional[str]
     amp_level: str
     use_tpu: bool
     default_root_dir: str
-    use_native_amp: bool
     progress_bar_callback: ...
     num_processes: int
     num_nodes: int
@@ -420,7 +419,8 @@ class TrainerDDPMixin(ABC):
             full_path = abspath(command[0])
 
         command[0] = full_path
-        command = ['python'] + command
+        # use the same python interpreter and actually running
+        command = [sys.executable] + command
 
         # since this script sets the visible devices we replace the gpus flag with a number
         num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
@@ -436,7 +436,6 @@ class TrainerDDPMixin(ABC):
             env_copy = os.environ.copy()
             env_copy['LOCAL_RANK'] = f'{local_rank}'
 
-            # import pdb; pdb.set_trace()
             # start process
             proc = subprocess.Popen(command, env=env_copy)
             self.interactive_ddp_procs.append(proc)
@@ -519,7 +518,7 @@ class TrainerDDPMixin(ABC):
         # AMP
         # run through amp wrapper before going to distributed DP
         # TODO: remove with dropping NVIDIA AMP support
-        if self.use_amp and not self.use_native_amp:
+        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)

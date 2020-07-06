@@ -12,15 +12,15 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.saving import (
     load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv)
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
@@ -36,9 +36,10 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     logger = tutils.get_default_logger(tmpdir)
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     # fit model
     result = trainer.fit(model)
@@ -77,9 +78,10 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
     # fit model
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     result = trainer.fit(model)
 
@@ -297,8 +299,9 @@ def test_model_checkpoint_only_weights(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
-        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True)
+        checkpoint_callback=ModelCheckpoint(tmpdir, save_weights_only=True),
     )
     # fit model
     result = trainer.fit(model)
@@ -469,7 +472,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
-        max_epochs=2
+        max_epochs=7
     )
 
     # define less min steps than 1 epoch
@@ -592,7 +595,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             assert loaded_checkpoint_path == ckpt_path
 
 
-def test_disabled_validation():
+def test_disabled_validation(tmpdir):
     """Verify that `limit_val_batches=0` disables the validation loop unless `fast_dev_run=True`."""
 
     class CurrentModel(EvalModelTemplate):
@@ -612,6 +615,7 @@ def test_disabled_validation():
     model = CurrentModel(**hparams)
 
     trainer_options = dict(
+        default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=2,
         limit_train_batches=0.4,
@@ -664,7 +668,7 @@ def test_nan_loss_detection(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(model.test_batch_inf_loss + 1),
-        terminate_on_nan=True
+        terminate_on_nan=True,
     )
 
     with pytest.raises(ValueError, match=r'.*The loss returned in `training_step` is nan or inf.*'):
@@ -689,7 +693,7 @@ def test_nan_params_detection(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_steps=(model.test_batch_nan + 1),
-        terminate_on_nan=True
+        terminate_on_nan=True,
     )
 
     with pytest.raises(ValueError, match=r'.*Detected nan and/or inf values in `c_d1.bias`.*'):
@@ -757,7 +761,7 @@ def test_gradient_clipping(tmpdir):
         max_steps=1,
         max_epochs=1,
         gradient_clip_val=1.0,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
 
     # for the test
@@ -780,6 +784,28 @@ def test_gpu_choice(tmpdir):
 
     with pytest.raises(RuntimeError, match=r'.*No GPUs available.*'):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+
+
+@pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id', 'error_expected'], [
+    pytest.param(1, None, False),
+    pytest.param(8, None, False),
+    pytest.param([1], 1, False),
+    pytest.param([8], 8, False),
+    pytest.param('1,', 1, False),
+    pytest.param('1', None, False),
+    pytest.param('9, ', 9, True),
+    pytest.param([9], 9, True),
+    pytest.param([0], 0, True),
+    pytest.param(2, None, True),
+    pytest.param(10, None, True),
+])
+def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
+    if error_expected:
+        with pytest.raises(MisconfigurationException, match=r'.*tpu_cores` can only be 1, 8 or [<1-8>]*'):
+            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores, auto_select_gpus=True)
+        assert trainer.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
@@ -922,7 +948,7 @@ def test_trainer_omegaconf(trainer_params):
 def test_trainer_pickle(tmpdir):
     trainer = Trainer(
         max_epochs=1,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     pickle.dumps(trainer)
     cloudpickle.dumps(trainer)

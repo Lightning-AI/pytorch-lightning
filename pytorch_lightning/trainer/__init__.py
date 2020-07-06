@@ -456,6 +456,8 @@ How much of test dataset to check.
     # run for only 10 batches
     trainer = Trainer(limit_test_batches=10)
 
+In the case of multiple test dataloaders, the limit applies to each dataloader individually.
+
 limit_val_batches
 ^^^^^^^^^^^^^^^^^
 
@@ -472,6 +474,8 @@ Useful when debugging or testing something that happens at the end of an epoch.
 
     # run for only 10 batches
     trainer = Trainer(limit_val_batches=10)
+
+In the case of multiple validation dataloaders, the limit applies to each dataloader individually.
 
 log_gpu_memory
 ^^^^^^^^^^^^^^
@@ -688,12 +692,12 @@ overfit_pct
 
 .. warning:: .. deprecated:: 0.8.0.
 
-    Use `overfit_batches`. Will remove 1.0.0.
+    Use `overfit_batches`. Will be removed in 0.10.0.
 
 overfit_batches
 ^^^^^^^^^^^^^^^
-Uses this much data of the training set. If will use the same training set for validation and testing.
-If the training Dataloaders(shuffle=True), Lightning will automatically disable it.
+Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
 
@@ -717,6 +721,7 @@ If used on TPU will use torch.bfloat16 but tensor printing
 will still show torch.float32.
 
 .. testcode::
+    :skipif: not APEX_AVAILABLE and not NATIVE_AMP_AVALAIBLE
 
     # default used by the Trainer
     trainer = Trainer(precision=32)

@@ -42,6 +42,19 @@ class UnorderedModel(LightningModule):
         return out
 
 
+class MixedDtypeModel(LightningModule):
+    """ The parameters and inputs of this model have different dtypes. """
+
+    def __init__(self):
+        super().__init__()
+        self.embed = nn.Embedding(10, 20)   # expects dtype long as input
+        self.reduce = nn.Linear(20, 1)      # dtype: float
+        self.example_input_array = torch.tensor([[0, 2, 1], [3, 5, 3]])  # dtype: long
+
+    def forward(self, x):
+        return self.reduce(self.embed(x))
+
+
 @pytest.mark.parametrize(['mode'], [
     pytest.param(ModelSummary.MODE_FULL),
     pytest.param(ModelSummary.MODE_TOP),
@@ -59,15 +72,15 @@ def test_empty_model_summary_shapes(mode):
     pytest.param(ModelSummary.MODE_FULL),
     pytest.param(ModelSummary.MODE_TOP),
 ])
-@pytest.mark.parametrize(['device', 'dtype'], [
-    pytest.param(torch.device('cpu'), torch.double),
-    pytest.param(torch.device('cuda', 0), torch.float),
-    pytest.param(torch.device('cuda', 0), torch.float16),
+@pytest.mark.parametrize(['device'], [
+    pytest.param(torch.device('cpu')),
+    pytest.param(torch.device('cuda', 0)),
+    pytest.param(torch.device('cuda', 0)),
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Test requires GPU.")
-def test_linear_model_summary_shapes(device, dtype, mode):
+def test_linear_model_summary_shapes(device, mode):
     """ Test that the model summary correctly computes the input- and output shapes. """
-    model = UnorderedModel().type(dtype).to(device)
+    model = UnorderedModel().to(device)
     model.train()
     summary = model.summarize(mode=mode)
     assert summary.in_sizes == [
@@ -85,8 +98,21 @@ def test_linear_model_summary_shapes(device, dtype, mode):
         UNKNOWN_SIZE,
     ]
     assert model.training
-    assert model.dtype == dtype
     assert model.device == device
+
+
+def test_mixed_dtype_model_summary():
+    """ Test that the model summary works with models that have mixed input- and parameter dtypes. """
+    model = MixedDtypeModel()
+    summary = model.summarize()
+    assert summary.in_sizes == [
+        [2, 3],         # embed
+        [2, 3, 20],     # reduce
+    ]
+    assert summary.out_sizes == [
+        [2, 3, 20],     # embed
+        [2, 3, 1],      # reduce
+    ]
 
 
 @pytest.mark.parametrize(['mode'], [
