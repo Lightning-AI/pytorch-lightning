@@ -550,8 +550,10 @@ class TrainerDDPMixin(ABC):
         # clean up memory
         torch.cuda.empty_cache()
 
-        q.put(self.checkpoint_callback.best_model_path)
-        q.put(self.model)
+        if self.global_rank == 0:
+            path = self.checkpoint_callback.best_model_path
+            q.put(path)
+            # q.put(self.model)
 
     def save_spawn_weights(self, model):
         """
