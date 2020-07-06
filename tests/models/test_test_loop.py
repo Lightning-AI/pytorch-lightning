@@ -4,7 +4,6 @@ from tests.base import EvalModelTemplate
 import tests.base.develop_utils as tutils
 
 
-@tutils.pl_multi_process_test
 def test_ddp(tmpdir):
     tutils.set_random_master_port()
 
