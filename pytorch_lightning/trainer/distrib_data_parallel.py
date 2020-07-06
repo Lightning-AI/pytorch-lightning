@@ -550,7 +550,8 @@ class TrainerDDPMixin(ABC):
         # clean up memory
         torch.cuda.empty_cache()
 
-        q.put(self)
+        if self.global_rank == 0:
+            q.put(self)
 
     def save_spawn_weights(self, model):
         """
