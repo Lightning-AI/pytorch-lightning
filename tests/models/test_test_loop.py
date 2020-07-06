@@ -20,6 +20,7 @@ def test_ddp(tmpdir):
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
     results = trainer.test()
     assert 'test_acc' in results
+    assert 1 == 2
 
 
 def test_ddp_spawn_test(tmpdir):
