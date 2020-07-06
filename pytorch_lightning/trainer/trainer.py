@@ -958,7 +958,6 @@ class Trainer(
 
             elif self.distributed_backend == 'ddp_spawn':
                 self.set_random_port()
-                model.share_memory()
 
                 ctx = mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1), daemon=True, join=False)
                 self.ddp_train(0, model, is_master=True)
