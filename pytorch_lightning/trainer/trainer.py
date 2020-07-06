@@ -942,16 +942,16 @@ class Trainer(
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
 
-            self.ddp_train(task, model)
+            self.ddp_train(process_idx=task, q=None, model=model)
         elif self.use_ddp:
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(task, model)
+                self.ddp_train(process_idx=task, q=None, model=model)
 
             # torchelastic or general non_slurm ddp
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
-                self.ddp_train(task, model)
+                self.ddp_train(process_idx=task, q=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
                 self.set_random_port()
