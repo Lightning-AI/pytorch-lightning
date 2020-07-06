@@ -1031,7 +1031,6 @@ class Trainer(
             self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
             results = self.run_pretrain_routine(model)
-            import pdb; pdb.set_trace()
 
         # callbacks
         self.on_fit_end()
