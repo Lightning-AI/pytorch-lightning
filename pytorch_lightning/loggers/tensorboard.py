@@ -191,3 +191,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return 0
 
         return max(existing_versions) + 1
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_experiment"] = None
+        return state

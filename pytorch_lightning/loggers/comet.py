@@ -105,6 +105,7 @@ class CometLogger(LightningLoggerBase):
                               ' install it with `pip install comet-ml`.')
         super().__init__()
         self._experiment = None
+        self._save_dir = save_dir
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         if api_key is not None:
@@ -227,3 +228,8 @@ class CometLogger(LightningLoggerBase):
     @property
     def version(self) -> str:
         return self.experiment.id
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_experiment"] = None
+        return state
