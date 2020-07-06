@@ -137,7 +137,8 @@ class TrainerTrainingTricksMixin(ABC):
         """
         if not hasattr(model, batch_arg_name):
             if not hasattr(model.hparams, batch_arg_name):
-                raise MisconfigurationException(f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
+                raise MisconfigurationException(
+                    f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
             log.info(f'Field {batch_arg_name} not found in `model`. '
                      f'`model.hparams.{batch_arg_name}` will be used instead.')
             setattr(model, batch_arg_name, model.hparams.batch_size)
