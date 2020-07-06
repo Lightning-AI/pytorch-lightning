@@ -965,12 +965,11 @@ class Trainer(
 
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model, ))
 
-                # restore main state
-                out = q.get()
-                print(out)
-                # self.checkpoint_callback.best_model_path = path
-                # model.load_state_dict(state)
-                import pdb; pdb.set_trace()
+                # restore main state with best weights
+                best_path = q.get()
+                if best_path is not None and len(best_path) > 0:
+                    self.checkpoint_callback.best_model_path = best_path
+                    model.load_from_checkpoint(best_path)
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
