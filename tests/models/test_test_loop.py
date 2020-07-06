@@ -48,6 +48,7 @@ def test_dp_spawn_test(tmpdir):
     results = trainer.test(model)
     assert 'test_acc' in results
 
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_spawn_test(tmpdir):
     tutils.set_random_master_port()
