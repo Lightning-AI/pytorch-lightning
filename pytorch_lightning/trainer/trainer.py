@@ -966,7 +966,7 @@ class Trainer(
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model, ))
 
                 # restore main state
-                [path, state] = q.get()
+                out = q.get()
                 self.checkpoint_callback.best_model_path = path
                 model.load_state_dict(state)
                 import pdb; pdb.set_trace()
