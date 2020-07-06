@@ -962,6 +962,10 @@ class Trainer(
                 ctx = mp.spawn(self.ddp_train, nprocs=self.num_processes - 1, args=(model, False, 1), daemon=True, join=False)
                 self.ddp_train(0, model, is_master=True)
                 ctx.join()
+
+                # clean up
+                self.model = None
+                torch.cuda.empty_cache()
                 model.cpu()
 
             elif self.distributed_backend == 'ddp':
