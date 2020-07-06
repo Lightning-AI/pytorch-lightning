@@ -1,5 +1,4 @@
 import os
-from pytorch_lightning import Trainer
 import pytorch_lightning as pl
 from tests.base import EvalModelTemplate
 
