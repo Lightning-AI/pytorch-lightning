@@ -892,6 +892,12 @@ class TrainerTrainLoopMixin(ABC):
         if self.use_ddp or self.use_ddp2:
             torch_distrib.destroy_process_group()
 
+        # clear mem
+        if self.on_gpu:
+            model = self.get_model()
+            model.cpu()
+            torch.cuda.empty_cache()
+
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
