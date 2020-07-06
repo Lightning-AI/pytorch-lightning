@@ -971,6 +971,8 @@ class Trainer(
                     self.checkpoint_callback.best_model_path = best_path
                     model.load_from_checkpoint(best_path)
 
+                self.model = model
+
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
                 self.spawn_ddp_children(model)
