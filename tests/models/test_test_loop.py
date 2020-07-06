@@ -1,8 +1,10 @@
 import os
 import pytorch_lightning as pl
 from tests.base import EvalModelTemplate
+from tests.base.develop_utils import pl_multi_process_test
 
 
+@pl_multi_process_test
 def test_ddp(tmpdir):
 
     model = EvalModelTemplate()
