@@ -110,7 +110,7 @@ def stat_scores(
             axis the argmax transformation will be applied over (default: 1)
 
     Return:
-        True Positive, False Positive, True Negative, False Negative, SUP
+        True Positive, False Positive, True Negative, False Negative, Support
 
     Example:
 
@@ -152,7 +152,7 @@ def stat_scores_multiple_classes(
             axis the argmax transformation will be applied over (default: 1)
 
     Return:
-        True Positive, False Positive, True Negative, False Negative, SUPS
+        True Positive, False Positive, True Negative, False Negative, Support
 
     Example:
 
@@ -874,7 +874,7 @@ def dice_score(
         pred: estimated probabilities
         target: ground-truth labels
         bg: whether to also compute dice for the background (default: False)
-        nan_score: score to return, if a NaN occurs during computation (denom zero)
+        nan_score: score to return, if a NaN occurs during computation (default zero)
         no_fg_score: score to return, if no foreground pixel was found in target (default: 0.0)
         reduction: a method for reducing accuracies over labels (default: takes the mean)
             Available reduction methods:
