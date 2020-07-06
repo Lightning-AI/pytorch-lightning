@@ -15,6 +15,27 @@ PRETEND_N_OF_GPUS = 16
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_none_backend(tmpdir):
+    tutils.set_random_master_port()
+
+    """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        distributed_backend='ddp_spawn',
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
+        gpus=2
+    )
+
+    model = EvalModelTemplate()
+
+    with pytest.warns(UserWarning):
+        tpipes.run_model_test(trainer_options, model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     """Make sure DDP works. with early stopping"""
     tutils.set_random_master_port()
@@ -32,26 +53,6 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model)
 
-#
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# def test_multi_gpu_none_backend(tmpdir):
-#     tutils.set_random_master_port()
-#
-#     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
-#     trainer_options = dict(
-#         default_root_dir=tmpdir,
-#         distributed_backend='ddp_spawn',
-#         progress_bar_refresh_rate=0,
-#         max_epochs=1,
-#         limit_train_batches=0.2,
-#         limit_val_batches=0.2,
-#         gpus=2
-#     )
-#
-#     model = EvalModelTemplate()
-#
-#     with pytest.warns(UserWarning):
-#         tpipes.run_model_test(trainer_options, model)
 #
 #
 # def test_multi_gpu_model_dp(tmpdir):
