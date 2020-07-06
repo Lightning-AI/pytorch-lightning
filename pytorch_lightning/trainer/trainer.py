@@ -964,9 +964,9 @@ class Trainer(
                 ctx.join()
 
                 # clean up
-                self.model = None
-                torch.cuda.empty_cache()
+                self.model.cpu()
                 model.cpu()
+                torch.cuda.empty_cache()
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
