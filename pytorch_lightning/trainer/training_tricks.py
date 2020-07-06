@@ -139,7 +139,7 @@ class TrainerTrainingTricksMixin(ABC):
         if not hasattr(model, batch_arg_name) and not hasattr(model.hparams, batch_arg_name):
             raise MisconfigurationException(
                 f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
-        elif hasattr(model, batch_arg_name) and hasattr(model.hparams, batch_arg_name):
+        if hasattr(model, batch_arg_name) and hasattr(model.hparams, batch_arg_name):
             rank_zero_warn(
                 f'Field `model.{batch_arg_name}` and `model.hparams.{batch_arg_name}` are mutually exclusive!'
                 f'`model.{batch_arg_name}` will be used as the initial batch size for scaling.'
