@@ -1215,8 +1215,6 @@ class Trainer(
         if self.is_function_implemented('setup', model_ref):
             model_ref.setup('test')
 
-        self.barrier('test_setup')
-
         if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
