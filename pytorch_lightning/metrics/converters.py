@@ -249,7 +249,7 @@ def sync_ddp_if_available(result: Union[torch.Tensor],
                                      async_op=False)
 
         if ddp_normalize:
-            result / torch.distributed.get_world_size(group)
+            result = result / torch.distributed.get_world_size(group)
 
     return result
 
