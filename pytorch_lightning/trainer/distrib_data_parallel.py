@@ -184,6 +184,7 @@ class TrainerDDPMixin(ABC):
     use_tpu: bool
     default_root_dir: str
     progress_bar_callback: ...
+    checkpoint_callback: ...
     num_processes: int
     num_nodes: int
     node_rank: int
