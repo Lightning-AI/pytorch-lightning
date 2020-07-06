@@ -456,7 +456,7 @@ class TrainerDDPMixin(ABC):
             sleep(delay)
 
         local_rank = 0
-        results = self.ddp_train(None, local_rank, model, is_master=True)
+        results = self.ddp_train(local_rank, q=None, model=model, is_master=True)
         return results
 
     def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
