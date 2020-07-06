@@ -874,7 +874,7 @@ def dice_score(
         pred: estimated probabilities
         target: ground-truth labels
         bg: whether to also compute dice for the background (default: False)
-        nan_score: score to return, if a NaN occurs during computation (default zero)
+        nan_score: score to return, if a NaN occurs during computation (default: 0.0)
         no_fg_score: score to return, if no foreground pixel was found in target (default: 0.0)
         reduction: a method for reducing accuracies over labels (default: takes the mean)
             Available reduction methods:
