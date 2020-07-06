@@ -457,7 +457,7 @@ class TrainerDDPMixin(ABC):
         local_rank = 0
         self.ddp_train(local_rank, model, is_master=True)
 
-    def ddp_train(self, process_idx, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
         """
         Entry point into a DP thread
         :param gpu_idx:
@@ -549,6 +549,8 @@ class TrainerDDPMixin(ABC):
 
         # clean up memory
         torch.cuda.empty_cache()
+
+        q.put(190)
 
     def save_spawn_weights(self, model):
         """

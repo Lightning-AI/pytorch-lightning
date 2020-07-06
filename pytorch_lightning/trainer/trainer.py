@@ -959,10 +959,13 @@ class Trainer(
             elif self.distributed_backend == 'ddp_spawn':
                 self.set_random_port()
 
-                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
+                from multiprocessing import Queue
+                q = Queue()
+                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model, ))
                 # self.ddp_train(0, model, is_master=True)
                 # self.model.cpu()
                 # torch.cuda.empty_cache()
+                x = q.get()
                 import pdb; pdb.set_trace()
 
             elif self.distributed_backend == 'ddp':
