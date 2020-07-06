@@ -553,6 +553,7 @@ class TrainerDDPMixin(ABC):
         if self.global_rank == 0:
             path = self.checkpoint_callback.best_model_path
             m = self.get_model()
+            print(type(m))
             q.put(path)
             q.put(m)
 
