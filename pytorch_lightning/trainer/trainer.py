@@ -959,13 +959,11 @@ class Trainer(
             elif self.distributed_backend == 'ddp_spawn':
                 self.set_random_port()
 
+                # pass in a state q
                 smp = mp.get_context('spawn')
                 q = smp.SimpleQueue()
+
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model, ))
-                # self.ddp_train(0, model, is_master=True)
-                # self.model.cpu()
-                # torch.cuda.empty_cache()
-                x = q.get()
                 import pdb; pdb.set_trace()
 
             elif self.distributed_backend == 'ddp':

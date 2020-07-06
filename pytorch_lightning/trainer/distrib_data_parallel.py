@@ -550,7 +550,7 @@ class TrainerDDPMixin(ABC):
         # clean up memory
         torch.cuda.empty_cache()
 
-        q.put(190)
+        q.put(self)
 
     def save_spawn_weights(self, model):
         """
