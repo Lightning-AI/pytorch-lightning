@@ -11,27 +11,17 @@ from pytorch_lightning.inference.infer import (
 )
 
 
-class UnorderedModel(LightningModule):
-    """ A model in which the layers not defined in order of execution """
+class MixedDtypeModel(LightningModule):
+    """ The parameters and inputs of this model have different dtypes. """
 
     def __init__(self):
         super().__init__()
-        # note: the definition order is intentionally scrambled for this test
-        self.layer2 = nn.Linear(10, 2)
-        self.combine = nn.Linear(7, 9)
-        self.layer1 = nn.Linear(3, 5)
-        self.relu = nn.ReLU()
-        # this layer is unused, therefore input-/output shapes are unknown
-        self.unused = nn.Conv2d(1, 1, 1)
+        self.embed = nn.Embedding(10, 20)   # expects dtype long as input
+        self.reduce = nn.Linear(20, 1)      # dtype: float
+        self.example_input_array = torch.tensor([[0, 2, 1], [3, 5, 3]])  # dtype: long
 
-        self.example_input_array = (torch.rand(2, 3), torch.rand(2, 10))
-
-    def forward(self, x, y):
-        out1 = self.layer1(x)
-        out2 = self.layer2(y)
-        out = self.relu(torch.cat((out1, out2), 1))
-        out = self.combine(out)
-        return out
+    def forward(self, x):
+        return self.reduce(self.embed(x))
 
 
 @pytest.fixture
@@ -40,5 +30,5 @@ def random():
 
 @pytest.mark.parametrize('infer_mode', ['eval', 'train'])
 def test_inference(infer_mode):
-    model = UnorderedModel()
+    model = MixedDtypeModel()
     assert isinstance(Inference(model, infer_mode=infer_mode)(model.example_input_array), torch.Tensor)
