@@ -141,7 +141,7 @@ class TrainerTrainingTricksMixin(ABC):
                     f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
             log.info(f'Field {batch_arg_name} not found in `model`. '
                      f'`model.hparams.{batch_arg_name}` will be used instead.')
-            setattr(model, batch_arg_name, model.hparams.batch_size)
+            setattr(model, batch_arg_name, getattr(model.hparams, batch_arg_name))
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
