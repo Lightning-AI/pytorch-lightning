@@ -21,6 +21,7 @@ from pytorch_lightning.overrides.data_parallel import (
 from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     from apex import amp
@@ -222,7 +223,7 @@ class TrainerDPMixin(ABC):
 
         # when training ends on these platforms dump weights to get out of the main process
         if self.on_colab_kaggle:
-            print('cleaning up... please do not interrupt')
+            rank_zero_warn('cleaning up... please do not interrupt')
             self.save_spawn_weights(model)
 
     def dp_train(self, model):
