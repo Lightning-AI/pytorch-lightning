@@ -155,8 +155,6 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
 
 
-
-
 @pytest.fixture
 def mocked_device_count(monkeypatch):
     def device_count():
@@ -296,7 +294,7 @@ def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
 
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize("gpus", [-1, '-1'])
-def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_count_0, gpus):
+def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
         _parse_gpu_ids(gpus)
 
