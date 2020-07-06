@@ -182,7 +182,8 @@ class TrainerDPMixin(ABC):
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
 
-        self.run_pretrain_routine(model)
+        results = self.run_pretrain_routine(model)
+        return results
 
     def tpu_train(self, tpu_core_idx, model):
         # call setup after the ddp process has connected
@@ -265,9 +266,10 @@ class TrainerDPMixin(ABC):
 
         model = LightningDataParallel(model, device_ids=device_ids)
 
-        self.run_pretrain_routine(model)
-
+        result = self.run_pretrain_routine(model)
         model.forward = model_autocast_original_forward
+
+        return result
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
@@ -326,10 +328,11 @@ class TrainerDPMixin(ABC):
                 # Synchronization will be performed explicitly following backward()
                 stack.enter_context(optimizer.skip_synchronize())
 
-            self.run_pretrain_routine(model)
+            result = self.run_pretrain_routine(model)
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
+        return result
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:

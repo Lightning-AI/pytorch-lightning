@@ -983,13 +983,13 @@ class Trainer(
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.dp_train(model)
+            results = self.dp_train(model)
 
         elif self.use_horovod:
-            self.horovod_train(model)
+            results = self.horovod_train(model)
 
         elif self.single_gpu:
-            self.single_gpu_train(model)
+            results = self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
             rank_zero_info(f'training on {self.tpu_cores} TPU cores')
@@ -1130,11 +1130,12 @@ class Trainer(
             results = self.run_evaluation(test_mode=True)
 
             # remove all cuda tensors
-            for k, v in results.items():
-                if isinstance(v, torch.Tensor):
-                    results[k] = v.cpu().item()
+            if isinstance(results, dict) and len(results) > 0:
+                for k, v in results.items():
+                    if isinstance(v, torch.Tensor):
+                        results[k] = v.cpu().item()
 
-            return results
+                return results
 
         # check if we should run validation during training
         self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
