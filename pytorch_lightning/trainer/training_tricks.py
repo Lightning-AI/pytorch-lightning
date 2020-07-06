@@ -108,7 +108,7 @@ class TrainerTrainingTricksMixin(ABC):
                          model: LightningModule,
                          mode: str = 'power',
                          steps_per_trial: int = 3,
-                         init_val: int = 2,
+                         init_val: int = 0,
                          max_trials: int = 25,
                          batch_arg_name: str = 'batch_size'):
         r"""
@@ -136,7 +136,11 @@ class TrainerTrainingTricksMixin(ABC):
 
         """
         if not hasattr(model, batch_arg_name):
-            raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
+            if not hasattr(model.hparams, batch_arg_name):
+                raise MisconfigurationException(f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
+            log.info(f'Field {batch_arg_name} not found in `model`. '
+                     f'`model.hparams.{batch_arg_name}` will be used instead.')
+            setattr(model, batch_arg_name, model.hparams.batch_size)
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
