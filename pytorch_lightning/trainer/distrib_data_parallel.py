@@ -555,7 +555,7 @@ class TrainerDDPMixin(ABC):
             m = self.get_model()
             print(type(m))
             q.put(path)
-            q.put(m)
+            q.put(m.state_dict())
 
     def save_spawn_weights(self, model):
         """
