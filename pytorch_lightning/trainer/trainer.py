@@ -959,8 +959,8 @@ class Trainer(
             elif self.distributed_backend == 'ddp_spawn':
                 self.set_random_port()
 
-                from multiprocessing import Queue
-                q = Queue()
+                smp = mp.get_context('spawn')
+                q = smp.SimpleQueue()
                 mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model, ))
                 # self.ddp_train(0, model, is_master=True)
                 # self.model.cpu()
