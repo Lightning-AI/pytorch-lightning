@@ -4,7 +4,6 @@ import platform
 from unittest import mock
 
 import pytest
-import wandb
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
