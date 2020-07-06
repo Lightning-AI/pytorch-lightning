@@ -1240,7 +1240,6 @@ class Trainer(
         # --------------------
         # load the best checkpoint automatically unless model is given
         # in which case we use that one
-        import pdb; pdb.set_trace()
         if model is None and ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
