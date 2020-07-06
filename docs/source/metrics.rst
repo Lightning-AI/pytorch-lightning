@@ -361,6 +361,30 @@ iou (F)
 .. autofunction:: pytorch_lightning.metrics.functional.iou
     :noindex:
 
+mse (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.mse
+    :noindex:
+
+rmse (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.rmse
+    :noindex:
+
+mae (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.mae
+    :noindex:
+
+rmsle (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.rmsle
+    :noindex:
+
 stat_scores_multiple_classes (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
