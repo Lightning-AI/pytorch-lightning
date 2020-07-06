@@ -510,7 +510,6 @@ class TrainerDDPMixin(ABC):
 
         # MODEL
         # copy model to each gpu
-        print(os.environ['CUDA_VISIBLE_DEVICES'])
         if self.on_gpu:
             gpu_idx = process_idx
             if is_master:
