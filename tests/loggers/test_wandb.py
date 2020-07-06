@@ -98,7 +98,7 @@ def test_wandb_logger_dirs_creation(tmpdir):
     wandb_dir = tmpdir / 'wandb'
     runs_folders = [p for p in os.listdir(wandb_dir) if p.endswith(str(version))]
     assert len(runs_folders) == 1
-    assert len(os.listdir(wandb_dir / runs_folders[0]))
+    assert os.listdir(wandb_dir / runs_folders[0])
 
     model = EvalModelTemplate()
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)

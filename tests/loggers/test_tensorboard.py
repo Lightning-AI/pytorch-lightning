@@ -27,7 +27,7 @@ def test_tensorboard_hparams_reload(tmpdir):
     with open(os.path.join(folder_path, 'hparams.yaml')) as file:
         # The FullLoader parameter handles the conversion from YAML
         # scalar values to Python the dictionary format
-        yaml_params = yaml.load(file, Loader=yaml.FullLoader)
+        yaml_params = yaml.safe_load(file)
         assert yaml_params['b1'] == 0.5
         assert len(yaml_params.keys()) == 10
 
@@ -84,7 +84,7 @@ def test_tensorboard_named_version(tmpdir):
 
     assert logger.version == expected_version
     assert os.listdir(tmpdir / name) == [expected_version]
-    assert len(os.listdir(tmpdir / name / expected_version))
+    assert os.listdir(tmpdir / name / expected_version)
 
 
 @pytest.mark.parametrize("name", ['', None])
@@ -93,7 +93,7 @@ def test_tensorboard_no_name(tmpdir, name):
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
     logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
     assert logger.root_dir == tmpdir
-    assert len(os.listdir(tmpdir / 'version_0'))
+    assert os.listdir(tmpdir / 'version_0')
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
