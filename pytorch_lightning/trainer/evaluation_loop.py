@@ -391,6 +391,7 @@ class TrainerEvaluationLoopMixin(ABC):
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
         # enable no returns
+        callback_metrics = {}
         if eval_results is not None and len(eval_results) > 0:
             _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
@@ -427,6 +428,8 @@ class TrainerEvaluationLoopMixin(ABC):
             self.on_test_end()
         else:
             self.on_validation_end()
+
+        return callback_metrics
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional

@@ -894,6 +894,8 @@ class Trainer(
             # defined as part of the model, and validation can then be feed to .fit()
 
         """
+        results = None
+
         # bind logger and other properties
         self.copy_trainer_model_properties(model)
 
@@ -967,6 +969,7 @@ class Trainer(
 
                 # restore main state with best weights
                 best_path = q.get()
+                results = q.get()
                 if best_path is not None and len(best_path) > 0:
                     self.checkpoint_callback.best_model_path = best_path
                     model.load_from_checkpoint(best_path)
@@ -1027,7 +1030,7 @@ class Trainer(
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-            self.run_pretrain_routine(model)
+            results = self.run_pretrain_routine(model)
 
         # callbacks
         self.on_fit_end()
@@ -1042,7 +1045,7 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-        return 1
+        return 1 if results is None else results
 
     def can_prepare_data(self):
         if self.prepare_data_per_node:
@@ -1124,8 +1127,8 @@ class Trainer(
         if self.testing:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
-            self.run_evaluation(test_mode=True)
-            return
+            results = self.run_evaluation(test_mode=True)
+            return results
 
         # check if we should run validation during training
         self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \

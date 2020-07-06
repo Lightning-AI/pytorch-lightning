@@ -545,13 +545,14 @@ class TrainerDDPMixin(ABC):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        self.run_pretrain_routine(model)
+        results = self.run_pretrain_routine(model)
 
         # clean up memory
         torch.cuda.empty_cache()
 
         if self.global_rank == 0:
             q.put(self.checkpoint_callback.best_model_path)
+            q.put(results)
 
     def save_spawn_weights(self, model):
         """
