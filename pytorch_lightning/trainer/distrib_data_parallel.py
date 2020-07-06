@@ -394,10 +394,7 @@ class TrainerDDPMixin(ABC):
 
         # when not forced, use the user port
         if not force:
-            try:
-                default_port = os.environ['MASTER_PORT']
-            except Exception:
-                pass
+            default_port = os.environ.get('MASTER_PORT', default_port)
 
         os.environ['MASTER_PORT'] = str(default_port)
 
