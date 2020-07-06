@@ -552,8 +552,9 @@ class TrainerDDPMixin(ABC):
 
         if self.global_rank == 0:
             path = self.checkpoint_callback.best_model_path
+            m = self.get_model()
             q.put(path)
-            # q.put(self.model)
+            q.put(m)
 
     def save_spawn_weights(self, model):
         """
