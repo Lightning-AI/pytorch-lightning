@@ -34,7 +34,9 @@ def test_inference(infer_mode):
     model = MixedDtypeModel()
     assert isinstance(Inference(model, infer_mode=infer_mode)(model.example_input_array), torch.Tensor)
 
+
 @pytest.mark.parametrize('return_mode', ['avg', 'list'])
 def test_iterativeinference(return_mode):
     model = MixedDtypeModel()
-    assert isinstance(IterativeInference(model, return_mode=return_mode)(model.example_input_array, N=10), torch.Tensor if return_mode == return_mode else list)
+    assert isinstance(IterativeInference(model, return_mode=return_mode)(model.example_input_array, N=10),
+                      torch.Tensor if return_mode == return_mode else list)
