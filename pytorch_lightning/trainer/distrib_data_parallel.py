@@ -382,16 +382,21 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def set_random_port(self):
+    def set_random_port(self, force=False):
         """
         When running DDP NOT managed by SLURM, the ports might collide
         """
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            global RANDOM_PORTS
-            default_port = RANDOM_PORTS[-1]
-            RANDOM_PORTS = RANDOM_PORTS[:-1]
+        # pick a random port first
+        global RANDOM_PORTS
+        default_port = RANDOM_PORTS[-1]
+        RANDOM_PORTS = RANDOM_PORTS[:-1]
+
+        # when not forced, use the user port
+        if not force:
+            try:
+                default_port = os.environ['MASTER_PORT']
+            except Exception:
+                pass
 
         os.environ['MASTER_PORT'] = str(default_port)
 

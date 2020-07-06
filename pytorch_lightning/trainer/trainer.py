@@ -1247,6 +1247,7 @@ class Trainer(
         # RUN TEST SET
         # --------------------
         # sets up testing so we short circuit to eval
+        self.set_random_port(force=True)
         self.testing = True
         self.model = model
         self.fit(model)
