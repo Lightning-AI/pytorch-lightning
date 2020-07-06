@@ -1212,7 +1212,6 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
-        import pdb; pdb.set_trace()
         self.setup('test')
         model_ref = self.model if model is None else model
         if self.is_function_implemented('setup', model_ref):
