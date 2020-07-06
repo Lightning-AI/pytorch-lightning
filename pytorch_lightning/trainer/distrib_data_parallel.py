@@ -463,11 +463,17 @@ class TrainerDDPMixin(ABC):
 
     def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
         """
-        Entry point into a DP thread
-        :param gpu_idx:
-        :param model:
-        :param cluster_obj:
-        :return:
+        Entry point for ddp
+
+        Args:
+            process_idx:
+            q:
+            model:
+            is_master:
+            proc_offset:
+
+        Returns:
+
         """
         # offset the process id if requested
         process_idx = process_idx + proc_offset
