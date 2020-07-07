@@ -141,6 +141,7 @@ def test_multiple_test_dataloader(tmpdir, ckpt_path):
     trainer.fit(model)
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
+    import pdb; pdb.set_trace()
     trainer.test(ckpt_path=ckpt_path)
 
     # verify there are 2 test loaders
