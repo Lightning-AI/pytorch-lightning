@@ -41,6 +41,7 @@ def test_tensorboard_hparams_reload(tmpdir):
                    b'\x0f\n\rlearning_rate"\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n' \
                    b'\x0cout_features"\x0c\n\nhidden_dim"\x04\n\x02b1"\x04\n\x02b2'
 
+    import pdb; pdb.set_trace()
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
 
