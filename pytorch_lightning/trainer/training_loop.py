@@ -744,7 +744,6 @@ class TrainerTrainLoopMixin(ABC):
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_lbfgs=True)
 
-
             # when using 16-bit
             else:
                 native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
