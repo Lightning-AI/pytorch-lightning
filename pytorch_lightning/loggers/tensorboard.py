@@ -106,10 +106,6 @@ class TensorBoardLogger(LightningLoggerBase):
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
-    @experiment.setter
-    def experiment(self, exp):
-        self._experiment = exp
-
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
                         metrics: Optional[Dict[str, Any]] = None) -> None:
