@@ -22,6 +22,7 @@ class DeterministicModel(LightningModule):
         self.l1 = torch.nn.Parameter(weights, requires_grad=True)
 
     def forward(self, x):
+        import pdb; pdb.set_trace()
         return self.l1.mm(x.t())
 
     def step(self, batch, batch_idx):
