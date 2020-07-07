@@ -326,7 +326,12 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
     trainer.test(ckpt_path=None)
-    assert trainer.num_test_batches == [len(x) for x in model.test_dataloader()]
+
+    # when the limit is greater than the number of test batches it should be the num in loaders
+    if limit_test_batches > 1e10:
+        assert trainer.num_test_batches == [len(x) for x in model.test_dataloader()]
+    else:
+        assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
