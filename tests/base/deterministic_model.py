@@ -22,7 +22,7 @@ class DeterministicModel(LightningModule):
         self.l1 = torch.nn.Parameter(weights, requires_grad=True)
 
     def forward(self, x):
-        return self.l1.mm(x.float().t())
+        return self.l1.mm(x.t())
 
     def step(self, batch, batch_idx):
         x = batch
@@ -147,4 +147,4 @@ class DummyDataset(Dataset):
         return 12
 
     def __getitem__(self, idx):
-        return np.array([0.5, 1.0, 2.0])
+        return np.array([0.5, 1.0, 2.0], dtype=np.float)
