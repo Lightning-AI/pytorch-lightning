@@ -15,12 +15,13 @@ class DeterministicModel(LightningModule):
         self.training_step_end_called = False
         self.training_epoch_end_called = False
 
+        self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
             weights = torch.tensor([
                 [4, 3, 5],
                 [10, 11, 13]
-            ]).float()
-        self.l1 = nn.ModuleList(torch.nn.Parameter(weights, requires_grad=True))
+            ])
+            self.l1.weight = weights
 
     def forward(self, x):
         return self.l1.mm(x.t())
