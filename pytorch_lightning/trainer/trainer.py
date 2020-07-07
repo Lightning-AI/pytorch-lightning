@@ -1046,7 +1046,7 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-        return 1 if results is None else results
+        return results or 1
 
     def can_prepare_data(self):
         if self.prepare_data_per_node:
