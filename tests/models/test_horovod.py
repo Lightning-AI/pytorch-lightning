@@ -40,13 +40,13 @@ def _nccl_available():
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
-    num_gpus = trainer_options.get('gpus', 2)
+    num_processes = trainer_options.get('gpus', 2)
     # gpus trainer argument does not apply for horovod
     trainer_options.update(gpus=None)
     tutils.reset_seed()
     cmdline = [
         'horovodrun',
-        '-np', str(num_gpus),
+        '-np', str(num_processes),
         sys.executable, TEST_SCRIPT,
         '--trainer-options', shlex.quote(json.dumps(trainer_options))
     ]
