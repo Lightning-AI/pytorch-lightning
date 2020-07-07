@@ -31,6 +31,7 @@ def test_training_step_dict(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
+    import pdb; pdb.set_trace()
     out = trainer.run_training_batch(batch.half(), batch_idx)
     assert out.signal == 0
     assert out.batch_log_metrics['log_acc1'] == 12.0
