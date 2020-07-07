@@ -389,6 +389,7 @@ class TrainerDDPMixin(ABC):
         When running DDP NOT managed by SLURM, the ports might collide
         """
         # pick a random port first
+        assert self.num_nodes == 1, 'random port can only be called from single node training'
         global RANDOM_PORTS
         default_port = RANDOM_PORTS[-1]
         RANDOM_PORTS = RANDOM_PORTS[:-1]
