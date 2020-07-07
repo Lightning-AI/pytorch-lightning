@@ -18,7 +18,7 @@ class DeterministicModel(LightningModule):
             weights = torch.tensor([
                 [4, 3, 5],
                 [10, 11, 13]
-            ])
+            ]).float()
         self.l1 = torch.nn.Parameter(weights, requires_grad=True)
 
     def forward(self, x):
