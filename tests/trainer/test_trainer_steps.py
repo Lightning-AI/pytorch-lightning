@@ -31,6 +31,10 @@ def test_training_step_dict(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
+    x, y = batch
+    x = x.half()
+    batch = [x, y]
+
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
     assert out.batch_log_metrics['log_acc1'] == 12.0
