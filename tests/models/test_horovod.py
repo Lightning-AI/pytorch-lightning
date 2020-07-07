@@ -58,6 +58,7 @@ def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
@@ -74,6 +75,7 @@ def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
@@ -91,6 +93,7 @@ def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,

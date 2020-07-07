@@ -1,7 +1,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from tests.base.develop_utils import load_model_from_checkpoint, init_checkpoint_callback, get_default_logger, \
+from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, \
     reset_seed
 
 
@@ -14,13 +14,6 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
-
-    # test model loading
-    if trainer.global_rank > 0:
-        # on higher ranks the checkpoint location is unknown
-        # we want to test checkpointing on rank 0 only
-        assert not hasattr(trainer, 'ckpt_path')
-        return
 
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
@@ -58,12 +51,6 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
 
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
-
-    if trainer.global_rank > 0:
-        # on higher ranks the checkpoint location is unknown
-        # we want to test checkpointing on rank 0 only
-        assert not hasattr(trainer, 'ckpt_path')
-        return
 
     # test model loading
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
