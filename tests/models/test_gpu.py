@@ -51,6 +51,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     tpipes.run_model_test(trainer_options, model)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_dp(tmpdir):
     tutils.set_random_master_port()
 
