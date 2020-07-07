@@ -55,9 +55,15 @@ def run_test_from_config(trainer_options):
 
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
+    assert result == 1
 
-    # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    # Horovod should be initialized following training. If not, this will raise an exception.
+    assert hvd.size() == 2
+
+    if args.on_gpu:
+        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
+        # Test the root_gpu property
+        assert trainer.root_gpu == hvd.local_rank()
 
     if trainer.global_rank > 0:
         # on higher ranks the checkpoint location is unknown
@@ -79,15 +85,7 @@ def run_test_from_config(trainer_options):
 
     # test HPC loading / saving
     trainer.hpc_save(ckpt_path, trainer.logger)
-    trainer.hpc_load(ckpt_path, on_gpu=model.on_gpu)
-
-    # Horovod should be initialized following training. If not, this will raise an exception.
-    assert hvd.size() == 2
-
-    if args.on_gpu:
-        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
-        # Test the root_gpu property
-        assert trainer.root_gpu == hvd.local_rank()
+    trainer.hpc_load(ckpt_path, on_gpu=args.on_gpu)
 
 
 if __name__ == "__main__":
