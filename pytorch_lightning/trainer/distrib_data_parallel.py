@@ -122,6 +122,8 @@ import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
+from torch import distributed as dist
+import queue
 
 import torch
 from pytorch_lightning import _logger as log
@@ -163,6 +165,10 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
+pid = os.getpid()
+rng1 = np.random.RandomState(pid)
+RANDOM_PORTS = rng1.randint(10000, 19999, 100)
+
 
 class TrainerDDPMixin(ABC):
 
@@ -178,6 +184,7 @@ class TrainerDDPMixin(ABC):
     use_tpu: bool
     default_root_dir: str
     progress_bar_callback: ...
+    checkpoint_callback: ...
     num_processes: int
     num_nodes: int
     node_rank: int
@@ -377,17 +384,19 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def set_random_port(self):
+    def set_random_port(self, force=False):
         """
         When running DDP NOT managed by SLURM, the ports might collide
         """
-        try:
-            default_port = os.environ['MASTER_PORT']
-        except Exception:
-            # use the process id as a seed to a generator for port only
-            pid = os.getpid()
-            rng1 = np.random.RandomState(pid)
-            default_port = rng1.randint(10000, 19999, 1)[0]
+        # pick a random port first
+        assert self.num_nodes == 1, 'random port can only be called from single node training'
+        global RANDOM_PORTS
+        default_port = RANDOM_PORTS[-1]
+        RANDOM_PORTS = RANDOM_PORTS[:-1]
+
+        # when not forced, use the user port
+        if not force:
+            default_port = os.environ.get('MASTER_PORT', default_port)
 
         os.environ['MASTER_PORT'] = str(default_port)
 
@@ -446,15 +455,24 @@ class TrainerDDPMixin(ABC):
             sleep(delay)
 
         local_rank = 0
-        self.ddp_train(local_rank, model, is_master=True)
+        results = self.ddp_train(local_rank, q=None, model=model, is_master=True)
+        del os.environ['WORLD_SIZE']
 
-    def ddp_train(self, process_idx, model, is_master=False, proc_offset=0):
+        return results
+
+    def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
         """
-        Entry point into a DP thread
-        :param gpu_idx:
-        :param model:
-        :param cluster_obj:
-        :return:
+        Entry point for ddp
+
+        Args:
+            process_idx:
+            q:
+            model:
+            is_master:
+            proc_offset:
+
+        Returns:
+
         """
         # offset the process id if requested
         process_idx = process_idx + proc_offset
@@ -535,7 +553,17 @@ class TrainerDDPMixin(ABC):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        self.run_pretrain_routine(model)
+        results = self.run_pretrain_routine(model)
+
+        # clean up memory
+        torch.cuda.empty_cache()
+
+        if self.global_rank == 0 and q is not None:
+            q.put(self.checkpoint_callback.best_model_path)
+            q.put(results)
+
+        if self.global_rank == 0 and self.distributed_backend != 'ddp_spawn':
+            return results
 
     def save_spawn_weights(self, model):
         """

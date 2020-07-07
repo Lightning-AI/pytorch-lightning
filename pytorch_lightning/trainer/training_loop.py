@@ -507,7 +507,8 @@ class TrainerTrainLoopMixin(ABC):
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
-        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
+        should_activate = not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val)
+        if should_activate:
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
@@ -742,7 +743,6 @@ class TrainerTrainLoopMixin(ABC):
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_lbfgs=True)
 
-
             # when using 16-bit
             else:
                 native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
@@ -888,6 +888,12 @@ class TrainerTrainLoopMixin(ABC):
         # clean up dist group
         if self.use_ddp or self.use_ddp2:
             torch_distrib.destroy_process_group()
+
+        # clear mem
+        if self.on_gpu:
+            model = self.get_model()
+            model.cpu()
+            torch.cuda.empty_cache()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """

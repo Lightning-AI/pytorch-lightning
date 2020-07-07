@@ -124,22 +124,24 @@ class TrainerDataLoadingMixin(ABC):
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
         using_spawn = self.distributed_backend == 'ddp_spawn'
-        if is_dataloader and dataloader.num_workers > 0 and not on_windows and using_spawn:
-            rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well! '
-                           'Your performance might suffer dramatically. '
-                           'Please consider setting distributed_backend=ddp to use num_workers > 0 '
-                           '(this is a bottleneck of Python .spawn() and PyTorch')
+        if is_dataloader and not on_windows:
+            if dataloader.num_workers > 0 and using_spawn:
+                rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'
+                               ' Your performance might suffer dramatically.'
+                               ' Please consider setting distributed_backend=ddp to use num_workers > 0'
+                               ' (this is a bottleneck of Python .spawn() and PyTorch')
 
-        elif is_dataloader and dataloader.num_workers <= 2 and not on_windows and not using_spawn:
-            num_cpus = multiprocessing.cpu_count()
-            rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
-                           ' Consider increasing the value of the `num_workers` argument` '
-                           f'(try {num_cpus} which is the number of cpus on this machine)'
-                           ' in the `DataLoader` init to improve performance.')
+            elif dataloader.num_workers == 0 and using_spawn:
+                rank_zero_warn('You are using `distributed_backend=ddp_spawn` with num_workers=0.'
+                               ' For much faster performance, switch to `distributed_backend=ddp`'
+                               ' and set `num_workers>0`')
 
-        elif is_dataloader and dataloader.num_workers == 0 and not on_windows and using_spawn:
-            rank_zero_warn('You are using `distributed_backend=ddp_spawn` with num_workers=0. '
-                           'For much faster performance, switch to `distributed_backend=ddp` and set `num_workers>0`')
+            elif dataloader.num_workers <= 2 and multiprocessing.cpu_count() > 2 and not using_spawn:
+                num_cpus = multiprocessing.cpu_count()
+                rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
+                               ' Consider increasing the value of the `num_workers` argument`'
+                               f' (try {num_cpus} which is the number of cpus on this machine)'
+                               ' in the `DataLoader` init to improve performance.')
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
@@ -219,7 +221,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.num_training_batches = len(self.train_dataloader)
                 self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
             else:
-                self.num_training_batches = self.limit_train_batches
+                self.num_training_batches = min(len(self.train_dataloader), self.limit_train_batches)
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -311,7 +313,7 @@ class TrainerDataLoadingMixin(ABC):
                     if isinstance(limit_eval_batches, float):
                         num_batches = int(num_batches * limit_eval_batches)
                     else:
-                        num_batches = limit_eval_batches
+                        num_batches = min(len(dataloader), limit_eval_batches)
 
                 elif limit_eval_batches not in (0.0, 1.0):
                     raise MisconfigurationException(
@@ -338,8 +340,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         if self.is_overridden('validation_step'):
-            self.num_val_batches, self.val_dataloaders = \
-                self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.
