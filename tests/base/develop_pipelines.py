@@ -17,6 +17,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
+    import pdb; pdb.set_trace()
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
         trainer.checkpoint_callback.dirpath,
