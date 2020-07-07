@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python_version: [3.6, 3.7]
+        python_version: [3.7]  # TODO: add 3.6, for now the Google docker image has missing 3.6
     steps:
       - name: Checkout
         uses: actions/checkout@v2

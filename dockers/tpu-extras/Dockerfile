@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
 
+# Disable cache
+    pip config set global.cache-dir false && \
+    pip install "pip>20.1" -U  && \
+
 # Install Pytorch XLA
     py_version=${PYTHON_VERSION/./} && \
     # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
@@ -42,7 +46,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Cleaning
     apt-get autoremove -y && \
-    apt-get clean
+    apt-get clean && \
+    rm -rf /root/.cache
 
 # Install pytorch-lightning dependencies.
 RUN \
@@ -58,7 +63,8 @@ RUN \
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
     pip install --requirement ./requirements/extra.txt && \
     cd .. && \
-    rm -rf pytorch-lightning-master
+    rm -rf pytorch-lightning-master && \
+    rm -rf /root/.cache
 
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/"
 
