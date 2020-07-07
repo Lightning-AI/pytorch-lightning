@@ -58,7 +58,6 @@ class CustomLogger(LightningLoggerBase):
         """
         return None
 
-
     @property
     def name(self):
         return "name"
