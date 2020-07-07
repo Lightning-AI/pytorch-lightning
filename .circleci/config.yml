@@ -1,8 +1,12 @@
 # Python CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
-#
-version: 2.0
+# https://circleci.com/docs/2.0/env-vars/
+version: 2.1
+orbs:
+  node: circleci/node@1.0.1
+  gcp-gke: circleci/gcp-gke@0.1.0
+  gcr: circleci/gcp-gcr@0.0.2
 
 references:
 
@@ -42,13 +46,12 @@ references:
         # project_id: ${{ secrets.GKE_PROJECT }}
         # export_default_credentials: true
 
-  config_docker: &config_docker
+  build_docker: &build_docker
     run:
-      name: Configure Docker
+      name: Build Docker
       command: |
         cd docker/tpu
         docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
-        docker push "$IMAGE:$GITHUB_RUN_ID"
 
   install_jsonnet: &install_jsonnet
     run:
@@ -118,8 +121,11 @@ jobs:
       - checkout
       - *install_go
       - *checkout_ml_testing
-      - *setup_gcloud
-      - *config_docker
+      - gcr/gcr-auth
+      - *build_docker
+      - gcr/push-image:
+          image: $IMAGE
+          tag: $GITHUB_RUN_ID
       - *install_jsonnet
       - *gke_credentials
       - *deploy_cluster
