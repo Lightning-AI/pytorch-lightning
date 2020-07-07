@@ -21,8 +21,8 @@ RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
 # the source code where the tests live.
 RUN \
     # drop Horovod
-    python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
-    pip install --requirement pytorch-lightning/requirements/extra.txt --no-cache-dir && \
+    #python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    #pip install --requirement pytorch-lightning/requirements/extra.txt --no-cache-dir && \
     if [ $TEST_IMAGE -eq 1 ] ; then \
         pip install --requirement pytorch-lightning/requirements/test.txt --no-cache-dir ; \
     else \
