@@ -1139,6 +1139,8 @@ class Trainer(
                         results[k] = v.cpu().item()
 
                 return results
+            else:
+                return {}
 
         # check if we should run validation during training
         self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
