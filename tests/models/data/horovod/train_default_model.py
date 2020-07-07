@@ -60,10 +60,6 @@ def run_test_from_config(trainer_options):
     # Horovod should be initialized following training. If not, this will raise an exception.
     assert hvd.size() == 2
 
-    if args.on_gpu:
-        # Test the root_gpu property
-        assert trainer.root_gpu == hvd.local_rank()
-
     if trainer.global_rank > 0:
         # on higher ranks the checkpoint location is unknown
         # we want to test checkpointing on rank 0 only
@@ -83,7 +79,11 @@ def run_test_from_config(trainer_options):
         run_prediction(dataloader, pretrained_model)
 
     # test HPC loading / saving
-    trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
+    if args.on_gpu:
+        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
+        # Test the root_gpu property
+        assert trainer.root_gpu == hvd.local_rank()
+
     trainer.hpc_save(ckpt_path, trainer.logger)
     trainer.hpc_load(ckpt_path, on_gpu=args.on_gpu)
 
