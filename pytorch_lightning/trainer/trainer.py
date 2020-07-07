@@ -1133,7 +1133,7 @@ class Trainer(
             results = self.run_evaluation(test_mode=True)
 
             # remove all cuda tensors
-            if isinstance(results, dict) and len(results) > 0:
+            if results is not None and isinstance(results, dict) and len(results) > 0:
                 for k, v in results.items():
                     if isinstance(v, torch.Tensor):
                         results[k] = v.cpu().item()
