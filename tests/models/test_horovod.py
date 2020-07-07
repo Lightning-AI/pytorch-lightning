@@ -96,7 +96,7 @@ def test_horovod_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=1,
+        gpus=2,
         deterministic=True,
         distributed_backend='horovod'
     )
@@ -122,7 +122,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = TestTrainingStepModel(hparams)
+    model = TestTrainingStepModel(**hparams)
 
     trainer_options = dict(
         default_root_dir=str(tmpdir),

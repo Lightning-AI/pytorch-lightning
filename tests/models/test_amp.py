@@ -103,7 +103,7 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         gpus=[0],
-        distributed_backend='ddp',
+        distributed_backend='ddp_spawn',
         precision=16,
         checkpoint_callback=checkpoint,
         logger=logger,

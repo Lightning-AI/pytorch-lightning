@@ -105,6 +105,7 @@ class CometLogger(LightningLoggerBase):
                               ' install it with `pip install comet-ml`.')
         super().__init__()
         self._experiment = None
+        self._save_dir = save_dir
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         if api_key is not None:
@@ -112,7 +113,7 @@ class CometLogger(LightningLoggerBase):
             self.api_key = api_key
         elif save_dir is not None:
             self.mode = "offline"
-            self.save_dir = save_dir
+            self._save_dir = save_dir
         else:
             # If neither api_key nor save_dir are passed as arguments, raise an exception
             raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
@@ -220,6 +221,10 @@ class CometLogger(LightningLoggerBase):
         self.reset_experiment()
 
     @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
+
+    @property
     def name(self) -> str:
         return str(self.experiment.project_name)
 
@@ -230,3 +235,8 @@ class CometLogger(LightningLoggerBase):
     @property
     def version(self) -> str:
         return self.experiment.id
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_experiment"] = None
+        return state

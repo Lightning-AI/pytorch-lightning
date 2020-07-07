@@ -24,8 +24,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
-        trainer.checkpoint_callback.dirpath,
-        path_expt=trainer_options.get('default_root_dir'),
+        trainer.checkpoint_callback.best_model_path,
     )
 
     # test new model accuracy
@@ -43,6 +42,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
 
 def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
+
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
@@ -51,11 +51,8 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     trainer_options.update(logger=logger)
 
     if 'checkpoint_callback' not in trainer_options:
-        # logger file to get weights
-        checkpoint = init_checkpoint_callback(logger)
-        trainer_options.update(checkpoint_callback=checkpoint)
+        trainer_options.update(checkpoint_callback=True)
 
-    # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
@@ -63,13 +60,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     assert result == 1, 'amp + ddp model failed to complete'
 
     # test model loading
-    if trainer.global_rank > 0:
-        # on higher ranks the checkpoint location is unknown
-        # we want to test checkpointing on rank 0 only
-        assert not hasattr(trainer, 'ckpt_path')
-        return
-
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.dirpath)
+    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
