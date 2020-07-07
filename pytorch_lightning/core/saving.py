@@ -330,7 +330,8 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not gfile.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
-    if OMEGACONF_AVAILABLE and isinstance(hparams, Container):
+    if Container is not None and (OmegaConf.is_config(hparams) or
+                                  OmegaConf.is_config(v) for v in hparams.values() ):
         from omegaconf import OmegaConf
 
         OmegaConf.save(hparams, config_yaml, resolve=True)
