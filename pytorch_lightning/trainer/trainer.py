@@ -955,10 +955,10 @@ class Trainer(
                 self.ddp_train(process_idx=task, q=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                results = self.__run_ddp_spawn(model)
+                results = self.__run_ddp_spawn(model, nprocs=self.num_processes)
 
             elif self.distributed_backend == 'ddp_spawn':
-                results = self.__run_ddp_spawn(model)
+                results = self.__run_ddp_spawn(model, nprocs=self.num_processes)
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
@@ -1031,14 +1031,14 @@ class Trainer(
         # used for testing or when we need to know that training succeeded
         return results or 1
 
-    def __run_ddp_spawn(self, model):
+    def __run_ddp_spawn(self, model, nprocs):
         self.set_random_port()
 
         # pass in a state q
         smp = mp.get_context('spawn')
         q = smp.SimpleQueue()
 
-        mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model,))
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model,))
 
         # restore main state with best weights
         best_path = q.get()
