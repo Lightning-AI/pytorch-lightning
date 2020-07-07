@@ -32,9 +32,8 @@ class DeterministicModel(LightningModule):
         y_hat = self(x)
 
         test_hat = y_hat.detach().cpu()
-        import pdb; pdb.set_trace()
-        assert torch.all(test_hat == 15.0)
-        assert torch.all(test_hat == 42.0)
+        assert torch.all(test_hat[:, 0] == 15.0)
+        assert torch.all(test_hat[:, 1] == 42.0)
         out = y_hat.sum()
         assert out == (42.0 * 3) + (15.0 * 3)
 
