@@ -436,7 +436,6 @@ class TrainerTrainLoopMixin(ABC):
         should_check_val = False
 
         # run epoch
-
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
