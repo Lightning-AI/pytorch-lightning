@@ -1140,7 +1140,7 @@ class Trainer(
 
                 return results
             else:
-                return {}
+                return 1
 
         # check if we should run validation during training
         self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
