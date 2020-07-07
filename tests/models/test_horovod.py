@@ -128,7 +128,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = TestTrainingStepModel(hparams)
+    model = TestTrainingStepModel(**hparams)
 
     trainer_options = dict(
         default_root_dir=str(tmpdir),
