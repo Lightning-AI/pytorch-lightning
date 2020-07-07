@@ -558,7 +558,8 @@ def test_dataloader_reinit_for_subclass():
     result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
+    dataset = list(range(1000))
+    result = trainer.auto_add_sampler(CustomDataLoader(dataset), train=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
