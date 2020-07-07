@@ -4,7 +4,6 @@ import pytest
 import torch
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_training_step_dict(tmpdir):
     """
@@ -17,8 +16,6 @@ def test_training_step_dict(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        precision=16,
-        gpus=1,
         weights_summary=None,
     )
     trainer.fit(model)

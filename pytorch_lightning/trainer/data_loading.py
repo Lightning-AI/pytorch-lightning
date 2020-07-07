@@ -221,7 +221,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.num_training_batches = len(self.train_dataloader)
                 self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
             else:
-                self.num_training_batches = self.limit_train_batches
+                self.num_training_batches = min(len(self.train_dataloader), self.limit_train_batches)
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -313,7 +313,7 @@ class TrainerDataLoadingMixin(ABC):
                     if isinstance(limit_eval_batches, float):
                         num_batches = int(num_batches * limit_eval_batches)
                     else:
-                        num_batches = limit_eval_batches
+                        num_batches = min(len(dataloader), limit_eval_batches)
 
                 elif limit_eval_batches not in (0.0, 1.0):
                     raise MisconfigurationException(
@@ -340,8 +340,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         if self.is_overridden('validation_step'):
-            self.num_val_batches, self.val_dataloaders = \
-                self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.

@@ -6,6 +6,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+import tests.base.develop_pipelines as tpipes
 
 try:
     import torch_xla
@@ -17,6 +18,44 @@ except ImportError:
     TPU_AVAILABLE = False
 else:
     TPU_AVAILABLE = True
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.parametrize("tpu_cores", [1, [1], 8])
+def test_base_tpu_model(tmpdir, tpu_cores):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        tpu_cores=tpu_cores,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pytest.mark.parametrize("tpu_cores", [1, [1], 8])
+def test_base_tpu_16bit_model(tmpdir, tpu_cores):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        precision=16,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        tpu_cores=tpu_cores,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
+    )
+
+    model = EvalModelTemplate()
+
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+
+    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
@@ -60,7 +99,6 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
     assert torch_xla._XLAC._xla_get_default_device() == expected_device
 
 
-@pytest.mark.spawn
 @pytest.mark.parametrize("tpu_cores", [1, 8])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_multi_core_tpu_model(tmpdir, tpu_cores):
@@ -77,7 +115,6 @@ def test_multi_core_tpu_model(tmpdir, tpu_cores):
     assert trainer.tpu_id is None
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
@@ -95,24 +132,6 @@ def test_dataloaders_passed_to_fit(tmpdir):
         val_dataloaders=model.val_dataloader(),
     )
     assert result, "TPU doesn't work with dataloaders passed to fit()."
-
-
-@pytest.mark.spawn
-@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_mixed_precision_with_tpu(tmpdir, tpu_cores):
-    """Test if FP16 TPU core training works"""
-    model = EvalModelTemplate()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        tpu_cores=tpu_cores,
-        precision=16
-    )
-    trainer.fit(model)
-    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id'], [

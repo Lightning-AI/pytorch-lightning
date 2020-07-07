@@ -326,7 +326,12 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
     trainer.test(ckpt_path=None)
-    assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
+
+    # when the limit is greater than the number of test batches it should be the num in loaders
+    if limit_test_batches > 1e10:
+        assert trainer.num_test_batches == [len(x) for x in model.test_dataloader()]
+    else:
+        assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
@@ -534,7 +539,7 @@ def test_dataloader_reinit_for_subclass():
         def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
                      batch_sampler=None, num_workers=0, collate_fn=None,
                      pin_memory=False, drop_last=False, timeout=0,
-                     worker_init_fn=None, dummy_kwarg=None):
+                     worker_init_fn=None, dummy_kwarg=None, **kwargs):
             super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
                              num_workers, collate_fn, pin_memory, drop_last, timeout,
                              worker_init_fn)
@@ -544,7 +549,7 @@ def test_dataloader_reinit_for_subclass():
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp',
+        distributed_backend='ddp_spawn',
     )
 
     class CustomDummyObj:
@@ -553,7 +558,8 @@ def test_dataloader_reinit_for_subclass():
     result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
+    dataset = list(range(1000))
+    result = trainer.auto_add_sampler(CustomDataLoader(dataset), train=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')
