@@ -21,7 +21,8 @@ class DeterministicModel(LightningModule):
                 [4, 3, 5],
                 [10, 11, 13]
             ])
-            self.l1.weight = weights
+            p = torch.nn.Parameter(weights, requires_grad=True)
+            self.l1.weight = p
 
     def forward(self, x):
         return self.l1.mm(x.t())
