@@ -45,3 +45,4 @@ dependencies:
         - wandb>=0.8.21
         - neptune-client>=0.4.4
         - horovod>=0.19.1
+        - nltk
