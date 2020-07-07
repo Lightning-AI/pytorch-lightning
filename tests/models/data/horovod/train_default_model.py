@@ -61,7 +61,6 @@ def run_test_from_config(trainer_options):
     assert hvd.size() == 2
 
     if args.on_gpu:
-        trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
         # Test the root_gpu property
         assert trainer.root_gpu == hvd.local_rank()
 
@@ -84,6 +83,7 @@ def run_test_from_config(trainer_options):
         run_prediction(dataloader, pretrained_model)
 
     # test HPC loading / saving
+    trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)
     trainer.hpc_save(ckpt_path, trainer.logger)
     trainer.hpc_load(ckpt_path, on_gpu=args.on_gpu)
 
