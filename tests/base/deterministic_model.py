@@ -31,7 +31,7 @@ class DeterministicModel(LightningModule):
         x = batch
         y_hat = self(x)
 
-        test_hat = y_hat.detach().cpu()
+        test_hat = y_hat.cpu().detach()
         assert torch.all(test_hat[:, 0] == 15.0)
         assert torch.all(test_hat[:, 1] == 42.0)
         out = y_hat.sum()
