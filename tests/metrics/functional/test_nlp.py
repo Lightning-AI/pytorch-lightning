@@ -1,6 +1,6 @@
 import pytest
 
-from pytorch_lightning.metrics.bleu import bleu_score, best_match_len
+from pytorch_lightning.metrics.functional.nlp import bleu_score, best_match_len
 
 
 def test_best_match_len():

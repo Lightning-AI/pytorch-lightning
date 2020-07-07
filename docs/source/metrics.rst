@@ -28,7 +28,7 @@ Example::
 
 .. warning::
     The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR!
-    to a few metrics. Please feel free to create an issue/PR if you have a proposed  metric or have found a bug.
+    to a few metrics. Please feel free to create an issue/PR if you have a proposed metric or have found a bug.
 
 ----------------
 
@@ -73,7 +73,7 @@ Here's an example showing how to implement a NumpyMetric
     class RMSE(NumpyMetric):
         def forward(self, x, y):
             return np.sqrt(np.mean(np.power(x-y, 2.0)))
-        
+
 
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
@@ -283,6 +283,12 @@ average_precision (F)
 .. autofunction:: pytorch_lightning.metrics.functional.average_precision
     :noindex:
 
+bleu_score (F)
+^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.bleu_score
+    :noindex:
+
 confusion_matrix (F)
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -418,22 +424,29 @@ to_onehot (F)
 
 Sklearn interface
 -----------------
-    
-Lightning supports `sklearns metrics module <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_ 
-as a backend for calculating metrics. Sklearns metrics are well tested and robust, 
+
+Lightning supports `sklearns metrics module <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
+as a backend for calculating metrics. Sklearns metrics are well tested and robust,
 but requires conversion between pytorch and numpy thus may slow down your computations.
 
 To use the sklearn backend of metrics simply import as
 
 .. code-block:: python
-    
+
     import pytorch_lightning.metrics.sklearns import plm
     metric = plm.Accuracy(normalize=True)
     val = metric(pred, target)
+<<<<<<< HEAD
     
 Each converted sklearn metric comes has the same interface as its 
 original counterpart (e.g. accuracy takes the additional `normalize` keyword). 
 Like the native Lightning metrics, these converted sklearn metrics also come 
+=======
+
+Each converted sklearn metric comes has the same interface as its
+originally counterpart (e.g. accuracy takes the additional `normalize` keyword).
+Like the native Lightning metrics these converted sklearn metrics also come
+>>>>>>> bleu score moved to metrics/functional/nlp.py
 with built-in distributed (ddp) support.
 
 SklearnMetric (sk)
@@ -460,7 +473,7 @@ AveragePrecision (sk)
 .. autofunction:: pytorch_lightning.metrics.sklearns.AveragePrecision
     :noindex:
 
-    
+
 ConfusionMatrix (sk)
 ^^^^^^^^^^^^^^^^^^^^
 

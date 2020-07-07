@@ -1,6 +1,5 @@
-from collections import Counter
 import math
-import re
+from collections import Counter
 
 
 def math_log(num: int):
@@ -15,9 +14,10 @@ def best_match_len(translate_list: list, reference_list: list):
         reference_list: A list of reference texts
 
     Return:
-        ref_len: the best match length of text of the reference lists with translated text
+        ref_len: the best match length of text from the reference lists with translated text
         translate_len: the length of translated text
     """
+
     translate_len = len(translate_list)
     len_diff_lists = [abs(len(ref.split()) - translate_len) for ref in reference_list]
     best_match_len_index = len_diff_lists.index(min(len_diff_lists))
@@ -36,6 +36,7 @@ def count_ngram(ngram_input_list: list, num_grams: int) -> Counter:
     Return:
         ngram_counter: Counter object of ngram
     """
+
     ngram_counter = Counter()
 
     for i in range(1, num_grams + 1):
@@ -48,6 +49,7 @@ def count_ngram(ngram_input_list: list, num_grams: int) -> Counter:
 
 def count_clip_ngram(translate_list: list, reference_list: list, num_grams: int) -> Counter:
     """Clipping the count value of each word to be minimum value from translated counter and reference counter
+
     Args:
         translate_list: A list of translated text
         reference_list: A list of reference texts
@@ -56,6 +58,7 @@ def count_clip_ngram(translate_list: list, reference_list: list, num_grams: int)
     Return:
         ngram_counter_clip: Counter object of clipped ngram
     """
+
     translate_ngram_counter = count_ngram(translate_list, num_grams)
     reference_ngram_counter_list = []
     reference_ngram_counter = Counter()
@@ -89,6 +92,7 @@ def bleu_score(translate_text: str, reference_list: list, n: int = 4) -> float:
         >>> bleu_score(t, r)
         0.7506
     """
+
     translate_list = translate_text.lower().split()
     if len(translate_list) < n:
         raise ValueError("Translated text should be longer or equal to gram value.")
@@ -120,24 +124,3 @@ def bleu_score(translate_text: str, reference_list: list, n: int = 4) -> float:
     bleu = round(bp * geometric_mean, 4)
 
     return bleu
-
-
-# t = "the FAST brown fox jumped over the lazy dog"
-# r = ['this is a small test', 'the quick brown fox jumped over the lazy dog', 'the quick brown fox jumped over the the lazy cat']
-
-# t = 'this is a test'
-# r = ['this is a test', 'this is test']
-
-# t = "this is a test"
-# r = ["this is small test"]
-
-# t = 'the the the the the the the'
-# r = ['the cat is on the mat', 'there is a cat on the mat']
-
-t = "the FAST brown fox jumped over the lazy dog"
-r = ["the quick brown fox jumped over the lazy dog", "the quick brown fox jumped over the the lazy cat"]
-
-# t = "pytorch_lightning is awesome"
-# r = ["THIS IS AWESOME PYTORCH_LIGHTNING", "AWESOME PYTORCH LIGHTNING"]
-
-print(bleu_score(t, r, 4))
