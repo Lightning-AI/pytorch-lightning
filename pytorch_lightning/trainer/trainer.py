@@ -955,27 +955,10 @@ class Trainer(
                 self.ddp_train(process_idx=task, q=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                self.set_random_port()
-                self.model = model
-                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+                results = self.__run_ddp_spawn(model)
 
             elif self.distributed_backend == 'ddp_spawn':
-                self.set_random_port()
-
-                # pass in a state q
-                smp = mp.get_context('spawn')
-                q = smp.SimpleQueue()
-
-                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model, ))
-
-                # restore main state with best weights
-                best_path = q.get()
-                results = q.get()
-                if best_path is not None and len(best_path) > 0:
-                    self.checkpoint_callback.best_model_path = best_path
-                    model.load_from_checkpoint(best_path)
-
-                self.model = model
+                results = self.__run_ddp_spawn(model)
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
@@ -1047,6 +1030,25 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return results or 1
+
+    def __run_ddp_spawn(self, model):
+        self.set_random_port()
+
+        # pass in a state q
+        smp = mp.get_context('spawn')
+        q = smp.SimpleQueue()
+
+        mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(q, model,))
+
+        # restore main state with best weights
+        best_path = q.get()
+        results = q.get()
+        if best_path is not None and len(best_path) > 0:
+            self.checkpoint_callback.best_model_path = best_path
+            model.load_from_checkpoint(best_path)
+
+        self.model = model
+        return results
 
     def can_prepare_data(self):
         if self.prepare_data_per_node:
