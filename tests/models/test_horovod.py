@@ -101,7 +101,7 @@ def test_horovod_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=1,
+        gpus=2,
         deterministic=True,
         distributed_backend='horovod'
     )
