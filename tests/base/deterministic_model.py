@@ -25,7 +25,7 @@ class DeterministicModel(LightningModule):
             self.l1.weight = p
 
     def forward(self, x):
-        return self.l1.mm(x.t())
+        return self.l1(x)
 
     def step(self, batch, batch_idx):
         x = batch
