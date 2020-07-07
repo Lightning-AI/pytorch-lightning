@@ -16,7 +16,6 @@ def test_training_step_dict(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        precision=16,
         gpus=1,
         weights_summary=None,
     )
@@ -31,8 +30,7 @@ def test_training_step_dict(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    import pdb; pdb.set_trace()
-    out = trainer.run_training_batch(batch.half(), batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
     assert out.batch_log_metrics['log_acc1'] == 12.0
     assert out.batch_log_metrics['log_acc2'] == 7.0
