@@ -475,6 +475,7 @@ def test_model_nohparams_train_test(tmpdir, cls):
     trainer.fit(model, train_loader)
 
     test_loader = DataLoader(TrialMNIST(os.getcwd(), train=False, download=True), batch_size=32)
+    import pdb; pdb.set_trace()
     trainer.test(test_dataloaders=test_loader)
 
 
