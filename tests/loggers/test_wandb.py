@@ -1,9 +1,12 @@
 import os
 import pickle
 import platform
+from pathlib import Path
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
+import wandb
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
@@ -74,26 +77,26 @@ def test_wandb_pickle(wandb, tmpdir):
 
 
 # TODO: remove skipping when issues gets fixed
-@pytest.mark.skip('without mocking, wandb causes OSError in pytest environment')
+# @pytest.mark.skip('without mocking, wandb causes OSError in pytest environment')
 @pytest.mark.skipif(
     platform.system() == 'Windows',
     reason='Cannot run in offline mode on windows without api key.'
     # known issue: https://github.com/wandb/client/issues/366
 )
 def test_wandb_logger_dirs_creation(tmpdir):
+    wandb.run = MagicMock()
     """ Test that the logger creates the folders and files in the right place. """
     logger = WandbLogger(project='project', name='name', save_dir=str(tmpdir), offline=True, anonymous=True)
     assert logger.version is None
     assert logger.name is None
     assert str(tmpdir) == logger.save_dir
     assert not os.listdir(tmpdir)
-    # logger.log_metrics({'x': 1})
-    version = logger.version
 
     # multiple experiment calls should not lead to new experiment folders
     for _ in range(2):
         _ = logger.experiment
 
+    version = logger.version
     wandb_dir = tmpdir / 'wandb'
     runs_folders = [p for p in os.listdir(wandb_dir) if p.endswith(str(version))]
     assert len(runs_folders) == 1
