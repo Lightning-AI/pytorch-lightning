@@ -147,4 +147,4 @@ class DummyDataset(Dataset):
         return 12
 
     def __getitem__(self, idx):
-        return np.array([0.5, 1.0, 2.0], dtype=np.float)
+        return np.array([0.5, 1.0, 2.0], dtype=np.double)
