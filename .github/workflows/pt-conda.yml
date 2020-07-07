@@ -44,6 +44,17 @@ jobs:
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-conda-
+
+    # Add another cache for Pip as not all packages lives in Conda env
+    - name: Cache pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
     # https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf
     # https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
