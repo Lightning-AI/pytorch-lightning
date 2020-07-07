@@ -325,7 +325,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
+                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
@@ -335,7 +335,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
+                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
@@ -391,6 +391,7 @@ class TrainerEvaluationLoopMixin(ABC):
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
         # enable no returns
+        callback_metrics = {}
         if eval_results is not None and len(eval_results) > 0:
             _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
@@ -427,6 +428,8 @@ class TrainerEvaluationLoopMixin(ABC):
             self.on_test_end()
         else:
             self.on_validation_end()
+
+        return callback_metrics
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
