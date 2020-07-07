@@ -52,7 +52,8 @@ jobs:
       with:
           # auto-update-conda: true
           auto-activate-base: false
-          miniconda-version: 4.7.12
+          # miniconda-version: 4.7.12  # This downloads a new conda, use the conda-version
+          conda-version: 4.7.12
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           activate-environment: pl-env
