@@ -1256,6 +1256,12 @@ class Trainer(
                 ckpt_path = self.checkpoint_callback.best_model_path
             model = self.get_model().load_from_checkpoint(ckpt_path)
 
+        # ----------------------------------------------------
+        # AUTO-LOAD BEST CKPT with the model trained in .fit()
+        # ----------------------------------------------------
+        elif model is None and ckpt_path is None:
+            model = model_ref
+
         # --------------------
         # LOAD DATA
         # --------------------
