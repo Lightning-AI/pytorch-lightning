@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
 
+# Disable cache
+    pip config set global.cache-dir false && \
+    pip install "pip>20.1" -U  && \
+
 # Install Pytorch XLA
     py_version=${PYTHON_VERSION/./} && \
     # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
