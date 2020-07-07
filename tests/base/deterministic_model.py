@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -19,7 +20,7 @@ class DeterministicModel(LightningModule):
                 [4, 3, 5],
                 [10, 11, 13]
             ]).float()
-        self.l1 = torch.nn.Parameter(weights, requires_grad=True)
+        self.l1 = nn.ModuleList(torch.nn.Parameter(weights, requires_grad=True))
 
     def forward(self, x):
         return self.l1.mm(x.t())
