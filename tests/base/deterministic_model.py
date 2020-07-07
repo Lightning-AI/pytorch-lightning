@@ -20,7 +20,7 @@ class DeterministicModel(LightningModule):
             weights = torch.tensor([
                 [4, 3, 5],
                 [10, 11, 13]
-            ])
+            ]).float()
             p = torch.nn.Parameter(weights, requires_grad=True)
             self.l1.weight = p
 
