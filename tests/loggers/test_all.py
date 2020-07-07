@@ -156,7 +156,7 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     CometLogger,
-    #MLFlowLogger,
+    # MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
     WandbLogger,
