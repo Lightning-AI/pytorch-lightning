@@ -103,7 +103,7 @@ def test_onehot():
     assert test_tensor.shape == (2, 5)
     assert expected.shape == (2, 10, 5)
 
-    onehot_classes = to_onehot(test_tensor, n_classes=10)
+    onehot_classes = to_onehot(test_tensor, num_classes=10)
     onehot_no_classes = to_onehot(test_tensor)
 
     assert torch.allclose(onehot_classes, onehot_no_classes)
