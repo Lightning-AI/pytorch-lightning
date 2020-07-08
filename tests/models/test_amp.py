@@ -90,7 +90,7 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_wandb(tmpdir):
+def test_multi_gpu_wandb_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     from pytorch_lightning.loggers import WandbLogger
     tutils.set_random_master_port()
@@ -115,7 +115,7 @@ def test_multi_gpu_wandb(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_wandb(tmpdir):
+def test_multi_gpu_wandb_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     from pytorch_lightning.loggers import WandbLogger
     tutils.set_random_master_port()
