@@ -128,4 +128,4 @@ jobs:
         file: coverage
         flags: tpu,pytest
         name: TPU-coverage
-        fail_ci_if_error: false
+        fail_ci_if_error: true
