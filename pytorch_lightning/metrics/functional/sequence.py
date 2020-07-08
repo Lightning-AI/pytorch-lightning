@@ -70,7 +70,7 @@ def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smoot
     trans_len = torch.tensor(c)
     ref_len = torch.tensor(r)
     if min(numerator) == 0.0:
-        return 0.0
+        return torch.tensor(0.0)
     else:
         if smooth:
             precision_scores = torch.add(numerator, torch.ones(n)) / torch.add(denominator, torch.ones(n))

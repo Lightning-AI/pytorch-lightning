@@ -12,4 +12,4 @@ black==19.10b0
 pre-commit>=1.0
 
 cloudpickle>=1.2
-nltk
+nltk==3.2
