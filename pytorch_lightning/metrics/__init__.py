@@ -5,6 +5,7 @@ from pytorch_lightning.metrics.regression import (
     RMSE,
     MAE,
     RMSLE,
+    PSNR
 )
 from pytorch_lightning.metrics.classification import (
     Accuracy,
@@ -50,6 +51,7 @@ __regression_metrics = [
     'MSE',
     'RMSE',
     'MAE',
-    'RMSLE'
+    'RMSLE',
+    'PSNR'
 ]
 __all__ = __regression_metrics + __classification_metrics + ['SklearnMetric']

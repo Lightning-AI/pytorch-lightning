@@ -1,8 +1,11 @@
 import torch.nn.functional as F
 import torch
 from pytorch_lightning.metrics.metric import Metric
+from pytorch_lightning.metrics.functional.regression import (
+    psnr,
+)
 
-__all__ = ['MSE', 'RMSE', 'MAE', 'RMSLE']
+__all__ = ['MSE', 'RMSE', 'MAE', 'RMSLE', 'PSNR']
 
 
 class MSE(Metric):
@@ -187,3 +190,33 @@ class RMSLE(Metric):
             A Tensor with the rmsle loss.
         """
         return F.mse_loss(torch.log(pred + 1), torch.log(target + 1), self.reduction)
+
+
+class PSNR(Metric):
+    """
+    Computes the peak signal-to-noise ratio metric
+    """
+
+    def __init__(self, data_range: float = None, base: int = 10, reduction: str = 'elementwise_mean'):
+        """
+        Args:
+            data_range: the range of the data. If None, it is determined from the data (max - min).
+            base: a base of a logarithm to use (default: 10)
+            reduction: method for reducing psnr (default: takes the mean)
+
+
+        Example:
+
+            >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+            >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
+            >>> metric = PSNR()
+            >>> metric(pred, target)
+            tensor(2.5527)
+        """
+        super().__init__(name='psnr')
+        self.data_range = data_range
+        self.base = float(base)
+        self.reduction = reduction
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return psnr(pred, target, self.data_range, self.base, self.reduction)
