@@ -13,7 +13,9 @@ ARG TEST_IMAGE=0
 # Install pytorch-lightning at the current PR, plus dependencies.
 RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
     cd pytorch-lightning && \
-    git fetch origin $GITHUB_REF:CI && \
+    # TODO: pytorch-lightning broke its TPU tests on July 7: https://github.com/PyTorchLightning/pytorch-lightning/actions?query=event%3Apush+workflow%3A%22TPU+tests%22
+    #git fetch origin $GITHUB_REF:CI && \
+    git fetch origin fb85d493d07f16e10988f519dae2e7691e8ca3b3:CI && \
     git checkout CI && \
     pip install --requirement ./requirements/base.txt --no-cache-dir
 

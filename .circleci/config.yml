@@ -6,7 +6,6 @@ version: 2.1
 orbs:
   node: circleci/node@1.0.1
   gcp-gke: circleci/gcp-gke@0.1.0
-  gcr: circleci/gcp-gcr@0.0.2
 
 references:
 
@@ -23,53 +22,35 @@ references:
         pip install -r requirements/docs.txt
         cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
 
-  install_go: &install_go
-    run:
-      name: Install Go
-      command: |
-        # todo
-
   checkout_ml_testing: &checkout_ml_testing
    run:
      name: Checkout ml-testing-accelerators
      command: |
        git clone https://github.com/GoogleCloudPlatform/ml-testing-accelerators.git
        git checkout 5e88ac24f631c27045e62f0e8d5dfcf34e425e25
+       cd ml-testing-accelerators
+       git fetch origin 5e88ac24f631c27045e62f0e8d5dfcf34e425e25:stable
+       git checkout stable
+       cd ..
 
-  setup_gcloud: &setup_gcloud
-   run:
-     name: Setup gcloud CLI
-     command: |
-        # GoogleCloudPlatform/github-actions/setup-gcloud@master
-        # version: '290.0.1'
-        # service_account_key: ${{ secrets.GKE_SA_KEY_BASE64 }}
-        # project_id: ${{ secrets.GKE_PROJECT }}
-        # export_default_credentials: true
-
-  build_docker: &build_docker
+  build_push_docker: &build_push_docker
     run:
-      name: Build Docker
+      name: Build and push Docker image
       command: |
-        cd docker/tpu
+        gcloud --quiet auth configure-docker
+        cd dockers/tpu-tests
+        # TODO: How to find the GITHUB_REF in CircleCI?
+        #docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$GITHUB_REF" .
         docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
-
-  install_jsonnet: &install_jsonnet
-    run:
-      name: Install jsonnet
-      command: |
-        go get github.com/google/go-jsonnet/cmd/jsonnet
-
-  gke_credentials: &gke_credentials
-   run:
-     name: GKE credentials
-     command: |
-       gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+        docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
    run:
      name: Deploy the job on the kubernetes cluster
      command: |
-       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
+       go get github.com/google/go-jsonnet/cmd/jsonnet && \
+       export PATH=$PATH:$HOME/go/bin && \
+       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -) && \
        job_name=${job_name#job.batch/} && \
        job_name=${job_name% created} && \
        echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
@@ -86,14 +67,12 @@ references:
        # Allow time for logs to flush.
        sleep 60 && \
        echo "JOB_NAME: $job_name" && \
-       echo "GKE_CLUSTER: $GKE_CLUSTER" && \
-       echo "GKE_ZONE: $GKE_ZONE" && \
-       gcloud logging read "resource.type=k8s_container resource.labels.project_id=$PROJECT_ID resource.labels.location=$GKE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$PROJECT_ID > /tmp/full_output.txt && \
+       gcloud logging read "resource.type=k8s_container resource.labels.project_id=$GOOGLE_PROJECT_ID resource.labels.location=$GOOGLE_COMPUTE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$GOOGLE_PROJECT_ID > /tmp/full_output.txt && \
        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
        # First portion is the test logs. Print these to Github Action stdout.
        cat xx00 && \
        echo "Done with log retrieval attempt." && \
-       gcloud container images delete "$IMAGE:$GITHUB_RUN_ID" --force-delete-tags && \
+       gcloud container images delete "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" --force-delete-tags && \
        exit $status_code
 
   stats: &stats
@@ -102,7 +81,7 @@ references:
      command: |
        mv ./xx01 coverage.xml
        # TODO: add human readable report
-       cat coverage
+       cat coverage.xml
        sudo pip install pycobertura
        pycobertura show coverage.xml
 
@@ -110,7 +89,7 @@ references:
    run:
      name: Upload coverage to Codecov
      command: |
-       codecov --token $CODECOV_TOKEN --flags=tpu,pytest --name="GPU-coverage" --env=linux  # --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
+       #codecov --token $CODECOV_TOKEN --flags=tpu,pytest --name="GPU-coverage" --env=linux  # --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
 
 jobs:
 
@@ -119,15 +98,14 @@ jobs:
       - image: circleci/python:3.7
     steps:
       - checkout
-      - *install_go
+      - go/install
       - *checkout_ml_testing
-      - gcr/gcr-auth
-      - *build_docker
-      - gcr/push-image:
-          image: $IMAGE
-          tag: $GITHUB_RUN_ID
-      - *install_jsonnet
-      - *gke_credentials
+      - gcp-gke/install
+      - gcp-gke/update-kubeconfig-with-credentials:
+          cluster: $GKE_CLUSTER
+          perform-login: true
+      - setup_remote_docker
+      - *build_push_docker
       - *deploy_cluster
       - *stats
       - *codecov
@@ -147,7 +125,7 @@ jobs:
 
 workflows:
   version: 2
-  build:
+  tpu-tests:
     jobs:
       - Build-Docs
       - TPU-tests
