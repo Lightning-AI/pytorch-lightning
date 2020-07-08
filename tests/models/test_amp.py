@@ -11,7 +11,7 @@ from tests.base import EvalModelTemplate
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_amp_single_gpu_dp(tmpdir, backend):
+def test_amp_single_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
     trainer = Trainer(
