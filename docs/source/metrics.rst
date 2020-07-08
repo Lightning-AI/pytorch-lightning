@@ -487,13 +487,19 @@ AveragePrecision (sk)
 BalancedAccuracy (sk)
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. autofunction:: pytorch_lightning.metrics.sklearn.BalancedAccuracy
+.. autofunction:: pytorch_lightning.metrics.sklearns.BalancedAccuracy
     :noindex:
 
 ConfusionMatrix (sk)
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.ConfusionMatrix
+    :noindex:
+
+DCG (sk)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.DCG
     :noindex:
 
 F1 (sk)
