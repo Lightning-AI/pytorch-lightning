@@ -11,9 +11,6 @@ from tests.base import EvalModelTemplate
 import wandb
 from unittest.mock import MagicMock
 
-wandb.run = MagicMock()
-wandb.init(name='name', project='project')
-
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_wandb_ddp_spawn(tmpdir):
@@ -22,9 +19,12 @@ def test_multi_gpu_wandb_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
-    logger = WandbLogger(name='name', offline=True)
+
+    wandb.run = MagicMock()
+    wandb.init(name='name', project='project')
 
     for backend in ['dp', 'ddp_spawn']:
+        logger = WandbLogger(name='name', offline=True)
         trainer_options = dict(
             default_root_dir=tmpdir,
             max_epochs=1,
