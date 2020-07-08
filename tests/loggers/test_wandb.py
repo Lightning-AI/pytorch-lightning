@@ -77,8 +77,6 @@ def test_wandb_pickle(wandb, tmpdir):
     del os.environ['WANDB_MODE']
 
 
-# TODO: remove skipping when issues gets fixed
-# @pytest.mark.skip('without mocking, wandb causes OSError in pytest environment')
 # @pytest.mark.skipif(
 #     platform.system() == 'Windows',
 #     reason='Cannot run in offline mode on windows without api key.'
@@ -87,23 +85,23 @@ def test_wandb_pickle(wandb, tmpdir):
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_logger_dirs_creation(wandb, tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
-    wandb.init.return_value = Experiment()
-    logger = WandbLogger(project='project', name='name', save_dir=str(tmpdir), offline=True)
-    # assert logger.version is None
-    # assert logger.name is None
+    logger = WandbLogger(save_dir=str(tmpdir), offline=True)
+    assert logger.version is None
+    assert logger.name is None
+
+    # mock return values of experiment
+    logger.experiment.id = '1'
+    logger.experiment.project_name.return_value = 'project'
+
+    for _ in range(2):
+        _ = logger.experiment
+
+    assert logger.version == '1'
+    assert logger.name == 'project'
     assert str(tmpdir) == logger.save_dir
     assert not os.listdir(tmpdir)
 
-    # multiple experiment calls should not lead to new experiment folders
-    # for _ in range(2):
-    #     _ = logger.experiment
-
-    # version = logger.version
-    # wandb_dir = tmpdir / 'wandb'
-    # runs_folders = [p for p in os.listdir(wandb_dir) if p.endswith(str(version))]
-    # assert len(runs_folders) == 1
-    # assert os.listdir(wandb_dir / runs_folders[0])
-
+    version = logger.version
     model = EvalModelTemplate()
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_val_batches=3)
     trainer.fit(model)
