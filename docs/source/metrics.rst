@@ -368,7 +368,7 @@ mse (F)
     :noindex:
 
 rmse (F)
-^^^^^^^
+^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.rmse
     :noindex:
@@ -380,13 +380,13 @@ mae (F)
     :noindex:
 
 rmsle (F)
-^^^^^^^
+^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.rmsle
     :noindex:
 
 psnr (F)
-^^^^^^^
+^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.psnr
     :noindex:
