@@ -127,6 +127,5 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage
         flags: tpu,pytest
-        env_vars: ${{ runner.os }},python
         name: TPU-coverage
-        fail_ci_if_error: true
+        fail_ci_if_error: false
