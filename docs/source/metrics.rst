@@ -489,3 +489,9 @@ AUROC (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.AUROC
     :noindex:
+
+MeanAbsoluteError (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanAbsoluteError
+    :noindex:
