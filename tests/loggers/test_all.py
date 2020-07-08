@@ -1,3 +1,4 @@
+import atexit
 import inspect
 import pickle
 import platform
@@ -44,7 +45,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     if logger_class == CometLogger:
         # prevent comet logger from trying to print at exit, since
         # pytest's stdout/stderr redirection breaks it
-        import atexit
         monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     model = EvalModelTemplate()
@@ -92,10 +92,10 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
-    # prevent comet logger from trying to print at exit, since
-    # pytest's stdout/stderr redirection breaks it
-    import atexit
-    monkeypatch.setattr(atexit, 'register', lambda _: None)
+    if logger_class == CometLogger:
+        # prevent comet logger from trying to print at exit, since
+        # pytest's stdout/stderr redirection breaks it
+        monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
@@ -169,10 +169,11 @@ class RankZeroLoggerCheck(Callback):
     WandbLogger,
 ])
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
-    # prevent comet logger from trying to print at exit, since
-    # pytest's stdout/stderr redirection breaks it
-    import atexit
-    monkeypatch.setattr(atexit, 'register', lambda _: None)
+    """ Test that loggers get replaced by dummy logges on global rank > 0"""
+    if logger_class == CometLogger:
+        # prevent comet logger from trying to print at exit, since
+        # pytest's stdout/stderr redirection breaks it
+        monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
