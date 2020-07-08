@@ -52,7 +52,7 @@ def test_comet_logger_online():
         api.assert_called_once_with('rest')
 
 
-def test_comet_logget_experiment_name():
+def test_comet_logger_experiment_name():
     """Test that Comet Logger experiment name works correctly."""
 
     api_key = "key"

@@ -124,9 +124,9 @@ class CometLogger(LightningLoggerBase):
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
         self.workspace = workspace
-        self.project_name = project_name
-        self.experiment_key = experiment_key
-        self.experiment_name = experiment_name
+        self._project_name = project_name
+        self._experiment_key = experiment_key
+        self._experiment_name = experiment_name
         self._kwargs = kwargs
 
         if rest_api_key is not None:
@@ -155,29 +155,29 @@ class CometLogger(LightningLoggerBase):
             return self._experiment
 
         if self.mode == "online":
-            if self.experiment_key is None:
+            if self._experiment_key is None:
                 self._experiment = CometExperiment(
-                    api_key=self.api_key, workspace=self.workspace, project_name=self.project_name, **self._kwargs
+                    api_key=self.api_key, workspace=self.workspace, project_name=self._project_name, **self._kwargs
                 )
-                self.experiment_key = self._experiment.get_key()
+                self._experiment_key = self._experiment.get_key()
             else:
                 self._experiment = CometExistingExperiment(
                     api_key=self.api_key,
                     workspace=self.workspace,
-                    project_name=self.project_name,
-                    previous_experiment=self.experiment_key,
+                    project_name=self._project_name,
+                    previous_experiment=self._experiment_key,
                     **self._kwargs,
                 )
         else:
             self._experiment = CometOfflineExperiment(
                 offline_directory=self.save_dir,
                 workspace=self.workspace,
-                project_name=self.project_name,
+                project_name=self._project_name,
                 **self._kwargs,
             )
 
-        if self.experiment_name:
-            self._experiment.set_name(self.experiment_name)
+        if self._experiment_name:
+            self._experiment.set_name(self._experiment_name)
 
         return self._experiment
 
@@ -221,11 +221,11 @@ class CometLogger(LightningLoggerBase):
     @property
     def name(self) -> Optional[str]:
         # don't create an experiment if we don't have one
-        return self._experiment.project_name if self._experiment else None
+        return self._experiment.project_name if self._experiment else self._project_name
 
     @name.setter
     def name(self, value: str) -> None:
-        self.project_name = value
+        self._project_name = value
 
         # Only set the experiment object name if it already exists as we don't
         # want to create an experiment object as soon as we create a Comet
@@ -236,7 +236,7 @@ class CometLogger(LightningLoggerBase):
     @property
     def version(self) -> Optional[str]:
         # Don't create an experiment if we don't have one
-        return self._experiment.id if self._experiment else None
+        return self._experiment.id if self._experiment else self._experiment_key
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -244,7 +244,7 @@ class CometLogger(LightningLoggerBase):
         # Save the experiment id in case an experiment object already exists,
         # this way we could create an ExistingExperiment poiting to the same
         # experiment
-        state["experiment_key"] = self._experiment.id if self._experiment is not None else None
+        state["_experiment_key"] = self._experiment.id if self._experiment is not None else None
 
         # Remove the experiment object as it contains hard to pickle objects
         # (like network connections), the experiment object will be recreated if
