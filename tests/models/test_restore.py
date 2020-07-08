@@ -42,8 +42,6 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
-    log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
-
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
     pretrained_model = tutils.load_model_from_checkpoint(logger,
