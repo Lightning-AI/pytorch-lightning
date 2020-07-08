@@ -1,27 +1,10 @@
 import os
 import pickle
-import platform
-from pathlib import Path
 from unittest import mock
-from unittest.mock import MagicMock
-
-import pytest
-import wandb
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from tests.base import EvalModelTemplate
-
-# fake api key and user
-os.environ.update(WANDB_API_KEY=('X' * 40), WANDB_ENTITY='username')
-
-
-class Experiment:
-    """ Wandb doesn't work well with pytest so we have to mock the experiment here. """
-    id = 'the_id'
-
-    def project_name(self):
-        return 'the_project_name'
 
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
@@ -49,10 +32,17 @@ def test_wandb_logger(wandb):
 
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_pickle(wandb, tmpdir):
-    """Verify that pickling trainer with wandb logger works.
-
-
     """
+    Verify that pickling trainer with wandb logger works.
+    Wandb doesn't work well with pytest so we have to mock it out here.
+    """
+    class Experiment:
+        """ """
+        id = 'the_id'
+
+        def project_name(self):
+            return 'the_project_name'
+
     wandb.init.return_value = Experiment()
     logger = WandbLogger(id='the_id', offline=True)
 
