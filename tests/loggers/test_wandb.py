@@ -19,9 +19,12 @@ def test_wandb_logger(wandb):
     logger.log_metrics({'acc': 1.0}, step=3)
     wandb.init().log.assert_called_once_with({'global_step': 3, 'acc': 1.0})
 
-    logger.log_hyperparams({'test': None})
-    wandb.init().config.update.assert_called_once_with({'test': None}, allow_val_change=True)
-
+    logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
+    wandb.init().config.update.assert_called_once_with(
+        {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
+        allow_val_change=True,
+    )
+    
     logger.watch('model', 'log', 10)
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
 
