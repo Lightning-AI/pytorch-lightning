@@ -47,7 +47,6 @@ def test_multi_gpu_wandb_dp(tmpdir):
 
     model = EvalModelTemplate()
 
-    wandb.run = MagicMock()
     wandb.init(name='name', project='project')
     logger = WandbLogger(name='name', offline=True)
 
