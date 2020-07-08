@@ -119,7 +119,6 @@ def test_amp_multi_gpu_ddp_spawn(tmpdir):
     assert result == 1
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_gpu_ddp_slurm_managed(tmpdir):
     """Make sure DDP + AMP work."""
