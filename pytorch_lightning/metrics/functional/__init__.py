@@ -21,8 +21,9 @@ from pytorch_lightning.metrics.functional.classification import (
     iou,
 )
 from pytorch_lightning.metrics.functional.regression import (
-    mse,
-    rmse,
     mae,
-    rmsle,
+    mse,
+    psnr,
+    rmse,
+    rmsle
 )
