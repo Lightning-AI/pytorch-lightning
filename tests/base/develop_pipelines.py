@@ -88,10 +88,11 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
 
     else:
         y_hat = trained_model(x)
+        y_hat = y_hat.cpu()
 
         # acc
         labels_hat = torch.argmax(y_hat, dim=1)
-        labels_hat = labels_hat.cpu()
+
         y = y.cpu()
         acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         acc = torch.tensor(acc)
