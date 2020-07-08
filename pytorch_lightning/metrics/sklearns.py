@@ -334,6 +334,56 @@ class ConfusionMatrix(SklearnMetric):
         return super().forward(y_pred=y_pred, y_true=y_true)
 
 
+class DCG(SklearnMetric):
+    """ Compute discounted cumulative gain
+    
+    Warning:
+        Every metric call will cause a GPU synchronization, which may slow down your code
+    
+    Example:
+
+        >>> y_score = torch.tensor([[.1, .2, .3, 4, 70]])
+        >>> y_true = torch.tensor([[10, 0, 0, 1, 5]])
+        >>> metric = DCG()
+        >>> metric(y_true, y_score)
+        tensor([9.4995])
+    """
+    def __init__(self, k: Optional[int] = None,
+                 log_base: float = 2, ignore_ties: bool = False,
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            k: only consider the hightest k score in the ranking
+            log_base: base of the logarithm used for the discount
+            ignore_ties: If ``True``, assume there are no ties in y_score for efficiency gains
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        """
+        super().__init__('dcg_score',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         k=k, log_base=log_base, ignore_ties=ignore_ties)
+        
+    def forward(self, y_true: np.ndarray, y_score: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None) -> float:
+        """
+        Args:
+            y_true: Ground truth (correct) target values.
+            y_score: target scores, either probability estimates, confidence values
+                or or non-thresholded measure of decisions 
+            sample_weight:  Sample weights.
+            
+        Return:
+            DCG score
+        
+        """
+        return super().forward(y_true=y_true, y_score=y_score,
+                               sample_weight=sample_weight)
+
+
 class F1(SklearnMetric):
     r"""
     Compute the F1 score, also known as balanced F-score or F-measure
