@@ -385,6 +385,12 @@ rmsle (F)
 .. autofunction:: pytorch_lightning.metrics.functional.rmsle
     :noindex:
 
+psnr (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
+    :noindex:
+
 stat_scores_multiple_classes (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
