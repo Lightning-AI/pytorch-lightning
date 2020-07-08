@@ -1,6 +1,7 @@
 import inspect
 import pickle
 import platform
+from unittest import mock
 
 import pytest
 
@@ -35,14 +36,16 @@ def _get_logger_args(logger_class, save_dir):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # WandbLogger,  # TODO: add this one
+    WandbLogger,
 ])
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
-    # prevent comet logger from trying to print at exit, since
-    # pytest's stdout/stderr redirection breaks it
-    import atexit
-    monkeypatch.setattr(atexit, 'register', lambda _: None)
+    if logger_class == CometLogger:
+        # prevent comet logger from trying to print at exit, since
+        # pytest's stdout/stderr redirection breaks it
+        import atexit
+        monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     model = EvalModelTemplate()
 
@@ -58,6 +61,11 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = StoreHistoryLogger(**logger_args)
 
+    if logger_class == WandbLogger:
+        # required mocks for Trainer
+        logger.experiment.id = 'foo'
+        logger.experiment.project_name.return_value = 'bar'
+
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
@@ -66,7 +74,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
         fast_dev_run=True,
     )
     trainer.fit(model)
-
     trainer.test()
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
