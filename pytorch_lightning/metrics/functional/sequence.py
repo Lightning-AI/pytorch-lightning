@@ -1,5 +1,6 @@
-import torch
 from collections import Counter
+
+import torch
 
 
 def _count_ngram(ngram_input_list: list, num_grams: int) -> Counter:
@@ -53,8 +54,8 @@ def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smoot
     for (translation, references) in zip(translate_corpus, reference_corpus):
         c += len(translation)
         ref_len_list = [len(ref) for ref in references]
-        r += min(ref_len_list, key=lambda x: abs(len(translation) - x))
-
+        ref_len_diff = [abs(len(translation) - x) for x in ref_len_list]
+        r += ref_len_list[ref_len_diff.index(min(ref_len_diff))]
         translation_counter = _count_ngram(translation, n)
         reference_counter = Counter()
         for ref in references:
@@ -71,14 +72,14 @@ def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smoot
     ref_len = torch.tensor(r)
     if min(numerator) == 0.0:
         return torch.tensor(0.0)
+
+    if smooth:
+        precision_scores = torch.add(numerator, torch.ones(n)) / torch.add(denominator, torch.ones(n))
     else:
-        if smooth:
-            precision_scores = torch.add(numerator, torch.ones(n)) / torch.add(denominator, torch.ones(n))
-        else:
-            precision_scores = numerator / denominator
-        log_precision_scores = torch.tensor([1.0 / n] * n) * torch.log(precision_scores)
-        geometric_mean = torch.exp(torch.sum(log_precision_scores))
-        bp = torch.tensor(1.0) if c > r else torch.exp(1 - (ref_len / trans_len))
-        bleu = bp * geometric_mean
+        precision_scores = numerator / denominator
+    log_precision_scores = torch.tensor([1.0 / n] * n) * torch.log(precision_scores)
+    geometric_mean = torch.exp(torch.sum(log_precision_scores))
+    brevity_penalty = torch.tensor(1.0) if c > r else torch.exp(1 - (ref_len / trans_len))
+    bleu = brevity_penalty * geometric_mean
 
     return bleu

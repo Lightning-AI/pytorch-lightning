@@ -1,11 +1,8 @@
 import pytest
 import torch
+from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
 
 from pytorch_lightning.metrics.functional.sequence import bleu_score
-from nltk.translate.bleu_score import sentence_bleu, corpus_bleu, SmoothingFunction
-
-# https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.SmoothingFunction
-smooth_func = SmoothingFunction().method2
 
 # example taken from
 # https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.sentence_bleu
@@ -35,37 +32,30 @@ ref2a = "he was interested in world history because he read the book".split(" ")
 list_of_references = [[ref1a, ref1b, ref1c], [ref2a]]
 hypotheses = [hyp1, hyp2]
 
+# https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.SmoothingFunction
+smooth_func = SmoothingFunction().method2
+
 
 @pytest.mark.parametrize(
-    ["weights", "n"],
+    ["weights", "n", "smooth_func", "smooth"],
     [
-        pytest.param((1, 0, 0, 0), 1),
-        pytest.param((0.5, 0.5, 0, 0), 2),
-        pytest.param((0.333333, 0.333333, 0.333333, 0), 3),
-        pytest.param((0.25, 0.25, 0.25, 0.25), 4),
+        pytest.param((1, 0, 0, 0), 1, None, False),
+        pytest.param((0.5, 0.5, 0, 0), 2, smooth_func, True),
+        pytest.param((0.333333, 0.333333, 0.333333, 0), 3, None, False),
+        pytest.param((0.25, 0.25, 0.25, 0.25), 4, smooth_func, True),
     ],
 )
 class TestBLEUScore:
-    def test_with_sentence_bleu(self, weights, n):
-        nltk_output = sentence_bleu([reference1, reference2, reference3], hypothesis1, weights=weights)
-        pl_output = bleu_score([hypothesis1], [[reference1, reference2, reference3]], n=n)
-        assert torch.allclose(pl_output, torch.tensor(nltk_output))
-
-    def test_with_sentence_bleu_smooth(self, weights, n):
+    def test_with_sentence_bleu(self, weights, n, smooth_func, smooth):
         nltk_output = sentence_bleu(
             [reference1, reference2, reference3], hypothesis1, weights=weights, smoothing_function=smooth_func
         )
-        pl_output = bleu_score([hypothesis1], [[reference1, reference2, reference3]], n=n, smooth=True)
+        pl_output = bleu_score([hypothesis1], [[reference1, reference2, reference3]], n=n, smooth=smooth)
         assert torch.allclose(pl_output, torch.tensor(nltk_output))
 
-    def test_with_corpus_bleu(self, weights, n):
-        nltk_output = corpus_bleu(list_of_references, hypotheses, weights=weights)
-        pl_output = bleu_score(hypotheses, list_of_references, n=n)
-        assert torch.allclose(pl_output, torch.tensor(nltk_output))
-
-    def test_with_corpus_bleu_smooth(self, weights, n):
+    def test_with_corpus_bleu(self, weights, n, smooth_func, smooth):
         nltk_output = corpus_bleu(list_of_references, hypotheses, weights=weights, smoothing_function=smooth_func)
-        pl_output = bleu_score(hypotheses, list_of_references, n=n, smooth=True)
+        pl_output = bleu_score(hypotheses, list_of_references, n=n, smooth=smooth)
         assert torch.allclose(pl_output, torch.tensor(nltk_output))
 
 
