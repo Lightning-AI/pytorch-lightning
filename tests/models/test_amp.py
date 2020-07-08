@@ -8,6 +8,8 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+import wandb
+from unittest.mock import MagicMock
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -17,7 +19,9 @@ def test_multi_gpu_wandb_ddp_spawn(tmpdir):
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
-    logger = WandbLogger(name='utest', offline=True)
+    wandb.run = MagicMock()
+    wandb.init(name='name', project='project')
+    logger = WandbLogger(name='name', offline=True)
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -42,7 +46,10 @@ def test_multi_gpu_wandb_dp(tmpdir):
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
-    logger = WandbLogger(name='utest', offline=True)
+
+    wandb.run = MagicMock()
+    wandb.init(name='name', project='project')
+    logger = WandbLogger(name='name', offline=True)
 
     trainer_options = dict(
         default_root_dir=tmpdir,
