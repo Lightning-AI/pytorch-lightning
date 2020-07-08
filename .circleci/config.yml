@@ -1,7 +1,4 @@
-# Python CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-python/ for more details
-# https://circleci.com/docs/2.0/env-vars/
+# Python CircleCI 2.1 configuration file.
 version: 2.1
 orbs:
   gcp-gke: circleci/gcp-gke@1.0.4
