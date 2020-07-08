@@ -82,13 +82,14 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     x = x.view(x.size(0), -1)
 
     if dp:
-        output = trained_model(batch, 0)
+        with torch.no_grad():
+            output = trained_model(batch, 0)
         acc = output['val_acc']
         acc = torch.mean(acc).item()
 
     else:
-        y_hat = trained_model(x)
-        import pdb; pdb.set_trace()
+        with torch.no_grad():
+            y_hat = trained_model(x)
         y_hat = y_hat.cpu()
 
         # acc
