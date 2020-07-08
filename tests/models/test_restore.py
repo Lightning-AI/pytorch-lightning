@@ -14,9 +14,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_running_test_pretrained_model_distrib(tmpdir, backend):
+def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
 
@@ -36,7 +35,58 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
         checkpoint_callback=checkpoint,
         logger=logger,
         gpus=[0, 1],
-        distributed_backend=backend,
+        distributed_backend='dp',
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    log.info(os.listdir(tutils.get_data_path(logger, path_dir=tmpdir)))
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = tutils.load_model_from_checkpoint(logger,
+                                                         trainer.checkpoint_callback.dirpath,
+                                                         module_class=EvalModelTemplate)
+
+    # run test set
+    new_trainer = Trainer(**trainer_options)
+    new_trainer.test(pretrained_model)
+
+    # test we have good test accuracy
+    tutils.assert_ok_model_acc(new_trainer)
+
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
+        tpipes.run_prediction(dataloader, pretrained_model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
+    """Verify `test()` on pretrained model."""
+    tutils.set_random_master_port()
+
+    model = EvalModelTemplate()
+
+    # exp file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+
+    # exp file to get weights
+    checkpoint = tutils.init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        progress_bar_refresh_rate=0,
+        max_epochs=2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
     )
 
     # fit model
