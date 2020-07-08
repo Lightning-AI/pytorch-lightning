@@ -40,7 +40,7 @@ def _get_logger_args(logger_class, save_dir):
     WandbLogger,
 ])
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
-def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
+def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
     if logger_class == CometLogger:
         # prevent comet logger from trying to print at exit, since
