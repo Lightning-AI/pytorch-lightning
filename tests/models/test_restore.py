@@ -49,7 +49,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     # run test set
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
-    import pdb; pdb.set_trace()
+    pretrained_model.cpu()
 
     # test we have good test accuracy
     tutils.assert_ok_model_acc(new_trainer)
