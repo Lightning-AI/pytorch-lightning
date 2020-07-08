@@ -48,11 +48,12 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    results = new_trainer.test(pretrained_model)
     pretrained_model.cpu()
 
     # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer)
+    acc = results['test_acc']
+    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = model.test_dataloader()
     if not isinstance(dataloaders, list):
