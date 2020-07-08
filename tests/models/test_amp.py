@@ -49,6 +49,44 @@ def test_amp_single_gpu_ddp_spawn(tmpdir):
     assert result == 1
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_amp_multi_gpu_dp(tmpdir):
+    """Make sure DP/DDP + AMP work."""
+    tutils.reset_seed()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        distributed_backend='dp',
+        precision=16,
+    )
+
+    model = EvalModelTemplate()
+    # tutils.run_model_test(trainer_options, model)
+    result = trainer.fit(model)
+
+    assert result == 1
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_amp_multi_gpu_ddp_spawn(tmpdir):
+    """Make sure DP/DDP + AMP work."""
+    tutils.reset_seed()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gpus=2,
+        distributed_backend='ddp_spawn',
+        precision=16,
+    )
+
+    model = EvalModelTemplate()
+    # tutils.run_model_test(trainer_options, model)
+    result = trainer.fit(model)
+
+    assert result == 1
+
 @pytest.mark.spawn
 @pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
