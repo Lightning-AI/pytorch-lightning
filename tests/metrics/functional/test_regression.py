@@ -121,4 +121,3 @@ def test_psnr_against_sklearn(sklearn_metric, torch_metric):
     sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
     th_score = torch_metric(pred, target, data_range=5)
     assert torch.allclose(sk_score, th_score)
-

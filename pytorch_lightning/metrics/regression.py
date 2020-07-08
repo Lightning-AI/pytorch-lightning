@@ -185,7 +185,7 @@ class RMSLE(Metric):
 class PSNR(Metric):
     """
     Computes the peak signal-to-noise ratio
-    
+
     Example:
 
         >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
