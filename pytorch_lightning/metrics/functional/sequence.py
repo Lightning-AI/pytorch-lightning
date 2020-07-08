@@ -38,8 +38,8 @@ def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smoot
 
     Example:
 
-        >>> t = [["the", "FAST", "brown", "fox", "jumped", "over", "the", "lazy", "dog"]]
-        >>> r = [[["the", "quick", "brown", "fox", "jumped", "over", "the", "lazy", "dog"], ["the", "quick", "brown", "fox", "jumped", "over", "the", "the", "lazy", "cat"]]]
+        >>> t = ["the FAST brown fox jumped over the lazy dog".split(' ')]
+        >>> r = [["the quick brown fox jumped over the lazy dog".split(' '), "the quick brown fox jumped over the the lazy cat".split(' ')]]
         >>> bleu_score(t, r)
         tensor(0.7506)
     """
