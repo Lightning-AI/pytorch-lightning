@@ -44,9 +44,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model_from_checkpoint(logger,
-                                                         trainer.checkpoint_callback.dirpath,
-                                                         module_class=EvalModelTemplate)
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
