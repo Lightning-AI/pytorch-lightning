@@ -232,6 +232,56 @@ class AveragePrecision(SklearnMetric):
                                sample_weight=sample_weight)
 
 
+class BalancedAccuracy(SklearnMetric):
+    """ Compute the balanced accuracy score
+    
+    Warning:
+        Every metric call will cause a GPU synchronization, which may slow down your code
+    
+    Example:
+
+        >>> y_pred = torch.tensor([0, 0, 0, 1])
+        >>> y_true = torch.tensor([0, 0, 1, 1])
+        >>> metric = BalancedAccuracy()
+        >>> metric(y_pred, y_true)
+        tensor([0.8333])
+    
+    """
+    def __init__(
+            self,
+            adjusted: bool = False,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            adjusted: If ``True``, the result sis adjusted for chance, such that random performance
+                corresponds to 0 and perfect performance corresponds to 1
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        """
+        super().__init__('balanced_accuracy_score',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         adjusted=adjusted)
+    
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None) -> float:
+        """
+        Args:
+            y_pred: the array containing the predictions (already in categorical form)
+            y_true: the array containing the targets (in categorical form)
+            sample_weight:  Sample weights.
+            
+        Return:
+            balanced accuracy score
+        
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred, 
+                               sample_weight=sample_weight)
+    
+
 class ConfusionMatrix(SklearnMetric):
     """
     Compute confusion matrix to evaluate the accuracy of a classification
