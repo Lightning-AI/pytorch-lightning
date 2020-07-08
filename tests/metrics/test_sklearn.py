@@ -16,13 +16,15 @@ from sklearn.metrics import (
     precision_recall_curve as sk_precision_recall_curve,
     roc_curve as sk_roc_curve,
     roc_auc_score as sk_roc_auc_score,
+    balanced_accuracy_score as sk_balanced_accuracy_score
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
 from pytorch_lightning.metrics.sklearns import (
     Accuracy,
-    AveragePrecision,
     AUC,
+    AveragePrecision,
+    BalancedAccuracy,
     ConfusionMatrix,
     F1,
     FBeta,
@@ -86,6 +88,9 @@ def _xy_only(func):
                  {'y_score': torch.rand(size=(128,)),
                   'y_true': torch.randint(2, size=(128,))},
                  id='AUROC'),
+    pytest.param(BalancedAccuracy(), sk_balanced_accuracy_score,
+                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 id='Accuracy')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
