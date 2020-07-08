@@ -168,7 +168,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         """
 
-    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
+    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Union[float, Tensor]]]]]:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -186,8 +186,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             When implementing :meth:`training_step`, return whatever you need in that step:
 
             - loss -> tensor scalar **REQUIRED**
-            - progress_bar -> Dict for progress bar display. Must have either tensors or scalars
-            - log -> Dict of metrics to add to logger. Must have either tensors or scalars (no images, etc)
+            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars
+            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc)
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -358,8 +358,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Dict with loss key and optional log or progress bar keys.
 
             - loss -> tensor scalar **REQUIRED**
-            - progress_bar -> Dict for progress bar display. Must have only tensors
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars
+            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc)
 
         Examples:
             .. code-block:: python
@@ -575,8 +575,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Dict or OrderedDict.
             May have the following optional keys:
 
-            - progress_bar (dict for progress bar display; either tensors or scalars)
-            - log (dict of metrics to add to logger; either tensors or scalars).
+            - progress_bar (dict for progress bar display; either scalar tensors or Python scalars)
+            - log (dict of metrics to add to logger; either scalar tensors or Python scalars).
 
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
@@ -800,8 +800,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Return:
             Dict or OrderedDict: Dict has the following optional keys:
 
-            - progress_bar -> Dict for progress bar display. Must have only tensors.
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc).
+            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars.
+            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc).
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
