@@ -18,7 +18,7 @@ def to_onehot(
 
     Args:
         tensor: dense label tensor, with shape [N, d1, d2, ...]
-        num_classes: number of classes C (default: None)
+        num_classes: number of classes C
 
     Output:
         A sparse label tensor with shape [N, C, d1, d2, ...]
@@ -50,7 +50,7 @@ def to_categorical(
 
     Args:
         tensor: probabilities to get the categorical label [N, d1, d2, ...]
-        argmax_dim: dimension to apply (default: 1)
+        argmax_dim: dimension to apply
 
     Return:
         A tensor with categorical labels [N, d2, ...]
@@ -76,7 +76,7 @@ def get_num_classes(
         Args:
             pred: predicted values
             target: true labels
-            num_classes: number of classes if known (default: None)
+            num_classes: number of classes if known
 
         Return:
             An integer that represents the number of classes.
@@ -107,7 +107,7 @@ def stat_scores(
         target: target tensor
         class_index: class to calculate over
         argmax_dim: if pred is a tensor of probabilities, this indicates the
-            axis the argmax transformation will be applied over (default: 1)
+            axis the argmax transformation will be applied over
 
     Return:
         True Positive, False Positive, True Negative, False Negative, Support
@@ -147,9 +147,9 @@ def stat_scores_multiple_classes(
     Args:
         pred: prediction tensor
         target: target tensor
-        num_classes: number of classes if known (default: None)
+        num_classes: number of classes if known
         argmax_dim: if pred is a tensor of probabilities, this indicates the
-            axis the argmax transformation will be applied over (default: 1)
+            axis the argmax transformation will be applied over
 
     Return:
         True Positive, False Positive, True Negative, False Negative, Support
@@ -199,7 +199,7 @@ def accuracy(
     Args:
         pred: predicted labels
         target: ground truth labels
-        num_classes: number of classes (default: None)
+        num_classes: number of classes
         reduction: a method for reducing accuracies over labels (default: takes the mean)
             Available reduction methods:
 
@@ -242,7 +242,7 @@ def confusion_matrix(
     Args:
         pred: estimated targets
         target: ground truth labels
-        normalize: normalizes confusion matrix (default: False)
+        normalize: normalizes confusion matrix
 
     Return:
         Tensor, confusion matrix C [num_classes, num_classes ]
@@ -282,7 +282,7 @@ def precision_recall(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes (default: None)
+        num_classes: number of classes
         reduction: method for reducing precision-recall values (default: takes the mean)
             Available reduction methods:
 
@@ -331,7 +331,7 @@ def precision(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes (default: None)
+        num_classes: number of classes
         reduction: method for reducing precision values (default: takes the mean)
             Available reduction methods:
 
@@ -366,7 +366,7 @@ def recall(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes (default: None)
+        num_classes: number of classes
         reduction: method for reducing recall values (default: takes the mean)
             Available reduction methods:
 
@@ -407,7 +407,7 @@ def fbeta_score(
             beta > 1 more weight to recall
             beta = 0: only precision
             beta -> inf: only recall
-        num_classes: number of classes (default: None)
+        num_classes: number of classes
         reduction: method for reducing F-score (default: takes the mean)
             Available reduction methods:
 
@@ -452,7 +452,7 @@ def f1_score(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        num_classes: number of classes (default: None)
+        num_classes: number of classes
         reduction: method for reducing F1-score (default: takes the mean)
             Available reduction methods:
 
@@ -530,8 +530,8 @@ def roc(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights (default: None)
-        pos_label: the label for the positive class (default: 1)
+        sample_weight: sample weights
+        pos_label: the label for the positive class
 
     Return:
         false-positive rate (fpr), true-positive rate (tpr), thresholds
@@ -584,7 +584,7 @@ def multiclass_roc(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights (default: None)
+        sample_weight: sample weights
         num_classes: number of classes (default: None, computes automatically from data)
 
     Return:
@@ -628,8 +628,8 @@ def precision_recall_curve(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights (default: None)
-        pos_label: the label for the positive class (default: 1.)
+        sample_weight: sample weights
+        pos_label: the label for the positive class
 
     Return:
          precision, recall, thresholds
@@ -686,8 +686,8 @@ def multiclass_precision_recall_curve(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weight (default: None)
-        num_classes: number of classes (default: None)
+        sample_weight: sample weight
+        num_classes: number of classes
 
     Return:
         number of classes, precision, recall, thresholds
@@ -734,7 +734,7 @@ def auc(
     Args:
         x: x-coordinates
         y: y-coordinates
-        reorder: reorder coordinates, so they are increasing (default: True)
+        reorder: reorder coordinates, so they are increasing
 
     Return:
         Tensor containing AUC score (float)
@@ -804,8 +804,8 @@ def auroc(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights (default: None)
-        pos_label: the label for the positive class (default: 1.)
+        sample_weight: sample weights
+        pos_label: the label for the positive class
 
     Return:
         Tensor containing ROCAUC score
@@ -837,8 +837,8 @@ def average_precision(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        sample_weight: sample weights (default: None)
-        pos_label: the label for the positive class (default: 1.)
+        sample_weight: sample weights
+        pos_label: the label for the positive class
 
     Return:
         Tensor containing average precision score
@@ -873,9 +873,9 @@ def dice_score(
     Args:
         pred: estimated probabilities
         target: ground-truth labels
-        bg: whether to also compute dice for the background (default: False)
-        nan_score: score to return, if a NaN occurs during computation (default: 0.0)
-        no_fg_score: score to return, if no foreground pixel was found in target (default: 0.0)
+        bg: whether to also compute dice for the background
+        nan_score: score to return, if a NaN occurs during computation
+        no_fg_score: score to return, if no foreground pixel was found in target
         reduction: a method for reducing accuracies over labels (default: takes the mean)
             Available reduction methods:
 
@@ -933,10 +933,10 @@ def iou(
     Args:
         pred: Tensor containing predictions
         target: Tensor containing targets
-        num_classes: Optionally specify the number of classes (default: None)
+        num_classes: Optionally specify the number of classes
         remove_bg: Flag to state whether a background class has been included
             within input parameters. If true, will remove background class. If
-            false, return IoU over all classes (default: False)
+            false, return IoU over all classes
             Assumes that background is '0' class in input tensor
         reduction: a method for reducing IoU over labels (default: takes the mean)
             Available reduction methods:
