@@ -81,10 +81,12 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # WandbLogger,  # TODO: add this one
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
-    """Verify that pickling trainer with logger works."""
+    """
+    Verify that pickling trainer with logger works.
+    The WandbLogger gets tested for pickling in its own test.
+    """
     # prevent comet logger from trying to print at exit, since
     # pytest's stdout/stderr redirection breaks it
     import atexit

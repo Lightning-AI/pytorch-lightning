@@ -67,11 +67,6 @@ def test_wandb_pickle(wandb, tmpdir):
     del os.environ['WANDB_MODE']
 
 
-# @pytest.mark.skipif(
-#     platform.system() == 'Windows',
-#     reason='Cannot run in offline mode on windows without api key.'
-#     # known issue: https://github.com/wandb/client/issues/366
-# )
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_wandb_logger_dirs_creation(wandb, tmpdir):
     """ Test that the logger creates the folders and files in the right place. """
