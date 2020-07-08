@@ -17,7 +17,8 @@ from sklearn.metrics import (
     roc_curve as sk_roc_curve,
     roc_auc_score as sk_roc_auc_score,
     balanced_accuracy_score as sk_balanced_accuracy_score,
-    dcg_score as sk_dcg_score
+    dcg_score as sk_dcg_score,
+    mean_absolute_error as sk_mean_absolute_error
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -34,7 +35,8 @@ from pytorch_lightning.metrics.sklearns import (
     Recall,
     PrecisionRecallCurve,
     ROC,
-    AUROC
+    AUROC,
+    MeanAbsoluteError
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -95,11 +97,14 @@ def _xy_only(func):
                  id='BalancedAccuracy'),
     pytest.param(DCG(), sk_dcg_score,
                  {'y_score': torch.rand(size=(128,3)), 'y_true': torch.randint(3, size=(128,3))},
-                 id='DCG')
+                 id='DCG'),
+    pytest.param(MeanAbsoluteError(), sk_mean_absolute_error,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='MeanAbsolutError')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
-
+    print(numpy_inputs)
     sklearn_result = sklearn_func(**numpy_inputs)
     lightning_result = metric_class(**inputs)
     assert np.allclose(sklearn_result, lightning_result, atol=1e-5)

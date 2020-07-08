@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union, Sequence
+from typing import Any, Optional, Union, Sequence, List
 
 import numpy as np
 import torch
@@ -951,3 +951,50 @@ class AUROC(SklearnMetric):
         """
         return super().forward(y_score=y_score, y_true=y_true,
                                sample_weight=sample_weight)
+
+
+class MeanAbsoluteError(SklearnMetric):
+    """
+    Compute absolute error regression loss
+    
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+    
+    Example:
+
+        >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
+        >>> y_true = torch.tensor([3, -0.5, 2, 7])
+        >>> metric = MeanAbsoluteError()
+        >>> metric(y_pred, y_true)
+        tensor([0.5])
+    
+    """
+    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            multioutput: either one of the strings [‘raw_values’, ‘uniform_average’]
+                or an array with shape (n_outputs,) that defines how multiple
+                output values should be aggregated.
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.            
+        """
+        super().__init__('mean_absolute_error',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         multioutput=multioutput)
+        
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray):
+        """
+        Args:
+            y_true: Ground truth (correct) target values.
+            y_pred: Estimated target values
+        
+        Return:
+            Mean absolute error
+        
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred)
