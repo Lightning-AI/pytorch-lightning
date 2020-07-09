@@ -520,6 +520,24 @@ FBeta (sk)
 .. autofunction:: pytorch_lightning.metrics.sklearns.FBeta
     :noindex:
 
+Hamming (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Hamming
+    :noindex:
+
+Hinge (sk)
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Hinge
+    :noindex:
+
+Jaccard (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Jaccard
+    :noindex:
+
 Precision (sk)
 ^^^^^^^^^^^^^^
 

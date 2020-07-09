@@ -27,7 +27,10 @@ from sklearn.metrics import (
     mean_gamma_deviance as sk_mean_gamma_deviance,
     mean_tweedie_deviance as sk_mean_tweedie_deviance,
     explained_variance_score as sk_explained_variance_score,
-    cohen_kappa_score as sk_cohen_kappa_score
+    cohen_kappa_score as sk_cohen_kappa_score,
+    hamming_loss as sk_hamming_loss,
+    hinge_loss as sk_hinge_loss,
+    jaccard_score as sk_jaccard_score
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -41,6 +44,9 @@ from pytorch_lightning.metrics.sklearns import (
     DCG,
     F1,
     FBeta,
+    Hamming,
+    Hinge,
+    Jaccard,
     Precision,
     Recall,
     PrecisionRecallCurve,
@@ -145,7 +151,16 @@ def _xy_only(func):
                  id='MeanTweedieDeviance'),
     pytest.param(CohenKappaScore(), sk_cohen_kappa_score,
                  {'y1': torch.randint(3, size=(128,)), 'y2': torch.randint(3, size=(128,))},
-                 id='CohenKappaScore')
+                 id='CohenKappaScore'),
+    pytest.param(Hamming(), sk_hamming_loss,
+                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 id='Hamming'),
+    pytest.param(Hinge(), sk_hinge_loss,
+                 {'pred_decision': torch.randn(size=(128,)), 'y_true': torch.randint(2, size=(128,))},
+                 id='Hinge'),
+    pytest.param(Jaccard(average='macro'), partial(sk_jaccard_score, average='macro'),
+                 {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
+                 id='Jaccard')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)

@@ -634,6 +634,170 @@ class FBeta(SklearnMetric):
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
 
 
+class Hamming(SklearnMetric):
+    """
+    Computes the average hamming loss 
+        
+    Example:
+
+        >>> y_pred = torch.tensor([0, 1, 2, 3])
+        >>> y_true = torch.tensor([1, 1, 2, 3])
+        >>> metric = Hamming()
+        >>> metric(y_pred, y_true)
+        tensor([0.25])
+
+    """
+    def __init__(self, reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        
+        """
+        super().__init__('hamming_loss',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op)
+    
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None
+    ) -> Union[np.ndarray, float]:
+        """
+        Args:
+            y_pred : Estimated targets as returned by a classifier.
+            y_true: Ground truth (correct) target values.
+            sample_weight: Sample weights.
+
+        Return:
+            Average hamming loss
+
+        """
+        return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
+    
+class Hinge(SklearnMetric):
+    """
+    Computes the average hinge loss  
+    
+    Example:
+
+        >>> pred_decision = torch.tensor([-2.17, -0.97, -0.19, -0.43])
+        >>> y_true = torch.tensor([1, 1, 0, 0])
+        >>> metric = Hamming()
+        >>> metric(y_pred, y_true)
+        tensor([1.6285])
+    
+    """
+    def __init__(self, labels: Optional[Sequence] = None, 
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            labels: Integer array of labels.
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        """
+        super().__init__('hinge_loss',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         labels=labels)
+        
+    def forward(self, pred_decision: np.ndarray, y_true: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None) -> float:
+        """
+        Args:
+            pred_decision : Predicted decisions
+            y_true: Ground truth (correct) target values.
+            sample_weight: Sample weights.
+
+        Return:
+            Average hinge loss
+
+        """
+        return super().forward(pred_decision=pred_decision, 
+                               y_true=y_true, sample_weight=sample_weight)
+
+
+class Jaccard(SklearnMetric):
+    """
+    Calculates jaccard similarity coefficient score
+    
+    Example:
+
+        >>> y_pred = torch.tensor([1, 1, 1])
+        >>> y_true = torch.tensor([0, 1, 1])
+        >>> metric = Jaccard()
+        >>> metric(y_pred, y_true)
+        tensor([0.6666])
+    
+    """
+    def __init__(self, labels: Optional[Sequence] = None,
+                 pos_label: Union[str, int] = 1, average: Optional[str] = 'macro',
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            labels: Integer array of labels.
+            pos_label: The class to report if ``average='binary'``.
+            average: This parameter is required for multiclass/multilabel targets.
+                If ``None``, the scores for each class are returned. Otherwise, this
+                determines the type of averaging performed on the data:
+
+                * ``'binary'``:
+                  Only report results for the class specified by ``pos_label``.
+                  This is applicable only if targets (``y_{true,pred}``) are binary.
+                * ``'micro'``:
+                  Calculate metrics globally by counting the total true positives,
+                  false negatives and false positives.
+                * ``'macro'``:
+                  Calculate metrics for each label, and find their unweighted
+                  mean.  This does not take label imbalance into account.
+                * ``'weighted'``:
+                  Calculate metrics for each label, and find their average, weighted
+                  by support (the number of true instances for each label). This
+                  alters 'macro' to account for label imbalance; it can result in an
+                  F-score that is not between precision and recall.
+                * ``'samples'``:
+                  Calculate metrics for each instance, and find their average (only
+                  meaningful for multilabel classification where this differs from
+                  :func:`accuracy_score`).
+
+                Note that if ``pos_label`` is given in binary classification with
+                `average != 'binary'`, only that positive class is reported. This
+                behavior is deprecated and will change in version 0.18.
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        """
+        super().__init__('jaccard_score',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         labels=labels,
+                         pos_label=pos_label,
+                         average=average)
+
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+        """
+        Args:
+            y_pred : Estimated targets as returned by a classifier.
+            y_true: Ground truth (correct) target values.
+            sample_weight: Sample weights.
+
+        Return:
+            Jaccard similarity score
+
+        """
+        return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
+
+
 class Precision(SklearnMetric):
     """
     Compute the precision
