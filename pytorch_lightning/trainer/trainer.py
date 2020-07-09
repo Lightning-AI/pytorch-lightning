@@ -1063,14 +1063,14 @@ class Trainer(
         # restore main state with best weights
         best_path = q.get()
         results = q.get()
+        last_path = q.get()
 
         # transfer back the best path to the trainer
-        if best_path is not None and len(best_path) > 0:
-            self.checkpoint_callback.best_model_path = best_path
+        self.checkpoint_callback.best_model_path = best_path
 
-        # load last model weights
-        if self.testing:
-            self.load_spawn_weights(model)
+        # load last weights
+        if last_path is not None and not self.testing:
+            torch.load(last_path, map_location=lambda storage, loc: storage)
 
         self.model = model
         return results

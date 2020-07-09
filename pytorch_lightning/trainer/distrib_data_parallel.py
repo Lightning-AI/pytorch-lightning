@@ -579,8 +579,12 @@ class TrainerDDPMixin(ABC):
             q.put(best_model_path)
             q.put(results)
 
+            # save the last weights
+            last_path = None
             if not self.testing:
-                self.save_spawn_weights(model)
+                last_path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+                torch.save(model.state_dict(), last_path)
+            q.put(last_path)
 
     def save_spawn_weights(self, model):
         """
@@ -591,6 +595,7 @@ class TrainerDDPMixin(ABC):
         if self.is_global_zero:
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
+            return path
 
     def load_spawn_weights(self, original_model):
         """
