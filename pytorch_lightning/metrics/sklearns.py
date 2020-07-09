@@ -378,9 +378,9 @@ class DCG(SklearnMetric):
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Args:
-            y_true: Ground truth (correct) target values.
             y_score: target scores, either probability estimates, confidence values
                 or or non-thresholded measure of decisions 
+            y_true: Ground truth (correct) target values.
             sample_weight:  Sample weights.
 
         Return:
@@ -999,10 +999,10 @@ class MeanAbsoluteError(SklearnMetric):
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
-            y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-            
+
         Return:
             Mean absolute error
 
@@ -1052,10 +1052,10 @@ class MeanSquaredError(SklearnMetric):
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
-            y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-            
+
         Return:
             Mean squared error
 
@@ -1067,7 +1067,7 @@ class MeanSquaredError(SklearnMetric):
 class MeanSquaredLogError(SklearnMetric):
     """
     Calculates the mean squared log error
-    
+
     Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
 
@@ -1079,6 +1079,7 @@ class MeanSquaredLogError(SklearnMetric):
         >>> metric(y_pred, y_true)
         tensor([0.039])
     """
+
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
                  reduce_group: Any = group.WORLD,
                  reduce_op: Any = ReduceOp.SUM):
@@ -1101,10 +1102,10 @@ class MeanSquaredLogError(SklearnMetric):
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
-            y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-            
+
         Return:
             Mean squared log error
 
@@ -1112,11 +1113,11 @@ class MeanSquaredLogError(SklearnMetric):
         return super().forward(y_true=y_true, y_pred=y_pred,
                                sample_weight=sample_weight)
 
-    
+
 class MedianAbsoluteError(SklearnMetric):
     """
     Calculates the median absolute error
-    
+
     Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
 
@@ -1128,6 +1129,7 @@ class MedianAbsoluteError(SklearnMetric):
         >>> metric(y_pred, y_true)
         tensor([0.5])
     """
+
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
                  reduce_group: Any = group.WORLD,
                  reduce_op: Any = ReduceOp.SUM):
@@ -1149,9 +1151,9 @@ class MedianAbsoluteError(SklearnMetric):
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray):
         """
         Args:
-            y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
-            
+            y_true: Ground truth (correct) target values.
+
         Return:
             Median absolute error
 
@@ -1162,7 +1164,7 @@ class MedianAbsoluteError(SklearnMetric):
 class R2Score(SklearnMetric):
     """
     Calculates the R^2 score also known as coefficient of determination
-    
+
     Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
 
@@ -1174,6 +1176,7 @@ class R2Score(SklearnMetric):
         >>> metric(y_pred, y_true)
         tensor([0.948])
     """
+
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
                  reduce_group: Any = group.WORLD,
                  reduce_op: Any = ReduceOp.SUM):
@@ -1196,12 +1199,58 @@ class R2Score(SklearnMetric):
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
-            y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
             sample_weight: Sample weights.
-            
+
         Return:
             Mean absolute error
+
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)
+
+
+class MeanPoissonDeviance(SklearnMetric):
+    """
+    Calculates the mean poisson deviance regression loss
+
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> y_pred = torch.tensor([2, 0, 1, 4])
+        >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
+        >>> metric = MeanPoissonDeviance()
+        >>> metric(y_pred, y_true)
+        tensor([1.4260])
+    """
+
+    def __init__(self,
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.            
+        """
+        super().__init__('mean_poisson_deviance',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op)
+
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
+        """
+        Args:
+            y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
+            sample_weight: Sample weights.
+
+        Return:
+            Mean possion deviance
 
         """
         return super().forward(y_true=y_true, y_pred=y_pred,

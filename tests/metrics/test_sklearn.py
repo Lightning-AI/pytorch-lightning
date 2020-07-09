@@ -22,7 +22,8 @@ from sklearn.metrics import (
     mean_squared_error as sk_mean_squared_error,
     mean_squared_log_error as sk_mean_squared_log_error,
     median_absolute_error as sk_median_absolute_error,
-    r2_score as sk_r2_score
+    r2_score as sk_r2_score,
+    mean_poisson_deviance as mean_poisson_deviance
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -44,7 +45,8 @@ from pytorch_lightning.metrics.sklearns import (
     MeanSquaredError,
     MeanSquaredLogError,
     MedianAbsoluteError,
-    R2Score
+    R2Score,
+    MeanPoissonDeviance
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -120,7 +122,10 @@ def _xy_only(func):
                  id='MedianAbsoluteError'),
     pytest.param(R2Score(), sk_r2_score,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
-                 id='R2Score')
+                 id='R2Score'),
+    pytest.param(MeanPoissonDeviance(), mean_poisson_deviance,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='MeanPoissonDeviance')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)

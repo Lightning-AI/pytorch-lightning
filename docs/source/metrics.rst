@@ -573,3 +573,9 @@ R2Score (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.R2Score
     :noindex:
+    
+MeanPoissonDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanPoissonDeviance
+    :noindex:
