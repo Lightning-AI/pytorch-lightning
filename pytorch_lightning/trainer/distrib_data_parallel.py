@@ -132,6 +132,8 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
+from pytorch_lightning.core.lightning import LightningModule
+
 
 try:
     from apex import amp
@@ -228,6 +230,10 @@ class TrainerDDPMixin(ABC):
 
     @abstractmethod
     def setup(self, *args) -> None:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
