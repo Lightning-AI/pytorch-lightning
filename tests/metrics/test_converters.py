@@ -114,14 +114,23 @@ def _setup_ddp(rank, worldsize):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def _ddp_test_fn(rank, worldsize):
+def _ddp_test_fn(rank, worldsize, add_offset: bool, reduction_mean=False):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.], device='cuda:0')
+    
+    if add_offset:
+        tensor = tensor + rank
 
-    reduced_tensor = _sync_ddp_if_available(tensor)
+    if reduction_mean:
+        reduced_tensor = _sync_ddp_if_available(tensor, 'avg')
+        
+        manual_reduction = sum([tensor.item() + i for i in range(dist.get_world_size())])/dist.get_world_size()
+        assert reduced_tensor.item() 
+    else:
+        reduced_tensor = _sync_ddp_if_available(tensor)
 
-    assert reduced_tensor.item() == dist.get_world_size(), \
-        'Sync-Reduce does not work properly with DDP and Tensors'
+        assert reduced_tensor.item() == dist.get_world_size(), \
+            'Sync-Reduce does not work properly with DDP and Tensors'
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -131,9 +140,16 @@ def test_sync_reduce_ddp():
     tutils.set_random_master_port()
 
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, False), nprocs=worldsize)
 
-    # dist.destroy_process_group()
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_sync_reduce_ddp_mean():
+    """Make sure sync-reduce works with DDP"""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    worldsize = 2
+    mp.spawn(_ddp_test_fn, args=(worldsize, False), nprocs=worldsize)
 
 
 def test_sync_reduce_simple():
