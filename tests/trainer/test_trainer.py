@@ -58,6 +58,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
+    import pdb; pdb.set_trace()
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=ckpt_path,
         hparams_file=hparams_path
