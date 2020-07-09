@@ -106,7 +106,8 @@ class LightningTemplateModel(LightningModule):
         val_loss = F.cross_entropy(y_hat, y)
         labels_hat = torch.argmax(y_hat, dim=1)
         n_correct_pred = torch.sum(y == labels_hat)
-        return {'val_loss': val_loss, "n_correct_pred": n_correct_pred, "n_pred": torch.tensor(len(x))}
+        n_pred = torch.tensor(len(x), device=self.device)
+        return {'val_loss': val_loss, "n_correct_pred": n_correct_pred, "n_pred": n_pred}
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -114,7 +115,8 @@ class LightningTemplateModel(LightningModule):
         test_loss = F.cross_entropy(y_hat, y)
         labels_hat = torch.argmax(y_hat, dim=1)
         n_correct_pred = torch.sum(y == labels_hat)
-        return {'test_loss': test_loss, "n_correct_pred": n_correct_pred, "n_pred": torch.tensor(len(x))}
+        n_pred = torch.tensor(len(x), device=self.device)
+        return {'test_loss': test_loss, "n_correct_pred": n_correct_pred, "n_pred": n_pred}
 
     def validation_epoch_end(self, outputs):
         """
