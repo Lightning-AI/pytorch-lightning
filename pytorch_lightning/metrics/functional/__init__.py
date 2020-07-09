@@ -20,3 +20,10 @@ from pytorch_lightning.metrics.functional.classification import (
     to_onehot,
     iou,
 )
+from pytorch_lightning.metrics.functional.regression import (
+    mae,
+    mse,
+    psnr,
+    rmse,
+    rmsle
+)

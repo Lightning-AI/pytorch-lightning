@@ -1321,7 +1321,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
             model.prepare_data()
                 if ddp/tpu: init()
-            model.setup(step)
+            model.setup(stage)
             model.train_dataloader()
             model.val_dataloader()
             model.test_dataloader()

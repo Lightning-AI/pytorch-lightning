@@ -1,11 +1,11 @@
 from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
 from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
 from pytorch_lightning.metrics.regression import (
-    MSE,
-    RMSE,
     MAE,
-    RMSLE,
-    PSNR
+    MSE,
+    PSNR,
+    RMSE,
+    RMSLE
 )
 from pytorch_lightning.metrics.classification import (
     Accuracy,
@@ -48,10 +48,10 @@ __classification_metrics = [
     'IoU',
 ]
 __regression_metrics = [
-    'MSE',
-    'RMSE',
     'MAE',
-    'RMSLE',
-    'PSNR'
+    'MSE',
+    'PSNR',
+    'RMSE',
+    'RMSLE'
 ]
 __all__ = __regression_metrics + __classification_metrics + ['SklearnMetric']
