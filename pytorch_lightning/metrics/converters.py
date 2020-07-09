@@ -233,7 +233,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
-        reduce_op: the reduction operation. Defaults to sum. 
+        reduce_op: the reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
     Return:
@@ -241,9 +241,8 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
     """
 
     if torch.distributed.is_available() and torch.distributed.is_initialized():
-        
         divide_by_process_number = False
-        
+
         if group is None:
             group = torch.distributed.group.WORLD
 
@@ -257,7 +256,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
         torch.distributed.barrier(group=group)
         torch.distributed.all_reduce(result, op=reduce_op, group=group,
                                      async_op=False)
-        
+
         if divide_by_process_number:
             result = result / torch.distributed.get_world_size(group)
 
