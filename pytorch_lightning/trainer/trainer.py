@@ -1012,7 +1012,8 @@ class Trainer(
             # track for predict
             self.model = model
 
-            q = xmp.SimpleQueue()
+            from multiprocessing import SimpleQueue
+            q = SimpleQueue()
 
             # train
             if self.tpu_id is not None:
