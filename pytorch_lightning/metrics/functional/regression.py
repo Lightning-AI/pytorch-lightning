@@ -23,7 +23,7 @@ def mse(
             - sum: add elements
 
     Return:
-        Tensor with mse
+        Tensor with MSE
 
     Example:
 
@@ -57,7 +57,7 @@ def rmse(
             - sum: add elements
 
     Return:
-        Tensor with rmse
+        Tensor with RMSE
 
 
         >>> x = torch.tensor([0., 1, 2, 3])
@@ -89,7 +89,7 @@ def mae(
             - sum: add elements
 
     Return:
-        Tensor with mae
+        Tensor with MAE
 
     Example:
 
@@ -123,7 +123,7 @@ def rmsle(
             - sum: add elements
 
     Return:
-        Tensor with rmsle
+        Tensor with RMSLE
 
     Example:
 
@@ -160,7 +160,7 @@ def psnr(
             - sum add elements
 
     Return:
-        Tensor with psnr score
+        Tensor with PSNR score
 
     Example:
 

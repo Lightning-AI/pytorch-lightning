@@ -48,42 +48,28 @@ def test_rmsle(pred, target, expected):
     assert torch.allclose(score, torch.tensor(expected), atol=1e-3)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param(
-        [0., 1., 2., 3.],
-        [0., 1., 2., 2.],
-        ski_psnr(np.array([0., 1., 2., 3.]), np.array([0., 1., 2., 2.]), data_range=3)
-    ),
-    pytest.param(
-        [4., 3., 2., 1.],
-        [1., 4., 3., 2.],
-        ski_psnr(np.array([4., 3., 2., 1.]), np.array([1., 4., 3., 2.]), data_range=3)
-    )
+@pytest.mark.parametrize(['pred', 'target'], [
+    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.]),
+    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.])
 ])
-def test_psnr(pred, target, expected):
+def test_psnr_with_skimage(pred, target, expected):
     score = psnr(pred=torch.tensor(pred),
                  target=torch.tensor(target))
-    assert torch.allclose(score, torch.tensor(expected, dtype=torch.float), atol=1e-3)
+    sk_score = ski_psnr(np.array(pred), np.array(target), data_range=3)
+    assert torch.allclose(score, torch.tensor(sk_score, dtype=torch.float), atol=1e-3)
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param(
-        [0., 1., 2., 3.],
-        [0., 1., 2., 2.],
-        ski_psnr(np.array([0., 1., 2., 3.]), np.array([0., 1., 2., 2.]), data_range=4) * np.log(10)
-    ),
-    pytest.param(
-        [4., 3., 2., 1.],
-        [1., 4., 3., 2.],
-        ski_psnr(np.array([4., 3., 2., 1.]), np.array([1., 4., 3., 2.]), data_range=4) * np.log(10)
-    )
+@pytest.mark.parametrize(['pred', 'target'], [
+    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.]),
+    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.])
 ])
 def test_psnr_base_e_wider_range(pred, target, expected):
     score = psnr(pred=torch.tensor(pred),
                  target=torch.tensor(target),
                  data_range=4,
                  base=2.718281828459045)
-    assert torch.allclose(score, torch.tensor(expected, dtype=torch.float32), atol=1e-3)
+    sk_score = ski_psnr(np.array(pred), np.array(target), data_range=4) * np.log(10)
+    assert torch.allclose(score, torch.tensor(sk_score, dtype=torch.float32), atol=1e-3)
 
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
