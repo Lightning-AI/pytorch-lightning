@@ -1019,7 +1019,7 @@ class Trainer(
             # if self.tpu_id is not None:
             #     results = self.tpu_train(self.tpu_id, q, model)
             # else:
-            xmp.spawn(self.tpu_train, args=(q, model), nprocs=self.tpu_cores, start_method='spawn')
+            xmp.spawn(self.tpu_train, args=(q, model), nprocs=self.tpu_cores, start_method='fork')
 
             best_path = q.get()
             results = q.get()
