@@ -23,7 +23,9 @@ from sklearn.metrics import (
     mean_squared_log_error as sk_mean_squared_log_error,
     median_absolute_error as sk_median_absolute_error,
     r2_score as sk_r2_score,
-    mean_poisson_deviance as mean_poisson_deviance
+    mean_poisson_deviance as sk_mean_poisson_deviance,
+    mean_gamma_deviance as sk_mean_gamma_deviance,
+    mean_tweedie_deviance as sk_mean_tweedie_deviance
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -46,7 +48,9 @@ from pytorch_lightning.metrics.sklearns import (
     MeanSquaredLogError,
     MedianAbsoluteError,
     R2Score,
-    MeanPoissonDeviance
+    MeanPoissonDeviance,
+    MeanGammaDeviance,
+    MeanTweedieDeviance
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -123,9 +127,15 @@ def _xy_only(func):
     pytest.param(R2Score(), sk_r2_score,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
                  id='R2Score'),
-    pytest.param(MeanPoissonDeviance(), mean_poisson_deviance,
+    pytest.param(MeanPoissonDeviance(), sk_mean_poisson_deviance,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
-                 id='MeanPoissonDeviance')
+                 id='MeanPoissonDeviance'),
+    pytest.param(MeanGammaDeviance(), sk_mean_gamma_deviance,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='MeanGammaDeviance'),
+    pytest.param(MeanTweedieDeviance(), sk_mean_tweedie_deviance,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='MeanTweedieDeviance')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
