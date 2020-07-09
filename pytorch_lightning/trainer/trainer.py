@@ -1072,7 +1072,7 @@ class Trainer(
         if last_path is not None and not self.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             import pdb; pdb.set_trace()
-            model.load_state_dict(ckpt.get('state_dict'))
+            model.load_state_dict(ckpt)
 
         self.model = model
         return results

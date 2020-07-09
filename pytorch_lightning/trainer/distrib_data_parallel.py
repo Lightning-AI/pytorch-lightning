@@ -581,8 +581,8 @@ class TrainerDDPMixin(ABC):
 
             # save the last weights
             last_path = None
-            if not self.testing:
-                last_path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+            if not self.testing and best_model_path is not None:
+                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 torch.save(model.state_dict(), last_path)
             q.put(last_path)
 
