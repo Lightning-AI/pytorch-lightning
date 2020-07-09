@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 import warnings
 
-# warnings to ignore
+# warnings to ignore in trainer
 warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
                                           'please use torch.distributed.ReduceOp instead')
 
