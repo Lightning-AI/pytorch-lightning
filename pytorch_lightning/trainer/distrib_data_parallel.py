@@ -587,7 +587,7 @@ class TrainerDDPMixin(ABC):
 
             # save the last weights
             last_path = None
-            if not self.testing and best_model_path is not None:
+            if not self.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 print('-' * 100)
                 print(last_path)
