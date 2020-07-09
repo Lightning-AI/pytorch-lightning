@@ -45,8 +45,13 @@ def test_dp_test(tmpdir):
     results = trainer.test()
     assert 'test_acc' in results
 
+    import pdb; pdb.set_trace()
+    old_weights = model.parameters()
     results = trainer.test(model)
     assert 'test_acc' in results
+
+    # make sure weights didn't change
+    new_weights = model.parameters()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
