@@ -117,15 +117,15 @@ def _setup_ddp(rank, worldsize):
 def _ddp_test_fn(rank, worldsize, add_offset: bool, reduction_mean=False):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.], device='cuda:0')
-    
+
     if add_offset:
         tensor = tensor + rank
 
     if reduction_mean:
         reduced_tensor = _sync_ddp_if_available(tensor, 'avg')
-        
-        manual_reduction = sum([tensor.item() + i for i in range(dist.get_world_size())])/dist.get_world_size()
-        assert reduced_tensor.item() 
+
+        manual_reduction = sum([tensor.item() + i for i in range(dist.get_world_size())]) / dist.get_world_size()
+        assert reduced_tensor.item()
     else:
         reduced_tensor = _sync_ddp_if_available(tensor)
 
@@ -141,6 +141,7 @@ def test_sync_reduce_ddp():
 
     worldsize = 2
     mp.spawn(_ddp_test_fn, args=(worldsize, False), nprocs=worldsize)
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_reduce_ddp_mean():
