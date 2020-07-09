@@ -61,30 +61,9 @@ def test_against_sklearn(sklearn_metric, torch_metric):
 
 def test_onehot():
     test_tensor = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
-    expected = torch.tensor([
-        [
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
-        ], [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1]
-        ]
+    expected = torch.stack([
+        torch.cat([torch.eye(5, dtype=int), torch.zeros((5, 5), dtype=int)]),
+        torch.cat([torch.zeros((5, 5), dtype=int), torch.eye(5, dtype=int)])
     ])
 
     assert test_tensor.shape == (2, 5)
@@ -103,30 +82,9 @@ def test_onehot():
 
 
 def test_to_categorical():
-    test_tensor = torch.tensor([
-        [
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
-        ], [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1]
-        ]
+    test_tensor = torch.stack([
+        torch.cat([torch.eye(5, dtype=int), torch.zeros((5, 5), dtype=int)]),
+        torch.cat([torch.zeros((5, 5), dtype=int), torch.eye(5, dtype=int)])
     ]).to(torch.float)
 
     expected = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
