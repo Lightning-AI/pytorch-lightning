@@ -561,3 +561,15 @@ MeanSquaredLogError (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredLogError
     :noindex:
+    
+MedianAbsoluteError (sk)
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MedianAbsoluteError
+    :noindex:
+    
+R2Score (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.R2Score
+    :noindex:

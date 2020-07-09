@@ -20,7 +20,9 @@ from sklearn.metrics import (
     dcg_score as sk_dcg_score,
     mean_absolute_error as sk_mean_absolute_error,
     mean_squared_error as sk_mean_squared_error,
-    mean_squared_log_error as sk_mean_squared_log_error
+    mean_squared_log_error as sk_mean_squared_log_error,
+    median_absolute_error as sk_median_absolute_error,
+    r2_score as sk_r2_score
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -40,7 +42,9 @@ from pytorch_lightning.metrics.sklearns import (
     AUROC,
     MeanAbsoluteError,
     MeanSquaredError,
-    MeanSquaredLogError
+    MeanSquaredLogError,
+    MedianAbsoluteError,
+    R2Score
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -110,7 +114,13 @@ def _xy_only(func):
                  id='MeanSquaredError'),
     pytest.param(MeanSquaredLogError(), sk_mean_squared_log_error,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
-                 id='MeanSquaredLogError')
+                 id='MeanSquaredLogError'),
+    pytest.param(MedianAbsoluteError(), sk_median_absolute_error,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='MedianAbsoluteError'),
+    pytest.param(R2Score(), sk_r2_score,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='R2Score')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)

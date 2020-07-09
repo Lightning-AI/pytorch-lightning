@@ -1022,7 +1022,7 @@ class MeanSquaredError(SklearnMetric):
 
         >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
-        >>> metric = MeanAbsoluteError()
+        >>> metric = MeanSquaredError()
         >>> metric(y_pred, y_true)
         tensor([0.375])
 
@@ -1075,7 +1075,7 @@ class MeanSquaredLogError(SklearnMetric):
 
         >>> y_pred = torch.tensor([2.5, 5, 4, 8])
         >>> y_true = torch.tensor([3, 5, 2.5, 7])
-        >>> metric = MeanAbsoluteError()
+        >>> metric = MeanSquaredLogError()
         >>> metric(y_pred, y_true)
         tensor([0.039])
     """
@@ -1093,6 +1093,101 @@ class MeanSquaredLogError(SklearnMetric):
                 Defaults to sum.            
         """
         super().__init__('mean_squared_log_error',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         multioutput=multioutput)
+
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
+        """
+        Args:
+            y_true: Ground truth (correct) target values.
+            y_pred: Estimated target values
+            sample_weight: Sample weights.
+            
+        Return:
+            Mean squared log error
+
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)
+
+    
+class MedianAbsoluteError(SklearnMetric):
+    """
+    Calculates the median absolute error
+    
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
+        >>> y_true = torch.tensor([3, -0.5, 2, 7])
+        >>> metric = MedianAbsoluteError()
+        >>> metric(y_pred, y_true)
+        tensor([0.5])
+    """
+    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            multioutput: either one of the strings [‘raw_values’, ‘uniform_average’]
+                or an array with shape (n_outputs,) that defines how multiple
+                output values should be aggregated.
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.            
+        """
+        super().__init__('median_absolute_error',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         multioutput=multioutput)
+
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray):
+        """
+        Args:
+            y_true: Ground truth (correct) target values.
+            y_pred: Estimated target values
+            
+        Return:
+            Median absolute error
+
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred)
+
+
+class R2Score(SklearnMetric):
+    """
+    Calculates the R^2 score also known as coefficient of determination
+    
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
+        >>> y_true = torch.tensor([3, -0.5, 2, 7])
+        >>> metric = R2Score()
+        >>> metric(y_pred, y_true)
+        tensor([0.948])
+    """
+    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            multioutput: either one of the strings [‘raw_values’, ‘uniform_average’, 'variance_weighted']
+                or an array with shape (n_outputs,) that defines how multiple
+                output values should be aggregated.
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.            
+        """
+        super().__init__('r2_score',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
                          multioutput=multioutput)
