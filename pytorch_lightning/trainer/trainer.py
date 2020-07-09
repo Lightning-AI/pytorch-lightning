@@ -965,6 +965,10 @@ class Trainer(
 
             self.ddp_train(process_idx=task, q=None, model=model)
         elif self.use_ddp:
+
+            # set testing if set in environ
+            self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(process_idx=task, q=None, model=model)
@@ -1300,9 +1304,11 @@ class Trainer(
         # run tests
         self.set_random_port(force=True)
         self.testing = True
+        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
         self.testing = False
+        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
