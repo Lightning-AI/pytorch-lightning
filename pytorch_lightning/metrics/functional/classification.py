@@ -893,7 +893,7 @@ def dice_score(
         ...                      [0.05, 0.05, 0.85, 0.05],
         ...                      [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> average_precision(pred, target)
+        >>> dice_score(pred, target)
         tensor(0.2500)
 
     """
@@ -959,5 +959,6 @@ def iou(
         fps = fps[1:]
         fns = fns[1:]
     denom = fps + fns + tps
-    iou = tps / (fps + fns + tps) if torch.is_nonzero(denom) else torch.tensor(0)
+    denom[denom == 0] = 1e-15
+    iou = tps / denom
     return reduce(iou, reduction=reduction)
