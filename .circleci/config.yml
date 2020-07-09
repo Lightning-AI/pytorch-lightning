@@ -89,6 +89,7 @@ references:
    run:
      name: Upload coverage to Codecov
      command: |
+       # TODO: Try out codecov.
        #codecov --token $CODECOV_TOKEN --flags=tpu,pytest --name="GPU-coverage" --env=linux  # --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
 
 jobs:
