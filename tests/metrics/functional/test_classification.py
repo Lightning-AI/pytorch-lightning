@@ -205,7 +205,9 @@ def test_fbeta_score(pred, target, beta, exp_score):
 
 
 @pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
+    pytest.param([0., 0., 0., 0.], [1., 1., 1., 1.], [0.0, 0.0]),
     pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], [0.5, 0.5]),
+    pytest.param([1., 0., 1., 0.], [1., 0., 1., 0.], [1.0, 1.0]),
 ])
 def test_f1_score(pred, target, exp_score):
     score = f1_score(torch.tensor(pred), torch.tensor(target), reduction='none')
@@ -269,7 +271,7 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([0, 0, 1, 1], [0, 0, 1, 1], 1.),
+    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], 1.),
     pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
     pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
     pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.),
@@ -300,7 +302,7 @@ def test_auc(x, y, expected):
     # The precision is then the fraction of positive whatever the recall
     # is, as there is only one threshold:
     pytest.param(torch.tensor([1, 1, 1, 1]), torch.tensor([0, 0, 0, 1]), .25),
-    # With treshold .8 : 1 TP and 2 TN and one FN
+    # With threshold 0.8 : 1 TP and 2 TN and one FN
     pytest.param(torch.tensor([.6, .7, .8, 9]), torch.tensor([1, 0, 0, 1]), .75),
 ])
 def test_average_precision(scores, target, expected_score):
