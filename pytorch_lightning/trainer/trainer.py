@@ -1070,7 +1070,9 @@ class Trainer(
 
         # load last weights
         if last_path is not None and not self.testing:
-            torch.load(last_path, map_location=lambda storage, loc: storage)
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            import pdb; pdb.set_trace()
+            model.load_state_dict(ckpt.get('state_dict'))
 
         self.model = model
         return results
@@ -1281,6 +1283,8 @@ class Trainer(
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
+
+            torch.load(ckpt_path, map_location=lambda storage, loc: storage)
             model = self.get_model().load_from_checkpoint(ckpt_path)
 
         # ----------------------------------------------------
