@@ -25,7 +25,7 @@ def test_wandb_logger(wandb):
         {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
         allow_val_change=True,
     )
-    
+
     logger.watch('model', 'log', 10)
     wandb.init().watch.assert_called_once_with('model', log='log', log_freq=10)
 
