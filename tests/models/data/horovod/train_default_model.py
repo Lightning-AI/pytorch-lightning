@@ -88,7 +88,6 @@ def run_test_from_config(trainer_options):
         assert trainer.root_gpu == hvd.local_rank()
 
 
-
 if __name__ == "__main__":
     args = parser.parse_args()
     run_test_from_config(json.loads(args.trainer_options))

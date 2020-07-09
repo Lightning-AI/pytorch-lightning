@@ -562,16 +562,7 @@ def test_testpass_overrides(tmpdir):
 def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
     hparams = EvalModelTemplate.get_default_hparams()
 
-    loaded_checkpoint_path = ''
-
-    class TestBestModel(EvalModelTemplate):
-        @classmethod
-        def load_from_checkpoint(cls, checkpoint_path, *args, **kwargs):
-            nonlocal loaded_checkpoint_path
-            loaded_checkpoint_path = checkpoint_path
-            return super().load_from_checkpoint(checkpoint_path, *args, **kwargs)
-
-    model = TestBestModel(**hparams)
+    model = EvalModelTemplate(**hparams)
     trainer = Trainer(
         max_epochs=2,
         progress_bar_refresh_rate=0,
@@ -586,12 +577,12 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
                 trainer.test(ckpt_path=ckpt_path)
         else:
             trainer.test(ckpt_path=ckpt_path)
-            assert loaded_checkpoint_path == trainer.checkpoint_callback.best_model_path
+            assert trainer.tested_ckpt_path == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and
         # use the weights from the end of training
         trainer.test(ckpt_path=ckpt_path)
-        assert loaded_checkpoint_path == ''
+        assert trainer.tested_ckpt_path is None
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -600,7 +591,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         else:
             ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0].absolute())
             trainer.test(ckpt_path=ckpt_path)
-            assert loaded_checkpoint_path == ckpt_path
+            assert trainer.tested_ckpt_path == ckpt_path
 
 
 def test_disabled_validation(tmpdir):

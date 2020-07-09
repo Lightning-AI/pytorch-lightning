@@ -122,16 +122,15 @@ import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
-from torch import distributed as dist
-import queue
 
 import torch
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
+from pytorch_lightning.core.lightning import LightningModule
+
 
 try:
     from apex import amp
@@ -228,6 +227,10 @@ class TrainerDDPMixin(ABC):
 
     @abstractmethod
     def setup(self, *args) -> None:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -556,8 +559,11 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         results = self.run_pretrain_routine(model)
 
+        # get original model
+        model = self.get_model()
+
         # persist info in ddp_spawn
-        self.__transfer_ddp_spawn_state_on_fit_end(model, q, results)
+        self.transfer_ddp_spawn_state_on_fit_end(model, q, results)
 
         # clean up memory
         torch.cuda.empty_cache()
@@ -565,8 +571,8 @@ class TrainerDDPMixin(ABC):
         if self.global_rank == 0 and self.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
 
-    def __transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
-        if not self.distributed_backend in ['ddp_spawn', 'ddp_cpu']:
+    def transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
+        if self.distributed_backend not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
             return
 
         # track the best model path
@@ -581,8 +587,8 @@ class TrainerDDPMixin(ABC):
 
             # save the last weights
             last_path = None
-            if not self.testing:
-                last_path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+            if not self.testing and best_model_path is not None and len(best_model_path) > 0:
+                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 torch.save(model.state_dict(), last_path)
             q.put(last_path)
 
