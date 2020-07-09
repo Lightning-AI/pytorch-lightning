@@ -569,7 +569,7 @@ class TrainerDDPMixin(ABC):
             return results
 
     def __transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
-        if not self.distributed_backend in ['ddp_spawn', 'ddp_cpu']:
+        if self.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return
 
         # track the best model path
@@ -584,7 +584,7 @@ class TrainerDDPMixin(ABC):
 
             # save the last weights
             last_path = None
-            if not self.testing and best_model_path is not None:
+            if not self.testing and best_model_path is not None and last_path and len(last_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 torch.save(model.state_dict(), last_path)
             q.put(last_path)
