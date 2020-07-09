@@ -50,7 +50,7 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     result = trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, 'trainer failed'
 
     # test model loading
     pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
