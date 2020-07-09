@@ -894,7 +894,7 @@ def dice_score(
         ...                      [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
         >>> dice_score(pred, target)
-        tensor(0.2500)
+        tensor(0.3333)
 
     """
     num_classes = pred.shape[1]
