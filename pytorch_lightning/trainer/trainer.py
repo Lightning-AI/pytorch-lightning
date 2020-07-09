@@ -1270,6 +1270,8 @@ class Trainer(
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
+        self.teardown('test')
+
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
@@ -1303,7 +1305,6 @@ class Trainer(
         self.testing = False
 
         # teardown
-        self.teardown('test')
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
             model_ref.teardown('test')
@@ -1328,7 +1329,6 @@ class Trainer(
         self.testing = False
 
         # teardown
-        self.teardown('test')
         if self.is_function_implemented('teardown'):
             model.teardown('test')
 
