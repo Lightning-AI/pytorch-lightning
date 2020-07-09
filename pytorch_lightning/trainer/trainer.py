@@ -1264,47 +1264,62 @@ class Trainer(
         # SETUP HOOK
         # --------------------
         self.setup('test')
-        model_ref = self.model if model is None else model
-        if self.is_function_implemented('setup', model_ref):
-            model_ref.setup('test')
+
+        if model is not None:
+            results = self.__test_given_model(model, test_dataloaders)
+        else:
+            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
+
+        return results
+
+    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
+        model = self.get_model()
+        if self.is_function_implemented('setup', model):
+            model.setup('test')
 
         # if user requests the best checkpoint but we don't have it, error
-        if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+        if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
 
-        # --------------------
-        # AUTO-LOAD BEST CKPT
-        # --------------------
-        # load the best checkpoint automatically unless model is given
-        # in which case we use that one
-        if model is None and ckpt_path is not None:
+        # load best weights
+        if ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
 
-            import pdb; pdb.set_trace()
             ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
-        # ----------------------------------------------------
-        # AUTO-LOAD BEST CKPT with the model trained in .fit()
-        # ----------------------------------------------------
-        elif model is None and ckpt_path is None:
-            model = model_ref
-
-        # --------------------
-        # LOAD DATA
-        # --------------------
+        # attach dataloaders
         if test_dataloaders is not None:
-            if model:
-                self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
-            else:
-                self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
-        # --------------------
-        # RUN TEST SET
-        # --------------------
+        # run tests
+        self.set_random_port(force=True)
+        self.testing = True
+        self.model = model
+        results = self.fit(model)
+        self.testing = False
+
+        # teardown
+        self.teardown('test')
+        if self.is_function_implemented('teardown'):
+            model_ref = self.get_model()
+            model_ref.teardown('test')
+
+        return results
+
+    def __test_given_model(self, model, test_dataloaders):
+        # setup hook
+        if self.is_function_implemented('setup', model):
+            model.setup('test')
+
+        # attach data
+        if test_dataloaders is not None:
+            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        # run test
         # sets up testing so we short circuit to eval
         self.set_random_port(force=True)
         self.testing = True
@@ -1312,13 +1327,10 @@ class Trainer(
         results = self.fit(model)
         self.testing = False
 
-        # --------------------
-        # TEAR DOWN HOOK
-        # --------------------
+        # teardown
         self.teardown('test')
         if self.is_function_implemented('teardown'):
-            model_ref = self.get_model()
-            model_ref.teardown('test')
+            model.teardown('test')
 
         return results
 
