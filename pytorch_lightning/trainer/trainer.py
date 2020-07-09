@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 import warnings
 
-# warnings to ignore
+# warnings to ignore in trainer
 warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
                                           'please use torch.distributed.ReduceOp instead')
 
@@ -1063,9 +1063,14 @@ class Trainer(
         # restore main state with best weights
         best_path = q.get()
         results = q.get()
-        if best_path is not None and len(best_path) > 0:
-            self.checkpoint_callback.best_model_path = best_path
-            model.load_from_checkpoint(best_path)
+        last_path = q.get()
+
+        # transfer back the best path to the trainer
+        self.checkpoint_callback.best_model_path = best_path
+
+        # load last weights
+        if last_path is not None and not self.testing:
+            torch.load(last_path, map_location=lambda storage, loc: storage)
 
         self.model = model
         return results

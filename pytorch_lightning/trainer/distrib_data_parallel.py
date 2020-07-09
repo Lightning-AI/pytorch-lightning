@@ -189,6 +189,7 @@ class TrainerDDPMixin(ABC):
     num_nodes: int
     node_rank: int
     tpu_cores: int
+    testing: bool
 
     @property
     @abstractmethod
@@ -555,15 +556,35 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         results = self.run_pretrain_routine(model)
 
+        # persist info in ddp_spawn
+        self.__transfer_ddp_spawn_state_on_fit_end(model, q, results)
+
         # clean up memory
         torch.cuda.empty_cache()
 
+        if self.global_rank == 0 and self.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
+            return results
+
+    def __transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
+        if not self.distributed_backend in ['ddp_spawn', 'ddp_cpu']:
+            return
+
+        # track the best model path
+        best_model_path = None
+        if self.checkpoint_callback is not None:
+            best_model_path = self.checkpoint_callback.best_model_path
+
         if self.global_rank == 0 and q is not None:
-            q.put(self.checkpoint_callback.best_model_path)
+            rank_zero_warn('cleaning up ddp environment...')
+            q.put(best_model_path)
             q.put(results)
 
-        if self.global_rank == 0 and self.distributed_backend != 'ddp_spawn':
-            return results
+            # save the last weights
+            last_path = None
+            if not self.testing:
+                last_path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+                torch.save(model.state_dict(), last_path)
+            q.put(last_path)
 
     def save_spawn_weights(self, model):
         """
@@ -574,6 +595,7 @@ class TrainerDDPMixin(ABC):
         if self.is_global_zero:
             path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
             self.save_checkpoint(path)
+            return path
 
     def load_spawn_weights(self, original_model):
         """
