@@ -10,5 +10,5 @@ matplotlib>=3.1.1
 horovod>=0.19.1
 omegaconf>=2.0.0
 # scipy>=0.13.3
-scikit-learn>=0.20.0
+scikit-learn>=0.22.2
 torchtext>=0.3.1
