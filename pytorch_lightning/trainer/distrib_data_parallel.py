@@ -557,6 +557,7 @@ class TrainerDDPMixin(ABC):
         results = self.run_pretrain_routine(model)
 
         # persist info in ddp_spawn
+        model = self.get_model()
         self.__transfer_ddp_spawn_state_on_fit_end(model, q, results)
 
         # clean up memory
