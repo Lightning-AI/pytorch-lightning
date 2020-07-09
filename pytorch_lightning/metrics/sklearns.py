@@ -271,7 +271,7 @@ class BalancedAccuracy(SklearnMetric):
                          reduce_op=reduce_op,
                          adjusted=adjusted)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Args:
@@ -374,7 +374,7 @@ class DCG(SklearnMetric):
                          reduce_op=reduce_op,
                          k=k, log_base=log_base, ignore_ties=ignore_ties)
 
-    def forward(self, y_true: np.ndarray, y_score: np.ndarray,
+    def forward(self, y_score: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Args:
@@ -995,7 +995,7 @@ class MeanAbsoluteError(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
@@ -1048,7 +1048,7 @@ class MeanSquaredError(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
@@ -1097,7 +1097,7 @@ class MeanSquaredLogError(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
@@ -1146,7 +1146,7 @@ class MedianAbsoluteError(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray):
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray):
         """
         Args:
             y_true: Ground truth (correct) target values.
@@ -1192,7 +1192,7 @@ class R2Score(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None):
         """
         Args:
