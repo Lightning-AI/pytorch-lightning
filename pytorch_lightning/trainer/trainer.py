@@ -1043,9 +1043,13 @@ class Trainer(
         # restore main state with best weights
         best_path = q.get()
         results = q.get()
+
+        # transfer back the best path to the trainer
         if best_path is not None and len(best_path) > 0:
             self.checkpoint_callback.best_model_path = best_path
-            model.load_from_checkpoint(best_path)
+
+        # load last model weights
+        self.load_spawn_weights(model)
 
         self.model = model
         return results

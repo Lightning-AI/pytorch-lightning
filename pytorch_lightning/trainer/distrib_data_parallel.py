@@ -559,6 +559,8 @@ class TrainerDDPMixin(ABC):
         torch.cuda.empty_cache()
 
         if self.global_rank == 0 and q is not None:
+            rank_zero_warn('cleaning up ddp environment...')
+            self.save_spawn_weights(model)
             q.put(self.checkpoint_callback.best_model_path)
             q.put(results)
 
