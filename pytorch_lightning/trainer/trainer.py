@@ -1284,7 +1284,7 @@ class Trainer(
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
 
-            torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+            ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
             model = self.get_model().load_from_checkpoint(ckpt_path)
 
         # ----------------------------------------------------
