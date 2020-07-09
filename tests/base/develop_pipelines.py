@@ -82,15 +82,20 @@ def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     x = x.view(x.size(0), -1)
 
     if dp:
-        output = trained_model(batch, 0)
+        with torch.no_grad():
+            output = trained_model(batch, 0)
         acc = output['val_acc']
         acc = torch.mean(acc).item()
 
     else:
-        y_hat = trained_model(x)
+        with torch.no_grad():
+            y_hat = trained_model(x)
+        y_hat = y_hat.cpu()
 
         # acc
         labels_hat = torch.argmax(y_hat, dim=1)
+
+        y = y.cpu()
         acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         acc = torch.tensor(acc)
         acc = acc.item()

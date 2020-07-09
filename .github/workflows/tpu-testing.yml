@@ -97,7 +97,7 @@ jobs:
         echo "GKE_CLUSTER: $GKE_CLUSTER" && \
         echo "GKE_ZONE: $GKE_ZONE" && \
         gcloud logging read "resource.type=k8s_container resource.labels.project_id=$PROJECT_ID resource.labels.location=$GKE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$PROJECT_ID > /tmp/full_output.txt && \
-        csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/' && \
+        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
         # First portion is the test logs. Print these to Github Action stdout.
         cat xx00 && \
         echo "Done with log retrieval attempt." && \
