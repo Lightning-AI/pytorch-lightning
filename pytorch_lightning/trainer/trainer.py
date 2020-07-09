@@ -1007,24 +1007,15 @@ class Trainer(
 
             #  COLAB_GPU is an env var available by default in Colab environments.
             start_method = 'fork' if self.on_colab_kaggle else 'spawn'
-            print(start_method)
 
             # track for predict
             self.model = model
 
-            from multiprocessing import SimpleQueue
-            q = SimpleQueue()
-
             # train
-            # if self.tpu_id is not None:
-            #     results = self.tpu_train(self.tpu_id, q, model)
-            # else:
-            xmp.spawn(self.tpu_train, args=(q, model), nprocs=self.tpu_cores, start_method='fork')
-
-            best_path = q.get()
-            results = q.get()
-            last_path = q.get()
-            import pdb; pdb.set_trace()
+            if self.tpu_id is not None:
+                self.tpu_train(self.tpu_id, model)
+            else:
+                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
             if self.on_colab_kaggle and not self.testing:
