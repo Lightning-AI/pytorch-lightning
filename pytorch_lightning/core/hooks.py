@@ -5,7 +5,6 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
-from pytorch_lightning.core.lightning import LightningModule
 
 
 try:
