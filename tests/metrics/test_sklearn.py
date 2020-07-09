@@ -19,7 +19,8 @@ from sklearn.metrics import (
     balanced_accuracy_score as sk_balanced_accuracy_score,
     dcg_score as sk_dcg_score,
     mean_absolute_error as sk_mean_absolute_error,
-    mean_squared_error as sk_mean_squared_error
+    mean_squared_error as sk_mean_squared_error,
+    mean_squared_log_error as sk_mean_squared_log_error
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -38,7 +39,8 @@ from pytorch_lightning.metrics.sklearns import (
     ROC,
     AUROC,
     MeanAbsoluteError,
-    MeanSquaredError
+    MeanSquaredError,
+    MeanSquaredLogError
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -105,7 +107,10 @@ def _xy_only(func):
                  id='MeanAbsolutError'),
     pytest.param(MeanSquaredError(), sk_mean_squared_error,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
-                 id='MeanSquaredError')
+                 id='MeanSquaredError'),
+    pytest.param(MeanSquaredLogError(), sk_mean_squared_log_error,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='MeanSquaredLogError')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)

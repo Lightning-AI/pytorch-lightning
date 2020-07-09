@@ -995,17 +995,20 @@ class MeanAbsoluteError(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray):
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
         """
         Args:
             y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
-
+            sample_weight: Sample weights.
+            
         Return:
             Mean absolute error
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred)
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)
 
 
 class MeanSquaredError(SklearnMetric):
@@ -1045,14 +1048,66 @@ class MeanSquaredError(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_true: np.ndarray, y_pred: np.ndarray):
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
         """
         Args:
             y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
-
+            sample_weight: Sample weights.
+            
         Return:
             Mean squared error
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred)
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)
+
+
+class MeanSquaredLogError(SklearnMetric):
+    """
+    Calculates the mean squared log error
+    
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> y_pred = torch.tensor([2.5, 5, 4, 8])
+        >>> y_true = torch.tensor([3, 5, 2.5, 7])
+        >>> metric = MeanAbsoluteError()
+        >>> metric(y_pred, y_true)
+        tensor([0.039])
+    """
+    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            multioutput: either one of the strings [‘raw_values’, ‘uniform_average’]
+                or an array with shape (n_outputs,) that defines how multiple
+                output values should be aggregated.
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.            
+        """
+        super().__init__('mean_squared_log_error',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         multioutput=multioutput)
+
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
+        """
+        Args:
+            y_true: Ground truth (correct) target values.
+            y_pred: Estimated target values
+            sample_weight: Sample weights.
+            
+        Return:
+            Mean absolute error
+
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)
