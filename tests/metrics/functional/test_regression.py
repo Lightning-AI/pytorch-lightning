@@ -79,31 +79,13 @@ def test_psnr_against_sklearn(sklearn_metric, torch_metric):
     """Compare PL metrics to sklearn version."""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    pred = torch.randint(10, (500,), device=device, dtype=torch.float)
-    target = torch.randint(10, (500,), device=device, dtype=torch.float)
-
-    sk_score = sklearn_metric(target.cpu().detach().numpy(),
-                              pred.cpu().detach().numpy(),
-                              data_range=10)
-    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
-    th_score = torch_metric(pred, target, data_range=10)
-
-    pred = torch.randint(5, (500,), device=device, dtype=torch.float)
-    target = torch.randint(10, (500,), device=device, dtype=torch.float)
-
-    sk_score = sklearn_metric(target.cpu().detach().numpy(),
-                              pred.cpu().detach().numpy(),
-                              data_range=10)
-    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
-    th_score = torch_metric(pred, target, data_range=10)
-    assert torch.allclose(sk_score, th_score)
-
-    pred = torch.randint(10, (500,), device=device, dtype=torch.float)
-    target = torch.randint(5, (500,), device=device, dtype=torch.float)
-
-    sk_score = sklearn_metric(target.cpu().detach().numpy(),
-                              pred.cpu().detach().numpy(),
-                              data_range=5)
-    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
-    th_score = torch_metric(pred, target, data_range=5)
-    assert torch.allclose(sk_score, th_score)
+    for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]:
+        pred = torch.randint(n_cls_pred, (500,), device=device, dtype=torch.float)
+        target = torch.randint(n_cls_target, (500,), device=device, dtype=torch.float)
+    
+        sk_score = sklearn_metric(target.cpu().detach().numpy(),
+                                  pred.cpu().detach().numpy(),
+                                  data_range=n_cls_target)
+        sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+        pl_score = torch_metric(pred, target, data_range=n_cls_target)
+        assert torch.allclose(sk_score, pl_score)
