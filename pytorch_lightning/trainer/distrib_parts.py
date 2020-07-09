@@ -222,7 +222,7 @@ class TrainerDPMixin(ABC):
         self.run_pretrain_routine(model)
 
         # when training ends on these platforms dump weights to get out of the main process
-        if self.on_colab_kaggle:
+        if self.on_colab_kaggle and not self.testing:
             rank_zero_warn('cleaning up... please do not interrupt')
             self.save_spawn_weights(model)
 
