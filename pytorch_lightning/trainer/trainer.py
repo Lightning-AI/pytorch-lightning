@@ -1016,7 +1016,6 @@ class Trainer(
             q = Queue()
 
             # train
-            import pdb; pdb.set_trace()
             if self.tpu_id is not None:
                 self.tpu_train(self.tpu_id, q, model)
             else:
