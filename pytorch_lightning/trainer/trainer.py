@@ -1071,7 +1071,6 @@ class Trainer(
         # load last weights
         if last_path is not None and not self.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            import pdb; pdb.set_trace()
             model.load_state_dict(ckpt)
 
         self.model = model
@@ -1284,8 +1283,9 @@ class Trainer(
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
 
+            import pdb; pdb.set_trace()
             ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
-            model = self.get_model().load_from_checkpoint(ckpt_path)
+            model.load_state_dict(ckpt)
 
         # ----------------------------------------------------
         # AUTO-LOAD BEST CKPT with the model trained in .fit()
