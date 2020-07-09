@@ -1,6 +1,8 @@
+import atexit
 import inspect
 import pickle
 import platform
+from unittest import mock
 
 import pytest
 
@@ -35,14 +37,15 @@ def _get_logger_args(logger_class, save_dir):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # WandbLogger,  # TODO: add this one
+    WandbLogger,
 ])
-def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
-    # prevent comet logger from trying to print at exit, since
-    # pytest's stdout/stderr redirection breaks it
-    import atexit
-    monkeypatch.setattr(atexit, 'register', lambda _: None)
+    if logger_class == CometLogger:
+        # prevent comet logger from trying to print at exit, since
+        # pytest's stdout/stderr redirection breaks it
+        monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     model = EvalModelTemplate()
 
@@ -58,6 +61,11 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = StoreHistoryLogger(**logger_args)
 
+    if logger_class == WandbLogger:
+        # required mocks for Trainer
+        logger.experiment.id = 'foo'
+        logger.experiment.project_name.return_value = 'bar'
+
     trainer = Trainer(
         max_epochs=1,
         logger=logger,
@@ -66,7 +74,6 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
         fast_dev_run=True,
     )
     trainer.fit(model)
-
     trainer.test()
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
@@ -78,17 +85,17 @@ def test_loggers_fit_test(tmpdir, monkeypatch, logger_class):
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     CometLogger,
-    # MLFlowLogger,
+    MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # WandbLogger,  # TODO: add this one
+    # The WandbLogger gets tested for pickling in its own test.
 ])
 def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     """Verify that pickling trainer with logger works."""
-    # prevent comet logger from trying to print at exit, since
-    # pytest's stdout/stderr redirection breaks it
-    import atexit
-    monkeypatch.setattr(atexit, 'register', lambda _: None)
+    if logger_class == CometLogger:
+        # prevent comet logger from trying to print at exit, since
+        # pytest's stdout/stderr redirection breaks it
+        monkeypatch.setattr(atexit, 'register', lambda _: None)
 
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
@@ -156,12 +163,18 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
     CometLogger,
-    # MLFlowLogger,
+    MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
     WandbLogger,
 ])
-def test_logger_created_on_rank_zero_only(tmpdir, logger_class):
+def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
+    """ Test that loggers get replaced by dummy logges on global rank > 0"""
+    if logger_class == CometLogger:
+        # prevent comet logger from trying to print at exit, since
+        # pytest's stdout/stderr redirection breaks it
+        monkeypatch.setattr(atexit, 'register', lambda _: None)
+
     logger_args = _get_logger_args(logger_class, tmpdir)
     logger = logger_class(**logger_args)
     model = EvalModelTemplate()
