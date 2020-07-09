@@ -593,6 +593,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
         trainer.test(ckpt_path=ckpt_path)
         assert loaded_checkpoint_path == ''
     else:
+        import pdb;pdb.set_trace()
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
             with pytest.raises(FileNotFoundError):
