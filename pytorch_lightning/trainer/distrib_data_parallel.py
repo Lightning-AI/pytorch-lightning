@@ -590,7 +590,7 @@ class TrainerDDPMixin(ABC):
 
             # save the last weights
             last_path = None
-            if not self.testing and best_model_path is not None and last_path and len(last_path) > 0:
+            if not self.testing and best_model_path is not None:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 torch.save(model.state_dict(), last_path)
             q.put(last_path)
