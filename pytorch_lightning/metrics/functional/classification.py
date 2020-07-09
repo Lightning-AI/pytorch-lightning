@@ -960,6 +960,6 @@ def iou(
         fps = fps[1:]
         fns = fns[1:]
     denom = fps + fns + tps
-    denom[denom == 0] = FLOAT16_EPSILON
+    denom[denom == 0] = torch.tensor(FLOAT16_EPSILON).type_as(denom)
     iou = tps / denom
     return reduce(iou, reduction=reduction)
