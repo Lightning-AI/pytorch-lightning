@@ -589,10 +589,6 @@ class TrainerDDPMixin(ABC):
             last_path = None
             if not self.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                print('-' * 100)
-                print(last_path)
-                print(best_model_path)
-                print('-' * 100)
                 torch.save(model.state_dict(), last_path)
             q.put(last_path)
 
