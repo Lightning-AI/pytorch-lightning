@@ -114,7 +114,6 @@ def test_base_tpu_16bit_model_idx_core(tmpdir):
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
-@pytest.mark.skip(reason='for some reason it is hanging, need to be FIXED')
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_base_tpu_16bit_model_8_cores(tmpdir):
     """Make sure model trains on TPU."""
