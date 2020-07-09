@@ -47,29 +47,16 @@ def test_against_sklearn(sklearn_metric, torch_metric):
     """Compare PL metrics to sklearn version."""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    pred = torch.randint(10, (500,), device=device)
-    target = torch.randint(10, (500,), device=device)
+    # iterate over different label counts in predictions and target
+    for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]:
+        pred = torch.randint(n_cls_pred, (300,), device=device)
+        target = torch.randint(n_cls_target, (300,), device=device)
 
-    assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(),
-                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
-        torch_metric(pred, target))
-
-    pred = torch.randint(10, (200,), device=device)
-    target = torch.randint(5, (200,), device=device)
-
-    assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(),
-                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
-        torch_metric(pred, target))
-
-    pred = torch.randint(5, (200,), device=device)
-    target = torch.randint(10, (200,), device=device)
-
-    assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(),
-                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
-        torch_metric(pred, target))
+        sk_score = sklearn_metric(target.cpu().detach().numpy(),
+                                  pred.cpu().detach().numpy())
+        sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+        pl_score = torch_metric(pred, target)
+        assert torch.allclose(sk_score, pl_score)
 
 
 def test_onehot():
