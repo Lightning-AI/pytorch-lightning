@@ -2,7 +2,6 @@
 MLflow
 ------
 """
-import os
 from argparse import Namespace
 from time import time
 from typing import Optional, Dict, Any, Union
@@ -11,14 +10,18 @@ try:
     import mlflow
     from mlflow.tracking import MlflowClient
     _MLFLOW_AVAILABLE = True
-except ImportError:  # pragma: no-cover
+except ModuleNotFoundError:  # pragma: no-cover
     mlflow = None
     MlflowClient = None
     _MLFLOW_AVAILABLE = False
 
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
+
+
+LOCAL_FILE_URI_PREFIX = "file:"
 
 
 class MLFlowLogger(LightningLoggerBase):
@@ -52,8 +55,11 @@ class MLFlowLogger(LightningLoggerBase):
     Args:
         experiment_name: The name of the experiment
         tracking_uri: Address of local or remote tracking server.
-            If not provided, defaults to the service set by ``mlflow.tracking.set_tracking_uri``.
+            If not provided, defaults to `file:<save_dir>`.
         tags: A dictionary tags for the experiment.
+        save_dir: A path to a local directory where the MLflow runs get saved.
+            Defaults to `./mlflow` if `tracking_uri` is not provided.
+            Has no effect if `tracking_uri` is provided.
 
     """
 
@@ -61,24 +67,27 @@ class MLFlowLogger(LightningLoggerBase):
                  experiment_name: str = 'default',
                  tracking_uri: Optional[str] = None,
                  tags: Optional[Dict[str, Any]] = None,
-                 save_dir: Optional[str] = None):
+                 save_dir: Optional[str] = './mlruns'):
 
         if not _MLFLOW_AVAILABLE:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
         super().__init__()
-        if not tracking_uri and save_dir:
-            tracking_uri = f'file:{os.sep * 2}{save_dir}'
-        self._mlflow_client = MlflowClient(tracking_uri)
-        self.experiment_name = experiment_name
+        if not tracking_uri:
+            tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'
+
+        self._experiment_name = experiment_name
+        self._experiment_id = None
+        self._tracking_uri = tracking_uri
         self._run_id = None
         self.tags = tags
+        self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
     @rank_zero_experiment
     def experiment(self) -> MlflowClient:
         r"""
-        Actual MLflow object. To use mlflow features in your
+        Actual MLflow object. To use MLflow features in your
         :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
 
         Example::
@@ -86,24 +95,30 @@ class MLFlowLogger(LightningLoggerBase):
             self.logger.experiment.some_mlflow_function()
 
         """
+        expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
+
+        if expt:
+            self._experiment_id = expt.experiment_id
+        else:
+            log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
+            self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
+
+        if not self._run_id:
+            run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
+            self._run_id = run.info.run_id
         return self._mlflow_client
 
     @property
     def run_id(self):
-        if self._run_id is not None:
-            return self._run_id
-
-        expt = self._mlflow_client.get_experiment_by_name(self.experiment_name)
-
-        if expt:
-            self._expt_id = expt.experiment_id
-        else:
-            log.warning(f'Experiment with name {self.experiment_name} not found. Creating it.')
-            self._expt_id = self._mlflow_client.create_experiment(name=self.experiment_name)
-
-        run = self._mlflow_client.create_run(experiment_id=self._expt_id, tags=self.tags)
-        self._run_id = run.info.run_id
+        # create the experiment if it does not exist to get the run id
+        _ = self.experiment
         return self._run_id
+
+    @property
+    def experiment_id(self):
+        # create the experiment if it does not exist to get the experiment id
+        _ = self.experiment
+        return self._experiment_id
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
@@ -126,14 +141,26 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status: str = 'FINISHED') -> None:
         super().finalize(status)
-        if status == 'success':
-            status = 'FINISHED'
-        self.experiment.set_terminated(self.run_id, status)
+        status = 'FINISHED' if status == 'success' else status
+        if self.experiment.get_run(self.run_id):
+            self.experiment.set_terminated(self.run_id, status)
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        """
+        The root file directory in which MLflow experiments are saved.
+
+        Return:
+            Local path to the root experiment directory if the tracking uri is local.
+            Otherwhise returns `None`.
+        """
+        if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
+            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
 
     @property
     def name(self) -> str:
-        return self.experiment_name
+        return self.experiment_id
 
     @property
     def version(self) -> str:
-        return self._run_id
+        return self.run_id

@@ -908,7 +908,7 @@ def dice_score(
 
         tp, fp, tn, fn, sup = stat_scores(pred=pred, target=target, class_index=i)
 
-        denom = (2 * tp + fp + fn).to(torch.float)
+        denom = (2 * tp + fp + fn + 1e-15).to(torch.float)
 
         if torch.isclose(denom, torch.zeros_like(denom)).any():
             # nan result
@@ -963,5 +963,5 @@ def iou(
         tps = tps[1:]
         fps = fps[1:]
         fns = fns[1:]
-    iou = tps / (fps + fns + tps)
+    iou = tps / (fps + fns + tps + 1e-15)
     return reduce(iou, reduction=reduction)

@@ -7,6 +7,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 import tests.base.develop_pipelines as tpipes
+from tests.base.datasets import TrialMNIST
+from torch.utils.data import DataLoader
 
 try:
     import torch_xla
@@ -21,14 +23,13 @@ else:
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.parametrize("tpu_cores", [1, [1], 8])
-def test_base_tpu_model(tmpdir, tpu_cores):
+def test_base_tpu_model_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        tpu_cores=tpu_cores,
+        tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4
     )
@@ -38,23 +39,104 @@ def test_base_tpu_model(tmpdir, tpu_cores):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.parametrize("tpu_cores", [1, [1], 8])
-def test_base_tpu_16bit_model(tmpdir, tpu_cores):
+def test_base_tpu_model_idx_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
-        precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        tpu_cores=tpu_cores,
+        tpu_cores=[1],
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+def test_base_tpu_model_8(tmpdir):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4
     )
 
     model = EvalModelTemplate()
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    # 8 cores needs a big dataset
+    def long_train_loader():
+        dataset = DataLoader(TrialMNIST(download=True, num_samples=15000, digits=(0, 1, 2, 5, 8)), batch_size=32)
+        return dataset
+    model.train_dataloader = long_train_loader
+    model.val_dataloader = long_train_loader
 
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+def test_base_tpu_16bit_model_core_1(tmpdir):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        precision=16,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        tpu_cores=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+def test_base_tpu_16bit_model_idx_core(tmpdir):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        precision=16,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        tpu_cores=[1],
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+def test_base_tpu_16bit_model_8_cores(tmpdir):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        precision=16,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        tpu_cores=8,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
+    )
+
+    model = EvalModelTemplate()
+
+    # 8 cores needs a big dataset
+    def long_train_loader():
+        dataset = DataLoader(TrialMNIST(download=True, num_samples=15000, digits=(0, 1, 2, 5, 8)), batch_size=32)
+        return dataset
+    model.train_dataloader = long_train_loader
+    model.val_dataloader = long_train_loader
+
+    tpipes.run_model_test(trainer_options, model, on_gpu=False)
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
@@ -80,11 +162,24 @@ def test_early_stop_checkpoints_on_tpu(tmpdir, tpu_cores, expected_device):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-@pytest.mark.parametrize(['tpu_cores', 'expected_device'], [
-    pytest.param([1], 'xla:1'),
-    pytest.param([8], 'xla:8'),
-])
-def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
+def test_early_stop_checkpoints_on_tpu(tmpdir):
+    """Test if single TPU core training works"""
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        early_stop_callback=True,
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        tpu_cores=1,
+    )
+    trainer.fit(model)
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:1'
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+def test_single_tpu_core_model(tmpdir):
     """Test if single TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
@@ -93,15 +188,14 @@ def test_single_tpu_core_model(tmpdir, tpu_cores, expected_device):
         max_epochs=1,
         train_percent_check=0.1,
         val_percent_check=0.1,
-        tpu_cores=tpu_cores,
+        tpu_cores=8,
     )
     trainer.fit(model)
-    assert torch_xla._XLAC._xla_get_default_device() == expected_device
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:8'
 
 
-@pytest.mark.parametrize("tpu_cores", [1, 8])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_multi_core_tpu_model(tmpdir, tpu_cores):
+def test_multi_core_tpu_model(tmpdir):
     """Test if distributed TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
@@ -109,7 +203,7 @@ def test_multi_core_tpu_model(tmpdir, tpu_cores):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        tpu_cores=tpu_cores,
+        tpu_cores=[1, 8],
     )
     trainer.fit(model)
     assert trainer.tpu_id is None
