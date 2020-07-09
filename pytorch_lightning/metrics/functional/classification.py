@@ -1,3 +1,4 @@
+import sys
 from collections import Sequence
 from functools import wraps
 from typing import Optional, Tuple, Callable
@@ -959,6 +960,6 @@ def iou(
         fps = fps[1:]
         fns = fns[1:]
     denom = fps + fns + tps
-    denom[denom == 0] = 1e-15
+    denom[denom == 0] = sys.float_info.epsilon
     iou = tps / denom
     return reduce(iou, reduction=reduction)
