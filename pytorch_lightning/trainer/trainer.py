@@ -396,6 +396,9 @@ class Trainer(
         self.test_dataloaders = None
         self.val_dataloaders = None
 
+        # when .test() is called, it sets this
+        self.tested_ckpt_path = None
+
         # training state
         self.model = None
         self.testing = False
@@ -1305,6 +1308,7 @@ class Trainer(
             self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         # run tests
+        self.tested_ckpt_path = ckpt_path
         self.set_random_port(force=True)
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
