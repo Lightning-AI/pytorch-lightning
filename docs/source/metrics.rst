@@ -490,6 +490,12 @@ AUROC (sk)
 .. autofunction:: pytorch_lightning.metrics.sklearns.AUROC
     :noindex:
 
+ExplainedVariance (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.ExplainedVariance
+    :noindex:
+
 MeanAbsoluteError (sk)
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -509,7 +515,7 @@ MeanSquaredLogError (sk)
     :noindex:
     
 MedianAbsoluteError (sk)
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MedianAbsoluteError
     :noindex:
@@ -527,7 +533,7 @@ MeanPoissonDeviance (sk)
     :noindex:
 
 MeanGammaDeviance (sk)
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanGammaDeviance
     :noindex:
