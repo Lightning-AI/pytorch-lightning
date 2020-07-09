@@ -29,6 +29,7 @@ class SklearnMetric(NumpyMetric):
     Note:
         The order of targets and predictions may be different from the order typically used in PyTorch
     """
+
     def __init__(
             self,
             metric_name: str,
@@ -91,6 +92,7 @@ class Accuracy(SklearnMetric):
         tensor([0.7500])
 
     """
+
     def __init__(
             self,
             normalize: bool = True,
@@ -146,6 +148,7 @@ class AUC(SklearnMetric):
         >>> metric(y_pred, y_true)
         tensor([4.])
     """
+
     def __init__(
             self,
             reduce_group: Any = group.WORLD,
@@ -183,6 +186,7 @@ class AveragePrecision(SklearnMetric):
     Calculates the average precision (AP) score.
 
     """
+
     def __init__(
             self,
             average: Optional[str] = 'macro',
@@ -234,10 +238,10 @@ class AveragePrecision(SklearnMetric):
 
 class BalancedAccuracy(SklearnMetric):
     """ Compute the balanced accuracy score
-    
+
     Warning:
         Every metric call will cause a GPU synchronization, which may slow down your code
-    
+
     Example:
 
         >>> y_pred = torch.tensor([0, 0, 0, 1])
@@ -245,8 +249,9 @@ class BalancedAccuracy(SklearnMetric):
         >>> metric = BalancedAccuracy()
         >>> metric(y_pred, y_true)
         tensor([0.8333])
-    
+
     """
+
     def __init__(
             self,
             adjusted: bool = False,
@@ -265,7 +270,7 @@ class BalancedAccuracy(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
                          adjusted=adjusted)
-    
+
     def forward(self, y_true: np.ndarray, y_pred: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
@@ -273,14 +278,14 @@ class BalancedAccuracy(SklearnMetric):
             y_pred: the array containing the predictions (already in categorical form)
             y_true: the array containing the targets (in categorical form)
             sample_weight:  Sample weights.
-            
+
         Return:
             balanced accuracy score
-        
+
         """
-        return super().forward(y_true=y_true, y_pred=y_pred, 
+        return super().forward(y_true=y_true, y_pred=y_pred,
                                sample_weight=sample_weight)
-    
+
 
 class ConfusionMatrix(SklearnMetric):
     """
@@ -300,6 +305,7 @@ class ConfusionMatrix(SklearnMetric):
                 [0., 1., 1.]])
 
     """
+
     def __init__(
             self, labels: Optional[Sequence] = None,
             reduce_group: Any = group.WORLD,
@@ -336,10 +342,10 @@ class ConfusionMatrix(SklearnMetric):
 
 class DCG(SklearnMetric):
     """ Compute discounted cumulative gain
-    
+
     Warning:
         Every metric call will cause a GPU synchronization, which may slow down your code
-    
+
     Example:
 
         >>> y_score = torch.tensor([[.1, .2, .3, 4, 70]])
@@ -348,6 +354,7 @@ class DCG(SklearnMetric):
         >>> metric(y_true, y_score)
         tensor([9.4995])
     """
+
     def __init__(self, k: Optional[int] = None,
                  log_base: float = 2, ignore_ties: bool = False,
                  reduce_group: Any = group.WORLD,
@@ -366,7 +373,7 @@ class DCG(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
                          k=k, log_base=log_base, ignore_ties=ignore_ties)
-        
+
     def forward(self, y_true: np.ndarray, y_score: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
@@ -375,10 +382,10 @@ class DCG(SklearnMetric):
             y_score: target scores, either probability estimates, confidence values
                 or or non-thresholded measure of decisions 
             sample_weight:  Sample weights.
-            
+
         Return:
             DCG score
-        
+
         """
         return super().forward(y_true=y_true, y_score=y_score,
                                sample_weight=sample_weight)
@@ -956,10 +963,10 @@ class AUROC(SklearnMetric):
 class MeanAbsoluteError(SklearnMetric):
     """
     Compute absolute error regression loss
-    
+
     Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
-    
+
     Example:
 
         >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
@@ -967,8 +974,9 @@ class MeanAbsoluteError(SklearnMetric):
         >>> metric = MeanAbsoluteError()
         >>> metric(y_pred, y_true)
         tensor([0.5])
-    
+
     """
+
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
                  reduce_group: Any = group.WORLD,
                  reduce_op: Any = ReduceOp.SUM):
@@ -986,27 +994,27 @@ class MeanAbsoluteError(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
                          multioutput=multioutput)
-        
+
     def forward(self, y_true: np.ndarray, y_pred: np.ndarray):
         """
         Args:
             y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
-        
+
         Return:
             Mean absolute error
-        
+
         """
         return super().forward(y_true=y_true, y_pred=y_pred)
-    
-    
+
+
 class MeanSquaredError(SklearnMetric):
     """
     Compute mean squared error loss
-    
+
     Warning:
             Every metric call will cause a GPU synchronization, which may slow down your code
-            
+
     Example:
 
         >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
@@ -1014,10 +1022,11 @@ class MeanSquaredError(SklearnMetric):
         >>> metric = MeanAbsoluteError()
         >>> metric(y_pred, y_true)
         tensor([0.375])
-    
+
     """
+
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-                 squared: bool = True, 
+                 squared: bool = True,
                  reduce_group: Any = group.WORLD,
                  reduce_op: Any = ReduceOp.SUM):
         """
@@ -1035,16 +1044,15 @@ class MeanSquaredError(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
                          multioutput=multioutput)
-    
+
     def forward(self, y_true: np.ndarray, y_pred: np.ndarray):
         """
         Args:
             y_true: Ground truth (correct) target values.
             y_pred: Estimated target values
-        
+
         Return:
             Mean squared error
-        
+
         """
         return super().forward(y_true=y_true, y_pred=y_pred)
-    

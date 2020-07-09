@@ -98,7 +98,7 @@ def _xy_only(func):
                  {'y_pred': torch.randint(10, size=(128,)), 'y_true': torch.randint(10, size=(128,))},
                  id='BalancedAccuracy'),
     pytest.param(DCG(), sk_dcg_score,
-                 {'y_score': torch.rand(size=(128,3)), 'y_true': torch.randint(3, size=(128,3))},
+                 {'y_score': torch.rand(size=(128, 3)), 'y_true': torch.randint(3, size=(128, 3))},
                  id='DCG'),
     pytest.param(MeanAbsoluteError(), sk_mean_absolute_error,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
@@ -109,7 +109,7 @@ def _xy_only(func):
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
-    print(numpy_inputs)
+
     sklearn_result = sklearn_func(**numpy_inputs)
     lightning_result = metric_class(**inputs)
     assert np.allclose(sklearn_result, lightning_result, atol=1e-5)
