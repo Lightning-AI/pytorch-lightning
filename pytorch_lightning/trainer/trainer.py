@@ -1063,7 +1063,7 @@ class Trainer(
         q = smp.SimpleQueue()
 
         import pdb; pdb.set_trace()
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model,))
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model))
 
         # restore main state with best weights
         best_path = q.get()
