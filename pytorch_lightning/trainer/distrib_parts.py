@@ -186,7 +186,7 @@ class TrainerDPMixin(ABC):
         results = self.run_pretrain_routine(model)
         return results
 
-    def tpu_train(self, tpu_core_idx, model):
+    def tpu_train(self, tpu_core_idx, q, model):
         # call setup after the ddp process has connected
         self.setup('fit')
         if self.is_function_implemented('setup', model):
@@ -219,12 +219,15 @@ class TrainerDPMixin(ABC):
                  f' global rank: {self.tpu_global_core_rank}')
 
         # continue training routine
-        self.run_pretrain_routine(model)
+        results = self.run_pretrain_routine(model)
 
         # when training ends on these platforms dump weights to get out of the main process
         if self.on_colab_kaggle and not self.testing:
             rank_zero_warn('cleaning up... please do not interrupt')
-            self.save_spawn_weights(model)
+            self.transfer_ddp_spawn_state_on_fit_end(q, model)
+
+        if self.global_rank == 0 and self.distributed_backend not in ['tpu']:
+            return results
 
     def dp_train(self, model):
         # call setup after the ddp process has connected

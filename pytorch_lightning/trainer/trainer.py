@@ -1002,6 +1002,7 @@ class Trainer(
         elif self.use_tpu:  # pragma: no-cover
             rank_zero_info(f'training on {self.tpu_cores} TPU cores')
 
+
             if not XLA_AVAILABLE:
                 raise MisconfigurationException('No TPU devices found.')
 
@@ -1011,11 +1012,17 @@ class Trainer(
             # track for predict
             self.model = model
 
+            from multiprocessing import Queue
+            q = Queue()
+
             # train
+            import pdb; pdb.set_trace()
             if self.tpu_id is not None:
-                self.tpu_train(self.tpu_id, model)
+                self.tpu_train(self.tpu_id, q, model)
             else:
-                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
+                xmp.spawn(self.tpu_train, args=(q, model), nprocs=self.tpu_cores, start_method=start_method)
+
+            import pdb; pdb.set_trace()
 
             # load weights if not interrupted
             if self.on_colab_kaggle and not self.testing:
