@@ -960,6 +960,56 @@ class AUROC(SklearnMetric):
                                sample_weight=sample_weight)
 
 
+class ExplainedVariance(SklearnMetric):
+    """
+    Calculates explained variance score
+
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
+        >>> y_true = torch.tensor([3, -0.5, 2, 7])
+        >>> metric = R2Score()
+        >>> metric(y_pred, y_true)
+        tensor([0.957])
+    """
+
+    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'variance_weighted',
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            multioutput: either one of the strings [‘raw_values’, ‘uniform_average’, 'variance_weighted']
+                or an array with shape (n_outputs,) that defines how multiple
+                output values should be aggregated.
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        """
+        super().__init__('explained_variance_score',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         multioutput=multioutput)
+
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
+        """
+        Args:
+            y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
+            sample_weight: Sample weights.
+
+        Return:
+            Explained variance score
+
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)
+
+
 class MeanAbsoluteError(SklearnMetric):
     """
     Compute absolute error regression loss
@@ -1204,7 +1254,7 @@ class R2Score(SklearnMetric):
             sample_weight: Sample weights.
 
         Return:
-            Mean absolute error
+            R^2 score
 
         """
         return super().forward(y_true=y_true, y_pred=y_pred,

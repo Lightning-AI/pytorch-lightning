@@ -25,7 +25,8 @@ from sklearn.metrics import (
     r2_score as sk_r2_score,
     mean_poisson_deviance as sk_mean_poisson_deviance,
     mean_gamma_deviance as sk_mean_gamma_deviance,
-    mean_tweedie_deviance as sk_mean_tweedie_deviance
+    mean_tweedie_deviance as sk_mean_tweedie_deviance,
+    explained_variance_score as sk_explained_variance_score
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -50,7 +51,8 @@ from pytorch_lightning.metrics.sklearns import (
     R2Score,
     MeanPoissonDeviance,
     MeanGammaDeviance,
-    MeanTweedieDeviance
+    MeanTweedieDeviance,
+    ExplainedVariance
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
@@ -112,6 +114,9 @@ def _xy_only(func):
     pytest.param(DCG(), sk_dcg_score,
                  {'y_score': torch.rand(size=(128, 3)), 'y_true': torch.randint(3, size=(128, 3))},
                  id='DCG'),
+    pytest.param(ExplainedVariance(), sk_explained_variance_score,
+                 {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
+                 id='ExplainedVariance'),
     pytest.param(MeanAbsoluteError(), sk_mean_absolute_error,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
                  id='MeanAbsolutError'),
