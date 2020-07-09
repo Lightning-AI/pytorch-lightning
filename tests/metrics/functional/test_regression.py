@@ -14,7 +14,7 @@ from pytorch_lightning.metrics.functional import (
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.25),
-    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 3.0)
+    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 3.0),
 ])
 def test_mse(pred, target, expected):
     score = mse(torch.tensor(pred), torch.tensor(target))
@@ -24,7 +24,7 @@ def test_mse(pred, target, expected):
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([0., 1, 2, 3], [0., 1, 2, 3], 0.0),
     pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.5),
-    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 1.7321)
+    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 1.7321),
 ])
 def test_rmse(pred, target, expected):
     score = rmse(torch.tensor(pred), torch.tensor(target))
@@ -34,7 +34,7 @@ def test_rmse(pred, target, expected):
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([0., 1, 2, 3], [0., 1, 2, 3], 0.0),
     pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.25),
-    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 1.5)
+    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 1.5),
 ])
 def test_mae(pred, target, expected):
     score = mae(torch.tensor(pred), torch.tensor(target))
@@ -44,7 +44,7 @@ def test_mae(pred, target, expected):
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([0., 1, 2, 3], [0., 1, 2, 3], 0.0),
     pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.0207),
-    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 0.2841)
+    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 0.2841),
 ])
 def test_rmsle(pred, target, expected):
     score = rmsle(torch.tensor(pred), torch.tensor(target))
@@ -52,9 +52,9 @@ def test_rmsle(pred, target, expected):
 
 
 @pytest.mark.parametrize(['pred', 'target'], [
-    pytest.param([0., 1, 2, 3], [0., 1, 2, 3], 0.0),
+    pytest.param([0., 1., 2., 3.], [0., 1., 2., 3.]),
     pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.]),
-    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.])
+    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.]),
 ])
 def test_psnr_with_skimage(pred, target):
     score = psnr(pred=torch.tensor(pred),
@@ -65,7 +65,7 @@ def test_psnr_with_skimage(pred, target):
 
 @pytest.mark.parametrize(['pred', 'target'], [
     pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.]),
-    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.])
+    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.]),
 ])
 def test_psnr_base_e_wider_range(pred, target):
     score = psnr(pred=torch.tensor(pred),
