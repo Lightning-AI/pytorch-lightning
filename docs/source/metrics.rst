@@ -549,3 +549,10 @@ MeanAbsoluteError (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanAbsoluteError
     :noindex:
+    
+MeanSquaredError (sk)
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredError
+    :noindex:
+    
