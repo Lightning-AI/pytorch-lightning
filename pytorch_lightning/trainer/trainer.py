@@ -1012,8 +1012,8 @@ class Trainer(
             # track for predict
             self.model = model
 
-            from multiprocessing import Queue
-            q = Queue()
+            from multiprocessing import SimpleQueue
+            q = SimpleQueue()
 
             # train
             if self.tpu_id is not None:
@@ -1021,6 +1021,9 @@ class Trainer(
             else:
                 xmp.spawn(self.tpu_train, args=(q, model), nprocs=self.tpu_cores, start_method=start_method)
 
+            best_path = q.get()
+            results = q.get()
+            last_path = q.get()
             import pdb; pdb.set_trace()
 
             # load weights if not interrupted
