@@ -1291,7 +1291,7 @@ class Trainer(
                 ckpt_path = self.checkpoint_callback.best_model_path
 
             ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
+            model.load_state_dict(ckpt['state_dict'])
 
         # attach dataloaders
         if test_dataloaders is not None:
