@@ -290,7 +290,7 @@ class BalancedAccuracy(SklearnMetric):
 class CohenKappaScore(SklearnMetric):
     """
     Calculates Cohens kappa: a statitic that measures inter-annotator agreement
-    
+
     Example:
 
         >>> y_pred = torch.tensor([1, 2, 0, 2])
@@ -298,8 +298,9 @@ class CohenKappaScore(SklearnMetric):
         >>> metric = ConfusionMatrix()
         >>> metric(y_pred, y_true)
         tensor([-0.3333])
-    
+
     """
+
     def __init__(self, labels: Optional[Sequence] = None,
                  weights: Optional[str] = None,
                  reduce_group: Any = group.WORLD,
@@ -323,7 +324,7 @@ class CohenKappaScore(SklearnMetric):
                          reduce_op=reduce_op,
                          labels=labels,
                          weights=weights)
-        
+
     def forward(self, y1: np.ndarray, y2: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
@@ -636,8 +637,8 @@ class FBeta(SklearnMetric):
 
 class Hamming(SklearnMetric):
     """
-    Computes the average hamming loss 
-        
+    Computes the average hamming loss
+
     Example:
 
         >>> y_pred = torch.tensor([0, 1, 2, 3])
@@ -647,6 +648,7 @@ class Hamming(SklearnMetric):
         tensor([0.25])
 
     """
+
     def __init__(self, reduce_group: Any = group.WORLD,
                  reduce_op: Any = ReduceOp.SUM):
         """
@@ -655,12 +657,12 @@ class Hamming(SklearnMetric):
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
-        
+
         """
         super().__init__('hamming_loss',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
-    
+
     def forward(
             self,
             y_pred: np.ndarray,
@@ -678,21 +680,23 @@ class Hamming(SklearnMetric):
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true, sample_weight=sample_weight)
-    
+
+
 class Hinge(SklearnMetric):
     """
-    Computes the average hinge loss  
-    
+    Computes the average hinge loss
+
     Example:
 
         >>> pred_decision = torch.tensor([-2.17, -0.97, -0.19, -0.43])
         >>> y_true = torch.tensor([1, 1, 0, 0])
         >>> metric = Hamming()
-        >>> metric(y_pred, y_true)
+        >>> metric(pred_decision, y_true)
         tensor([1.6285])
-    
+
     """
-    def __init__(self, labels: Optional[Sequence] = None, 
+
+    def __init__(self, labels: Optional[Sequence] = None,
                  reduce_group: Any = group.WORLD,
                  reduce_op: Any = ReduceOp.SUM):
         """
@@ -707,7 +711,7 @@ class Hinge(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
                          labels=labels)
-        
+
     def forward(self, pred_decision: np.ndarray, y_true: np.ndarray,
                 sample_weight: Optional[np.ndarray] = None) -> float:
         """
@@ -720,14 +724,14 @@ class Hinge(SklearnMetric):
             Average hinge loss
 
         """
-        return super().forward(pred_decision=pred_decision, 
+        return super().forward(pred_decision=pred_decision,
                                y_true=y_true, sample_weight=sample_weight)
 
 
 class Jaccard(SklearnMetric):
     """
     Calculates jaccard similarity coefficient score
-    
+
     Example:
 
         >>> y_pred = torch.tensor([1, 1, 1])
@@ -735,8 +739,9 @@ class Jaccard(SklearnMetric):
         >>> metric = Jaccard()
         >>> metric(y_pred, y_true)
         tensor([0.6666])
-    
+
     """
+
     def __init__(self, labels: Optional[Sequence] = None,
                  pos_label: Union[str, int] = 1, average: Optional[str] = 'macro',
                  reduce_group: Any = group.WORLD,
