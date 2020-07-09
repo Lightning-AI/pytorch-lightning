@@ -1255,3 +1255,106 @@ class MeanPoissonDeviance(SklearnMetric):
         """
         return super().forward(y_true=y_true, y_pred=y_pred,
                                sample_weight=sample_weight)
+
+
+class MeanGammaDeviance(SklearnMetric):
+    """
+    Calculates the mean gamma deviance regression loss
+
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> y_pred = torch.tensor([0.5, 0.5, 2., 2.])
+        >>> y_true = torch.tensor([2, 0.5, 1, 4])
+        >>> metric = MeanGammaDeviance()
+        >>> metric(y_pred, y_true)
+        tensor([1.0568])
+    """
+
+    def __init__(self,
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.            
+        """
+        super().__init__('mean_gamma_deviance',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op)
+
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
+        """
+        Args:
+            y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
+            sample_weight: Sample weights.
+
+        Return:
+            Mean gamma deviance
+
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)
+    
+
+class MeanTweedieDeviance(SklearnMetric):
+    """
+    Calculates the mean tweedie deviance regression loss
+
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
+    Example:
+
+        >>> y_pred = torch.tensor([0.5, 0.5, 2., 2.])
+        >>> y_true = torch.tensor([2, 0, 1, 4])
+        >>> metric = MeanGammaDeviance()
+        >>> metric(y_pred, y_true)
+        tensor([1.4260])
+    """
+
+    def __init__(self, power: float = 0,
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            power: tweedie power parameter:
+                * power < 0: Extreme stable distribution. Requires: y_pred > 0.
+                * power = 0 : Normal distribution, output corresponds to mean_squared_error. 
+                    y_true and y_pred can be any real numbers.
+                * power = 1 : Poisson distribution. Requires: y_true >= 0 and y_pred > 0.
+                * 1 < power < 2 : Compound Poisson distribution. Requires: y_true >= 0 and y_pred > 0.
+                * power = 2 : Gamma distribution. Requires: y_true > 0 and y_pred > 0.
+                * power = 3 : Inverse Gaussian distribution. Requires: y_true > 0 and y_pred > 0.
+                * otherwise : Positive stable distribution. Requires: y_true > 0 and y_pred > 0.
+
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.            
+        """
+        super().__init__('mean_tweedie_deviance',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         power=power)
+
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None):
+        """
+        Args:
+            y_pred: Estimated target values
+            y_true: Ground truth (correct) target values.
+            sample_weight: Sample weights.
+
+        Return:
+            Mean tweedie deviance
+
+        """
+        return super().forward(y_true=y_true, y_pred=y_pred,
+                               sample_weight=sample_weight)

@@ -525,3 +525,16 @@ MeanPoissonDeviance (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanPoissonDeviance
     :noindex:
+
+MeanGammaDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanGammaDeviance
+    :noindex:
+    
+MeanTweedieDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanTweedieDeviance
+    :noindex:
+    
