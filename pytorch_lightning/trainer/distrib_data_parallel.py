@@ -562,11 +562,11 @@ class TrainerDDPMixin(ABC):
         # clean up memory
         torch.cuda.empty_cache()
 
-        if self.global_rank == 0 and self.distributed_backend != 'ddp_spawn':
+        if self.global_rank == 0 and self.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
 
     def __transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
-        if not self.distributed_backend == 'ddp_spawn':
+        if not self.distributed_backend in ['ddp_spawn', 'ddp_cpu']:
             return
 
         # track the best model path
