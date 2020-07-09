@@ -116,7 +116,7 @@ class LightningTemplateModel(LightningModule):
         labels_hat = torch.argmax(y_hat, dim=1)
         n_correct_pred = torch.sum(y == labels_hat)
         n_pred = torch.tensor(len(x), device=self.device)
-        return {'test_loss': test_loss, "n_correct_pred": n_correct_pred, "n_pred": n_pred}
+        return {'test_loss': test_loss, "n_correct_pred": n_correct_pred, "n_pred": torch.tensor(len(x))}
 
     def validation_epoch_end(self, outputs):
         """
@@ -125,14 +125,12 @@ class LightningTemplateModel(LightningModule):
         """
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         val_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
-        val_acc = torch.tensor(val_acc, device=self.device).float().mean()
         tensorboard_logs = {'val_loss': avg_loss, 'val_acc': val_acc}
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def test_epoch_end(self, outputs):
         avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
         test_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
-        test_acc = torch.tensor(test_acc, device=self.device).float().mean()
         tensorboard_logs = {'test_loss': avg_loss, 'test_acc': test_acc}
         return {'test_loss': avg_loss, 'log': tensorboard_logs}
 
