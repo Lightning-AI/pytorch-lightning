@@ -72,7 +72,7 @@ class LightningDataParallel(DataParallel):
 
     def __flatten_output(self, outputs: list):
         for out in outputs:
-            for k, v in outputs.items():
+            for k, v in out.items():
                 if isinstance(v, torch.Tensor) and v.size().__len__() > 0:
                     out[k] = v.mean()
 
