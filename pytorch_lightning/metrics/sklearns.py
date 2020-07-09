@@ -379,7 +379,7 @@ class DCG(SklearnMetric):
         """
         Args:
             y_score: target scores, either probability estimates, confidence values
-                or or non-thresholded measure of decisions 
+                or or non-thresholded measure of decisions
             y_true: Ground truth (correct) target values.
             sample_weight:  Sample weights.
 
@@ -988,7 +988,7 @@ class MeanAbsoluteError(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('mean_absolute_error',
                          reduce_group=reduce_group,
@@ -1041,7 +1041,7 @@ class MeanSquaredError(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('mean_squared_error',
                          reduce_group=reduce_group,
@@ -1091,7 +1091,7 @@ class MeanSquaredLogError(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('mean_squared_log_error',
                          reduce_group=reduce_group,
@@ -1141,7 +1141,7 @@ class MedianAbsoluteError(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('median_absolute_error',
                          reduce_group=reduce_group,
@@ -1188,7 +1188,7 @@ class R2Score(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('r2_score',
                          reduce_group=reduce_group,
@@ -1235,7 +1235,7 @@ class MeanPoissonDeviance(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('mean_poisson_deviance',
                          reduce_group=reduce_group,
@@ -1281,7 +1281,7 @@ class MeanGammaDeviance(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('mean_gamma_deviance',
                          reduce_group=reduce_group,
@@ -1301,7 +1301,7 @@ class MeanGammaDeviance(SklearnMetric):
         """
         return super().forward(y_true=y_true, y_pred=y_pred,
                                sample_weight=sample_weight)
-    
+
 
 class MeanTweedieDeviance(SklearnMetric):
     """
@@ -1326,7 +1326,7 @@ class MeanTweedieDeviance(SklearnMetric):
         Args:
             power: tweedie power parameter:
                 * power < 0: Extreme stable distribution. Requires: y_pred > 0.
-                * power = 0 : Normal distribution, output corresponds to mean_squared_error. 
+                * power = 0 : Normal distribution, output corresponds to mean_squared_error.
                     y_true and y_pred can be any real numbers.
                 * power = 1 : Poisson distribution. Requires: y_true >= 0 and y_pred > 0.
                 * 1 < power < 2 : Compound Poisson distribution. Requires: y_true >= 0 and y_pred > 0.
@@ -1337,7 +1337,7 @@ class MeanTweedieDeviance(SklearnMetric):
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.            
+                Defaults to sum.
         """
         super().__init__('mean_tweedie_deviance',
                          reduce_group=reduce_group,
