@@ -122,12 +122,9 @@ import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
-from torch import distributed as dist
-import queue
 
 import torch
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
