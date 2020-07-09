@@ -63,11 +63,18 @@ class LightningDataParallel(DataParallel):
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
+        self.__flatten_output(outputs)
         import pdb; pdb.set_trace()
         return self.gather(outputs, self.output_device)
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+
+    def __flatten_output(self, outputs: list):
+        for out in outputs:
+            for k, v in outputs.items():
+                if isinstance(v, torch.Tensor) and v.size().__len__() > 0:
+                    out[k] = v.mean()
 
 
 class LightningDistributedDataParallel(DistributedDataParallel):
