@@ -1049,7 +1049,8 @@ class Trainer(
             self.checkpoint_callback.best_model_path = best_path
 
         # load last model weights
-        self.load_spawn_weights(model)
+        if self.testing:
+            self.load_spawn_weights(model)
 
         self.model = model
         return results

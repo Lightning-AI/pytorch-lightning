@@ -189,6 +189,7 @@ class TrainerDDPMixin(ABC):
     num_nodes: int
     node_rank: int
     tpu_cores: int
+    testing: bool
 
     @property
     @abstractmethod
@@ -560,9 +561,11 @@ class TrainerDDPMixin(ABC):
 
         if self.global_rank == 0 and q is not None:
             rank_zero_warn('cleaning up ddp environment...')
-            self.save_spawn_weights(model)
             q.put(self.checkpoint_callback.best_model_path)
             q.put(results)
+
+            if not self.testing:
+                self.save_spawn_weights(model)
 
         if self.global_rank == 0 and self.distributed_backend != 'ddp_spawn':
             return results
