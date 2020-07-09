@@ -26,7 +26,8 @@ from sklearn.metrics import (
     mean_poisson_deviance as sk_mean_poisson_deviance,
     mean_gamma_deviance as sk_mean_gamma_deviance,
     mean_tweedie_deviance as sk_mean_tweedie_deviance,
-    explained_variance_score as sk_explained_variance_score
+    explained_variance_score as sk_explained_variance_score,
+    cohen_kappa_score as sk_cohen_kappa_score
 )
 
 from pytorch_lightning.metrics.converters import _convert_to_numpy
@@ -36,6 +37,7 @@ from pytorch_lightning.metrics.sklearns import (
     AveragePrecision,
     BalancedAccuracy,
     ConfusionMatrix,
+    CohenKappaScore,
     DCG,
     F1,
     FBeta,
@@ -140,7 +142,10 @@ def _xy_only(func):
                  id='MeanGammaDeviance'),
     pytest.param(MeanTweedieDeviance(), sk_mean_tweedie_deviance,
                  {'y_pred': torch.rand(size=(128,)), 'y_true': torch.rand(size=(128,))},
-                 id='MeanTweedieDeviance')
+                 id='MeanTweedieDeviance'),
+    pytest.param(CohenKappaScore(), sk_cohen_kappa_score,
+                 {'y1': torch.randint(3, size=(128,)), 'y2': torch.randint(3, size=(128,))},
+                 id='CohenKappaScore')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
     numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
