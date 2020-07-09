@@ -1272,6 +1272,7 @@ class Trainer(
 
         self.setup('test')
 
+        import pdb; pdb.set_trace()
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
