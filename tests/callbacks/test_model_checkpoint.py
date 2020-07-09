@@ -105,3 +105,5 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     )
     result = trainer.fit(model)
     assert 1 == result
+
+test_model_checkpoint_no_extraneous_invocations('')
