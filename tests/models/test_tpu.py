@@ -37,19 +37,36 @@ def test_base_tpu_model_1(tmpdir):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_base_tpu_model_idx(tmpdir):
+def test_base_tpu_model_idx_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        tpu_cores=[1],
+        tpu_cores=[2],
         limit_train_batches=0.4,
         limit_val_batches=0.4
     )
 
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+def test_base_tpu_model_idx_2(tmpdir):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        tpu_cores=[2],
+        limit_train_batches=0.4,
+        limit_val_batches=0.4
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_base_tpu_model_8(tmpdir):
