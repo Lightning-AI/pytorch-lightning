@@ -287,6 +287,57 @@ class BalancedAccuracy(SklearnMetric):
                                sample_weight=sample_weight)
 
 
+class CohenKappaScore(SklearnMetric):
+    """
+    Calculates Cohens kappa: a statitic that measures inter-annotator agreement
+    
+    Example:
+
+        >>> y_pred = torch.tensor([1, 2, 0, 2])
+        >>> y_true = torch.tensor([2, 2, 2, 1])
+        >>> metric = ConfusionMatrix()
+        >>> metric(y_pred, y_true)
+        tensor([-0.3333])
+    
+    """
+    def __init__(self, labels: Optional[Sequence] = None,
+                 weights: Optional[str] = None,
+                 reduce_group: Any = group.WORLD,
+                 reduce_op: Any = ReduceOp.SUM):
+        """
+        Args:
+            labels: List of labels to index the matrix. This may be used to reorder
+                or select a subset of labels.
+                If none is given, those that appear at least once
+                in ``y1`` or ``y2`` are used in sorted order.
+            weights: string indicating weightning type used in scoring. None
+                means no weighting, string ``linear`` means linear weighted
+                and ``quadratic`` means quadratic weighted
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
+            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
+                Defaults to sum.
+        """
+        super().__init__('cohen_kappa_score',
+                         reduce_group=reduce_group,
+                         reduce_op=reduce_op,
+                         labels=labels,
+                         weights=weights)
+        
+    def forward(self, y1: np.ndarray, y2: np.ndarray,
+                sample_weight: Optional[np.ndarray] = None) -> float:
+        """
+        Args:
+            y_1: Labels assigned by first annotator
+            y_2: Labels assigned by second annotator
+            sample_weight:  Sample weights.
+
+        Return:
+            Cohens kappa score
+        """
+        return super().forward(y1=y1, y2=y2, sample_weight=sample_weight)
+
+
 class ConfusionMatrix(SklearnMetric):
     """
     Compute confusion matrix to evaluate the accuracy of a classification

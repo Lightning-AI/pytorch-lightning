@@ -436,6 +436,12 @@ BalancedAccuracy (sk)
 .. autofunction:: pytorch_lightning.metrics.sklearns.BalancedAccuracy
     :noindex:
 
+CohenKappaScore (sk)
+^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.CohenKappaScore
+    :noindex:
+
 ConfusionMatrix (sk)
 ^^^^^^^^^^^^^^^^^^^^
 
