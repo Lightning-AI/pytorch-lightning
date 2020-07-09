@@ -556,8 +556,8 @@ class TrainerDDPMixin(ABC):
         # continue training routine
         results = self.run_pretrain_routine(model)
 
-        # persist info
-        self.__transfer_ddp_state_on_fit_end(model, q, results)
+        # persist info in ddp_spawn
+        self.__transfer_ddp_spawn_state_on_fit_end(model, q, results)
 
         # clean up memory
         torch.cuda.empty_cache()
@@ -565,7 +565,10 @@ class TrainerDDPMixin(ABC):
         if self.global_rank == 0 and self.distributed_backend != 'ddp_spawn':
             return results
 
-    def __transfer_ddp_state_on_fit_end(self, model, q, results):
+    def __transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
+        if not self.distributed_backend == 'ddp_spawn':
+            return
+
         # track the best model path
         best_model_path = None
         if self.checkpoint_callback is not None:
