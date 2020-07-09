@@ -1289,7 +1289,7 @@ class Trainer(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
 
         # load best weights
-        if ckpt_path is not None and len(ckpt_path) > 0:
+        if ckpt_path is not None and self.global_rank == 0:
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
