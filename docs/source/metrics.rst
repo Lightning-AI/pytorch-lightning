@@ -502,3 +502,8 @@ MeanSquaredError (sk)
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredError
     :noindex:
     
+MeanSquaredLogError (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredLogError
+    :noindex:
