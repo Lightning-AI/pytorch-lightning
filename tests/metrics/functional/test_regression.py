@@ -52,7 +52,7 @@ def test_rmsle(pred, target, expected):
     pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.]),
     pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.])
 ])
-def test_psnr_with_skimage(pred, target, expected):
+def test_psnr_with_skimage(pred, target):
     score = psnr(pred=torch.tensor(pred),
                  target=torch.tensor(target))
     sk_score = ski_psnr(np.array(pred), np.array(target), data_range=3)
@@ -63,7 +63,7 @@ def test_psnr_with_skimage(pred, target, expected):
     pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.]),
     pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.])
 ])
-def test_psnr_base_e_wider_range(pred, target, expected):
+def test_psnr_base_e_wider_range(pred, target):
     score = psnr(pred=torch.tensor(pred),
                  target=torch.tensor(target),
                  data_range=4,
