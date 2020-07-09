@@ -1062,7 +1062,7 @@ class Trainer(
         smp = mp.get_context('spawn')
         q = smp.SimpleQueue()
 
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model))
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model, ))
 
         # restore main state with best weights
         best_path = q.get()
