@@ -66,7 +66,7 @@ LightningModules know what device they are on! Construct tensors on the device d
 
 For tensors that need to be model attributes, it is best practice to register them as buffers:
 
-.. testcode::
+.. code-block:: python
 
     # bad
     self.t = torch.rand(2, 2, device=self.device)
