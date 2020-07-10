@@ -55,7 +55,7 @@ Construct tensors directly on the device
 ----------------------------------------
 LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
 
-.. testcode::
+.. code-block:: python
 
     # bad
     t = torch.rand(2, 2).cuda()
