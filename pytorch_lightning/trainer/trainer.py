@@ -1300,6 +1300,9 @@ class Trainer(
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
 
+            if len(ckpt_path) == 0:
+                rank_zero_warn(f'.test() found no path for the best weights, {ckpt_path}. Please'
+                               f'specify a path for a checkpoint .test(ckpt_path=PATH')
             ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
 
