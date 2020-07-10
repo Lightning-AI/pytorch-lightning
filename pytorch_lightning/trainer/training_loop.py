@@ -767,7 +767,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
