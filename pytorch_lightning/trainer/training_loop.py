@@ -702,7 +702,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients()
 
@@ -750,7 +750,7 @@ class TrainerTrainLoopMixin(ABC):
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
