@@ -60,11 +60,12 @@ LightningModules know what device they are on! Construct tensors on the device d
     # bad
     t = torch.rand(2, 2).cuda()
 
-    # good (self is lightningModule)
+    # good (self is LightningModule)
     t = torch.rand(2, 2, device=self.device)
 
 
-For tensors that need to be model attributes, it is best practice to register them as buffers:
+For tensors that need to be model attributes, it is best practice to register them as buffers in the modules's
+`__init__` method:
 
 .. code-block:: python
 
