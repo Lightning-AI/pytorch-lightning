@@ -98,3 +98,31 @@ def test_comet_logger_dirs_creation(tmpdir, monkeypatch):
 
     assert trainer.ckpt_path == trainer.weights_save_path == (tmpdir / 'test' / version / 'checkpoints')
     assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
+
+
+def test_comet_version_without_experiment():
+    """ Test that CometLogger.version don't create an Experiment. """
+
+    api_key = "key"
+    experiment_name = "My Name"
+
+    # Test api_key given
+    with patch('pytorch_lightning.loggers.comet.CometExperiment') as comet:
+        logger = CometLogger(api_key=api_key, experiment_name=experiment_name,)
+
+        # The experiment object should not exists
+        assert logger._experiment is None
+
+        first_version = logger.version
+        assert first_version is not None
+
+        # The experiment object should not exists
+        assert logger._experiment is None
+
+        _ = logger.experiment
+
+        logger.reset_experiment()
+
+        second_version = logger.version
+        assert second_version is not None
+        assert second_version != first_version
