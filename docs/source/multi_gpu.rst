@@ -50,18 +50,19 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
         z = torch.Tensor(2, 3)
         z = z.type_as(x, device=self.device)
 
-The LightningModule knows what device it is on. You can access the reference via `self.device`.
+The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via `self.device`.
 Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
 remain on the CPU even if the module gets moved to a new device. To prevent that and remain device agnostic,
-register the tensor as a buffer with :meth:`~torch.nn.Module.register_buffer`.
+register the tensor as a buffer in your modules's `__init__` method with :meth:`~torch.nn.Module.register_buffer`.
 
 .. testcode::
 
-    # in your Lightning- or nn.Module
-    def __init__(self):
-        ...
-        self.register_buffer("sigma", torch.eye(3))
-        # you can now access self.sigma anywhere in your module
+    class LitModel(LightningModule):
+
+        def __init__(self):
+            ...
+            self.register_buffer("sigma", torch.eye(3))
+            # you can now access self.sigma anywhere in your module
 
 
 Remove samplers
