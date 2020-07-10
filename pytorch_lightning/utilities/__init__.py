@@ -1,5 +1,6 @@
 """General utilities"""
 
+import numpy
 import torch
 
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
@@ -14,3 +15,7 @@ else:
     APEX_AVAILABLE = True
 
 NATIVE_AMP_AVALAIBLE = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+
+FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
+FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
+FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps

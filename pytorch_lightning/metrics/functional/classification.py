@@ -1,3 +1,4 @@
+import sys
 from collections import Sequence
 from functools import wraps
 from typing import Optional, Tuple, Callable
@@ -6,7 +7,7 @@ import torch
 from torch.nn import functional as F
 
 from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, FLOAT16_EPSILON
 
 
 def to_onehot(
@@ -893,8 +894,8 @@ def dice_score(
         ...                      [0.05, 0.05, 0.85, 0.05],
         ...                      [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> average_precision(pred, target)
-        tensor(0.2500)
+        >>> dice_score(pred, target)
+        tensor(0.3333)
 
     """
     num_classes = pred.shape[1]
@@ -907,14 +908,9 @@ def dice_score(
             continue
 
         tp, fp, tn, fn, sup = stat_scores(pred=pred, target=target, class_index=i)
-
-        denom = (2 * tp + fp + fn + 1e-15).to(torch.float)
-
-        if torch.isclose(denom, torch.zeros_like(denom)).any():
-            # nan result
-            score_cls = nan_score
-        else:
-            score_cls = (2 * tp).to(torch.float) / denom
+        denom = (2 * tp + fp + fn).to(torch.float)
+        # nan result
+        score_cls = (2 * tp).to(torch.float) / denom if torch.is_nonzero(denom) else nan_score
 
         scores[i - bg] += score_cls
     return reduce(scores, reduction=reduction)
@@ -963,5 +959,7 @@ def iou(
         tps = tps[1:]
         fps = fps[1:]
         fns = fns[1:]
-    iou = tps / (fps + fns + tps + 1e-15)
+    denom = fps + fns + tps
+    denom[denom == 0] = torch.tensor(FLOAT16_EPSILON).type_as(denom)
+    iou = tps / denom
     return reduce(iou, reduction=reduction)
