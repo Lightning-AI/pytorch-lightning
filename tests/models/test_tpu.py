@@ -182,12 +182,12 @@ def test_single_tpu_core_model(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
-        tpu_cores=8,
+        train_percent_check=0.7,
+        val_percent_check=0.3,
+        tpu_cores=[1],
     )
     trainer.fit(model)
-    assert torch_xla._XLAC._xla_get_default_device() == 'xla:8'
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:1'
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
@@ -197,9 +197,9 @@ def test_multi_core_tpu_model(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        tpu_cores=[1, 8],
+        train_percent_check=0.7,
+        val_percent_check=0.3,
+        tpu_cores=8,
     )
     trainer.fit(model)
     assert trainer.tpu_id is None
