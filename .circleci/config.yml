@@ -53,7 +53,7 @@ references:
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -) && \
        job_name=${job_name#job.batch/} && \
        job_name=${job_name% created} && \
-       echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
+       echo "Waiting on kubernetes job: $job_name" && \
        i=0 && \
        # 30 checks spaced 30s apart = 900s total.
        max_checks=30 && \
