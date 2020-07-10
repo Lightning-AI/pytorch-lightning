@@ -24,7 +24,7 @@ some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num
 
 .. warning:: Increasing num_workers will ALSO increase your CPU memory consumption.
 
-The best thing to do is to increase the nun_workers slowly and stop once you see no more improvement in your training speed.
+The best thing to do is to increase the `num_workers` slowly and stop once you see no more improvement in your training speed.
 
 Spawn
 ^^^^^
