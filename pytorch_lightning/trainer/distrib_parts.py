@@ -240,14 +240,14 @@ class TrainerDPMixin(ABC):
 
         # hack forward to do autocast for the user
         model_autocast_original_forward = model.forward
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             # wrap the user's forward in autocast and give it back at the end
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
         # TODO: remove with dropping NVIDIA AMP support
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp and not NATIVE_AMP_AVALAIBLE:
+        if self.use_dp and self.use_amp and not NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             if self.amp_level == 'O2':
                 raise MisconfigurationException(
                     f'Amp level {self.amp_level} with DataParallel is not supported.'

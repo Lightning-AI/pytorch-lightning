@@ -286,7 +286,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and NATIVE_AMP_AVALAIBLE:
+                if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:

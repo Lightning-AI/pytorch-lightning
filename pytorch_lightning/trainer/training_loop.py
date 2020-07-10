@@ -702,7 +702,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients()
 
@@ -750,7 +750,7 @@ class TrainerTrainLoopMixin(ABC):
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -767,7 +767,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -817,7 +817,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
+            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:

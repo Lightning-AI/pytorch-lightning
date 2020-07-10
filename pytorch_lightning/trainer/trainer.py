@@ -1118,7 +1118,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if NATIVE_AMP_AVALAIBLE and self.precision == 16:
+        if NATIVE_AMP_AVALAIBLE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1299,6 +1299,11 @@ class Trainer(
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
+
+            if len(ckpt_path) == 0:
+                rank_zero_warn(f'.test() found no path for the best weights, {ckpt_path}. Please '
+                               f'specify a path for a checkpoint .test(ckpt_path=PATH)')
+                return {}
 
             ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
