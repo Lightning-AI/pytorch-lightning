@@ -3,6 +3,8 @@ Comet
 -----
 """
 
+import os
+
 from argparse import Namespace
 from typing import Optional, Dict, Union, Any
 
@@ -11,6 +13,7 @@ try:
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml import BaseExperiment as CometBaseExperiment
+    from comet_ml import generate_guid
 
     try:
         from comet_ml.api import API
@@ -25,6 +28,7 @@ except ImportError:  # pragma: no-cover
     CometBaseExperiment = None
     API = None
     _COMET_AVAILABLE = False
+    generate_guid = None
 
 import torch
 from torch import is_tensor
@@ -128,6 +132,7 @@ class CometLogger(LightningLoggerBase):
         self._experiment_key = experiment_key
         self._experiment_name = experiment_name
         self._kwargs = kwargs
+        self._future_experiment_key = None
 
         if rest_api_key is not None:
             # Comet.ml rest API, used to determine version number
@@ -154,27 +159,37 @@ class CometLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        if self.mode == "online":
-            if self._experiment_key is None:
-                self._experiment = CometExperiment(
-                    api_key=self.api_key, workspace=self.workspace, project_name=self._project_name, **self._kwargs
-                )
-                self._experiment_key = self._experiment.get_key()
+        if self._future_experiment_key is not None:
+            os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
+            self._future_experiment_key = None
+
+        try:
+            if self.mode == "online":
+                if self._experiment_key is None:
+                    self._experiment = CometExperiment(
+                        api_key=self.api_key, workspace=self.workspace, project_name=self._project_name, **self._kwargs
+                    )
+                    self._experiment_key = self._experiment.get_key()
+                else:
+                    self._experiment = CometExistingExperiment(
+                        api_key=self.api_key,
+                        workspace=self.workspace,
+                        project_name=self._project_name,
+                        previous_experiment=self._experiment_key,
+                        **self._kwargs,
+                    )
             else:
-                self._experiment = CometExistingExperiment(
-                    api_key=self.api_key,
+                self._experiment = CometOfflineExperiment(
+                    offline_directory=self.save_dir,
                     workspace=self.workspace,
                     project_name=self._project_name,
-                    previous_experiment=self._experiment_key,
                     **self._kwargs,
                 )
-        else:
-            self._experiment = CometOfflineExperiment(
-                offline_directory=self.save_dir,
-                workspace=self.workspace,
-                project_name=self._project_name,
-                **self._kwargs,
-            )
+        finally:
+            try:
+                del os.environ["COMET_EXPERIMENT_KEY"]
+            except KeyError:
+                pass
 
         if self._experiment_name:
             self._experiment.set_name(self._experiment_name)
@@ -219,13 +234,19 @@ class CometLogger(LightningLoggerBase):
         return self._save_dir
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str:
         # don't create an experiment if we don't have one
-        return self._experiment.project_name if self._experiment else self._project_name
+        if self._experiment is not None and self._experiment.project_name is not None:
+            return self._experiment.project_name
+
+        if self._project_name is not None:
+            return self._project_name
+
+        return "comet-default"
 
     @name.setter
     def name(self, value: str) -> None:
-        self._project_name = value
+        self._experiment_name = value
 
         # Only set the experiment object name if it already exists as we don't
         # want to create an experiment object as soon as we create a Comet
@@ -234,9 +255,21 @@ class CometLogger(LightningLoggerBase):
             self._experiment.set_name(value)
 
     @property
-    def version(self) -> Optional[str]:
+    def version(self) -> str:
         # Don't create an experiment if we don't have one
-        return self._experiment.id if self._experiment else self._experiment_key
+        if self._experiment is not None:
+            return self._experiment.id
+
+        if self._experiment_key is not None:
+            return self._experiment_key
+
+        if self._future_experiment_key is not None:
+            return self._future_experiment_key
+
+        # Pre-generate an experiment key
+        self._future_experiment_key = generate_guid()
+
+        return self._future_experiment_key
 
     def __getstate__(self):
         state = self.__dict__.copy()
