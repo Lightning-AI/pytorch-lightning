@@ -244,16 +244,6 @@ class CometLogger(LightningLoggerBase):
 
         return "comet-default"
 
-    @name.setter
-    def name(self, value: str) -> None:
-        self._experiment_name = value
-
-        # Only set the experiment object name if it already exists as we don't
-        # want to create an experiment object as soon as we create a Comet
-        # Logger
-        if self._experiment is not None:
-            self._experiment.set_name(value)
-
     @property
     def version(self) -> str:
         # Don't create an experiment if we don't have one

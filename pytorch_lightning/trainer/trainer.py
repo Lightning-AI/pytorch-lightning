@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 import warnings
 
-# warnings to ignore
+# warnings to ignore in trainer
 warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
                                           'please use torch.distributed.ReduceOp instead')
 
@@ -395,6 +395,9 @@ class Trainer(
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
+
+        # when .test() is called, it sets this
+        self.tested_ckpt_path = None
 
         # training state
         self.model = None
@@ -793,12 +796,32 @@ class Trainer(
         else:
             return int(x)
 
-    @staticmethod
-    def parse_argparser(arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+    @classmethod
+    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
         """Parse CLI arguments, required for custom bool types."""
         args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
-        args = {k: True if v is None else v for k, v in vars(args).items()}
-        return Namespace(**args)
+
+        types_default = {
+            arg: (arg_types, arg_default) for arg, arg_types, arg_default in cls.get_init_arguments_and_types()
+        }
+
+        modified_args = {}
+        for k, v in vars(args).items():
+            if k in types_default and v is None:
+                # We need to figure out if the None is due to using nargs="?" or if it comes from the default value
+                arg_types, arg_default = types_default[k]
+                if bool in arg_types and isinstance(arg_default, bool):
+                    # Value has been passed as a flag => It is currently None, so we need to set it to True
+                    # We always set to True, regardless of the default value.
+                    # Users must pass False directly, but when passing nothing True is assumed.
+                    # i.e. the only way to disable somthing that defaults to True is to use the long form:
+                    # "--a_default_true_arg False" becomes False, while "--a_default_false_arg" becomes None,
+                    # which then becomes True here.
+
+                    v = True
+
+            modified_args[k] = v
+        return Namespace(**modified_args)
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
@@ -945,6 +968,10 @@ class Trainer(
 
             self.ddp_train(process_idx=task, q=None, model=model)
         elif self.use_ddp:
+
+            # set testing if set in environ
+            self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
                 self.ddp_train(process_idx=task, q=None, model=model)
@@ -994,7 +1021,7 @@ class Trainer(
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
-            if self.on_colab_kaggle:
+            if self.on_colab_kaggle and not self.testing:
                 self.load_spawn_weights(model)
 
             self.model = model
@@ -1038,14 +1065,20 @@ class Trainer(
         smp = mp.get_context('spawn')
         q = smp.SimpleQueue()
 
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model,))
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model, ))
 
         # restore main state with best weights
         best_path = q.get()
         results = q.get()
-        if best_path is not None and len(best_path) > 0:
-            self.checkpoint_callback.best_model_path = best_path
-            model.load_from_checkpoint(best_path)
+        last_path = q.get()
+
+        # transfer back the best path to the trainer
+        self.checkpoint_callback.best_model_path = best_path
+
+        # load last weights
+        if last_path is not None and not self.testing:
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt)
 
         self.model = model
         return results
@@ -1085,7 +1118,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if NATIVE_AMP_AVALAIBLE and self.precision == 16:
+        if NATIVE_AMP_AVALAIBLE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1237,45 +1270,75 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        if self.global_rank != 0:
+            return
+
         self.setup('test')
-        model_ref = self.model if model is None else model
-        if self.is_function_implemented('setup', model_ref):
-            model_ref.setup('test')
+
+        if model is not None:
+            results = self.__test_given_model(model, test_dataloaders)
+        else:
+            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
+
+        self.teardown('test')
+
+        return results
+
+    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
+        model = self.get_model()
+        if self.is_function_implemented('setup', model):
+            model.setup('test')
 
         # if user requests the best checkpoint but we don't have it, error
-        if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+        if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
 
-        # --------------------
-        # AUTO-LOAD BEST CKPT
-        # --------------------
-        # load the best checkpoint automatically unless model is given
-        # in which case we use that one
-        if model is None and ckpt_path is not None:
+        # load best weights
+        if ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
-            model = self.get_model().load_from_checkpoint(ckpt_path)
 
-        # ----------------------------------------------------
-        # AUTO-LOAD BEST CKPT with the model trained in .fit()
-        # ----------------------------------------------------
-        elif model is None and ckpt_path is None:
-            model = model_ref
+            if len(ckpt_path) == 0:
+                rank_zero_warn(f'.test() found no path for the best weights, {ckpt_path}. Please '
+                               f'specify a path for a checkpoint .test(ckpt_path=PATH)')
+                return {}
 
-        # --------------------
-        # LOAD DATA
-        # --------------------
+            ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt['state_dict'])
+
+        # attach dataloaders
         if test_dataloaders is not None:
-            if model:
-                self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
-            else:
-                self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
-        # --------------------
-        # RUN TEST SET
-        # --------------------
+        # run tests
+        self.tested_ckpt_path = ckpt_path
+        self.set_random_port(force=True)
+        self.testing = True
+        os.environ['PL_TESTING_MODE'] = '1'
+        self.model = model
+        results = self.fit(model)
+        self.testing = False
+        del os.environ['PL_TESTING_MODE']
+
+        # teardown
+        if self.is_function_implemented('teardown'):
+            model_ref = self.get_model()
+            model_ref.teardown('test')
+
+        return results
+
+    def __test_given_model(self, model, test_dataloaders):
+        # setup hook
+        if self.is_function_implemented('setup', model):
+            model.setup('test')
+
+        # attach data
+        if test_dataloaders is not None:
+            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        # run test
         # sets up testing so we short circuit to eval
         self.set_random_port(force=True)
         self.testing = True
@@ -1283,13 +1346,9 @@ class Trainer(
         results = self.fit(model)
         self.testing = False
 
-        # --------------------
-        # TEAR DOWN HOOK
-        # --------------------
-        self.teardown('test')
+        # teardown
         if self.is_function_implemented('teardown'):
-            model_ref = self.get_model()
-            model_ref.teardown('test')
+            model.teardown('test')
 
         return results
 
