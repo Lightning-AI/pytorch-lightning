@@ -111,5 +111,10 @@ def pl_multi_process_test(func):
 
         result = queue.get()
         assert result == 1, 'expected 1, but returned %s' % result
+        assert result == 1
+
+        # cleaning
+        proc.close()
+        queue.close()
 
     return wrapper
