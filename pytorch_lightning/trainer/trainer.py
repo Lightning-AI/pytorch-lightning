@@ -278,7 +278,7 @@ class Trainer(
 
             check_val_every_n_epoch: Check val every n train epochs.
 
-            fast_dev_run: runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 

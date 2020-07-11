@@ -519,7 +519,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # cap max batches to 1 when using fast_dev_run
         if self.fast_dev_run:
-            max_batches = [1]
+            max_batches = 1
 
         # Validation/Test begin callbacks
         if test_mode:
