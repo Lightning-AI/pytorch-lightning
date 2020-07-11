@@ -82,6 +82,10 @@ class TPUBackend(Accelerator):
     def train(self):
         model = self.trainer.model
 
+        if self.trainer.can_prepare_data():
+            model.prepare_data()
+            self.trainer._is_data_prepared = True
+
         # train
         if self.trainer.tpu_id is not None:
             self.tpu_train_in_process(self.trainer.tpu_id, model, self.trainer, self.mp_queue)
