@@ -1417,7 +1417,7 @@ class Trainer(
     def barrier(self, name, tpu=True, gpu=True):
         if gpu and (self.use_ddp or self.use_ddp2):
             # sometimes, this may be called if the process group hasn't been init
-            # catch and ignore that exception
+            # catch and ignore that exceptions
             try:
                 torch_distrib.barrier()
             except Exception as e:
