@@ -71,9 +71,9 @@ class TPUBackend(Accelerator):
         # load last weights
         if last_path and not self.trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
+            self.trainer.model.load_state_dict(ckpt)
 
-        self.trainer.model = model
+        self.trainer.model = self.trainer.model
 
         # when training completes, load the weights back in main process
         self.__load_weights_on_main_process()
@@ -83,16 +83,18 @@ class TPUBackend(Accelerator):
         model = self.trainer.model
 
         if self.trainer.can_prepare_data():
-            model.prepare_data()
-            self.trainer._is_data_prepared = True
+            self.trainer.model.prepare_data()
+            self._is_data_prepared = True
+
+        self.trainer.barrier()
 
         # train
         if self.trainer.tpu_id is not None:
-            self.tpu_train_in_process(self.trainer.tpu_id, model, self.trainer, self.mp_queue)
+            self.tpu_train_in_process(self.trainer.tpu_id, self.trainer.model, self.trainer, self.mp_queue)
         else:
             xmp.spawn(
                 self.tpu_train_in_process,
-                args=(model, self.trainer, self.mp_queue),
+                args=(self.trainer.model, self.trainer, self.mp_queue),
                 nprocs=self.trainer.tpu_cores,
                 start_method=self.start_method
             )
