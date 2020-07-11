@@ -7,6 +7,24 @@ from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
 
+def _steps_assert(model, trainer):
+    # make sure training outputs what is expected
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
+
+    out = trainer.run_training_batch(batch, batch_idx)
+    assert out.signal == 0
+    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
+    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
+
+    train_step_out = out.training_step_output_for_epoch_end
+    assert isinstance(train_step_out, torch.Tensor)
+    assert train_step_out.item() == 171
+
+    # make sure the optimizer closure returns the correct things
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    assert opt_closure_result['loss'].item() == 171
+
+
 def test_training_step_scalar(tmpdir):
     """
     Tests that only training_step that returns a single scalar can be used
@@ -27,22 +45,7 @@ def test_training_step_scalar(tmpdir):
     assert not model.training_step_end_called
     assert not model.training_epoch_end_called
 
-    # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
-
-    out = trainer.run_training_batch(batch, batch_idx)
-    assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
-    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
-
-    train_step_out = out.training_step_output_for_epoch_end
-    assert isinstance(train_step_out, torch.Tensor)
-    assert train_step_out.item() == 171
-
-    # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
-    assert opt_closure_result['loss'].item() == 171
+    _steps_assert(model, trainer)
 
 
 def training_step_scalar_with_step_end(tmpdir):
@@ -62,22 +65,7 @@ def training_step_scalar_with_step_end(tmpdir):
     assert model.training_step_end_called
     assert not model.training_epoch_end_called
 
-    # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
-
-    out = trainer.run_training_batch(batch, batch_idx)
-    assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
-    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
-
-    train_step_out = out.training_step_output_for_epoch_end
-    assert isinstance(train_step_out, torch.Tensor)
-    assert train_step_out.item() == 171
-
-    # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
-    assert opt_closure_result['loss'].item() == 171
+    _steps_assert(model, trainer)
 
 
 def test_full_training_loop_scalar(tmpdir):
@@ -107,22 +95,7 @@ def test_full_training_loop_scalar(tmpdir):
     assert 'epoch' in trainer.callback_metrics and len(trainer.callback_metrics) == 1
     assert len(trainer.progress_bar_metrics) == 0
 
-    # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
-
-    out = trainer.run_training_batch(batch, batch_idx)
-    assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
-    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
-
-    train_step_out = out.training_step_output_for_epoch_end
-    assert isinstance(train_step_out, torch.Tensor)
-    assert train_step_out.item() == 171
-
-    # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
-    assert opt_closure_result['loss'].item() == 171
+    _steps_assert(model, trainer)
 
 
 def test_train_step_epoch_end_scalar(tmpdir):
@@ -148,19 +121,4 @@ def test_train_step_epoch_end_scalar(tmpdir):
     assert 'epoch' in trainer.callback_metrics and len(trainer.callback_metrics) == 1
     assert len(trainer.progress_bar_metrics) == 0
 
-    # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
-
-    out = trainer.run_training_batch(batch, batch_idx)
-    assert out.signal == 0
-    assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
-    assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
-
-    train_step_out = out.training_step_output_for_epoch_end
-    assert isinstance(train_step_out, torch.Tensor)
-    assert train_step_out.item() == 171
-
-    # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
-    assert opt_closure_result['loss'].item() == 171
+    _steps_assert(model, trainer)

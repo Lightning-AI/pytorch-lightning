@@ -107,8 +107,7 @@ def test_full_training_loop_dict(tmpdir):
     assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
@@ -144,8 +143,7 @@ def test_train_step_epoch_end(tmpdir):
     assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
