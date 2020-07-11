@@ -528,7 +528,7 @@ class TrainerEvaluationLoopMixin(ABC):
             self.on_validation_start()
 
         # enable disabling validation step with limit_val_batches = 0
-        should_skip = sum(max_batches) == 0
+        should_skip = not self.fast_dev_run and sum(max_batches) == 0
         if should_skip:
             return [], []
 
