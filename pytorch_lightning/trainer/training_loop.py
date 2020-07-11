@@ -159,7 +159,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -365,18 +365,15 @@ class TrainerTrainLoopMixin(ABC):
             met_min_epochs = epoch >= self.min_epochs - 1
             met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
-                if self.should_stop:
-                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
-                        return
-                    else:
-                        log.info('Trainer was signaled to stop but required minimum epochs'
-                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                        ' not been met. Training will continue...')
-
-
-    def run_training_epoch(self):
-
-        return train_dataloader
+            if self.should_stop:
+                if (met_min_epochs and met_min_steps) or self.fast_dev_run:
+                    return
+                else:
+                    rank_zero_info(
+                        'Trainer was signaled to stop but required minimum epochs'
+                        f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                        ' not been met. Training will continue...'
+                    )
 
     def run_on_epoch_start_hook(self, model):
         # Epoch start events
