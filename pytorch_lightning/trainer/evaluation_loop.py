@@ -306,7 +306,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch is None:
                     continue
 
-                # stop short when on fast_dev_run (sets max_batch=1)
+                # stop short when running on limited batches
                 if batch_idx >= dl_max_batches:
                     break
 
@@ -513,7 +513,6 @@ class TrainerEvaluationLoopMixin(ABC):
             dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
 
-        # enable fast_dev_run without val loop
         if dataloaders is None:
             return [], []
 
