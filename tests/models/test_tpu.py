@@ -78,14 +78,14 @@ def test_model_tpu_cores_8(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=8,
-        limit_train_batches=10,
-        limit_val_batches=10,
+        limit_train_batches=20,
+        limit_val_batches=20,
     )
 
     model = EvalModelTemplate()
     # 8 cores needs a big dataset
-    model.train_dataloader = _serial_train_loader
-    model.val_dataloader = _serial_train_loader
+    model.train_dataloader = model.train_dataloader__long
+    model.val_dataloader = model.val_dataloader__long
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
