@@ -42,6 +42,43 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     assert ckpt_version == expected
 
 
+@pytest.mark.parametrize(
+    'filepath,filename,tgt_dir,tgt_filename',
+    [
+        (None, None, 'lightning_logs/version_0/checkpoints', 'epoch=4.ckpt'),
+        (None, 'test_{epoch}', 'lightning_logs/version_0/checkpoints', 'test_epoch=4.ckpt'),
+        ('checkpoints', None, 'checkpoints', 'epoch=4.ckpt'),
+        ('checkpoints', '{v_num}', 'checkpoints', 'v_num=0_v0.ckpt'),
+        ('checkpoints/{v_num}', None, 'checkpoints', 'v_num=0.ckpt'),
+        ('checkpoints/{v_num}', None, 'checkpoints', 'v_num=0_v0.ckpt')
+    ],
+)
+def test_model_checkpoint_filename(tmpdir, filepath, filename, tgt_dir, tgt_filename):
+    """Test that the checkpoint path is built from filepath and filename"""
+    tutils.reset_seed()
+    model = EvalModelTemplate()
+
+    if filepath is not None:
+        filepath = tmpdir / filepath
+        os.makedirs(tmpdir / tgt_dir)
+
+    checkpoint = ModelCheckpoint(filepath=filepath, filename=filename, save_top_k=-1)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=5,
+        checkpoint_callback=checkpoint
+    )
+    trainer.fit(model)
+
+    if filename is None:
+        filename = '{epoch}'
+
+    assert os.path.relpath(trainer.ckpt_path, tmpdir) == tgt_dir
+    assert os.path.relpath(checkpoint.dirpath, tmpdir) == tgt_dir
+    assert os.path.exists(os.path.join(trainer.ckpt_path, tgt_filename))
+
+
 def test_pickling(tmpdir):
     ckpt = ModelCheckpoint(tmpdir)
 

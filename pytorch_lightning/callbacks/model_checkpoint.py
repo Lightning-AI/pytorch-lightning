@@ -98,7 +98,7 @@ class ModelCheckpoint(Callback):
 
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
-                 mode: str = 'auto', period: int = 1, prefix: str = ''):
+                 mode: str = 'auto', period: int = 1, prefix: str = '', filename: Optional[str] = None):
         super().__init__()
         if save_top_k > 0 and filepath is not None and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:
             rank_zero_warn(
@@ -110,9 +110,11 @@ class ModelCheckpoint(Callback):
         self.monitor = monitor
         self.verbose = verbose
         if filepath is None:  # will be determined by trainer at runtime
-            self.dirpath, self.filename = None, None
+            self.dirpath, self.filename = None, filename
         else:
-            if os.path.isdir(filepath):
+            if filename is not None:
+                self.dirpath, self.filename = filepath, filename
+            elif os.path.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
             else:
                 filepath = os.path.realpath(filepath)
@@ -251,7 +253,8 @@ class ModelCheckpoint(Callback):
         if self.dirpath is not None:
             return  # short circuit
 
-        self.filename = '{epoch}'
+        if self.filename is None:
+            self.filename = '{epoch}'
 
         if trainer.logger is not None:
             if trainer.weights_save_path != trainer.default_root_dir:
