@@ -34,7 +34,7 @@ smooth_func = SmoothingFunction().method2
 )
 def test_bleu(weights, n_gram, smooth_func, smooth):
     bleu = BLEUScore(n_gram=n_gram, smooth=smooth)
-    # assert bleu.name == "bleu"
+    assert bleu.name == "bleu"
 
     nltk_output = corpus_bleu(list_of_references, hypotheses, weights=weights, smoothing_function=smooth_func)
     pl_output = bleu(hypotheses, list_of_references)
