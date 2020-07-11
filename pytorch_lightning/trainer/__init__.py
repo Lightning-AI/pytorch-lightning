@@ -393,7 +393,7 @@ Under the hood the pseudocode looks like this:
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
 
-    # runs 1 train, val, test  batch and program ends
+    # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
 
 gpus
