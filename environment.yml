@@ -30,6 +30,7 @@ dependencies:
     - twine==1.13.0
     - pillow<7.0.0
     - scikit-image
+    - nltk>=3.3
 
     # Optional
     - scipy>=0.13.3
@@ -45,4 +46,3 @@ dependencies:
         - wandb>=0.8.21
         - neptune-client>=0.4.4
         - horovod>=0.19.1
-        - nltk

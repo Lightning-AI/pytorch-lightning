@@ -3,12 +3,12 @@ from collections import Counter
 import torch
 
 
-def _count_ngram(ngram_input_list: list, num_grams: int) -> Counter:
+def _count_ngram(ngram_input_list: list, n_gram: int) -> Counter:
     """Counting how many times each word appears in a given text with ngram
 
     Args:
         ngram_input_list: A list of translated text or reference texts
-        num_grams: gram value ranged 1 to 4
+        n_gram: gram value ranged 1 to 4
 
     Return:
         ngram_counter: a collections.Counter object of ngram
@@ -16,7 +16,7 @@ def _count_ngram(ngram_input_list: list, num_grams: int) -> Counter:
 
     ngram_counter = Counter()
 
-    for i in range(1, num_grams + 1):
+    for i in range(1, n_gram + 1):
         for j in range(len(ngram_input_list) - i + 1):
             ngram_key = tuple(ngram_input_list[j : i + j])
             ngram_counter[ngram_key] += 1
@@ -24,13 +24,13 @@ def _count_ngram(ngram_input_list: list, num_grams: int) -> Counter:
     return ngram_counter
 
 
-def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smooth: bool = False) -> torch.Tensor:
-    """Calculate BLEU score of machine translated text with one or more references
+def bleu_score(translate_corpus: list, reference_corpus: list, n_gram: int = 4, smooth: bool = False) -> torch.Tensor:
+    """Calculate BLEU score of machine translated text with one or more references.
 
     Args:
         translate_corpus: A list of lists of translated texts
         reference_corpus: A list of lists of reference texts
-        n: Gram value ranged from 1 to 4 (Default 4)
+        n_gram: Gram value ranged from 1 to 4 (Default 4)
         smooth: Whether or not to apply smoothing – Lin et al. 2004
 
     Return:
@@ -38,16 +38,16 @@ def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smoot
 
     Example:
 
-        >>> t = ["the FAST brown fox jumped over the lazy dog".split(' ')]
-        >>> r = [["the quick brown fox jumped over the lazy dog".split(' '), "the quick brown fox jumped over the the lazy cat".split(' ')]]
-        >>> bleu_score(t, r)
+        >>> translate_corpus = ["the FAST brown fox jumped over the lazy dog".split(' ')]
+        >>> reference_corpus = [["the quick brown fox jumped over the lazy dog".split(' '), "the quick brown fox jumped over the the lazy cat".split(' ')]]
+        >>> bleu_score(translate_corpus, reference_corpus)
         tensor(0.7506)
     """
 
     assert len(translate_corpus) == len(reference_corpus)
-    numerator = torch.zeros(n)
-    denominator = torch.zeros(n)
-    precision_scores = torch.zeros(n)
+    numerator = torch.zeros(n_gram)
+    denominator = torch.zeros(n_gram)
+    precision_scores = torch.zeros(n_gram)
     c = 0.0
     r = 0.0
     # referenced from https://pytorch.org/text/_modules/torchtext/data/metrics.html#bleu_score
@@ -56,10 +56,10 @@ def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smoot
         ref_len_list = [len(ref) for ref in references]
         ref_len_diff = [abs(len(translation) - x) for x in ref_len_list]
         r += ref_len_list[ref_len_diff.index(min(ref_len_diff))]
-        translation_counter = _count_ngram(translation, n)
+        translation_counter = _count_ngram(translation, n_gram)
         reference_counter = Counter()
         for ref in references:
-            reference_counter |= _count_ngram(ref, n)
+            reference_counter |= _count_ngram(ref, n_gram)
 
         ngram_counter_clip = translation_counter & reference_counter
         for counter_clip in ngram_counter_clip:
@@ -74,10 +74,10 @@ def bleu_score(translate_corpus: list, reference_corpus: list, n: int = 4, smoot
         return torch.tensor(0.0)
 
     if smooth:
-        precision_scores = torch.add(numerator, torch.ones(n)) / torch.add(denominator, torch.ones(n))
+        precision_scores = torch.add(numerator, torch.ones(n_gram)) / torch.add(denominator, torch.ones(n_gram))
     else:
         precision_scores = numerator / denominator
-    log_precision_scores = torch.tensor([1.0 / n] * n) * torch.log(precision_scores)
+    log_precision_scores = torch.tensor([1.0 / n_gram] * n_gram) * torch.log(precision_scores)
     geometric_mean = torch.exp(torch.sum(log_precision_scores))
     brevity_penalty = torch.tensor(1.0) if c > r else torch.exp(1 - (ref_len / trans_len))
     bleu = brevity_penalty * geometric_mean

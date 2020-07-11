@@ -37,7 +37,7 @@ smooth_func = SmoothingFunction().method2
 
 
 @pytest.mark.parametrize(
-    ["weights", "n", "smooth_func", "smooth"],
+    ["weights", "n_gram", "smooth_func", "smooth"],
     [
         pytest.param((1, 0, 0, 0), 1, None, False),
         pytest.param((0.5, 0.5, 0, 0), 2, smooth_func, True),
@@ -46,16 +46,16 @@ smooth_func = SmoothingFunction().method2
     ],
 )
 class TestBLEUScore:
-    def test_with_sentence_bleu(self, weights, n, smooth_func, smooth):
+    def test_with_sentence_bleu(self, weights, n_gram, smooth_func, smooth):
         nltk_output = sentence_bleu(
             [reference1, reference2, reference3], hypothesis1, weights=weights, smoothing_function=smooth_func
         )
-        pl_output = bleu_score([hypothesis1], [[reference1, reference2, reference3]], n=n, smooth=smooth)
+        pl_output = bleu_score([hypothesis1], [[reference1, reference2, reference3]], n_gram=n_gram, smooth=smooth)
         assert torch.allclose(pl_output, torch.tensor(nltk_output))
 
-    def test_with_corpus_bleu(self, weights, n, smooth_func, smooth):
+    def test_with_corpus_bleu(self, weights, n_gram, smooth_func, smooth):
         nltk_output = corpus_bleu(list_of_references, hypotheses, weights=weights, smoothing_function=smooth_func)
-        pl_output = bleu_score(hypotheses, list_of_references, n=n, smooth=smooth)
+        pl_output = bleu_score(hypotheses, list_of_references, n_gram=n_gram, smooth=smooth)
         assert torch.allclose(pl_output, torch.tensor(nltk_output))
 
 

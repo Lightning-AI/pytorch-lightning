@@ -138,6 +138,12 @@ AUROC
 .. autoclass:: pytorch_lightning.metrics.classification.AUROC
     :noindex:
 
+BLEUScore
+^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.sequence.BLEUScore
+    :noindex:
+
 ConfusionMatrix
 ^^^^^^^^^^^^^^^
 
