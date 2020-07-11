@@ -1414,12 +1414,11 @@ class Trainer(
 
         return results
 
-    def barrier(self, name):
-        if self.use_ddp or self.use_ddp2:
-            pass
-            # torch_distrib.barrier()
+    def barrier(self, name, tpu=True, gpu=True):
+        if gpu and (self.use_ddp or self.use_ddp2):
+            torch_distrib.barrier()
 
-        if self.on_tpu and XLA_AVAILABLE:
+        if tpu and (self.on_tpu and XLA_AVAILABLE):
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
 
