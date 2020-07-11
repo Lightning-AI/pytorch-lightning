@@ -42,8 +42,8 @@ def test_model_tpu_cores_1(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=10,
+        limit_val_batches=10,
     )
 
     model = EvalModelTemplate()
@@ -60,8 +60,8 @@ def test_model_tpu_index(tmpdir, tpu_core):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=[tpu_core],
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=10,
+        limit_val_batches=10,
     )
 
     model = EvalModelTemplate()
@@ -78,8 +78,8 @@ def test_model_tpu_cores_8(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=10,
+        limit_val_batches=10,
     )
 
     model = EvalModelTemplate()
@@ -100,8 +100,8 @@ def test_model_16bit_tpu_cores_1(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=10,
+        limit_val_batches=10,
     )
 
     model = EvalModelTemplate()
@@ -122,8 +122,8 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         val_percent_check=0.2,
         max_epochs=1,
         tpu_cores=[tpu_core],
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=10,
+        limit_val_batches=10,
     )
 
     model = EvalModelTemplate()
@@ -142,8 +142,8 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=8,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=10,
+        limit_val_batches=10,
     )
 
     model = EvalModelTemplate()
@@ -180,8 +180,8 @@ def test_tpu_grad_norm(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         tpu_cores=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_train_batches=10,
+        limit_val_batches=10,
         gradient_clip_val=0.1,
     )
 
