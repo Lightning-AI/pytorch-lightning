@@ -334,6 +334,33 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
         assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
 
 
+def test_dataloaders_with_fast_dev_run(tmpdir):
+    """Verify num_batches for train, val & test dataloaders passed with fast_dev_run = True"""
+    model = EvalModelTemplate()
+    model.val_dataloader = model.val_dataloader__multiple_mixed_length
+    model.test_dataloader = model.test_dataloader__multiple_mixed_length
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    model.test_step = model.test_step__multiple_dataloaders
+    model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
+
+    # train, multiple val and multiple test passed with fast_dev_run = True
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        fast_dev_run=True,
+    )
+    assert trainer.max_epochs == 1
+    assert trainer.num_sanity_val_steps == 0
+
+    trainer.fit(model)
+    assert trainer.num_training_batches == 1
+    assert trainer.num_val_batches == [1] * len(trainer.val_dataloaders)
+
+    trainer.test(ckpt_path=None)
+    assert trainer.num_test_batches == [1] * len(trainer.test_dataloaders)
+
+
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     """Verify that dataloaders can be passed to fit"""
