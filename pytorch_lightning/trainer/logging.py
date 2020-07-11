@@ -98,6 +98,17 @@ class TrainerLoggingMixin(ABC):
 
         Separates loss from logging and progress bar metrics
         """
+        # --------------------------
+        # handle single scalar only
+        # --------------------------
+        # single scalar returned from a xx_step
+        if isinstance(output, torch.Tensor):
+            progress_bar_metrics = {}
+            log_metrics = {}
+            callback_metrics = {}
+            hiddens = None
+            return output, progress_bar_metrics, log_metrics, callback_metrics, hiddens
+
         # ---------------
         # EXTRACT CALLBACK KEYS
         # ---------------

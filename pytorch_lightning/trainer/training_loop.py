@@ -792,7 +792,10 @@ class TrainerTrainLoopMixin(ABC):
             )
 
             # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-            training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
+            if isinstance(training_step_output_for_epoch_end, torch.Tensor):
+                training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
+            else:
+                training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
 
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
