@@ -88,8 +88,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         training dataloader is of infinite size.
         """
-        total_train_batches = 1 if self.trainer.fast_dev_run else self.trainer.num_training_batches
-        return total_train_batches
+        return self.trainer.num_training_batches
 
     @property
     def total_val_batches(self) -> int:
@@ -98,13 +97,10 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         validation dataloader is of infinite size.
         """
-        trainer = self.trainer
         total_val_batches = 0
-        if trainer.fast_dev_run and trainer.val_dataloaders is not None:
-            total_val_batches = len(trainer.val_dataloaders)
-        elif self.trainer.enable_validation:
-            is_val_epoch = (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch == 0
-            total_val_batches = sum(trainer.num_val_batches) if is_val_epoch else 0
+        if not self.trainer.disable_validation:
+            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
         return total_val_batches
 
     @property
@@ -114,12 +110,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         test dataloader is of infinite size.
         """
-        if self.trainer.fast_dev_run:
-            total_test_batches = len(self.trainer.test_dataloaders)
-        else:
-            total_test_batches = self.trainer.num_test_batches
-            total_test_batches = sum(total_test_batches)
-        return total_test_batches
+        return sum(self.trainer.num_test_batches)
 
     def disable(self):
         """

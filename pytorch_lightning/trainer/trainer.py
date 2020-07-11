@@ -528,6 +528,9 @@ class Trainer(
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
+            limit_train_batches = 1
+            limit_val_batches = 1
+            limit_test_batches = 1
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
             rank_zero_info(
