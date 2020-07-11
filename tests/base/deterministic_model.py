@@ -56,26 +56,28 @@ class DeterministicModel(LightningModule):
     # scalar return
     # ---------------------------
     def training_step_scalar_return(self, batch, batch_idx):
-        # TODO: verify
         acc = self.step(batch, batch_idx)
         self.training_step_called = True
         return acc
 
     def training_step_end_scalar(self, output):
-        # TODO: verify
         self.training_step_end_called = True
 
         # make sure loss has the grad
-        assert 'loss' in output
-        assert output['loss'].grad_fn is not None
+        assert isinstance(output, torch.Tensor)
+        assert output.grad_fn is not None
 
         # make sure nothing else has grads
-        assert self.count_num_graphs(output) == 1
+        assert self.count_num_graphs({'loss': output}) == 1
+
+        assert output == 171
 
         return output
 
     def training_epoch_end_scalar(self, outputs):
-        # TODO: verify
+        """
+        There should be an array of scalars without graphs that are all 171 (4 of them)
+        """
         self.training_epoch_end_called = True
 
         if self.use_dp or self.use_ddp2:
@@ -84,10 +86,11 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert len(outputs) == 4
             for batch_out in outputs:
-                # TODO: verify
-                assert batch_out == (42.0 * 3) + (15.0 * 3)
+                assert batch_out == 171
+                assert batch_out.grad_fn is None
+                assert isinstance(batch_out, torch.Tensor)
 
-        prototype_loss = outputs[0]['loss']
+        prototype_loss = outputs[0]
         return prototype_loss
 
     # --------------------------
