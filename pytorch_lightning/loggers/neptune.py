@@ -5,7 +5,6 @@ Neptune
 from argparse import Namespace
 from typing import Optional, List, Dict, Any, Union, Iterable
 
-from PIL.Image import Image
 
 try:
     import neptune
@@ -20,7 +19,7 @@ import torch
 from torch import is_tensor
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -211,6 +210,7 @@ class NeptuneLogger(LightningLoggerBase):
         return state
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> Experiment:
         r"""
         Actual Neptune object. To use neptune features in your
@@ -249,6 +249,7 @@ class NeptuneLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
             step: Step number at which the metrics should be recorded, must be strictly increasing
         """
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
         for key, val in metrics.items():
             self.log_metric(key, val, step=step)
 
@@ -257,6 +258,11 @@ class NeptuneLogger(LightningLoggerBase):
         super().finalize(status)
         if self.close_after_fit:
             self.experiment.stop()
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        # Neptune does not save any local files
+        return None
 
     @property
     def name(self) -> str:
@@ -310,7 +316,7 @@ class NeptuneLogger(LightningLoggerBase):
     @rank_zero_only
     def log_image(self,
                   log_name: str,
-                  image: Union[str, Image, Any],
+                  image: Union[str, Any],
                   step: Optional[int] = None) -> None:
         """
         Log image data in Neptune experiment

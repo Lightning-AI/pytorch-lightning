@@ -12,6 +12,7 @@ To enable a hook, simply override the method in your LightningModule and the tra
 
 3. Add it in the correct place in :mod:`pytorch_lightning.trainer` where it should be called.
 
+----------------
 
 Hooks lifecycle
 ---------------
@@ -19,6 +20,8 @@ Hooks lifecycle
 Training set-up
 ^^^^^^^^^^^^^^^
 
+- :meth:`~pytorch_lightning.core.lightning.LightningModule.prepare_data`
+- :meth:`~pytorch_lightning.core.lightning.LightningModule.setup`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.init_ddp_connection`
 - :meth:`~pytorch_lightning.trainer.optimizers.TrainerOptimizersMixin.init_optimizers`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_apex`
@@ -28,6 +31,10 @@ Training set-up
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.val_dataloader`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.summarize`
 - :meth:`~pytorch_lightning.trainer.training_io.TrainerIOMixin.restore_weights`
+
+.. warning:: `prepare_data` is only called from global_rank=0. Don't assign state (self.something), use `setup` for that
+
+----------
 
 Training loop
 ^^^^^^^^^^^^^
@@ -45,6 +52,8 @@ Training loop
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_epoch_end`
 
+----------
+
 Validation loop
 ^^^^^^^^^^^^^^^
 
@@ -57,6 +66,8 @@ Validation loop
 - ``model.train()``
 - ``torch.set_grad_enabled(True)``
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_post_performance_check`
+
+----------
 
 Test loop
 ^^^^^^^^^
@@ -71,7 +82,10 @@ Test loop
 - ``torch.set_grad_enabled(True)``
 - :meth:`~pytorch_lightning.core.hooks.ModelHooks.on_post_performance_check`
 
+----------------
 
+General hooks
+-------------
 
 .. automodule:: pytorch_lightning.core.hooks
     :noindex:

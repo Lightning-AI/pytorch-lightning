@@ -22,6 +22,8 @@ initial lr.
     For the moment, this feature only works with models having a single optimizer. 
     LR support for DDP is not implemented yet, it is comming soon.
 
+----------
+
 Using Lightning's built-in LR finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

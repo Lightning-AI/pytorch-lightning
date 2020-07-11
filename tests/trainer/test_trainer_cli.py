@@ -5,15 +5,16 @@ from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
+import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 
 
-@mock.patch('argparse.ArgumentParser.parse_args',
-            return_value=Namespace(**Trainer.default_attributes()))
-def test_default_args(tmpdir):
+@mock.patch('argparse.ArgumentParser.parse_args')
+def test_default_args(mock_argparse, tmpdir):
     """Tests default argument parser for Trainer"""
+    mock_argparse.return_value = Namespace(**Trainer.default_attributes())
 
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
@@ -91,7 +92,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
         parser.parse_args(cli_args)
 
 
-# todo: add also testing for "gpus"
 @pytest.mark.parametrize(['cli_args', 'expected'], [
     pytest.param('--auto_lr_find --auto_scale_batch_size power',
                  {'auto_lr_find': True, 'auto_scale_batch_size': 'power', 'early_stop_callback': False}),
@@ -99,6 +99,24 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                  {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
     pytest.param('--early_stop_callback',
                  {'auto_lr_find': False, 'early_stop_callback': True, 'auto_scale_batch_size': False}),
+    pytest.param('--tpu_cores=8',
+                 {'tpu_cores': 8}),
+    pytest.param("--tpu_cores=1,",
+                 {'tpu_cores': '1,'}),
+    pytest.param(
+        "",
+        {
+            # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
+            # They should not be changed by the argparse interface.
+            "min_steps": None,
+            "max_steps": None,
+            "log_gpu_memory": None,
+            "distributed_backend": None,
+            "weights_save_path": None,
+            "truncated_bptt_steps": None,
+            "resume_from_checkpoint": None,
+            "profiler": None,
+        }),
 ])
 def test_argparse_args_parsing(cli_args, expected):
     """Test multi type argument with bool."""
@@ -113,10 +131,25 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 7),
-    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec"
-)
+@pytest.mark.parametrize(['cli_args', 'expected_gpu'], [
+    pytest.param('--gpus 1', [0]),
+    pytest.param('--gpus 0,', [0]),
+])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_argparse_args_parsing_gpus(cli_args, expected_gpu):
+    """Test multi type argument with bool."""
+    cli_args = cli_args.split(' ') if cli_args else []
+    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
+        parser = ArgumentParser(add_help=False)
+        parser = Trainer.add_argparse_args(parent_parser=parser)
+        args = Trainer.parse_argparser(parser)
+
+    trainer = Trainer.from_argparse_args(args)
+    assert trainer.data_parallel_device_ids == expected_gpu
+
+
+@pytest.mark.skipif(sys.version_info < (3, 7),
+                    reason="signature inspection while mocking is not working in Python < 3.7 despite autospec")
 @pytest.mark.parametrize(['cli_args', 'extra_args'], [
     pytest.param({}, {}),
     pytest.param({'logger': False}, {}),

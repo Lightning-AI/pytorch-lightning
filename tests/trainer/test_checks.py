@@ -1,6 +1,6 @@
 import pytest
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -11,7 +11,7 @@ from tests.base import EvalModelTemplate
 
 def test_wrong_train_setting(tmpdir):
     """
-    * Test that an error is thrown when no `training_dataloader()` is defined
+    * Test that an error is thrown when no `train_dataloader()` is defined
     * Test that an error is thrown when no `training_step()` is defined
     """
     tutils.reset_seed()

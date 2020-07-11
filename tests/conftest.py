@@ -1,9 +1,9 @@
+import sys
+import threading
 from functools import wraps, partial
 from http.server import SimpleHTTPRequestHandler
 
-import sys
 import pytest
-import threading
 import torch.multiprocessing as mp
 
 
@@ -48,7 +48,7 @@ def tmpdir_server(tmpdir):
         class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
             daemon_threads = True
 
-    with ThreadingHTTPServer(('', 0), Handler) as server:
+    with ThreadingHTTPServer(('localhost', 0), Handler) as server:
         server_thread = threading.Thread(target=server.serve_forever)
         # Exit the server thread when the main thread terminates
         server_thread.daemon = True

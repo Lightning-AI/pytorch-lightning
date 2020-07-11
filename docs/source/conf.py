@@ -139,6 +139,7 @@ exclude_patterns = [
     'api/pytorch_lightning.rst',
     'api/pl_examples.*',
     'api/modules.rst',
+    'PULL_REQUEST_TEMPLATE.md',
 
     # deprecated/renamed:
     'api/pytorch_lightning.logging.*',  # TODO: remove in v0.9.0
@@ -174,7 +175,7 @@ html_logo = '_images/logos/lightning_logo-name.svg'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_images', '_templates']
+html_static_path = ['_images', '_templates', '_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -296,6 +297,9 @@ def run_apidoc(_):
 
 
 def setup(app):
+    # this is for hiding doctest decoration,
+    # see: http://z4r.github.io/python/2011/12/02/hides-the-prompts-and-output/
+    app.add_javascript('copybutton.js')
     app.connect('builder-inited', run_apidoc)
 
 
@@ -413,7 +417,11 @@ import importlib
 import os
 import torch
 
-TORCHVISION_AVAILABLE = importlib.util.find_spec('torchvision')
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+APEX_AVAILABLE = importlib.util.find_spec("apex") is not None
+XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
+
 
 """
 coverage_skip_undoc_in_source = True

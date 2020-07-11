@@ -1,6 +1,6 @@
 import pytest
 
-import tests.base.utils as tutils
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateLogger
 from tests.base import EvalModelTemplate
@@ -17,9 +17,9 @@ def test_lr_logger_single_lr(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
-        callbacks=[lr_logger]
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_logger],
     )
     result = trainer.fit(model)
     assert result
@@ -40,9 +40,9 @@ def test_lr_logger_no_lr(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
-        callbacks=[lr_logger]
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_logger],
     )
 
     with pytest.warns(RuntimeWarning):
@@ -61,9 +61,9 @@ def test_lr_logger_multi_lrs(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
-        callbacks=[lr_logger]
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_logger],
     )
     result = trainer.fit(model)
     assert result
@@ -88,9 +88,9 @@ def test_lr_logger_param_groups(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        val_percent_check=0.1,
-        train_percent_check=0.5,
-        callbacks=[lr_logger]
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_logger],
     )
     result = trainer.fit(model)
     assert result

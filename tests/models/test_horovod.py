@@ -8,7 +8,8 @@ import sys
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from tests.base.models import TestGAN
@@ -39,10 +40,13 @@ def _nccl_available():
 
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
+    num_processes = trainer_options.get('gpus', 2)
+    # gpus trainer argument does not apply for horovod
+    trainer_options.update(gpus=None)
     tutils.reset_seed()
     cmdline = [
         'horovodrun',
-        '-np', '2',
+        '-np', str(num_processes),
         sys.executable, TEST_SCRIPT,
         '--trainer-options', shlex.quote(json.dumps(trainer_options))
     ]
@@ -52,40 +56,39 @@ def _run_horovod(trainer_options, on_gpu=False):
     assert exit_code == 0
 
 
-@pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         distributed_backend='horovod',
         deterministic=True,
     )
     _run_horovod(trainer_options)
 
 
-@pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         deterministic=True,
     )
     _run_horovod(trainer_options)
 
 
-@pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -93,19 +96,19 @@ def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        gpus=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=2,
         deterministic=True,
         distributed_backend='horovod'
     )
     _run_horovod(trainer_options, on_gpu=True)
 
 
-@pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -125,22 +128,21 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
             return super(TestTrainingStepModel, self).validation_step(batch, *args, **kwargs)
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = TestTrainingStepModel(hparams)
+    model = TestTrainingStepModel(**hparams)
 
     trainer_options = dict(
         default_root_dir=str(tmpdir),
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
         distributed_backend='horovod'
     )
-    tutils.run_model_test_without_loggers(trainer_options, model)
+    tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
-@pytest.mark.skipif(sys.version_info >= (3, 8), reason="Horovod not yet supported in Python 3.8")
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_multi_optimizer(tmpdir):
     model = TestGAN(**EvalModelTemplate.get_default_hparams())
@@ -149,10 +151,10 @@ def test_horovod_multi_optimizer(tmpdir):
         default_root_dir=str(tmpdir),
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
 
     # fit model

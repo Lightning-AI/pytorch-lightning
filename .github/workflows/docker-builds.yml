@@ -1,5 +1,6 @@
 name: Publish Docker Releases
 # https://www.docker.com/blog/first-docker-github-action-is-here
+# https://github.com/docker/build-push-action
 on:
   push:
     branches: 
@@ -9,14 +10,22 @@ on:
        - created
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-Conda:
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python_version: [3.6, 3.7, 3.8]
         pytorch_version: [1.3, 1.4, 1.5]
+        exclude:
+          # excludes PT 1.3 as it is missing on pypi
+          - python_version: 3.8
+            pytorch_version: 1.3
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
 
       - name: Publish Master to Docker
         # publish master
@@ -26,10 +35,10 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: docker/Dockerfile
-          buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          dockerfile: dockers/conda/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
           tags: "nightly-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-        timeout-minutes: 30
+        timeout-minutes: 40
 
       - name: Get release version
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
@@ -44,7 +53,32 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: docker/Dockerfile
-          buildargs: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
+          dockerfile: dockers/conda/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
           tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-        timeout-minutes: 30
+        timeout-minutes: 40
+
+  build-XLA:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python_version: [3.7]  # TODO: add 3.6, for now the Google docker image has missing 3.6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Publish Master to Docker
+        # publish master
+        uses: docker/build-push-action@v1.1.0
+        if: github.event_name == 'push'
+        with:
+          repository: pytorchlightning/pytorch_lightning
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          dockerfile: dockers/tpu-extras/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }}
+          tags: "XLA-extras-py${{ matrix.python_version }}"
+        timeout-minutes: 25

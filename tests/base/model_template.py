@@ -36,19 +36,19 @@ class EvalModelTemplate(
     >>> model = EvalModelTemplate()
     """
 
-    def __init__(self,
-                 *args,
-                 drop_prob: float = 0.2,
-                 batch_size: int = 32,
-                 in_features: int = 28 * 28,
-                 learning_rate: float = 0.001 * 8,
-                 optimizer_name: str = 'adam',
-                 data_root: str = PATH_DATASETS,
-                 out_features: int = 10,
-                 hidden_dim: int = 1000,
-                 b1: float = 0.5,
-                 b2: float = 0.999,
-                 **kwargs) -> object:
+    def __init__(
+            self,
+            drop_prob: float = 0.2,
+            batch_size: int = 32,
+            in_features: int = 28 * 28,
+            learning_rate: float = 0.001 * 8,
+            optimizer_name: str = 'adam',
+            data_root: str = PATH_DATASETS,
+            out_features: int = 10,
+            hidden_dim: int = 1000,
+            b1: float = 0.5,
+            b2: float = 0.999
+    ):
         # init superclass
         super().__init__()
         self.save_hyperparameters()
@@ -104,7 +104,7 @@ class EvalModelTemplate(
         return nll
 
     def prepare_data(self):
-        _ = TrialMNIST(root=self.data_root, train=True, download=True)
+        TrialMNIST(root=self.data_root, train=True, download=True)
 
     @staticmethod
     def get_default_hparams(continue_training: bool = False, hpc_exp_number: int = 0) -> dict:

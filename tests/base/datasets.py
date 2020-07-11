@@ -136,9 +136,15 @@ class TrialMNIST(MNIST):
         tensor([100, 100, 100])
     """
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = False,
-                 num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2)):
+    def __init__(
+            self,
+            root: str = PATH_DATASETS,
+            train: bool = True,
+            normalize: tuple = (0.5, 1.0),
+            download: bool = False,
+            num_samples: int = 100,
+            digits: Optional[Sequence] = (0, 1, 2),
+    ):
 
         # number of examples per class
         self.num_samples = num_samples
@@ -184,3 +190,19 @@ class TrialMNIST(MNIST):
             data, targets = torch.load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))
+
+
+class AverageDataset(Dataset):
+
+    def __init__(self, dataset_len=300, sequence_len=100):
+        self.dataset_len = dataset_len
+        self.sequence_len = sequence_len
+        self.input_seq = torch.randn(dataset_len, sequence_len, 10)
+        top, bottom = self.input_seq.chunk(2, -1)
+        self.output_seq = top + bottom.roll(shifts=1, dims=-1)
+
+    def __len__(self):
+        return self.dataset_len
+
+    def __getitem__(self, item):
+        return self.input_seq[item], self.output_seq[item]

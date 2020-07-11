@@ -8,7 +8,7 @@ from tests.base import EvalModelTemplate
 
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
-def test_on_before_zero_grad_called(max_steps):
+def test_on_before_zero_grad_called(tmpdir, max_steps):
 
     class CurrentTestModel(EvalModelTemplate):
         on_before_zero_grad_called = 0
@@ -19,7 +19,9 @@ def test_on_before_zero_grad_called(max_steps):
     model = CurrentTestModel()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_steps=max_steps,
+        max_epochs=2,
         num_sanity_val_steps=5,
     )
     assert 0 == model.on_before_zero_grad_called
@@ -57,7 +59,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     trainer = Trainer(
         max_epochs=num_epochs,
         default_root_dir=tmpdir,
-        overfit_pct=0.1,
+        overfit_batches=2,
     )
     result = trainer.fit(model)
     assert result == 1

@@ -46,6 +46,19 @@ Example:
 We successfully extended functionality without polluting our super clean
 :class:`~pytorch_lightning.core.LightningModule` research code.
 
+----------------
+
+Best Practices
+--------------
+The following are best practices when using/designing callbacks.
+
+1. Callbacks should be isolated in their functionality.
+2. Your callback should not rely on the behavior of other callbacks in order to work properly.
+3. Do not manually call methods from the callback.
+4. Directly calling methods (eg. `on_validation_end`) is strongly discouraged.
+5. Whenever possible, your callbacks should not depend on the order in which they are executed.
+
+
 ---------
 
 .. automodule:: pytorch_lightning.callbacks.base
@@ -56,7 +69,7 @@ We successfully extended functionality without polluting our super clean
         _abc_impl,
         check_monitor_top_k,
 
----------
+----------------
 
 .. automodule:: pytorch_lightning.callbacks.early_stopping
    :noindex:
@@ -66,17 +79,7 @@ We successfully extended functionality without polluting our super clean
         _abc_impl,
         check_monitor_top_k,
 
----------
-
-.. automodule:: pytorch_lightning.callbacks.model_checkpoint
-   :noindex:
-   :exclude-members:
-        _del_model,
-        _save_model,
-        _abc_impl,
-        check_monitor_top_k,
-
----------
+----------------
 
 .. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
@@ -86,16 +89,26 @@ We successfully extended functionality without polluting our super clean
         _abc_impl,
         check_monitor_top_k,
 
----------
-
-.. automodule:: pytorch_lightning.callbacks.progress
-   :noindex:
-   :exclude-members:
-
----------
+----------------
 
 .. automodule:: pytorch_lightning.callbacks.lr_logger
     :noindex:
     :exclude-members:
         _extract_lr,
         _find_names
+
+----------------
+
+.. automodule:: pytorch_lightning.callbacks.model_checkpoint
+   :noindex:
+   :exclude-members:
+        _del_model,
+        _save_model,
+        _abc_impl,
+        check_monitor_top_k,
+
+----------------
+
+.. automodule:: pytorch_lightning.callbacks.progress
+   :noindex:
+   :exclude-members:

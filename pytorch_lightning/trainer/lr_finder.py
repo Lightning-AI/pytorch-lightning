@@ -1,6 +1,8 @@
 """
 Trainer Learning Rate Finder
 """
+import os
+import importlib
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence, Tuple, List, Union
 
@@ -8,8 +10,14 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
-import os
+
+# check if ipywidgets is installed before importing tqdm.auto
+# to ensure it won't fail and a progress bar is displayed
+if importlib.util.find_spec('ipywidgets') is not None:
+    from tqdm.auto import tqdm
+else:
+    from tqdm import tqdm
+
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
@@ -163,7 +171,6 @@ class TrainerLRFinderMixin(ABC):
         # Disable standard checkpoint & early stopping
         self.checkpoint_callback = False
         self.early_stop_callback = None
-        self.enable_early_stop = False
 
         # Required for saving the model
         self.optimizers, self.schedulers = [], [],
@@ -215,7 +222,6 @@ class TrainerLRFinderMixin(ABC):
             'max_steps': self.max_steps,
             'checkpoint_callback': self.checkpoint_callback,
             'early_stop_callback': self.early_stop_callback,
-            'enable_early_stop': self.enable_early_stop,
             'configure_optimizers': model.configure_optimizers,
         }
 
@@ -226,7 +232,6 @@ class TrainerLRFinderMixin(ABC):
         self.max_steps = self.__dumped_params['max_steps']
         self.checkpoint_callback = self.__dumped_params['checkpoint_callback']
         self.early_stop_callback = self.__dumped_params['early_stop_callback']
-        self.enable_early_stop = self.__dumped_params['enable_early_stop']
         model.configure_optimizers = self.__dumped_params['configure_optimizers']
         del self.__dumped_params
 

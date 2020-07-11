@@ -10,6 +10,8 @@ Multi-GPU training
 ==================
 Lightning supports multiple ways of doing distributed training.
 
+----------
+
 Preparing your code
 -------------------
 To train on CPU/GPU/TPU without changing your code, we need to build a few good habits :)
@@ -31,8 +33,8 @@ Delete any calls to .cuda() or .to(device).
     def forward(self, x):
         x_hat = layer_1(x)
 
-Init tensors using type_as
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Init tensors using type_as and register_buffer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 When you need to create a new tensor, use `type_as`.
 This will make your code scale to any arbitrary number of GPUs or TPUs with Lightning.
 
@@ -48,7 +50,20 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
         z = torch.Tensor(2, 3)
         z = z.type_as(x, device=self.device)
 
-The LightningModule knows what device it is on. You can access the reference via `self.device`.
+The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via `self.device`.
+Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
+remain on the CPU even if the module gets moved to a new device. To prevent that and remain device agnostic,
+register the tensor as a buffer in your modules's `__init__` method with :meth:`~torch.nn.Module.register_buffer`.
+
+.. testcode::
+
+    class LitModel(LightningModule):
+
+        def __init__(self):
+            ...
+            self.register_buffer("sigma", torch.eye(3))
+            # you can now access self.sigma anywhere in your module
+
 
 Remove samplers
 ^^^^^^^^^^^^^^^
@@ -119,6 +134,7 @@ which cannot be pickled.
     _pickle.PicklingError: Can't pickle [THIS IS THE THING TO FIND AND DELETE]:
     attribute lookup <lambda> on __main__ failed
 
+----------
 
 Select GPU devices
 ------------------
@@ -192,6 +208,7 @@ However, when using a cluster, Lightning will NOT set these flags (and you shoul
 SLURM will set these for you.
 For more details see the `SLURM cluster guide <slurm.rst>`_.
 
+----------
 
 Distributed modes
 -----------------
@@ -573,7 +590,9 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
         `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
-                
+
+----------
+
 PytorchElastic
 --------------
 Lightning supports the use of PytorchElastic to enable fault-tolerent and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
@@ -608,10 +627,14 @@ And then launch the elastic job with:
 See the official `PytorchElastic documentation <https://pytorch.org/elastic>`_ for details
 on installation and more use cases.
 
+----------
+
 Jupyter Notebooks
 -----------------
 Unfortunately any `ddp_` is not supported in jupyter notebooks. Please use `dp` for multiple GPUs. This is a known
 Jupyter issue. If you feel like taking a stab at adding this support, feel free to submit a PR!
+
+----------
 
 Pickle Errors
 --------------

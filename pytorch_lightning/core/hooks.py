@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 
 
 try:
@@ -16,6 +16,54 @@ else:
 
 
 class ModelHooks(Module):
+
+    def setup(self, stage: str):
+        """
+        Called at the beginning of fit and test.
+        This is a good hook when you need to build models dynamically or adjust something about them.
+        This hook is called on every process when using DDP.
+
+        Args:
+            stage: either 'fit' or 'test'
+
+        Example::
+
+            class LitModel(...):
+                def __init__(self):
+                    self.l1 = None
+
+                def prepare_data(self):
+                    download_data()
+                    tokenize()
+
+                    # don't do this
+                    self.something = else
+
+                def setup(stage):
+                    data = Load_data(...)
+                    self.l1 = nn.Linear(28, data.num_classes)
+
+        """
+
+    def teardown(self, stage: str):
+        """
+        Called at the end of fit and test.
+
+        Args:
+            stage: either 'fit' or 'test'
+        """
+
+    def on_fit_start(self):
+        """
+        Called at the very beginning of fit.
+        If on DDP it is called on every process
+        """
+
+    def on_fit_end(self):
+        """
+        Called at the very end of fit.
+        If on DDP it is called on every process
+        """
 
     # TODO: remove in v0.9.0
     def on_sanity_check_start(self):
@@ -134,26 +182,19 @@ class ModelHooks(Module):
 
         Example::
 
-            def backward(self, use_amp, loss, optimizer):
-                if use_amp:
-                    with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    loss.backward()
+            def backward(self, trainer, loss, optimizer, optimizer_idx):
+                loss.backward()
 
         """
-        if trainer.precision == 16:
-            # .backward is not special on 16-bit with TPUs
-            if trainer.on_tpu:
-                return
+        loss.backward()
 
-            if self.trainer.use_native_amp:
-                self.trainer.scaler.scale(loss).backward()
-            else:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
+        if NATIVE_AMP_AVALAIBLE:
+            scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
-            loss.backward()
+            scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
+
+        return scaled_loss
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         """
@@ -162,11 +203,11 @@ class ModelHooks(Module):
 
         The data types listed below (and any arbitrary nesting of them) are supported out of the box:
 
-        - :class:`torch.Tensor`
+        - :class:`torch.Tensor` or anything that implements `.to(...)`
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
-        - ``torchtext.data.Batch`` (COMING SOON)
+        - :class:`torchtext.data.batch.Batch`
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 

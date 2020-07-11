@@ -12,7 +12,7 @@
 [![codecov](https://codecov.io/gh/PyTorchLightning/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/PyTorchLightning/pytorch-lightning)
 
 [![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
-[![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ)
+[![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 [![Next Release](https://img.shields.io/badge/Next%20Release-May%2029-<COLOR>.svg)](https://shields.io/)
 
@@ -21,14 +21,28 @@
 -->
 </div>
 
+---   
+## Trending contributors
+
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/0)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/0)
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/1)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/1)
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/2)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/2)
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/3)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/3)
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/4)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/4)
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/5)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/5)
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/6)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/6)
+[![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/7)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/7)
+
 ---
+
 ## Continuous Integration
 <center>
 
-| System / PyTorch ver. | 1.3 (min. reg) | 1.4 | 1.5 (latest) |
+| System / PyTorch ver. | 1.3 (min. req.) | 1.4 | 1.5 (latest) |
 | :---: | :---: | :---: | :---: |
-| Linux py3.6 [CPU] | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) | [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning) |
+| Conda py3.7 [linux] | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) |
 | Linux py3.7 [GPU] | - | - | [![Build Status](http://35.192.60.23/api/badges/PyTorchLightning/pytorch-lightning/status.svg)](http://35.192.60.23/PyTorchLightning/pytorch-lightning) |
+| Linux py3.7 [TPU] | - | - | ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg) |
 | Linux py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
 | OSX py3.6 / py3.7 | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
 | Windows py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |[![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
@@ -47,12 +61,12 @@ conda install pytorch-lightning -c conda-forge
 
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
+- [stable](https://pytorch-lightning.readthedocs.io/en/stable)
+- [0.8.5](https://pytorch-lightning.readthedocs.io/en/0.8.5/)
+- [0.8.4](https://pytorch-lightning.readthedocs.io/en/0.8.4/)
+- [0.8.3](https://pytorch-lightning.readthedocs.io/en/0.8.3/)
+- [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
 - [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
-- [0.7.5](https://pytorch-lightning.readthedocs.io/en/0.7.5/)
-- [0.7.3](https://pytorch-lightning.readthedocs.io/en/0.7.3/)
-- [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
-- [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
-- [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
 ## Refactoring your PyTorch code + benefits + full walk-through
 [![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
@@ -135,13 +149,15 @@ As you see, you're just organizing your PyTorch code - there's no abstraction.
 
 And for the stuff that the Trainer abstracts out, you can [override any part](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html#extensibility) you want to do things like implement your own distributed training, 16-bit precision, or even a custom backward pass.
 
-For example, here you could do your own backward pass
+For example, here you could do your own backward pass without worrying about GPUs, TPUs or 16-bit since we already handle it.
 
 ```python
 class LitModel(LightningModule):
-  def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                     second_order_closure=None):
+    def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
+                     second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
       optimizer.step()
+
+    def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
 ```
 
@@ -319,7 +335,6 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - [Neptune.ai](https://neptune.ai/)
 - [Comet.ml](https://www.comet.ml/site/)
 - [Wandb](https://www.wandb.com/)
-- [Trains](https://github.com/allegroai/trains)
 - ...  
 
 ![tensorboard-support](docs/source/_images/general/tf_loss.png)
@@ -357,6 +372,7 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
 - [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
 - [Finetune BERT, RoBERTa etc on QA Datasets like SQuAD](https://github.com/tshrjn/Finetune-QA/)
+- [Pytorch-Lightning + Microsoft NNI with Docker](https://github.com/davinnovation/pytorch-boilerplate)
 
 ## Tutorials
 Check out our [introduction guide](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html) to get started.
@@ -371,9 +387,10 @@ If you have any questions, feel free to:
 1. [read the docs](https://pytorch-lightning.rtfd.io/en/latest/).
 2. [Search through the issues](https://github.com/PytorchLightning/pytorch-lightning/issues?utf8=%E2%9C%93&q=my++question).
 3. [Ask on stackoverflow](https://stackoverflow.com/questions/ask?guided=false) with the tag pytorch-lightning.
-4. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/enQtODU5ODIyNTUzODQwLTFkMDg5Mzc1MDBmNjEzMDgxOTVmYTdhYjA1MDdmODUyOTg2OGQ1ZWZkYTQzODhhNzdhZDA3YmNhMDhlMDY4YzQ).
+4. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A).
 
 ---
+
 ## FAQ
 **How do I use Lightning for rapid research?**    
 [Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)
@@ -440,6 +457,8 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 - Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 
+---
+
 #### Funding    
 Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can
 hire a full-time staff, attend conferences, and move faster through implementing features you request.
@@ -456,7 +475,7 @@ If you want to cite the framework feel free to use this (but only if you loved i
 @article{falcon2019pytorch,
   title={PyTorch Lightning},
   author={Falcon, WA},
-  journal={GitHub. Note: https://github. com/williamFalcon/pytorch-lightning Cited by},
+  journal={GitHub. Note: https://github.com/PyTorchLightning/pytorch-lightning Cited by},
   volume={3},
   year={2019}
 }

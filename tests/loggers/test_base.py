@@ -1,4 +1,5 @@
 import pickle
+from typing import Optional
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -50,6 +51,14 @@ class CustomLogger(LightningLoggerBase):
         self.finalized_status = status
 
     @property
+    def save_dir(self) -> Optional[str]:
+        """
+        Return the root directory where experiment logs get saved, or `None` if the logger does not
+        save data locally.
+        """
+        return None
+
+    @property
     def name(self):
         return "name"
 
@@ -66,9 +75,9 @@ def test_custom_logger(tmpdir):
 
     trainer = Trainer(
         max_epochs=1,
-        train_percent_check=0.05,
+        limit_train_batches=0.05,
         logger=logger,
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -86,9 +95,9 @@ def test_multiple_loggers(tmpdir):
 
     trainer = Trainer(
         max_epochs=1,
-        train_percent_check=0.05,
+        limit_train_batches=0.05,
         logger=[logger1, logger2],
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
     assert result == 1, "Training failed"
@@ -108,7 +117,11 @@ def test_multiple_loggers_pickle(tmpdir):
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer = Trainer(max_epochs=1, logger=[logger1, logger2])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=[logger1, logger2],
+    )
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0}, 0)
@@ -144,8 +157,8 @@ def test_adding_step_key(tmpdir):
     trainer = Trainer(
         max_epochs=3,
         default_root_dir=tmpdir,
-        train_percent_check=0.001,
-        val_percent_check=0.01,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
         num_sanity_val_steps=0,
     )
     trainer.logger.log_metrics = _log_metrics_decorator(

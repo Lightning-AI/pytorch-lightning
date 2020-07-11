@@ -7,16 +7,15 @@ import cloudpickle
 import pytest
 import torch
 
-import tests.base.utils as tutils
+import tests.base.develop_pipelines as tpipes
+import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.spawn
-@pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_running_test_pretrained_model_distrib(tmpdir, backend):
+def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
 
@@ -31,12 +30,61 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
         gpus=[0, 1],
-        distributed_backend=backend,
+        distributed_backend='dp',
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+
+    # run test set
+    new_trainer = Trainer(**trainer_options)
+    results = new_trainer.test(pretrained_model)
+    pretrained_model.cpu()
+
+    # test we have good test accuracy
+    acc = results['test_acc']
+    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
+
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
+        tpipes.run_prediction(dataloader, pretrained_model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
+    """Verify `test()` on pretrained model."""
+    tutils.set_random_master_port()
+
+    model = EvalModelTemplate()
+
+    # exp file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+
+    # exp file to get weights
+    checkpoint = tutils.init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        progress_bar_refresh_rate=0,
+        max_epochs=2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
     )
 
     # fit model
@@ -47,23 +95,22 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(logger,
-                                         trainer.checkpoint_callback.dirpath,
-                                         module_class=EvalModelTemplate)
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    results = new_trainer.test(pretrained_model)
+    pretrained_model.cpu()
 
-    # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer)
+    acc = results['test_acc']
+    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = model.test_dataloader()
     if not isinstance(dataloaders, list):
         dataloaders = [dataloaders]
 
     for dataloader in dataloaders:
-        tutils.run_prediction(dataloader, pretrained_model)
+        tpipes.run_prediction(dataloader, pretrained_model)
 
 
 def test_running_test_pretrained_model_cpu(tmpdir):
@@ -79,10 +126,10 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=3,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
-        logger=logger
+        logger=logger,
     )
 
     # fit model
@@ -91,9 +138,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model(
-        logger, trainer.checkpoint_callback.dirpath, module_class=EvalModelTemplate
-    )
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     new_trainer = Trainer(**trainer_options)
     new_trainer.test(pretrained_model)
@@ -110,8 +155,8 @@ def test_load_model_from_checkpoint(tmpdir):
     trainer_options = dict(
         progress_bar_refresh_rate=0,
         max_epochs=2,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
     )
@@ -153,6 +198,7 @@ def test_dp_resume(tmpdir):
         max_epochs=1,
         gpus=2,
         distributed_backend='dp',
+        default_root_dir=tmpdir,
     )
 
     # get logger
@@ -187,8 +233,8 @@ def test_dp_resume(tmpdir):
     new_logger = tutils.get_default_logger(tmpdir, version=logger.version)
     trainer_options['logger'] = new_logger
     trainer_options['checkpoint_callback'] = ModelCheckpoint(tmpdir)
-    trainer_options['train_percent_check'] = 0.5
-    trainer_options['val_percent_check'] = 0.2
+    trainer_options['limit_train_batches'] = 0.5
+    trainer_options['limit_val_batches'] = 0.2
     trainer_options['max_epochs'] = 1
     new_trainer = Trainer(**trainer_options)
 
@@ -202,7 +248,7 @@ def test_dp_resume(tmpdir):
         dp_model.eval()
 
         dataloader = trainer.train_dataloader
-        tutils.run_prediction(dataloader, dp_model, dp=True)
+        tpipes.run_prediction(dataloader, dp_model, dp=True)
 
     # new model
     model = EvalModelTemplate(**hparams)

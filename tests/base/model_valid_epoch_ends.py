@@ -24,11 +24,11 @@ class ValidationEpochEndVariations(ABC):
         val_loss_mean = _mean(outputs, 'val_loss')
         val_acc_mean = _mean(outputs, 'val_acc')
 
-        metrics_dict = {'val_loss': val_loss_mean.item(), 'val_acc': val_acc_mean.item()}
+        metrics_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
-    def validation_epoch_end_multiple_dataloaders(self, outputs):
+    def validation_epoch_end__multiple_dataloaders(self, outputs):
         """
         Called at the end of validation to aggregate outputs
 

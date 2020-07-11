@@ -22,32 +22,32 @@ If you have a small dataset you might want to check validation every n epochs
 Set how much of the validation set to check
 -------------------------------------------
 
-If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the validation set (for debugging or if it's huge), set this flag.
 
-val_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+limit_val_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(val_percent_check=1.0)
+    trainer = Trainer(limit_val_batches=1.0)
 
     # check 10% only
-    trainer = Trainer(val_percent_check=0.1)
+    trainer = Trainer(limit_val_batches=0.1)
 
 Set how much of the test set to check
 -------------------------------------
 
-If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag
+If you don't want to check 100% of the test set (for debugging or if it's huge), set this flag.
 
-test_percent_check will be overwritten by overfit_pct if `overfit_pct > 0`
+limit_test_batches will be overwritten by overfit_batches if `overfit_batches > 0`
 
 .. code-block:: python
 
     # DEFAULT
-    trainer = Trainer(test_percent_check=1.0)
+    trainer = Trainer(limit_test_batches=1.0)
 
     # check 10% only
-    trainer = Trainer(test_percent_check=0.1)
+    trainer = Trainer(limit_test_batches=0.1)
 
 Set validation check frequency within 1 training epoch
 ------------------------------------------------------
@@ -124,15 +124,15 @@ In this second case, the options you pass to trainer will be used when running
 
 from abc import ABC, abstractmethod
 from pprint import pprint
-from typing import Callable, Optional
+from typing import Callable, List, Union
 
 import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from torch import distributed as dist
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -144,7 +144,7 @@ else:
 
 try:
     import horovod.torch as hvd
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
 else:
     HOROVOD_AVAILABLE = True
@@ -162,8 +162,9 @@ class TrainerEvaluationLoopMixin(ABC):
     single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
-    num_test_batches: int
+    num_test_batches: List[int]
     num_val_batches: int
+    world_size: int
     fast_dev_run: ...
     process_output: ...
     progress_bar_dict: ...
@@ -222,13 +223,20 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _evaluate(self, model: LightningModule, dataloaders, max_batches: int, test_mode: bool = False):
+    def _evaluate(
+        self,
+        model: LightningModule,
+        dataloaders: List[DataLoader],
+        max_batches: Union[int, List[int]],
+        test_mode: bool = False
+    ):
         """Run evaluation code.
 
         Args:
-            model: PT model
-            dataloaders: list of PT dataloaders
-            max_batches: Scalar
+            model: The model to evaluate.
+            dataloaders: A list of PyTorch dataloaders.
+            max_batches: An integer or list of integers with length of the number of dataloaders. Each
+                entry is the number of batches to process in the corresponding dataloader.
             test_mode:
         """
         # enable eval mode
@@ -244,6 +252,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # bookkeeping
         outputs = []
 
+        # convert max_batches to list
+        if isinstance(max_batches, int):
+            max_batches = [max_batches] * len(dataloaders)
+
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
@@ -254,12 +266,15 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = xla_pl.ParallelLoader(dataloader, [device])
                 dataloader = dataloader.per_device_loader(device)
 
+            # each dataloader has a max num batches
+            dl_max_batches = max_batches[dataloader_idx]
+
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
 
                 # stop short when on fast_dev_run (sets max_batch=1)
-                if batch_idx >= max_batches:
+                if batch_idx >= dl_max_batches:
                     break
 
                 # callbacks
@@ -271,7 +286,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and self.use_native_amp:
+                if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:
@@ -310,7 +325,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
+                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
@@ -320,7 +335,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
+                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
@@ -359,7 +374,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # cap max batches to 1 when using fast_dev_run
         if self.fast_dev_run:
-            max_batches = 1
+            max_batches = [1]
 
         # Validation/Test begin callbacks
         if test_mode:
@@ -367,25 +382,34 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             self.on_validation_start()
 
+        # enable disabling validation step with limit_val_batches = 0
+        should_skip = sum(max_batches) == 0
+        if should_skip:
+            return
+
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # add metrics to prog bar
-        self.add_progress_bar_metrics(prog_bar_metrics)
+        # enable no returns
+        callback_metrics = {}
+        if eval_results is not None and len(eval_results) > 0:
+            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # log results of test
-        if test_mode and self.is_global_zero:
-            print('-' * 80)
-            print('TEST RESULTS')
-            pprint(callback_metrics)
-            print('-' * 80)
+            # add metrics to prog bar
+            self.add_progress_bar_metrics(prog_bar_metrics)
 
-        # log metrics
-        self.log_metrics(log_metrics, {})
+            # log results of test
+            if test_mode and self.is_global_zero:
+                print('-' * 80)
+                print('TEST RESULTS')
+                pprint(callback_metrics)
+                print('-' * 80)
 
-        # track metrics for callbacks
-        self.callback_metrics.update(callback_metrics)
+            # log metrics
+            self.log_metrics(log_metrics, {})
+
+            # track metrics for callbacks
+            self.callback_metrics.update(callback_metrics)
 
         # hook
         model.on_post_performance_check()
@@ -404,6 +428,8 @@ class TrainerEvaluationLoopMixin(ABC):
             self.on_test_end()
         else:
             self.on_validation_end()
+
+        return callback_metrics
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional

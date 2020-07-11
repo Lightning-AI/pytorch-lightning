@@ -31,6 +31,7 @@ class LightningTemplateModel(LightningModule):
         ...     optimizer_name='adam',
         ...     data_root='./datasets',
         ...     out_features=10,
+        ...     num_workers=4,
         ...     hidden_dim=1000,
         ... )
         >>> model = LightningTemplateModel(**params)
@@ -44,11 +45,14 @@ class LightningTemplateModel(LightningModule):
                  optimizer_name: str = 'adam',
                  data_root: str = './datasets',
                  out_features: int = 10,
+                 num_workers: int = 4,
                  hidden_dim: int = 1000,
                  **kwargs
-                 ) -> 'LightningTemplateModel':
+                 ):
         # init superclass
         super().__init__()
+
+        self.num_workers = num_workers
         self.drop_prob = drop_prob
         self.batch_size = batch_size
         self.in_features = in_features
@@ -65,6 +69,8 @@ class LightningTemplateModel(LightningModule):
 
         self.c_d2 = nn.Linear(in_features=self.hidden_dim,
                               out_features=self.out_features)
+
+        self.example_input_array = torch.zeros(2, 1, 28, 28)
 
     def forward(self, x):
         """
@@ -139,22 +145,22 @@ class LightningTemplateModel(LightningModule):
         return [optimizer], [scheduler]
 
     def prepare_data(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
-        self.mnist_train = MNIST(self.data_root, train=True, download=True, transform=transform)
-        self.mnist_test = MNIST(self.data_root, train=False, download=True, transform=transform)
+        MNIST(self.data_root, train=True, download=True, transform=transforms.ToTensor())
+        MNIST(self.data_root, train=False, download=True, transform=transforms.ToTensor())
+
+    def setup(self, stage):
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+        self.mnist_train = MNIST(self.data_root, train=True, download=False, transform=transform)
+        self.mnist_test = MNIST(self.data_root, train=False, download=False, transform=transform)
 
     def train_dataloader(self):
-        log.info('Training data loader called.')
-        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)
+        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def val_dataloader(self):
-        log.info('Validation data loader called.')
-        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
+        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def test_dataloader(self):
-        log.info('Test data loader called.')
-        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
+        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=self.num_workers)
 
     @staticmethod
     def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
@@ -173,6 +179,7 @@ class LightningTemplateModel(LightningModule):
         parser.add_argument('--hidden_dim', default=50000, type=int)
         parser.add_argument('--drop_prob', default=0.2, type=float)
         parser.add_argument('--learning_rate', default=0.001, type=float)
+        parser.add_argument('--num_workers', default=4, type=int)
 
         # data
         parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)

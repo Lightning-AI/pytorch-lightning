@@ -1,14 +1,11 @@
-import torch
-import pytest
 import numpy as np
+import pytest
 
-from pytorch_lightning import Trainer, seed_everything
-
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
-
 from tests.base import EvalModelTemplate
-from tests.base.utils import reset_seed
+from tests.base.develop_utils import reset_seed
 
 
 class OnlyMetricsListLogger(LightningLoggerBase):
@@ -87,6 +84,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     logger = OnlyMetricsListLogger()
 
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=3,
         logger=logger,
         track_grad_norm=norm_type,

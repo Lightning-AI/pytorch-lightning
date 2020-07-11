@@ -5,9 +5,16 @@ Progress Bars
 Use or override one of the progress bar callbacks.
 
 """
+import importlib
 import sys
 
-from tqdm.auto import tqdm
+
+# check if ipywidgets is installed before importing tqdm.auto
+# to ensure it won't fail and a progress bar is displayed
+if importlib.util.find_spec('ipywidgets') is not None:
+    from tqdm.auto import tqdm
+else:
+    from tqdm import tqdm
 
 from pytorch_lightning.callbacks import Callback
 
@@ -97,7 +104,7 @@ class ProgressBarBase(Callback):
             total_val_batches = len(trainer.val_dataloaders)
         elif not self.trainer.disable_validation:
             is_val_epoch = (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch == 0
-            total_val_batches = trainer.num_val_batches if is_val_epoch else 0
+            total_val_batches = sum(trainer.num_val_batches) if is_val_epoch else 0
         return total_val_batches
 
     @property
@@ -111,6 +118,7 @@ class ProgressBarBase(Callback):
             total_test_batches = len(self.trainer.test_dataloaders)
         else:
             total_test_batches = self.trainer.num_test_batches
+            total_test_batches = sum(total_test_batches)
         return total_test_batches
 
     def disable(self):

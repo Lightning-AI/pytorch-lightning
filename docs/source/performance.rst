@@ -2,6 +2,8 @@ Fast Performance
 ================
 Here are some best practices to increase your performance.
 
+----------
+
 Dataloaders
 -----------
 When building your Dataloader set `num_workers` > 0 and `pin_memory=True` (only for GPUs).
@@ -22,7 +24,7 @@ some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num
 
 .. warning:: Increasing num_workers will ALSO increase your CPU memory consumption.
 
-The best thing to do is to increase the nun_workers slowly and stop once you see no more improvement in your training speed.
+The best thing to do is to increase the `num_workers` slowly and stop once you see no more improvement in your training speed.
 
 Spawn
 ^^^^^
@@ -34,26 +36,46 @@ use `distributed_backend=ddp` so you can increase the `num_workers`, however you
 
     python my_program.py --gpus X
 
+----------
+
 .item(), .numpy(), .cpu()
 -------------------------
 Don't call .item() anywhere on your code. Use `.detach()` instead to remove the connected graph calls. Lightning
 takes a great deal of care to be optimized for this.
 
+----------
+
 empty_cache()
 -------------
 Don't call this unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
 
-construct tensors directly on device
-------------------------------------
-LightningModules know what device they are on! construct tensors on the device directly to avoid CPU->Device transfer.
+----------
+
+Construct tensors directly on the device
+----------------------------------------
+LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
 
 .. code-block:: python
 
     # bad
-    t = tensor.rand(2, 2).cuda()
+    t = torch.rand(2, 2).cuda()
 
-    # good (self is lightningModule)
-    t = tensor.rand(2,2, device=self.device)
+    # good (self is LightningModule)
+    t = torch.rand(2, 2, device=self.device)
+
+
+For tensors that need to be model attributes, it is best practice to register them as buffers in the modules's
+`__init__` method:
+
+.. code-block:: python
+
+    # bad
+    self.t = torch.rand(2, 2, device=self.device)
+
+    # good
+    self.register_buffer("t", torch.rand(2, 2))
+
+----------
 
 Use DDP not DP
 --------------
@@ -64,6 +86,8 @@ DP performs three GPU transfers for EVERY batch:
 3. Copy outputs of each device back to master.
 
 Whereas DDP only performs 1 transfer to sync gradients. Because of this, DDP is MUCH faster than DP.
+
+----------
 
 16-bit precision
 ----------------
