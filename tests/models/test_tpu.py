@@ -148,8 +148,8 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 
     model = EvalModelTemplate()
     # 8 cores needs a big dataset
-    model.train_dataloader = _serial_train_loader
-    model.val_dataloader = _serial_train_loader
+    model.train_dataloader = model.train_dataloader__long
+    model.val_dataloader = model.val_dataloader__long
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
