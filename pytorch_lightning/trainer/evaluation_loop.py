@@ -287,7 +287,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and NATIVE_AMP_AVALAIBLE:
+                if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:
@@ -326,7 +326,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(outputs)
-                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed v1.0.'
+                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
@@ -336,15 +336,11 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(outputs)
-                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed v1.0.'
+                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
                 eval_results = model.validation_epoch_end(outputs)
-
-                # aggregate ddp stats across
-                if self.use_ddp or self.use_ddp2:
-                    self.reduce_eval_ddp(eval_results)
 
         # enable train mode again
         model.train()
@@ -353,19 +349,6 @@ class TrainerEvaluationLoopMixin(ABC):
         torch.set_grad_enabled(True)
 
         return eval_results
-
-    def reduce_eval_ddp(self, eval_results):
-        # ignore bad inputs
-        if eval_results is None or len(eval_results) == 0:
-            return
-
-        for k, v in eval_results.items():
-            if isinstance(v, dict):
-                self.reduce_eval_ddp(v)
-            elif isinstance(v, torch.Tensor):
-                dist.all_reduce(v, op=dist.reduce_op.SUM)
-                v = v / self.world_size
-                eval_results[k] = v
 
     def run_evaluation(self, test_mode: bool = False):
         # hook
@@ -407,23 +390,27 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
-        _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # add metrics to prog bar
-        self.add_progress_bar_metrics(prog_bar_metrics)
+        # enable no returns
+        callback_metrics = {}
+        if eval_results is not None and len(eval_results) > 0:
+            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-        # log results of test
-        if test_mode and self.is_global_zero:
-            print('-' * 80)
-            print('TEST RESULTS')
-            pprint(callback_metrics)
-            print('-' * 80)
+            # add metrics to prog bar
+            self.add_progress_bar_metrics(prog_bar_metrics)
 
-        # log metrics
-        self.log_metrics(log_metrics, {})
+            # log results of test
+            if test_mode and self.is_global_zero:
+                print('-' * 80)
+                print('TEST RESULTS')
+                pprint(callback_metrics)
+                print('-' * 80)
 
-        # track metrics for callbacks
-        self.callback_metrics.update(callback_metrics)
+            # log metrics
+            self.log_metrics(log_metrics, {})
+
+            # track metrics for callbacks
+            self.callback_metrics.update(callback_metrics)
 
         # hook
         model.on_post_performance_check()
@@ -442,6 +429,8 @@ class TrainerEvaluationLoopMixin(ABC):
             self.on_test_end()
         else:
             self.on_validation_end()
+
+        return callback_metrics
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional

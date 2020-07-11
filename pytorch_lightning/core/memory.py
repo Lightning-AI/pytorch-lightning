@@ -208,9 +208,8 @@ class ModelSummary(object):
 
         input_ = model.example_input_array
         input_ = model.transfer_batch_to_device(input_, model.device)
-        input_ = apply_to_collection(input_, torch.Tensor, lambda x: x.type(model.dtype))
 
-        if trainer is not None and trainer.use_amp:
+        if trainer is not None and trainer.use_amp and not trainer.use_tpu:
             if NATIVE_AMP_AVALAIBLE:
                 model.forward = torch.cuda.amp.autocast()(model.forward)
 

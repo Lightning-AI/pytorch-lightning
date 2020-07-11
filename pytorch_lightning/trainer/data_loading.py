@@ -1,8 +1,10 @@
+import multiprocessing
 import platform
 from abc import ABC, abstractmethod
+from distutils.version import LooseVersion
 from typing import Union, List, Tuple, Callable, Optional
-import multiprocessing
 
+import torch
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -41,19 +43,33 @@ else:
     HOROVOD_AVAILABLE = True
 
 
+def _has_iterable_dataset(dataloader: DataLoader):
+    return ITERABLE_DATASET_EXISTS and hasattr(dataloader, 'dataset') \
+        and isinstance(dataloader.dataset, IterableDataset)
+
+
 def _has_len(dataloader: DataLoader) -> bool:
     """ Checks if a given Dataloader has __len__ method implemented i.e. if
-    it is a finite dataloader or infinite dataloader """
+    it is a finite dataloader or infinite dataloader. """
+
     try:
         # try getting the length
         if len(dataloader) == 0:
             raise ValueError('`Dataloader` returned 0 length.'
                              ' Please make sure that your Dataloader at least returns 1 batch')
-        return True
+        has_len = True
     except TypeError:
-        return False
+        has_len = False
     except NotImplementedError:  # e.g. raised by torchtext if a batch_size_fn is used
-        return False
+        has_len = False
+
+    if has_len and _has_iterable_dataset(dataloader) and LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+        rank_zero_warn(
+            'Your `IterableDataset` has `__len__` defined.'
+            ' In combination with multi-processing data loading (e.g. batch size > 1),'
+            ' this can lead to unintended side effects since the samples will be duplicated.'
+        )
+    return has_len
 
 
 class TrainerDataLoadingMixin(ABC):
@@ -108,32 +124,31 @@ class TrainerDataLoadingMixin(ABC):
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         is_dataloader = isinstance(dataloader, DataLoader)
         using_spawn = self.distributed_backend == 'ddp_spawn'
-        if is_dataloader and dataloader.num_workers > 0 and not on_windows and using_spawn:
-            rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well! '
-                           'Your performance might suffer dramatically. '
-                           'Please consider setting distributed_backend=ddp to use num_workers > 0 '
-                           '(this is a bottleneck of Python .spawn() and PyTorch')
+        if is_dataloader and not on_windows:
+            if dataloader.num_workers > 0 and using_spawn:
+                rank_zero_warn('Dataloader(num_workers>0) and ddp_spawn do not mix well!'
+                               ' Your performance might suffer dramatically.'
+                               ' Please consider setting distributed_backend=ddp to use num_workers > 0'
+                               ' (this is a bottleneck of Python .spawn() and PyTorch')
 
-        elif is_dataloader and dataloader.num_workers <= 2 and not on_windows and not using_spawn:
-            num_cpus = multiprocessing.cpu_count()
-            rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
-                           ' Consider increasing the value of the `num_workers` argument` '
-                           f'(try {num_cpus} which is the number of cpus on this machine)'
-                           ' in the `DataLoader` init to improve performance.')
+            elif dataloader.num_workers == 0 and using_spawn:
+                rank_zero_warn('You are using `distributed_backend=ddp_spawn` with num_workers=0.'
+                               ' For much faster performance, switch to `distributed_backend=ddp`'
+                               ' and set `num_workers>0`')
 
-        elif is_dataloader and dataloader.num_workers == 0 and not on_windows and using_spawn:
-            rank_zero_warn('You are using `distributed_backend=ddp_spawn` with num_workers=0. '
-                           'For much faster performance, switch to `distributed_backend=ddp` and set `num_workers>0`')
+            elif dataloader.num_workers <= 2 and multiprocessing.cpu_count() > 2 and not using_spawn:
+                num_cpus = multiprocessing.cpu_count()
+                rank_zero_warn(f'The dataloader, {name}, does not have many workers which may be a bottleneck.'
+                               ' Consider increasing the value of the `num_workers` argument`'
+                               f' (try {num_cpus} which is the number of cpus on this machine)'
+                               ' in the `DataLoader` init to improve performance.')
 
     def auto_add_sampler(self, dataloader: DataLoader, train: bool) -> DataLoader:
 
         # don't do anything if it's not a dataloader
-        # don't manipulate iterable datasets
         is_dataloader = isinstance(dataloader, DataLoader)
-
-        is_iterable_ds = False
-        if ITERABLE_DATASET_EXISTS and hasattr(dataloader, 'dataset'):
-            is_iterable_ds = isinstance(dataloader.dataset, IterableDataset)
+        # don't manipulate iterable datasets
+        is_iterable_ds = _has_iterable_dataset(dataloader)
 
         if not is_dataloader or is_iterable_ds:
             return dataloader
@@ -206,7 +221,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.num_training_batches = len(self.train_dataloader)
                 self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
             else:
-                self.num_training_batches = self.limit_train_batches
+                self.num_training_batches = min(len(self.train_dataloader), self.limit_train_batches)
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -285,11 +300,7 @@ class TrainerDataLoadingMixin(ABC):
         # datasets could be none, 1 or 2+
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                try:
-                    num_batches = len(dataloader)
-                except (TypeError, NotImplementedError):
-                    num_batches = float('inf')
-
+                num_batches = len(dataloader) if _has_len(dataloader) else float('inf')
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
 
                 # percent or num_steps
@@ -302,7 +313,7 @@ class TrainerDataLoadingMixin(ABC):
                     if isinstance(limit_eval_batches, float):
                         num_batches = int(num_batches * limit_eval_batches)
                     else:
-                        num_batches = limit_eval_batches
+                        num_batches = min(len(dataloader), limit_eval_batches)
 
                 elif limit_eval_batches not in (0.0, 1.0):
                     raise MisconfigurationException(
@@ -329,8 +340,7 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         if self.is_overridden('validation_step'):
-            self.num_val_batches, self.val_dataloaders = \
-                self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.

@@ -6,7 +6,7 @@ name: torch-GPU
 
 steps:
 - name: testing
-  image: pytorchlightning/pytorch_lightning:devel-pt_1_4
+  image: pytorchlightning/pytorch_lightning:devel-pt1.4
 
   environment:
     SLURM_LOCALID: 0
@@ -43,7 +43,10 @@ steps:
     - python -m py.test benchmarks pl_examples -v --maxfail=2  --durations=0 # --flake8
     #- cd docs; make doctest; make coverage
     - coverage report
-    - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
+    # see: https://docs.codecov.io/docs/merging-reports
+    - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
+    # --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG --pr $DRONE_PULL_REQUEST
+    # - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --build $DRONE_BUILD_NUMBER
     - python tests/collect_env_details.py
 
 trigger:

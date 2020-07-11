@@ -130,4 +130,3 @@ def test_pickling(tmpdir):
     early_stopping_pickled = cloudpickle.dumps(early_stopping)
     early_stopping_loaded = cloudpickle.loads(early_stopping_pickled)
     assert vars(early_stopping) == vars(early_stopping_loaded)
-

@@ -1321,7 +1321,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
             model.prepare_data()
                 if ddp/tpu: init()
-            model.setup(step)
+            model.setup(stage)
             model.train_dataloader()
             model.val_dataloader()
             model.test_dataloader()
@@ -1337,11 +1337,19 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         The dataloader you return will not be called every epoch unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
 
-        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+        For data processing use the following pattern:
+
+            - download in :meth:`prepare_data`
+            - process and split in :meth:`setup`
+
+        However, the above are only necessary for distributed processing.
+
+        .. warning:: do not assign state in prepare_data
 
         - :meth:`~pytorch_lightning.trainer.Trainer.fit`
         - ...
         - :meth:`prepare_data`
+        - :meth:`setup`
         - :meth:`train_dataloader`
 
         Note:
@@ -1383,11 +1391,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         The dataloader you return will not be called every epoch unless you set
         :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
 
-        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+        For data processing use the following pattern:
+
+            - download in :meth:`prepare_data`
+            - process and split in :meth:`setup`
+
+        However, the above are only necessary for distributed processing.
+
+        .. warning:: do not assign state in prepare_data
+
 
         - :meth:`~pytorch_lightning.trainer.Trainer.fit`
         - ...
         - :meth:`prepare_data`
+        - :meth:`setup`
         - :meth:`train_dataloader`
         - :meth:`val_dataloader`
         - :meth:`test_dataloader`

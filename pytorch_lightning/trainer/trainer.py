@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 import warnings
 
-# warnings to ignore
+# warnings to ignore in trainer
 warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
                                           'please use torch.distributed.ReduceOp instead')
 
@@ -129,11 +129,7 @@ class Trainer(
         >>> trainer.fit(model, train_loader)
         1
         >>> trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        --------------------------------------------------------------------------------
-        TEST RESULTS
-        ...
-        --------------------------------------------------------------------------------
-
+        1
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
@@ -400,6 +396,9 @@ class Trainer(
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
+
+        # when .test() is called, it sets this
+        self.tested_ckpt_path = None
 
         # training state
         self.model = None
@@ -797,12 +796,32 @@ class Trainer(
         else:
             return int(x)
 
-    @staticmethod
-    def parse_argparser(arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+    @classmethod
+    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
         """Parse CLI arguments, required for custom bool types."""
         args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
-        args = {k: True if v is None else v for k, v in vars(args).items()}
-        return Namespace(**args)
+
+        types_default = {
+            arg: (arg_types, arg_default) for arg, arg_types, arg_default in cls.get_init_arguments_and_types()
+        }
+
+        modified_args = {}
+        for k, v in vars(args).items():
+            if k in types_default and v is None:
+                # We need to figure out if the None is due to using nargs="?" or if it comes from the default value
+                arg_types, arg_default = types_default[k]
+                if bool in arg_types and isinstance(arg_default, bool):
+                    # Value has been passed as a flag => It is currently None, so we need to set it to True
+                    # We always set to True, regardless of the default value.
+                    # Users must pass False directly, but when passing nothing True is assumed.
+                    # i.e. the only way to disable somthing that defaults to True is to use the long form:
+                    # "--a_default_true_arg False" becomes False, while "--a_default_false_arg" becomes None,
+                    # which then becomes True here.
+
+                    v = True
+
+            modified_args[k] = v
+        return Namespace(**modified_args)
 
     @classmethod
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
@@ -911,6 +930,8 @@ class Trainer(
             # defined as part of the model, and validation can then be feed to .fit()
 
         """
+        results = None
+
         # bind logger and other properties
         self.copy_trainer_model_properties(model)
 
@@ -957,43 +978,41 @@ class Trainer(
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
 
-            self.ddp_train(task, model)
+            self.ddp_train(process_idx=task, q=None, model=model)
         elif self.use_ddp:
+
+            # set testing if set in environ
+            self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(task, model)
+                self.ddp_train(process_idx=task, q=None, model=model)
 
             # torchelastic or general non_slurm ddp
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
-                self.ddp_train(task, model)
+                self.ddp_train(process_idx=task, q=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                self.set_random_port()
-                self.model = model
-                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
+                results = self.__run_ddp_spawn(model, nprocs=self.num_processes)
 
             elif self.distributed_backend == 'ddp_spawn':
-                self.set_random_port()
-                model.share_memory()
-
-                # spin up peers
-                mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model, ))
+                results = self.__run_ddp_spawn(model, nprocs=self.num_processes)
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
-                self.spawn_ddp_children(model)
+                results = self.spawn_ddp_children(model)
 
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            self.dp_train(model)
+            results = self.dp_train(model)
 
         elif self.use_horovod:
-            self.horovod_train(model)
+            results = self.horovod_train(model)
 
         elif self.single_gpu:
-            self.single_gpu_train(model)
+            results = self.single_gpu_train(model)
 
         elif self.use_tpu:  # pragma: no-cover
             rank_zero_info(f'training on {self.tpu_cores} TPU cores')
@@ -1014,7 +1033,7 @@ class Trainer(
                 xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
 
             # load weights if not interrupted
-            if self.on_colab_kaggle:
+            if self.on_colab_kaggle and not self.testing:
                 self.load_spawn_weights(model)
 
             self.model = model
@@ -1034,7 +1053,7 @@ class Trainer(
             # allow for lr schedulers as well
             self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-            self.run_pretrain_routine(model)
+            results = self.run_pretrain_routine(model)
 
         # callbacks
         self.on_fit_end()
@@ -1049,12 +1068,36 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-        return 1
+        return results or 1
+
+    def __run_ddp_spawn(self, model, nprocs):
+        self.set_random_port()
+
+        # pass in a state q
+        smp = mp.get_context('spawn')
+        q = smp.SimpleQueue()
+
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model, ))
+
+        # restore main state with best weights
+        best_path = q.get()
+        results = q.get()
+        last_path = q.get()
+
+        # transfer back the best path to the trainer
+        self.checkpoint_callback.best_model_path = best_path
+
+        # load last weights
+        if last_path is not None and not self.testing:
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt)
+
+        self.model = model
+        return results
 
     def can_prepare_data(self):
         if self.prepare_data_per_node:
             return self.local_rank == 0
-
         else:
             return self.node_rank == 0 and self.local_rank == 0
 
@@ -1087,7 +1130,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if NATIVE_AMP_AVALAIBLE and self.precision == 16:
+        if NATIVE_AMP_AVALAIBLE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1125,15 +1168,24 @@ class Trainer(
         # if cluster resets state, the model will update with the saved weights
         self.model = model
 
-        # restore training and model before hpc call
+        # restore training and model before hpc is called
         self.restore_weights(model)
 
         # when testing requested only run test and return
         if self.testing:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
-            self.run_evaluation(test_mode=True)
-            return
+            results = self.run_evaluation(test_mode=True)
+
+            # remove all cuda tensors
+            if results is not None and isinstance(results, dict) and len(results) > 0:
+                for k, v in results.items():
+                    if isinstance(v, torch.Tensor):
+                        results[k] = v.cpu().item()
+
+                return results
+            else:
+                return 1
 
         should_sanity_check = self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 \
             and self.limit_val_batches > 0
@@ -1153,8 +1205,11 @@ class Trainer(
                                           self.val_dataloaders,
                                           max_batches,
                                           False)
-            _, _, _, callback_metrics, _ = self.process_output(eval_results)
-            self.callback_metrics = callback_metrics
+
+            # allow no returns from eval
+            if eval_results is not None and len(eval_results) > 0:
+                _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
 
@@ -1223,56 +1278,90 @@ class Trainer(
             trainer = Trainer()
             trainer.test(model, test_dataloaders=test)
         """
+        # --------------------
+        # SETUP HOOK
+        # --------------------
+        if self.global_rank != 0:
+            return
+
         self.setup('test')
-        model_ref = self.model if model is None else model
-        if self.is_function_implemented('setup', model_ref):
-            model_ref.setup('test')
 
-        self.barrier('test_setup')
+        if model is not None:
+            results = self.__test_given_model(model, test_dataloaders)
+        else:
+            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
-        if model is None and ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
+        self.teardown('test')
+
+        return results
+
+    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
+        model = self.get_model()
+        if self.is_function_implemented('setup', model):
+            model.setup('test')
+
+        # if user requests the best checkpoint but we don't have it, error
+        if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
                 'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
 
-        # if model is not given (None), ckpt_path is given,
-        # load the given checkpoint for testing
-        if model is None and ckpt_path is not None:
+        # load best weights
+        if ckpt_path is not None:
             # ckpt_path is 'best' so load the best model
             if ckpt_path == 'best':
                 ckpt_path = self.checkpoint_callback.best_model_path
-            model = self.get_model().load_from_checkpoint(ckpt_path)
 
-        self.testing = True
+            if len(ckpt_path) == 0:
+                rank_zero_warn(f'.test() found no path for the best weights, {ckpt_path}. Please '
+                               f'specify a path for a checkpoint .test(ckpt_path=PATH)')
+                return {}
 
+            ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt['state_dict'])
+
+        # attach dataloaders
         if test_dataloaders is not None:
-            if model:
-                self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
-            else:
-                self.__attach_dataloaders(self.model, test_dataloaders=test_dataloaders)
+            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
-        if model is not None:
-            self.model = model
-            self.fit(model)
-
-        # on tpu, .spawn means we don't have a trained model
-        # TODO: remove TPU spawn
-        elif self.use_tpu:  # pragma: no-cover
-            # attempt to load weights from a spawn
-            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
-            test_model = self.model
-            if os.path.exists(path) and self.on_colab_kaggle:
-                test_model = self.load_spawn_weights(self.model)
-
-            self.fit(test_model)
-        else:
-            self.run_evaluation(test_mode=True)
-
+        # run tests
+        self.tested_ckpt_path = ckpt_path
+        self.set_random_port(force=True)
+        self.testing = True
+        os.environ['PL_TESTING_MODE'] = '1'
+        self.model = model
+        results = self.fit(model)
         self.testing = False
+        del os.environ['PL_TESTING_MODE']
 
-        self.teardown('test')
+        # teardown
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
             model_ref.teardown('test')
+
+        return results
+
+    def __test_given_model(self, model, test_dataloaders):
+        # setup hook
+        if self.is_function_implemented('setup', model):
+            model.setup('test')
+
+        # attach data
+        if test_dataloaders is not None:
+            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+
+        # run test
+        # sets up testing so we short circuit to eval
+        self.set_random_port(force=True)
+        self.testing = True
+        self.model = model
+        results = self.fit(model)
+        self.testing = False
+
+        # teardown
+        if self.is_function_implemented('teardown'):
+            model.teardown('test')
+
+        return results
 
     def check_model_configuration(self, model: LightningModule):
         r"""
@@ -1287,17 +1376,17 @@ class Trainer(
             if not self.is_overridden('training_step', model):
                 raise MisconfigurationException(
                     'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
             if not self.is_overridden('train_dataloader', model):
                 raise MisconfigurationException(
                     'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
             if not self.is_overridden('configure_optimizers', model):
                 raise MisconfigurationException(
                     'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `training_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
 
             # Check val_dataloader, validation_step and validation_epoch_end
             if self.is_overridden('val_dataloader', model):
@@ -1334,7 +1423,8 @@ class Trainer(
 
     def barrier(self, name):
         if self.use_ddp or self.use_ddp2:
-            torch_distrib.barrier()
+            pass
+            # torch_distrib.barrier()
 
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up

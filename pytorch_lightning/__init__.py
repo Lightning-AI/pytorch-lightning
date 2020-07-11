@@ -1,6 +1,6 @@
 """Root package info."""
 
-__version__ = '0.8.4-dev'
+__version__ = '0.8.6-dev'
 __author__ = 'William Falcon et al.'
 __author_email__ = 'waf2107@columbia.edu'
 __license__ = 'Apache-2.0'
@@ -54,6 +54,7 @@ else:
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.trainer import Trainer
     from pytorch_lightning.utilities.seed import seed_everything
+    from pytorch_lightning import metrics
 
     __all__ = [
         'Trainer',
@@ -61,6 +62,7 @@ else:
         'Callback',
         'data_loader',
         'seed_everything',
+        'metrics'
     ]
 
     # necessary for regular bolts imports. Skip exception since bolts is not always installed

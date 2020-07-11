@@ -21,6 +21,7 @@ from pytorch_lightning.overrides.data_parallel import (
 from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     from apex import amp
@@ -182,7 +183,8 @@ class TrainerDPMixin(ABC):
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
 
-        self.run_pretrain_routine(model)
+        results = self.run_pretrain_routine(model)
+        return results
 
     def tpu_train(self, tpu_core_idx, model):
         # call setup after the ddp process has connected
@@ -221,6 +223,7 @@ class TrainerDPMixin(ABC):
 
         # when training ends on these platforms dump weights to get out of the main process
         if self.on_colab_kaggle:
+            rank_zero_warn('cleaning up... please do not interrupt')
             self.save_spawn_weights(model)
 
     def dp_train(self, model):
@@ -229,22 +232,22 @@ class TrainerDPMixin(ABC):
         if self.is_function_implemented('setup', model):
             model.setup('fit')
 
+        model.cuda(self.root_gpu)
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
 
-        model.cuda(self.root_gpu)
-
         # hack forward to do autocast for the user
         model_autocast_original_forward = model.forward
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             # wrap the user's forward in autocast and give it back at the end
             model.forward = torch.cuda.amp.autocast()(model.forward)
 
         # TODO: remove with dropping NVIDIA AMP support
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp and not NATIVE_AMP_AVALAIBLE:
+        if self.use_dp and self.use_amp and not NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             if self.amp_level == 'O2':
                 raise MisconfigurationException(
                     f'Amp level {self.amp_level} with DataParallel is not supported.'
@@ -264,9 +267,10 @@ class TrainerDPMixin(ABC):
 
         model = LightningDataParallel(model, device_ids=device_ids)
 
-        self.run_pretrain_routine(model)
-
+        result = self.run_pretrain_routine(model)
         model.forward = model_autocast_original_forward
+
+        return result
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
@@ -325,10 +329,11 @@ class TrainerDPMixin(ABC):
                 # Synchronization will be performed explicitly following backward()
                 stack.enter_context(optimizer.skip_synchronize())
 
-            self.run_pretrain_routine(model)
+            result = self.run_pretrain_routine(model)
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
+        return result
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:

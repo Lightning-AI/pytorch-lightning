@@ -40,8 +40,9 @@
 
 | System / PyTorch ver. | 1.3 (min. req.) | 1.4 | 1.5 (latest) |
 | :---: | :---: | :---: | :---: |
-| Conda py3.7 [linux] | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda%20compatibility/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda%20compatibility/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda%20compatibility/badge.svg) |
+| Conda py3.7 [linux] | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) |
 | Linux py3.7 [GPU] | - | - | [![Build Status](http://35.192.60.23/api/badges/PyTorchLightning/pytorch-lightning/status.svg)](http://35.192.60.23/PyTorchLightning/pytorch-lightning) |
+| Linux py3.7 [TPU] | - | - | ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg) |
 | Linux py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
 | OSX py3.6 / py3.7 | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
 | Windows py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |[![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
@@ -61,14 +62,11 @@ conda install pytorch-lightning -c conda-forge
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [stable](https://pytorch-lightning.readthedocs.io/en/stable)
+- [0.8.5](https://pytorch-lightning.readthedocs.io/en/0.8.5/)
+- [0.8.4](https://pytorch-lightning.readthedocs.io/en/0.8.4/)
 - [0.8.3](https://pytorch-lightning.readthedocs.io/en/0.8.3/)
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
 - [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
-- [0.7.5](https://pytorch-lightning.readthedocs.io/en/0.7.5/)
-- [0.7.3](https://pytorch-lightning.readthedocs.io/en/0.7.3/)
-- [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
-- [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
-- [0.5.3.2](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
 
 ## Refactoring your PyTorch code + benefits + full walk-through
 [![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)

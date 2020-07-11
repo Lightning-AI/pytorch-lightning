@@ -154,7 +154,7 @@ def test_accumulation_and_early_stopping(tmpdir):
         'Learning rate was not altered after running learning rate finder'
     assert len(lrfinder.results['lr']) == 100, \
         'Early stopping for learning rate finder did not work'
-    assert lrfinder._total_batch_idx == 190, \
+    assert lrfinder._total_batch_idx == 100 * 2, \
         'Accumulation parameter did not work'
 
 

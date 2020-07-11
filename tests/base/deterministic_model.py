@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -14,22 +15,25 @@ class DeterministicModel(LightningModule):
         self.training_step_end_called = False
         self.training_epoch_end_called = False
 
+        self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
             weights = torch.tensor([
                 [4, 3, 5],
                 [10, 11, 13]
             ]).float()
-        self.l1 = torch.nn.Parameter(weights, requires_grad=True)
+            p = torch.nn.Parameter(weights, requires_grad=True)
+            self.l1.weight = p
 
     def forward(self, x):
-        return self.l1.mm(x.float().t())
+        return self.l1(x)
 
     def step(self, batch, batch_idx):
         x = batch
         y_hat = self(x)
 
-        assert torch.all(y_hat[0, :] == 15.0)
-        assert torch.all(y_hat[1, :] == 42.0)
+        test_hat = y_hat.cpu().detach()
+        assert torch.all(test_hat[:, 0] == 15.0)
+        assert torch.all(test_hat[:, 1] == 42.0)
         out = y_hat.sum()
         assert out == (42.0 * 3) + (15.0 * 3)
 
@@ -47,6 +51,47 @@ class DeterministicModel(LightningModule):
                 num_graphs += self.count_num_graphs(v)
 
         return num_graphs
+
+    # ---------------------------
+    # scalar return
+    # ---------------------------
+    def training_step_scalar_return(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        self.training_step_called = True
+        return acc
+
+    def training_step_end_scalar(self, output):
+        self.training_step_end_called = True
+
+        # make sure loss has the grad
+        assert isinstance(output, torch.Tensor)
+        assert output.grad_fn is not None
+
+        # make sure nothing else has grads
+        assert self.count_num_graphs({'loss': output}) == 1
+
+        assert output == 171
+
+        return output
+
+    def training_epoch_end_scalar(self, outputs):
+        """
+        There should be an array of scalars without graphs that are all 171 (4 of them)
+        """
+        self.training_epoch_end_called = True
+
+        if self.use_dp or self.use_ddp2:
+            pass
+        else:
+            # only saw 4 batches
+            assert len(outputs) == 4
+            for batch_out in outputs:
+                assert batch_out == 171
+                assert batch_out.grad_fn is None
+                assert isinstance(batch_out, torch.Tensor)
+
+        prototype_loss = outputs[0]
+        return prototype_loss
 
     # --------------------------
     # dictionary returns
@@ -134,7 +179,10 @@ class DeterministicModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0)
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
-        assert loss == 171.0
+        if self.trainer.precision == 16:
+            assert loss > 171 * 1000
+        else:
+            assert loss == 171.0
         loss.backward()
 
 
@@ -144,4 +192,4 @@ class DummyDataset(Dataset):
         return 12
 
     def __getitem__(self, idx):
-        return np.array([0.5, 1.0, 2.0])
+        return torch.tensor([0.5, 1.0, 2.0])

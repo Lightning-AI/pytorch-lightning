@@ -162,7 +162,7 @@ Check `NVIDIA apex docs <https://nvidia.github.io/apex/amp.html#opt-levels>`_ fo
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(amp_level='O1')
+    trainer = Trainer(amp_level='O2')
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^

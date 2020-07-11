@@ -10,11 +10,11 @@ Metrics
 This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.
 Metrics are used to monitor model performance.
 
-In this package we provide two major pieces of functionality.
+In this package, we provide two major pieces of functionality.
 
 1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
-2. A collection of ready to use pupular metrics. There are two types of metrics: Class metrics and Functional metrics.
-3. A interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
+2. A collection of ready to use popular metrics. There are two types of metrics: Class metrics and Functional metrics.
+3. An interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
 
 Example::
 
@@ -28,14 +28,13 @@ Example::
 
 .. warning::
     The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR!
-    to a few metrics. Please feel free to create an issue/PR if you have a proposed 
-    metric or have found a bug.
+    to a few metrics. Please feel free to create an issue/PR if you have a proposed  metric or have found a bug.
 
 ----------------
 
 Implement a metric
 ------------------
-You can implement metrics as either a PyTorch metric or a Numpy metric (It is recommend to use PyTorch metrics when possible,
+You can implement metrics as either a PyTorch metric or a Numpy metric (It is recommended to use PyTorch metrics when possible,
 since Numpy metrics slow down training).
 
 Use :class:`TensorMetric` to implement native PyTorch metrics. This class
@@ -362,6 +361,36 @@ iou (F)
 .. autofunction:: pytorch_lightning.metrics.functional.iou
     :noindex:
 
+mse (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.mse
+    :noindex:
+
+rmse (F)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.rmse
+    :noindex:
+
+mae (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.mae
+    :noindex:
+
+rmsle (F)
+^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.rmsle
+    :noindex:
+
+psnr (F)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
+    :noindex:
+
 stat_scores_multiple_classes (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -403,8 +432,8 @@ To use the sklearn backend of metrics simply import as
     val = metric(pred, target)
     
 Each converted sklearn metric comes has the same interface as its 
-originally counterpart (e.g. accuracy takes the additional `normalize` keyword). 
-Like the native Lightning metrics these converted sklearn metrics also come 
+original counterpart (e.g. accuracy takes the additional `normalize` keyword). 
+Like the native Lightning metrics, these converted sklearn metrics also come 
 with built-in distributed (ddp) support.
 
 SklearnMetric (sk)

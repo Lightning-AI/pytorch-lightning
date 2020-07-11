@@ -24,7 +24,7 @@ some references, [`1 <https://discuss.pytorch.org/t/guidelines-for-assigning-num
 
 .. warning:: Increasing num_workers will ALSO increase your CPU memory consumption.
 
-The best thing to do is to increase the nun_workers slowly and stop once you see no more improvement in your training speed.
+The best thing to do is to increase the `num_workers` slowly and stop once you see no more improvement in your training speed.
 
 Spawn
 ^^^^^
@@ -51,17 +51,29 @@ Don't call this unnecessarily! Every time you call this ALL your GPUs have to wa
 
 ----------
 
-construct tensors directly on device
-------------------------------------
-LightningModules know what device they are on! construct tensors on the device directly to avoid CPU->Device transfer.
+Construct tensors directly on the device
+----------------------------------------
+LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
 
 .. code-block:: python
 
     # bad
-    t = tensor.rand(2, 2).cuda()
+    t = torch.rand(2, 2).cuda()
 
-    # good (self is lightningModule)
-    t = tensor.rand(2,2, device=self.device)
+    # good (self is LightningModule)
+    t = torch.rand(2, 2, device=self.device)
+
+
+For tensors that need to be model attributes, it is best practice to register them as buffers in the modules's
+`__init__` method:
+
+.. code-block:: python
+
+    # bad
+    self.t = torch.rand(2, 2, device=self.device)
+
+    # good
+    self.register_buffer("t", torch.rand(2, 2))
 
 ----------
 

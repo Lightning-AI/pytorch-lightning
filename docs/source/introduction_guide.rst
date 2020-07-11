@@ -22,7 +22,7 @@ quickly becomes onerous and starts distracting from the core research code.
 Goal of this guide
 ------------------
 This guide walks through the major parts of the library to help you understand
-what each parts does. But at the end of the day, you write the same PyTorch code... just organize it
+what each part does. But at the end of the day, you write the same PyTorch code... just organize it
 into the LightningModule template which means you keep ALL the flexibility without having to deal with
 any of the boilerplate code
 

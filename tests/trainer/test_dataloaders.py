@@ -1,12 +1,15 @@
 import platform
+from unittest.mock import patch
 
 import pytest
 import torch
+from packaging.version import parse
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Subset
+from torch.utils.data.dataset import IterableDataset, Subset
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.data_loading import _has_iterable_dataset, _has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -323,7 +326,12 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
     trainer.test(ckpt_path=None)
-    assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
+
+    # when the limit is greater than the number of test batches it should be the num in loaders
+    if limit_test_batches > 1e10:
+        assert trainer.num_test_batches == [len(x) for x in model.test_dataloader()]
+    else:
+        assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
@@ -447,7 +455,8 @@ def test_error_on_zero_len_dataloader(tmpdir):
 
 @pytest.mark.skipif(platform.system() == 'Windows', reason='Does not apply to Windows platform.')
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
-def test_warning_with_few_workers(tmpdir, ckpt_path):
+@patch('pytorch_lightning.trainer.data_loading.multiprocessing.cpu_count', return_value=4)
+def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
     """ Test that error is raised if dataloader with only a few workers is used """
 
     model = EvalModelTemplate()
@@ -474,17 +483,53 @@ def test_warning_with_few_workers(tmpdir, ckpt_path):
     trainer = Trainer(**trainer_options)
 
     # fit model
-    with pytest.warns(UserWarning, match='train'):
+    with pytest.warns(
+        UserWarning, match='The dataloader, train dataloader, does not have many workers which may be a bottleneck.'
+    ):
         trainer.fit(model, **fit_options)
 
-    with pytest.warns(UserWarning, match='val'):
+    with pytest.warns(
+        UserWarning, match='The dataloader, val dataloader 0, does not have many workers which may be a bottleneck.'
+    ):
         trainer.fit(model, **fit_options)
 
     if ckpt_path == 'specific':
         ckpt_path = trainer.checkpoint_callback.best_model_path
     test_options = dict(test_dataloaders=train_dl, ckpt_path=ckpt_path)
-    with pytest.warns(UserWarning, match='test'):
+    with pytest.warns(
+        UserWarning, match='The dataloader, test dataloader 0, does not have many workers which may be a bottleneck.'
+    ):
         trainer.test(**test_options)
+
+
+@pytest.mark.xfail(
+    parse(torch.__version__) < parse("1.4.0"),
+    reason="IterableDataset with __len__ before 1.4 raises",
+)
+def test_warning_with_iterable_dataset_and_len(tmpdir):
+    """ Tests that a warning messages is shown when an IterableDataset defines `__len__`. """
+    model = EvalModelTemplate()
+    original_dataset = model.train_dataloader().dataset
+
+    class IterableWithLen(IterableDataset):
+
+        def __iter__(self):
+            return iter(original_dataset)
+
+        def __len__(self):
+            return len(original_dataset)
+
+    dataloader = DataLoader(IterableWithLen(), batch_size=16)
+    assert _has_len(dataloader)
+    assert _has_iterable_dataset(dataloader)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=3,
+    )
+    with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
+        trainer.fit(model, train_dataloader=dataloader, val_dataloaders=[dataloader])
+    with pytest.warns(UserWarning, match='Your `IterableDataset` has `__len__` defined.'):
+        trainer.test(model, test_dataloaders=[dataloader])
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
@@ -494,7 +539,7 @@ def test_dataloader_reinit_for_subclass():
         def __init__(self, dataset, batch_size=1, shuffle=False, sampler=None,
                      batch_sampler=None, num_workers=0, collate_fn=None,
                      pin_memory=False, drop_last=False, timeout=0,
-                     worker_init_fn=None, dummy_kwarg=None):
+                     worker_init_fn=None, dummy_kwarg=None, **kwargs):
             super().__init__(dataset, batch_size, shuffle, sampler, batch_sampler,
                              num_workers, collate_fn, pin_memory, drop_last, timeout,
                              worker_init_fn)
@@ -504,7 +549,7 @@ def test_dataloader_reinit_for_subclass():
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
-        distributed_backend='ddp',
+        distributed_backend='ddp_spawn',
     )
 
     class CustomDummyObj:
@@ -513,7 +558,8 @@ def test_dataloader_reinit_for_subclass():
     result = trainer.auto_add_sampler(CustomDummyObj(), train=True)
     assert isinstance(result, CustomDummyObj), "Wrongly reinstantiated data loader"
 
-    result = trainer.auto_add_sampler(CustomDataLoader(list(range(1000))), train=True)
+    dataset = list(range(1000))
+    result = trainer.auto_add_sampler(CustomDataLoader(dataset), train=True)
     assert isinstance(result, torch.utils.data.DataLoader)
     assert isinstance(result, CustomDataLoader)
     assert hasattr(result, 'dummy_kwarg')

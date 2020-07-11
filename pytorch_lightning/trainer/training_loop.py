@@ -507,7 +507,8 @@ class TrainerTrainLoopMixin(ABC):
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
-        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
+        should_activate = not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val)
+        if should_activate:
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
@@ -527,6 +528,7 @@ class TrainerTrainLoopMixin(ABC):
     def run_training_epoch_end(self, epoch_output):
         model = self.get_model()
         if self.is_overridden('training_epoch_end', model=model):
+            self.global_step += 1
             epoch_output = model.training_epoch_end(epoch_output)
             _processed_outputs = self.process_output(epoch_output)
             log_epoch_metrics = _processed_outputs[2]
@@ -635,6 +637,7 @@ class TrainerTrainLoopMixin(ABC):
                 # ------------------------------
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
                 batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
+
                 self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
 
                 # track hiddens
@@ -699,7 +702,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients()
 
@@ -747,7 +750,7 @@ class TrainerTrainLoopMixin(ABC):
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -764,7 +767,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -789,11 +792,17 @@ class TrainerTrainLoopMixin(ABC):
             )
 
             # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-            training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
+            if isinstance(training_step_output_for_epoch_end, torch.Tensor):
+                training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
+            else:
+                training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
 
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
         closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
+
+        # the loss will get scaled for amp. avoid any modifications to it
+        untouched_loss = closure_loss.detach().clone()
 
         # backward pass
         model_ref = self.get_model()
@@ -811,7 +820,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE:
+            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:
@@ -833,7 +842,7 @@ class TrainerTrainLoopMixin(ABC):
                 model_ref.on_after_backward()
 
         result = AttributeDict(
-            loss=closure_loss,
+            loss=untouched_loss,
             training_step_output=training_step_output,
             training_step_output_for_epoch_end=training_step_output_for_epoch_end,
             hiddens=training_step_output.hiddens,
@@ -882,6 +891,12 @@ class TrainerTrainLoopMixin(ABC):
         # clean up dist group
         if self.use_ddp or self.use_ddp2:
             torch_distrib.destroy_process_group()
+
+        # clear mem
+        if self.on_gpu:
+            model = self.get_model()
+            model.cpu()
+            torch.cuda.empty_cache()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """

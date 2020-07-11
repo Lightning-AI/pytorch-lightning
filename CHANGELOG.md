@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+
 ## [unreleased] - YYYY-MM-DD
 
 ### Added
 
-- Added reduce ddp results on eval ([#2434](https://github.com/PyTorchLightning/pytorch-lightning/pull/2434))
 
 - Added support for `Trainer(num_sanity_val_steps=-1)` to check all validation data before training ([#2246](https://github.com/PyTorchLightning/pytorch-lightning/pull/2246))
 
@@ -23,17 +23,56 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+
+
+## [0.8.5] - 2020-07-09
+
+### Added
+
+- Added a PSNR metric: peak signal-to-noise ratio ([#2483](https://github.com/PyTorchLightning/pytorch-lightning/pull/2483))
+- Added functional regression metrics ([#2492](https://github.com/PyTorchLightning/pytorch-lightning/pull/2492))
+
+### Removed
+
+- Removed auto val reduce ([#2462](https://github.com/PyTorchLightning/pytorch-lightning/pull/2462))
+
+### Fixed
+
+- Flattening Wandb Hyperparameters ([#2459](https://github.com/PyTorchLightning/pytorch-lightning/pull/2459))
+- Fixed using the same DDP python interpreter and actually running ([#2482](https://github.com/PyTorchLightning/pytorch-lightning/pull/2482))
+- Fixed model summary input type conversion for models that have input dtype different from model parameters ([#2510](https://github.com/PyTorchLightning/pytorch-lightning/pull/2510))
+- Made `TensorBoardLogger` and `CometLogger` pickleable ([#2518](https://github.com/PyTorchLightning/pytorch-lightning/pull/2518))
+- Fixed a problem with `MLflowLogger` creating multiple run folders ([#2502](https://github.com/PyTorchLightning/pytorch-lightning/pull/2502))
+- Fixed global_step increment ([#2455](https://github.com/PyTorchLightning/pytorch-lightning/pull/2455))
+- Fixed TPU hanging example ([#2488](https://github.com/PyTorchLightning/pytorch-lightning/pull/2488))
+- Fixed `argparse` default value bug ([#2526](https://github.com/PyTorchLightning/pytorch-lightning/pull/2526))
+- Fixed Dice and IoU to avoid NaN by adding small eps ([#2545](https://github.com/PyTorchLightning/pytorch-lightning/pull/2545))
+- Fixed accumulate gradients schedule at epoch 0 (continued) ([#2513](https://github.com/PyTorchLightning/pytorch-lightning/pull/2513))
+- Fixed Trainer `.fit()` returning last not best weights in "ddp_spawn" ([#2565](https://github.com/PyTorchLightning/pytorch-lightning/pull/2565))
+- Fixed passing (do not pass) TPU weights back on test ([#2566](https://github.com/PyTorchLightning/pytorch-lightning/pull/2566))
+- Fixed DDP tests and `.test()` ([#2512](https://github.com/PyTorchLightning/pytorch-lightning/pull/2512), [#2570](https://github.com/PyTorchLightning/pytorch-lightning/pull/2570))
+
+
+## [0.8.4] - 2020-07-01
+
+### Added
+
+- Added reduce ddp results on eval ([#2434](https://github.com/PyTorchLightning/pytorch-lightning/pull/2434))
+- Added a warning when an `IterableDataset` has `__len__` defined ([#2437](https://github.com/PyTorchLightning/pytorch-lightning/pull/2437))
+
+### Changed
+
+- Enabled no returns from eval ([#2446](https://github.com/PyTorchLightning/pytorch-lightning/pull/2446))
+
+### Fixed
+
 - Fixes train outputs ([#2428](https://github.com/PyTorchLightning/pytorch-lightning/pull/2428))
-
 - Fixes Conda dependencies ([#2412](https://github.com/PyTorchLightning/pytorch-lightning/pull/2412))
-
 - Fixed Apex scaling with decoupled backward ([#2433](https://github.com/PyTorchLightning/pytorch-lightning/pull/2433))
-
 - Fixed crashing or wrong displaying progressbar because of missing ipywidgets ([#2417](https://github.com/PyTorchLightning/pytorch-lightning/pull/2417))
-
 - Fixed TPU saving dir ([fc26078e](https://github.com/PyTorchLightning/pytorch-lightning/commit/fc26078e395f8a001f4c6dd7b3fe7ca202f914a3), [04e68f02](https://github.com/PyTorchLightning/pytorch-lightning/commit/04e68f022fc03dd5f1555ee86dea997d42a448ad))
-
 - Fixed logging on rank 0 only ([#2425](https://github.com/PyTorchLightning/pytorch-lightning/pull/2425))
+
 
 ## [0.8.3] - 2020-06-29
 
