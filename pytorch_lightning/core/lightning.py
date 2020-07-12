@@ -1723,6 +1723,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             self._hparams = hp
 
+    def to_onnx(self, filename: str):
+        batch = next(iter(self.train_dataloader()))
+        torch.onnx.export(self, batch[0], filename, verbose=True)
+
     @property
     def hparams(self) -> Union[AttributeDict, str]:
         if not hasattr(self, '_hparams'):
