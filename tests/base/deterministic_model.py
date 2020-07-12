@@ -15,6 +15,10 @@ class DeterministicModel(LightningModule):
         self.training_step_end_called = False
         self.training_epoch_end_called = False
 
+        self.validation_step_called = False
+        self.validation_step_end_called = False
+        self.validation_epoch_end_called = False
+
         self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
             weights = torch.tensor([
@@ -161,6 +165,17 @@ class DeterministicModel(LightningModule):
         pbar = {'epoch_end_pbar_1': torch.tensor(234).type_as(prototype_loss)}
 
         return {'log': logs, 'progress_bar': pbar}
+
+    def validation_step_no_return(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+
+    def validation_step_scalar_return(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        return acc
+
+    def validation_step_arbitary_dict_return(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        return {'some': acc, 'value': 'a'}
 
     def validation_step_dict_return(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
