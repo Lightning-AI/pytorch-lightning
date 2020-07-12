@@ -134,11 +134,13 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(accumulate_grad_batches=schedule,
-                      limit_train_batches=0.8,
-                      limit_val_batches=0.8,
-                      max_epochs=4,
-                      default_root_dir=tmpdir)
+    trainer = Trainer(
+        accumulate_grad_batches=schedule,
+        limit_train_batches=0.8,
+        limit_val_batches=0.8,
+        max_epochs=4,
+        default_root_dir=tmpdir,
+    )
 
     # test optimizer call freq matches scheduler
     def _optimizer_step(epoch, batch_idx, optimizer, optimizer_idx,
@@ -182,17 +184,6 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 
         # clear gradients
         optimizer.zero_grad()
-
-    model = EvalModelTemplate()
-    schedule = {1: 2, 3: 4}
-
-    trainer = Trainer(
-        accumulate_grad_batches=schedule,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        max_epochs=2,
-        default_root_dir=tmpdir,
-    )
 
     # for the test
     model.optimizer_step = _optimizer_step
