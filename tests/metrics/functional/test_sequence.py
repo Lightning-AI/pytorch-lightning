@@ -1,6 +1,6 @@
 import pytest
 import torch
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
+from nltk.translate.bleu_score import corpus_bleu, sentence_bleu
 
 from pytorch_lightning.metrics.functional.sequence import bleu_score
 
@@ -32,40 +32,38 @@ ref2a = "he was interested in world history because he read the book".split(" ")
 list_of_references = [[ref1a, ref1b, ref1c], [ref2a]]
 hypotheses = [hyp1, hyp2]
 
-# https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.SmoothingFunction
-smooth_func = SmoothingFunction().method2
-
 
 @pytest.mark.parametrize(
-    ["weights", "n_gram", "smooth_func", "smooth"],
+    ["n_gram", "weights"],
     [
-        pytest.param((1, 0, 0, 0), 1, None, False),
-        pytest.param((0.5, 0.5, 0, 0), 2, smooth_func, True),
-        pytest.param((0.333333, 0.333333, 0.333333, 0), 3, None, False),
-        pytest.param((0.25, 0.25, 0.25, 0.25), 4, smooth_func, True),
+        pytest.param(1, [1]),
+        pytest.param(2, [0.5, 0.5]),
+        pytest.param(3, [0.333333, 0.333333, 0.333333]),
+        pytest.param(4, [0.25, 0.25, 0.25, 0.25]),
+        pytest.param(2, [1, 2]),
+        pytest.param(3, [1, 2, 3]),
+        pytest.param(4, [1, 2, 3, 4]),
     ],
 )
 class TestBLEUScore:
-    def test_with_sentence_bleu(self, weights, n_gram, smooth_func, smooth):
-        nltk_output = sentence_bleu(
-            [reference1, reference2, reference3], hypothesis1, weights=weights, smoothing_function=smooth_func
-        )
-        pl_output = bleu_score([hypothesis1], [[reference1, reference2, reference3]], n_gram=n_gram, smooth=smooth)
-        assert torch.allclose(pl_output, torch.tensor(nltk_output))
+    def test_with_sentence_bleu(self, n_gram, weights):
+        nltk_output = sentence_bleu([reference1, reference2, reference3], hypothesis1, weights=weights)
+        pl_output = bleu_score([hypothesis1], [[reference1, reference2, reference3]], n_gram=n_gram, weights=weights)
+        assert pytest.approx(pl_output) == pytest.approx(nltk_output)
 
-    def test_with_corpus_bleu(self, weights, n_gram, smooth_func, smooth):
-        nltk_output = corpus_bleu(list_of_references, hypotheses, weights=weights, smoothing_function=smooth_func)
-        pl_output = bleu_score(hypotheses, list_of_references, n_gram=n_gram, smooth=smooth)
-        assert torch.allclose(pl_output, torch.tensor(nltk_output))
+    def test_with_corpus_bleu(self, n_gram, weights):
+        nltk_output = corpus_bleu(list_of_references, hypotheses, weights=weights)
+        pl_output = bleu_score(hypotheses, list_of_references, n_gram=n_gram, weights=weights)
+        assert pytest.approx(pl_output) == pytest.approx(nltk_output)
 
 
 def test_bleu_empty():
     hyp = [[]]
     ref = [[[]]]
-    assert bleu_score(hyp, ref) == torch.tensor(0.0)
+    assert bleu_score(hyp, ref) == 0.0
 
 
 def test_no_4_gram():
     hyps = [["My", "full", "pytorch-lightning"]]
     refs = [[["My", "full", "pytorch-lightning", "test"], ["Completely", "Different"]]]
-    assert bleu_score(hyps, refs) == torch.tensor(0.0)
+    assert bleu_score(hyps, refs) == 0.0

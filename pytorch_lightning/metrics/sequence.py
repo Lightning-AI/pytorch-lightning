@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 
 from pytorch_lightning.metrics.functional.sequence import bleu_score
@@ -14,33 +16,33 @@ class BLEUScore(Metric):
         >>> reference_corpus = [["the quick brown fox jumped over the lazy dog".split(' '), "the quick brown fox jumped over the the lazy cat".split(' ')]]
         >>> metric = BLEUScore()
         >>> metric(translate_corpus, reference_corpus)
-        tensor(0.7506)
+        0.750623881816864
     """
 
-    def __init__(self, n_gram: int = 4, smooth: bool = False):
+    def __init__(self, n_gram: int = 4, weights: List[float] = [0.25] * 4):
         """
         Args:
-            n_gram: Gram value ranged from 1 to 4 (Default 4)
-            smooth: Whether or not to apply smoothing – Lin et al. 2004
+            n_gram: Gram value ranged from 1 to 4
+            weights: A list of weights used for each n-gram category (uniform by default)
         """
         super().__init__(name="bleu")
         self.n_gram = n_gram
-        self.smooth = smooth
+        self.weights = weights
 
-    def forward(self, translate_corpus: list, reference_corpus: list) -> torch.Tensor:
+    def forward(self, translate_corpus: List[str], reference_corpus: List[str]) -> float:
         """
         Actual metric computation
 
         Args:
-            translate_corpus: machine translated corpus
-            reference_corpus: reference corpus
+            translate_corpus: A list of lists of machine translated corpus
+            reference_corpus: A list of lists of reference corpus
 
         Return:
-            torch.Tensor: BLEU Score
+            float: BLEU Score
         """
         return bleu_score(
             translate_corpus=translate_corpus,
             reference_corpus=reference_corpus,
             n_gram=self.n_gram,
-            smooth=self.smooth,
+            weights=self.weights,
         )
