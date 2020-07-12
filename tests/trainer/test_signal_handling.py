@@ -58,7 +58,7 @@ def test_graceful_training_shutdown(signal_code):
     trainer.fit(model)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2)
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs.')
 @pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
 def test_graceful_training_shutdown_gpu(signal_code):
     trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)],
