@@ -53,7 +53,12 @@ def get_available_signal_codes():
 
 @pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
 def test_graceful_training_shutdown(signal_code):
-    trainer = Trainer(max_epochs=100, distributed_backend='ddp_cpu', callbacks=[KillCallback(signal_code)], num_processes=4)
+    trainer = Trainer(
+        max_epochs=100,
+        distributed_backend='ddp_cpu',
+        callbacks=[KillCallback(signal_code)],
+        num_processes=4
+    )
     model = EvalModelTemplate()
     trainer.fit(model)
 
@@ -61,23 +66,11 @@ def test_graceful_training_shutdown(signal_code):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs.')
 @pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
 def test_graceful_training_shutdown_gpu(signal_code):
-    trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)],
-                      gpus=2)
+    trainer = Trainer(
+        max_epochs=100,
+        distributed_backend='ddp',
+        callbacks=[KillCallback(signal_code)],
+        gpus=2
+    )
     model = EvalModelTemplate()
     trainer.fit(model)
-
-    #assert trainer.global_step == 0
-    #assert trainer.batch_idx == 0
-    # p = Process(target=trigger_fatal_signal, args=(trainer, ))
-    # start = time.time()
-    # timeout = 30  # seconds
-    # p.start()
-    # # wait until Trainer gets killed
-    # while p.is_alive():
-    #     assert time.time() - start < timeout
-
-    # assert p.exitcode == signal_code
-    # assert trainer.global_step == 1
-    # assert trainer.interrupted
-
-#@test_graceful_training_shutdown(signal.SIGINT)

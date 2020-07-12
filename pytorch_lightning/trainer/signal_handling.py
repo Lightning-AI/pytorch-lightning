@@ -83,20 +83,11 @@ class SignalHandler:
         if not trainer.interrupted:
             trainer.interrupted = True
             trainer.on_keyboard_interrupt()
-
-            # for proc in trainer.interactive_ddp_procs:
-            #     subprocess.Popen.kill(proc)
-
             trainer.run_training_teardown()
-
-        #if signum == signal.SIGINT:
-        raise KeyboardInterrupt
-        #else:
-        # trainer.should_stop = True
-        #sys.exit()
+            raise KeyboardInterrupt
 
 
-def on_slurm() -> bool:
+def on_slurm() -> bool:  # pragma: no-cover
     """ Checks if we're using SLURM (not interactive). """
     job_name = os.environ.get('SLURM_JOB_NAME')
     return job_name is not None and job_name != 'bash'
