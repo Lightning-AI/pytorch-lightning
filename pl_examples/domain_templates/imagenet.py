@@ -273,8 +273,6 @@ def main(args: Namespace) -> None:
     )
 
     if args.evaluate:
-        if args.resume is not None:
-            model.load_state_dict(torch.load(args.resume, map_location='cpu')['state_dict'])
         trainer.test(model)
     else:
         trainer.fit(model)
