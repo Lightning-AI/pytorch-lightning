@@ -839,6 +839,9 @@ class TrainerTrainLoopMixin(ABC):
     def run_training_teardown(self):
         if getattr(self, '_teardown_already_run', False):
             return
+
+        setattr(self, '_teardown_already_run', True)
+
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks
@@ -869,8 +872,6 @@ class TrainerTrainLoopMixin(ABC):
             torch.cuda.empty_cache()
 
         rank_zero_info('Training teardown finished.')
-
-        setattr(self, '_teardown_already_run', True)
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """

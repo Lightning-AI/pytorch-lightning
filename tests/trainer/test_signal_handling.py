@@ -1,8 +1,10 @@
 import os
+import platform
 import signal
 import time
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer, Callback
 from tests.base import EvalModelTemplate
@@ -27,6 +29,8 @@ class KillCallback(Callback):
 
     def on_train_end(self, trainer, pl_module):
         print('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNNNNNNNNNNNNND')
+        assert trainer._teardown_already_run
+
 
     def on_keyboard_interrupt(self, trainer, pl_module):
         print('interrupted')
@@ -39,19 +43,28 @@ def trigger_fatal_signal(trainer):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize(['signal_code'], [
-    pytest.param(signal.SIGINT),
-    pytest.param(signal.SIGTERM),
-    pytest.param(signal.SIGSEGV),
-])
-#@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
-#@pl_multi_process_test
+def get_available_signal_codes():
+    codes = [signal.SIGINT]
+    if platform.system() != "Windows":
+        codes += [signal.SIGTERM, signal.SIGSEGV]
+    return codes
+
+
+@pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
 def test_graceful_training_shutdown(signal_code):
-    #signal_code = signal.SIGINT
     trainer = Trainer(max_epochs=100, distributed_backend='ddp_cpu', callbacks=[KillCallback(signal_code)], num_processes=4)
     model = EvalModelTemplate()
-    #with pytest.raises(SystemExit):
     trainer.fit(model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2)
+@pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
+def test_graceful_training_shutdown_gpu(signal_code):
+    trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)],
+                      gpus=2)
+    model = EvalModelTemplate()
+    trainer.fit(model)
+
     #assert trainer.global_step == 0
     #assert trainer.batch_idx == 0
     # p = Process(target=trigger_fatal_signal, args=(trainer, ))
