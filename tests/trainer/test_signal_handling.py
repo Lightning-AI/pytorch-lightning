@@ -43,7 +43,7 @@ def trigger_fatal_signal(trainer):
 #     # pytest.param(signal.SIGTERM),
 #     # pytest.param(signal.SIGSEGV),
 # ])
-@pl_multi_process_test
+#@pl_multi_process_test
 def test_graceful_training_shutdown():
     signal_code = signal.SIGINT
     trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)])

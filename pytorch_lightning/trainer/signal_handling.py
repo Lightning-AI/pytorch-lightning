@@ -36,7 +36,7 @@ class SignalHandler:
             self._register_signal(signal.SIGUSR1, self._slurm_auto_resubmit_handler)
             self._register_signal(signal.SIGTERM, self._slurm_sigterm_handler)
 
-        atexit.register(self.trainer.run_training_teardown)
+        #atexit.register(self.trainer.run_training_teardown)
 
     def restore(self):
         """ Restores the original signal handlers (e.g. the Python defaults) """
@@ -89,10 +89,10 @@ class SignalHandler:
 
             trainer.run_training_teardown()
 
-        if signum == signal.SIGINT:
-            raise KeyboardInterrupt
-        else:
-            sys.exit()
+        #if signum == signal.SIGINT:
+        #    raise KeyboardInterrupt
+        #else:
+        #    sys.exit()
 
 
 def on_slurm() -> bool:

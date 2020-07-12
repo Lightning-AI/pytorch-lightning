@@ -1216,6 +1216,9 @@ class Trainer(
             self.train()
         except KeyboardInterrupt:
             rank_zero_info('Detected KeyboardInterrupt, attempting graceful shutdown ...')
+            if not self.interrupted:
+                self.interrupted = True
+                self.on_keyboard_interrupt()
         finally:
             self.run_training_teardown()
             signal_handler.restore()
