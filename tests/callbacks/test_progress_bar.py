@@ -66,7 +66,6 @@ def test_progress_bar_totals(tmpdir):
         progress_bar_refresh_rate=1,
         limit_val_batches=1.0,
         max_epochs=1,
-        default_root_dir=tmpdir,
     )
     bar = trainer.progress_bar_callback
     assert 0 == bar.total_train_batches
@@ -185,7 +184,6 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
         limit_train_batches=1.0,
         num_sanity_val_steps=2,
         max_epochs=3,
-        default_root_dir=tmpdir,
     )
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 

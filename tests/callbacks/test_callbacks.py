@@ -136,7 +136,6 @@ def test_trainer_callback_system(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
         progress_bar_refresh_rate=0,
-        default_root_dir=tmpdir,
     )
 
     assert not test_callback.setup_called
