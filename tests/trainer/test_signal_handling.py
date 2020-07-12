@@ -47,10 +47,11 @@ def trigger_fatal_signal(trainer):
     pytest.param(signal.SIGTERM),
     pytest.param(signal.SIGSEGV),
 ])
+#@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 #@pl_multi_process_test
 def test_graceful_training_shutdown(signal_code):
     #signal_code = signal.SIGINT
-    trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)])
+    trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)], gpus=2)
     model = EvalModelTemplate()
     with pytest.raises(SystemExit):
         trainer.fit(model)
