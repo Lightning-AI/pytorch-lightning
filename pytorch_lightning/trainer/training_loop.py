@@ -868,6 +868,10 @@ class TrainerTrainLoopMixin(ABC):
             model.cpu()
             torch.cuda.empty_cache()
 
+        rank_zero_info('Training teardown finished.')
+
+        setattr(self, '_teardown_already_run', True)
+
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)

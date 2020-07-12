@@ -84,8 +84,8 @@ class SignalHandler:
             trainer.interrupted = True
             trainer.on_keyboard_interrupt()
 
-            for proc in trainer.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
+            # for proc in trainer.interactive_ddp_procs:
+            #     subprocess.Popen.kill(proc)
 
             trainer.run_training_teardown()
 

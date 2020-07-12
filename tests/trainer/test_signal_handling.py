@@ -10,6 +10,8 @@ from tests.base import EvalModelTemplate
 
 from torch.multiprocessing import Process
 
+from tests.base.develop_utils import pl_multi_process_test
+
 
 class KillCallback(Callback):
 
@@ -27,8 +29,8 @@ class KillCallback(Callback):
         print('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNNNNNNNNNNNNND')
 
     def on_keyboard_interrupt(self, trainer, pl_module):
+        print('interrupted')
         assert trainer.interrupted
-        assert trainer._teardown_already_run
 
 
 def trigger_fatal_signal(trainer):
@@ -36,17 +38,19 @@ def trigger_fatal_signal(trainer):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize(['signal_code'], [
-    pytest.param(signal.SIGINT),
-    # pytest.param(signal.SIGTERM),
-    # pytest.param(signal.SIGSEGV),
-])
-def test_graceful_training_shutdown(signal_code):
+# @pytest.mark.parametrize(['signal_code'], [
+#     pytest.param(),
+#     # pytest.param(signal.SIGTERM),
+#     # pytest.param(signal.SIGSEGV),
+# ])
+@pl_multi_process_test
+def test_graceful_training_shutdown():
+    signal_code = signal.SIGINT
     trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)])
     model = EvalModelTemplate()
-    with pytest.raises(SystemExit):
-        result = trainer.fit(model)
-        assert result
+    #with pytest.raises(KeyboardInterrupt):
+    result = trainer.fit(model)
+    assert result
     # p = Process(target=trigger_fatal_signal, args=(trainer, ))
     # start = time.time()
     # timeout = 30  # seconds
@@ -59,3 +63,4 @@ def test_graceful_training_shutdown(signal_code):
     # assert trainer.global_step == 1
     # assert trainer.interrupted
 
+#@test_graceful_training_shutdown(signal.SIGINT)
