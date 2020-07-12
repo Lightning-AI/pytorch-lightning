@@ -1723,13 +1723,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             self._hparams = hp
 
-    def to_onnx(self, filename: str, input: Optional[DataLoader, Tensor] = None, verbose: Optional[bool] = False):
+    def to_onnx(self, file_path: str, input: Optional[Union[DataLoader, Tensor]] = None, verbose: Optional[bool] = False):
         """Saves the model in ONNX format
 
         Args:
-            filename: The name of the file the model should be saved with.
-            input: Either a PyTorch DataLoader with training samples or an input tensor data sample for tracing.
-            verbose: If the ONNX output should be printed
+            file_path: The path of the file the model should be saved to.
+            input: Either a PyTorch DataLoader with training samples or an input tensor for tracing.
+            verbose: Boolean value to indicate if the ONNX output should be printed
         """
 
         if isinstance(input, DataLoader):
@@ -1742,7 +1742,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch = next(iter(self.train_dataloader()))
             input_data = batch[0]
 
-        torch.onnx.export(self.module, input_data, filename, verbose=verbose)
+        torch.onnx.export(self, input_data, file_path, verbose=verbose)
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:

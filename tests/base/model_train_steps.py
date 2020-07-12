@@ -16,7 +16,6 @@ class TrainingStepVariations(ABC):
         """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch
-        x = x.view(x.size(0), -1)
 
         y_hat = self(x)
 

@@ -98,6 +98,7 @@ class EvalModelTemplate(
         )
 
     def forward(self, x):
+        x = x.view(x.size(0), -1)
         x = self.c_d1(x)
         x = torch.tanh(x)
         x = self.c_d1_bn(x)
