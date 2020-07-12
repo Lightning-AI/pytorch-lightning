@@ -20,6 +20,9 @@ class KillCallback(Callback):
 
     # simulate a termination signal
     def on_batch_end(self, trainer, pl_module):
+        # send the signal after the first batch
+        assert trainer.global_step == 0, "did not interrupt training after first batch"
+        #print(trainer.global_step)
         pid = os.getpid()
         os.kill(pid, self._signal)
         # if trainer.global_step == 2:
@@ -30,6 +33,7 @@ class KillCallback(Callback):
 
     def on_keyboard_interrupt(self, trainer, pl_module):
         print('interrupted')
+        # assert trainer.global_rank == 0
         assert trainer.interrupted
 
 
@@ -38,19 +42,20 @@ def trigger_fatal_signal(trainer):
     trainer.fit(model)
 
 
-# @pytest.mark.parametrize(['signal_code'], [
-#     pytest.param(),
-#     # pytest.param(signal.SIGTERM),
-#     # pytest.param(signal.SIGSEGV),
-# ])
+@pytest.mark.parametrize(['signal_code'], [
+    pytest.param(signal.SIGINT),
+    pytest.param(signal.SIGTERM),
+    pytest.param(signal.SIGSEGV),
+])
 #@pl_multi_process_test
-def test_graceful_training_shutdown():
-    signal_code = signal.SIGINT
+def test_graceful_training_shutdown(signal_code):
+    #signal_code = signal.SIGINT
     trainer = Trainer(max_epochs=100, distributed_backend='ddp', callbacks=[KillCallback(signal_code)])
     model = EvalModelTemplate()
-    #with pytest.raises(KeyboardInterrupt):
-    result = trainer.fit(model)
-    assert result
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+    assert trainer.global_step == 0
+    assert trainer.batch_idx == 0
     # p = Process(target=trigger_fatal_signal, args=(trainer, ))
     # start = time.time()
     # timeout = 30  # seconds
