@@ -90,9 +90,10 @@ class SignalHandler:
             trainer.run_training_teardown()
 
         #if signum == signal.SIGINT:
-        #raise KeyboardInterrupt
+        raise KeyboardInterrupt
         #else:
-        sys.exit()
+        # trainer.should_stop = True
+        #sys.exit()
 
 
 def on_slurm() -> bool:
