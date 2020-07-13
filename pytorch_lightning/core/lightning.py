@@ -1729,7 +1729,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Args:
             file_path: The path of the file the model should be saved to.
             input_sample: A sample of an input tensor for tracing.
-            verbose: Boolean value to indicate if the ONNX output should be printed
+            **kwargs: Will be passed to torch.onnx.export function.
         """
 
         if isinstance(input_sample, Tensor):
