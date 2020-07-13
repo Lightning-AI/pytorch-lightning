@@ -30,13 +30,13 @@ Control log writing frequency
 Writing to a logger  can be expensive. In Lightning you can set the interval at which you
 want to log using this trainer flag.
 
-.. seealso::
-    :class:`~pytorch_lightning.trainer.trainer.Trainer`
-
 .. testcode::
 
     k = 100
     trainer = Trainer(log_save_interval=k)
+
+.. seealso::
+    :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
 ----------
 
