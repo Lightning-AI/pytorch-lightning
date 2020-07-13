@@ -1587,7 +1587,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             tqdm_dict['split_idx'] = self.trainer.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
-            tqdm_dict['v_num'] = str(self.trainer.logger.version)[:3]
+            version = self.trainer.logger.version
+            # show last 3 places of long version strings
+            version = version[-3:] if isinstance(version, str) else version
+            tqdm_dict['v_num'] = version
 
         return tqdm_dict
 
