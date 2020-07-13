@@ -1561,14 +1561,19 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         By default it includes the average loss value, split index of BPTT (if used)
         and the version of the experiment when using a logger.
 
-        Example:
-            .. code-block:: python
+        .. code-block::
 
-                def get_progress_bar_dict(self):
-                    # don't show the version number
-                    items = super().get_progress_bar_dict()
-                    items.pop("v_num", None)
-                    return items
+            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
+
+        Here is an example how to override the defaults:
+
+        .. code-block:: python
+
+            def get_progress_bar_dict(self):
+                # don't show the version number
+                items = super().get_progress_bar_dict()
+                items.pop("v_num", None)
+                return items
 
         Return:
             Dictionary with the items to be displayed in the progress bar.
