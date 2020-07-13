@@ -94,10 +94,14 @@ For instance, here we log images using tensorboard.
 Modify progress bar
 ^^^^^^^^^^^^^^^^^^^
 
-Each return dict from the training_end, validation_end, testing_end and training_step also has
-a key called "progress_bar".
+Each return dict from the
+:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
+:meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`,
+:meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` and
+:meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`
+can also contain a key called `progress_bar`.
 
-Here we show the validation loss in the progress bar
+Here we show the validation loss in the progress bar:
 
 .. testcode::
 
@@ -108,6 +112,10 @@ Here we show the validation loss in the progress bar
         logs = {'val_loss': loss}
         results = {'progress_bar': logs}
         return results
+
+The progress bar by default already includes the training loss and version number of the experiment
+if you are using a logger. These defaults can be customized by overriding the
+:meth:`~pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict` hook in your module.
 
 
 ----------
