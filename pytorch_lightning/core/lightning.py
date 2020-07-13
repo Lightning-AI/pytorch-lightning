@@ -1723,26 +1723,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             self._hparams = hp
 
-    def to_onnx(self, file_path: str, input: Optional[Union[DataLoader, Tensor]] = None, verbose: Optional[bool] = False):
+    def to_onnx(self, file_path: str, input_sample: Optional[Tensor] = None, **kwargs):
         """Saves the model in ONNX format
 
         Args:
             file_path: The path of the file the model should be saved to.
-            input: Either a PyTorch DataLoader with training samples or an input tensor for tracing.
+            input_sample: A sample of an input tensor for tracing.
             verbose: Boolean value to indicate if the ONNX output should be printed
         """
 
-        if isinstance(input, DataLoader):
-            batch = next(iter(input))
-            input_data = batch[0]
-        elif isinstance(input, Tensor):
-            input_data = input
+        if isinstance(input_sample, Tensor):
+            input_data = input_sample
+        elif self.example_input_array is not None:
+            input_data = self.example_input_array
         else:
-            self.prepare_data()
-            batch = next(iter(self.train_dataloader()))
-            input_data = batch[0]
+            raise ValueError(f'input_sample and example_input_array tensors are both missing.')
 
-        torch.onnx.export(self, input_data, file_path, verbose=verbose)
+        torch.onnx.export(self, input_data, file_path, **kwargs)
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:

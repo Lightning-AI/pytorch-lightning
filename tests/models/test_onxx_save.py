@@ -8,12 +8,22 @@ from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 
 
-def test_model_saves_on_cpu(tmpdir):
-    """Test that ONNX model saves on CPU and size is greater than 3 MB"""
+def test_model_saves_with_input_sample(tmpdir):
+    """Test that ONNX model saves with input sample and size is greater than 3 MB"""
     model = EvalModelTemplate()
     trainer = Trainer(max_epochs=1)
     trainer.fit(model)
 
+    file_path = os.path.join(tmpdir, "model.onxx")
+    input_sample = torch.randn((1, 28 * 28))
+    model.to_onnx(file_path, input_sample)
+    assert os.path.exists(file_path) is True
+    assert os.path.getsize(file_path) > 3e+06
+
+
+def test_model_saves_with_example_input_array(tmpdir):
+    """Test that ONNX model saves with_example_input_array and size is greater than 3 MB"""
+    model = EvalModelTemplate()
     file_path = os.path.join(tmpdir, "model.onxx")
     model.to_onnx(file_path)
     assert os.path.exists(file_path) is True
@@ -50,22 +60,4 @@ def test_verbose_param(tmpdir, capsys):
     file_path = os.path.join(tmpdir, "model.onxx")
     model.to_onnx(file_path, verbose=True)
     captured = capsys.readouterr()
-    assert "graph(%0" in captured.out
-
-
-def test_input_param_with_dataloader(tmpdir):
-    """Test that ONXX model is saved when a dataloader is passed in as input"""
-    model = EvalModelTemplate()
-    dataloader = model.dataloader(train=True)
-    file_path = os.path.join(tmpdir, "model.onxx")
-    model.to_onnx(file_path, input=dataloader)
-    assert os.path.exists(file_path) is True
-
-
-def test_input_param_with_tensor(tmpdir):
-    """Test that ONXX model is saved when a a tensor is passed in as input"""
-    model = EvalModelTemplate()
-    tensor = torch.randn((1, 28, 28))
-    file_path = os.path.join(tmpdir, "model.onxx")
-    model.to_onnx(file_path, input=tensor)
-    assert os.path.exists(file_path) is True
+    assert "graph(%" in captured.out
