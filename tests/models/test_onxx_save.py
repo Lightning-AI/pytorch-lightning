@@ -1,7 +1,10 @@
 import os
 
+import onnx
+import onnxruntime
 import pytest
 import torch
+import numpy as np
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
@@ -61,3 +64,47 @@ def test_verbose_param(tmpdir, capsys):
     model.to_onnx(file_path, verbose=True)
     captured = capsys.readouterr()
     assert "graph(%" in captured.out
+
+
+def test_error_if_no_input(tmpdir):
+    """Test that an exception is thrown when there is no input tensor"""
+    model = EvalModelTemplate()
+    model.example_input_array = None
+    file_path = os.path.join(tmpdir, "model.onxx")
+    with pytest.raises(ValueError, match=r'.*input_sample and example_input_array tensors are both missing.*'):
+        model.to_onnx(file_path)
+
+
+def test_if_onnx_schema_is_valid(tmpdir):
+    """ Check if output ONNX model has valid schema"""
+    model = EvalModelTemplate()
+    file_path = os.path.join(tmpdir, "model.onxx")
+    model.to_onnx(file_path)
+    onnx_model = onnx.load(file_path)
+    assert onnx.checker.check_model(onnx_model) is None
+
+
+def test_if_inference_output_is_valid(tmpdir):
+    """Test that the output inferred from ONNX model is same as from PyTorch"""
+    model = EvalModelTemplate()
+    trainer = Trainer(max_epochs=5)
+    trainer.fit(model)
+
+    model.eval()
+    with torch.no_grad():
+        torch_out = model(model.example_input_array)
+
+    file_path = os.path.join(tmpdir, "model.onxx")
+    model.to_onnx(file_path, model.example_input_array, export_params=True)
+
+    ort_session = onnxruntime.InferenceSession(file_path)
+
+    def to_numpy(tensor):
+        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+
+    # compute ONNX Runtime output prediction
+    ort_inputs = {ort_session.get_inputs()[0].name: to_numpy(model.example_input_array)}
+    ort_outs = ort_session.run(None, ort_inputs)
+
+    # compare ONNX Runtime and PyTorch results
+    assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
