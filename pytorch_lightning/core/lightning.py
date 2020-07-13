@@ -1544,7 +1544,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Example:
             .. code-block:: python
 
-
                 def on_save_checkpoint(self, checkpoint):
                     # 99% of use cases you don't need to implement this method
                     checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
@@ -1558,7 +1557,18 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
-        Additional items to be displayed in the progress bar.
+        Implement this to override the default items displayed in the progress bar.
+        By default it includes the average loss value, split index of BPTT (if used)
+        and the version of the experiment when using a logger.
+
+        Example:
+            .. code-block:: python
+
+                def get_progress_bar_dict(self):
+                    # don't show the version number
+                    items = super().get_progress_bar_dict()
+                    items.pop("v_num", None)
+                    return items
 
         Return:
             Dictionary with the items to be displayed in the progress bar.
