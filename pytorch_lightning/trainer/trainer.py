@@ -1163,7 +1163,7 @@ class Trainer(
         if self.testing:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
-            results = self.run_evaluation(test_mode=True)
+            results, _ = self.run_evaluation(test_mode=True)
 
             # remove all cuda tensors
             if results is not None and isinstance(results, dict) and len(results) > 0:

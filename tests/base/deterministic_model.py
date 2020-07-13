@@ -167,23 +167,36 @@ class DeterministicModel(LightningModule):
         return {'log': logs, 'progress_bar': pbar}
 
     def validation_step_no_return(self, batch, batch_idx):
+        self.validation_step_called = True
         acc = self.step(batch, batch_idx)
 
     def validation_step_scalar_return(self, batch, batch_idx):
+        self.validation_step_called = True
         acc = self.step(batch, batch_idx)
         return acc
 
     def validation_step_arbitary_dict_return(self, batch, batch_idx):
+        self.validation_step_called = True
         acc = self.step(batch, batch_idx)
         return {'some': acc, 'value': 'a'}
 
     def validation_step_dict_return(self, batch, batch_idx):
+        self.validation_step_called = True
         acc = self.step(batch, batch_idx)
 
         logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
         return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
 
+    def validation_step_end(self, outputs):
+        self.validation_step_end_called = True
+
+    def validation_epoch_end(self, outputs):
+        self.validation_epoch_end_called = True
+
+    # -----------------------------
+    # DATA
+    # -----------------------------
     def train_dataloader(self):
         return DataLoader(DummyDataset(), batch_size=3, shuffle=False)
 

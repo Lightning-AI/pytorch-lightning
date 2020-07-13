@@ -315,7 +315,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # with a single dataloader don't pass an array
         if len(dataloaders) == 1:
-            outputs = outputs[0]
+            eval_results = outputs[0]
 
         # give model a chance to do something with the outputs (and method defined)
         if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
@@ -324,22 +324,22 @@ class TrainerEvaluationLoopMixin(ABC):
         if test_mode:
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
-                eval_results = model.test_end(outputs)
+                eval_results = model.test_end(eval_results)
                 rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
-                eval_results = model.test_epoch_end(outputs)
+                eval_results = model.test_epoch_end(eval_results)
 
         else:
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
-                eval_results = model.validation_end(outputs)
+                eval_results = model.validation_end(eval_results)
                 rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
-                eval_results = model.validation_epoch_end(outputs)
+                eval_results = model.validation_epoch_end(eval_results)
 
         # enable train mode again
         model.train()
@@ -429,7 +429,7 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             self.on_validation_end()
 
-        return callback_metrics
+        return callback_metrics, eval_results
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional

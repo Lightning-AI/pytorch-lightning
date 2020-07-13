@@ -13,13 +13,15 @@ from tests.base.deterministic_model import DeterministicModel
 # train loop + val step + val epoch end
 
 
-def test_validation_step_dict(tmpdir):
+def test_validation_step_no_return(tmpdir):
     """
-    test that the train + val loop can be used
+    Test that val step can return nothing
     """
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
-    model.validation_step = model.validation_step_dict_return
+    model.validation_step = model.validation_step_no_return
+    model.validation_step_end = None
+    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -28,32 +30,50 @@ def test_validation_step_dict(tmpdir):
     )
     trainer.fit(model)
 
+    # out are the results of the full loop
+    # eval_results are output of _evaluate
+    out, eval_results = trainer.run_evaluation(test_mode=False)
+    assert len(out) == 0
+    assert len(eval_results) == 0
+
     # make sure correct steps were called
-    assert model.training_step_called
-    assert not model.training_step_end_called
-    assert not model.training_epoch_end_called
+    assert model.validation_step_called
+    assert not model.validation_step_end_called
+    assert not model.validation_epoch_end_called
 
-    # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
 
-    out = trainer.run_training_batch(batch, batch_idx)
-    assert out.signal == 0
-    assert out.batch_log_metrics['log_acc1'] == 12.0
-    assert out.batch_log_metrics['log_acc2'] == 7.0
+def test_validation_step_scalar_return(tmpdir):
+    """
+    Test that val step can return a scalar
+    """
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_scalar_return
+    model.validation_step_end = None
+    model.validation_epoch_end = None
 
-    train_step_out = out.training_step_output_for_epoch_end
-    pbar_metrics = train_step_out['progress_bar']
-    assert 'log' in train_step_out
-    assert 'progress_bar' in train_step_out
-    assert train_step_out['train_step_test'] == 549
-    assert pbar_metrics['pbar_acc1'] == 17.0
-    assert pbar_metrics['pbar_acc2'] == 19.0
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        weights_summary=None,
+        limit_train_batches=2,
+        limit_val_batches=2
+    )
+    trainer.fit(model)
 
-    # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
-    assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
+    # out are the results of the full loop
+    # eval_results are output of _evaluate
+    out, eval_results = trainer.run_evaluation(test_mode=False)
+    assert len(out) == 0
+    assert len(eval_results) == 2
+    assert eval_results[0] == 171 and eval_results[1] == 171
 
+    # make sure correct steps were called
+    assert model.validation_step_called
+    assert not model.validation_step_end_called
+    assert not model.validation_epoch_end_called
+
+
+test_validation_step_scalar_return('')
 
 def training_step_with_step_end(tmpdir):
     """
@@ -73,8 +93,7 @@ def training_step_with_step_end(tmpdir):
     assert not model.training_epoch_end_called
 
     # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
@@ -115,8 +134,7 @@ def test_full_training_loop_dict(tmpdir):
     assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
@@ -152,8 +170,7 @@ def test_train_step_epoch_end(tmpdir):
     assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
-    for batch_idx, batch in enumerate(model.train_dataloader()):
-        break
+    batch_idx, batch = 0, next(iter(model.train_dataloader()))
 
     out = trainer.run_training_batch(batch, batch_idx)
     assert out.signal == 0
