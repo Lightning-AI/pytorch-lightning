@@ -80,12 +80,18 @@ references:
    run:
      name: Statistics
      command: |
-       ls
        mv ./xx01 coverage.xml
        # TODO: add human readable report
        cat coverage.xml
        sudo pip install pycobertura
        pycobertura show coverage.xml
+
+  codecov: &codecov
+    run:
+      name: Upload coverage to Codecov
+      command: |
+        sudo pip install codecov
+        codecov --token $CODECOV_TOKEN --flags=tpu,pytest --name="TPU-coverage" --env=linux  # --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
 
 jobs:
 
@@ -104,10 +110,7 @@ jobs:
       - *build_push_docker
       - *deploy_cluster
       - *stats
-      - codecov/upload:
-          file: coverage.xml
-          flags: tpu,pytest
-          upload_name: TPU-coverage
+      - *codecov
 
       - store_artifacts:
           path: coverage.xml
