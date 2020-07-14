@@ -1,6 +1,5 @@
 import os
 
-import onnx
 import onnxruntime
 import pytest
 import torch
