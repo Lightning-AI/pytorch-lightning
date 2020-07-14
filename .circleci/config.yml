@@ -19,7 +19,7 @@ references:
      name: Testing
      command: |
        python --version ; pip --version ; pip list
-       python -m pytest pytorch_lightning -v --junitxml=test-reports/pytest_junit.xml
+       python -m pytest pytorch_lightning -v --junitxml=test-reports/pytest_junit.xml  --ignore=pytorch_lightning/loggers/comet.py --ignore=pytorch_lightning/loggers/mlflow.py --ignore=pytorch_lightning/loggers/neptune.py --ignore=pytorch_lightning/loggers/test_tube.py --ignore=pytorch_lightning/loggers/wandb.py --ignore=pytorch_lightning/metrics/sklearns.py
      no_output_timeout: 15m
 
   make_docs: &make_docs
