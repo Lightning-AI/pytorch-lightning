@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   gcp-gke: circleci/gcp-gke@1.0.4
   go: circleci/go@1.3.0
+  codecov: codecov/codecov@1.1.0
 
 references:
 
@@ -79,17 +80,12 @@ references:
    run:
      name: Statistics
      command: |
+       ls
        mv ./xx01 coverage.xml
        # TODO: add human readable report
        cat coverage.xml
        sudo pip install pycobertura
        pycobertura show coverage.xml
-
-  codecov: &codecov
-   run:
-     name: Upload coverage to Codecov
-     command: |
-       codecov --token $CODECOV_TOKEN --flags=tpu,pytest --name="GPU-coverage" --env=linux  # --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
 
 jobs:
 
@@ -108,7 +104,11 @@ jobs:
       - *build_push_docker
       - *deploy_cluster
       - *stats
-      - *codecov
+      - codecov/upload:
+          file: coverage.xml
+          flags: tpu,pytest
+          upload_name: TPU-coverage
+
       - store_artifacts:
           path: coverage.xml
 
