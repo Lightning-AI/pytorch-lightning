@@ -176,6 +176,7 @@ class TrainerEvaluationLoopMixin(ABC):
     use_tpu: bool
     reload_dataloaders_every_epoch: ...
     tpu_id: int
+    verbose_test: bool
 
     # Callback system
     on_validation_batch_start: Callable
@@ -307,15 +308,16 @@ class TrainerEvaluationLoopMixin(ABC):
                     self.on_validation_batch_end()
 
                 # track outputs for collation
-                dl_outputs.append(output)
+                if output is not None:
+                    dl_outputs.append(output)
 
             outputs.append(dl_outputs)
 
-        eval_results = {}
+        eval_results = outputs
 
         # with a single dataloader don't pass an array
         if len(dataloaders) == 1:
-            outputs = outputs[0]
+            eval_results = outputs[0]
 
         # give model a chance to do something with the outputs (and method defined)
         if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
@@ -324,22 +326,22 @@ class TrainerEvaluationLoopMixin(ABC):
         if test_mode:
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
-                eval_results = model.test_end(outputs)
+                eval_results = model.test_end(eval_results)
                 rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
-                eval_results = model.test_epoch_end(outputs)
+                eval_results = model.test_epoch_end(eval_results)
 
         else:
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
-                eval_results = model.validation_end(outputs)
+                eval_results = model.validation_end(eval_results)
                 rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
-                eval_results = model.validation_epoch_end(outputs)
+                eval_results = model.validation_epoch_end(eval_results)
 
         # enable train mode again
         model.train()
@@ -385,31 +387,40 @@ class TrainerEvaluationLoopMixin(ABC):
         # enable disabling validation step with limit_val_batches = 0
         should_skip = sum(max_batches) == 0
         if should_skip:
-            return
+            return [], []
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
         # enable no returns
-        callback_metrics = {}
+        eval_loop_results = []
         if eval_results is not None and len(eval_results) > 0:
-            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-            # add metrics to prog bar
-            self.add_progress_bar_metrics(prog_bar_metrics)
+            # in eval, the user may return something at every validation step without final reduction
+            if not isinstance(eval_results, list):
+                eval_results = [eval_results]
 
-            # log results of test
-            if test_mode and self.is_global_zero:
-                print('-' * 80)
-                print('TEST RESULTS')
-                pprint(callback_metrics)
-                print('-' * 80)
+            for result in eval_results:
+                _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(result)
 
-            # log metrics
-            self.log_metrics(log_metrics, {})
+                # add metrics to prog bar
+                self.add_progress_bar_metrics(prog_bar_metrics)
 
-            # track metrics for callbacks
-            self.callback_metrics.update(callback_metrics)
+                # log results of test
+                if test_mode and self.is_global_zero and self.verbose_test:
+                    print('-' * 80)
+                    print('TEST RESULTS')
+                    pprint(callback_metrics)
+                    print('-' * 80)
+
+                # log metrics
+                self.log_metrics(log_metrics, {})
+
+                # track metrics for callbacks
+                self.callback_metrics.update(callback_metrics)
+
+                if len(callback_metrics) > 0:
+                    eval_loop_results.append(callback_metrics)
 
         # hook
         model.on_post_performance_check()
@@ -429,7 +440,7 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             self.on_validation_end()
 
-        return callback_metrics
+        return eval_loop_results, eval_results
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
