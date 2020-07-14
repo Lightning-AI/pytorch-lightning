@@ -128,8 +128,8 @@ class Trainer(
         >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
         >>> trainer.fit(model, train_loader)
         1
-        >>> test_outputs = trainer.test(model, train_loader)
-        >>> len(test_outputs)
+        >>> test_outputs = trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        >>> len(test_outputs)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         4
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
