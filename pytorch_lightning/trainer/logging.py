@@ -109,13 +109,6 @@ class TrainerLoggingMixin(ABC):
             hiddens = None
             return output, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
-        # --------------------------
-        # handle lists
-        # --------------------------
-        if isinstance(output, list):
-            # TODO: what to do when given a list?
-            output = {}
-
         # ---------------
         # EXTRACT CALLBACK KEYS
         # ---------------

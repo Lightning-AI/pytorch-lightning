@@ -393,23 +393,29 @@ class TrainerEvaluationLoopMixin(ABC):
         # enable no returns
         callback_metrics = {}
         if eval_results is not None and len(eval_results) > 0:
-            _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(eval_results)
 
-            # add metrics to prog bar
-            self.add_progress_bar_metrics(prog_bar_metrics)
+            # in eval, the user may return something at every validation step without final reduction
+            if not isinstance(eval_results, list):
+                eval_results = [eval_results]
 
-            # log results of test
-            if test_mode and self.is_global_zero:
-                print('-' * 80)
-                print('TEST RESULTS')
-                pprint(callback_metrics)
-                print('-' * 80)
+            for result in eval_results:
+                _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(result)
 
-            # log metrics
-            self.log_metrics(log_metrics, {})
+                # add metrics to prog bar
+                self.add_progress_bar_metrics(prog_bar_metrics)
 
-            # track metrics for callbacks
-            self.callback_metrics.update(callback_metrics)
+                # log results of test
+                if test_mode and self.is_global_zero:
+                    print('-' * 80)
+                    print('TEST RESULTS')
+                    pprint(callback_metrics)
+                    print('-' * 80)
+
+                # log metrics
+                self.log_metrics(log_metrics, {})
+
+                # track metrics for callbacks
+                self.callback_metrics.update(callback_metrics)
 
         # hook
         model.on_post_performance_check()

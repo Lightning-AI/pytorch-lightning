@@ -1179,6 +1179,20 @@ class Trainer(
         self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
             and not self.fast_dev_run
 
+        # run a few val batches before training starts
+        self._run_sanity_check(ref_model, model)
+
+        # clear cache before training
+        if self.on_gpu and self.root_gpu is not None:
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
+
+        # CORE TRAINING LOOP
+        self.train()
+
+    def _run_sanity_check(self, ref_model, model):
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         if not self.disable_validation and self.num_sanity_val_steps > 0:
@@ -1197,20 +1211,13 @@ class Trainer(
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
+                # when we get a list back, used only the last item
+                if isinstance(eval_results, list):
+                    eval_results = eval_results[-1]
                 _, _, _, callback_metrics, _ = self.process_output(eval_results)
                 self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
-
-        # clear cache before training
-        if self.on_gpu and self.root_gpu is not None:
-            # use context because of:
-            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-            with torch.cuda.device(f'cuda:{self.root_gpu}'):
-                torch.cuda.empty_cache()
-
-        # CORE TRAINING LOOP
-        self.train()
 
     def test(
             self,
