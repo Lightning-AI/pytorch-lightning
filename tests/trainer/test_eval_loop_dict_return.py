@@ -4,7 +4,6 @@ Tests to ensure that the training loop works with a dict
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
-# train loop + val step (structured return)
 # train loop + val step + val step end
 # train loop + val step + val step end + val epoch end
 # train loop + val step + val epoch end
