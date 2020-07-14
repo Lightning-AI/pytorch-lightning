@@ -142,7 +142,7 @@ def test_validation_step_dict_return(tmpdir):
 
 def test_val_step_step_end_no_return(tmpdir):
     """
-    Test that val step + val step end work
+    Test that val step + val step end work (with no return in val step end)
     """
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
@@ -253,7 +253,7 @@ def test_no_val_step_end(tmpdir):
 
 def test_full_val_loop(tmpdir):
     """
-    Test that val step + val step + val epoch end
+    Test that val step + val step end + val epoch end
     """
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
