@@ -184,7 +184,7 @@ class DeterministicModel(LightningModule):
         self.validation_step_called = True
         acc = self.step(batch, batch_idx)
 
-        logs = {'log_acc1': torch.tensor(12).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
+        logs = {'log_acc1': torch.tensor(12 + batch_idx).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
         return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
 

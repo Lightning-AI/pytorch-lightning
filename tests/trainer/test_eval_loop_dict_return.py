@@ -4,9 +4,6 @@ Tests to ensure that the training loop works with a dict
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
-# train step + val step (no return)
-# train step + val step (scalar return)
-# train loop + val step (arbitrary dict return)
 # train loop + val step (structured return)
 # train loop + val step + val step end
 # train loop + val step + val step end + val epoch end
@@ -107,7 +104,42 @@ def test_validation_step_arbitrary_dict_return(tmpdir):
     assert not model.validation_step_end_called
     assert not model.validation_epoch_end_called
 
-test_validation_step_arbitrary_dict_return('')
+
+def test_validation_step_dict_return(tmpdir):
+    """
+    Test that val step can return a scalar
+    """
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_dict_return
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        weights_summary=None,
+        limit_train_batches=2,
+        limit_val_batches=2
+    )
+    trainer.fit(model)
+
+    # out are the results of the full loop
+    # eval_results are output of _evaluate
+    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    assert len(callback_metrics) == 5
+    assert len(eval_results) == 2
+    assert eval_results[0]['log']['log_acc1'] == 12
+    assert eval_results[1]['log']['log_acc1'] == 13
+
+    for k in ['val_loss', 'log', 'progress_bar']:
+        assert k in eval_results[0]
+        assert k in eval_results[1]
+
+    # ensure all the keys ended up as candidates for callbacks
+    assert len(trainer.callback_metrics) == 7
+
+
+test_validation_step_dict_return('')
 
 
 def training_step_with_step_end(tmpdir):
