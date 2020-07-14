@@ -40,7 +40,6 @@ dependencies:
     - matplotlib>=3.1.1
     - omegaconf>=2.0.0
     - torchtext>=0.3.1
-    - onnxruntime>=1.3.0
 
     - pip:
         - test-tube>=0.7.5
@@ -49,3 +48,4 @@ dependencies:
         - wandb>=0.8.21
         - neptune-client>=0.4.109
         - horovod>=0.19.1
+        - onnxruntime>=1.3.0
