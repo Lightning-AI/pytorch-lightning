@@ -313,7 +313,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
             outputs.append(dl_outputs)
 
-        eval_results = {}
+        eval_results = outputs
 
         # with a single dataloader don't pass an array
         if len(dataloaders) == 1:

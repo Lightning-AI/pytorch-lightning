@@ -115,6 +115,8 @@ def test_multiple_val_dataloader(tmpdir):
         tpipes.run_prediction(dataloader, trainer.model)
 
 
+test_multiple_val_dataloader('')
+
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 def test_multiple_test_dataloader(tmpdir, ckpt_path):
     """Verify multiple test_dataloader."""
