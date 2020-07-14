@@ -1178,6 +1178,8 @@ class Trainer(
                         if isinstance(v, torch.Tensor):
                             result[k] = v.cpu().item()
 
+            return eval_loop_results
+
         # check if we should run validation during training
         self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
             and not self.fast_dev_run
