@@ -75,15 +75,6 @@ def test_error_if_no_input(tmpdir):
         model.to_onnx(file_path)
 
 
-def test_if_onnx_schema_is_valid(tmpdir):
-    """ Check if output ONNX model has valid schema"""
-    model = EvalModelTemplate()
-    file_path = os.path.join(tmpdir, "model.onxx")
-    model.to_onnx(file_path)
-    onnx_model = onnx.load(file_path)
-    assert onnx.checker.check_model(onnx_model) is None
-
-
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch"""
     model = EvalModelTemplate()
@@ -108,4 +99,3 @@ def test_if_inference_output_is_valid(tmpdir):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
-
