@@ -129,8 +129,8 @@ class Trainer(
         >>> trainer.fit(model, train_loader)
         1
         >>> test_outputs = trainer.test(model, train_loader)
-        >>> len(test_outputs)# doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        1
+        >>> len(test_outputs)
+        4
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
