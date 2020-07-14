@@ -49,6 +49,7 @@ jobs:
           destination: html
 
   CPU-Tests:
+    # todo: to be replaced by TPU tests
     docker:
       - image: circleci/python:3.6
     environment:
