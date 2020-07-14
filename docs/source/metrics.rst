@@ -228,6 +228,12 @@ RMSLE
 .. autoclass:: pytorch_lightning.metrics.regression.RMSLE
     :noindex:
 
+Bleu
+^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.seq2seq.Bleu
+    :noindex:
+
 ----------------
 
 Functional Metrics
