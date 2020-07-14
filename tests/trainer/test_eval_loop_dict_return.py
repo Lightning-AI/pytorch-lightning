@@ -72,7 +72,7 @@ def test_validation_step_scalar_return(tmpdir):
 
 def test_validation_step_arbitrary_dict_return(tmpdir):
     """
-    Test that val step can return a scalar
+    Test that val step can return an arbitrary dict
     """
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
@@ -107,7 +107,8 @@ def test_validation_step_arbitrary_dict_return(tmpdir):
 
 def test_validation_step_dict_return(tmpdir):
     """
-    Test that val step can return a scalar
+    Test that val step can return a dict with all the expected keys and they end up
+    in the correct place
     """
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
