@@ -188,8 +188,21 @@ class DeterministicModel(LightningModule):
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
         return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
 
-    def validation_step_end(self, outputs):
+    def validation_step_end_no_return(self, val_step_output):
+        assert len(val_step_output) == 3
+        assert val_step_output['val_loss'] == 171
+        assert val_step_output['log']['log_acc1'] >= 12
+        assert val_step_output['progress_bar']['pbar_acc1'] == 17
         self.validation_step_end_called = True
+
+    def validation_step_end(self, val_step_output):
+        assert len(val_step_output) == 3
+        assert val_step_output['val_loss'] == 171
+        assert val_step_output['log']['log_acc1'] >= 12
+        assert val_step_output['progress_bar']['pbar_acc1'] == 17
+        self.validation_step_end_called = True
+
+        return val_step_output
 
     def validation_epoch_end(self, outputs):
         self.validation_epoch_end_called = True

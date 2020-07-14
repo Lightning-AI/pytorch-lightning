@@ -307,7 +307,8 @@ class TrainerEvaluationLoopMixin(ABC):
                     self.on_validation_batch_end()
 
                 # track outputs for collation
-                dl_outputs.append(output)
+                if output is not None:
+                    dl_outputs.append(output)
 
             outputs.append(dl_outputs)
 
