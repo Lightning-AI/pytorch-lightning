@@ -202,10 +202,21 @@ class DeterministicModel(LightningModule):
         assert val_step_output['progress_bar']['pbar_acc1'] == 17
         self.validation_step_end_called = True
 
+        val_step_output['val_step_end'] = torch.tensor(1802)
+
         return val_step_output
 
     def validation_epoch_end(self, outputs):
+        assert len(outputs) == self.trainer.num_val_batches[0]
+
+        for i, out in enumerate(outputs):
+            assert out['log']['log_acc1'] >= 12 + i
+
         self.validation_epoch_end_called = True
+
+        result = outputs[-1]
+        result['val_epoch_end'] = torch.tensor(1233)
+        return result
 
     # -----------------------------
     # DATA

@@ -195,7 +195,8 @@ def test_val_step_step_end(tmpdir):
     # out are the results of the full loop
     # eval_results are output of _evaluate
     callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
-    assert len(callback_metrics) == 5
+    assert len(callback_metrics) == 6
+    assert callback_metrics['val_step_end'] == 1802
     assert len(eval_results) == 2
     assert eval_results[0]['log']['log_acc1'] == 12
     assert eval_results[1]['log']['log_acc1'] == 13
@@ -205,9 +206,91 @@ def test_val_step_step_end(tmpdir):
         assert k in eval_results[1]
 
     # ensure all the keys ended up as candidates for callbacks
-    assert len(trainer.callback_metrics) == 8
+    assert len(trainer.callback_metrics) == 9
 
     # make sure correct steps were called
     assert model.validation_step_called
     assert model.validation_step_end_called
     assert not model.validation_epoch_end_called
+
+
+def test_no_val_step_end(tmpdir):
+    """
+    Test that val step + val epoch end
+    """
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_dict_return
+    model.validation_step_end = None
+    model.validation_epoch_end = model.validation_epoch_end
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        weights_summary=None,
+        limit_train_batches=2,
+        limit_val_batches=3,
+        num_sanity_val_steps=0
+    )
+    trainer.fit(model)
+
+    # out are the results of the full loop
+    # eval_results are output of _evaluate
+    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    assert len(callback_metrics) == 6
+    assert len(eval_results) == 1
+
+    eval_results = eval_results[0]
+    assert 'val_step_end' not in eval_results
+    assert eval_results['val_epoch_end'] == 1233
+
+    for k in ['val_loss', 'log', 'progress_bar']:
+        assert k in eval_results
+
+    # ensure all the keys ended up as candidates for callbacks
+    assert len(trainer.callback_metrics) == 9
+
+    # make sure correct steps were called
+    assert model.validation_step_called
+    assert not model.validation_step_end_called
+    assert model.validation_epoch_end_called
+
+
+def test_full_val_loop(tmpdir):
+    """
+    Test that val step + val step + val epoch end
+    """
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_dict_return
+    model.validation_step_end = model.validation_step_end
+    model.validation_epoch_end = model.validation_epoch_end
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        weights_summary=None,
+        limit_train_batches=2,
+        limit_val_batches=3,
+        num_sanity_val_steps=0
+    )
+    trainer.fit(model)
+
+    # out are the results of the full loop
+    # eval_results are output of _evaluate
+    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    assert len(callback_metrics) == 7
+    assert len(eval_results) == 1
+
+    eval_results = eval_results[0]
+    assert eval_results['val_step_end'] == 1802
+    assert eval_results['val_epoch_end'] == 1233
+
+    for k in ['val_loss', 'log', 'progress_bar']:
+        assert k in eval_results
+
+    # ensure all the keys ended up as candidates for callbacks
+    assert len(trainer.callback_metrics) == 10
+
+    # make sure correct steps were called
+    assert model.validation_step_called
+    assert model.validation_step_end_called
+    assert model.validation_epoch_end_called
