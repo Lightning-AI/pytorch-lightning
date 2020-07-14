@@ -1,0 +1,70 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2.0
+
+references:
+
+  install_deps: &install_deps
+    run:
+      name: Install Dependences
+      command: |
+        sudo apt-get update && sudo apt-get install -y cmake
+        pip install -r requirements/base.txt -q
+        pip install -r requirements/test.txt -q
+
+  tests: &tests
+   run:
+     name: Testing
+     command: |
+       python --version ; pip --version ; pip list
+       python -m pytest pytorch_lightning -v --junitxml=test-reports/pytest_junit.xml
+     no_output_timeout: 15m
+
+  make_docs: &make_docs
+   run:
+     name: Make Documentation
+     command: |
+       # First run the same pipeline as Read-The-Docs
+       # apt-get update && apt-get install -y cmake
+       # using: https://hub.docker.com/r/readthedocs/build
+       # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
+       pyenv global 3.7.3
+       python --version
+       pip install -r requirements/docs.txt
+       cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
+
+jobs:
+
+  Build-Docs:
+    docker:
+      - image: readthedocs/build:latest
+    steps:
+      - checkout
+      - *make_docs
+      - store_artifacts:
+          # allows us to preview the generated html pages
+          path: docs/build/html/
+          destination: html
+
+  CPU-Tests:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      - TORCH_VERSION: "torch"
+    steps: &steps
+      - checkout
+      - *install_deps
+      - *tests
+      - store_test_results:
+          path: test-reports
+      - store_artifacts:
+          path: test-reports
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - Build-Docs
+      - CPU-Tests
