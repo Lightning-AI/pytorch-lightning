@@ -24,4 +24,4 @@ class Bleu(Metric):
         self.weights = weights
 
     def forward(self,x,y):
-        return torch.tensor(bleu(x,y,self.max_n,self.weights))
+        return bleu(x,y,self.max_n,self.weights)
