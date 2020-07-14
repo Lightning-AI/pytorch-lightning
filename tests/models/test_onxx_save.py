@@ -108,3 +108,4 @@ def test_if_inference_output_is_valid(tmpdir):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
