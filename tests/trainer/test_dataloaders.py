@@ -115,8 +115,6 @@ def test_multiple_val_dataloader(tmpdir):
         tpipes.run_prediction(dataloader, trainer.model)
 
 
-test_multiple_val_dataloader('')
-
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 def test_multiple_test_dataloader(tmpdir, ckpt_path):
     """Verify multiple test_dataloader."""
@@ -296,7 +294,6 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
         int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders
     ]
     assert trainer.num_test_batches == expected_test_batches
-
 
 @pytest.mark.parametrize(
     ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],

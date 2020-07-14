@@ -387,7 +387,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # enable disabling validation step with limit_val_batches = 0
         should_skip = sum(max_batches) == 0
         if should_skip:
-            return
+            return [], []
 
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
