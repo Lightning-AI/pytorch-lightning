@@ -403,6 +403,12 @@ stat_scores_multiple_classes (F)
 .. autofunction:: pytorch_lightning.metrics.functional.stat_scores_multiple_classes
     :noindex:
 
+bleu (F)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.seq2seq.functional.bleu
+    :noindex:
+
 ----------------
 
 Metric pre-processing

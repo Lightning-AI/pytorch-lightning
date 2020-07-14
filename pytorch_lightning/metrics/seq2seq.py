@@ -1,6 +1,7 @@
 import torch
-from torchtext.data.metrics import bleu_score
-
+from pytorch_lightning.metrics.functional.seq2seq import (
+    bleu
+)
 
 from pytorch_lightning.metrics.metric import Metric
 
@@ -23,4 +24,4 @@ class Bleu(Metric):
         self.weights = weights
 
     def forward(self,x,y):
-        return torch.tensor(bleu_score(x,y,self.max_n,self.weights))
+        return torch.tensor(bleu(x,y,self.max_n,self.weights))
