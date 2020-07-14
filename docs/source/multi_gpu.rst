@@ -270,8 +270,7 @@ Distributed Data Parallel
     trainer = Trainer(gpus=8, distributed_backend='ddp', num_nodes=4)
 
 This Lightning implementation of DDP calls your script under the hood multiple times with the correct environment
-variables. If your code does not support this (ie: jupyter notebook, colab, or a nested script without a root package),
-use `dp` or `ddp_spawn`.
+variables:
 
 .. code-block:: bash
 
@@ -280,6 +279,8 @@ use `dp` or `ddp_spawn`.
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
 
+If your code does not support this (ie: jupyter notebook, colab, or a nested script without a root package),
+use `dp` or `ddp_spawn`.
 We use DDP this way because `ddp_spawn` has a few limitations (due to Python and PyTorch):
 
 1. Since `.spawn()` trains the model in subprocesses, the model on the main process does not get updated.
