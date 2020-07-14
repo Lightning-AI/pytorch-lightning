@@ -1172,7 +1172,7 @@ class Trainer(
                 return 1
 
             # remove the tensors from the eval results
-            for i, result in eval_loop_results:
+            for i, result in enumerate(eval_loop_results):
                 if isinstance(result, dict):
                     for k, v in result.items():
                         if isinstance(v, torch.Tensor):
