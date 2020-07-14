@@ -86,13 +86,6 @@ references:
        sudo pip install pycobertura
        pycobertura show coverage.xml
 
-  codecov: &codecov
-    run:
-      name: Upload coverage to Codecov
-      command: |
-        sudo pip install codecov
-        codecov --token $CODECOV_TOKEN --flags=tpu,pytest --name="TPU-coverage" --env=linux  # --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
-
 jobs:
 
   TPU-tests:
@@ -110,7 +103,10 @@ jobs:
       - *build_push_docker
       - *deploy_cluster
       - *stats
-      - *codecov
+      - codecov/upload:
+          file: coverage.xml
+          flags: tpu,pytest
+          upload_name: TPU-coverage
 
       - store_artifacts:
           path: coverage.xml
