@@ -73,7 +73,42 @@ def test_validation_step_scalar_return(tmpdir):
     assert not model.validation_epoch_end_called
 
 
-test_validation_step_scalar_return('')
+def test_validation_step_arbitrary_dict_return(tmpdir):
+    """
+    Test that val step can return a scalar
+    """
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_arbitary_dict_return
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        weights_summary=None,
+        limit_train_batches=2,
+        limit_val_batches=2
+    )
+    trainer.fit(model)
+
+    # out are the results of the full loop
+    # eval_results are output of _evaluate
+    callback_metrics, eval_results = trainer.run_evaluation(test_mode=False)
+    assert len(callback_metrics) == 2
+    assert len(eval_results) == 2
+    assert eval_results[0]['some'] == 171
+    assert eval_results[1]['some'] == 171
+
+    assert eval_results[0]['value'] == 'a'
+    assert eval_results[1]['value'] == 'a'
+
+    # make sure correct steps were called
+    assert model.validation_step_called
+    assert not model.validation_step_end_called
+    assert not model.validation_epoch_end_called
+
+test_validation_step_arbitrary_dict_return('')
+
 
 def training_step_with_step_end(tmpdir):
     """
