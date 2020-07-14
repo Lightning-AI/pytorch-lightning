@@ -128,7 +128,8 @@ class Trainer(
         >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
         >>> trainer.fit(model, train_loader)
         1
-        >>> trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        >>> test_outputs = trainer.test(model, train_loader)
+        >>> len(test_outputs)# doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         1
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
@@ -1162,17 +1163,17 @@ class Trainer(
         if self.testing:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
-            results, _ = self.run_evaluation(test_mode=True)
+            eval_loop_results, _ = self.run_evaluation(test_mode=True)
 
-            # remove all cuda tensors
-            if results is not None and isinstance(results, dict) and len(results) > 0:
-                for k, v in results.items():
-                    if isinstance(v, torch.Tensor):
-                        results[k] = v.cpu().item()
-
-                return results
-            else:
+            if len(eval_loop_results) == 0:
                 return 1
+
+            # remove the tensors from the eval results
+            for i, result in eval_loop_results:
+                if isinstance(result, dict):
+                    for k, v in result.items():
+                        if isinstance(v, torch.Tensor):
+                            result[k] = v.cpu().item()
 
         # check if we should run validation during training
         self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
