@@ -176,6 +176,7 @@ class TrainerEvaluationLoopMixin(ABC):
     use_tpu: bool
     reload_dataloaders_every_epoch: ...
     tpu_id: int
+    verbose_test: bool
 
     # Callback system
     on_validation_batch_start: Callable
@@ -406,7 +407,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 self.add_progress_bar_metrics(prog_bar_metrics)
 
                 # log results of test
-                if test_mode and self.is_global_zero:
+                if test_mode and self.is_global_zero and self.verbose_test:
                     print('-' * 80)
                     print('TEST RESULTS')
                     pprint(callback_metrics)

@@ -128,7 +128,7 @@ class Trainer(
         >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
         >>> trainer.fit(model, train_loader)
         1
-        >>> test_outputs = trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+        >>> test_outputs = trainer.test(model, train_loader, verbose=False)
         >>> len(test_outputs)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         4
     """
@@ -396,6 +396,9 @@ class Trainer(
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
+
+        # when true, prints test results
+        self.verbose_test = True
 
         # when .test() is called, it sets this
         self.tested_ckpt_path = None
@@ -1223,7 +1226,8 @@ class Trainer(
             self,
             model: Optional[LightningModule] = None,
             test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            ckpt_path: Optional[str] = 'best'
+            ckpt_path: Optional[str] = 'best',
+            verbose: bool = True
     ):
         r"""
 
@@ -1237,6 +1241,11 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
+            verbose: If True, prints the test results
+
+        Returns:
+            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
 
         Example::
 
@@ -1277,6 +1286,8 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        self.verbose_test = verbose
+
         if self.global_rank != 0:
             return
 
