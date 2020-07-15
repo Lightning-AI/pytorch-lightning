@@ -1730,6 +1730,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             file_path: The path of the file the model should be saved to.
             input_sample: A sample of an input tensor for tracing.
             **kwargs: Will be passed to torch.onnx.export function.
+
+        Example:
+            .. code-block:: python
+                file_path = './model.onnx'
+                model = MyLightningModule(...)
+                input_sample = torch.randn((1, 28 * 28))
+                model.to_onnx(file_path, input_sample, export_params=True)
         """
 
         if isinstance(input_sample, Tensor):
