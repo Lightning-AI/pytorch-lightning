@@ -1,3 +1,4 @@
+import os
 from abc import ABC
 from typing import Union, Iterable
 
@@ -72,6 +73,9 @@ class TrainerLoggingMixin(ABC):
         if self.is_global_zero and self.logger is not None:
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
+
+            if 'PL_DEV_DEBUG' in os.environ:
+                self.debug_logged_metrics.append(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():

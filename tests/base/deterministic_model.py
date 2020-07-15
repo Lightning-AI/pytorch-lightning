@@ -105,8 +105,11 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch, batch_idx)
 
         result = TrainResult(minimize=acc)
-        result.log('log_acc1', torch.tensor(12).type_as(acc), reduce_on_epoch_end=True)
+        result.log('log_and_pbar_acc1', torch.tensor(12).type_as(acc), reduce_on_epoch_end=True, prog_bar=True)
+        result.log('log_acc2', torch.tensor(7).type_as(acc), reduce_on_epoch_end=True)
+        result.log('pbar_acc3', torch.tensor(17).type_as(acc), reduce_on_epoch_end=True, logger=False, prog_bar=True)
 
+        self.training_step_called = True
         return result
 
     # --------------------------
