@@ -1,8 +1,11 @@
-from collections import Counter
 from typing import List
 
-import torch
-from torchtext.data.metrics import bleu_score as bleu
+try:
+    from torchtext.data.metrics import bleu_score as bleu
+
+    _TORCHTEXT_AVAILABLE = True
+except ImportError:  # pragma: no-cover
+    _TORCHTEXT_AVAILABLE = False
 
 
 def bleu_score(
@@ -26,4 +29,9 @@ def bleu_score(
         >>> bleu_score(translate_corpus, reference_corpus)
         0.750623881816864
     """
+    if not _TORCHTEXT_AVAILABLE:
+        raise ImportError(
+            "Using BLEU Score Metric requires `torchtext` to be installed,"  # pragma: no-cover
+            " install it with `conda install -c pytorch torchtext`."
+        )
     return bleu(candidate_corpus=translate_corpus, references_corpus=reference_corpus, max_n=n_gram, weights=weights)

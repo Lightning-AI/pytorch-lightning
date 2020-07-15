@@ -1,7 +1,5 @@
 from typing import List
 
-import torch
-
 from pytorch_lightning.metrics.functional.sequence import bleu_score
 from pytorch_lightning.metrics.metric import Metric
 
