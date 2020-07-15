@@ -67,3 +67,11 @@ def test_training_step_result(tmpdir):
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
+
+
+def test_training_step_epoch_end_result(tmpdir):
+    """
+    Makes sure training_step and epoch_end can be used with Results (without batch_end)
+    """
+    # TODO: implement
+    pass
