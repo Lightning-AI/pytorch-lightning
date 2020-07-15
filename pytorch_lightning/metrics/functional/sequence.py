@@ -2,10 +2,10 @@ from typing import List
 
 try:
     from torchtext.data.metrics import bleu_score as bleu
-
-    _TORCHTEXT_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     _TORCHTEXT_AVAILABLE = False
+else:
+    _TORCHTEXT_AVAILABLE = True
 
 
 def bleu_score(
