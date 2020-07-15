@@ -53,6 +53,7 @@ PyTorch Lightning Documentation
    Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>
    Transformers text classification <https://github.com/ricardorei/lightning-text-classification>
    VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>
+   Transformers Question Answering (SQuAD) <https://github.com/tshrjn/Finetune-QA/>
 
 .. toctree::
    :maxdepth: 1
