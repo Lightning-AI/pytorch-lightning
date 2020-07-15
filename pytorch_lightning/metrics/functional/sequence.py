@@ -31,7 +31,7 @@ def bleu_score(
     """
     if not _TORCHTEXT_AVAILABLE:
         raise ImportError(
-            "Using BLEU Score Metric requires `torchtext` to be installed,"  # pragma: no-cover
+            "Using BLEU Score Metric requires `torchtext` to be installed,"
             " install it with `conda install -c pytorch torchtext`."
         )
     return bleu(candidate_corpus=translate_corpus, references_corpus=reference_corpus, max_n=n_gram, weights=weights)
