@@ -40,16 +40,14 @@ HYPOTHESES = [HYP1, HYP2]
         pytest.param(4, [1, 2, 3, 4]),
     ],
 )
-class TestBLEUScore:
-    def test_with_sentence_bleu(self, n_gram, weights):
-        nltk_output = sentence_bleu([REFERENCE1, REFERENCE2, REFERENCE3], HYPOTHESIS1, weights=weights)
-        pl_output = bleu_score([HYPOTHESIS1], [[REFERENCE1, REFERENCE2, REFERENCE3]], n_gram=n_gram, weights=weights)
-        assert pytest.approx(pl_output) == pytest.approx(nltk_output)
+def test_bleu_score(n_gram, weights):
+    nltk_output = sentence_bleu([REFERENCE1, REFERENCE2, REFERENCE3], HYPOTHESIS1, weights=weights)
+    pl_output = bleu_score([HYPOTHESIS1], [[REFERENCE1, REFERENCE2, REFERENCE3]], n_gram=n_gram, weights=weights)
+    assert pytest.approx(pl_output) == pytest.approx(nltk_output)
 
-    def test_with_corpus_bleu(self, n_gram, weights):
-        nltk_output = corpus_bleu(LIST_OF_REFERENCES, HYPOTHESES, weights=weights)
-        pl_output = bleu_score(HYPOTHESES, LIST_OF_REFERENCES, n_gram=n_gram, weights=weights)
-        assert pytest.approx(pl_output) == pytest.approx(nltk_output)
+    nltk_output = corpus_bleu(LIST_OF_REFERENCES, HYPOTHESES, weights=weights)
+    pl_output = bleu_score(HYPOTHESES, LIST_OF_REFERENCES, n_gram=n_gram, weights=weights)
+    assert pytest.approx(pl_output) == pytest.approx(nltk_output)
 
 
 def test_bleu_empty():
