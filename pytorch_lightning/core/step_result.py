@@ -1,6 +1,7 @@
 from typing import Optional, Dict
 from torch import Tensor
 import torch
+from copy import copy
 
 
 class Result(Dict):
@@ -18,7 +19,7 @@ class Result(Dict):
         self.early_stop_on = early_stop_on
         self.checkpoint_on = checkpoint_on
 
-        self.hiddens = hiddens
+        self._hiddens = hiddens
         self.minimize = minimize
 
     def log(
@@ -107,6 +108,11 @@ class Result(Dict):
             assert x.grad_fn is not None, m
             self.__setitem__('minimize', x)
 
+    def detach(self):
+        for k, v in self.items():
+            if isinstance(v, torch.Tensor) and v.grad_fn is not None:
+                self.__setitem__(k, v.detach())
+
     def __repr__(self):
         copy = self.copy()
         del copy['meta']
@@ -118,6 +124,12 @@ class Result(Dict):
         del copy['meta']
 
         return str(copy)
+
+    def __copy__(self):
+        newone = type(self)()
+        for k, v in self.items():
+            newone[k] = copy(v)
+        return newone
 
 
 class TrainResult(Result):

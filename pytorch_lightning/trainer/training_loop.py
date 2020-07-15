@@ -153,6 +153,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import torch.distributed as torch_distrib
+from copy import copy
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -164,6 +165,7 @@ from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.core.step_result import EvalResult, TrainResult, Result
 
 try:
     from apex import amp
@@ -780,26 +782,38 @@ class TrainerTrainLoopMixin(ABC):
             # ----------------------------
             # format and reduce outputs accordingly
             training_step_output_for_epoch_end = training_step_output
-            training_step_output = self.process_output(training_step_output, train=True)
+            is_result_obj = isinstance(training_step_output, Result)
 
-            # TODO: temporary part of structured results PR
-            training_step_output = AttributeDict(
-                batch_loss=training_step_output[0],
-                pbar_on_batch_end=training_step_output[1],
-                log_metrics=training_step_output[2],
-                callback_metrics=training_step_output[3],
-                hiddens=training_step_output[4],
-            )
+            # don't allow EvalResult in the training_step
+            if isinstance(training_step_output, EvalResult):
+                raise MisconfigurationException('training_step cannot return EvalResult, '
+                                                'use a dict or TrainResult instead')
+
+            # handle regular dicts
+            if not is_result_obj:
+                training_step_output = self.process_output(training_step_output, train=True)
+
+                training_step_output = AttributeDict(
+                    batch_loss=training_step_output[0],
+                    pbar_on_batch_end=training_step_output[1],
+                    log_metrics=training_step_output[2],
+                    callback_metrics=training_step_output[3],
+                    hiddens=training_step_output[4],
+                )
 
             # if the user decides to finally reduce things in epoch_end, save raw output without graphs
             if isinstance(training_step_output_for_epoch_end, torch.Tensor):
                 training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
+            elif is_result_obj:
+                training_step_output_for_epoch_end = copy(training_step_output)
+                training_step_output_for_epoch_end.detach()
             else:
                 training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
 
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
-        closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
+        closure_loss = training_step_output.minimize if is_result_obj else training_step_output.batch_loss
+        closure_loss = closure_loss / self.accumulate_grad_batches
 
         # the loss will get scaled for amp. avoid any modifications to it
         untouched_loss = closure_loss.detach().clone()
@@ -829,7 +843,11 @@ class TrainerTrainLoopMixin(ABC):
 
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
-            training_step_output.batch_loss = training_step_output.batch_loss.detach()
+
+            if is_result_obj:
+                training_step_output.detach()
+            else:
+                training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
         if self.use_horovod:
             # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid

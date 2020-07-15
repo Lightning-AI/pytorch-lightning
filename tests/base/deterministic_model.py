@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+from pytorch_lightning import TrainResult
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -96,6 +97,17 @@ class DeterministicModel(LightningModule):
 
         prototype_loss = outputs[0]
         return prototype_loss
+
+    # --------------------------
+    # Result returns
+    # --------------------------
+    def training_step_result_return(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+
+        result = TrainResult(minimize=acc)
+        result.log('log_acc1', torch.tensor(12).type_as(acc), reduce_on_epoch_end=True)
+
+        return result
 
     # --------------------------
     # dictionary returns
