@@ -7,6 +7,12 @@ from tests.base.deterministic_model import DeterministicModel
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 
 
+# TODOs:
+# make checkpoint and early stopping use the correct metrics
+# make sure step_ends receive a plain dict
+# same for epoch_end
+# make sure to auto-reduce when no epoch_end is implemented
+
 def test_training_step_result(tmpdir):
     """
     Tests that only training_step can be used with TrainResult
