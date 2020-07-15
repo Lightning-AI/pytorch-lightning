@@ -100,6 +100,43 @@ def test_comet_logger_dirs_creation(tmpdir, monkeypatch):
     assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
 
 
+def test_comet_name_default():
+    """ Test that CometLogger.name don't create an Experiment and returns a default value. """
+
+    api_key = "key"
+
+    # Test api_key given
+    with patch('pytorch_lightning.loggers.comet.CometExperiment') as comet:
+        logger = CometLogger(api_key=api_key)
+
+        # The experiment object should not exists
+        assert logger._experiment is None
+
+        assert logger.name == "comet-default"
+
+        # The experiment object should not exists
+        assert logger._experiment is None
+
+
+def test_comet_name_project_name():
+    """ Test that CometLogger.name don't create an Experiment and returns project name if passed. """
+
+    api_key = "key"
+    project_name = "My Project Name"
+
+    # Test api_key given
+    with patch('pytorch_lightning.loggers.comet.CometExperiment') as comet:
+        logger = CometLogger(api_key=api_key, project_name=project_name)
+
+        # The experiment object should not exists
+        assert logger._experiment is None
+
+        assert logger.name == project_name
+
+        # The experiment object should not exists
+        assert logger._experiment is None
+
+
 def test_comet_version_without_experiment():
     """ Test that CometLogger.version don't create an Experiment. """
 
@@ -115,6 +152,9 @@ def test_comet_version_without_experiment():
 
         first_version = logger.version
         assert first_version is not None
+
+        # This should stay the same until an experiment is created
+        assert logger.version == first_version
 
         # The experiment object should not exists
         assert logger._experiment is None
