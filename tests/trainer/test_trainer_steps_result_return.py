@@ -9,7 +9,8 @@ from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 
 def test_training_step_result(tmpdir):
     """
-    Tests that only training_step can be used
+    Tests that only training_step can be used with TrainResult
+    Makes sure that things are routed to pbar, loggers and loss accordingly
     """
     # enable internal debugging actions
     os.environ['PL_DEV_DEBUG'] = '1'
