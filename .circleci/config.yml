@@ -111,7 +111,7 @@ jobs:
       - store_artifacts:
           path: coverage.xml
 
-  Build-Docs:
+  build-Docs:
     docker:
       - image: readthedocs/build:latest
     steps:
@@ -126,5 +126,5 @@ workflows:
   version: 2
   tpu-tests:
     jobs:
-      - Build-Docs
+      - build-Docs
       - TPU-tests
