@@ -24,10 +24,10 @@ def bleu_score(
 
     Example:
 
-        >>> translate_corpus = ["the FAST brown fox jumped over the lazy dog".split(' ')]
-        >>> reference_corpus = [["the quick brown fox jumped over the lazy dog".split(' '), "the quick brown fox jumped over the the lazy cat".split(' ')]]
+        >>> translate_corpus = ['the cat is on the mat'.split()]
+        >>> reference_corpus = [['there is a cat on the mat'.split(), 'a cat is on the mat'.split()]]
         >>> bleu_score(translate_corpus, reference_corpus)
-        0.750623881816864
+        0.7598356604576111
     """
     if not _TORCHTEXT_AVAILABLE:
         raise ImportError(
