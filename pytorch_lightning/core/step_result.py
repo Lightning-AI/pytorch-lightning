@@ -108,6 +108,41 @@ class Result(Dict):
             assert x.grad_fn is not None, m
             self.__setitem__('minimize', x)
 
+    @property
+    def callback_metrics(self):
+        result = {
+            'early_stop_on': self.early_stop_on,
+            'checkpoint_on': self.checkpoint_on
+        }
+
+        return result
+
+    @property
+    def batch_log_metrics(self):
+        """
+        Gets the metrics to log at the end of the batch step
+        """
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if options['logger']:
+                result[k] = options['value']
+        return result
+
+    @property
+    def batch_pbar_metrics(self):
+        """
+        Gets the metrics to log at the end of the batch step
+        """
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if options['prog_bar']:
+                result[k] = options['value']
+        return result
+
     def detach(self):
         for k, v in self.items():
             if isinstance(v, torch.Tensor) and v.grad_fn is not None:

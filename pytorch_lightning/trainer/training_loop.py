@@ -624,7 +624,7 @@ class TrainerTrainLoopMixin(ABC):
                             param.requires_grad = True
 
                 # -------------------
-                # calculate loss
+                # calculate loss (train step + train step end)
                 # -------------------
                 opt_closure_result = self.optimizer_closure(
                     split_batch,
@@ -633,14 +633,26 @@ class TrainerTrainLoopMixin(ABC):
                     optimizer,
                     self.hiddens
                 )
+                is_result_obj = isinstance(opt_closure_result.training_step_output, Result)
 
                 # ------------------------------
                 # POST forward bookkeeping
                 # ------------------------------
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
-                batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
 
-                self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
+                # add metrics to loggers
+                if is_result_obj:
+                    metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
+                else:
+                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
+                batch_log_metrics.append(metrics_to_log)
+
+                # add metrics to progress bar
+                if is_result_obj:
+                    metrics_for_pbar = opt_closure_result.training_step_output.batch_pbar_metrics
+                else:
+                    metrics_for_pbar = opt_closure_result.training_step_output.pbar_on_batch_end
+                self.add_progress_bar_metrics(metrics_for_pbar)
 
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens
@@ -766,7 +778,7 @@ class TrainerTrainLoopMixin(ABC):
         wrap the forward step in a closure so second order methods work
         """
         # ---------------------------
-        # FORWARD
+        # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
             if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
