@@ -31,4 +31,4 @@ def test_bleu(weights, n_gram):
     assert bleu.name == "bleu"
 
     pl_output = bleu(HYPOTHESES, LIST_OF_REFERENCES)
-    assert isinstance(pl_output, float)
+    assert isinstance(pl_output, torch.Tensor)

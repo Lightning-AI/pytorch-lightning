@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Sequence
 
 try:
     from torchtext.data.metrics import bleu_score as bleu
@@ -9,18 +9,18 @@ else:
 
 
 def bleu_score(
-    translate_corpus: List[str], reference_corpus: List[str], n_gram: int = 4, weights: List[float] = [0.25] * 4,
+    translate_corpus: Sequence, reference_corpus: Sequence, n_gram: int = 4, weights: List[float] = [0.25] * 4,
 ) -> float:
     """Calculate BLEU score of machine translated text with one or more references.
 
     Args:
-        translate_corpus: A list of lists of machine translated corpus
-        reference_corpus: A list of lists of reference corpus
+        translate_corpus: An iterable of machine translated corpus
+        reference_corpus: An iterable of iterables of reference corpus
         n_gram: Gram value ranged from 1 to 4
         weights: A list of weights used for each n-gram category (uniform by default)
 
     Return:
-        A BLEU Score
+        A BLEU score
 
     Example:
 
@@ -31,7 +31,6 @@ def bleu_score(
     """
     if not _TORCHTEXT_AVAILABLE:
         raise ImportError(
-            "Using BLEU Score Metric requires `torchtext` to be installed,"
-            " install it with `conda install -c pytorch torchtext`."
+            "Using BLEU Score Metric requires `torchtext` to be installed, install it with `pip install torchtext`."
         )
     return bleu(candidate_corpus=translate_corpus, references_corpus=reference_corpus, max_n=n_gram, weights=weights)

@@ -6,12 +6,14 @@ from pytorch_lightning.metrics.functional.sequence import bleu_score
 
 # example taken from
 # https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.sentence_bleu
-HYPOTHESIS1 = "It is a guide to action which ensures that the military always obeys the commands of the party".split()
-REFERENCE1 = "It is a guide to action that ensures that the military will forever heed Party commands".split()
-REFERENCE2 = (
+HYPOTHESIS1 = tuple(
+    "It is a guide to action which ensures that the military always obeys the commands of the party".split()
+)
+REFERENCE1 = tuple("It is a guide to action that ensures that the military will forever heed Party commands".split())
+REFERENCE2 = tuple(
     "It is a guiding principle which makes the military forces always being under the command of the Party".split()
 )
-REFERENCE3 = "It is the practical guide for the army always to heed the directions of the party".split()
+REFERENCE3 = tuple("It is the practical guide for the army always to heed the directions of the party".split())
 
 
 # example taken from
@@ -41,8 +43,8 @@ HYPOTHESES = [HYP1, HYP2]
     ],
 )
 def test_bleu_score(n_gram, weights):
-    nltk_output = sentence_bleu([REFERENCE1, REFERENCE2, REFERENCE3], HYPOTHESIS1, weights=weights)
-    pl_output = bleu_score([HYPOTHESIS1], [[REFERENCE1, REFERENCE2, REFERENCE3]], n_gram=n_gram, weights=weights)
+    nltk_output = sentence_bleu((REFERENCE1, REFERENCE2, REFERENCE3), HYPOTHESIS1, weights=weights)
+    pl_output = bleu_score((HYPOTHESIS1,), ((REFERENCE1, REFERENCE2, REFERENCE3),), n_gram=n_gram, weights=weights)
     assert pytest.approx(pl_output) == pytest.approx(nltk_output)
 
     nltk_output = corpus_bleu(LIST_OF_REFERENCES, HYPOTHESES, weights=weights)
