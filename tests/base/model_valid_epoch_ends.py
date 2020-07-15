@@ -35,7 +35,6 @@ class ValidationEpochEndVariations(ABC):
         Args:
             outputs: list of individual outputs of each validation step
         """
-
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         def _mean(res, key):
