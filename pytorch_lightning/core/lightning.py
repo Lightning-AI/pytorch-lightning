@@ -1733,10 +1733,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         Example:
             .. code-block:: python
+
                 file_path = './model.onnx'
                 model = MyLightningModule(...)
                 input_sample = torch.randn((1, 28 * 28))
                 model.to_onnx(file_path, input_sample, export_params=True)
+
         """
 
         if isinstance(input_sample, Tensor):
