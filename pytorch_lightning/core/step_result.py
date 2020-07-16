@@ -22,6 +22,15 @@ class Result(Dict):
         self._hiddens = hiddens
         self.minimize = minimize
 
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(f'Missing attribute "{key}"')
+
+    def __setattr__(self, key, val):
+        self[key] = val
+
     def log(
             self,
             name,
@@ -149,10 +158,12 @@ class Result(Dict):
                 self.__setitem__(k, v.detach())
 
     def __repr__(self):
-        copy = self.copy()
-        del copy['meta']
+        self_copy = self.copy()
 
-        return str(copy)
+        if 'meta' in self_copy:
+            del self_copy['meta']
+
+        return str(self_copy)
 
     def __str__(self):
         copy = self.copy()
@@ -165,6 +176,42 @@ class Result(Dict):
         for k, v in self.items():
             newone[k] = copy(v)
         return newone
+
+    @classmethod
+    def gather(cls, outputs):
+        meta = outputs[0]['meta']
+        result = Result()
+        result = recursive_gather(outputs, result)
+        recursive_stack(result)
+        result['meta'] = meta
+        return result
+
+
+def recursive_gather(outputs, result=None):
+    for out in outputs:
+        if 'meta' in out:
+            del out['meta']
+
+        for k, v in out.items():
+            if isinstance(v, dict):
+                v = recursive_gather([v], result)
+
+            if k not in result:
+                result[k] = []
+
+            result[k].append(v)
+
+    return result
+
+
+def recursive_stack(result):
+    for k, v in result.items():
+        if isinstance(v, dict):
+            recursive_stack(v)
+
+        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
+            v = torch.stack(v)
+            result[k] = v
 
 
 class TrainResult(Result):
@@ -219,6 +266,7 @@ class EvalResult(Result):
 if __name__ == '__main__':
     import torch
     result = EvalResult()
+    result.minimize = 2
     result.log('some', 123)
     print(result)
     result.minimize = torch.tensor(1)

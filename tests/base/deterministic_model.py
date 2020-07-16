@@ -112,6 +112,25 @@ class DeterministicModel(LightningModule):
         self.training_step_called = True
         return result
 
+    def training_epoch_end_return(self, outputs):
+        """
+        There should be an array of scalars without graphs that are all 171 (4 of them)
+        """
+        self.training_epoch_end_called = True
+
+        if self.use_dp or self.use_ddp2:
+            pass
+        else:
+            # only saw 4 batches
+            assert len(outputs) == 4
+            for batch_out in outputs:
+                assert batch_out == 171
+                assert batch_out.grad_fn is None
+                assert isinstance(batch_out, torch.Tensor)
+
+        prototype_loss = outputs[0]
+        return prototype_loss
+
     # --------------------------
     # dictionary returns
     # --------------------------

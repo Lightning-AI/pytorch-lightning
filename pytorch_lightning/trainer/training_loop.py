@@ -531,6 +531,10 @@ class TrainerTrainLoopMixin(ABC):
         model = self.get_model()
         if self.is_overridden('training_epoch_end', model=model):
             self.global_step += 1
+
+            if isinstance(epoch_output[0], Result):
+                epoch_output = Result.gather(epoch_output)
+
             epoch_output = model.training_epoch_end(epoch_output)
             _processed_outputs = self.process_output(epoch_output)
             log_epoch_metrics = _processed_outputs[2]

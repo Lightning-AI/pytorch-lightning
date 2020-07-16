@@ -74,10 +74,31 @@ def test_training_step_result(tmpdir):
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
+    # TODO: test that it gets reduced on epoch end
+    # TODO: test that on batch end gets reduced
+
 
 def test_training_step_epoch_end_result(tmpdir):
     """
     Makes sure training_step and epoch_end can be used with Results (without batch_end)
     """
-    # TODO: implement
-    pass
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = DeterministicModel()
+    model.training_step = model.training_step_result_return
+    model.training_epoch_end = model.training_epoch_end_return
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure correct steps were called
+    assert model.training_step_called
+    assert not model.training_step_end_called
+    assert model.training_epoch_end_called
+
+test_training_step_epoch_end_result('')
