@@ -43,7 +43,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
@@ -891,6 +891,7 @@ class Trainer(
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -956,8 +957,6 @@ class Trainer(
 
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
-
-        self.state = TrainerState.RUNNING
 
         # callbacks
         self.on_fit_start(model)
@@ -1067,8 +1066,6 @@ class Trainer(
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
 
-        if self.state != TrainerState.INTERRUPTED:
-            self.state = TrainerState.FINISHED
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return results or 1
@@ -1247,6 +1244,7 @@ class Trainer(
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -1338,8 +1336,6 @@ class Trainer(
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
 
-        self.state = TrainerState.RUNNING
-
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
@@ -1380,9 +1376,6 @@ class Trainer(
         if self.is_function_implemented('teardown'):
             model_ref = self.get_model()
             model_ref.teardown('test')
-
-        if self.state != TrainerState.INTERRUPTED:
-            self.state = TrainerState.FINISHED
 
         return results
 
