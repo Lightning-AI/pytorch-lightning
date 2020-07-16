@@ -11,4 +11,4 @@ horovod>=0.19.1
 omegaconf>=2.0.0
 # scipy>=0.13.3
 scikit-learn>=0.20.0
-torchtext>=0.3.1
+torchtext>=0.5.0
