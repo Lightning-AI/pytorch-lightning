@@ -19,17 +19,56 @@ class Result(Dict):
         self.early_stop_on = early_stop_on
         self.checkpoint_on = checkpoint_on
 
-        self._hiddens = hiddens
+        self.hiddens = hiddens
         self.minimize = minimize
+
+        if minimize is not None and early_stop_on is None:
+            self.early_stop_on = minimize.detach()
+        if minimize is not None and checkpoint_on is None:
+            self.checkpoint_on = minimize.detach()
 
     def __getattr__(self, key):
         try:
-            return self[key]
+            if key == 'callback_metrics':
+                return self.callback_metrics()
+            elif key == 'batch_log_metrics':
+                return self.batch_log_metrics()
+            elif key == 'batch_pbar_metrics':
+                return self.batch_pbar_metrics()
+            else:
+                return self[key]
         except KeyError:
             raise AttributeError(f'Missing attribute "{key}"')
 
     def __setattr__(self, key, val):
+        # ensure reserve keys are tensors and detached
+        if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
+            self._assert_tensor_metric(key, val)
+            val = val.detach()
+
+        # ensure minimize is a tensor and has grads
+        elif key == 'minimize':
+            err = 'Minimize can only be used in training_end, training_step_end, training_epoch_end'
+            self._assert_grad_tensor_metric(key, val, err)
+
+        # ensure anything else that is a tensor is detached
+        elif isinstance(val, torch.Tensor):
+            val = val.detach()
+
         self[key] = val
+
+    def _assert_tensor_metric(self, name, x):
+        if x is not None:
+            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
+
+    def _assert_grad_tensor_metric(self, name, x, additional_err: str = None):
+        if x is not None:
+            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
+            m = f'{name} must have a computational graph.'
+
+            if additional_err:
+                m += f' {additional_err}'
+            assert x.grad_fn is not None, m
 
     def log(
             self,
@@ -63,61 +102,6 @@ class Result(Dict):
         )
         self['meta'][name] = meta
 
-    @property
-    def hiddens(self):
-        return self._hiddens
-
-    @hiddens.setter
-    def hiddens(self, x):
-        if x is not None:
-            assert isinstance(x, Tensor), 'hiddens must be a torch.Tensor'
-            self._hiddens = x
-            self.__setitem__('hiddens', x)
-
-    @property
-    def checkpoint_on(self):
-        # use minimize as default if no checkpoint_on is passed
-        if 'checkpoint_on' not in self:
-            minimize = self.__getitem__('minimize')
-            self.__setitem__('checkpoint_on', minimize)
-
-        return self.__getitem__('checkpoint_on')
-
-    @checkpoint_on.setter
-    def checkpoint_on(self, x):
-        if x is not None:
-            assert isinstance(x, Tensor), 'checkpoint_on must be a torch.Tensor'
-            self.__setitem__('checkpoint_on', x.detach())
-
-    @property
-    def early_stop_on(self):
-        # use minimize as default if no checkpoint_on is passed
-        if 'early_stop_on' not in self:
-            minimize = self.__getitem__('minimize')
-            self.__setitem__('early_stop_on', minimize)
-
-        return self.__getitem__('early_stop_on')
-
-    @early_stop_on.setter
-    def early_stop_on(self, x):
-        if x is not None:
-            assert isinstance(x, Tensor), 'early_stop_on must be a torch.Tensor'
-            self.__setitem__('early_stop_on', x.detach())
-
-    @property
-    def minimize(self):
-        return self.__getitem__('minimize')
-
-    @minimize.setter
-    def minimize(self, x):
-        if x is not None:
-            assert isinstance(x, Tensor), 'metric to minimize must be a torch.Tensor'
-            m = 'the metric to minimize must have a computational graph. Minimize ' \
-                'can only be used in training_end, training_step_end, training_epoch_end'
-            assert x.grad_fn is not None, m
-            self.__setitem__('minimize', x)
-
-    @property
     def callback_metrics(self):
         result = {
             'early_stop_on': self.early_stop_on,
@@ -126,7 +110,6 @@ class Result(Dict):
 
         return result
 
-    @property
     def batch_log_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
@@ -139,7 +122,6 @@ class Result(Dict):
                 result[k] = options['value']
         return result
 
-    @property
     def batch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
@@ -265,8 +247,8 @@ class EvalResult(Result):
 
 if __name__ == '__main__':
     import torch
-    result = EvalResult()
-    result.minimize = 2
+    result = TrainResult()
+    result.hiddens = torch.tensor(1)
     result.log('some', 123)
     print(result)
     result.minimize = torch.tensor(1)
