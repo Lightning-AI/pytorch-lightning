@@ -508,8 +508,7 @@ class TrainerDDPMixin(ABC):
         # call setup after the ddp process has connected
         if not self.testing:
             self.setup('fit')
-            if self.is_function_implemented('setup', model):
-                model.setup('fit')
+            model.setup('fit')
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero:

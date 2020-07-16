@@ -1039,8 +1039,7 @@ class Trainer(
             # call setup after the ddp process has connected
             if not self.testing:
                 self.setup('fit')
-                if self.is_function_implemented('setup', model):
-                    model.setup('fit')
+                model.setup('fit')
 
             # CHOOSE OPTIMIZER
             # allow for lr schedulers as well
@@ -1307,8 +1306,7 @@ class Trainer(
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
-        if self.is_function_implemented('setup', model):
-            model.setup('test')
+        model.setup('test')
 
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
@@ -1352,8 +1350,7 @@ class Trainer(
 
     def __test_given_model(self, model, test_dataloaders):
         # setup hook
-        if self.is_function_implemented('setup', model):
-            model.setup('test')
+        model.setup('test')
 
         # attach data
         if test_dataloaders is not None:
