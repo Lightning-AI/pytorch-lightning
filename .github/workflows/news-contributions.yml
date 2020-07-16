@@ -1,0 +1,21 @@
+name: Auto message for new contributors
+description: Automatically send a message to the first PR for new a contributor.
+branding:
+  icon: message-square
+  color: purple
+on: [pull_request]
+jobs:
+  build:
+    name: Thanks for contributing to PyTorch Lightning!
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-message: "Hey there, thanks for contributing to PyTorch Lightning!
+                       Community is the DNA of PyTorch Lightning. We are proud of our devoted contributors for the hard work and efforts!
+                       To show our appreciation, everyone who contributes to Lightning is eligible to receive free SWAG!
+                       Please fill out this form to claim yours -> https://forms.gle/srbe3JE9Qy56Ndxs6
+                       
+                       
+                       "
