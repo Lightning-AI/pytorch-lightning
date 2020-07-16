@@ -533,21 +533,29 @@ class TrainerTrainLoopMixin(ABC):
             self.global_step += 1
 
             if isinstance(epoch_output[0], Result):
-                epoch_output = Result.gather(epoch_output)
+                epoch_output = epoch_output[0].__class__.gather(epoch_output)
 
             epoch_output = model.training_epoch_end(epoch_output)
-            _processed_outputs = self.process_output(epoch_output)
-            log_epoch_metrics = _processed_outputs[2]
-            callback_epoch_metrics = _processed_outputs[3]
 
+            if isinstance(epoch_output, Result):
+                epoch_log_metrics = epoch_output.epoch_log_metrics
+                epoch_progress_bar_metrics = epoch_output.epoch_progress_bar_metrics
+                epoch_callback_metrics = epoch_output.epoch_callback_metrics
+            else:
+                _processed_outputs = self.process_output(epoch_output)
+                epoch_progress_bar_metrics = _processed_outputs[1]
+                epoch_log_metrics = _processed_outputs[2]
+                epoch_callback_metrics = _processed_outputs[3]
+
+            # TODO: do all of this for the user when no training_epoch end is defined and they used a result
             # add the metrics to the loggers
-            self.log_metrics(log_epoch_metrics, {})
+            self.log_metrics(epoch_log_metrics, {})
 
             # add metrics to callbacks
-            self.callback_metrics.update(callback_epoch_metrics)
+            self.callback_metrics.update(epoch_callback_metrics)
 
             # add metrics to progress_bar
-            self.add_progress_bar_metrics(_processed_outputs[1])
+            self.add_progress_bar_metrics(epoch_progress_bar_metrics)
 
     def sync_horovod(self):
         if self.use_horovod:
