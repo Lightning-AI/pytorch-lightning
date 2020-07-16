@@ -166,9 +166,10 @@ class TrainerDPMixin(ABC):
 
     def single_gpu_train(self, model):
         # call setup
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
+        if not self.testing:
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
 
         model.cuda(self.root_gpu)
 
@@ -188,9 +189,10 @@ class TrainerDPMixin(ABC):
 
     def tpu_train(self, tpu_core_idx, model):
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
+        if not self.testing:
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
 
         # put model on tpu
         self._device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
@@ -228,9 +230,10 @@ class TrainerDPMixin(ABC):
 
     def dp_train(self, model):
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
+        if not self.testing:
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
 
         model.cuda(self.root_gpu)
 
@@ -274,9 +277,10 @@ class TrainerDPMixin(ABC):
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
+        if not self.testing:
+            self.setup('fit')
+            if self.is_function_implemented('setup', model):
+                model.setup('fit')
 
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
