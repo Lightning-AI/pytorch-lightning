@@ -442,17 +442,10 @@ To use the sklearn backend of metrics simply import as
     import pytorch_lightning.metrics.sklearns import plm
     metric = plm.Accuracy(normalize=True)
     val = metric(pred, target)
-<<<<<<< HEAD
     
 Each converted sklearn metric comes has the same interface as its 
 original counterpart (e.g. accuracy takes the additional `normalize` keyword). 
-Like the native Lightning metrics, these converted sklearn metrics also come 
-=======
-
-Each converted sklearn metric comes has the same interface as its
-originally counterpart (e.g. accuracy takes the additional `normalize` keyword).
-Like the native Lightning metrics these converted sklearn metrics also come
->>>>>>> bleu score moved to metrics/functional/nlp.py
+Like the native Lightning metrics, these converted sklearn metrics also come
 with built-in distributed (ddp) support.
 
 SklearnMetric (sk)

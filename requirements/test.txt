@@ -13,3 +13,4 @@ pre-commit>=1.0
 
 cloudpickle>=1.2
 nltk>=3.3
+torchtext>=0.3.1
