@@ -140,7 +140,7 @@ class Result(Dict):
 
     def detach(self):
         for k, v in self.items():
-            if isinstance(v, torch.Tensor) and v.grad_fn is not None:
+            if isinstance(v, torch.Tensor):
                 self.__setitem__(k, v.detach())
 
     def __repr__(self):
