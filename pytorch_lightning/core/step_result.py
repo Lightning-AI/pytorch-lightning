@@ -16,11 +16,14 @@ class Result(Dict):
 
         super().__init__()
 
-        self.early_stop_on = early_stop_on
-        self.checkpoint_on = checkpoint_on
-
-        self.hiddens = hiddens
-        self.minimize = minimize
+        if early_stop_on is not None:
+            self.early_stop_on = early_stop_on
+        if checkpoint_on is not None:
+            self.checkpoint_on = checkpoint_on
+        if hiddens is not None:
+            self.hiddens = hiddens
+        if minimize is not None:
+            self.minimize = minimize
 
         if minimize is not None and early_stop_on is None:
             self.early_stop_on = minimize.detach()
@@ -30,21 +33,22 @@ class Result(Dict):
     def __getattr__(self, key):
         try:
             if key == 'callback_metrics':
-                return self.callback_metrics()
+                return self.get_callback_metrics()
             elif key == 'batch_log_metrics':
-                return self.batch_log_metrics()
+                return self.get_batch_log_metrics()
             elif key == 'batch_pbar_metrics':
-                return self.batch_pbar_metrics()
+                return self.get_batch_pbar_metrics()
             else:
                 return self[key]
         except KeyError:
-            raise AttributeError(f'Missing attribute "{key}"')
+            return None
 
     def __setattr__(self, key, val):
         # ensure reserve keys are tensors and detached
         if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
             self._assert_tensor_metric(key, val)
-            val = val.detach()
+            if val is not None:
+                val = val.detach()
 
         # ensure minimize is a tensor and has grads
         elif key == 'minimize':
@@ -102,7 +106,7 @@ class Result(Dict):
         )
         self['meta'][name] = meta
 
-    def callback_metrics(self):
+    def get_callback_metrics(self):
         result = {
             'early_stop_on': self.early_stop_on,
             'checkpoint_on': self.checkpoint_on
@@ -110,7 +114,7 @@ class Result(Dict):
 
         return result
 
-    def batch_log_metrics(self):
+    def get_batch_log_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -122,7 +126,7 @@ class Result(Dict):
                 result[k] = options['value']
         return result
 
-    def batch_pbar_metrics(self):
+    def get_batch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
