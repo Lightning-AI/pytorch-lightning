@@ -160,12 +160,6 @@ class ModelIO(object):
             # overwrite hparams by the given file
             checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
 
-        # for past checkpoint need to add the new key
-        if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
-            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
-        # override the hparams with values that were passed in
-        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
-
         model = cls._load_model_state(checkpoint, *args, **kwargs)
         return model
 
@@ -173,8 +167,12 @@ class ModelIO(object):
     def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, **cls_kwargs):
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls).parameters.keys()
+
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+            # override the hparams with values that were passed in
+            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(cls_kwargs)
+
             model_args = {}
 
             # add some back compatibility, the actual one shall be last
