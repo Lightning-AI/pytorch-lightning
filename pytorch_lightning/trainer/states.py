@@ -14,6 +14,11 @@ class TrainerState(Enum):
 
 
 def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[TrainerState] = None) -> Callable:
+    """ Decorator for :class:`~pytorch_lightning.Trainer` methods which changes
+    state to `entering` before the function execution and `exiting` after
+    the function is executed. If None is passed the state is not changed.
+    """
+
     def wrapper(fn) -> Callable:
         @wraps(fn)
         def wrapped_fn(self, *args, **kwargs):
