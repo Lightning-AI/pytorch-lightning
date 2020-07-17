@@ -18,16 +18,11 @@ HYPOTHESES = [HYP1, HYP2]
 
 
 @pytest.mark.parametrize(
-    ["n_gram", "weights"],
-    [
-        pytest.param(1, [1]),
-        pytest.param(2, [0.5, 0.5]),
-        pytest.param(3, [0.333333, 0.333333, 0.333333]),
-        pytest.param(4, [0.25, 0.25, 0.25, 0.25]),
-    ],
+    ["n_gram", "smooth"],
+    [pytest.param(1, True), pytest.param(2, False), pytest.param(3, True), pytest.param(4, False),],
 )
-def test_bleu(weights, n_gram):
-    bleu = BLEUScore(n_gram=n_gram, weights=weights)
+def test_bleu(smooth, n_gram):
+    bleu = BLEUScore(n_gram=n_gram, smooth=smooth)
     assert bleu.name == "bleu"
 
     pl_output = bleu(HYPOTHESES, LIST_OF_REFERENCES)
