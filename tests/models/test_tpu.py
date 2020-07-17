@@ -169,6 +169,23 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
+def test_model_16bit_tpu_index_8(tmpdir):
+    """Test if distributed TPU core training works"""
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        tpu_cores=[8],
+    )
+    trainer.fit(model)
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:8'
+    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
 def test_early_stop_checkpoints_on_tpu(tmpdir):
     """Test if single TPU core training works"""
     model = EvalModelTemplate()
@@ -187,18 +204,20 @@ def test_early_stop_checkpoints_on_tpu(tmpdir):
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
-def test_model_16bit_tpu_index_8(tmpdir):
-    """Test if distributed TPU core training works"""
+def test_early_stop_checkpoints_on_tpu(tmpdir):
+    """Test if single TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
+        early_stop_callback=True,
         default_root_dir=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        progress_bar_refresh_rate=0,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
         tpu_cores=[8],
     )
     trainer.fit(model)
-    assert trainer.tpu_id is None
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:8'
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
@@ -238,7 +257,7 @@ def test_tpu_misconfiguration():
         Trainer(tpu_cores=[1, 8])
 
 
-@patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
+# @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
 @pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
