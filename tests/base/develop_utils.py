@@ -89,6 +89,7 @@ def init_checkpoint_callback(logger):
 
 
 def pl_multi_process_test(func):
+    """Wrapper for running multi-processing tests."""
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -105,10 +106,13 @@ def pl_multi_process_test(func):
                 traceback.print_exc()
                 queue.put(-1)
 
-        p = Process(target=inner_f, args=(queue,), kwargs=kwargs)
-        p.start()
-        p.join()
+        proc = Process(target=inner_f, args=(queue,), kwargs=kwargs)
+        proc.start()
+        proc.join()
         result = queue.get()
         assert result == 1, 'expected 1, but returned %s' % result
+
+        proc.close()
+        queue.close()
 
     return wrapper
