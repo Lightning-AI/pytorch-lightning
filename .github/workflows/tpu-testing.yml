@@ -14,6 +14,8 @@ env:
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
   IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
+  MAX_CHECKS: 60
+  CHECK_SPEEP: 30
 
 jobs:
   setup-build-publish-deploy:
@@ -82,17 +84,16 @@ jobs:
         job_name=${job_name% created} && \
         echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
         i=0 && \
-        # 30 checks spaced 30s apart = 900s total.
-        max_checks=30 && \
+        # 60 checks spaced 30s apart = 900s total.
         status_code=2 && \
         # Check on the job periodically. Set the status code depending on what
-        # happened to the job in Kubernetes. If we try max_checks times and
+        # happened to the job in Kubernetes. If we try MAX_CHECKS times and
         # still the job hasn't finished, give up and return the starting
         # non-zero status code.
-        while [ $i -lt $max_checks ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else echo "Job not finished yet"; fi; sleep 30; done && \
+        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else echo "Job not finished yet"; fi; sleep 30; done && \
         echo "Done waiting. Job status code: $status_code" && \
         # Allow time for logs to flush.
-        sleep 60 && \
+        sleep $CHECK_SPEEP && \
         echo "JOB_NAME: $job_name" && \
         echo "GKE_CLUSTER: $GKE_CLUSTER" && \
         echo "GKE_ZONE: $GKE_ZONE" && \
