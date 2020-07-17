@@ -39,7 +39,7 @@ def test_model_tpu_cores_1(tmpdir):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_model_tpu_idx_1(tmpdir):
+def test_model_tpu_index_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -56,7 +56,7 @@ def test_model_tpu_idx_1(tmpdir):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_model_tpu_idx_8(tmpdir):
+def test_model_tpu_index_8(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -115,7 +115,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_model_16bit_tpu_idx_1(tmpdir):
+def test_model_16bit_tpu_index_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -177,7 +177,7 @@ def test_early_stop_checkpoints_on_tpu(tmpdir):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_model_16bit_tpu_index_1_8(tmpdir):
+def test_model_16bit_tpu_index_8(tmpdir):
     """Test if distributed TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
@@ -185,7 +185,7 @@ def test_model_16bit_tpu_index_1_8(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        tpu_cores=[1, 8],
+        tpu_cores=[8],
     )
     trainer.fit(model)
     assert trainer.tpu_id is None
@@ -221,7 +221,14 @@ def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     assert Trainer(tpu_cores=tpu_cores).tpu_id == expected_tpu_id
 
 
+def test_tpu_misconfiguration():
+    """Test if trainer.tpu_id is set as expected"""
+    with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
+        Trainer(tpu_cores=[1, 8])
+
+
 @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
+@pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
     model = EvalModelTemplate()
