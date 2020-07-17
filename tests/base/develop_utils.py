@@ -109,10 +109,8 @@ def pl_multi_process_test(func):
         proc = Process(target=inner_f, args=(queue,), kwargs=kwargs)
         proc.start()
         proc.join()
+
         result = queue.get()
         assert result == 1, 'expected 1, but returned %s' % result
-
-        proc.close()
-        queue.close()
 
     return wrapper
