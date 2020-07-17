@@ -62,7 +62,7 @@ def test_model_tpu_idx_8(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        tpu_cores=[8, 1],
+        tpu_cores=[8],
         limit_train_batches=0.4,
         limit_val_batches=0.4
     )
