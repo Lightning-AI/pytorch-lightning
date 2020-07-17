@@ -23,6 +23,8 @@ class Result(Dict):
         if hiddens is not None:
             self.hiddens = hiddens
         if minimize is not None:
+            err = 'Minimize can only be used in training_end, training_step_end, training_epoch_end'
+            self._assert_grad_tensor_metric('minimize', minimize, err)
             self.minimize = minimize
 
         if minimize is not None and early_stop_on is None:
@@ -38,6 +40,8 @@ class Result(Dict):
                 return self.get_batch_log_metrics()
             elif key == 'batch_pbar_metrics':
                 return self.get_batch_pbar_metrics()
+            elif key == 'epoch_log_metrics':
+                return self.get_epoch_log_metrics()
             else:
                 return self[key]
         except KeyError:
@@ -50,13 +54,8 @@ class Result(Dict):
             if val is not None:
                 val = val.detach()
 
-        # ensure minimize is a tensor and has grads
-        elif key == 'minimize':
-            err = 'Minimize can only be used in training_end, training_step_end, training_epoch_end'
-            self._assert_grad_tensor_metric(key, val, err)
-
         # ensure anything else that is a tensor is detached
-        elif isinstance(val, torch.Tensor):
+        elif isinstance(val, torch.Tensor) and key != 'minimize':
             val = val.detach()
 
         self[key] = val
@@ -115,6 +114,18 @@ class Result(Dict):
         return result
 
     def get_batch_log_metrics(self):
+        """
+        Gets the metrics to log at the end of the batch step
+        """
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if options['logger']:
+                result[k] = options['value']
+        return result
+
+    def get_epoch_log_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """

@@ -532,10 +532,22 @@ class TrainerTrainLoopMixin(ABC):
         if self.is_overridden('training_epoch_end', model=model):
             self.global_step += 1
 
+            # remove the protected keys so the user doesn't have to deal with them
             if isinstance(epoch_output[0], Result):
                 epoch_output = epoch_output[0].__class__.gather(epoch_output)
+                minimize = epoch_output.minimize
+                early_stop_on = epoch_output.early_stop_on
+                checkpoint_on = epoch_output.checkpoint_on
+                del epoch_output['minimize']
+                del epoch_output['early_stop_on']
+                del epoch_output['checkpoint_on']
 
             epoch_output = model.training_epoch_end(epoch_output)
+
+            if isinstance(epoch_output, Result):
+                epoch_output.minimize = minimize.mean()
+                epoch_output.early_stop_on = early_stop_on.mean()
+                epoch_output.checkpoint_on = checkpoint_on.mean()
 
             if isinstance(epoch_output, Result):
                 epoch_log_metrics = epoch_output.epoch_log_metrics

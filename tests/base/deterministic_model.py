@@ -123,9 +123,6 @@ class DeterministicModel(LightningModule):
         else:
             # only saw 4 batches
             assert isinstance(result, TrainResult)
-            assert len(result.minimize) == 4
-            assert self.count_num_graphs(result) == 0
-            assert result.minimize.mean() == 171
 
         result.log_acc2 = result.log_acc2.mean()
         result.log_and_pbar_acc1 = result.log_and_pbar_acc1.mean()
