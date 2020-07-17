@@ -28,7 +28,7 @@ from pytorch_lightning.metrics.sklearns import (
     PrecisionRecallCurve,
     SklearnMetric,
 )
-from pytorch_lightning.metrics.sequence import BLEUScore
+from pytorch_lightning.metrics.nlp import BLEUScore
 
 __classification_metrics = [
     "AUC",

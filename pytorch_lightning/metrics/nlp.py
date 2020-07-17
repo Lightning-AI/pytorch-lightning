@@ -2,7 +2,7 @@ from typing import List, Sequence
 
 import torch
 
-from pytorch_lightning.metrics.functional.sequence import bleu_score
+from pytorch_lightning.metrics.functional.nlp import bleu_score
 from pytorch_lightning.metrics.metric import Metric
 
 

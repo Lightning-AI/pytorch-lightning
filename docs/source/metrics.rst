@@ -141,7 +141,7 @@ AUROC
 BLEUScore
 ^^^^^^^^^
 
-.. autoclass:: pytorch_lightning.metrics.sequence.BLEUScore
+.. autoclass:: pytorch_lightning.metrics.nlp.BLEUScore
     :noindex:
 
 ConfusionMatrix
@@ -442,9 +442,9 @@ To use the sklearn backend of metrics simply import as
     import pytorch_lightning.metrics.sklearns import plm
     metric = plm.Accuracy(normalize=True)
     val = metric(pred, target)
-    
-Each converted sklearn metric comes has the same interface as its 
-original counterpart (e.g. accuracy takes the additional `normalize` keyword). 
+
+Each converted sklearn metric comes has the same interface as its
+original counterpart (e.g. accuracy takes the additional `normalize` keyword).
 Like the native Lightning metrics, these converted sklearn metrics also come
 with built-in distributed (ddp) support.
 

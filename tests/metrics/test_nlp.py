@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pytorch_lightning.metrics.sequence import BLEUScore
+from pytorch_lightning.metrics.nlp import BLEUScore
 
 # example taken from
 # https://www.nltk.org/api/nltk.translate.html?highlight=bleu%20score#nltk.translate.bleu_score.corpus_bleu
