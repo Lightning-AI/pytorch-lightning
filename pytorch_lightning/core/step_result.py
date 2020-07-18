@@ -27,8 +27,6 @@ class Result(Dict):
             self._assert_grad_tensor_metric('minimize', minimize, err)
             self.minimize = minimize
 
-        if minimize is not None and early_stop_on is None:
-            self.early_stop_on = minimize.detach()
         if minimize is not None and checkpoint_on is None:
             self.checkpoint_on = minimize.detach()
 

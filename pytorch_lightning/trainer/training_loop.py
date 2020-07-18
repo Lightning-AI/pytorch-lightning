@@ -143,7 +143,7 @@ in your model.
     trainer = Trainer(terminate_on_nan=True)
 
 """
-
+import os
 import subprocess
 from abc import ABC, abstractmethod
 from typing import Callable
@@ -924,6 +924,11 @@ class TrainerTrainLoopMixin(ABC):
             model_ref = self.get_model()
             with self.profiler.profile('on_after_backward'):
                 model_ref.on_after_backward()
+
+        # when in dev debugging track the losses
+        if 'PL_DEV_DEBUG' in os.environ:
+            loss_dict = {'batch_idx': batch_idx, 'epoch': self.current_epoch, 'loss': untouched_loss.detach()}
+            self.debug_saved_losses.append(loss_dict)
 
         result = AttributeDict(
             loss=untouched_loss,

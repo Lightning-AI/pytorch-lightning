@@ -142,6 +142,11 @@ class EarlyStopping(Callback):
 
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
+
+        # support structured results
+        if 'early_stop_on' in logs and logs['early_stop_on'] is not None:
+            self.monitor = 'early_stop_on'
+
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
 

@@ -616,9 +616,12 @@ class Trainer(
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
-        # for debugging purposes only, track the logged metrics
+        # ---------------------------
+        # only active when debugging PL for dev purposes and tests
+        # ---------------------------
         self.debug_logged_metrics = []
         self.debug_pbar_added_metrics = []
+        self.debug_saved_losses = []
 
         # Callback system
         self.on_init_end()

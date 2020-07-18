@@ -101,6 +101,25 @@ class DeterministicModel(LightningModule):
     # --------------------------
     # Result returns
     # --------------------------
+    def training_step_no_default_callbacks_for_train_loop(self, batch, batch_idx):
+        """
+        Early stop and checkpoint only on these values
+        """
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+        assert 'early_step_on' not in result
+        assert 'checkpoint_on' in result
+        return result
+
+    def training_step_result_log_epoch_and_step_for_callbacks(self, batch, batch_idx):
+        """
+        Early stop and checkpoint only on these values
+        """
+        losses = [20, 19, 18, 10, 15, 14, 9, 11, 11, 20, 22]
+        loss = losses[batch_idx]
+        result = TrainResult(minimize=loss, early_stop_on=loss, checkpoint_on=loss)
+        return result
+
     def training_step_result_log_step_only(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
         result = TrainResult(minimize=acc)

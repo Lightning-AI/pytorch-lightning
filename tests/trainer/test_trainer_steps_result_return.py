@@ -361,3 +361,46 @@ def test_training_step_epoch_end_result(tmpdir):
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
+
+
+def test_no_auto_callbacks_with_train_loop_only(tmpdir):
+    """
+    Make sure early stop + checkpoint work with only a train loop
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = DeterministicModel()
+    model.training_step = model.training_step_no_default_callbacks_for_train_loop
+    model.training_epoch_end = None
+    model.val_dataloader = None
+
+    batches = 3
+    epochs = 3
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=epochs,
+        row_log_interval=1,
+        limit_train_batches=batches,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    all_losses = trainer.debug_saved_losses
+    assert len(all_losses) == batches * epochs
+
+    assert trainer.checkpoint_callback.monitor == 'checkpoint_on'
+    assert trainer.early_stop_callback is None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        max_epochs=epochs,
+        row_log_interval=1,
+        limit_train_batches=batches,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert trainer.early_stop_callback.monitor == 'val_loss'
+
+test_no_auto_callbacks_with_train_loop_only('')
