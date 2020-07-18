@@ -562,8 +562,8 @@ class TrainerTrainLoopMixin(ABC):
 
             if isinstance(epoch_output, Result):
                 epoch_log_metrics = epoch_output.epoch_log_metrics
-                epoch_progress_bar_metrics = epoch_output.epoch_progress_bar_metrics
-                epoch_callback_metrics = epoch_output.epoch_callback_metrics
+                epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
+                epoch_callback_metrics = epoch_output.callback_metrics
             else:
                 _processed_outputs = self.process_output(epoch_output)
                 epoch_progress_bar_metrics = _processed_outputs[1]

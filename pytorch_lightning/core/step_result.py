@@ -42,6 +42,8 @@ class Result(Dict):
                 return self.get_batch_pbar_metrics()
             elif key == 'epoch_log_metrics':
                 return self.get_epoch_log_metrics()
+            elif key == 'epoch_pbar_metrics':
+                return self.get_epoch_pbar_metrics()
             else:
                 return self[key]
         except KeyError:
@@ -134,6 +136,18 @@ class Result(Dict):
         meta = self['meta']
         for k, options in meta.items():
             if options['logger']:
+                result[k] = options['value']
+        return result
+
+    def get_epoch_pbar_metrics(self):
+        """
+        Gets the metrics to log at the end of the batch step
+        """
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if options['prog_bar']:
                 result[k] = options['value']
         return result
 
