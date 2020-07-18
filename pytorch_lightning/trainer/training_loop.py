@@ -529,11 +529,20 @@ class TrainerTrainLoopMixin(ABC):
 
     def run_training_epoch_end(self, epoch_output):
         model = self.get_model()
+        is_result_obj = isinstance(epoch_output[0], Result)
+
+        epoch_log_metrics = {}
+        epoch_callback_metrics = {}
+        epoch_progress_bar_metrics = {}
+
+        # --------------------------
+        # EPOCH END STEP IF DEFINED
+        # --------------------------
         if self.is_overridden('training_epoch_end', model=model):
             self.global_step += 1
 
             # remove the protected keys so the user doesn't have to deal with them
-            if isinstance(epoch_output[0], Result):
+            if is_result_obj:
                 epoch_output = epoch_output[0].__class__.gather(epoch_output)
                 minimize = epoch_output.minimize
                 early_stop_on = epoch_output.early_stop_on
@@ -542,8 +551,10 @@ class TrainerTrainLoopMixin(ABC):
                 del epoch_output['early_stop_on']
                 del epoch_output['checkpoint_on']
 
+            # run training_epoch_end
             epoch_output = model.training_epoch_end(epoch_output)
 
+            # with a result we put back the main metrics and compute means
             if isinstance(epoch_output, Result):
                 epoch_output.minimize = minimize.mean()
                 epoch_output.early_stop_on = early_stop_on.mean()
@@ -559,15 +570,25 @@ class TrainerTrainLoopMixin(ABC):
                 epoch_log_metrics = _processed_outputs[2]
                 epoch_callback_metrics = _processed_outputs[3]
 
-            # TODO: do all of this for the user when no training_epoch end is defined and they used a result
-            # add the metrics to the loggers
-            self.log_metrics(epoch_log_metrics, {})
+        # --------------------------
+        # Structured Result (auto epoch end)
+        # --------------------------
+        elif is_result_obj:
+            # TODO: reduce outputs for user
+            pass
 
-            # add metrics to callbacks
-            self.callback_metrics.update(epoch_callback_metrics)
+        # --------------------------
+        # track results
+        # --------------------------
+        # TODO: do all of this for the user when no training_epoch end is defined and they used a result
+        # add the metrics to the loggers
+        self.log_metrics(epoch_log_metrics, {})
 
-            # add metrics to progress_bar
-            self.add_progress_bar_metrics(epoch_progress_bar_metrics)
+        # add metrics to callbacks
+        self.callback_metrics.update(epoch_callback_metrics)
+
+        # add metrics to progress_bar
+        self.add_progress_bar_metrics(epoch_progress_bar_metrics)
 
     def sync_horovod(self):
         if self.use_horovod:
