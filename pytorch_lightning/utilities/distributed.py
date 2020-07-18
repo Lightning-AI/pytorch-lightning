@@ -18,7 +18,7 @@ try:
     # add the attribute to the function but don't overwrite in case Trainer has already set it
     getattr(rank_zero_only, 'rank')
 except AttributeError:
-    rank_zero_only.rank = os.environ.get('LOCAL_RANK', 0)
+    rank_zero_only.rank = int(os.environ.get('LOCAL_RANK', 0))
 
 
 def _warn(*args, **kwargs):

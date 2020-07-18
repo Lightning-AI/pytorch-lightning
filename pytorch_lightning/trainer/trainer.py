@@ -382,7 +382,7 @@ class Trainer(
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
         # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
-            rank_zero_only.rank = os.environ['LOCAL_RANK']
+            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
         # training bookeeping
         self.total_batch_idx = 0
