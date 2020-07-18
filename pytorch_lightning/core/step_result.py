@@ -135,7 +135,7 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
-            if options['logger']:
+            if options['logger'] and options['on_step']:
                 result[k] = self[k]
         return result
 
@@ -149,7 +149,7 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
-            if options['logger']:
+            if options['logger'] and options['on_epoch']:
                 result[k] = self[k]
         return result
 
@@ -163,7 +163,7 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
-            if options['prog_bar']:
+            if options['prog_bar'] and options['on_epoch']:
                 result[k] = self[k]
         return result
 
@@ -177,7 +177,7 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
-            if options['prog_bar']:
+            if options['prog_bar'] and options['on_step']:
                 result[k] = self[k]
         return result
 
