@@ -362,9 +362,3 @@ def test_training_step_epoch_end_result(tmpdir):
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
-
-test_training_step_result_log_step_only('')
-test_training_step_result_log_epoch_only('')
-test_training_step_result_log_step_and_epoch('')
-test_training_step_epoch_end_result('')
-print('a')
