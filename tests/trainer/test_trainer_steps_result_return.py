@@ -109,6 +109,15 @@ def test_training_step_epoch_end_result(tmpdir):
     assert logged_metrics['epoch_end_log_pbar_acc'] == 1214.0
     assert 'epoch_end_pbar_acc' not in logged_metrics
 
+    # make sure pbar metrics are correct
+    assert trainer.progress_bar_metrics['log_and_pbar_acc1'] == 23.0
+    assert trainer.progress_bar_metrics['pbar_acc3'] == 28.0
+    assert trainer.progress_bar_metrics['epoch_end_pbar_acc'] == 1213.0
+    assert trainer.progress_bar_metrics['epoch_end_log_pbar_acc'] == 1214.0
+    assert 'epoch_end_log_acc' not in trainer.progress_bar_metrics
+    assert 'log_acc2' not in trainer.progress_bar_metrics
+
+    # make sure callback metrics didn't change
     assert trainer.callback_metrics['early_stop_on'] == 171
     assert trainer.callback_metrics['checkpoint_on'] == 171
 
