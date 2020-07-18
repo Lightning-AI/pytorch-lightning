@@ -588,7 +588,8 @@ class TrainerTrainLoopMixin(ABC):
         # track results
         # --------------------------
         # add the metrics to the loggers
-        self.log_metrics(epoch_log_metrics, {})
+        if epoch_log_metrics and len(epoch_log_metrics) > 0:
+            self.log_metrics(epoch_log_metrics, {})
 
         # add metrics to callbacks
         self.callback_metrics.update(epoch_callback_metrics)
@@ -611,7 +612,9 @@ class TrainerTrainLoopMixin(ABC):
         should_log_metrics = batch_idx % self.row_log_interval == 0 or self.should_stop
         if should_log_metrics or self.fast_dev_run:
             # logs user requested information to logger
-            self.log_metrics(batch_output.batch_log_metrics, batch_output.grad_norm_dic)
+            metrics = batch_output.batch_log_metrics
+            if len(metrics) > 0:
+                self.log_metrics(metrics, batch_output.grad_norm_dic)
 
     def save_loggers_in_training_loop(self, batch_idx):
         # when loggers should save to disk

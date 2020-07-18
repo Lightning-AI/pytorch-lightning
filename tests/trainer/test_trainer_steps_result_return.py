@@ -2,6 +2,7 @@
 Tests to ensure that the training loop works with a dict
 """
 import os
+import torch
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
@@ -46,8 +47,8 @@ def test_training_step_result_log_step_only(tmpdir):
     assert not model.training_epoch_end_called
 
     # make sure correct metrics are logged (one per batch step as requested)
-    assert len(trainer.debug_logged_metrics) == batches + 1
-    for batch_idx, logged_metrics in enumerate(trainer.debug_logged_metrics[:-1]):
+    assert len(trainer.debug_logged_metrics) == batches
+    for batch_idx, logged_metrics in enumerate(trainer.debug_logged_metrics):
         assert logged_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11.0
         assert logged_metrics[f'step_log_acc2_b{batch_idx}'] == 12.0
         assert f'step_pbar_acc3_b{batch_idx}' not in logged_metrics
@@ -118,8 +119,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert not model.training_epoch_end_called
 
     # make sure correct metrics are logged (one per batch step as requested)
-    assert len(trainer.debug_logged_metrics) == epochs * (batches + 1)
-    epoch_metrics = [x for x in trainer.debug_logged_metrics if len(x) > 1]
+    assert len(trainer.debug_logged_metrics) == epochs
+    epoch_metrics = trainer.debug_logged_metrics
     assert len(epoch_metrics) == epochs
     for batch_idx, logged_metrics in enumerate(epoch_metrics):
         assert logged_metrics[f'epoch_log_and_pbar_acc1_e{batch_idx}'] == 14.0
@@ -172,11 +173,62 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
     model.val_dataloader = None
-    # TODO
 
+    epochs = 3
+    batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        row_log_interval=1,
+        max_epochs=epochs,
+        weights_summary=None,
+    )
+    trainer.fit(model)
 
-test_training_step_result_log_step_only('')
-test_training_step_result_log_epoch_only('')
+    # make sure correct steps were called
+    assert model.training_step_called
+    assert not model.training_step_end_called
+    assert not model.training_epoch_end_called
+
+    # make sure correct metrics are logged (one per batch step as requested)
+    assert len(trainer.debug_logged_metrics) == (epochs * batches) + epochs
+    epoch_metrics = trainer.debug_logged_metrics
+    epoch_idx = -1
+    for i_start in range(0, len(epoch_metrics), batches + 1):
+        epoch_idx += 1
+        epoch_outputs = epoch_metrics[i_start: i_start + batches + 1]
+        mean_vals = {
+            'step_epoch_log_and_pbar_acc1': [],
+            'step_epoch_log_acc2': []
+        }
+
+        # make sure each batch logged the expected value
+        for batch_idx in range(len(epoch_outputs) - 1):
+            logged_metrics = epoch_outputs[batch_idx]
+
+            expected_val_1 = (5 + batch_idx) * (epoch_idx + 1)
+            expected_val_2 = (6 + batch_idx) * (epoch_idx + 1)
+            mean_vals['step_epoch_log_and_pbar_acc1'].append(torch.tensor(expected_val_1).float())
+            mean_vals['step_epoch_log_acc2'].append(torch.tensor(expected_val_2).float())
+            assert logged_metrics['step_epoch_log_and_pbar_acc1'] == expected_val_1
+            assert logged_metrics['step_epoch_log_acc2'] == expected_val_2
+            assert 'step_epoch_pbar_acc3' not in logged_metrics
+            assert len(logged_metrics) == 3
+
+        # make sure the metrics for the epoch end are actual means (the default reduce fx) or all the batches
+        epoch_end_metrics = epoch_outputs[-1]
+        eval_1 = torch.stack(mean_vals['step_epoch_log_and_pbar_acc1']).mean()
+        eval_2 = torch.stack(mean_vals['step_epoch_log_acc2']).mean()
+        assert epoch_end_metrics['step_epoch_log_and_pbar_acc1'] == eval_1
+        assert epoch_end_metrics['step_epoch_log_acc2'] == eval_2
+        assert 'step_epoch_pbar_acc3' not in epoch_end_metrics
+        assert len(logged_metrics) == 3
+
+    print('a')
+
+# test_training_step_result_log_step_only('')
+# test_training_step_result_log_epoch_only('')
 test_training_step_result_log_step_and_epoch('')
 print('a')
 
