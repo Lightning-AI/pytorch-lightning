@@ -106,9 +106,9 @@ class DeterministicModel(LightningModule):
         result = TrainResult(minimize=acc)
 
         # step only metrics
-        result.log('step_log_and_pbar_acc1', torch.tensor(11).type_as(acc), prog_bar=True)
-        result.log('step_log_acc2', torch.tensor(12).type_as(acc))
-        result.log('step_pbar_acc3', torch.tensor(13).type_as(acc), logger=False, prog_bar=True)
+        result.log(f'step_log_and_pbar_acc1_b{batch_idx}', torch.tensor(11).type_as(acc), prog_bar=True)
+        result.log(f'step_log_acc2_b{batch_idx}', torch.tensor(12).type_as(acc))
+        result.log(f'step_pbar_acc3_b{batch_idx}', torch.tensor(13).type_as(acc), logger=False, prog_bar=True)
 
         self.training_step_called = True
         return result
