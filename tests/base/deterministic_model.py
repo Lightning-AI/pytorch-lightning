@@ -138,7 +138,7 @@ class DeterministicModel(LightningModule):
         self.training_step_called = True
         return result
 
-    def training_epoch_end_return(self, result):
+    def training_epoch_end_return_for_log_epoch_and_step(self, result):
         """
         There should be an array of scalars without graphs that are all 171 (4 of them)
         """
@@ -150,12 +150,12 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert isinstance(result, TrainResult)
 
-        result.log_acc2 = result.log_acc2.mean() + 11
-        result.log_and_pbar_acc1 = result.log_and_pbar_acc1.mean() + 11
-        result.pbar_acc3 = result.pbar_acc3.mean() + 11
-        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.pbar_acc3), logger=True)
-        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.pbar_acc3), logger=False, prog_bar=True)
-        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.pbar_acc3), logger=True, prog_bar=True)
+        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
+        result.step_epoch_log_acc2 = result.step_epoch_log_acc2.prod()
+        result.step_epoch_pbar_acc3 = result.step_epoch_pbar_acc3.prod()
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2), logger=True, on_epoch=True)
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2), logger=False, prog_bar=True, on_epoch=True)
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2), logger=True, prog_bar=True, on_epoch=True)
         return result
 
     # --------------------------

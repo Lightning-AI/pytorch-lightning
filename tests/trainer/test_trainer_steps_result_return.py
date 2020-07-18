@@ -288,29 +288,6 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
-test_training_step_result_log_step_only('')
-test_training_step_result_log_epoch_only('')
-test_training_step_result_log_step_and_epoch('')
-print('a')
-
-def test_training_step_auto_reduce(tmpdir):
-    # TODO: test that it gets reduced on epoch end
-    # TODO: test that on batch end gets reduced
-
-    os.environ['PL_DEV_DEBUG'] = '1'
-
-    model = DeterministicModel()
-    model.training_step = model.training_step_result_return
-    model.val_dataloader = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        weights_summary=None,
-    )
-    trainer.fit(model)
-
-
 
 def test_training_step_epoch_end_result(tmpdir):
     """
@@ -319,13 +296,17 @@ def test_training_step_epoch_end_result(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = DeterministicModel()
-    model.training_step = model.training_step_result_return
-    model.training_epoch_end = model.training_epoch_end_return
+    model.training_step = model.training_step_result_log_epoch_and_step
+    model.training_epoch_end = model.training_epoch_end_return_for_log_epoch_and_step
     model.val_dataloader = None
 
+    batches = 3
+    epochs = 1
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
+        max_epochs=epochs,
+        row_log_interval=1,
+        limit_train_batches=batches,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -336,16 +317,22 @@ def test_training_step_epoch_end_result(tmpdir):
     assert model.training_epoch_end_called
 
     # make sure correct metrics were logged
-    logged_metrics = trainer.debug_logged_metrics[-1]
-    assert logged_metrics['log_and_pbar_acc1'] == 23.0
-    assert logged_metrics['log_acc2'] == 18.0
-    assert logged_metrics['epoch_end_log_acc'] == 1212.0
-    assert logged_metrics['epoch_end_log_pbar_acc'] == 1214.0
-    assert 'epoch_end_pbar_acc' not in logged_metrics
+    logged_metrics = trainer.debug_logged_metrics
+    assert len(logged_metrics) == (epochs * batches) + epochs
+    last_logged = logged_metrics[-1]
+
+    assert last_logged['step_epoch_log_and_pbar_acc1'] == 210.0
+    assert last_logged['step_epoch_log_acc2'] == 336.0
+    assert last_logged['epoch_end_log_acc'] == 1212.0
+    assert last_logged['epoch_end_log_pbar_acc'] == 1214.0
+    assert 'epoch_end_pbar_acc' not in last_logged
 
     # make sure pbar metrics are correct
-    assert trainer.progress_bar_metrics['log_and_pbar_acc1'] == 23.0
-    assert trainer.progress_bar_metrics['pbar_acc3'] == 28.0
+    logged_pbar = trainer.debug_pbar_added_metrics
+    assert len(logged_pbar) == (epochs * batches) + epochs
+
+    assert trainer.progress_bar_metrics['step_epoch_log_and_pbar_acc1'] == 210.0
+    assert trainer.progress_bar_metrics['step_epoch_pbar_acc3'] == 504.0
     assert trainer.progress_bar_metrics['epoch_end_pbar_acc'] == 1213.0
     assert trainer.progress_bar_metrics['epoch_end_log_pbar_acc'] == 1214.0
     assert 'epoch_end_log_acc' not in trainer.progress_bar_metrics
@@ -354,3 +341,30 @@ def test_training_step_epoch_end_result(tmpdir):
     # make sure callback metrics didn't change
     assert trainer.callback_metrics['early_stop_on'] == 171
     assert trainer.callback_metrics['checkpoint_on'] == 171
+
+    # -----------------------------------------
+    # make sure training outputs what is expected
+    # -----------------------------------------
+    for batch_idx, batch in enumerate(model.train_dataloader()):
+        break
+
+    out = trainer.run_training_batch(batch, batch_idx)
+    assert out.signal == 0
+    assert len(out.batch_log_metrics) == 2
+
+    train_step_out = out.training_step_output_for_epoch_end
+    assert isinstance(train_step_out, TrainResult)
+
+    assert 'minimize' in train_step_out
+    assert f'step_epoch_log_and_pbar_acc1' in train_step_out
+    assert f'step_epoch_log_acc2' in train_step_out
+
+    # make sure the optimizer closure returns the correct things
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
+
+test_training_step_result_log_step_only('')
+test_training_step_result_log_epoch_only('')
+test_training_step_result_log_step_and_epoch('')
+test_training_step_epoch_end_result('')
+print('a')
