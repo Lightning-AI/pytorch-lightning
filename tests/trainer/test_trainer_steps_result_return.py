@@ -120,6 +120,3 @@ def test_training_step_epoch_end_result(tmpdir):
     # make sure callback metrics didn't change
     assert trainer.callback_metrics['early_stop_on'] == 171
     assert trainer.callback_metrics['checkpoint_on'] == 171
-
-
-test_training_step_epoch_end_result('')
