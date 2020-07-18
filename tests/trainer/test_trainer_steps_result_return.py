@@ -11,6 +11,7 @@ from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 # TODOs:
 # make checkpoint and early stopping use the correct metrics
 # test with train_step_end
+# add logging + row interval tests
 
 def test_training_step_result_log_step_only(tmpdir):
     """
