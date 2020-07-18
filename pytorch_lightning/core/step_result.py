@@ -32,6 +32,12 @@ class Result(Dict):
         if minimize is not None and checkpoint_on is None:
             self.checkpoint_on = minimize.detach()
 
+        self['meta'] = {
+            '_internal': {
+                '_reduce_on_epoch': False
+            }
+        }
+
     def __getattr__(self, key):
         try:
             if key == 'callback_metrics':
@@ -81,18 +87,18 @@ class Result(Dict):
             value,
             prog_bar=False,
             logger=True,
-            reduce_on_batch_end=False,
-            reduce_on_epoch_end=True,
+            on_step=False,
+            on_epoch=True,
             reduce_fx=torch.mean
     ):
         if 'meta' not in self:
             self.__setitem__('meta', {})
-        self.__set_meta(name, value, prog_bar, logger, reduce_on_batch_end, reduce_on_epoch_end, reduce_fx)
+        self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
 
         # set the value
         self.__setitem__(name, value)
 
-    def __set_meta(self, name, value, prog_bar, logger, reduce_on_batch_end, reduce_on_epoch_end, reduce_fx):
+    def __set_meta(self, name, value, prog_bar, logger, on_step, on_epoch, reduce_fx):
         # set the meta for the item
         meta_value = value
         if isinstance(meta_value, torch.Tensor):
@@ -100,12 +106,16 @@ class Result(Dict):
         meta = dict(
             prog_bar=prog_bar,
             logger=logger,
-            reduce_on_batch_end=reduce_on_batch_end,
-            reduce_on_epoch_end=reduce_on_epoch_end,
+            on_step=on_step,
+            on_epoch=on_epoch,
             reduce_fx=reduce_fx,
             value=meta_value
         )
         self['meta'][name] = meta
+
+        # track whether any input requires reduction on epoch end
+        internal = self['meta']['_internal']
+        internal['_reduce_on_epoch'] = max(internal['_reduce_on_epoch'], on_epoch)
 
     def get_callback_metrics(self):
         result = {
@@ -123,6 +133,8 @@ class Result(Dict):
 
         meta = self['meta']
         for k, options in meta.items():
+            if k == '_internal':
+                continue
             if options['logger']:
                 result[k] = self[k]
         return result
@@ -135,6 +147,8 @@ class Result(Dict):
 
         meta = self['meta']
         for k, options in meta.items():
+            if k == '_internal':
+                continue
             if options['logger']:
                 result[k] = self[k]
         return result
@@ -147,6 +161,8 @@ class Result(Dict):
 
         meta = self['meta']
         for k, options in meta.items():
+            if k == '_internal':
+                continue
             if options['prog_bar']:
                 result[k] = self[k]
         return result
@@ -159,6 +175,8 @@ class Result(Dict):
 
         meta = self['meta']
         for k, options in meta.items():
+            if k == '_internal':
+                continue
             if options['prog_bar']:
                 result[k] = self[k]
         return result
@@ -196,6 +214,28 @@ class Result(Dict):
         recursive_stack(result)
         result['meta'] = meta
         return result
+
+    @classmethod
+    def reduce_on_epoch_end(cls, outputs):
+        meta = outputs[0]['meta']
+        result = cls()
+        result = recursive_gather(outputs, result)
+        recursive_stack(result)
+
+        for k, option in meta.items():
+            if k == '_internal':
+                continue
+
+            if option['on_epoch']:
+                fx = option['reduce_fx']
+                result[k] = fx(result[k])
+
+        result['meta'] = meta
+        return result
+
+    @property
+    def should_reduce_on_epoch_end(self):
+        return self['meta']['_internal']['_reduce_on_epoch']
 
 
 def recursive_gather(outputs, result=None):
@@ -243,11 +283,11 @@ class TrainResult(Result):
             value,
             prog_bar=False,
             logger=True,
-            reduce_on_batch_end=True,
-            reduce_on_epoch_end=False,
+            on_step=True,
+            on_epoch=False,
             reduce_fx=torch.mean
     ):
-        super().log(name, value, prog_bar, logger, reduce_on_batch_end, reduce_on_epoch_end, reduce_fx)
+        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
 
 
 class EvalResult(Result):
@@ -267,11 +307,11 @@ class EvalResult(Result):
             value,
             prog_bar=False,
             logger=True,
-            reduce_on_batch_end=False,
-            reduce_on_epoch_end=True,
+            on_step=False,
+            on_epoch=True,
             reduce_fx=torch.mean
     ):
-        super().log(name, value, prog_bar, logger, reduce_on_batch_end, reduce_on_epoch_end, reduce_fx)
+        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
 
 
 if __name__ == '__main__':

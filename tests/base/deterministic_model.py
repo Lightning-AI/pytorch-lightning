@@ -101,13 +101,36 @@ class DeterministicModel(LightningModule):
     # --------------------------
     # Result returns
     # --------------------------
-    def training_step_result_return(self, batch, batch_idx):
+    def training_step_result_log_step_only(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
-
         result = TrainResult(minimize=acc)
-        result.log('log_and_pbar_acc1', torch.tensor(12).type_as(acc), reduce_on_epoch_end=True, prog_bar=True)
-        result.log('log_acc2', torch.tensor(7).type_as(acc), reduce_on_epoch_end=True)
-        result.log('pbar_acc3', torch.tensor(17).type_as(acc), reduce_on_epoch_end=True, logger=False, prog_bar=True)
+
+        # step only metrics
+        result.log('step_log_and_pbar_acc1', torch.tensor(11).type_as(acc), prog_bar=True)
+        result.log('step_log_acc2', torch.tensor(12).type_as(acc))
+        result.log('step_pbar_acc3', torch.tensor(13).type_as(acc), logger=False, prog_bar=True)
+
+        self.training_step_called = True
+        return result
+
+    def training_step_result_log_epoch_only(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+
+        result.log('epoch_log_and_pbar_acc1', torch.tensor(14).type_as(acc), on_epoch=True, prog_bar=True)
+        result.log('epoch_log_acc2', torch.tensor(15).type_as(acc), on_epoch=True)
+        result.log('epoch_pbar_acc3', torch.tensor(16).type_as(acc), on_epoch=True, logger=False, prog_bar=True)
+
+        self.training_step_called = True
+        return result
+
+    def training_step_result_log_epoch_and_step(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+
+        result.log('step_epoch_log_and_pbar_acc1', torch.tensor(17).type_as(acc), on_epoch=True, prog_bar=True)
+        result.log('step_epoch_log_acc2', torch.tensor(18).type_as(acc), on_epoch=True)
+        result.log('step_epoch_pbar_acc3', torch.tensor(19).type_as(acc), on_epoch=True, logger=False, prog_bar=True)
 
         self.training_step_called = True
         return result

@@ -455,7 +455,9 @@ class TrainerTrainLoopMixin(ABC):
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
-            if self.is_overridden('training_epoch_end', model=self.get_model()):
+            step_out = batch_output.training_step_output_for_epoch_end
+            should_auto_reduce_train_result = isinstance(step_out, Result) and step_out.should_reduce_on_epoch_end
+            if self.is_overridden('training_epoch_end', model=self.get_model()) or should_auto_reduce_train_result:
                 epoch_output.append(batch_output.training_step_output_for_epoch_end)
 
             # update LR schedulers
@@ -529,7 +531,7 @@ class TrainerTrainLoopMixin(ABC):
 
     def run_training_epoch_end(self, epoch_output):
         model = self.get_model()
-        is_result_obj = isinstance(epoch_output[0], Result)
+        is_result_obj = len(epoch_output) > 0 and isinstance(epoch_output[0], Result)
 
         epoch_log_metrics = {}
         epoch_callback_metrics = {}
@@ -574,13 +576,17 @@ class TrainerTrainLoopMixin(ABC):
         # Structured Result (auto epoch end)
         # --------------------------
         elif is_result_obj:
-            # TODO: reduce outputs for user
-            pass
+            epoch_output = epoch_output[0].__class__.reduce_on_epoch_end(epoch_output)
+            epoch_output.minimize = epoch_output.minimize.mean()
+            epoch_output.early_stop_on = epoch_output.early_stop_on.mean()
+            epoch_output.checkpoint_on = epoch_output.checkpoint_on.mean()
+            epoch_log_metrics = epoch_output.epoch_log_metrics
+            epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
+            epoch_callback_metrics = epoch_output.callback_metrics
 
         # --------------------------
         # track results
         # --------------------------
-        # TODO: do all of this for the user when no training_epoch end is defined and they used a result
         # add the metrics to the loggers
         self.log_metrics(epoch_log_metrics, {})
 
