@@ -253,6 +253,8 @@ class TrainerTrainLoopMixin(ABC):
     on_epoch_end: Callable
     on_validation_end: Callable
     on_keyboard_interrupt: Callable
+    on_train_epoch_start: Callable
+    on_train_epoch_end: Callable
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -422,6 +424,15 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_epoch_start'):
                 model.on_epoch_start()
 
+        # Epoch start events
+        with self.profiler.profile('on_train_epoch_start'):
+            # callbacks
+            self.on_train_epoch_start()
+
+            # model hooks
+            if self.is_function_implemented('on_train_epoch_start'):
+                model.on_train_epoch_start()
+
     def run_training_epoch(self):
 
         # get model
@@ -528,6 +539,14 @@ class TrainerTrainLoopMixin(ABC):
             # model hooks
             if self.is_function_implemented('on_epoch_end'):
                 model.on_epoch_end()
+
+        with self.profiler.profile('on_train_epoch_end'):
+            # callbacks
+            self.on_train_epoch_end()
+
+            # model hooks
+            if self.is_function_implemented('on_train_epoch_end'):
+                model.on_train_epoch_end()
 
     def run_training_epoch_end(self, epoch_output):
         model = self.get_model()

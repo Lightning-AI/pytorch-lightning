@@ -140,14 +140,22 @@ class EarlyStopping(Callback):
     def on_validation_end(self, trainer, pl_module):
         self._run_early_stopping_check(trainer, pl_module)
 
-    def on_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer, pl_module):
+        # early stopping can also work in the train loop when there is no val loop and when using structured results
+        should_check_early_stop = False
+        if 'early_stop_on' in trainer.callback_metrics and trainer.callback_metrics['early_stop_on'] is not None:
+            self.monitor = 'early_stop_on'
+            should_check_early_stop = True
+
+        if 'val_early_stop_on' in trainer.callback_metrics and trainer.callback_metrics['val_early_stop_on'] is not None:
+            self.monitor = 'val_early_stop_on'
+            should_check_early_stop = True
+
+        if should_check_early_stop:
+            self._run_early_stopping_check(trainer, pl_module)
 
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
-
-        # support structured results
-        if 'early_stop_on' in logs and logs['early_stop_on'] is not None:
-            self.monitor = 'early_stop_on'
 
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present

@@ -424,7 +424,8 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
+    # TODO: finish test to make sure early stopping happened when expected
     all_losses = trainer.debug_saved_losses
-    assert len(all_losses) == batches * epochs
+    assert len(all_losses) == 12
 
 test_use_callbacks_with_train_loop_only('')
