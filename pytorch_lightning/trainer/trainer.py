@@ -618,6 +618,7 @@ class Trainer(
 
         # for debugging purposes only, track the logged metrics
         self.debug_logged_metrics = []
+        self.debug_pbar_added_metrics = []
 
         # Callback system
         self.on_init_end()
