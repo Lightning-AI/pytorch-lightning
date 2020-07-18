@@ -1,5 +1,4 @@
 import os
-from unittest.mock import patch
 
 import pytest
 from torch.utils.data import DataLoader
