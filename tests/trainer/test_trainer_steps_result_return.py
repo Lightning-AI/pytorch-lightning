@@ -101,4 +101,16 @@ def test_training_step_epoch_end_result(tmpdir):
     assert not model.training_step_end_called
     assert model.training_epoch_end_called
 
+    # make sure correct metrics were logged
+    logged_metrics = trainer.debug_logged_metrics[-1]
+    assert logged_metrics['log_and_pbar_acc1'] == 23.0
+    assert logged_metrics['log_acc2'] == 18.0
+    assert logged_metrics['epoch_end_log_acc'] == 1212.0
+    assert logged_metrics['epoch_end_log_pbar_acc'] == 1214.0
+    assert 'epoch_end_pbar_acc' not in logged_metrics
+
+    assert trainer.callback_metrics['early_stop_on'] == 171
+    assert trainer.callback_metrics['checkpoint_on'] == 171
+
+
 test_training_step_epoch_end_result('')

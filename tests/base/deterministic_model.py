@@ -124,9 +124,12 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert isinstance(result, TrainResult)
 
-        result.log_acc2 = result.log_acc2.mean()
-        result.log_and_pbar_acc1 = result.log_and_pbar_acc1.mean()
-        result.pbar_acc3 = result.pbar_acc3.mean()
+        result.log_acc2 = result.log_acc2.mean() + 11
+        result.log_and_pbar_acc1 = result.log_and_pbar_acc1.mean() + 11
+        result.pbar_acc3 = result.pbar_acc3.mean() + 11
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.pbar_acc3), logger=True)
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.pbar_acc3), logger=False, prog_bar=True)
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.pbar_acc3), logger=True, prog_bar=True)
         return result
 
     # --------------------------

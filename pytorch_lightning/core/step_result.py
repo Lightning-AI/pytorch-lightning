@@ -124,7 +124,7 @@ class Result(Dict):
         meta = self['meta']
         for k, options in meta.items():
             if options['logger']:
-                result[k] = options['value']
+                result[k] = self[k]
         return result
 
     def get_epoch_log_metrics(self):
@@ -136,7 +136,7 @@ class Result(Dict):
         meta = self['meta']
         for k, options in meta.items():
             if options['logger']:
-                result[k] = options['value']
+                result[k] = self[k]
         return result
 
     def get_epoch_pbar_metrics(self):
@@ -148,7 +148,7 @@ class Result(Dict):
         meta = self['meta']
         for k, options in meta.items():
             if options['prog_bar']:
-                result[k] = options['value']
+                result[k] = self[k]
         return result
 
     def get_batch_pbar_metrics(self):
@@ -160,7 +160,7 @@ class Result(Dict):
         meta = self['meta']
         for k, options in meta.items():
             if options['prog_bar']:
-                result[k] = options['value']
+                result[k] = self[k]
         return result
 
     def detach(self):
