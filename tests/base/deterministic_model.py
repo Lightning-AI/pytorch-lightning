@@ -20,6 +20,8 @@ class DeterministicModel(LightningModule):
         self.validation_step_end_called = False
         self.validation_epoch_end_called = False
 
+        self.assert_backward = True
+
         self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
             weights = torch.tensor([
@@ -115,8 +117,11 @@ class DeterministicModel(LightningModule):
         """
         Early stop and checkpoint only on these values
         """
+        acc = self.step(batch, batch_idx)
+
+        self.assert_backward = False
         losses = [20, 19, 18, 10, 15, 14, 9, 11, 11, 20, 22]
-        loss = losses[batch_idx]
+        loss = acc + losses[batch_idx]
         result = TrainResult(minimize=loss, early_stop_on=loss, checkpoint_on=loss)
         return result
 
@@ -311,10 +316,11 @@ class DeterministicModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0)
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
-        if self.trainer.precision == 16:
-            assert loss > 171 * 1000
-        else:
-            assert loss == 171.0
+        if self.assert_backward:
+            if self.trainer.precision == 16:
+                assert loss > 171 * 1000
+            else:
+                assert loss == 171.0
         loss.backward()
 
 

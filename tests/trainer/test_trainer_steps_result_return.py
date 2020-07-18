@@ -403,4 +403,28 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
 
     assert trainer.early_stop_callback.monitor == 'val_loss'
 
-test_no_auto_callbacks_with_train_loop_only('')
+
+def test_use_callbacks_with_train_loop_only(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = DeterministicModel()
+    model.training_step = model.training_step_result_log_epoch_and_step_for_callbacks
+    model.training_epoch_end = None
+    model.val_dataloader = None
+
+    batches = 3
+    epochs = 300
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=epochs,
+        early_stop_callback=True,
+        row_log_interval=1,
+        limit_train_batches=batches,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    all_losses = trainer.debug_saved_losses
+    assert len(all_losses) == batches * epochs
+
+test_use_callbacks_with_train_loop_only('')
