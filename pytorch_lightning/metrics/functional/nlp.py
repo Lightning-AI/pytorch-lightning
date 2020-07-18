@@ -1,3 +1,8 @@
+# referenced from
+# Library Name: torchtext
+# Authors: torchtext authors and @sluks
+# Date: 2020-07-18
+# Link: https://pytorch.org/text/_modules/torchtext/data/metrics.html#bleu_score
 from typing import Sequence
 from collections import Counter
 
@@ -53,7 +58,6 @@ def bleu_score(
     precision_scores = torch.zeros(n_gram)
     c = 0.0
     r = 0.0
-    # referenced from https://pytorch.org/text/_modules/torchtext/data/metrics.html#bleu_score
     for (translation, references) in zip(translate_corpus, reference_corpus):
         c += len(translation)
         ref_len_list = [len(ref) for ref in references]
