@@ -156,8 +156,28 @@ def test_training_step_result_log_epoch_only(tmpdir):
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
+
+def test_training_step_result_log_step_and_epoch(tmpdir):
+    """
+    Tests that only training_step can be used with TrainResult
+    Makes sure that things are routed to pbar, loggers and loss accordingly
+
+    Makes sure pbar and logs happen on epoch only when requested
+    """
+    # enable internal debugging actions
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = DeterministicModel()
+    model.training_step = model.training_step_result_log_epoch_and_step
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.val_dataloader = None
+    # TODO
+
+
 test_training_step_result_log_step_only('')
 test_training_step_result_log_epoch_only('')
+test_training_step_result_log_step_and_epoch('')
 print('a')
 
 def test_training_step_auto_reduce(tmpdir):
