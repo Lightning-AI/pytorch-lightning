@@ -121,6 +121,7 @@ class DeterministicModel(LightningModule):
         """
         result.minimize = result.minimize.mean()
         result.checkpoint_on = result.checkpoint_on.mean()
+        result.train_step_acc1 = result.train_step_acc1.mean()
         result.log('train_step_end_acc1', 1)
         self.training_step_end_called = True
         import pdb; pdb.set_trace()
