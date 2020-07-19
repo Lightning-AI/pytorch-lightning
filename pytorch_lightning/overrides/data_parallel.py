@@ -186,6 +186,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
             print('old device', module.device)
             module = module.to(device)
             print('new device', module.device)
+            print(input)
 
             # this also avoids accidental slicing of `input` if it is a Tensor
             if not isinstance(input, (list, tuple)):
