@@ -63,11 +63,6 @@ class LightningDataParallel(DataParallel):
             return self.module.validation_step(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-        for replica_idx, device_idx in zip(range(len(replicas)), self.device_ids[:len(inputs)]):
-            replica = replicas[replica_idx]
-            replica = replica.to(torch.device(device_idx))
-            replicas[replica_idx] = replica
-
         outputs = self.parallel_apply(replicas, inputs, kwargs)
 
         if isinstance(outputs[0], Result):
@@ -188,6 +183,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
         if device is None:
             device = get_a_var(input).get_device()
         try:
+            print(device)
             with torch.cuda.device(device):
                 # this also avoids accidental slicing of `input` if it is a Tensor
                 if not isinstance(input, (list, tuple)):
