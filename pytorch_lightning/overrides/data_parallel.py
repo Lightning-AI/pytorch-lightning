@@ -195,7 +195,6 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # ---------------
                 # CHANGE
                 print(module._device, module.device)
-                import pdb; pdb.set_trace()
                 if module.training:
                     output = module.training_step(*input, **kwargs)
 
