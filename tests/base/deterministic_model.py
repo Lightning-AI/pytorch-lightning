@@ -6,23 +6,6 @@ from pytorch_lightning import TrainResult
 
 from pytorch_lightning.core.lightning import LightningModule
 
-import sys
-import pdb
-
-
-class ForkedPdb(pdb.Pdb):
-    """A Pdb subclass that may be used
-    from a forked multiprocessing child
-    """
-
-    def interaction(self, *args, **kwargs):
-        _stdin = sys.stdin
-        try:
-            sys.stdin = open('/dev/stdin')
-            pdb.Pdb.interaction(self, *args, **kwargs)
-        finally:
-            sys.stdin = _stdin
-
 
 class DeterministicModel(LightningModule):
 
@@ -60,7 +43,6 @@ class DeterministicModel(LightningModule):
         assert torch.all(test_hat[:, 0] == 15.0)
         assert torch.all(test_hat[:, 1] == 42.0)
         out = y_hat.sum()
-        print(out)
         assert out == (42.0 * bs) + (15.0 * bs)
 
         return out
