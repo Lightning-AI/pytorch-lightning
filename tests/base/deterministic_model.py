@@ -6,6 +6,23 @@ from pytorch_lightning import TrainResult
 
 from pytorch_lightning.core.lightning import LightningModule
 
+import sys
+import pdb
+
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used
+    from a forked multiprocessing child
+    """
+
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = open('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin
+
 
 class DeterministicModel(LightningModule):
 
@@ -42,7 +59,7 @@ class DeterministicModel(LightningModule):
         assert torch.all(test_hat[:, 0] == 15.0)
         assert torch.all(test_hat[:, 1] == 42.0)
         out = y_hat.sum()
-        import pdb; pdb.set_trace()
+        ForkedPdb().set_trace()
         assert out == (42.0 * 3) + (15.0 * 3)
 
         return out
@@ -118,7 +135,7 @@ class DeterministicModel(LightningModule):
         """
         Full loop flow train step
         """
-        import pdb; pdb.set_trace()
+        ForkedPdb().set_trace()
         result.log('train_step_end_acc1', 1)
         self.training_step_end_called = True
         return result
