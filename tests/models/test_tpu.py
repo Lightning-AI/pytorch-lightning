@@ -269,5 +269,5 @@ def test_exception_when_no_tpu_found(tmpdir):
         tpu_cores=8,
     )
 
-    with pytest.raises(MisconfigurationException, match='No TPU devices found.'):
+    with pytest.raises(MisconfigurationException, match='PyTorch XLA not installed.'):
         trainer.fit(model)
