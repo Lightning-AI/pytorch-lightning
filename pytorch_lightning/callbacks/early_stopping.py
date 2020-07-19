@@ -163,17 +163,8 @@ class EarlyStopping(Callback):
 
         current = logs.get(self.monitor)
 
-        # track values for dev debugging
-        if 'PL_DEV_DEBUG' in os.environ:
-            debug_dict = {
-                'epoch': trainer.current_epoch,
-                'global_step': trainer.global_step,
-                'rank': trainer.global_rank,
-                'current': current,
-                'best': self.best_score,
-                'patience': self.wait_count
-            }
-            trainer.debug_early_stopping_values.append(debug_dict)
+        # when in dev debugging
+        trainer.dev_debugger.track_early_stopping_history()
 
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)

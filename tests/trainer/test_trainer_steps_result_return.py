@@ -385,7 +385,7 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
-    all_losses = trainer.debug_saved_losses
+    all_losses = trainer.dev_debugger.saved_losses
     assert len(all_losses) == batches * epochs
 
     assert trainer.checkpoint_callback.monitor == 'checkpoint_on'
@@ -425,8 +425,8 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
     trainer.fit(model)
 
     # TODO: finish test to make sure early stopping happened when expected
-    early_stop_vals = trainer.debug_early_stopping_values
-    all_losses = trainer.debug_saved_losses
+    early_stop_vals = trainer.dev_debugger.early_stopping_history
+    all_losses = trainer.dev_debugger.saved_losses
 
     assert len(all_losses) == 12
 

@@ -951,9 +951,7 @@ class TrainerTrainLoopMixin(ABC):
                 model_ref.on_after_backward()
 
         # when in dev debugging track the losses
-        if 'PL_DEV_DEBUG' in os.environ:
-            loss_dict = {'batch_idx': batch_idx, 'epoch': self.current_epoch, 'loss': untouched_loss.detach()}
-            self.debug_saved_losses.append(loss_dict)
+        self.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
 
         result = AttributeDict(
             loss=untouched_loss,

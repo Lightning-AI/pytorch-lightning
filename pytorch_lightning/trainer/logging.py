@@ -74,7 +74,7 @@ class TrainerLoggingMixin(ABC):
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
-            self.dev_debugger.track_logged_metrics(scalar_metrics)
+            self.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
@@ -83,7 +83,7 @@ class TrainerLoggingMixin(ABC):
 
             self.progress_bar_metrics[k] = v
 
-        self.dev_debugger.track_pbar_metrics(self, metrics)
+        self.dev_debugger.track_pbar_metrics_history(self, metrics)
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}

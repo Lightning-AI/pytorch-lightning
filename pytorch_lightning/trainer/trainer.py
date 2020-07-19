@@ -617,7 +617,8 @@ class Trainer(
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
-        self.dev_debugger = InternalDebugger()
+        # tracks internal state for debugging
+        self.dev_debugger = InternalDebugger(self)
 
         # Callback system
         self.on_init_end()
