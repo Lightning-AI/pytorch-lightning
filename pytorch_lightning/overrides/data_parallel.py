@@ -77,10 +77,9 @@ class LightningDataParallel(DataParallel):
         outputs = [dict(x) for x in outputs]
 
         # functions cannot be reduced... delete from each output and track so we can add back
-        reduce_fxs = {k: prototype_output[k] for k in prototype_output.keys() if 'reduce_fx' in k}
+        meta = outputs[0].meta
         for i, output in enumerate(outputs):
-            for k in reduce_fxs.keys():
-                del output[k]
+            del output['meta']
 
         import pdb; pdb.set_trace()
         outputs = self.gather(outputs, self.output_device)
