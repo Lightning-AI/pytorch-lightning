@@ -38,7 +38,7 @@ class DeterministicModel(LightningModule):
     def step(self, batch, batch_idx):
         x = batch
         bs = x.size(0)
-        y_hat = self(x)
+        y_hat = self.l1(x)
         print(self.device)
         print(self.l1.weight.device)
 
