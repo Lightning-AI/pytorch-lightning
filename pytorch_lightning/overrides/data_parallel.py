@@ -77,7 +77,7 @@ class LightningDataParallel(DataParallel):
         outputs = [dict(x) for x in outputs]
 
         # functions cannot be reduced... delete from each output and track so we can add back
-        meta = outputs[0].meta
+        meta = outputs[0]['meta']
         for i, output in enumerate(outputs):
             del output['meta']
 
