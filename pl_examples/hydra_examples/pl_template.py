@@ -26,8 +26,8 @@ def main(cfg: DictConfig):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
- 
-    callbacks = [instantiate(c) for c in cfg.callbacks.callbacks_list] if  cfg.callbacks else []
+
+    callbacks = [instantiate(c) for c in cfg.callbacks.callbacks] if cfg.callbacks else []
 
     trainer = Trainer(
         **cfg.trainer,
