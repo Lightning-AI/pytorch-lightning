@@ -264,6 +264,7 @@ class TrainerDPMixin(ABC):
 
         # set dp device
         # torch.cuda.set_device(self.root_gpu)
+        print(device_ids)
 
         model = LightningDataParallel(model, device_ids=device_ids)
 
