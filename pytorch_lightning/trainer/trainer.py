@@ -33,6 +33,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.debugging import InternalDebugger
 import warnings
 
 # warnings to ignore in trainer
@@ -616,12 +617,7 @@ class Trainer(
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
-        # ---------------------------
-        # only active when debugging PL for dev purposes and tests
-        # ---------------------------
-        self.debug_logged_metrics = []
-        self.debug_pbar_added_metrics = []
-        self.debug_saved_losses = []
+        self.dev_debugger = InternalDebugger()
 
         # Callback system
         self.on_init_end()

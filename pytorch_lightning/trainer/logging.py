@@ -74,8 +74,7 @@ class TrainerLoggingMixin(ABC):
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
-            if 'PL_DEV_DEBUG' in os.environ:
-                self.debug_logged_metrics.append(scalar_metrics)
+            self.dev_debugger.track_logged_metrics(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
@@ -84,9 +83,7 @@ class TrainerLoggingMixin(ABC):
 
             self.progress_bar_metrics[k] = v
 
-        if 'PL_DEV_DEBUG' in os.environ:
-            metrics['debug_epoch'] = self.current_epoch
-            self.debug_pbar_added_metrics.append(metrics)
+        self.dev_debugger.track_pbar_metrics(self, metrics)
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}

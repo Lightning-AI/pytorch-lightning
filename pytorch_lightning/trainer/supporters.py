@@ -76,3 +76,17 @@ class TensorRunningAccum(object):
                 return getattr(self.memory, how)()
             else:
                 return getattr(self.memory[:self.current_idx], how)()
+
+
+class Accumulator(object):
+    def __init__(self):
+        self.num_values = 0
+        self.total = 0
+
+    def accumulate(self, x):
+        with torch.no_grad():
+            self.total += x
+            self.num_values += 1
+
+    def mean(self):
+        return self.total / self.num_values

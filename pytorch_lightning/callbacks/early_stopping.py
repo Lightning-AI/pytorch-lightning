@@ -7,6 +7,7 @@ Monitor a validation metric and stop training when it stops improving.
 """
 from copy import deepcopy
 
+import os
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -161,6 +162,19 @@ class EarlyStopping(Callback):
             return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
+
+        # track values for dev debugging
+        if 'PL_DEV_DEBUG' in os.environ:
+            debug_dict = {
+                'epoch': trainer.current_epoch,
+                'global_step': trainer.global_step,
+                'rank': trainer.global_rank,
+                'current': current,
+                'best': self.best_score,
+                'patience': self.wait_count
+            }
+            trainer.debug_early_stopping_values.append(debug_dict)
+
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
 

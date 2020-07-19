@@ -160,7 +160,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -448,6 +448,10 @@ class TrainerTrainLoopMixin(ABC):
         epoch_output = []
         should_check_val = False
 
+        # structured result accumulators for callbacks
+        early_stopping_accumulator = Accumulator()
+        checkpoint_accumulator = Accumulator()
+
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
@@ -468,6 +472,12 @@ class TrainerTrainLoopMixin(ABC):
             # otherwise we will build up unnecessary memory
             step_out = batch_output.training_step_output_for_epoch_end
             should_auto_reduce_train_result = isinstance(step_out, Result) and step_out.should_reduce_on_epoch_end
+            if 'early_stop_on' in step_out:
+                early_stopping_accumulator.accumulate(step_out['early_stop_on'])
+
+            if 'checkpoint_on' in step_out:
+                checkpoint_accumulator.accumulate(step_out['checkpoint_on'])
+
             if self.is_overridden('training_epoch_end', model=self.get_model()) or should_auto_reduce_train_result:
                 epoch_output.append(batch_output.training_step_output_for_epoch_end)
 
@@ -511,7 +521,7 @@ class TrainerTrainLoopMixin(ABC):
         self.sync_horovod()
 
         # process epoch outputs
-        self.run_training_epoch_end(epoch_output)
+        self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator)
 
         # checkpoint callback
         self.check_checkpoint_callback(should_check_val)
@@ -548,13 +558,22 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_train_epoch_end'):
                 model.on_train_epoch_end()
 
-    def run_training_epoch_end(self, epoch_output):
+    def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator):
         model = self.get_model()
         is_result_obj = len(epoch_output) > 0 and isinstance(epoch_output[0], Result)
 
         epoch_log_metrics = {}
         epoch_callback_metrics = {}
         epoch_progress_bar_metrics = {}
+
+        # -----------------------
+        # Calculate epoch callback values if given
+        # -----------------------
+        if checkpoint_accumulator.num_values > 0:
+            epoch_callback_metrics['checkpoint_on'] = checkpoint_accumulator.mean()
+
+        if early_stopping_accumulator.num_values > 0:
+            epoch_callback_metrics['early_stop_on'] = early_stopping_accumulator.mean()
 
         # --------------------------
         # EPOCH END STEP IF DEFINED
@@ -565,26 +584,13 @@ class TrainerTrainLoopMixin(ABC):
             # remove the protected keys so the user doesn't have to deal with them
             if is_result_obj:
                 epoch_output = epoch_output[0].__class__.gather(epoch_output)
-                minimize = epoch_output.minimize
-                early_stop_on = epoch_output.early_stop_on
-                checkpoint_on = epoch_output.checkpoint_on
-                del epoch_output['minimize']
-                del epoch_output['early_stop_on']
-                del epoch_output['checkpoint_on']
 
             # run training_epoch_end
             epoch_output = model.training_epoch_end(epoch_output)
 
-            # with a result we put back the main metrics and compute means
-            if isinstance(epoch_output, Result):
-                epoch_output.minimize = minimize.mean()
-                epoch_output.early_stop_on = early_stop_on.mean()
-                epoch_output.checkpoint_on = checkpoint_on.mean()
-
             if isinstance(epoch_output, Result):
                 epoch_log_metrics = epoch_output.epoch_log_metrics
                 epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
-                epoch_callback_metrics = epoch_output.callback_metrics
             else:
                 _processed_outputs = self.process_output(epoch_output)
                 epoch_progress_bar_metrics = _processed_outputs[1]
@@ -597,11 +603,8 @@ class TrainerTrainLoopMixin(ABC):
         elif is_result_obj:
             epoch_output = epoch_output[0].__class__.reduce_on_epoch_end(epoch_output)
             epoch_output.minimize = epoch_output.minimize.mean()
-            epoch_output.early_stop_on = epoch_output.early_stop_on.mean()
-            epoch_output.checkpoint_on = epoch_output.checkpoint_on.mean()
             epoch_log_metrics = epoch_output.epoch_log_metrics
             epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
-            epoch_callback_metrics = epoch_output.callback_metrics
 
         # --------------------------
         # track results
@@ -663,6 +666,8 @@ class TrainerTrainLoopMixin(ABC):
         # track metrics to log
         batch_log_metrics = []
 
+        using_results_obj = False
+
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
@@ -706,7 +711,7 @@ class TrainerTrainLoopMixin(ABC):
                     optimizer,
                     self.hiddens
                 )
-                is_result_obj = isinstance(opt_closure_result.training_step_output, Result)
+                using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
                 # ------------------------------
                 # POST forward bookkeeping
@@ -714,14 +719,14 @@ class TrainerTrainLoopMixin(ABC):
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
 
                 # add metrics to loggers
-                if is_result_obj:
+                if using_results_obj:
                     metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
                 else:
                     metrics_to_log = opt_closure_result.training_step_output.log_metrics
                 batch_log_metrics.append(metrics_to_log)
 
                 # add metrics to progress bar
-                if is_result_obj:
+                if using_results_obj:
                     metrics_for_pbar = opt_closure_result.training_step_output.batch_pbar_metrics
                 else:
                     metrics_for_pbar = opt_closure_result.training_step_output.pbar_on_batch_end
@@ -764,7 +769,8 @@ class TrainerTrainLoopMixin(ABC):
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
+        if not using_results_obj:
+            self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
         result = AttributeDict(
             signal=0,

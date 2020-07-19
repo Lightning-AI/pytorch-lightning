@@ -46,8 +46,8 @@ def test_training_step_result_log_step_only(tmpdir):
     assert not model.training_epoch_end_called
 
     # make sure correct metrics are logged (one per batch step as requested)
-    assert len(trainer.debug_logged_metrics) == batches
-    for batch_idx, logged_metrics in enumerate(trainer.debug_logged_metrics):
+    assert len(trainer.dev_debugger.logged_metrics) == batches
+    for batch_idx, logged_metrics in enumerate(trainer.dev_debugger.logged_metrics):
         assert logged_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11.0
         assert logged_metrics[f'step_log_acc2_b{batch_idx}'] == 12.0
         assert f'step_pbar_acc3_b{batch_idx}' not in logged_metrics
@@ -118,8 +118,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert not model.training_epoch_end_called
 
     # make sure correct metrics are logged (one per batch step as requested)
-    assert len(trainer.debug_logged_metrics) == epochs
-    epoch_metrics = trainer.debug_logged_metrics
+    assert len(trainer.dev_debugger.logged_metrics) == epochs
+    epoch_metrics = trainer.dev_debugger.logged_metrics
     assert len(epoch_metrics) == epochs
     for batch_idx, logged_metrics in enumerate(epoch_metrics):
         assert logged_metrics[f'epoch_log_and_pbar_acc1_e{batch_idx}'] == 14.0
@@ -191,8 +191,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert not model.training_epoch_end_called
 
     # make sure correct metrics are logged (one per batch step as requested)
-    assert len(trainer.debug_logged_metrics) == (epochs * batches) + epochs
-    epoch_metrics = trainer.debug_logged_metrics
+    assert len(trainer.dev_debugger.logged_metrics) == (epochs * batches) + epochs
+    epoch_metrics = trainer.dev_debugger.logged_metrics
     epoch_idx = -1
     for i_start in range(0, len(epoch_metrics), batches + 1):
         epoch_idx += 1
@@ -232,7 +232,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     # VERIFY PBAR METRICS
     # -------------------------------
     # make sure pbar metrics are correct ang log metrics did not leak
-    all_pbar_metrics = trainer.debug_pbar_added_metrics
+    all_pbar_metrics = trainer.dev_debugger.pbar_added_metrics
     assert len(all_pbar_metrics) == (epochs * batches) + epochs
 
     epoch_idx = -1
@@ -316,7 +316,7 @@ def test_training_step_epoch_end_result(tmpdir):
     assert model.training_epoch_end_called
 
     # make sure correct metrics were logged
-    logged_metrics = trainer.debug_logged_metrics
+    logged_metrics = trainer.dev_debugger.logged_metrics
     assert len(logged_metrics) == (epochs * batches) + epochs
     last_logged = logged_metrics[-1]
 
@@ -327,7 +327,7 @@ def test_training_step_epoch_end_result(tmpdir):
     assert 'epoch_end_pbar_acc' not in last_logged
 
     # make sure pbar metrics are correct
-    logged_pbar = trainer.debug_pbar_added_metrics
+    logged_pbar = trainer.dev_debugger.pbar_added_metrics
     assert len(logged_pbar) == (epochs * batches) + epochs
 
     assert trainer.progress_bar_metrics['step_epoch_log_and_pbar_acc1'] == 210.0
@@ -425,7 +425,9 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
     trainer.fit(model)
 
     # TODO: finish test to make sure early stopping happened when expected
+    early_stop_vals = trainer.debug_early_stopping_values
     all_losses = trainer.debug_saved_losses
+
     assert len(all_losses) == 12
 
 test_use_callbacks_with_train_loop_only('')
