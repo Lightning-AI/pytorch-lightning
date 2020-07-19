@@ -113,6 +113,16 @@ class DeterministicModel(LightningModule):
         assert 'checkpoint_on' in result
         return result
 
+    def training_step_no_callbacks_result_obj(self, batch, batch_idx):
+        """
+        Early stop and checkpoint only on these values
+        """
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc, checkpoint_on=False)
+        assert 'early_step_on' not in result
+        assert 'checkpoint_on' not in result
+        return result
+
     def training_step_result_log_epoch_and_step_for_callbacks(self, batch, batch_idx):
         """
         Early stop and checkpoint only on these values

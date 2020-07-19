@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 from torch import Tensor
 import torch
 from copy import copy
@@ -10,7 +10,7 @@ class Result(Dict):
             self,
             minimize: Optional[Tensor] = None,
             early_stop_on: Tensor = None,
-            checkpoint_on: Tensor = None,
+            checkpoint_on: Union[Tensor, bool] = None,
             hiddens: Optional[Tensor] = None
     ):
 
@@ -18,7 +18,7 @@ class Result(Dict):
 
         if early_stop_on is not None:
             self.early_stop_on = early_stop_on
-        if checkpoint_on is not None:
+        if checkpoint_on is not None and checkpoint_on:
             self.checkpoint_on = checkpoint_on
         if hiddens is not None:
             self.hiddens = hiddens
@@ -57,7 +57,7 @@ class Result(Dict):
         # ensure reserve keys are tensors and detached
         if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
             self._assert_tensor_metric(key, val)
-            if val is not None:
+            if val is not None and isinstance(val, torch.Tensor):
                 val = val.detach()
 
         # ensure anything else that is a tensor is detached
@@ -67,7 +67,7 @@ class Result(Dict):
         self[key] = val
 
     def _assert_tensor_metric(self, name, x):
-        if x is not None:
+        if x is not None and not isinstance(x, bool):
             assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
 
     def _assert_grad_tensor_metric(self, name, x, additional_err: str = None):
@@ -269,7 +269,7 @@ class TrainResult(Result):
             self,
             minimize: Optional[Tensor] = None,
             early_stop_on: Tensor = None,
-            checkpoint_on: Tensor = None,
+            checkpoint_on: Union[Tensor, bool] = None,
             hiddens: Optional[Tensor] = None
     ):
 
