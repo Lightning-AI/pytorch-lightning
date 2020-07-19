@@ -188,6 +188,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 if not isinstance(input, (list, tuple)):
                     input = (input,)
                 module._device = device
+                module = module.to(device)
 
                 # ---------------
                 # CHANGE
