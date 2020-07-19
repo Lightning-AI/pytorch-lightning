@@ -189,6 +189,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                     input = (input,)
                 module._device = device
                 module = module.to(device)
+                print(module.device, module._device, 'a')
 
                 # ---------------
                 # CHANGE
