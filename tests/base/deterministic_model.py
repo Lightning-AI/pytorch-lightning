@@ -53,6 +53,7 @@ class DeterministicModel(LightningModule):
 
     def step(self, batch, batch_idx):
         x = batch
+        bs = x.size(0)
         y_hat = self(x)
 
         test_hat = y_hat.cpu().detach()
@@ -60,7 +61,7 @@ class DeterministicModel(LightningModule):
         assert torch.all(test_hat[:, 1] == 42.0)
         out = y_hat.sum()
         print(out)
-        assert out == (42.0 * 3) + (15.0 * 3)
+        assert out == (42.0 * bs) + (15.0 * bs)
 
         return out
 
