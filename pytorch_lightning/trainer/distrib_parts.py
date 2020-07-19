@@ -232,7 +232,7 @@ class TrainerDPMixin(ABC):
         if self.is_function_implemented('setup', model):
             model.setup('fit')
 
-        model.cuda(self.root_gpu)
+        # model.cuda(self.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
