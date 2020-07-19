@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import TrainResult
+import pdb
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -118,7 +119,7 @@ class DeterministicModel(LightningModule):
         """
         Full loop flow train step
         """
-        ForkedPdb().set_trace()
+        pdb.set_trace()
         result.log('train_step_end_acc1', 1)
         self.training_step_end_called = True
         return result
