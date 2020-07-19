@@ -83,7 +83,6 @@ class LightningDataParallel(DataParallel):
 
         outputs = self.gather(outputs, self.output_device)
 
-        import pdb; pdb.set_trace()
         # pass minimize to constructor for TrainResult
         if 'minimize' in outputs:
             result = original_class(outputs['minimize'])
