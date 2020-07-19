@@ -66,7 +66,6 @@ class LightningDataParallel(DataParallel):
         outputs = self.parallel_apply(replicas, inputs, kwargs)
 
         if isinstance(outputs[0], Result):
-            import pdb; pdb.set_trace()
             outputs = self.__gather_structured_result(outputs)
         else:
             outputs = self.gather(outputs, self.output_device)
@@ -83,6 +82,7 @@ class LightningDataParallel(DataParallel):
             for k in reduce_fxs.keys():
                 del output[k]
 
+        import pdb; pdb.set_trace()
         outputs = self.gather(outputs, self.output_device)
 
         # pass minimize to constructor for TrainResult
