@@ -164,7 +164,7 @@ class EarlyStopping(Callback):
         current = logs.get(self.monitor)
 
         # when in dev debugging
-        trainer.dev_debugger.track_early_stopping_history()
+        trainer.dev_debugger.track_early_stopping_history(current)
 
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
