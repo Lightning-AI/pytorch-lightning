@@ -39,6 +39,8 @@ class DeterministicModel(LightningModule):
         x = batch
         bs = x.size(0)
         y_hat = self(x)
+        print(self.device)
+        print(self.l1.weight.device)
 
         test_hat = y_hat.cpu().detach()
         assert torch.all(test_hat[:, 0] == 15.0)
@@ -121,7 +123,6 @@ class DeterministicModel(LightningModule):
         """
         self.assert_backward = False
 
-        import pdb; pdb.set_trace()
         result.minimize = result.minimize.mean()
         result.checkpoint_on = result.checkpoint_on.mean()
         result.train_step_acc1 = result.train_step_acc1.mean()
