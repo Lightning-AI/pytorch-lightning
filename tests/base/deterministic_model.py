@@ -119,9 +119,11 @@ class DeterministicModel(LightningModule):
         """
         Full loop flow train step
         """
-        pdb.set_trace()
+        result.minimize = result.minimize.mean()
+        result.checkpoint_on = result.checkpoint_on.mean()
         result.log('train_step_end_acc1', 1)
         self.training_step_end_called = True
+        import pdb; pdb.set_trace()
         return result
 
     def training_epoch_end_full_loop_result_obj(self, result):
