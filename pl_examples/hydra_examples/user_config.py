@@ -49,7 +49,7 @@ class UserConf(PLConf):
     model: Any = MISSING
     scheduler: ObjectConf = MISSING
     opt: ObjectConf = MISSING
-    callbacks: Any = None
+    
 
 
 # Stored as config node, for top level config used for type checking.

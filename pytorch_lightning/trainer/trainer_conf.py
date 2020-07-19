@@ -234,4 +234,4 @@ class PLConf(DictConfig):
     checkpoint: Optional[ObjectConf] = None
     early_stopping: Optional[ObjectConf] = None
     trainer: LightningTrainerConf = MISSING
-
+    callbacks: Any = None
