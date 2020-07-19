@@ -48,7 +48,7 @@ class TrainingStepVariations(ABC):
         x = x.view(x.size(0), -1)
         print(self.device, self.c_d1.weight.device, x.device)
         y_hat = self(x)
-        loss_val = self.loss(y.type_as(y_hat), y_hat)
+        loss_val = self.loss(y.type_as(y_hat), y_hat.long())
         result = TrainResult(minimize=loss_val)
         result.log('train_step_acc1', loss_val + 1)
         self.training_step_called = True
