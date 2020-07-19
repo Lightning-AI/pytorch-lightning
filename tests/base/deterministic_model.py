@@ -37,7 +37,6 @@ class DeterministicModel(LightningModule):
 
     def step(self, batch, batch_idx):
         x = batch
-        print(x.device)
         bs = x.size(0)
         y_hat = self(x)
 
