@@ -62,8 +62,9 @@ class LightningDataParallel(DataParallel):
 
             return self.module.validation_step(*inputs[0], **kwargs[0])
 
-        import pdb; pdb.set_trace()
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        for replica in replicas:
+            replica.device = self.module.device
         outputs = self.parallel_apply(replicas, inputs, kwargs)
 
         if isinstance(outputs[0], Result):
