@@ -55,7 +55,6 @@ class DeterministicModel(LightningModule):
         x = batch
         y_hat = self(x)
 
-        ForkedPdb().set_trace()
         test_hat = y_hat.cpu().detach()
         assert torch.all(test_hat[:, 0] == 15.0)
         assert torch.all(test_hat[:, 1] == 42.0)
