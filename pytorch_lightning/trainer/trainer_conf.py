@@ -228,7 +228,7 @@ cs.store(
 
 
 @dataclass
-class PLConfig(DictConfig):
+class PLConf(DictConfig):
     logger: Optional[ObjectConf] = None
     profiler: Optional[ObjectConf] = None
     checkpoint: Optional[ObjectConf] = None

@@ -1,4 +1,4 @@
-from pytorch_lightning.trainer.trainer_conf import PLConfig
+from pytorch_lightning.trainer.trainer_conf import PLConf
 import pl_examples.hydra_examples.conf.optimizer
 import pl_examples.hydra_examples.conf.scheduler
 import hydra
@@ -43,7 +43,7 @@ add in other config groups.
 
 
 @dataclass
-class UserConfig(PLConfig):
+class UserConf(PLConf):
     defaults: List[Any] = MISSING
     data: Any = MISSING
     model: Any = MISSING
@@ -53,4 +53,4 @@ class UserConfig(PLConfig):
 
 
 # Stored as config node, for top level config used for type checking.
-cs.store(name="config", node=UserConfig)
+cs.store(name="config", node=UserConf)
