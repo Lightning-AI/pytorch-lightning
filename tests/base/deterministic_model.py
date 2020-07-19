@@ -110,9 +110,12 @@ class DeterministicModel(LightningModule):
         """
         Full loop flow train step
         """
-        acc = self.step(batch, batch_idx)
-        result = TrainResult(minimize=acc)
-        result.log('train_step_acc1', acc + 1)
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x)
+        loss_val = self.loss(y, y_hat)
+        result = TrainResult(minimize=loss_val)
+        result.log('train_step_acc1', loss_val + 1)
         self.training_step_called = True
         return result
 
