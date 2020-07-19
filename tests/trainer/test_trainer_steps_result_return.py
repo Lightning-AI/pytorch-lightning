@@ -477,18 +477,20 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
         assert ckpt_val['monitor'] == 'checkpoint_on'
 
 
-def test_full_train_loop_with_results_obj(tmpdir):
+def test_full_train_loop_with_results_obj_dp(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = DeterministicModel()
-    model.training_step = model.training_step_result_log_epoch_and_step_for_callbacks
-    model.training_epoch_end = None
+    model.training_step = model.training_step_full_loop_result_obj
+    model.training_step_end = model.training_step_end_full_loop_result_obj_dp
+    model.training_epoch_end = model.training_epoch_end_full_loop_result_obj
     model.val_dataloader = None
 
     batches = 3
-    epochs = 300
+    epochs = 3
     trainer = Trainer(
         default_root_dir=tmpdir,
+        distributed_backend='dp',
         max_epochs=epochs,
         early_stop_callback=True,
         row_log_interval=1,
@@ -523,3 +525,5 @@ def test_full_train_loop_with_results_obj(tmpdir):
     for ckpt_val, expected_epoch in zip(ckpt_vals, [0, 1, 2, 3, 6]):
         assert ckpt_val['epoch'] == expected_epoch
         assert ckpt_val['monitor'] == 'checkpoint_on'
+
+test_full_train_loop_with_results_obj_dp('')

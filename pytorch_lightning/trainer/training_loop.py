@@ -1075,6 +1075,7 @@ class TrainerTrainLoopMixin(ABC):
         if self.is_overridden('training_step_end'):
             model_ref = self.get_model()
             with self.profiler.profile('training_step_end'):
+                # TODO: modify when using result obj
                 output = model_ref.training_step_end(output)
 
         # allow any mode to define training_end

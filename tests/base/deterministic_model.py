@@ -103,6 +103,32 @@ class DeterministicModel(LightningModule):
     # --------------------------
     # Result returns
     # --------------------------
+    def training_step_full_loop_result_obj(self, batch, batch_idx):
+        """
+        Full loop flow train step
+        """
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+        result.log('train_step_acc1', acc + 1)
+        self.training_step_called = True
+        return result
+
+    def training_step_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step
+        """
+        result.log('train_step_end_acc1', 1)
+        self.training_step_end_called = True
+        return result
+
+    def training_epoch_end_full_loop_result_obj(self, result):
+        """
+        Full loop flow train step
+        """
+        result.log('train_epoch_end_acc1', 1)
+        self.training_epoch_end_called = True
+        return result
+
     def training_step_no_default_callbacks_for_train_loop(self, batch, batch_idx):
         """
         Early stop and checkpoint only on these values

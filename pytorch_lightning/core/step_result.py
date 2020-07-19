@@ -87,10 +87,16 @@ class Result(Dict):
             logger=True,
             on_step=False,
             on_epoch=True,
-            reduce_fx=torch.mean
+            reduce_fx=torch.mean,
+            enable_graph=False,
     ):
+        # no metrics should be logged with graphs
+        if not enable_graph and isinstance(value, torch.Tensor):
+            value = value.detach()
+
         if 'meta' not in self:
             self.__setitem__('meta', {})
+
         self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
 
         # set the value
@@ -99,8 +105,6 @@ class Result(Dict):
     def __set_meta(self, name, value, prog_bar, logger, on_step, on_epoch, reduce_fx):
         # set the meta for the item
         meta_value = value
-        if isinstance(meta_value, torch.Tensor):
-            meta_value = meta_value.detach()
         meta = dict(
             prog_bar=prog_bar,
             logger=logger,
@@ -283,9 +287,10 @@ class TrainResult(Result):
             logger=True,
             on_step=True,
             on_epoch=False,
-            reduce_fx=torch.mean
+            reduce_fx=torch.mean,
+            enable_graph=False,
     ):
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
 
 class EvalResult(Result):
@@ -307,9 +312,10 @@ class EvalResult(Result):
             logger=True,
             on_step=False,
             on_epoch=True,
-            reduce_fx=torch.mean
+            reduce_fx=torch.mean,
+            enable_graph=False,
     ):
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
 
 if __name__ == '__main__':
