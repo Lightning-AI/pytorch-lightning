@@ -6,6 +6,7 @@ import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
+from pytorch_lightning.core.step_result import Result
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -63,9 +64,36 @@ class LightningDataParallel(DataParallel):
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
-        outputs = [{'a': x['minimize']} for x in outputs]
-        import pdb; pdb.set_trace()
-        return self.gather(outputs, self.output_device)
+
+        if isinstance(outputs[0], Result):
+            import pdb; pdb.set_trace()
+            outputs = self.__gather_structured_result(outputs)
+        else:
+            outputs = self.gather(outputs, self.output_device)
+        return outputs
+
+    def __gather_structured_result(self, outputs):
+        prototype_output = outputs[0]
+        original_class = prototype_output.__class__
+        outputs = [dict(x) for x in outputs]
+
+        # functions cannot be reduced... delete from each output and track so we can add back
+        reduce_fxs = {k: prototype_output[k] for k in prototype_output.keys() if 'reduce_fx' in k}
+        for i, output in enumerate(outputs):
+            for k in reduce_fxs.keys():
+                del output[k]
+
+        outputs = self.gather(outputs, self.output_device)
+
+        # pass minimize to constructor for TrainResult
+        if 'minimize' in outputs:
+            result = original_class(outputs['minimize'])
+        else:
+            result = original_class()
+
+        result.update(outputs)
+        result.update(reduce_fxs)
+        return result
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
