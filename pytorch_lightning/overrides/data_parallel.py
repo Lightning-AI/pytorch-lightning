@@ -63,7 +63,7 @@ class LightningDataParallel(DataParallel):
             return self.module.validation_step(*inputs[0], **kwargs[0])
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-        for replica_idx, device_idx in zip(len(replicas), self.device_ids[:len(inputs)]):
+        for replica_idx, device_idx in zip(range(len(replicas)), self.device_ids[:len(inputs)]):
             replica = replicas[replica_idx]
             replica = replica.to(torch.device(device_idx))
             replicas[replica_idx] = replica
