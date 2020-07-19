@@ -46,6 +46,7 @@ class TrainingStepVariations(ABC):
         """
         x, y = batch
         x = x.view(x.size(0), -1)
+        print(self.device, self.c_d1.weight.device, x.device)
         y_hat = self(x)
         loss_val = self.loss(y, y_hat)
         result = TrainResult(minimize=loss_val)
