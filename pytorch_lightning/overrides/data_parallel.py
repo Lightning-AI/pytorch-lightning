@@ -76,14 +76,14 @@ class LightningDataParallel(DataParallel):
         original_class = prototype_output.__class__
         outputs = [dict(x) for x in outputs]
 
-        # functions cannot be reduced... delete from each output and track so we can add back
+        # remove all the meta info
         meta = outputs[0]['meta']
         for i, output in enumerate(outputs):
             del output['meta']
 
-        import pdb; pdb.set_trace()
         outputs = self.gather(outputs, self.output_device)
 
+        import pdb; pdb.set_trace()
         # pass minimize to constructor for TrainResult
         if 'minimize' in outputs:
             result = original_class(outputs['minimize'])
@@ -91,7 +91,7 @@ class LightningDataParallel(DataParallel):
             result = original_class()
 
         result.update(outputs)
-        result.update(reduce_fxs)
+        result['meta'] = meta
         return result
 
     def parallel_apply(self, replicas, inputs, kwargs):
