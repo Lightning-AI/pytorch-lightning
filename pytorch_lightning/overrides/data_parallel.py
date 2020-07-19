@@ -64,8 +64,7 @@ class LightningDataParallel(DataParallel):
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         for replica, device_idx in zip(replicas, self.device_ids[:len(inputs)]):
-            replica.device = torch.device(device_idx)
-            # replica.to(replica.device)
+            replica.to(torch.device(device_idx))
 
         outputs = self.parallel_apply(replicas, inputs, kwargs)
 
