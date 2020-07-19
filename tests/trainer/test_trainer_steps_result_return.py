@@ -6,6 +6,7 @@ import torch
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
+from tests.base import EvalModelTemplate
 
 
 # test with train_step_end
@@ -480,7 +481,7 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
 def test_full_train_loop_with_results_obj_dp(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    model = DeterministicModel()
+    model = EvalModelTemplate()
     model.training_step = model.training_step_full_loop_result_obj
     model.training_step_end = model.training_step_end_full_loop_result_obj_dp
     model.training_epoch_end = model.training_epoch_end_full_loop_result_obj
