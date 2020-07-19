@@ -482,9 +482,10 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
-    model.training_step = model.training_step_full_loop_result_obj
-    model.training_step_end = model.training_step_end_full_loop_result_obj_dp
-    model.training_epoch_end = model.training_epoch_end_full_loop_result_obj
+    model2 = DeterministicModel()
+    model.training_step = model2.training_step_full_loop_result_obj
+    model.training_step_end = model2.training_step_end_full_loop_result_obj_dp
+    model.training_epoch_end = model2.training_epoch_end_full_loop_result_obj
     model.val_dataloader = None
 
     batches = 3
