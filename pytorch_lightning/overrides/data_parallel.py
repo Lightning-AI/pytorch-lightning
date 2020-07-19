@@ -187,7 +187,7 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # this also avoids accidental slicing of `input` if it is a Tensor
                 if not isinstance(input, (list, tuple)):
                     input = (input,)
-
+                module._device = device
                 print(input, module.device, module.l1.weight.device)
 
                 # ---------------
