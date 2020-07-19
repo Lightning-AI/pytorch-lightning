@@ -232,7 +232,7 @@ class TrainerDPMixin(ABC):
         if self.is_function_implemented('setup', model):
             model.setup('fit')
 
-        # model.cuda(self.root_gpu)
+        model.cuda(self.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -263,7 +263,7 @@ class TrainerDPMixin(ABC):
             device_ids = list(range(device_ids))
 
         # set dp device
-        torch.cuda.set_device(self.root_gpu)
+        # torch.cuda.set_device(self.root_gpu)
 
         model = LightningDataParallel(model, device_ids=device_ids)
 
