@@ -63,6 +63,7 @@ class LightningDataParallel(DataParallel):
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
+        outputs = [{'a': x['minimize']} for x in outputs]
         import pdb; pdb.set_trace()
         return self.gather(outputs, self.output_device)
 
