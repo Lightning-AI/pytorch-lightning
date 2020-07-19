@@ -497,6 +497,8 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
         limit_train_batches=batches,
         weights_summary=None,
     )
+
+    import pdb; pdb.set_trace()
     trainer.fit(model)
 
     num_expected_epochs = 10

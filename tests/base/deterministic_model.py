@@ -117,6 +117,7 @@ class DeterministicModel(LightningModule):
         """
         Full loop flow train step
         """
+        import pdb; pdb.set_trace()
         result.log('train_step_end_acc1', 1)
         self.training_step_end_called = True
         return result
