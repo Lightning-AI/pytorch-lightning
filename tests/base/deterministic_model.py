@@ -120,8 +120,8 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch, batch_idx)
 
         self.assert_backward = False
-        losses = [20, 19, 18, 10, 15, 14, 9, 11, 11, 20, 22, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]
-        idx = batch_idx + (self.current_epoch * 3)
+        losses = [20, 19, 18, 10, 15, 14, 9, 11, 11, 20]
+        idx = self.current_epoch
         loss = acc + losses[idx]
         result = TrainResult(minimize=loss, early_stop_on=loss, checkpoint_on=loss)
         return result

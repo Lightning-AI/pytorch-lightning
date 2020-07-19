@@ -420,15 +420,29 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
-    # TODO: finish test to make sure early stopping happened when expected
+    num_expected_epochs = 10
+
+    # ----------------------------------
+    # VERIFY EARLY STOPPING BEHAVIOR
+    # ----------------------------------
+    # with train loop only it happens on every epoch
     early_stop_vals = trainer.dev_debugger.early_stopping_history
+    assert len(early_stop_vals) == num_expected_epochs
+    min_val = min([x['best'] for x in early_stop_vals])
+    assert min_val == 171 + 9
     all_losses = trainer.dev_debugger.saved_losses
 
-    # assert len(all_losses) == 12
+    from collections import Counter
+    batch_idxs = Counter([x['batch_idx'] for x in all_losses])
+    for i, val in batch_idxs.items():
+        assert val == num_expected_epochs
+        assert i in [0, 1, 2]
 
-test_training_step_result_log_step_only('')
-test_training_step_result_log_epoch_only('')
-test_training_step_result_log_step_and_epoch('')
-test_training_step_epoch_end_result('')
-test_no_auto_callbacks_with_train_loop_only('')
-test_use_callbacks_with_train_loop_only('')
+    # ----------------------------------
+    # VERIFY CHECKPOINTING BEHAVIOR
+    # ----------------------------------
+    ckpt_vals = trainer.dev_debugger.checkpoint_callback_history
+    assert len(ckpt_vals) == 5, '5 ckpts should have been saved'
+    for ckpt_val, expected_epoch in zip(ckpt_vals, [0, 1, 2, 3, 6]):
+        assert ckpt_val['epoch'] == expected_epoch
+        assert ckpt_val['monitor'] == 'checkpoint_on'
