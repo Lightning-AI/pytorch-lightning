@@ -51,7 +51,7 @@ def test_training_step_result_log_step_only(tmpdir):
         assert logged_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11.0
         assert logged_metrics[f'step_log_acc2_b{batch_idx}'] == 12.0
         assert f'step_pbar_acc3_b{batch_idx}' not in logged_metrics
-        assert len(logged_metrics) == 3
+        assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
     assert trainer.callback_metrics['checkpoint_on'] == 171
@@ -124,7 +124,7 @@ def test_training_step_result_log_epoch_only(tmpdir):
         assert logged_metrics[f'epoch_log_and_pbar_acc1_e{batch_idx}'] == 14.0
         assert logged_metrics[f'epoch_log_acc2_e{batch_idx}'] == 15.0
         assert f'epoch_pbar_acc3_e{batch_idx}' not in logged_metrics
-        assert len(logged_metrics) == 3
+        assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
     assert trainer.callback_metrics['checkpoint_on'] == 171
@@ -211,7 +211,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
             assert logged_metrics['step_epoch_log_and_pbar_acc1'] == expected_val_1
             assert logged_metrics['step_epoch_log_acc2'] == expected_val_2
             assert 'step_epoch_pbar_acc3' not in logged_metrics
-            assert len(logged_metrics) == 3
+            assert len(logged_metrics) == 4
 
         # make sure the metrics for the epoch end are actual means (the default reduce fx) or all the batches
         epoch_end_metrics = epoch_outputs[-1]
@@ -220,7 +220,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         assert epoch_end_metrics['step_epoch_log_and_pbar_acc1'] == eval_1
         assert epoch_end_metrics['step_epoch_log_acc2'] == eval_2
         assert 'step_epoch_pbar_acc3' not in epoch_end_metrics
-        assert len(logged_metrics) == 3
+        assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
     assert trainer.callback_metrics['checkpoint_on'] == 171
