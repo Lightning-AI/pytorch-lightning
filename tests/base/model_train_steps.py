@@ -40,9 +40,9 @@ class TrainingStepVariations(ABC):
                 output /= 0
         return output
 
-    def training_step_full_loop_result_obj(self, batch, batch_idx):
+    def training_step_full_loop_result_obj_dp(self, batch, batch_idx):
         """
-        Full loop flow train step
+        Full loop flow train step (result obj + dp)
         """
         x, y = batch
         x = x.view(x.size(0), -1)
@@ -55,9 +55,8 @@ class TrainingStepVariations(ABC):
 
     def training_step_end_full_loop_result_obj_dp(self, result):
         """
-        Full loop flow train step
+        Full loop flow train step (result obj + dp)
         """
-        import pdb; pdb.set_trace()
         result.minimize = result.minimize.mean()
         result.checkpoint_on = result.checkpoint_on.mean()
         result.train_step_acc1 = result.train_step_acc1.mean()
@@ -65,9 +64,9 @@ class TrainingStepVariations(ABC):
         self.training_step_end_called = True
         return result
 
-    def training_epoch_end_full_loop_result_obj(self, result):
+    def training_epoch_end_full_loop_result_obj_dp(self, result):
         """
-        Full loop flow train step
+        Full loop flow train step (result obj + dp)
         """
         result.log('train_epoch_end_acc1', 1)
         self.training_epoch_end_called = True
