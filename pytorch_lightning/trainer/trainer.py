@@ -105,7 +105,7 @@ class Trainer(
         ...     def test_step(self, batch, batch_nb):
         ...         x, y = batch
         ...         loss = F.cross_entropy(self(x), y)
-        ...         return {'loss': loss, 'log': {'train_loss': loss}}
+        ...         return {'loss': loss, 'log': {'test_loss': loss}}
         ...
         ...     def configure_optimizers(self):
         ...         return torch.optim.Adam(self.parameters(), lr=0.02)
