@@ -484,7 +484,7 @@ def test_xxx(tmpdir):
     from pytorch_lightning.core import memory
     import tests.base.develop_utils as tutils
 
-    tutils.set_random_master_port()
+    # tutils.set_random_master_port()
 
     trainer_options = dict(
         default_root_dir=tmpdir,
@@ -497,11 +497,13 @@ def test_xxx(tmpdir):
     )
 
     model = EvalModelTemplate()
+    trainer = Trainer(**trainer_options)
+    trainer.fit(model)
 
-    tpipes.run_model_test(trainer_options, model)
+    # tpipes.run_model_test(trainer_options, model)
 
     # test memory helper functions
-    memory.get_memory_profile('min_max')
+    # memory.get_memory_profile('min_max')
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
