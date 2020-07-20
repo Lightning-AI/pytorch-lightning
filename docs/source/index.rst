@@ -43,6 +43,7 @@ PyTorch Lightning Documentation
    Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>
    FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>
    Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
+   Hyperparameter optimization with Ray Tune <https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html>
    Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>
    MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>
    NER (transformers, TPU) <https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D>
