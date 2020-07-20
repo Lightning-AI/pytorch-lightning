@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+from pytorch_lightning import TrainResult
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -19,6 +20,8 @@ class DeterministicModel(LightningModule):
         self.validation_step_end_called = False
         self.validation_epoch_end_called = False
 
+        self.assert_backward = True
+
         self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
             weights = torch.tensor([
@@ -33,13 +36,15 @@ class DeterministicModel(LightningModule):
 
     def step(self, batch, batch_idx):
         x = batch
-        y_hat = self(x)
+        bs = x.size(0)
+        y_hat = self.l1(x)
+        print(x.device, self.device, self.l1.weight.device)
 
         test_hat = y_hat.cpu().detach()
         assert torch.all(test_hat[:, 0] == 15.0)
         assert torch.all(test_hat[:, 1] == 42.0)
         out = y_hat.sum()
-        assert out == (42.0 * 3) + (15.0 * 3)
+        assert out == (42.0 * bs) + (15.0 * bs)
 
         return out
 
@@ -96,6 +101,105 @@ class DeterministicModel(LightningModule):
 
         prototype_loss = outputs[0]
         return prototype_loss
+
+    def training_step_no_default_callbacks_for_train_loop(self, batch, batch_idx):
+        """
+        Early stop and checkpoint only on these values
+        """
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+        assert 'early_step_on' not in result
+        assert 'checkpoint_on' in result
+        return result
+
+    def training_step_no_callbacks_result_obj(self, batch, batch_idx):
+        """
+        Early stop and checkpoint only on these values
+        """
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc, checkpoint_on=False)
+        assert 'early_step_on' not in result
+        assert 'checkpoint_on' not in result
+        return result
+
+    def training_step_result_log_epoch_and_step_for_callbacks(self, batch, batch_idx):
+        """
+        Early stop and checkpoint only on these values
+        """
+        acc = self.step(batch, batch_idx)
+
+        self.assert_backward = False
+        losses = [20, 19, 18, 10, 15, 14, 9, 11, 11, 20]
+        idx = self.current_epoch
+        loss = acc + losses[idx]
+        result = TrainResult(minimize=loss, early_stop_on=loss, checkpoint_on=loss)
+        return result
+
+    def training_step_result_log_step_only(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+
+        # step only metrics
+        result.log(f'step_log_and_pbar_acc1_b{batch_idx}', torch.tensor(11).type_as(acc), prog_bar=True)
+        result.log(f'step_log_acc2_b{batch_idx}', torch.tensor(12).type_as(acc))
+        result.log(f'step_pbar_acc3_b{batch_idx}', torch.tensor(13).type_as(acc), logger=False, prog_bar=True)
+
+        self.training_step_called = True
+        return result
+
+    def training_step_result_log_epoch_only(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+
+        result.log(f'epoch_log_and_pbar_acc1_e{self.current_epoch}', torch.tensor(14).type_as(acc),
+                   on_epoch=True, prog_bar=True, on_step=False)
+        result.log(f'epoch_log_acc2_e{self.current_epoch}', torch.tensor(15).type_as(acc),
+                   on_epoch=True, on_step=False)
+        result.log(f'epoch_pbar_acc3_e{self.current_epoch}', torch.tensor(16).type_as(acc),
+                   on_epoch=True, logger=False, prog_bar=True, on_step=False)
+
+        self.training_step_called = True
+        return result
+
+    def training_step_result_log_epoch_and_step(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        result = TrainResult(minimize=acc)
+
+        val_1 = (5 + batch_idx) * (self.current_epoch + 1)
+        val_2 = (6 + batch_idx) * (self.current_epoch + 1)
+        val_3 = (7 + batch_idx) * (self.current_epoch + 1)
+        result.log(f'step_epoch_log_and_pbar_acc1', torch.tensor(val_1).type_as(acc),
+                   on_epoch=True, prog_bar=True)
+        result.log(f'step_epoch_log_acc2', torch.tensor(val_2).type_as(acc),
+                   on_epoch=True)
+        result.log(f'step_epoch_pbar_acc3', torch.tensor(val_3).type_as(acc),
+                   on_epoch=True, logger=False, prog_bar=True)
+
+        self.training_step_called = True
+        return result
+
+    def training_epoch_end_return_for_log_epoch_and_step(self, result):
+        """
+        There should be an array of scalars without graphs that are all 171 (4 of them)
+        """
+        self.training_epoch_end_called = True
+
+        if self.use_dp or self.use_ddp2:
+            pass
+        else:
+            # only saw 4 batches
+            assert isinstance(result, TrainResult)
+
+        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
+        result.step_epoch_log_acc2 = result.step_epoch_log_acc2.prod()
+        result.step_epoch_pbar_acc3 = result.step_epoch_pbar_acc3.prod()
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2),
+                   logger=True, on_epoch=True)
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2),
+                   logger=False, prog_bar=True, on_epoch=True)
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2),
+                   logger=True, prog_bar=True, on_epoch=True)
+        return result
 
     # --------------------------
     # dictionary returns
@@ -231,10 +335,12 @@ class DeterministicModel(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0)
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
-        if self.trainer.precision == 16:
-            assert loss > 171 * 1000
-        else:
-            assert loss == 171.0
+        if self.assert_backward:
+            if self.trainer.precision == 16:
+                assert loss > 171 * 1000
+            else:
+                assert loss == 171.0
+
         loss.backward()
 
 
