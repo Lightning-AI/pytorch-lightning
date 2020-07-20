@@ -508,11 +508,11 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     trainer.fit(model)
 
     # make sure we saw all the correct keys
-    import pdb; pdb.set_trace()
     seen_keys = set()
     for metric in trainer.dev_debugger.logged_metrics:
         seen_keys.update(metric.keys())
 
+    import pdb; pdb.set_trace()
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'train_epoch_end_metric' in seen_keys
