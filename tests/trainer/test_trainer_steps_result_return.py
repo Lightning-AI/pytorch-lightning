@@ -515,13 +515,12 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        distributed_backend='dp',
+        max_epochs=1,
+        limit_train_batches=10,
+        limit_val_batches=10,
         gpus=[0, 1],
-        max_epochs=epochs,
-        early_stop_callback=True,
-        row_log_interval=2,
-        limit_train_batches=batches,
-        weights_summary=None,
+        distributed_backend='dp',
+        progress_bar_refresh_rate=0
     )
     model = EvalModelTemplate()
     model.validation_step = None
