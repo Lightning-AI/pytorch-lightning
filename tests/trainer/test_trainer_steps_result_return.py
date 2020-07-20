@@ -478,34 +478,6 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
         assert ckpt_val['epoch'] == expected_epoch
         assert ckpt_val['monitor'] == 'checkpoint_on'
 
-
-def test_xxx(tmpdir):
-    import tests.base.develop_pipelines as tpipes
-    from pytorch_lightning.core import memory
-    import tests.base.develop_utils as tutils
-
-    # tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        distributed_backend='dp',
-        progress_bar_refresh_rate=0
-    )
-
-    model = EvalModelTemplate()
-    trainer = Trainer(**trainer_options)
-    trainer.fit(model)
-
-    # tpipes.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    # memory.get_memory_profile('min_max')
-
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_train_loop_with_results_obj_dp(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
@@ -515,12 +487,13 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
         distributed_backend='dp',
-        progress_bar_refresh_rate=0
+        gpus=[0, 1],
+        max_epochs=epochs,
+        early_stop_callback=True,
+        row_log_interval=2,
+        limit_train_batches=batches,
+        weights_summary=None,
     )
     model = EvalModelTemplate()
     model.validation_step = None
@@ -530,6 +503,8 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     model.training_epoch_end = model.training_epoch_end_full_loop_result_obj_dp
     model.val_dataloader = None
     model.test_dataloader = None
+
+    model = EvalModelTemplate()
 
     trainer.fit(model)
 
