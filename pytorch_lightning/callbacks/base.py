@@ -54,11 +54,11 @@ class Callback(abc.ABC):
         """Called when the train epoch ends."""
         pass
 
-    def on_val_epoch_start(self, trainer, pl_module):
+    def on_validation_epoch_start(self, trainer, pl_module):
         """Called when the val epoch begins."""
         pass
 
-    def on_val_epoch_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer, pl_module):
         """Called when the val epoch ends."""
         pass
 
