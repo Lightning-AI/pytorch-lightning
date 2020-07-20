@@ -107,6 +107,3 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     )
     result = trainer.fit(model)
     assert 1 == result
-
-if __name__ == '__main__':
-    test_model_checkpoint_no_extraneous_invocations('')
