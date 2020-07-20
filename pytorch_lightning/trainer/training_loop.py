@@ -635,8 +635,9 @@ class TrainerTrainLoopMixin(ABC):
         if should_log_metrics or self.fast_dev_run:
             # logs user requested information to logger
             metrics = batch_output.batch_log_metrics
-            if len(metrics) > 0:
-                self.log_metrics(metrics, batch_output.grad_norm_dic)
+            grad_norm_dic = batch_output.grad_norm_dic
+            if len(metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(metrics, grad_norm_dic)
 
     def save_loggers_in_training_loop(self, batch_idx):
         # when loggers should save to disk
