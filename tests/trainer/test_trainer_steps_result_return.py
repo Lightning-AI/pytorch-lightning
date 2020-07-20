@@ -508,5 +508,10 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     trainer.fit(model)
     import pdb; pdb.set_trace()
 
+    i = 0
+    for metric in trainer.dev_debugger.logged_metrics:
+        assert metric['global_step'] == i
+        i += trainer.row_log_interval
+
 
 test_full_train_loop_with_results_obj_dp('')
