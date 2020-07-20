@@ -520,7 +520,3 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'train_epoch_end_metric' in seen_keys
-
-
-
-test_full_train_loop_with_results_obj_dp('')
