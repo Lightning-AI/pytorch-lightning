@@ -66,9 +66,9 @@ class Result(Dict):
 
         self[key] = val
 
-    def _assert_tensor_metric(self, name, x):
-        if x is not None and not isinstance(x, bool):
-            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
+    def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
+        if potential_metric is not None and not isinstance(potential_metric, bool):
+            assert isinstance(potential_metric, Tensor), f'{name} must be a torch.Tensor'
 
     def _assert_grad_tensor_metric(self, name, x, additional_err: str = None):
         if x is not None:
@@ -83,12 +83,12 @@ class Result(Dict):
             self,
             name,
             value,
-            prog_bar=False,
-            logger=True,
-            on_step=False,
-            on_epoch=True,
-            reduce_fx=torch.mean,
-            enable_graph=False,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -102,7 +102,16 @@ class Result(Dict):
         # set the value
         self.__setitem__(name, value)
 
-    def __set_meta(self, name, value, prog_bar, logger, on_step, on_epoch, reduce_fx):
+    def __set_meta(
+            self,
+            name: str,
+            value,
+            prog_bar: bool,
+            logger: bool,
+            on_step: bool,
+            on_epoch: bool,
+            reduce_fx: Callable,
+        ):
         # set the meta for the item
         meta_value = value
         meta = dict(
@@ -240,7 +249,7 @@ class Result(Dict):
         return self['meta']['_internal']['_reduce_on_epoch']
 
 
-def recursive_gather(outputs, result=None):
+def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
     for out in outputs:
         if 'meta' in out:
             del out['meta']
@@ -283,12 +292,12 @@ class TrainResult(Result):
             self,
             name,
             value,
-            prog_bar=False,
-            logger=True,
-            on_step=True,
-            on_epoch=False,
-            reduce_fx=torch.mean,
-            enable_graph=False,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = True,
+            on_epoch: bool = False,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
     ):
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
@@ -308,12 +317,12 @@ class EvalResult(Result):
             self,
             name,
             value,
-            prog_bar=False,
-            logger=True,
-            on_step=False,
-            on_epoch=True,
-            reduce_fx=torch.mean,
-            enable_graph=False,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
     ):
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
