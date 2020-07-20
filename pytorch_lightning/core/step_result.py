@@ -1,7 +1,9 @@
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
 from torch import Tensor
 import torch
 from copy import copy
+
+
 
 
 class Result(Dict):
@@ -125,7 +127,8 @@ class Result(Dict):
         self['meta'][name] = meta
 
         # track whether any input requires reduction on epoch end
-        self['meta']['_internal']['_reduce_on_epoch'] = max(internal['_reduce_on_epoch'], on_epoch)
+        _internal = self['meta']['_internal']
+        _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
     def get_callback_metrics(self) -> dict:
         result = {
@@ -135,7 +138,7 @@ class Result(Dict):
 
         return result
 
-    def get_batch_log_metrics(self) -> dict:
+    def _get_metrics(self, opt_names: Sequence[str]) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -145,51 +148,33 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
-            if options['logger'] and options['on_step']:
+            if all(options[n] for n in opt_names):
                 result[k] = self[k]
         return result
+
+    def get_batch_log_metrics(self) -> dict:
+        """
+        Gets the metrics to log at the end of the batch step
+        """
+        return self._get_metrics(self, opt_names=['logger', 'on_step'])
 
     def get_epoch_log_metrics(self) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-            if options['logger'] and options['on_epoch']:
-                result[k] = self[k]
-        return result
+        return self._get_metrics(self, opt_names=['logger', 'on_epoch'])
 
     def get_epoch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-            if options['prog_bar'] and options['on_epoch']:
-                result[k] = self[k]
-        return result
+        return self._get_metrics(self, opt_names=['prog_bar', 'on_epoch'])
 
     def get_batch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-            if options['prog_bar'] and options['on_step']:
-                result[k] = self[k]
-        return result
+        return self._get_metrics(self, opt_names=['prog_bar', 'on_epoch'])
 
     def detach(self):
         for k, v in self.items():
