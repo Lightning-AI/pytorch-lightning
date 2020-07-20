@@ -43,4 +43,4 @@ class BLEUScore(Metric):
             reference_corpus=reference_corpus,
             n_gram=self.n_gram,
             smooth=self.smooth,
-        )
+        ).to(self.device, self.dtype)

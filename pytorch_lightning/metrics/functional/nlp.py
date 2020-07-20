@@ -3,13 +3,13 @@
 # Authors: torchtext authors and @sluks
 # Date: 2020-07-18
 # Link: https://pytorch.org/text/_modules/torchtext/data/metrics.html#bleu_score
-from typing import Sequence
+from typing import Sequence, List
 from collections import Counter
 
 import torch
 
 
-def _count_ngram(ngram_input_list: list, n_gram: int) -> Counter:
+def _count_ngram(ngram_input_list: List[str], n_gram: int) -> Counter:
     """Counting how many times each word appears in a given text with ngram
 
     Args:
@@ -31,7 +31,7 @@ def _count_ngram(ngram_input_list: list, n_gram: int) -> Counter:
 
 
 def bleu_score(
-    translate_corpus: Sequence, reference_corpus: Sequence, n_gram: int = 4, smooth: bool = False
+    translate_corpus: Sequence[str], reference_corpus: Sequence[str], n_gram: int = 4, smooth: bool = False
 ) -> torch.Tensor:
     """Calculate BLEU score of machine translated text with one or more references.
 
