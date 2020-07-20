@@ -136,7 +136,7 @@ class Result(Dict):
 
         return result
 
-    def __get_meta_metrics(self, opt_names: Sequence[str]) -> dict:
+    def get_batch_log_metrics(self) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -146,33 +146,51 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
-            if all(options[n] for n in opt_names):
+            if options['logger'] and options['on_step']:
                 result[k] = self[k]
         return result
-
-    def get_batch_log_metrics(self) -> dict:
-        """
-        Gets the metrics to log at the end of the batch step
-        """
-        return self.__get_meta_metrics(self, opt_names=['logger', 'on_step'])
 
     def get_epoch_log_metrics(self) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
-        return self.__get_meta_metrics(self, opt_names=['logger', 'on_epoch'])
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if k == '_internal':
+                continue
+            if options['logger'] and options['on_epoch']:
+                result[k] = self[k]
+        return result
 
     def get_epoch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        return self.__get_meta_metrics(self, opt_names=['prog_bar', 'on_epoch'])
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if k == '_internal':
+                continue
+            if options['prog_bar'] and options['on_epoch']:
+                result[k] = self[k]
+        return result
 
     def get_batch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        return self.__get_meta_metrics(self, opt_names=['prog_bar', 'on_epoch'])
+        result = {}
+
+        meta = self['meta']
+        for k, options in meta.items():
+            if k == '_internal':
+                continue
+            if options['prog_bar'] and options['on_step']:
+                result[k] = self[k]
+        return result
 
     def detach(self):
         for k, v in self.items():
