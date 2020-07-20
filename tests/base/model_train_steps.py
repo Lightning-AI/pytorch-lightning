@@ -40,7 +40,7 @@ class TrainingStepVariations(ABC):
                 output /= 0
         return output
 
-    def training_step_full_loop_result_obj_dp(self, batch, batch_idx):
+    def training_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
         """
         Full loop flow train step (result obj + dp)
         """
