@@ -144,12 +144,14 @@ class EarlyStopping(Callback):
     def on_train_epoch_end(self, trainer, pl_module):
         # early stopping can also work in the train loop when there is no val loop and when using structured results
         should_check_early_stop = False
-        if 'early_stop_on' in trainer.callback_metrics and trainer.callback_metrics['early_stop_on'] is not None:
+        train_es_key = 'early_stop_on'
+        if train_es_key in trainer.callback_metrics and trainer.callback_metrics[train_es_key] is not None:
             self.monitor = 'early_stop_on'
             should_check_early_stop = True
 
-        if 'val_early_stop_on' in trainer.callback_metrics and trainer.callback_metrics['val_early_stop_on'] is not None:
-            self.monitor = 'val_early_stop_on'
+        val_es_key = 'val_early_stop_on'
+        if val_es_key in trainer.callback_metrics and trainer.callback_metrics[val_es_key] is not None:
+            self.monitor = val_es_key
             should_check_early_stop = True
 
         if should_check_early_stop:
