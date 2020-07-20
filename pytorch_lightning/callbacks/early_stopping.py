@@ -146,7 +146,7 @@ class EarlyStopping(Callback):
         should_check_early_stop = False
         train_es_key = 'early_stop_on'
         if train_es_key in trainer.callback_metrics and trainer.callback_metrics[train_es_key] is not None:
-            self.monitor = 'early_stop_on'
+            self.monitor = train_es_key
             should_check_early_stop = True
 
         val_es_key = 'val_early_stop_on'
