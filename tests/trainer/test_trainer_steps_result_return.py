@@ -500,7 +500,7 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
         gpus=2,
         max_epochs=epochs,
         early_stop_callback=True,
-        row_log_interval=1,
+        row_log_interval=2,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -508,31 +508,5 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     trainer.fit(model)
     import pdb; pdb.set_trace()
 
-    num_expected_epochs = 10
-
-    # ----------------------------------
-    # VERIFY EARLY STOPPING BEHAVIOR
-    # ----------------------------------
-    # with train loop only it happens on every epoch
-    early_stop_vals = trainer.dev_debugger.early_stopping_history
-    assert len(early_stop_vals) == num_expected_epochs
-    min_val = min([x['best'] for x in early_stop_vals])
-    assert min_val == 171 + 9
-    all_losses = trainer.dev_debugger.saved_losses
-
-    from collections import Counter
-    batch_idxs = Counter([x['batch_idx'] for x in all_losses])
-    for i, val in batch_idxs.items():
-        assert val == num_expected_epochs
-        assert i in [0, 1, 2]
-
-    # ----------------------------------
-    # VERIFY CHECKPOINTING BEHAVIOR
-    # ----------------------------------
-    ckpt_vals = trainer.dev_debugger.checkpoint_callback_history
-    assert len(ckpt_vals) == 5, '5 ckpts should have been saved'
-    for ckpt_val, expected_epoch in zip(ckpt_vals, [0, 1, 2, 3, 6]):
-        assert ckpt_val['epoch'] == expected_epoch
-        assert ckpt_val['monitor'] == 'checkpoint_on'
 
 test_full_train_loop_with_results_obj_dp('')
