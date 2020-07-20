@@ -472,10 +472,10 @@ class TrainerTrainLoopMixin(ABC):
             # otherwise we will build up unnecessary memory
             step_out = batch_output.training_step_output_for_epoch_end
             should_auto_reduce_train_result = isinstance(step_out, Result) and step_out.should_reduce_on_epoch_end
-            if 'early_stop_on' in step_out:
+            if isinstance(step_out, dict) and 'early_stop_on' in step_out:
                 early_stopping_accumulator.accumulate(step_out['early_stop_on'])
 
-            if 'checkpoint_on' in step_out:
+            if isinstance(step_out, dict) and 'checkpoint_on' in step_out:
                 checkpoint_accumulator.accumulate(step_out['checkpoint_on'])
 
             if self.is_overridden('training_epoch_end', model=self.get_model()) or should_auto_reduce_train_result:
