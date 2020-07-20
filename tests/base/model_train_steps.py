@@ -45,7 +45,9 @@ class TrainingStepVariations(ABC):
         Full loop flow train step (result obj + dp)
         """
         x, y = batch
+        print('-' * 100)
         print(x.device, self.device)
+        print('-' * 100)
         x = x.view(x.size(0), -1)
         y_hat = self(x)
         loss_val = y_hat.sum()
