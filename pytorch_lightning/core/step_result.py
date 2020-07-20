@@ -23,7 +23,7 @@ class Result(Dict):
         if hiddens is not None:
             self.hiddens = hiddens
         if minimize is not None:
-            err = 'Minimize can only be used in training_end, training_step_end, training_epoch_end'
+            err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
             self._assert_grad_tensor_metric('minimize', minimize, err)
             self.minimize = minimize
 
