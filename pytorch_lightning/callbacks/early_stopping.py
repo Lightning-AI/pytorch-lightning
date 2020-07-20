@@ -145,7 +145,7 @@ class EarlyStopping(Callback):
         # early stopping can also work in the train loop when there is no val loop and when using structured results
         should_check_early_stop = False
         train_es_key = 'early_stop_on'
-        if train_es_key in trainer.callback_metrics and trainer.callback_metrics[train_es_key] is not None:
+        if trainer.callback_metrics.get(train_es_key, None) is not None:
             self.monitor = train_es_key
             should_check_early_stop = True
 
