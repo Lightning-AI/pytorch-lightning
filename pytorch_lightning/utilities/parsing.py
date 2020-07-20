@@ -1,5 +1,6 @@
 import inspect
 from argparse import Namespace
+from typing import Dict
 
 
 def str_to_bool(val):
@@ -93,7 +94,7 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
         return path_args
 
 
-class AttributeDict(dict):
+class AttributeDict(Dict):
     """Extended dictionary accesisable with dot notation.
 
     >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
