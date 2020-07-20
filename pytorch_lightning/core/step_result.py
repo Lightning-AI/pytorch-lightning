@@ -4,8 +4,6 @@ import torch
 from copy import copy
 
 
-
-
 class Result(Dict):
 
     def __init__(
@@ -13,7 +11,7 @@ class Result(Dict):
             minimize: Optional[Tensor] = None,
             early_stop_on: Optional[Tensor] = None,
             checkpoint_on: Union[Tensor, bool, None] = None,
-            hiddens: Optional[Tensor] = None
+            hiddens: Optional[Tensor] = None,
     ):
 
         super().__init__()
@@ -83,8 +81,8 @@ class Result(Dict):
 
     def log(
             self,
-            name,
-            value,
+            name: str,
+            value: Any,
             prog_bar: bool = False,
             logger: bool = True,
             on_step: bool = False,
@@ -107,7 +105,7 @@ class Result(Dict):
     def __set_meta(
             self,
             name: str,
-            value,
+            value: Any,
             prog_bar: bool,
             logger: bool,
             on_step: bool,
@@ -138,7 +136,7 @@ class Result(Dict):
 
         return result
 
-    def _get_metrics(self, opt_names: Sequence[str]) -> dict:
+    def __get_meta_metrics(self, opt_names: Sequence[str]) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -156,25 +154,25 @@ class Result(Dict):
         """
         Gets the metrics to log at the end of the batch step
         """
-        return self._get_metrics(self, opt_names=['logger', 'on_step'])
+        return self.__get_meta_metrics(self, opt_names=['logger', 'on_step'])
 
     def get_epoch_log_metrics(self) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
-        return self._get_metrics(self, opt_names=['logger', 'on_epoch'])
+        return self.__get_meta_metrics(self, opt_names=['logger', 'on_epoch'])
 
     def get_epoch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        return self._get_metrics(self, opt_names=['prog_bar', 'on_epoch'])
+        return self.__get_meta_metrics(self, opt_names=['prog_bar', 'on_epoch'])
 
     def get_batch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        return self._get_metrics(self, opt_names=['prog_bar', 'on_epoch'])
+        return self.__get_meta_metrics(self, opt_names=['prog_bar', 'on_epoch'])
 
     def detach(self):
         for k, v in self.items():
@@ -267,7 +265,7 @@ class TrainResult(Result):
             minimize: Optional[Tensor] = None,
             early_stop_on: Tensor = None,
             checkpoint_on: Union[Tensor, bool] = None,
-            hiddens: Optional[Tensor] = None
+            hiddens: Optional[Tensor] = None,
     ):
 
         super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
@@ -292,7 +290,7 @@ class EvalResult(Result):
             self,
             early_stop_on: Optional[Tensor] = None,
             checkpoint_on: Optional[Tensor] = None,
-            hiddens: Optional[Tensor] = None
+            hiddens: Optional[Tensor] = None,
     ):
 
         super().__init__(None, early_stop_on, checkpoint_on, hiddens)
@@ -311,10 +309,10 @@ class EvalResult(Result):
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
 
-if __name__ == '__main__':
-    import torch
-    result = TrainResult()
-    result.hiddens = torch.tensor(1)
-    result.log('some', 123)
-    print(result)
-    result.minimize = torch.tensor(1)
+# if __name__ == '__main__':
+#     import torch
+#     result = TrainResult()
+#     result.hiddens = torch.tensor(1)
+#     result.log('some', 123)
+#     print(result)
+#     result.minimize = torch.tensor(1)
