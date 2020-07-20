@@ -129,7 +129,7 @@ class ModelHooks(Module):
 
     def on_val_epoch_start(self) -> None:
         """
-        Called in the training loop at the very beginning of the epoch.
+        Called in the validation loop at the very beginning of the epoch.
         """
         # do something when the epoch starts
 

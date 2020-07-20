@@ -10,7 +10,7 @@ class Result(Dict):
             self,
             minimize: Optional[Tensor] = None,
             early_stop_on: Optional[Tensor] = None,
-            checkpoint_on: Union[Tensor, bool] = None,
+            checkpoint_on: Union[Tensor, bool, None] = None,
             hiddens: Optional[Tensor] = None
     ):
 
@@ -36,7 +36,7 @@ class Result(Dict):
             }
         }
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Any:
         try:
             if key == 'callback_metrics':
                 return self.get_callback_metrics()
@@ -53,7 +53,7 @@ class Result(Dict):
         except KeyError:
             return None
 
-    def __setattr__(self, key, val):
+    def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
         if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
             self._assert_tensor_metric(key, val)
@@ -119,7 +119,7 @@ class Result(Dict):
         internal = self['meta']['_internal']
         internal['_reduce_on_epoch'] = max(internal['_reduce_on_epoch'], on_epoch)
 
-    def get_callback_metrics(self):
+    def get_callback_metrics(self) -> dict:
         result = {
             'early_stop_on': self.early_stop_on,
             'checkpoint_on': self.checkpoint_on
@@ -127,7 +127,7 @@ class Result(Dict):
 
         return result
 
-    def get_batch_log_metrics(self):
+    def get_batch_log_metrics(self) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -141,7 +141,7 @@ class Result(Dict):
                 result[k] = self[k]
         return result
 
-    def get_epoch_log_metrics(self):
+    def get_epoch_log_metrics(self) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -236,7 +236,7 @@ class Result(Dict):
         return result
 
     @property
-    def should_reduce_on_epoch_end(self):
+    def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
 
 
@@ -257,7 +257,7 @@ def recursive_gather(outputs, result=None):
     return result
 
 
-def recursive_stack(result):
+def recursive_stack(result: MutableMapping):
     for k, v in result.items():
         if isinstance(v, dict):
             recursive_stack(v)
@@ -297,8 +297,8 @@ class EvalResult(Result):
 
     def __init__(
             self,
-            early_stop_on: Tensor = None,
-            checkpoint_on: Tensor = None,
+            early_stop_on: Optional[Tensor] = None,
+            checkpoint_on: Optional[Tensor] = None,
             hiddens: Optional[Tensor] = None
     ):
 
