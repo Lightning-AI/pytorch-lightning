@@ -397,7 +397,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
-        self.state = TrainerState.INITIALIZE
+        self.state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
