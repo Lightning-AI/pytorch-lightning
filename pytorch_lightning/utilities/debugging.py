@@ -4,7 +4,7 @@ import os
 class InternalDebugger(object):
 
     def __init__(self, trainer):
-        
+
         self.enabled = 'PL_DEV_DEBUG' in os.environ
         self.trainer = trainer
         self.logged_metrics = []

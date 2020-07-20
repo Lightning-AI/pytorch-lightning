@@ -152,9 +152,12 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch, batch_idx)
         result = TrainResult(minimize=acc)
 
-        result.log(f'epoch_log_and_pbar_acc1_e{self.current_epoch}', torch.tensor(14).type_as(acc), on_epoch=True, prog_bar=True, on_step=False)
-        result.log(f'epoch_log_acc2_e{self.current_epoch}', torch.tensor(15).type_as(acc), on_epoch=True, on_step=False)
-        result.log(f'epoch_pbar_acc3_e{self.current_epoch}', torch.tensor(16).type_as(acc), on_epoch=True, logger=False, prog_bar=True, on_step=False)
+        result.log(f'epoch_log_and_pbar_acc1_e{self.current_epoch}', torch.tensor(14).type_as(acc),
+                   on_epoch=True, prog_bar=True, on_step=False)
+        result.log(f'epoch_log_acc2_e{self.current_epoch}', torch.tensor(15).type_as(acc),
+                   on_epoch=True, on_step=False)
+        result.log(f'epoch_pbar_acc3_e{self.current_epoch}', torch.tensor(16).type_as(acc),
+                   on_epoch=True, logger=False, prog_bar=True, on_step=False)
 
         self.training_step_called = True
         return result
@@ -166,9 +169,12 @@ class DeterministicModel(LightningModule):
         val_1 = (5 + batch_idx) * (self.current_epoch + 1)
         val_2 = (6 + batch_idx) * (self.current_epoch + 1)
         val_3 = (7 + batch_idx) * (self.current_epoch + 1)
-        result.log(f'step_epoch_log_and_pbar_acc1', torch.tensor(val_1).type_as(acc), on_epoch=True, prog_bar=True)
-        result.log(f'step_epoch_log_acc2', torch.tensor(val_2).type_as(acc), on_epoch=True)
-        result.log(f'step_epoch_pbar_acc3', torch.tensor(val_3).type_as(acc), on_epoch=True, logger=False, prog_bar=True)
+        result.log(f'step_epoch_log_and_pbar_acc1', torch.tensor(val_1).type_as(acc),
+                   on_epoch=True, prog_bar=True)
+        result.log(f'step_epoch_log_acc2', torch.tensor(val_2).type_as(acc),
+                   on_epoch=True)
+        result.log(f'step_epoch_pbar_acc3', torch.tensor(val_3).type_as(acc),
+                   on_epoch=True, logger=False, prog_bar=True)
 
         self.training_step_called = True
         return result
@@ -188,9 +194,12 @@ class DeterministicModel(LightningModule):
         result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
         result.step_epoch_log_acc2 = result.step_epoch_log_acc2.prod()
         result.step_epoch_pbar_acc3 = result.step_epoch_pbar_acc3.prod()
-        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2), logger=True, on_epoch=True)
-        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2), logger=False, prog_bar=True, on_epoch=True)
-        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2), logger=True, prog_bar=True, on_epoch=True)
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2),
+                   logger=True, on_epoch=True)
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2),
+                   logger=False, prog_bar=True, on_epoch=True)
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2),
+                   logger=True, prog_bar=True, on_epoch=True)
         return result
 
     # --------------------------
