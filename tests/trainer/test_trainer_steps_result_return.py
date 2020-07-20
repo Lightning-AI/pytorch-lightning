@@ -277,8 +277,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
-    assert f'step_epoch_log_and_pbar_acc1' in train_step_out
-    assert f'step_epoch_log_acc2' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1' in train_step_out
+    assert 'step_epoch_log_acc2' in train_step_out
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
@@ -351,8 +351,8 @@ def test_training_step_epoch_end_result(tmpdir):
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
-    assert f'step_epoch_log_and_pbar_acc1' in train_step_out
-    assert f'step_epoch_log_acc2' in train_step_out
+    assert 'step_epoch_log_and_pbar_acc1' in train_step_out
+    assert 'step_epoch_log_acc2' in train_step_out
 
     # make sure the optimizer closure returns the correct things
     opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
@@ -478,6 +478,7 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
         assert ckpt_val['epoch'] == expected_epoch
         assert ckpt_val['monitor'] == 'checkpoint_on'
 
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_train_loop_with_results_obj_dp(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
@@ -512,7 +513,6 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     for metric in trainer.dev_debugger.logged_metrics:
         seen_keys.update(metric.keys())
 
-    import pdb; pdb.set_trace()
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'train_epoch_end_metric' in seen_keys
