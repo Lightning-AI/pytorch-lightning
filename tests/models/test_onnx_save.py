@@ -19,7 +19,7 @@ def test_model_saves_with_input_sample(tmpdir):
     file_path = os.path.join(tmpdir, "model.onxx")
     input_sample = torch.randn((1, 28 * 28))
     model.to_onnx(file_path, input_sample)
-    assert os.path.exists(file_path) is True
+    assert os.path.isfile(file_path)
     assert os.path.getsize(file_path) > 3e+06
 
 
