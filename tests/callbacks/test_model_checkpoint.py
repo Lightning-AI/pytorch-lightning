@@ -78,11 +78,11 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         self.count = 0
         self.expected_count = expected_count
 
-    def _save_model(self, filepath):
+    def _save_model(self, filepath, trainer, pl_module):
         # make sure we don't save twice
         assert not os.path.isfile(filepath)
         self.count += 1
-        super()._save_model(filepath)
+        super()._save_model(filepath, trainer, pl_module)
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
@@ -107,3 +107,6 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     )
     result = trainer.fit(model)
     assert 1 == result
+
+if __name__ == '__main__':
+    test_model_checkpoint_no_extraneous_invocations('')
