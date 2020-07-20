@@ -70,7 +70,7 @@ class Result(Dict):
         if potential_metric is not None and not isinstance(potential_metric, bool):
             assert isinstance(potential_metric, Tensor), f'{name} must be a torch.Tensor'
 
-    def _assert_grad_tensor_metric(self, name, x, additional_err: str = None):
+    def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
         if x is not None:
             assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
             m = f'{name} must have a computational graph.'
@@ -125,8 +125,7 @@ class Result(Dict):
         self['meta'][name] = meta
 
         # track whether any input requires reduction on epoch end
-        internal = self['meta']['_internal']
-        internal['_reduce_on_epoch'] = max(internal['_reduce_on_epoch'], on_epoch)
+        self['meta']['_internal']['_reduce_on_epoch'] = max(internal['_reduce_on_epoch'], on_epoch)
 
     def get_callback_metrics(self) -> dict:
         result = {
