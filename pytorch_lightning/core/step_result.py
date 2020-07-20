@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
 from torch import Tensor
 import torch
 from copy import copy
@@ -10,8 +10,8 @@ class Result(Dict):
             self,
             minimize: Optional[Tensor] = None,
             early_stop_on: Optional[Tensor] = None,
-            checkpoint_on: Union[Tensor, bool] = None,
-            hiddens: Optional[Tensor] = None
+            checkpoint_on: Union[Tensor, bool, None] = None,
+            hiddens: Optional[Tensor] = None,
     ):
 
         super().__init__()
@@ -36,7 +36,7 @@ class Result(Dict):
             }
         }
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Any:
         try:
             if key == 'callback_metrics':
                 return self.get_callback_metrics()
@@ -53,7 +53,7 @@ class Result(Dict):
         except KeyError:
             return None
 
-    def __setattr__(self, key, val):
+    def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
         if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
             self._assert_tensor_metric(key, val)
@@ -66,11 +66,11 @@ class Result(Dict):
 
         self[key] = val
 
-    def _assert_tensor_metric(self, name, x):
-        if x is not None and not isinstance(x, bool):
-            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
+    def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
+        if potential_metric is not None and not isinstance(potential_metric, bool):
+            assert isinstance(potential_metric, Tensor), f'{name} must be a torch.Tensor'
 
-    def _assert_grad_tensor_metric(self, name, x, additional_err: str = None):
+    def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
         if x is not None:
             assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
             m = f'{name} must have a computational graph.'
@@ -81,14 +81,14 @@ class Result(Dict):
 
     def log(
             self,
-            name,
-            value,
-            prog_bar=False,
-            logger=True,
-            on_step=False,
-            on_epoch=True,
-            reduce_fx=torch.mean,
-            enable_graph=False,
+            name: str,
+            value: Any,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -102,7 +102,16 @@ class Result(Dict):
         # set the value
         self.__setitem__(name, value)
 
-    def __set_meta(self, name, value, prog_bar, logger, on_step, on_epoch, reduce_fx):
+    def __set_meta(
+            self,
+            name: str,
+            value: Any,
+            prog_bar: bool,
+            logger: bool,
+            on_step: bool,
+            on_epoch: bool,
+            reduce_fx: Callable,
+        ):
         # set the meta for the item
         meta_value = value
         meta = dict(
@@ -116,10 +125,10 @@ class Result(Dict):
         self['meta'][name] = meta
 
         # track whether any input requires reduction on epoch end
-        internal = self['meta']['_internal']
-        internal['_reduce_on_epoch'] = max(internal['_reduce_on_epoch'], on_epoch)
+        _internal = self['meta']['_internal']
+        _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
 
-    def get_callback_metrics(self):
+    def get_callback_metrics(self) -> dict:
         result = {
             'early_stop_on': self.early_stop_on,
             'checkpoint_on': self.checkpoint_on
@@ -127,7 +136,7 @@ class Result(Dict):
 
         return result
 
-    def get_batch_log_metrics(self):
+    def __get_meta_metrics(self, opt_names: Sequence[str]) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
@@ -137,51 +146,33 @@ class Result(Dict):
         for k, options in meta.items():
             if k == '_internal':
                 continue
-            if options['logger'] and options['on_step']:
+            if all(options[n] for n in opt_names):
                 result[k] = self[k]
         return result
 
-    def get_epoch_log_metrics(self):
+    def get_batch_log_metrics(self) -> dict:
         """
         Gets the metrics to log at the end of the batch step
         """
-        result = {}
+        return self.__get_meta_metrics(self, opt_names=['logger', 'on_step'])
 
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-            if options['logger'] and options['on_epoch']:
-                result[k] = self[k]
-        return result
+    def get_epoch_log_metrics(self) -> dict:
+        """
+        Gets the metrics to log at the end of the batch step
+        """
+        return self.__get_meta_metrics(self, opt_names=['logger', 'on_epoch'])
 
     def get_epoch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-            if options['prog_bar'] and options['on_epoch']:
-                result[k] = self[k]
-        return result
+        return self.__get_meta_metrics(self, opt_names=['prog_bar', 'on_epoch'])
 
     def get_batch_pbar_metrics(self):
         """
         Gets the metrics to log at the end of the batch step
         """
-        result = {}
-
-        meta = self['meta']
-        for k, options in meta.items():
-            if k == '_internal':
-                continue
-            if options['prog_bar'] and options['on_step']:
-                result[k] = self[k]
-        return result
+        return self.__get_meta_metrics(self, opt_names=['prog_bar', 'on_epoch'])
 
     def detach(self):
         for k, v in self.items():
@@ -236,11 +227,11 @@ class Result(Dict):
         return result
 
     @property
-    def should_reduce_on_epoch_end(self):
+    def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
 
 
-def recursive_gather(outputs, result=None):
+def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
     for out in outputs:
         if 'meta' in out:
             del out['meta']
@@ -257,7 +248,7 @@ def recursive_gather(outputs, result=None):
     return result
 
 
-def recursive_stack(result):
+def recursive_stack(result: MutableMapping):
     for k, v in result.items():
         if isinstance(v, dict):
             recursive_stack(v)
@@ -274,7 +265,7 @@ class TrainResult(Result):
             minimize: Optional[Tensor] = None,
             early_stop_on: Tensor = None,
             checkpoint_on: Union[Tensor, bool] = None,
-            hiddens: Optional[Tensor] = None
+            hiddens: Optional[Tensor] = None,
     ):
 
         super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
@@ -283,12 +274,12 @@ class TrainResult(Result):
             self,
             name,
             value,
-            prog_bar=False,
-            logger=True,
-            on_step=True,
-            on_epoch=False,
-            reduce_fx=torch.mean,
-            enable_graph=False,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = True,
+            on_epoch: bool = False,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
     ):
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
@@ -297,9 +288,9 @@ class EvalResult(Result):
 
     def __init__(
             self,
-            early_stop_on: Tensor = None,
-            checkpoint_on: Tensor = None,
-            hiddens: Optional[Tensor] = None
+            early_stop_on: Optional[Tensor] = None,
+            checkpoint_on: Optional[Tensor] = None,
+            hiddens: Optional[Tensor] = None,
     ):
 
         super().__init__(None, early_stop_on, checkpoint_on, hiddens)
@@ -308,20 +299,20 @@ class EvalResult(Result):
             self,
             name,
             value,
-            prog_bar=False,
-            logger=True,
-            on_step=False,
-            on_epoch=True,
-            reduce_fx=torch.mean,
-            enable_graph=False,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
     ):
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
 
-if __name__ == '__main__':
-    import torch
-    result = TrainResult()
-    result.hiddens = torch.tensor(1)
-    result.log('some', 123)
-    print(result)
-    result.minimize = torch.tensor(1)
+# if __name__ == '__main__':
+#     import torch
+#     result = TrainResult()
+#     result.hiddens = torch.tensor(1)
+#     result.log('some', 123)
+#     print(result)
+#     result.minimize = torch.tensor(1)
