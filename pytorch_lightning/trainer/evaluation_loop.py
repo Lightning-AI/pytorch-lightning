@@ -352,6 +352,7 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def run_evaluation(self, test_mode: bool = False):
+        # TODO: finish TrainResult support in eval loop
         # hook
         model = self.get_model()
         model.on_pre_performance_check()
