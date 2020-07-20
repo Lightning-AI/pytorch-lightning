@@ -508,7 +508,7 @@ def test_xxx(tmpdir):
 def test_full_train_loop_with_results_obj_dp(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    batches = 3
+    batches = 10
     epochs = 3
 
     trainer = Trainer(
