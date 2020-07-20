@@ -49,7 +49,7 @@ class TrainingStepVariations(ABC):
         y_hat = self(x)
         loss_val = y_hat.sum()
         result = TrainResult(minimize=loss_val)
-        result.log('train_step_acc1', loss_val + 1)
+        result.log('train_step_test', loss_val + 1)
         self.training_step_called = True
         return result
 
@@ -57,6 +57,7 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step
         """
+        import pdb; pdb.set_trace()
         result.minimize = result.minimize.mean()
         result.checkpoint_on = result.checkpoint_on.mean()
         result.train_step_acc1 = result.train_step_acc1.mean()
