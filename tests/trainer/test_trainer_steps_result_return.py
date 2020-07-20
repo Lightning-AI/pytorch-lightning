@@ -512,11 +512,15 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     assert model.training_step_end_called
     assert model.training_epoch_end_called
 
-    # make sure we have the correct metrics logged
-    i = 0
+    # make sure we saw all the correct keys
+    seen_keys = set()
     for metric in trainer.dev_debugger.logged_metrics:
-        assert metric['global_step'] == i
-        i += trainer.row_log_interval
+        seen_keys.update(metric.keys())
+
+    assert 'train_step_metric' in seen_keys
+    assert 'train_step_end_metric' in seen_keys
+    assert 'train_epoch_end_metric' in seen_keys
+
 
 
 test_full_train_loop_with_results_obj_dp('')
