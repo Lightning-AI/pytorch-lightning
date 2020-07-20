@@ -326,11 +326,10 @@ class EvalResult(Result):
     ):
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
+    def get_callback_metrics(self) -> dict:
+        result = {
+            'val_early_stop_on': self.early_stop_on,
+            'val_checkpoint_on': self.checkpoint_on
+        }
 
-# if __name__ == '__main__':
-#     import torch
-#     result = TrainResult()
-#     result.hiddens = torch.tensor(1)
-#     result.log('some', 123)
-#     print(result)
-#     result.minimize = torch.tensor(1)
+        return result

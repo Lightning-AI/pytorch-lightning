@@ -133,6 +133,9 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from torch import distributed as dist
+from pytorch_lightning.core.step_result import Result, EvalResult
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -224,6 +227,30 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    def __call_eval_loop_hook_start(self, test_mode, model):
+        # on_[train/validation]_epoch_start hook
+        hook_root_name = 'test' if test_mode else 'validation'
+        hook_name = f'on_{hook_root_name}_epoch_start'
+        with self.profiler.profile(hook_name):
+            # call hook
+            getattr(self, hook_name)()
+
+            # model hooks
+            if self.is_function_implemented(hook_name):
+                getattr(model, hook_name)()
+
+    def __call_eval_loop_hook_end(self, test_mode, model):
+        # on_[train/validation]_epoch_start hook
+        hook_root_name = 'test' if test_mode else 'validation'
+        hook_name = f'on_{hook_root_name}_epoch_end'
+        with self.profiler.profile(hook_name):
+            # call hook
+            getattr(self, hook_name)()
+
+            # model hooks
+            if self.is_function_implemented(hook_name):
+                getattr(model, hook_name)()
+
     def _evaluate(
         self,
         model: LightningModule,
@@ -256,6 +283,11 @@ class TrainerEvaluationLoopMixin(ABC):
         # convert max_batches to list
         if isinstance(max_batches, int):
             max_batches = [max_batches] * len(dataloaders)
+
+        # --------------------------
+        # ON_EVAL_EPOCH_START hook
+        # --------------------------
+        self.__call_eval_loop_hook_start(test_mode, model)
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -293,6 +325,11 @@ class TrainerEvaluationLoopMixin(ABC):
                 else:
                     output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
+                # allow only EvalResult when using structured results (from val_step)
+                if isinstance(output, Result) and not isinstance(output, EvalResult):
+                    m = 'only EvalResults or dicts are allowed from validation_step'
+                    raise MisconfigurationException(m)
+
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
                     if self.is_overridden('test_step_end'):
@@ -323,31 +360,62 @@ class TrainerEvaluationLoopMixin(ABC):
         if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
             model = model.module
 
+        user_reduced = False
+
         if test_mode:
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(eval_results)
+                user_reduced = True
                 rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
                 eval_results = model.test_epoch_end(eval_results)
+                user_reduced = True
 
         else:
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(eval_results)
+                user_reduced = True
                 rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
                 eval_results = model.validation_epoch_end(eval_results)
+                user_reduced = True
+
+        # when user didn't reduce and it's an EvalResult, auto-reduce
+        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
+        if using_eval_result and not user_reduced:
+            eval_results = self.__auto_reduce_result_objs(outputs)
 
         # enable train mode again
         model.train()
 
         # enable gradients to save memory
         torch.set_grad_enabled(True)
+
+        # --------------------------
+        # ON_EVAL_EPOCH_END hook
+        # --------------------------
+        self.__call_eval_loop_hook_end(test_mode, model)
+
+        return eval_results
+
+    def __auto_reduce_result_objs(self, outputs):
+        # outputs has a list of results per dataloader
+        eval_results = []
+        for dl_output in outputs:
+            result = dl_output[0]
+            result = result.__class__.reduce_on_epoch_end(dl_output)
+            result.checkpoint_on = result.checkpoint_on.mean()
+            result.early_stop_on = result.early_stop_on.mean()
+            eval_results.append(result)
+
+            # update callback metrics
+            self.callback_metrics = result.callback_metrics
 
         return eval_results
 

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
-from pytorch_lightning import TrainResult
+from pytorch_lightning import TrainResult, EvalResult
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -199,6 +199,19 @@ class DeterministicModel(LightningModule):
                    logger=False, prog_bar=True, on_epoch=True)
         result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2),
                    logger=True, prog_bar=True, on_epoch=True)
+        return result
+
+    # --------------------------
+    # EvalResults
+    # --------------------------
+    def validation_step_result_callbacks(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+
+        self.assert_backward = False
+        losses = [20, 19, 18, 10, 15, 14, 9, 11, 11, 20]
+        idx = self.current_epoch
+        loss = acc + losses[idx]
+        result = EvalResult(early_stop_on=loss, checkpoint_on=loss)
         return result
 
     # --------------------------
