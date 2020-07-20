@@ -46,7 +46,7 @@ class TrainingStepVariations(ABC):
         """
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self.forward(x)
+        y_hat = self(x)
         loss_val = y_hat.sum()
         result = TrainResult(minimize=loss_val)
         result.log('train_step_metric', loss_val + 1)
