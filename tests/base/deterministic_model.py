@@ -333,7 +333,6 @@ class DeterministicModel(LightningModule):
             else:
                 assert loss == 171.0
 
-        import pdb; pdb.set_trace()
         loss.backward()
 
 
