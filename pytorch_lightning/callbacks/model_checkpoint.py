@@ -276,7 +276,7 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
 
         # support structured results
-        if 'checkpoint_on' in metrics and metrics['checkpoint_on'] is not None:
+        if metrics.get('checkpoint_on') is not None:
             self.monitor = 'checkpoint_on'
 
         if self.save_top_k == 0:
