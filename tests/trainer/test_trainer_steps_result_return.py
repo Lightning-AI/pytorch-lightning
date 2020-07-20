@@ -497,7 +497,7 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         distributed_backend='dp',
-        gpus=2,
+        gpus=[0, 1],
         max_epochs=epochs,
         early_stop_callback=True,
         row_log_interval=2,
