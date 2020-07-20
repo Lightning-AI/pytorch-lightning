@@ -496,15 +496,15 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
         weights_summary=None,
     )
     model = EvalModelTemplate()
-    model.validation_step = None
-    model.test_step = None
+    # model.validation_step = None
+    # model.test_step = None
     model.training_step = model.training_step_full_loop_result_obj_dp
     model.training_step_end = model.training_step_end_full_loop_result_obj_dp
     model.training_epoch_end = model.training_epoch_end_full_loop_result_obj_dp
-    model.val_dataloader = None
-    model.test_dataloader = None
+    # model.val_dataloader = None
+    # model.test_dataloader = None
 
-    model = EvalModelTemplate()
+    # model = EvalModelTemplate()
 
     trainer.fit(model)
 
