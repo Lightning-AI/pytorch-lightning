@@ -1,6 +1,7 @@
 import logging
 import os
 import urllib.request
+import time
 from typing import Tuple, Optional, Sequence
 
 import torch
@@ -61,7 +62,14 @@ class MNIST(Dataset):
             raise RuntimeError('Dataset not found.')
 
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
-        self.data, self.targets = torch.load(os.path.join(self.cached_folder_path, data_file))
+        # FIXME: try to fix loading
+        for _ in range(30):
+            try:
+                self.data, self.targets = torch.load(os.path.join(self.cached_folder_path, data_file))
+            except Exception:
+                time.sleep(1)
+            else:
+                break
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
