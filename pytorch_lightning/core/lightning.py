@@ -68,12 +68,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: True if using amp
         self.use_amp = False
 
-        #: Current dtype
-        self._dtype = torch.float
-
-        #: device reference
-        self._device = torch.device('cpu')
-
         # optionally can be set by user
         self._example_input_array = None
 
