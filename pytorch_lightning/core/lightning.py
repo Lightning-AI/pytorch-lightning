@@ -2,6 +2,7 @@ import collections
 import inspect
 import os
 import re
+import tempfile
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
@@ -1732,13 +1733,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example:
-            .. code-block:: python
+            >>> class SimpleModel(LightningModule):
+            ...     def __init__(self):
+            ...         super().__init__()
+            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+            ...
+            ...     def forward(self, x):
+            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-                file_path = './model.onnx'
-                model = MyLightningModule(...)
-                input_sample = torch.randn((1, 28 * 28))
-                model.to_onnx(file_path, input_sample, export_params=True)
-
+            >>> with tempfile.NamedTemporaryFile(suffix='.onnx') as tmpfile:
+            ...     model = SimpleModel()
+            ...     input_sample = torch.randn((1, 64))
+            ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
+            ...     os.path.isfile(tmpfile.name)
+            True
         """
 
         if isinstance(input_sample, Tensor):
