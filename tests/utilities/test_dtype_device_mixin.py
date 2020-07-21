@@ -6,7 +6,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from tests.base import EvalModelTemplate
 
 
-class SubSubModule(DeviceDtypeModuleMixin, nn.Module):
+class SubSubModule(DeviceDtypeModuleMixin):
     pass
 
 
@@ -14,14 +14,14 @@ class SubModule(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.sub_sub_module = SubSubModule()
+        self.module = SubSubModule()
 
 
 class TopModule(EvalModelTemplate):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sub_module = SubModule()
+        self.module = SubModule()
 
 
 @pytest.mark.parametrize(['dst_dtype'], [
@@ -44,5 +44,9 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
     model = TopModule()
     assert model.device == torch.device('cpu')
     model = model.to(device=dst_device, dtype=dst_dtype)
-    assert model.device == model.sub_module.sub_sub_module.device == dst_device
-    assert model.dtype == model.sub_module.sub_sub_module.dtype == dst_dtype
+    # nn.Module does not have these attributes
+    assert not hasattr(model.module, '_device')
+    assert not hasattr(model.module, '_dtype')
+    # device and dtype change should propagate down into all children
+    assert model.device == model.module.module.device == dst_device
+    assert model.dtype == model.module.module.dtype == dst_dtype
