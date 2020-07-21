@@ -95,6 +95,8 @@ class TrainingStepVariations(ABC):
         eval_name = 'validation' if not self.trainer.testing else 'test'
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
         result.train_step_metric = reduced
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.early_stop_on = result.early_stop_on.mean()
         result.log(f'{eval_name}_step_end_metric', 1)
         setattr(self, f'{eval_name}_step_end_called', True)
         return result

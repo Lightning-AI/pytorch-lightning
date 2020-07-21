@@ -138,7 +138,6 @@ class EarlyStopping(Callback):
         self._run_early_stopping_check(trainer, pl_module)
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        import pdb; pdb.set_trace()
         val_es_key = 'val_early_stop_on'
         if trainer.callback_metrics.get(val_es_key, None) is not None:
             self.monitor = val_es_key
