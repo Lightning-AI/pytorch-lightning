@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, Any, Callable
 
 import torch
 from torch.nn import Module
@@ -82,14 +82,7 @@ class DeviceDtypeModuleMixin(Module):
         """
         # there is diff nb vars in PT 1.5
         out = torch._C._nn._parse_to(*args, **kwargs)
-        device = out[0]
-        dtype = out[1]
-        if device is not None:
-            self.apply(device_apply_fn(device))
-
-        if dtype is not None:
-            self.apply(dtype_apply_fn(dtype))
-
+        self.__update_properties(device=out[0], dtype=out[1])
         return super().to(*args, **kwargs)
 
     def cuda(self, device: Optional[int] = None) -> Module:
@@ -105,7 +98,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self.apply(device_apply_fn(torch.device('cuda', index=device)))
+        self.__update_properties(device=torch.device('cuda', index=device))
         return super().cuda(device=device)
 
     def cpu(self) -> Module:
@@ -113,7 +106,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self.apply(device_apply_fn(torch.device('cpu')))
+        self.__update_properties(device=torch.device('cpu'))
         return super().cpu()
 
     def type(self, dst_type: Union[str, torch.dtype]) -> Module:
@@ -125,7 +118,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self.apply(dtype_apply_fn(dst_type))
+        self.__update_properties(dtype=dst_type)
         return super().type(dst_type=dst_type)
 
     def float(self) -> Module:
@@ -134,7 +127,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self.apply(dtype_apply_fn(torch.float))
+        self.__update_properties(dtype=torch.float)
         return super().float()
 
     def double(self) -> Module:
@@ -143,7 +136,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self.apply(dtype_apply_fn(torch.double))
+        self.__update_properties(dtype=torch.double)
         return super().double()
 
     def half(self) -> Module:
@@ -152,32 +145,17 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self.apply(dtype_apply_fn(torch.half))
+        self.__update_properties(dtype=torch.half)
         return super().half()
 
+    def __update_properties(self, device=None, dtype=None):
 
+        def apply_fn(module):
+            if not isinstance(module, DeviceDtypeModuleMixin):
+                return
+            if device is not None:
+                module._device = device
+            if dtype is not None:
+                module._dtype = dtype
 
-
-
-def dtype_apply_fn(dtype):
-    return apply_attr('_dtype', dtype)
-
-
-def device_apply_fn(device):
-    return apply_attr('_device', device)
-
-
-# def update_attributes(module, **kwargs):
-#     if not isinstance(module, DeviceDtypeModuleMixin):
-#         return
-#     for k, v in kwargs:
-#         module.__setattr__(k, v)
-
-
-def apply_attr(name: str, value):
-
-    def apply_fn(module):
-        if isinstance(module, DeviceDtypeModuleMixin):
-            module.__setattr__(name, value)
-
-    return apply_fn
+        self.apply(apply_fn)
