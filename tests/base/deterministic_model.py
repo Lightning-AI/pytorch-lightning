@@ -289,7 +289,6 @@ class DeterministicModel(LightningModule):
         self.validation_step_called = True
         return result
 
-
     # --------------------------
     # dictionary returns
     # --------------------------
