@@ -97,10 +97,23 @@ class Result(Dict):
         if 'meta' not in self:
             self.__setitem__('meta', {})
 
-        self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+        # if user requests both step and epoch, then we split the metric in two automatically
+        # one will be logged per step. the other per epoch
+        if on_step and on_epoch:
+            # set step version
+            name = f'step_{name}'
+            self.__set_meta(name, value, prog_bar, logger, on_step=True, on_epoch=False, reduce_fx=reduce_fx)
+            self.__setitem__(name, value)
 
-        # set the value
-        self.__setitem__(name, value)
+            # set epoch version
+            name = f'epoch_{name}'
+            self.__set_meta(name, value, prog_bar, logger, on_step=False, on_epoch=True, reduce_fx=reduce_fx)
+            self.__setitem__(name, value)
+        else:
+            self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+
+            # set the value
+            self.__setitem__(name, value)
 
     def __set_meta(
             self,
@@ -122,6 +135,7 @@ class Result(Dict):
             reduce_fx=reduce_fx,
             value=meta_value
         )
+
         self['meta'][name] = meta
 
         # track whether any input requires reduction on epoch end

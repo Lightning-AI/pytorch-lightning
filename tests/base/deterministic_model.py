@@ -267,6 +267,29 @@ class DeterministicModel(LightningModule):
         self.validation_step_called = True
         return result
 
+    def validation_step_result_epoch_step_metrics(self, batch, batch_idx):
+        """
+        Only track epoch level metrics
+        """
+        acc = self.step(batch, batch_idx)
+        result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
+
+        # step only metrics
+        result.log('no_val_no_pbar', torch.tensor(11 + batch_idx).type_as(acc),
+                   prog_bar=False, logger=False, on_epoch=True, on_step=True)
+        result.log('val_step_log_acc', torch.tensor(11 + batch_idx).type_as(acc),
+                   prog_bar=False, logger=True, on_epoch=True, on_step=True)
+        result.log('val_step_log_pbar_acc', torch.tensor(12 + batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=True)
+        result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc),
+                   prog_bar=True, logger=False, on_epoch=True, on_step=True)
+        result.log('val_step_batch_idx', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=True)
+
+        self.validation_step_called = True
+        return result
+
+
     # --------------------------
     # dictionary returns
     # --------------------------
