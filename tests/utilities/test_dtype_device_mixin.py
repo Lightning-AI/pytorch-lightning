@@ -2,6 +2,7 @@ import pytest
 import torch
 import torch.nn as nn
 
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from tests.base import EvalModelTemplate
 
@@ -50,3 +51,24 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
     # device and dtype change should propagate down into all children
     assert model.device == model.module.module.device == dst_device
     assert model.dtype == model.module.module.dtype == dst_dtype
+
+
+@pytest.mark.skipif(not torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_submodules_multi_gpu_dp(tmpdir):
+
+    class DeviceCallback(Callback):
+
+        def on_batch_start(self, trainer, model):
+            assert isinstance(model, TopModule)
+            assert model.device.index == trainer.local_rank
+            assert model.device == model.module.module.device
+
+    model = TopModule()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        distributed_backend='dp',
+        gpus=2,
+        callbacks=[DeviceCallback()],
+        max_steps=1,
+    )
+    trainer.fit(model)
