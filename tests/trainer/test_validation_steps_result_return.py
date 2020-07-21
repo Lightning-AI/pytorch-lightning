@@ -372,4 +372,46 @@ def test_val_step_epoch_end_result(tmpdir):
     # make sure the last known metric is correct
     assert trainer.callback_metrics['val_checkpoint_on'] == 171
 
-test_val_step_epoch_end_result('')
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_val_step_full_loop_result(tmpdir):
+    # TODO: finish the full train, val, test loop with dp
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    batches = 10
+    epochs = 3
+
+    model = EvalModelTemplate()
+    model.validation_step = None
+    model.test_step = None
+    model.training_step = model.training_step_full_loop_result_obj_dp
+    model.training_step_end = model.training_step_end_full_loop_result_obj_dp
+    model.training_epoch_end = model.training_epoch_end_full_loop_result_obj_dp
+    model.test_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        distributed_backend='dp',
+        gpus=[0, 1],
+        max_epochs=epochs,
+        early_stop_callback=True,
+        row_log_interval=2,
+        limit_train_batches=batches,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)
+
+    # make sure we saw all the correct keys
+    seen_keys = set()
+    for metric in trainer.dev_debugger.logged_metrics:
+        seen_keys.update(metric.keys())
+
+    assert 'train_step_metric' in seen_keys
+    assert 'train_step_end_metric' in seen_keys
+    assert 'train_epoch_end_metric' in seen_keys
+
+
+# TODO: finish the full train, val, test loop with dp
+
+test_val_step_full_loop_result('')
