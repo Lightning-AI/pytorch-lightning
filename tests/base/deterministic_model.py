@@ -208,10 +208,38 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch, batch_idx)
 
         self.assert_backward = False
-        losses = [20, 19, 18, 10, 15, 14, 9, 11, 11, 20]
+        losses = [20, 19, 20, 21, 22, 23]
         idx = self.current_epoch
         loss = acc + losses[idx]
         result = EvalResult(early_stop_on=loss, checkpoint_on=loss)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_step_result_no_callbacks(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+
+        self.assert_backward = False
+        losses = [20, 19, 20, 21, 22, 23, 50, 50, 50, 50, 50, 50]
+        idx = self.current_epoch
+        loss = acc + losses[idx]
+
+        result = EvalResult(checkpoint_on=loss)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_step_result_only_metrics(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+        result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
+
+        # step only metrics
+        result.log('no_val_no_pbar', torch.tensor(11).type_as(acc), prog_bar=False, logger=False)
+        result.log(f'val_step_log_acc1_b{batch_idx}', torch.tensor(11).type_as(acc), prog_bar=False, logger=True)
+        result.log(f'val_step_log_pbar_acc2_b{batch_idx}', torch.tensor(12).type_as(acc), prog_bar=True, logger=True)
+        result.log(f'val_step_pbar_acc3_b{batch_idx}', torch.tensor(13).type_as(acc), prog_bar=True, logger=False)
+
+        self.validation_step_called = True
         return result
 
     # --------------------------

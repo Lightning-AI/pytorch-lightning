@@ -410,8 +410,10 @@ class TrainerEvaluationLoopMixin(ABC):
         for dl_output in outputs:
             result = dl_output[0]
             result = result.__class__.reduce_on_epoch_end(dl_output)
-            result.checkpoint_on = result.checkpoint_on.mean()
-            result.early_stop_on = result.early_stop_on.mean()
+            if 'checkpoint_on' in result:
+                result.checkpoint_on = result.checkpoint_on.mean()
+            if 'early_stop_on' in result:
+                result.early_stop_on = result.early_stop_on.mean()
             eval_results.append(result)
 
             # update callback metrics
