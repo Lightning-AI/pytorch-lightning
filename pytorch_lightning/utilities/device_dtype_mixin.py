@@ -82,6 +82,10 @@ class DeviceDtypeModuleMixin(Module):
             ExampleModule()
             >>> module.weight #doctest: +ELLIPSIS
             tensor([[...]], dtype=torch.float16)
+            >>> module.device
+            device(type='cpu')
+            >>> module.dtype
+            torch.float16
         """
         # there is diff nb vars in PT 1.5
         out = torch._C._nn._parse_to(*args, **kwargs)
