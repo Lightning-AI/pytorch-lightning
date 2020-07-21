@@ -92,7 +92,6 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step (result obj + dp)
         """
-        import pdb; pdb.set_trace()
         eval_name = 'validation' if not self.trainer.testing else 'test'
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
         setattr(result, f'{eval_name}_step_metric', reduced)
@@ -107,7 +106,6 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step (result obj + dp)
         """
-        import pdb; pdb.set_trace()
         eval_name = 'validation' if not self.trainer.testing else 'test'
         result.log(f'{eval_name}_epoch_end_metric', 1, on_epoch=True)
         result.checkpoint_on = result.checkpoint_on.mean()
