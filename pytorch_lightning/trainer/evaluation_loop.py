@@ -274,6 +274,8 @@ class TrainerEvaluationLoopMixin(ABC):
         model.zero_grad()
         model.eval()
 
+        import pdb; pdb.set_trace()
+
         # copy properties for forward overrides
         self.copy_trainer_model_properties(model)
 
