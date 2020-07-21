@@ -113,7 +113,7 @@ def test_val_step_using_train_callbacks(tmpdir):
     assert len(trainer.dev_debugger.logged_metrics) == expected_epochs
 
 
-def test_val_step_only_metrics(tmpdir):
+def test_val_step_only_epoch_metrics(tmpdir):
     """
     Make sure the logged + pbar metrics are allocated accordingly
     """
@@ -126,16 +126,15 @@ def test_val_step_only_metrics(tmpdir):
     model.training_step = model.training_step_result_log_epoch_and_step_for_callbacks
     model.training_step_end = None
     model.training_epoch_end = None
-    model.validation_step = model.validation_step_result_only_metrics
+    model.validation_step = model.validation_step_result_only_epoch_metrics
     model.validation_step_end = None
     model.validation_epoch_end = None
 
     batches = 3
-    epochs = 300
+    epochs = 3
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        early_stop_callback=True,
         row_log_interval=1,
         limit_train_batches=batches,
         weights_summary=None,
@@ -149,18 +148,22 @@ def test_val_step_only_metrics(tmpdir):
     assert not model.validation_step_end_called
     assert not model.validation_epoch_end_called
 
-    # early stopping was not conditioned in val loop, but instead in train loop
-    assert len(trainer.dev_debugger.early_stopping_history) == expected_epochs
+    # no early stopping
+    assert len(trainer.dev_debugger.early_stopping_history) == 0
+
+    # make sure we logged the exact number of metrics
+    assert len(trainer.dev_debugger.logged_metrics) == epochs
+    assert len(trainer.dev_debugger.pbar_added_metrics) == epochs
+
+    # TODO: loop each metric to make sure the proper metrics went to the correct places
 
     # only 2 checkpoints expected
+    # TODO: figure out why no checkpoints were saved
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 2
 
     # make sure the last known metric is correct
     assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 50
 
-    # did not request any metrics to log (except the metrics saying which epoch we are on)
-    assert len(trainer.progress_bar_metrics) == 0
-    assert len(trainer.dev_debugger.logged_metrics) == expected_epochs
 
 
-test_val_step_only_metrics('')
+test_val_step_only_epoch_metrics('')

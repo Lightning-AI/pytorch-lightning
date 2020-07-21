@@ -229,7 +229,10 @@ class DeterministicModel(LightningModule):
         self.validation_step_called = True
         return result
 
-    def validation_step_result_only_metrics(self, batch, batch_idx):
+    def validation_step_result_only_epoch_metrics(self, batch, batch_idx):
+        """
+        Only track epoch level metrics
+        """
         acc = self.step(batch, batch_idx)
         result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
 

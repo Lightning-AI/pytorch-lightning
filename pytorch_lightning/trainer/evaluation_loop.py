@@ -472,7 +472,12 @@ class TrainerEvaluationLoopMixin(ABC):
                 eval_results = [eval_results]
 
             for result in eval_results:
-                _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(result)
+                if isinstance(result, EvalResult):
+                    prog_bar_metrics = result.epoch_pbar_metrics
+                    log_metrics = result.epoch_log_metrics
+                    callback_metrics = result.callback_metrics
+                else:
+                    _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(result)
 
                 # add metrics to prog bar
                 self.add_progress_bar_metrics(prog_bar_metrics)

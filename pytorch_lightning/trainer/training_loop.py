@@ -617,7 +617,8 @@ class TrainerTrainLoopMixin(ABC):
         self.callback_metrics.update(epoch_callback_metrics)
 
         # add metrics to progress_bar
-        self.add_progress_bar_metrics(epoch_progress_bar_metrics)
+        if len(epoch_progress_bar_metrics) > 0:
+            self.add_progress_bar_metrics(epoch_progress_bar_metrics)
 
     def sync_horovod(self):
         if self.use_horovod:
@@ -731,7 +732,9 @@ class TrainerTrainLoopMixin(ABC):
                     metrics_for_pbar = opt_closure_result.training_step_output.batch_pbar_metrics
                 else:
                     metrics_for_pbar = opt_closure_result.training_step_output.pbar_on_batch_end
-                self.add_progress_bar_metrics(metrics_for_pbar)
+
+                if len(metrics_for_pbar) > 0:
+                    self.add_progress_bar_metrics(metrics_for_pbar)
 
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens
