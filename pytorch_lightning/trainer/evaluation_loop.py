@@ -371,14 +371,11 @@ class TrainerEvaluationLoopMixin(ABC):
         # --------------------------
         # ON_EVAL_EPOCH_END hook
         # --------------------------
-        import pdb; pdb.set_trace()
         self.__call_eval_loop_hook_end(test_mode)
 
         return eval_results
 
     def __run_eval_epoch_end(self, test_mode, outputs, dataloaders):
-        # when user didn't reduce and it's an EvalResult, auto-reduce
-        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
 
         # with a single dataloader don't pass an array
         eval_results = outputs
@@ -388,6 +385,12 @@ class TrainerEvaluationLoopMixin(ABC):
         model = self.get_model()
 
         user_reduced = False
+
+        # gather result
+        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
+        if using_eval_result:
+            # returns a list with an EvalResult per epoch
+            eval_results = self.__gather_epoch_end_eval_results(outputs)
 
         if test_mode:
             if self.is_overridden('test_end', model=model):
@@ -413,10 +416,6 @@ class TrainerEvaluationLoopMixin(ABC):
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
-                if using_eval_result:
-                    # returns a list with an EvalResult per epoch
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
 
