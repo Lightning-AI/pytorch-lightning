@@ -169,7 +169,7 @@ def test_val_step_only_epoch_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 50
+    assert trainer.callback_metrics['val_checkpoint_on'] == 171
 
 
 def test_val_step_only_step_metrics(tmpdir):
@@ -241,7 +241,7 @@ def test_val_step_only_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 50
+    assert trainer.callback_metrics['val_checkpoint_on'] == 171
 
 
 def test_val_step_epoch_step_metrics(tmpdir):
@@ -315,4 +315,61 @@ def test_val_step_epoch_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 50
+    assert trainer.callback_metrics['val_checkpoint_on'] == 171
+
+
+def test_val_step_epoch_end_result(tmpdir):
+    """
+    Make sure val step + val epoch end works with EvalResult
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = DeterministicModel()
+    model.training_step = model.training_step_result_log_epoch_and_step_for_callbacks
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_for_epoch_end_result
+    model.validation_step_end = None
+    model.validation_epoch_end = model.validation_epoch_end_result
+
+    batches = 3
+    epochs = 3
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=epochs,
+        row_log_interval=1,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure correct steps were called
+    assert model.validation_step_called
+    assert not model.validation_step_end_called
+    assert model.validation_epoch_end_called
+
+    # no early stopping
+    assert len(trainer.dev_debugger.early_stopping_history) == 0
+
+    # make sure we logged the exact number of metrics
+    assert len(trainer.dev_debugger.logged_metrics) == epochs
+    assert len(trainer.dev_debugger.pbar_added_metrics) == epochs
+
+    # make sure we logged the correct metrics
+    for metric in trainer.dev_debugger.logged_metrics:
+        assert metric['val_epoch_end_metric'] == 189
+        assert 'val_step_metric' in metric
+
+    # make sure we pbar logged the correct metrics
+    for metric in trainer.dev_debugger.pbar_added_metrics:
+        assert metric['val_epoch_end_metric'] == 189
+        assert 'val_step_metric' in metric
+
+    # only 1 checkpoint expected since values didn't change after that
+    assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
+
+    # make sure the last known metric is correct
+    assert trainer.callback_metrics['val_checkpoint_on'] == 171
+
+test_val_step_epoch_end_result('')

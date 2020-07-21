@@ -353,9 +353,30 @@ class TrainerEvaluationLoopMixin(ABC):
 
             outputs.append(dl_outputs)
 
-        eval_results = outputs
+        # ---------------------
+        # EVAL_EPOCH_END
+        # ---------------------
+        eval_results = self.__run_eval_epoch_end(test_mode, model, outputs, dataloaders)
+
+        # enable train mode again
+        model.train()
+
+        # enable gradients to save memory
+        torch.set_grad_enabled(True)
+
+        # --------------------------
+        # ON_EVAL_EPOCH_END hook
+        # --------------------------
+        self.__call_eval_loop_hook_end(test_mode, model)
+
+        return eval_results
+
+    def __run_eval_epoch_end(self, test_mode, model, outputs, dataloaders):
+        # when user didn't reduce and it's an EvalResult, auto-reduce
+        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
 
         # with a single dataloader don't pass an array
+        eval_results = outputs
         if len(dataloaders) == 1:
             eval_results = outputs[0]
 
@@ -374,6 +395,9 @@ class TrainerEvaluationLoopMixin(ABC):
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
+                if using_eval_result:
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
                 eval_results = model.test_epoch_end(eval_results)
                 user_reduced = True
 
@@ -386,25 +410,32 @@ class TrainerEvaluationLoopMixin(ABC):
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
+                if using_eval_result:
+                    # returns a list with an EvalResult per epoch
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
 
-        # when user didn't reduce and it's an EvalResult, auto-reduce
-        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
 
-        # enable train mode again
-        model.train()
+        return eval_results
 
-        # enable gradients to save memory
-        torch.set_grad_enabled(True)
+    def __gather_epoch_end_eval_results(self, outputs):
+        eval_results = []
+        for epoch_output in outputs:
+            result = epoch_output[0].__class__.gather(epoch_output)
+            if 'checkpoint_on' in result:
+                result.checkpoint_on = result.checkpoint_on.mean()
+            if 'early_stop_on' in result:
+                result.early_stop_on = result.early_stop_on.mean()
 
-        # --------------------------
-        # ON_EVAL_EPOCH_END hook
-        # --------------------------
-        self.__call_eval_loop_hook_end(test_mode, model)
+            eval_results.append(result)
 
+        # with 1 dataloader don't pass in a list
+        if len(eval_results) == 1:
+            eval_results = eval_results[0]
         return eval_results
 
     def __eval_add_step_metrics(self, output):

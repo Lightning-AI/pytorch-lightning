@@ -289,6 +289,39 @@ class DeterministicModel(LightningModule):
         self.validation_step_called = True
         return result
 
+    def validation_step_for_epoch_end_result(self, batch, batch_idx):
+        """
+        EvalResult flows to epoch end (without step_end)
+        """
+        acc = self.step(batch, batch_idx)
+        result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
+
+        # step only metrics
+        result.log('val_step_metric', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=False)
+        result.log('batch_idx', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=False)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_epoch_end_result(self, result):
+        self.validation_epoch_end_called = True
+
+        if self.trainer.running_sanity_check:
+            assert len(result.batch_idx) == 2
+        else:
+            assert len(result.batch_idx) == self.trainer.limit_val_batches
+
+        expected_val = result.val_step_metric.sum() / len(result.batch_idx)
+        result.val_step_metric = result.val_step_metric.mean()
+        result.batch_idx = result.batch_idx.mean()
+        assert result.val_step_metric == expected_val
+
+        result.log('val_epoch_end_metric', torch.tensor(189).type_as(result.val_step_metric), prog_bar=True)
+
+        return result
+
     # --------------------------
     # dictionary returns
     # --------------------------
