@@ -91,7 +91,6 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step (result obj + dp)
         """
-        result.minimize = result.minimize.mean()
         result.checkpoint_on = result.checkpoint_on.mean()
         result.train_step_metric = result.train_step_metric.mean()
         eval_name = 'val' if not self.trainer.testing else 'test'
