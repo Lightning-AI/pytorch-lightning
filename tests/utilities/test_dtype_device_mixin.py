@@ -7,7 +7,7 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 from tests.base import EvalModelTemplate
 
 
-class SubSubModule(DeviceDtypeModuleMixin, nn.Module):
+class SubSubModule(DeviceDtypeModuleMixin):
     pass
 
 

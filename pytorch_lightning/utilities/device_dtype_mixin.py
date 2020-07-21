@@ -5,8 +5,11 @@ from torch.nn import Module
 
 
 class DeviceDtypeModuleMixin(Module):
-    _device: ...
-    _dtype: Union[str, torch.dtype]
+
+    def __init__(self):
+        super().__init__()
+        self._dtype = torch.get_default_dtype()
+        self._device = torch.device('cpu')
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:
