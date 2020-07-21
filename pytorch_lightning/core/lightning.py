@@ -70,6 +70,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         # optionally can be set by user
         self._example_input_array = None
+        self._datamodule = None
 
     @property
     def example_input_array(self) -> Any:
@@ -78,6 +79,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:
         self._example_input_array = example
+    
+    @property
+    def datamodule(self) -> Any:
+        return self._datamodule
+    
+    @datamodule.setter
+    def datamodule(self, datamodule: Any) -> None:
+        self._datamodule = datamodule
 
     @property
     def on_gpu(self):
