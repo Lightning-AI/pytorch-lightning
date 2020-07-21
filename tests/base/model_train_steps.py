@@ -82,27 +82,27 @@ class TrainingStepVariations(ABC):
         loss_val = y_hat.sum()
         result = EvalResult()
 
-        eval_name = 'val' if not self.trainer.testing else 'test'
+        eval_name = 'validation' if not self.trainer.testing else 'test'
         result.log(f'{eval_name}_step_metric', loss_val + 1)
-        self.training_step_called = True
+
+        setattr(self, f'{eval_name}_step_called', True)
         return result
 
     def eval_step_end_full_loop_result_obj_dp(self, result):
         """
         Full loop flow train step (result obj + dp)
         """
-        result.checkpoint_on = result.checkpoint_on.mean()
         result.train_step_metric = result.train_step_metric.mean()
-        eval_name = 'val' if not self.trainer.testing else 'test'
+        eval_name = 'validation' if not self.trainer.testing else 'test'
         result.log(f'{eval_name}_step_end_metric', 1)
-        self.training_step_end_called = True
+        setattr(self, f'{eval_name}_step_end_called', True)
         return result
 
     def eval_epoch_end_full_loop_result_obj_dp(self, result):
         """
         Full loop flow train step (result obj + dp)
         """
-        eval_name = 'val' if not self.trainer.testing else 'test'
+        eval_name = 'validation' if not self.trainer.testing else 'test'
         result.log(f'{eval_name}_epoch_end_metric', 1, on_epoch=True)
-        self.training_epoch_end_called = True
+        setattr(self, f'{eval_name}_epoch_end_called', True)
         return result
