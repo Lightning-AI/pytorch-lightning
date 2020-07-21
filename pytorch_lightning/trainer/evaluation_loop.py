@@ -411,7 +411,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 eval_results = model.validation_epoch_end(eval_results)
 
-        import pdb; pdb.set_trace()
         if using_eval_result:
             eval_results = self.__auto_reduce_result_objs(outputs)
 
