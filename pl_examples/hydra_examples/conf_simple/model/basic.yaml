@@ -1,0 +1,7 @@
+# @package _group_
+
+drop_prob: 0.1
+in_features: 784
+out_features: 10
+hidden_dim: 1000
+seed: 123
