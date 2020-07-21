@@ -23,6 +23,20 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.getsize(file_path) > 3e+06
 
 
+def test_model_saves_with_example_output(tmpdir):
+    """Test that ONNX model saves when provided with example output"""
+    model = EvalModelTemplate()
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model)
+
+    file_path = os.path.join(tmpdir, "model.onxx")
+    input_sample = torch.randn((1, 28 * 28))
+    model.eval()
+    example_outputs = model.forward(input_sample)
+    model.to_onnx(file_path, input_sample, example_outputs=example_outputs)
+    assert os.path.exists(file_path) is True
+
+
 def test_model_saves_with_example_input_array(tmpdir):
     """Test that ONNX model saves with_example_input_array and size is greater than 3 MB"""
     model = EvalModelTemplate()
