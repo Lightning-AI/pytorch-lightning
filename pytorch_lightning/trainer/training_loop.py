@@ -217,7 +217,7 @@ class TrainerTrainLoopMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     use_horovod: bool
-    single_gpu: bool
+    use_single_gpu: bool
     use_tpu: bool
     data_parallel_device_ids: ...
     check_val_every_n_epoch: ...
@@ -1068,7 +1068,7 @@ class TrainerTrainLoopMixin(ABC):
             output = self.model.training_step(*args)
 
         # single GPU forward
-        elif self.single_gpu:
+        elif self.use_single_gpu:
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]

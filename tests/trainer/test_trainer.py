@@ -897,7 +897,7 @@ def test_trainer_config(trainer_kwargs, expected):
     assert trainer.use_ddp2 is expected["use_ddp2"]
     assert trainer.num_gpus == expected["num_gpus"]
     assert trainer.on_gpu is expected["on_gpu"]
-    assert trainer.single_gpu is expected["single_gpu"]
+    assert trainer.use_single_gpu is expected["single_gpu"]
     assert trainer.num_processes == expected["num_processes"]
 
 

@@ -163,7 +163,7 @@ class TrainerEvaluationLoopMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     use_horovod: bool
-    single_gpu: bool
+    use_single_gpu: bool
     data_parallel_device_ids: ...
     model: LightningModule
     num_test_batches: List[int]
@@ -616,7 +616,7 @@ class TrainerEvaluationLoopMixin(ABC):
             args[0] = batch
 
         # single GPU data transfer
-        if self.single_gpu:
+        if self.use_single_gpu:
             # for single GPU put inputs on gpu manually
             root_gpu = 0
             if isinstance(self.data_parallel_device_ids, list):

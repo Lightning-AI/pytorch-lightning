@@ -51,7 +51,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning import accelerator_backends
+from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend, CPUBackend
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -1094,7 +1094,7 @@ class Trainer(
                 results = self.spawn_ddp_children(model)
 
         elif self.use_dp:
-            self.accelerator_backend = accelerator_backends.DataParallelBackend(self)
+            self.accelerator_backend = DataParallelBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
@@ -1102,19 +1102,19 @@ class Trainer(
         elif self.use_horovod:
             results = self.horovod_train(model)
 
-        elif self.single_gpu:
-            self.accelerator_backend = accelerator_backends.GPUBackend(self)
+        elif self.use_single_gpu:
+            self.accelerator_backend = GPUBackend(self)
             model = self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
         elif self.use_tpu:
-            self.accelerator_backend = accelerator_backends.TPUBackend(self)
+            self.accelerator_backend = TPUBackend(self)
             self.accelerator_backend.setup()
             self.accelerator_backend.train(model)
             self.accelerator_backend.teardown()
 
         else:
-            self.accelerator_backend = accelerator_backends.CPUBackend(self)
+            self.accelerator_backend = CPUBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 

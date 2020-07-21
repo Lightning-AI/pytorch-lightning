@@ -171,8 +171,6 @@ else:
 
 try:
     import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
 except ImportError:
     XLA_AVAILABLE = False
 else:
@@ -263,7 +261,7 @@ class TrainerDDPMixin(ABC):
         self.use_ddp = False
         self.use_ddp2 = False
         self.use_horovod = False
-        self.single_gpu = False
+        self.use_single_gpu = False
 
         if distributed_backend is None:
             if self.has_horovodrun():
@@ -272,7 +270,7 @@ class TrainerDDPMixin(ABC):
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
-                self.single_gpu = True
+                self.use_single_gpu = True
             elif self.num_gpus > 1:
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
@@ -283,7 +281,7 @@ class TrainerDDPMixin(ABC):
         if distributed_backend == "dp":
             # do nothing if num_gpus == 0
             if self.num_gpus == 1:
-                self.single_gpu = True
+                self.use_single_gpu = True
                 self.use_dp = True
             elif self.num_gpus > 1:
                 self.use_dp = True
@@ -293,7 +291,7 @@ class TrainerDDPMixin(ABC):
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
-                self.single_gpu = True
+                self.use_single_gpu = True
                 self.use_ddp = True
             elif self.num_gpus > 1:
                 self.use_ddp = True

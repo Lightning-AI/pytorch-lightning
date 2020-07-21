@@ -69,7 +69,7 @@ class TrainerDPMixin(ABC):
     use_ddp2: bool
     use_ddp: bool
     testing: bool
-    single_gpu: bool
+    use_single_gpu: bool
     root_gpu: ...
     amp_level: str
     precision: ...
@@ -128,7 +128,7 @@ class TrainerDPMixin(ABC):
             m.use_ddp = self.use_ddp
             m.use_amp = self.use_amp
             m.testing = self.testing
-            m.single_gpu = self.single_gpu
+            m.use_single_gpu = self.use_single_gpu
             m.use_tpu = self.use_tpu
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
