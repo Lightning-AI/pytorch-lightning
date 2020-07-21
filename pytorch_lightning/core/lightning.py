@@ -1432,10 +1432,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     return loader
 
+                # can also return multiple dataloaders
+                def test_dataloader(self):
+                    return [loader_a, loader_b, ..., loader_n]
+
         Note:
             If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
             this method.
 
+        Note:
+            In the case where you return multiple test dataloaders, the :meth:`test_step`
+            will have an argument ``dataloader_idx`` which matches the order here.
         """
 
     def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
