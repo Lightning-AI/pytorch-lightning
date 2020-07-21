@@ -228,7 +228,9 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def __call_eval_loop_hook_start(self, test_mode, model):
+    def __call_eval_loop_hook_start(self, test_mode):
+        model = self.get_model()
+
         # on_[train/validation]_epoch_start hook
         hook_root_name = 'test' if test_mode else 'validation'
         hook_name = f'on_{hook_root_name}_epoch_start'
@@ -288,7 +290,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # --------------------------
         # ON_EVAL_EPOCH_START hook
         # --------------------------
-        self.__call_eval_loop_hook_start(test_mode, model)
+        self.__call_eval_loop_hook_start(test_mode)
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -356,7 +358,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # ---------------------
         # EVAL_EPOCH_END
         # ---------------------
-        eval_results = self.__run_eval_epoch_end(test_mode, model, outputs, dataloaders)
+        eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders)
 
         # enable train mode again
         model.train()
@@ -371,7 +373,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_results
 
-    def __run_eval_epoch_end(self, test_mode, model, outputs, dataloaders):
+    def __run_eval_epoch_end(self, test_mode, outputs, dataloaders):
+        model = self.get_model()
+
         # when user didn't reduce and it's an EvalResult, auto-reduce
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
 
