@@ -348,13 +348,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 if output is not None:
                     dl_outputs.append(output)
 
-                # track step level metrics
-                if isinstance(output, EvalResult):
-                    step_log_metrics = output.batch_log_metrics
-                    step_pbar_metrics = output.batch_pbar_metrics
-                    self.log_metrics(step_log_metrics, {})
-                    self.add_progress_bar_metrics(step_pbar_metrics)
-
+                self.__eval_add_step_metrics(output)
 
             outputs.append(dl_outputs)
 
@@ -411,6 +405,14 @@ class TrainerEvaluationLoopMixin(ABC):
         self.__call_eval_loop_hook_end(test_mode, model)
 
         return eval_results
+
+    def __eval_add_step_metrics(self, output):
+        # track step level metrics
+        if isinstance(output, EvalResult):
+            step_log_metrics = output.batch_log_metrics
+            step_pbar_metrics = output.batch_pbar_metrics
+            self.log_metrics(step_log_metrics, {})
+            self.add_progress_bar_metrics(step_pbar_metrics)
 
     def __auto_reduce_result_objs(self, outputs):
         # outputs has a list of results per dataloader
