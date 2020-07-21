@@ -116,7 +116,7 @@ class TrainingStepVariations(ABC):
         reduced = getattr(result, f'{eval_name}_step_metric').mean()
         setattr(result, f'{eval_name}_step_metric', reduced)
 
-        reduced = getattr(result, f'{eval_name}_step__end_metric').mean()
+        reduced = getattr(result, f'{eval_name}_step_end_metric').mean()
         setattr(result, f'{eval_name}_step_end_metric', reduced)
 
         return result

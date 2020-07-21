@@ -384,10 +384,13 @@ class TrainerEvaluationLoopMixin(ABC):
 
         model = self.get_model()
 
+        user_reduced = False
+
         if test_mode:
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.test_end(eval_results)
+                user_reduced = True
                 rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
@@ -396,11 +399,13 @@ class TrainerEvaluationLoopMixin(ABC):
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
                 eval_results = model.test_epoch_end(eval_results)
+                user_reduced = True
 
         else:
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
                 eval_results = model.validation_end(eval_results)
+                user_reduced = True
                 rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
@@ -410,8 +415,9 @@ class TrainerEvaluationLoopMixin(ABC):
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
                 eval_results = model.validation_epoch_end(eval_results)
+                user_reduced = True
 
-        if using_eval_result:
+        if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
 
         return eval_results
