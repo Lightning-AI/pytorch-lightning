@@ -141,8 +141,6 @@ def test_val_step_only_epoch_metrics(tmpdir):
     )
     trainer.fit(model)
 
-    expected_epochs = 10
-
     # make sure correct steps were called
     assert model.validation_step_called
     assert not model.validation_step_end_called
