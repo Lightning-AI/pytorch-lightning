@@ -274,8 +274,6 @@ class TrainerEvaluationLoopMixin(ABC):
         model.zero_grad()
         model.eval()
 
-        import pdb; pdb.set_trace()
-
         # copy properties for forward overrides
         self.copy_trainer_model_properties(model)
 
@@ -360,6 +358,8 @@ class TrainerEvaluationLoopMixin(ABC):
         # ---------------------
         # EVAL_EPOCH_END
         # ---------------------
+        import pdb; pdb.set_trace()
+
         eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders)
 
         # enable train mode again
