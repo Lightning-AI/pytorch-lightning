@@ -374,7 +374,7 @@ def test_val_step_epoch_end_result(tmpdir):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_val_step_full_loop_result(tmpdir):
+def test_val_step_full_loop_result_dp(tmpdir):
     # TODO: finish the full train, val, test loop with dp
     os.environ['PL_DEV_DEBUG'] = '1'
 
@@ -387,7 +387,12 @@ def test_val_step_full_loop_result(tmpdir):
     model.training_step = model.training_step_full_loop_result_obj_dp
     model.training_step_end = model.training_step_end_full_loop_result_obj_dp
     model.training_epoch_end = model.training_epoch_end_full_loop_result_obj_dp
-    model.test_dataloader = None
+    model.validation_step = model.eval_step_full_loop_result_obj_dp
+    model.validation_step_end = model.eval_step_end_full_loop_result_obj_dp
+    model.validation_epoch_end = model.eval_epoch_end_full_loop_result_obj_dp
+    model.test_step = model.eval_step_full_loop_result_obj_dp
+    model.test_step_end = model.eval_step_end_full_loop_result_obj_dp
+    model.test_epoch_end = model.eval_epoch_end_full_loop_result_obj_dp
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -401,6 +406,9 @@ def test_val_step_full_loop_result(tmpdir):
     )
 
     trainer.fit(model)
+    import pdb; pdb.set_trace()
+
+    results = trainer.test()
 
     # make sure we saw all the correct keys
     seen_keys = set()
@@ -414,4 +422,4 @@ def test_val_step_full_loop_result(tmpdir):
 
 # TODO: finish the full train, val, test loop with dp
 
-test_val_step_full_loop_result('')
+test_val_step_full_loop_result_dp('')

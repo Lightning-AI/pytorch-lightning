@@ -1,7 +1,7 @@
 import math
 from abc import ABC
 from collections import OrderedDict
-from pytorch_lightning import TrainResult
+from pytorch_lightning import TrainResult, EvalResult
 
 import torch
 
@@ -69,5 +69,41 @@ class TrainingStepVariations(ABC):
         Full loop flow train step (result obj + dp)
         """
         result.log('train_epoch_end_metric', 1, on_epoch=True)
+        self.training_epoch_end_called = True
+        return result
+
+    def eval_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x.to(self.device))
+        loss_val = y_hat.sum()
+        result = EvalResult()
+
+        eval_name = 'val' if not self.trainer.testing else 'test'
+        result.log(f'{eval_name}_step_metric', loss_val + 1)
+        self.training_step_called = True
+        return result
+
+    def eval_step_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        result.minimize = result.minimize.mean()
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.train_step_metric = result.train_step_metric.mean()
+        eval_name = 'val' if not self.trainer.testing else 'test'
+        result.log(f'{eval_name}_step_end_metric', 1)
+        self.training_step_end_called = True
+        return result
+
+    def eval_epoch_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        eval_name = 'val' if not self.trainer.testing else 'test'
+        result.log(f'{eval_name}_epoch_end_metric', 1, on_epoch=True)
         self.training_epoch_end_called = True
         return result
