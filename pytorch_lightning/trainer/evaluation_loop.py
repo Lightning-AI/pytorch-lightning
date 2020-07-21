@@ -180,6 +180,7 @@ class TrainerEvaluationLoopMixin(ABC):
     reload_dataloaders_every_epoch: ...
     tpu_id: int
     verbose_test: bool
+    running_sanity_check: bool
 
     # Callback system
     on_validation_batch_start: Callable
@@ -408,11 +409,15 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def __eval_add_step_metrics(self, output):
         # track step level metrics
-        if isinstance(output, EvalResult):
+        if isinstance(output, EvalResult) and not self.running_sanity_check:
             step_log_metrics = output.batch_log_metrics
             step_pbar_metrics = output.batch_pbar_metrics
-            self.log_metrics(step_log_metrics, {})
-            self.add_progress_bar_metrics(step_pbar_metrics)
+
+            if len(step_log_metrics) > 0:
+                self.log_metrics(step_log_metrics, {})
+
+            if len(step_pbar_metrics) > 0:
+                self.add_progress_bar_metrics(step_pbar_metrics)
 
     def __auto_reduce_result_objs(self, outputs):
         # outputs has a list of results per dataloader

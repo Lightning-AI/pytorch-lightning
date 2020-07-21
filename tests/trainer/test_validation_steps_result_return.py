@@ -194,6 +194,7 @@ def test_val_step_only_step_metrics(tmpdir):
         max_epochs=epochs,
         row_log_interval=1,
         limit_train_batches=batches,
+        limit_val_batches=batches,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -207,22 +208,34 @@ def test_val_step_only_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.early_stopping_history) == 0
 
     # make sure we logged the exact number of metrics
-    assert len(trainer.dev_debugger.logged_metrics) == epochs
-    assert len(trainer.dev_debugger.pbar_added_metrics) == epochs
+    assert len(trainer.dev_debugger.logged_metrics) == epochs * batches + (epochs)
+    assert len(trainer.dev_debugger.pbar_added_metrics) == epochs * batches + (epochs)
 
     # make sure we logged the correct epoch metrics
+    total_empty_epoch_metrics = 0
     for metric in trainer.dev_debugger.logged_metrics:
-        assert 'no_val_no_pbar' not in metric
-        assert 'val_step_pbar_acc' not in metric
-        assert metric['val_step_log_acc'] == (12 + 13) / 2
-        assert metric['val_step_log_pbar_acc'] == (13 + 14) / 2
+        if len(metric) > 2:
+            assert 'no_val_no_pbar' not in metric
+            assert 'val_step_pbar_acc' not in metric
+            assert metric['val_step_log_acc']
+            assert metric['val_step_log_pbar_acc']
+        else:
+            total_empty_epoch_metrics += 1
+
+    assert total_empty_epoch_metrics == 3
 
     # make sure we logged the correct epoch pbar metrics
+    total_empty_epoch_metrics = 0
     for metric in trainer.dev_debugger.pbar_added_metrics:
-        assert 'no_val_no_pbar' not in metric
-        assert 'val_step_log_acc' not in metric
-        assert metric['val_step_log_pbar_acc'] == (13 + 14) / 2
-        assert metric['val_step_pbar_acc'] == (14 + 15) / 2
+        if len(metric) > 2:
+            assert 'no_val_no_pbar' not in metric
+            assert 'val_step_log_acc' not in metric
+            assert metric['val_step_log_pbar_acc']
+            assert metric['val_step_pbar_acc']
+        else:
+            total_empty_epoch_metrics += 1
+
+    assert total_empty_epoch_metrics == 3
 
     # only 1 checkpoint expected since values didn't change after that
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
@@ -231,4 +244,5 @@ def test_val_step_only_step_metrics(tmpdir):
     assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 50
 
 
-test_val_step_only_step_metrics('')
+# TODO: test that on step AND epoch, the correct things get saved
+# test_val_step_only_step_metrics('')

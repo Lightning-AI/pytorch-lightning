@@ -417,6 +417,7 @@ class Trainer(
         self.current_epoch = 0
         self.interrupted = False
         self.should_stop = False
+        self.running_sanity_check = False
 
         # set default save path if user didn't provide one
         if default_root_dir is None:
@@ -1209,6 +1210,7 @@ class Trainer(
             self.reset_val_dataloader(ref_model)
 
             # hook and callback
+            self.running_sanity_check = True
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
@@ -1232,6 +1234,7 @@ class Trainer(
                 self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
+            self.running_sanity_check = False
 
     def test(
             self,

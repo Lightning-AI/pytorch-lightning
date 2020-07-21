@@ -261,6 +261,8 @@ class DeterministicModel(LightningModule):
                    prog_bar=True, logger=True, on_epoch=False, on_step=True)
         result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc),
                    prog_bar=True, logger=False, on_epoch=False, on_step=True)
+        result.log('val_step_batch_idx', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=False, on_step=True)
 
         self.validation_step_called = True
         return result
