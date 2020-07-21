@@ -85,10 +85,10 @@ class DeviceDtypeModuleMixin(Module):
         device = out[0]
         dtype = out[1]
         if device is not None:
-            self._device = device
+            self.apply(device_apply_fn(device))
 
         if dtype is not None:
-            self._dtype = dtype
+            self.apply(dtype_apply_fn(dtype))
 
         return super().to(*args, **kwargs)
 
@@ -105,8 +105,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-
-        self._device = torch.device('cuda', index=device)
+        self.apply(device_apply_fn(torch.device('cuda', index=device)))
         return super().cuda(device=device)
 
     def cpu(self) -> Module:
@@ -114,7 +113,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._device = torch.device('cpu')
+        self.apply(device_apply_fn(torch.device('cpu')))
         return super().cpu()
 
     def type(self, dst_type: Union[str, torch.dtype]) -> Module:
@@ -126,7 +125,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = dst_type
+        self.apply(dtype_apply_fn(dst_type))
         return super().type(dst_type=dst_type)
 
     def float(self) -> Module:
@@ -135,7 +134,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = torch.float
+        self.apply(dtype_apply_fn(torch.float))
         return super().float()
 
     def double(self) -> Module:
@@ -144,7 +143,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = torch.double
+        self.apply(dtype_apply_fn(torch.double))
         return super().double()
 
     def half(self) -> Module:
@@ -153,5 +152,32 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = torch.half
+        self.apply(dtype_apply_fn(torch.half))
         return super().half()
+
+
+
+
+
+def dtype_apply_fn(dtype):
+    return apply_attr('_dtype', dtype)
+
+
+def device_apply_fn(device):
+    return apply_attr('_device', device)
+
+
+# def update_attributes(module, **kwargs):
+#     if not isinstance(module, DeviceDtypeModuleMixin):
+#         return
+#     for k, v in kwargs:
+#         module.__setattr__(k, v)
+
+
+def apply_attr(name: str, value):
+
+    def apply_fn(module):
+        if isinstance(module, DeviceDtypeModuleMixin):
+            module.__setattr__(name, value)
+
+    return apply_fn
