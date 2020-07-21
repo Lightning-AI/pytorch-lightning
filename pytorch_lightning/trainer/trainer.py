@@ -1169,6 +1169,7 @@ class Trainer(
         self.restore_weights(model)
 
         # when testing requested only run test and return
+        import pdb; pdb.set_trace()
         if self.testing:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)

@@ -476,8 +476,6 @@ class TrainerEvaluationLoopMixin(ABC):
         model = self.get_model()
         model.on_pre_performance_check()
 
-        import pdb; pdb.set_trace()
-
         # select dataloaders
         if test_mode:
             self.reset_test_dataloader(model)
