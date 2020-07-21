@@ -25,6 +25,14 @@ class TopModule(EvalModelTemplate):
         self.module = SubModule()
 
 
+class DeviceAssertCallback(Callback):
+
+    def on_batch_start(self, trainer, model):
+        assert isinstance(model, TopModule)
+        assert model.device.index == trainer.local_rank
+        assert model.device == model.module.module.device
+
+
 @pytest.mark.parametrize(['dst_dtype'], [
     pytest.param(torch.float),
     pytest.param(torch.double),
@@ -55,18 +63,23 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_submodules_multi_gpu_dp(tmpdir):
-
-    class DeviceAssertCallback(Callback):
-
-        def on_batch_start(self, trainer, model):
-            assert isinstance(model, TopModule)
-            assert model.device.index == trainer.local_rank
-            assert model.device == model.module.module.device
-
     model = TopModule()
     trainer = Trainer(
         default_root_dir=tmpdir,
         distributed_backend='dp',
+        gpus=2,
+        callbacks=[DeviceAssertCallback()],
+        max_steps=1,
+    )
+    trainer.fit(model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_submodules_multi_gpu_ddp_spawn(tmpdir):
+    model = TopModule()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        distributed_backend='dpp_spawn',
         gpus=2,
         callbacks=[DeviceAssertCallback()],
         max_steps=1,
