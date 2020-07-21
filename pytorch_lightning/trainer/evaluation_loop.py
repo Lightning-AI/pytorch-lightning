@@ -476,6 +476,8 @@ class TrainerEvaluationLoopMixin(ABC):
         model = self.get_model()
         model.on_pre_performance_check()
 
+        import pdb; pdb.set_trace()
+
         # select dataloaders
         if test_mode:
             self.reset_test_dataloader(model)
@@ -537,7 +539,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def __log_evaluation_epoch_metrics(self, eval_results, test_mode):
         eval_loop_results = []
-        import pdb; pdb.set_trace()
         if eval_results is not None and len(eval_results) > 0:
 
             # in eval, the user may return something at every validation step without final reduction
