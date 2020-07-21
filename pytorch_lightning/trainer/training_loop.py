@@ -729,12 +729,12 @@ class TrainerTrainLoopMixin(ABC):
 
                 # add metrics to progress bar
                 if using_results_obj:
-                    metrics_for_pbar = opt_closure_result.training_step_output.batch_pbar_metrics
+                    step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
                 else:
-                    metrics_for_pbar = opt_closure_result.training_step_output.pbar_on_batch_end
+                    step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
 
-                if len(metrics_for_pbar) > 0:
-                    self.add_progress_bar_metrics(metrics_for_pbar)
+                if len(step_pbar_metrics) > 0:
+                    self.add_progress_bar_metrics(step_pbar_metrics)
 
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens

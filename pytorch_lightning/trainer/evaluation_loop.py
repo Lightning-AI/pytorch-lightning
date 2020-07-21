@@ -348,6 +348,14 @@ class TrainerEvaluationLoopMixin(ABC):
                 if output is not None:
                     dl_outputs.append(output)
 
+                # track step level metrics
+                if isinstance(output, EvalResult):
+                    step_log_metrics = output.batch_log_metrics
+                    step_pbar_metrics = output.batch_pbar_metrics
+                    self.log_metrics(step_log_metrics, {})
+                    self.add_progress_bar_metrics(step_pbar_metrics)
+
+
             outputs.append(dl_outputs)
 
         eval_results = outputs
