@@ -153,7 +153,19 @@ def test_val_step_only_epoch_metrics(tmpdir):
     assert len(trainer.dev_debugger.logged_metrics) == epochs
     assert len(trainer.dev_debugger.pbar_added_metrics) == epochs
 
-    # TODO: loop each metric to make sure the proper metrics went to the correct places
+    # make sure we logged the correct epoch metrics
+    for metric in trainer.dev_debugger.logged_metrics:
+        assert 'no_val_no_pbar' not in metric
+        assert 'val_step_pbar_acc' not in metric
+        assert metric['val_step_log_acc'] == (12 + 13) / 2
+        assert metric['val_step_log_pbar_acc'] == (13 + 14) / 2
+
+    # make sure we logged the correct epoch pbar metrics
+    for metric in trainer.dev_debugger.pbar_added_metrics:
+        assert 'no_val_no_pbar' not in metric
+        assert 'val_step_log_acc' not in metric
+        assert metric['val_step_log_pbar_acc'] == (13 + 14) / 2
+        assert metric['val_step_pbar_acc'] == (14 + 15) / 2
 
     # only 2 checkpoints expected
     # TODO: figure out why no checkpoints were saved

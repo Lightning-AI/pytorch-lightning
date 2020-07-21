@@ -237,10 +237,10 @@ class DeterministicModel(LightningModule):
         result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
 
         # step only metrics
-        result.log('no_val_no_pbar', torch.tensor(11).type_as(acc), prog_bar=False, logger=False)
-        result.log(f'val_step_log_acc1_b{batch_idx}', torch.tensor(11).type_as(acc), prog_bar=False, logger=True)
-        result.log(f'val_step_log_pbar_acc2_b{batch_idx}', torch.tensor(12).type_as(acc), prog_bar=True, logger=True)
-        result.log(f'val_step_pbar_acc3_b{batch_idx}', torch.tensor(13).type_as(acc), prog_bar=True, logger=False)
+        result.log('no_val_no_pbar', torch.tensor(11 + batch_idx).type_as(acc), prog_bar=False, logger=False)
+        result.log('val_step_log_acc', torch.tensor(11 + batch_idx).type_as(acc), prog_bar=False, logger=True)
+        result.log('val_step_log_pbar_acc', torch.tensor(12 + batch_idx).type_as(acc), prog_bar=True, logger=True)
+        result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc), prog_bar=True, logger=False)
 
         self.validation_step_called = True
         return result
