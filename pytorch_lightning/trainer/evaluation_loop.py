@@ -376,8 +376,6 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def __run_eval_epoch_end(self, test_mode, outputs, dataloaders):
-        model = self.get_model()
-
         # when user didn't reduce and it's an EvalResult, auto-reduce
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
 
@@ -386,9 +384,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if len(dataloaders) == 1:
             eval_results = outputs[0]
 
-        # give model a chance to do something with the outputs (and method defined)
-        if isinstance(model, (LightningDistributedDataParallel, LightningDataParallel)):
-            model = model.module
+        model = self.get_model()
 
         user_reduced = False
 
