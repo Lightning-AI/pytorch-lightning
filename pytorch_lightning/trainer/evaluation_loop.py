@@ -359,6 +359,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # EVAL_EPOCH_END
         # ---------------------
         eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders)
+        import pdb; pdb.set_trace()
 
         # enable train mode again
         model.train()
