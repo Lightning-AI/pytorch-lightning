@@ -92,8 +92,9 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step (result obj + dp)
         """
-        result.train_step_metric = result.train_step_metric.mean()
         eval_name = 'validation' if not self.trainer.testing else 'test'
+        reduced = getattr(result, f'{eval_name}_step_metric').mean()
+        result.train_step_metric = reduced
         result.log(f'{eval_name}_step_end_metric', 1)
         setattr(self, f'{eval_name}_step_end_called', True)
         return result
