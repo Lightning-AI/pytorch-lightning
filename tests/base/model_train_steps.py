@@ -80,7 +80,7 @@ class TrainingStepVariations(ABC):
         x = x.view(x.size(0), -1)
         y_hat = self(x.to(self.device))
         loss_val = y_hat.sum()
-        result = EvalResult(checkpoint_on=loss_val)
+        result = EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
 
         eval_name = 'validation' if not self.trainer.testing else 'test'
         result.log(f'{eval_name}_step_metric', loss_val + 1)
