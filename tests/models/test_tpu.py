@@ -59,13 +59,13 @@ def test_model_tpu_index_1(tmpdir):
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
-def test_model_tpu_index_8(tmpdir):
+def test_model_tpu_index_7(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        tpu_cores=[8],
+        tpu_cores=[7],
         limit_train_batches=0.4,
         limit_val_batches=0.4
     )
@@ -168,7 +168,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
-def test_model_16bit_tpu_index_8(tmpdir):
+def test_model_16bit_tpu_index_7(tmpdir):
     """Test if distributed TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
@@ -176,7 +176,7 @@ def test_model_16bit_tpu_index_8(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        tpu_cores=[8],
+        tpu_cores=[7],
     )
     trainer.fit(model)
     assert torch_xla._XLAC._xla_get_default_device() == 'xla:8'
