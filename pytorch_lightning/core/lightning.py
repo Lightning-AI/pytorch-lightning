@@ -476,8 +476,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 # CASE 2: multiple validation datasets
-                def validation_step(self, batch, batch_idx, dataset_idx):
-                    # dataset_idx tells you which dataset this is.
+                def validation_step(self, batch, batch_idx, dataloader_idx):
+                    # dataloader_idx tells you which dataset this is.
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -704,8 +704,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 # CASE 2: multiple test datasets
-                def test_step(self, batch, batch_idx, dataset_idx):
-                    # dataset_idx tells you which dataset this is.
+                def test_step(self, batch, batch_idx, dataloader_idx):
+                    # dataloader_idx tells you which dataset this is.
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -1487,7 +1487,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         Note:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
-            will have an argument ``dataset_idx`` which matches the order here.
+            will have an argument ``dataloader_idx`` which matches the order here.
         """
 
     def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
