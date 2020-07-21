@@ -101,14 +101,14 @@ class Result(Dict):
         # one will be logged per step. the other per epoch
         if on_step and on_epoch:
             # set step version
-            name = f'step_{name}'
-            self.__set_meta(name, value, prog_bar, logger, on_step=True, on_epoch=False, reduce_fx=reduce_fx)
-            self.__setitem__(name, value)
+            step_name = f'step_{name}'
+            self.__set_meta(step_name, value, prog_bar, logger, on_step=True, on_epoch=False, reduce_fx=reduce_fx)
+            self.__setitem__(step_name, value)
 
             # set epoch version
-            name = f'epoch_{name}'
-            self.__set_meta(name, value, prog_bar, logger, on_step=False, on_epoch=True, reduce_fx=reduce_fx)
-            self.__setitem__(name, value)
+            epoch_name = f'epoch_{name}'
+            self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True, reduce_fx=reduce_fx)
+            self.__setitem__(epoch_name, value)
         else:
             self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
 

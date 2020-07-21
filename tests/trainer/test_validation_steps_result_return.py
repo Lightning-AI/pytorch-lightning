@@ -284,36 +284,35 @@ def test_val_step_epoch_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.pbar_added_metrics) == epochs * batches + (epochs)
 
     # make sure we logged the correct epoch metrics
-    total_empty_epoch_metrics = 0
-    for metric in trainer.dev_debugger.logged_metrics:
-        if len(metric) > 2:
-            assert 'no_val_no_pbar' not in metric
-            assert 'val_step_pbar_acc' not in metric
-            assert metric['val_step_log_acc']
-            assert metric['val_step_log_pbar_acc']
-        else:
-            total_empty_epoch_metrics += 1
+    for metric_idx in range(0, len(trainer.dev_debugger.logged_metrics), batches + 1):
+        batch_metrics = trainer.dev_debugger.logged_metrics[metric_idx: metric_idx + batches]
+        epoch_metric = trainer.dev_debugger.logged_metrics[metric_idx + batches]
+        
+        # make sure the metric was split
+        for batch_metric in batch_metrics:
+            assert 'step_val_step_log_acc' in batch_metric
+            assert 'step_val_step_log_pbar_acc' in batch_metric
+        
+        # make sure the epoch split was correct
+        assert 'epoch_val_step_log_acc' in epoch_metric
+        assert 'epoch_val_step_log_pbar_acc' in epoch_metric
 
-    assert total_empty_epoch_metrics == 3
+    # make sure we logged the correct pbar metrics
+    for metric_idx in range(0, len(trainer.dev_debugger.pbar_added_metrics), batches + 1):
+        batch_metrics = trainer.dev_debugger.pbar_added_metrics[metric_idx: metric_idx + batches]
+        epoch_metric = trainer.dev_debugger.pbar_added_metrics[metric_idx + batches]
 
-    # make sure we logged the correct epoch pbar metrics
-    total_empty_epoch_metrics = 0
-    for metric in trainer.dev_debugger.pbar_added_metrics:
-        if len(metric) > 2:
-            assert 'no_val_no_pbar' not in metric
-            assert 'val_step_log_acc' not in metric
-            assert metric['val_step_log_pbar_acc']
-            assert metric['val_step_pbar_acc']
-        else:
-            total_empty_epoch_metrics += 1
+        # make sure the metric was split
+        for batch_metric in batch_metrics:
+            assert 'step_val_step_pbar_acc' in batch_metric
+            assert 'step_val_step_log_pbar_acc' in batch_metric
 
-    assert total_empty_epoch_metrics == 3
+        # make sure the epoch split was correct
+        assert 'epoch_val_step_pbar_acc' in epoch_metric
+        assert 'epoch_val_step_log_pbar_acc' in epoch_metric
 
     # only 1 checkpoint expected since values didn't change after that
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
     assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 50
-
-# TODO: test that on step AND epoch, the correct things get saved
-test_val_step_epoch_step_metrics('')
