@@ -28,8 +28,10 @@ class TopModule(EvalModelTemplate):
 class DeviceAssertCallback(Callback):
 
     def on_batch_start(self, trainer, model):
+        rank = trainer.local_rank
         assert isinstance(model, TopModule)
-        assert model.device.index == trainer.local_rank
+        # index = None also means first device
+        assert (model.device.index is None and rank == 0) or model.device.index == rank
         assert model.device == model.module.module.device
 
 
