@@ -460,7 +460,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if should_skip:
             return [], []
 
-        # run evaluation
+        # run evaluation (val_step + val_step_end + val_epoch_end)
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
         # log the final eval loop metrics
