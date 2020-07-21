@@ -35,7 +35,7 @@ class TopModule(EvalModelTemplate):
     pytest.param(torch.device('cuda', 0)),
 ])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
-def test_submodules_device(dst_device, dst_dtype):
+def test_submodules_device_and_dtype(dst_device, dst_dtype):
     """
     Test that the device and dtype property updates propagate through mixed nesting of regular
     nn.Modules and the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule).
