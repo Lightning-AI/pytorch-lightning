@@ -1741,7 +1741,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             ...     def forward(self, x):
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx') as tmpfile:
+            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
             ...     model = SimpleModel()
             ...     input_sample = torch.randn((1, 64))
             ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
