@@ -1,4 +1,4 @@
-from typing import Union, Optional, Any, Callable
+from typing import Union, Optional
 
 import torch
 from torch.nn import Module
@@ -148,7 +148,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(dtype=torch.half)
         return super().half()
 
-    def __update_properties(self, device=None, dtype=None):
+    def __update_properties(self, device: Optional[torch.device] = None, dtype: Optional[torch.dtype] = None):
 
         def apply_fn(module):
             if not isinstance(module, DeviceDtypeModuleMixin):
