@@ -382,8 +382,6 @@ def test_val_step_full_loop_result_dp(tmpdir):
     epochs = 3
 
     model = EvalModelTemplate()
-    model.validation_step = None
-    model.test_step = None
     model.training_step = model.training_step_full_loop_result_obj_dp
     model.training_step_end = model.training_step_end_full_loop_result_obj_dp
     model.training_epoch_end = model.training_epoch_end_full_loop_result_obj_dp
