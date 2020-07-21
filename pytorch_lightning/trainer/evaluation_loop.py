@@ -463,7 +463,30 @@ class TrainerEvaluationLoopMixin(ABC):
         # run evaluation
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
 
-        # enable no returns
+        # log the final eval loop metrics
+        eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
+
+        # hook
+        model.on_post_performance_check()
+
+        # eventual dataset reloading
+        if test_mode:
+            if self.reload_dataloaders_every_epoch:
+                self.reset_test_dataloader(model)
+        else:
+            # val
+            if self.reload_dataloaders_every_epoch:
+                self.reset_val_dataloader(model)
+
+        # Validation/Test end callbacks
+        if test_mode:
+            self.on_test_end()
+        else:
+            self.on_validation_end()
+
+        return eval_loop_results, eval_results
+
+    def __log_evaluation_epoch_metrics(self, eval_results, test_mode):
         eval_loop_results = []
         if eval_results is not None and len(eval_results) > 0:
 
@@ -498,25 +521,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 if len(callback_metrics) > 0:
                     eval_loop_results.append(callback_metrics)
 
-        # hook
-        model.on_post_performance_check()
-
-        # eventual dataset reloading
-        if test_mode:
-            if self.reload_dataloaders_every_epoch:
-                self.reset_test_dataloader(model)
-        else:
-            # val
-            if self.reload_dataloaders_every_epoch:
-                self.reset_val_dataloader(model)
-
-        # Validation/Test end callbacks
-        if test_mode:
-            self.on_test_end()
-        else:
-            self.on_validation_end()
-
-        return eval_loop_results, eval_results
+        return eval_loop_results
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
