@@ -107,5 +107,7 @@ class TrainingStepVariations(ABC):
         """
         eval_name = 'validation' if not self.trainer.testing else 'test'
         result.log(f'{eval_name}_epoch_end_metric', 1, on_epoch=True)
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.early_stop_on = result.early_stop_on.mean()
         setattr(self, f'{eval_name}_epoch_end_called', True)
         return result
