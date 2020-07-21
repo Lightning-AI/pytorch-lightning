@@ -53,7 +53,7 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
     assert model.dtype == model.module.module.dtype == dst_dtype
 
 
-@pytest.mark.skipif(not torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_submodules_multi_gpu_dp(tmpdir):
 
     class DeviceCallback(Callback):
