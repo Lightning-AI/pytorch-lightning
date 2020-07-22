@@ -92,9 +92,10 @@ All of it 100% rigorously tested and benchmarked
 
 Data
 ----
-Lightning operates on standard PyTorch Dataloaders (of any flavor) and most anything that fits that paradigm.
-You can either pass the dataloaders into the `trainer.fit()` as described above, or you can define a few additional
-methods in the LightningModule
+Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataloaders in 2 ways.
+
+- Pass the dataloaders into `trainer.fit()`
+- Define them in the LightningModule
 
 .. code-block:: python
 
