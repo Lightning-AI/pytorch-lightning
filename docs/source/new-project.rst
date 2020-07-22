@@ -96,33 +96,8 @@ All of it 100% rigorously tested and benchmarked
 
 --------------
 
-Data
-----
-Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataloaders in 2 ways.
-
-- Pass the dataloaders into `trainer.fit()`
-- Define them in the LightningModule
-
-.. code-block:: python
-
-    class LitModel(pl.LightningModule):
-
-        def train_dataloader(self):
-            # your train transforms
-            return DataLoader(YOUR_DATASET)
-
-        def val_dataloader(self):
-            # your val transforms
-            return DataLoader(YOUR_DATASET)
-
-        def test_dataloader(self):
-            # your test transforms
-            return DataLoader(YOUR_DATASET)
-
-----------
-
-What happens under the hood
----------------------------
+Training loop under the hood
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Under the hood, lightning does (in high-level pseudocode):
 
 .. code-block:: python
@@ -151,6 +126,32 @@ Under the hood, lightning does (in high-level pseudocode):
             optimizer.zero_grad()
 
 -----------------
+
+Data
+----
+Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataloaders in 2 ways.
+
+- Pass the dataloaders into `trainer.fit()`
+- Define them in the LightningModule
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
+
+        def train_dataloader(self):
+            # your train transforms
+            return DataLoader(YOUR_DATASET)
+
+        def val_dataloader(self):
+            # your val transforms
+            return DataLoader(YOUR_DATASET)
+
+        def test_dataloader(self):
+            # your test transforms
+            return DataLoader(YOUR_DATASET)
+
+----------
+
 
 Validation/Test loop
 --------------------
