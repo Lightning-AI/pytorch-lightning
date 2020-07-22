@@ -288,8 +288,6 @@ class TrainerEvaluationLoopMixin(ABC):
         # --------------------------
         self.__call_eval_loop_hook_start(test_mode)
 
-        import pdb; pdb.set_trace()
-
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
@@ -356,6 +354,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # ---------------------
         # EVAL_EPOCH_END
         # ---------------------
+        import pdb; pdb.set_trace()
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
         eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders, using_eval_result, model)
 
