@@ -436,20 +436,23 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def __gather_epoch_end_eval_results(self, outputs):
-        eval_results = []
-        for epoch_output in outputs:
+        try:
+            eval_results = []
+            for epoch_output in outputs:
+                result = epoch_output[0].__class__.gather(epoch_output)
+                if 'checkpoint_on' in result:
+                    result.checkpoint_on = result.checkpoint_on.mean()
+                if 'early_stop_on' in result:
+                    result.early_stop_on = result.early_stop_on.mean()
+
+                eval_results.append(result)
+
+            # with 1 dataloader don't pass in a list
+            if len(eval_results) == 1:
+                eval_results = eval_results[0]
+        except Exception as e:
             import pdb; pdb.set_trace()
-            result = epoch_output[0].__class__.gather(epoch_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-
-            eval_results.append(result)
-
-        # with 1 dataloader don't pass in a list
-        if len(eval_results) == 1:
-            eval_results = eval_results[0]
+            print('a')
         return eval_results
 
     def __eval_add_step_metrics(self, output):
