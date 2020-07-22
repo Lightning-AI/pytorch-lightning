@@ -1589,7 +1589,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
             version = self.trainer.logger.version
             # show last 3 places of long version strings
-            version = version[-3:] if isinstance(version, str) else version
+            version = version[-4:] if isinstance(version, str) else version
             tqdm_dict['v_num'] = version
 
         return tqdm_dict
