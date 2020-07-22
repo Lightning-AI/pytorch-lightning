@@ -233,15 +233,11 @@ class Result(Dict):
 
     @classmethod
     def gather(cls, outputs):
-        try:
-            meta = outputs[0]['meta']
-            result = cls()
-            result = recursive_gather(outputs, result)
-            recursive_stack(result)
-            result['meta'] = meta
-        except Exception as e:
-            import pdb; pdb.set_trace()
-            print('a')
+        meta = outputs[0].get('meta', None)
+        result = cls()
+        result = recursive_gather(outputs, result)
+        recursive_stack(result)
+        result['meta'] = meta
         return result
 
     @classmethod
