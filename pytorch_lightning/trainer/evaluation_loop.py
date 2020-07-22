@@ -562,7 +562,7 @@ class TrainerEvaluationLoopMixin(ABC):
                     _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(result)
 
                 # eval loop returns all metrics
-                dataloader_result_metrics = {**prog_bar_metrics , **log_metrics, **callback_metrics}
+                dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
 
                 # add metrics to prog bar
                 self.add_progress_bar_metrics(prog_bar_metrics)
