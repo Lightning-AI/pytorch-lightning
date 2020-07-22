@@ -404,18 +404,30 @@ def test_val_step_full_loop_result_dp(tmpdir):
     )
 
     trainer.fit(model)
-    import pdb; pdb.set_trace()
 
     results = trainer.test()
 
-    # make sure we saw all the correct keys
+    # assert we returned all metrics requested
+    assert len(results) == 1
+    results = results[0]
+    assert 'test_epoch_end_metric' in results
+
+    # make sure we saw all the correct keys along all paths
     seen_keys = set()
     for metric in trainer.dev_debugger.logged_metrics:
         seen_keys.update(metric.keys())
 
+    import pdb; pdb.set_trace()
+
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'train_epoch_end_metric' in seen_keys
+    assert 'validation_step_metric' in seen_keys
+    assert 'validation_step_end_metric' in seen_keys
+    assert 'validation_epoch_end_metric' in seen_keys
+    assert 'test_step_metric' in seen_keys
+    assert 'test_step_end_metric' in seen_keys
+    assert 'test_epoch_end_metric' in seen_keys
 
 
 # TODO: finish the full train, val, test loop with dp
