@@ -84,23 +84,28 @@ Under the hood, lightning does (in high-level pseudocode):
 
 .. code-block:: python
 
+    # init model
     model = LitModel()
+
+    # enable training
     torch.set_grad_enabled(True)
     model.train()
+
+    # get data + optimizer
     train_dataloader = model.train_dataloader()
     optimizer = model.configure_optimizers()
 
     for epoch in epochs:
-        train_outs = []
         for batch in train_dataloader:
+            # forward (TRAINING_STEP)
             loss = model.training_step(batch)
-            loss.backward()
-            train_outs.append(loss.detach())
 
+            # backward
+            loss.backward()
+
+            # apply and clear grads
             optimizer.step()
             optimizer.zero_grad()
-
-        # TrainResult automatically gathers metrics to log for the epoch
 
 -----------------
 
