@@ -25,6 +25,7 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 
 Step 1: Build LightningModule
 -----------------------------
+A lightningModule has your training/val/test loops, model specifications and optimizer.
 
 .. testcode::
     :skipif: not TORCHVISION_AVAILABLE
