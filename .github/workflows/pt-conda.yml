@@ -39,22 +39,20 @@ jobs:
 
     - name: Cache conda
       uses: actions/cache@v1
-      env:   # Increase this value to reset cache if etc/example-environment.yml has not changed
-        CACHE_NUMBER: 1
       with:
         path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
+        key: ${{ runner.os }}-conda-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('environment.yml') }}
         restore-keys: |
-          ${{ runner.os }}-conda-
+          ${{ runner.os }}-conda-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-
 
     # Add another cache for Pip as not all packages lives in Conda env
     - name: Cache pip
       uses: actions/cache@v1
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('requirements/base.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-
 
     # https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf
     # https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
