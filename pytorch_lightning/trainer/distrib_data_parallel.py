@@ -310,6 +310,9 @@ class TrainerDDPMixin(ABC):
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
 
+        if torch.cuda.is_available() and not self.on_gpu:
+            rank_zero_warn('GPU available but not used. Set the --gpus flag in the script.')
+
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
 
