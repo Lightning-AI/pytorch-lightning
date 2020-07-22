@@ -1,6 +1,7 @@
 import math
 from abc import ABC
 from collections import OrderedDict
+from pytorch_lightning import TrainResult
 
 import torch
 
@@ -38,3 +39,35 @@ class TrainingStepVariations(ABC):
             else:
                 output /= 0
         return output
+
+    def training_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x.to(self.device))
+        loss_val = y_hat.sum()
+        result = TrainResult(minimize=loss_val)
+        result.log('train_step_metric', loss_val + 1)
+        self.training_step_called = True
+        return result
+
+    def training_step_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        result.minimize = result.minimize.mean()
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.train_step_metric = result.train_step_metric.mean()
+        result.log('train_step_end_metric', 1)
+        self.training_step_end_called = True
+        return result
+
+    def training_epoch_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        result.log('train_epoch_end_metric', 1, on_epoch=True)
+        self.training_epoch_end_called = True
+        return result

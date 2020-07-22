@@ -1,3 +1,4 @@
+import os
 from abc import ABC
 from typing import Union, Iterable
 
@@ -73,12 +74,16 @@ class TrainerLoggingMixin(ABC):
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
+            self.dev_debugger.track_logged_metrics_history(scalar_metrics)
+
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
             self.progress_bar_metrics[k] = v
+
+        self.dev_debugger.track_pbar_metrics_history(metrics)
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}

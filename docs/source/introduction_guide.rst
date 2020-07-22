@@ -903,7 +903,7 @@ With your own
 
     class LitMNIST(LightningModule):
 
-        def backward(self, use_amp, loss, optimizer):
+        def backward(self, use_amp, loss, optimizer, optimizer_idx):
             # do a custom way of backward
             loss.backward(retain_graph=True)
 

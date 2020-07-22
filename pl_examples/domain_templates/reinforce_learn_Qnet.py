@@ -114,7 +114,7 @@ class RLDataset(IterableDataset):
 
 class Agent:
     """
-    Base Agent class handeling the interaction with the environment
+    Base Agent class handling the interaction with the environment
 
     Args:
         env: training environment

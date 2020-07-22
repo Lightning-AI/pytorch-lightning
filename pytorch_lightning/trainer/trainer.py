@@ -33,6 +33,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.debugging import InternalDebugger
 import warnings
 
 # warnings to ignore in trainer
@@ -105,7 +106,7 @@ class Trainer(
         ...     def test_step(self, batch, batch_nb):
         ...         x, y = batch
         ...         loss = F.cross_entropy(self(x), y)
-        ...         return {'loss': loss, 'log': {'train_loss': loss}}
+        ...         return {'loss': loss, 'log': {'test_loss': loss}}
         ...
         ...     def configure_optimizers(self):
         ...         return torch.optim.Adam(self.parameters(), lr=0.02)
@@ -382,7 +383,7 @@ class Trainer(
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
         # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
-            rank_zero_only.rank = os.environ['LOCAL_RANK']
+            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
         # training bookeeping
         self.total_batch_idx = 0
@@ -615,6 +616,9 @@ class Trainer(
         self.init_amp()
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+
+        # tracks internal state for debugging
+        self.dev_debugger = InternalDebugger(self)
 
         # Callback system
         self.on_init_end()

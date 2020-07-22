@@ -7,6 +7,7 @@ Monitor a validation metric and stop training when it stops improving.
 """
 from copy import deepcopy
 
+import os
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -140,12 +141,33 @@ class EarlyStopping(Callback):
     def on_validation_end(self, trainer, pl_module):
         self._run_early_stopping_check(trainer, pl_module)
 
+    def on_train_epoch_end(self, trainer, pl_module):
+        # early stopping can also work in the train loop when there is no val loop and when using structured results
+        should_check_early_stop = False
+        train_es_key = 'early_stop_on'
+        if trainer.callback_metrics.get(train_es_key, None) is not None:
+            self.monitor = train_es_key
+            should_check_early_stop = True
+
+        val_es_key = 'val_early_stop_on'
+        if trainer.callback_metrics.get(val_es_key, None) is not None:
+            self.monitor = val_es_key
+            should_check_early_stop = True
+
+        if should_check_early_stop:
+            self._run_early_stopping_check(trainer, pl_module)
+
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
+
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
+
+        # when in dev debugging
+        trainer.dev_debugger.track_early_stopping_history(current)
+
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
 
