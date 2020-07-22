@@ -38,7 +38,6 @@ class DeterministicModel(LightningModule):
         x = batch
         bs = x.size(0)
         y_hat = self.l1(x)
-        print(x.device, self.device, self.l1.weight.device)
 
         test_hat = y_hat.cpu().detach()
         assert torch.all(test_hat[:, 0] == 15.0)

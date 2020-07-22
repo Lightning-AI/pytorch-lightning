@@ -131,7 +131,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE, flatten_dict
 from torch import distributed as dist
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -386,6 +386,14 @@ class TrainerEvaluationLoopMixin(ABC):
                     self.callback_metrics = eval_result.callback_metrics
             else:
                 self.callback_metrics = eval_results.callback_metrics
+        else:
+            if isinstance(eval_results, list):
+                for eval_result in eval_results:
+                    flat = flatten_dict(eval_result)
+                    self.callback_metrics.update(flat)
+            else:
+                flat = flatten_dict(eval_results)
+                self.callback_metrics.update(flat)
 
     def __run_eval_epoch_end(self, test_mode, outputs, dataloaders, using_eval_result):
 

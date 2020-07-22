@@ -94,6 +94,20 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
         return path_args
 
 
+def flatten_dict(source, result=None):
+    if result is None:
+        result = {}
+
+    for k, v in source.items():
+        if isinstance(v, dict):
+            _ = flatten_dict(v, result)
+        else:
+            result[k] = v
+
+    return result
+
+
+
 class AttributeDict(Dict):
     """Extended dictionary accesisable with dot notation.
 
