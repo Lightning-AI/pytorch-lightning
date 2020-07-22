@@ -88,7 +88,6 @@ class TrainerLoggingMixin(ABC):
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
         for k, v in metrics.items():
-            print(k, v)
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
