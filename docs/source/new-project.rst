@@ -58,8 +58,7 @@ Step 1: Define a LightningModule
 Step 2: Fit with a Trainer
 --------------------------
 
-.. testcode::
-    :skipif: torch.cuda.device_count() < 8
+.. code-block:: python
 
     # dataloader
     train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), shuffle=True)
