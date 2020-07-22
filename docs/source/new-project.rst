@@ -23,8 +23,8 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 
 ----------
 
-Step 1: Define a LightningModule
----------------------------------
+Step 1: Build LightningModule
+-----------------------------
 
 .. testcode::
     :skipif: not TORCHVISION_AVAILABLE
