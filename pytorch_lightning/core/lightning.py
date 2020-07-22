@@ -1756,8 +1756,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             raise ValueError(f'input_sample and example_input_array tensors are both missing.')
 
-        self.eval()
         if 'example_outputs' not in kwargs:
+            self.eval()
             kwargs['example_outputs'] = self.forward(input_data)
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
