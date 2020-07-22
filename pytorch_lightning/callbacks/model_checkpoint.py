@@ -276,7 +276,7 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
 
         # support structured results
-        if metrics.get('checkpoint_on', None) is not None:
+        if metrics.get('checkpoint_on') is not None:
             self.monitor = 'checkpoint_on'
 
         # conditioned val metrics override conditioned train loop metrics
