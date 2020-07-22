@@ -317,7 +317,8 @@ def test_training_step_epoch_end_result(tmpdir):
     assert len(logged_metrics) == (epochs * batches) + epochs
     last_logged = logged_metrics[-1]
 
-    assert last_logged['step_epoch_log_and_pbar_acc1'] == 210.0
+    assert last_logged['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
+    assert last_logged['step_step_epoch_log_and_pbar_acc1'] == 210.0
     assert last_logged['step_epoch_log_acc2'] == 336.0
     assert last_logged['epoch_end_log_acc'] == 1212.0
     assert last_logged['epoch_end_log_pbar_acc'] == 1214.0
@@ -327,7 +328,8 @@ def test_training_step_epoch_end_result(tmpdir):
     logged_pbar = trainer.dev_debugger.pbar_added_metrics
     assert len(logged_pbar) == (epochs * batches) + epochs
 
-    assert trainer.progress_bar_metrics['step_epoch_log_and_pbar_acc1'] == 210.0
+    assert trainer.progress_bar_metrics['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
+    assert trainer.progress_bar_metrics['step_step_epoch_log_and_pbar_acc1'] == 210.0
     assert trainer.progress_bar_metrics['step_epoch_pbar_acc3'] == 504.0
     assert trainer.progress_bar_metrics['epoch_end_pbar_acc'] == 1213.0
     assert trainer.progress_bar_metrics['epoch_end_log_pbar_acc'] == 1214.0
