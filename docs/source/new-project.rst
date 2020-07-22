@@ -30,7 +30,8 @@ Step 1: Define a LightningModule
     from torch.utils.data import DataLoader
     from torchvision.datasets import MNIST
     from torchvision import transforms
-    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning import LightningModule, TrainResult, EvalResult
+    from pytorch_lightning.metrics.functional import accuracy
 
     class LitModel(LightningModule):
 
@@ -45,8 +46,9 @@ Step 1: Define a LightningModule
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            tensorboard_logs = {'train_loss': loss}
-            return {'loss': loss, 'log': tensorboard_logs}
+            result = TrainResult(minimize=loss)
+            result.log('train_loss', loss)
+            return result
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.001)
@@ -105,12 +107,11 @@ To also add a validation loop add the following functions
         def validation_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
-            return {'val_loss': F.cross_entropy(y_hat, y)}
-
-        def validation_epoch_end(self, outputs):
-            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-            tensorboard_logs = {'val_loss': avg_loss}
-            return {'val_loss': avg_loss, 'log': tensorboard_logs}
+            loss = F.cross_entropy(y_hat, y)
+            result = EvalResult(early_stop_on=loss, checkpoint_on=loss)
+            result.log('val_ce', loss)
+            result.log('val_acc', accuracy(y_hat, y))
+            return result
 
         def val_dataloader(self):
             # TODO: do a real train/val split
