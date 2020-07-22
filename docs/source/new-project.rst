@@ -125,40 +125,10 @@ Under the hood, lightning does (in high-level pseudocode):
             optimizer.step()
             optimizer.zero_grad()
 
------------------
-
-Data
-----
-Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataloaders in 2 ways.
-
-- Pass the dataloaders into `trainer.fit()`
-- Define them in the LightningModule
-
-.. code-block:: python
-
-    class LitModel(pl.LightningModule):
-
-        def train_dataloader(self):
-            # your train transforms
-            return DataLoader(YOUR_DATASET)
-
-        def val_dataloader(self):
-            # your val transforms
-            return DataLoader(YOUR_DATASET)
-
-        def test_dataloader(self):
-            # your test transforms
-            return DataLoader(YOUR_DATASET)
-
 ----------
 
-
-Validation/Test loop
---------------------
-You can also define separate loops for validation and testing
-
 Adding a Validation loop
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 To also add a validation loop add the following functions
 
 .. testcode::
@@ -185,6 +155,8 @@ And now the trainer will call the validation loop automatically
         val_dataloader
     )
 
+Validation loop under the hood
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Under the hood in pseudocode, lightning does the following:
 
 .. code-block:: python
@@ -207,13 +179,14 @@ Under the hood in pseudocode, lightning does the following:
             torch.set_grad_enabled(True)
             model.train()
 
-The beauty of Lightning is that it handles the details of when to validate, when to call .eval(),
-turning off gradients, detaching graphs, making sure you don't enable shuffle for val, etc...
+Lightning automatically:
 
-.. note:: Lightning removes all the million details you need to remember during research
+- Enables gradients and sets model to train() in the train loop
+- Disables gradients and sets model to eval() in val loop
+- After val loop ends, enables gradients and sets model to train()
 
-Test loop
-^^^^^^^^^
+Adding a Test loop
+^^^^^^^^^^^^^^^^^^
 You might also need a test loop
 
 .. testcode::
@@ -244,7 +217,9 @@ However, this time you need to specifically call test (this is done so you don't
     trainer = Trainer(tpu_cores=1)
     trainer.test(test_dataloaders=test_dataloader)
 
-Again, under the hood, lightning does the following in (pseudocode):
+Test loop under the hood
+^^^^^^^^^^^^^^^^^^^^^^^^
+Under the hood, lightning does the following in (pseudocode):
 
 .. code-block:: python
 
@@ -256,6 +231,31 @@ Again, under the hood, lightning does the following in (pseudocode):
         test_outs.append(test_out)
 
     model.test_epoch_end(test_outs)
+
+---------------
+
+Data
+----
+Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataloaders in 2 ways.
+
+- Pass the dataloaders into `trainer.fit()`
+- Define them in the LightningModule
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
+
+        def train_dataloader(self):
+            # your train transforms
+            return DataLoader(YOUR_DATASET)
+
+        def val_dataloader(self):
+            # your val transforms
+            return DataLoader(YOUR_DATASET)
+
+        def test_dataloader(self):
+            # your test transforms
+            return DataLoader(YOUR_DATASET)
 
 -----------------
 
