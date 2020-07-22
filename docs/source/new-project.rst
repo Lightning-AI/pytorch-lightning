@@ -21,6 +21,7 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 .. figure:: /_images/mnist_imgs/pt_to_pl.jpg
    :alt: Convert from PyTorch to Lightning
 
+----------
 
 Step 1: Define a LightningModule
 ---------------------------------
@@ -52,6 +53,7 @@ Step 1: Define a LightningModule
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0005)
 
+----------
 
 Step 2: Fit with a Trainer
 --------------------------
@@ -74,6 +76,8 @@ Step 2: Fit with a Trainer
 
     # to use advanced features such as GPUs/TPUs/16 bit you have to change NO CODE
     trainer = pl.Trainer(tpu_cores=8, precision=16)
+
+----------
 
 What happens under the hood
 ---------------------------
@@ -99,8 +103,14 @@ Under the hood, lightning does (in high-level pseudocode):
 
         # TrainResult automatically gathers metrics to log for the epoch
 
+-----------------
+
+Validation/Test loop
+--------------------
+You can also define separate loops for validation and testing
+
 Adding a Validation loop
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 To also add a validation loop add the following functions
 
 .. testcode::
@@ -155,7 +165,7 @@ turning off gradients, detaching graphs, making sure you don't enable shuffle fo
 .. note:: Lightning removes all the million details you need to remember during research
 
 Test loop
----------
+^^^^^^^^^
 You might also need a test loop
 
 .. testcode::
@@ -199,6 +209,7 @@ Again, under the hood, lightning does the following in (pseudocode):
 
     model.test_epoch_end(test_outs)
 
+-----------------
 
 Why do you need Lightning?
 --------------------------
@@ -242,6 +253,8 @@ would normally do.
     y_hat = model(x)
 
     model.anything_you_can_do_with_pytorch()
+
+---------------
 
 Summary
 -------
