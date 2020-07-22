@@ -233,6 +233,7 @@ class Result(Dict):
 
     @classmethod
     def gather(cls, outputs):
+        import pdb; pdb.set_trace()
         meta = outputs[0]['meta']
         result = cls()
         result = recursive_gather(outputs, result)

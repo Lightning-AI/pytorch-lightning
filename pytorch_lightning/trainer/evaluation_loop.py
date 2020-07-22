@@ -436,8 +436,6 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def __gather_epoch_end_eval_results(self, outputs):
-        import pdb; pdb.set_trace()
-
         eval_results = []
         for epoch_output in outputs:
             result = epoch_output[0].__class__.gather(epoch_output)
