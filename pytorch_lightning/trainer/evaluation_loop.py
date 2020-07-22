@@ -288,6 +288,8 @@ class TrainerEvaluationLoopMixin(ABC):
         # --------------------------
         self.__call_eval_loop_hook_start(test_mode)
 
+        import pdb; pdb.set_trace()
+
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
@@ -374,7 +376,6 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def __update_callback_metrics(self, eval_results, using_eval_result):
-        import pdb; pdb.set_trace()
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
