@@ -52,11 +52,6 @@ Step 1: Define a LightningModule
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0005)
 
-        def train_dataloader(self):
-            dataset = MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
-            loader = DataLoader(dataset, batch_size=32, num_workers=4, shuffle=True)
-            return loader
-
 
 Step 2: Fit with a Trainer
 --------------------------
@@ -64,12 +59,24 @@ Step 2: Fit with a Trainer
 .. testcode::
     :skipif: torch.cuda.device_count() < 8
 
+    # dataloader
+    train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), shuffle=True)
+
+    # init model
     model = LitModel()
 
     # most basic trainer, uses good defaults
     trainer = pl.Trainer(gpus=8, num_nodes=1)
-    trainer.fit(model)
+    trainer.fit(
+        model,
+        train_loader,
+    )
 
+    # to use advanced features such as GPUs/TPUs/16 bit you have to change NO CODE
+    trainer = pl.Trainer(tpu_cores=8, precision=16)
+
+What happens under the hood
+---------------------------
 Under the hood, lightning does (in high-level pseudocode):
 
 .. code-block:: python
@@ -90,11 +97,10 @@ Under the hood, lightning does (in high-level pseudocode):
             optimizer.step()
             optimizer.zero_grad()
 
-        # optional for logging, etc...
-        model.training_epoch_end(train_outs)
+        # TrainResult automatically gathers metrics to log for the epoch
 
-Validation loop
----------------
+Adding a Validation loop
+------------------------
 To also add a validation loop add the following functions
 
 .. testcode::
@@ -110,27 +116,20 @@ To also add a validation loop add the following functions
             result.log('val_acc', accuracy(y_hat, y))
             return result
 
-        def val_dataloader(self):
-            # TODO: do a real train/val split
-            dataset = MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
-            loader = DataLoader(dataset, batch_size=32, num_workers=4)
-            return loader
-
 And now the trainer will call the validation loop automatically
 
 .. code-block:: python
 
-    # most basic trainer, uses good defaults
-    trainer = Trainer(gpus=8, num_nodes=1)
-    trainer.fit(model)
+    # pass in the val dataloader to the trainer as well
+    trainer.fit(
+        model,
+        train_dataloader,
+        val_dataloader
+    )
 
 Under the hood in pseudocode, lightning does the following:
 
-.. testsetup:: *
-
-    train_dataloader = []
-
-.. testcode::
+.. code-block:: python
 
     # ...
     for batch in train_dataloader:
@@ -166,18 +165,11 @@ You might also need a test loop
         def test_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
-            return {'test_loss': F.cross_entropy(y_hat, y)}
-
-        def test_epoch_end(self, outputs):
-            avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-            tensorboard_logs = {'test_loss': avg_loss}
-            return {'avg_test_loss': avg_loss, 'log': tensorboard_logs}
-
-        def test_dataloader(self):
-            # TODO: do a real train/val split
-            dataset = MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
-            loader = DataLoader(dataset, batch_size=32, num_workers=4)
-            return loader
+            loss = F.cross_entropy(y_hat, y)
+            result = pl.EvalResult(early_stop_on=loss, checkpoint_on=loss)
+            result.log('test_ce', loss)
+            result.log('test_acc', accuracy(y_hat, y), prog_bar=True)
+            return result
 
 However, this time you need to specifically call test (this is done so you don't use the test set by mistake)
 
@@ -186,13 +178,13 @@ However, this time you need to specifically call test (this is done so you don't
     # OPTION 1:
     # test after fit
     trainer.fit(model)
-    trainer.test()
+    trainer.test(test_dataloaders=test_dataloader)
 
     # OPTION 2:
     # test after loading weights
     model = LitModel.load_from_checkpoint(PATH)
     trainer = Trainer(tpu_cores=1)
-    trainer.test()
+    trainer.test(test_dataloaders=test_dataloader)
 
 Again, under the hood, lightning does the following in (pseudocode):
 
@@ -207,25 +199,6 @@ Again, under the hood, lightning does the following in (pseudocode):
 
     model.test_epoch_end(test_outs)
 
-Datasets
---------
-If you don't want to define the datasets as part of the LightningModule, just pass them into fit instead.
-
-.. code-block:: python
-
-    # pass in datasets if you want.
-    train_dataloader = DataLoader(dataset, batch_size=32, num_workers=4)
-    val_dataloader, test_dataloader = ...
-
-    trainer = Trainer(gpus=8, num_nodes=1)
-    trainer.fit(model, train_dataloader, val_dataloader)
-
-    trainer.test(test_dataloader=test_dataloader)
-
-The advantage of this method is the ability to reuse models for different datasets. The disadvantage
-is that for research it makes readability and reproducibility more difficult. This is why we recommend
-to define the datasets in the LightningModule if you're doing research, but use the method above for
-production models or for prediction tasks.
 
 Why do you need Lightning?
 --------------------------
