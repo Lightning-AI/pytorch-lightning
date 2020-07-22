@@ -118,3 +118,27 @@ def test_ssim(size, channel, plus, multichannel):
 
     ssim_idx = ssim(pred, pred)
     assert torch.allclose(ssim_idx, torch.tensor(1.0, device=device))
+
+
+@pytest.mark.parametrize(['pred', 'target', 'kernel', 'sigma'], [
+    pytest.param([1, 1, 16, 16], [1, 16, 16], [11, 11], [1.5, 1.5]),  # shape
+    pytest.param([1, 16, 16], [1, 16, 16], [11, 11], [1.5, 1.5]),  # len(shape)
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11, 11], [1.5]),  # len(kernel), len(sigma)
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11], [1.5, 1.5]),  # len(kernel), len(sigma)
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11], [1.5]),  # len(kernel), len(sigma)
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11, 0], [1.5, 1.5]),  # invalid kernel input
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11, 10], [1.5, 1.5]),  # invalid kernel input
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11, -11], [1.5, 1.5]),  # invalid kernel input
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11, 11], [1.5, 0]),  # invalid sigma input
+    pytest.param([1, 1, 16, 16], [1, 1, 16, 16], [11, 0], [1.5, -1.5]),  # invalid sigma input
+])
+def test_ssim_invalid_inputs(pred, target, kernel, sigma):
+    pred_t = torch.rand(pred)
+    target_t = torch.rand(target, dtype=torch.float64)
+    with pytest.raises(TypeError):
+        ssim(pred_t, target_t)
+
+    pred = torch.rand(pred)
+    target = torch.rand(target)
+    with pytest.raises(ValueError):
+        ssim(pred, target, kernel, sigma)
