@@ -549,7 +549,7 @@ class TrainerEvaluationLoopMixin(ABC):
             if not isinstance(eval_results, list):
                 eval_results = [eval_results]
 
-            for result in eval_results:
+            for result_idx, result in enumerate(eval_results):
                 if isinstance(result, EvalResult):
                     prog_bar_metrics = result.epoch_pbar_metrics
                     log_metrics = result.epoch_log_metrics
@@ -563,13 +563,6 @@ class TrainerEvaluationLoopMixin(ABC):
                 # add metrics to prog bar
                 self.add_progress_bar_metrics(prog_bar_metrics)
 
-                # log results of test
-                if test_mode and self.is_global_zero and self.verbose_test:
-                    print('-' * 80)
-                    print('TEST RESULTS')
-                    pprint(callback_metrics)
-                    print('-' * 80)
-
                 # log metrics
                 self.log_metrics(log_metrics, {})
 
@@ -578,6 +571,14 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 if len(dataloader_result_metrics) > 0:
                     eval_loop_results.append(dataloader_result_metrics)
+
+        # log results of test
+        if test_mode and self.is_global_zero and self.verbose_test:
+            print('-' * 80)
+            for result_idx, results in eval_loop_results:
+                print(f'DATALOADER:{result_idx} TEST RESULTS')
+                pprint(results)
+                print('-' * 80)
 
         return eval_loop_results
 
