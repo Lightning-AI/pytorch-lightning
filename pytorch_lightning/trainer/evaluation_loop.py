@@ -229,9 +229,11 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def __call_eval_loop_hook_start(self, test_mode):
+        """on_validation/test_epoch_start"""
         self.__call_eval_loop_hook_evt(test_mode, 'start')
 
     def __call_eval_loop_hook_end(self, test_mode):
+        """on_validation/test_epoch_end"""
         self.__call_eval_loop_hook_evt(test_mode, 'end')
 
     def __call_eval_loop_hook_evt(self, test_mode, epoch_event):
