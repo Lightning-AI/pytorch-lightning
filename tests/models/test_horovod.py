@@ -205,8 +205,8 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     adjusted_lr1 = [pg['lr'] for pg in trainer.optimizers[0].param_groups][0]
     adjusted_lr2 = [pg['lr'] for pg in trainer.optimizers[1].param_groups][0]
 
-    # Called ones after end of epoch
+    # Called ones after end of epoch with gamma=0.1
     assert pytest.approx(init_lr * 0.1) == adjusted_lr1
 
-    # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times
+    # Called every 3 steps, meaning for 1 epoch of 11 batches, it is called 3 times with gamma=0.1
     assert pytest.approx(init_lr * 0.1) == adjusted_lr2
