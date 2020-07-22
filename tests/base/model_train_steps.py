@@ -83,7 +83,7 @@ class TrainingStepVariations(ABC):
         result = EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
 
         eval_name = 'validation' if not self.trainer.testing else 'test'
-        result.log(f'{eval_name}_step_metric', loss_val + 1)
+        result.log(f'{eval_name}_step_metric', loss_val + 1, on_step=True)
 
         setattr(self, f'{eval_name}_step_called', True)
         return result
