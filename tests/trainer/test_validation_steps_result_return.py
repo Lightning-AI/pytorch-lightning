@@ -287,12 +287,12 @@ def test_val_step_epoch_step_metrics(tmpdir):
     for metric_idx in range(0, len(trainer.dev_debugger.logged_metrics), batches + 1):
         batch_metrics = trainer.dev_debugger.logged_metrics[metric_idx: metric_idx + batches]
         epoch_metric = trainer.dev_debugger.logged_metrics[metric_idx + batches]
-        
+
         # make sure the metric was split
         for batch_metric in batch_metrics:
             assert 'step_val_step_log_acc' in batch_metric
             assert 'step_val_step_log_pbar_acc' in batch_metric
-        
+
         # make sure the epoch split was correct
         assert 'epoch_val_step_log_acc' in epoch_metric
         assert 'epoch_val_step_log_pbar_acc' in epoch_metric
@@ -428,5 +428,3 @@ def test_val_step_full_loop_result_dp(tmpdir):
     assert 'epoch_test_step_metric' in seen_keys
     assert 'test_step_end_metric' in seen_keys
     assert 'test_epoch_end_metric' in seen_keys
-
-test_val_step_result_callbacks('')
