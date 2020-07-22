@@ -398,32 +398,39 @@ class TrainerEvaluationLoopMixin(ABC):
 
         user_reduced = False
 
-        # gather result
-        if using_eval_result:
-            # returns a list with an EvalResult per epoch
-            eval_results = self.__gather_epoch_end_eval_results(outputs)
-
         if test_mode:
             if self.is_overridden('test_end', model=model):
                 # TODO: remove in v1.0.0
+                if using_eval_result:
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
                 eval_results = model.test_end(eval_results)
                 user_reduced = True
                 rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
+                if using_eval_result:
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
                 eval_results = model.test_epoch_end(eval_results)
                 user_reduced = True
 
         else:
             if self.is_overridden('validation_end', model=model):
                 # TODO: remove in v1.0.0
+                if using_eval_result:
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
                 eval_results = model.validation_end(eval_results)
                 user_reduced = True
                 rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
                                ' Use `validation_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('validation_epoch_end', model=model):
+                if using_eval_result:
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
                 eval_results = model.validation_epoch_end(eval_results)
                 user_reduced = True
 

@@ -429,4 +429,4 @@ def test_val_step_full_loop_result_dp(tmpdir):
     assert 'test_step_end_metric' in seen_keys
     assert 'test_epoch_end_metric' in seen_keys
 
-test_val_step_full_loop_result_dp('')
+test_val_step_result_callbacks('')
