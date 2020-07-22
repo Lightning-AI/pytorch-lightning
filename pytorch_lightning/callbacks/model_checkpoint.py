@@ -280,7 +280,7 @@ class ModelCheckpoint(Callback):
             self.monitor = 'checkpoint_on'
 
         # conditioned val metrics override conditioned train loop metrics
-        if metrics.get('val_checkpoint_on', None) is not None:
+        if metrics.get('val_checkpoint_on') is not None:
             self.monitor = 'val_checkpoint_on'
 
         if self.save_top_k == 0:

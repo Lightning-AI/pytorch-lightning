@@ -233,7 +233,7 @@ class Result(Dict):
 
     @classmethod
     def gather(cls, outputs):
-        meta = outputs[0].get('meta', None)
+        meta = outputs[0].get('meta')
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
