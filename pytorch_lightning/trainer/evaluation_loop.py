@@ -575,7 +575,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # log results of test
         if test_mode and self.is_global_zero and self.verbose_test:
             print('-' * 80)
-            for result_idx, results in eval_loop_results:
+            for result_idx, results in enumerate(eval_loop_results):
                 print(f'DATALOADER:{result_idx} TEST RESULTS')
                 pprint(results)
                 print('-' * 80)
