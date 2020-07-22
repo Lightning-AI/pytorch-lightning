@@ -9,6 +9,7 @@ import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -901,7 +902,8 @@ class Trainer(
             self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None
+            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            datamodule: Optional[LightningDataModule] = None
     ):
         r"""
         Runs the full optimization routine.
@@ -950,6 +952,7 @@ class Trainer(
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
+        self.__attach_datamodule(model, datamodule)
 
         # check that model is configured correctly
         self.check_model_configuration(model)
@@ -1122,6 +1125,24 @@ class Trainer(
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
+    def __attach_datamodule(self, model, datamodule=None):
+        
+        # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
+        datamodule = datamodule or getattr(model, 'datamodule', None)
+
+        # If we have a datamodule, attach necessary hooks + dataloaders
+        if datamodule:
+            if self.is_overridden('setup', datamodule):
+                model.setup = datamodule.setup
+            if self.is_overridden('prepare_data', datamodule):
+                model.prepare_data = datamodule.prepare_data
+            if self.is_overridden('train_dataloader', datamodule):
+                model.train_dataloader = datamodule.train_dataloader
+            if self.is_overridden('val_dataloader', datamodule):
+                model.val_dataloader = datamodule.val_dataloader
+            if self.is_overridden('test_dataloader', datamodule):
+                model.test_dataloader = datamodule.test_dataloader
+
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
 
@@ -1251,7 +1272,8 @@ class Trainer(
             model: Optional[LightningModule] = None,
             test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
             ckpt_path: Optional[str] = 'best',
-            verbose: bool = True
+            verbose: bool = True,
+            datamodule: Optional[LightningDataModule] = None
     ):
         r"""
 
@@ -1314,6 +1336,9 @@ class Trainer(
 
         if self.global_rank != 0:
             return
+
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.__attach_datamodule(model or self.get_model(), datamodule)
 
         self.setup('test')
 

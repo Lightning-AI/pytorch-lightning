@@ -102,6 +102,12 @@ class LightningDataModule(object):  # pragma: no cover
         """
 
     @abstractmethod
+    def setup(self, stage):
+        """
+        Use this to make assignments to the class.
+        """
+
+    @abstractmethod
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
         """
         Implement a PyTorch DataLoader for training.
