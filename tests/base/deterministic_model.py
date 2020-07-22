@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
-from pytorch_lightning import TrainResult
+from pytorch_lightning import TrainResult, EvalResult
 
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -38,7 +38,6 @@ class DeterministicModel(LightningModule):
         x = batch
         bs = x.size(0)
         y_hat = self.l1(x)
-        print(x.device, self.device, self.l1.weight.device)
 
         test_hat = y_hat.cpu().detach()
         assert torch.all(test_hat[:, 0] == 15.0)
@@ -168,11 +167,11 @@ class DeterministicModel(LightningModule):
         val_1 = (5 + batch_idx) * (self.current_epoch + 1)
         val_2 = (6 + batch_idx) * (self.current_epoch + 1)
         val_3 = (7 + batch_idx) * (self.current_epoch + 1)
-        result.log(f'step_epoch_log_and_pbar_acc1', torch.tensor(val_1).type_as(acc),
+        result.log('step_epoch_log_and_pbar_acc1', torch.tensor(val_1).type_as(acc),
                    on_epoch=True, prog_bar=True)
-        result.log(f'step_epoch_log_acc2', torch.tensor(val_2).type_as(acc),
+        result.log('step_epoch_log_acc2', torch.tensor(val_2).type_as(acc),
                    on_epoch=True)
-        result.log(f'step_epoch_pbar_acc3', torch.tensor(val_3).type_as(acc),
+        result.log('step_epoch_pbar_acc3', torch.tensor(val_3).type_as(acc),
                    on_epoch=True, logger=False, prog_bar=True)
 
         self.training_step_called = True
@@ -190,15 +189,139 @@ class DeterministicModel(LightningModule):
             # only saw 4 batches
             assert isinstance(result, TrainResult)
 
-        result.step_epoch_log_and_pbar_acc1 = result.step_epoch_log_and_pbar_acc1.prod()
-        result.step_epoch_log_acc2 = result.step_epoch_log_acc2.prod()
-        result.step_epoch_pbar_acc3 = result.step_epoch_pbar_acc3.prod()
-        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2),
+        result.step_step_epoch_log_and_pbar_acc1 = result.step_step_epoch_log_and_pbar_acc1.prod()
+        result.epoch_step_epoch_log_and_pbar_acc1 = result.epoch_step_epoch_log_and_pbar_acc1.prod()
+        result.step_step_epoch_log_acc2 = result.step_step_epoch_log_acc2.prod()
+        result.epoch_step_epoch_log_acc2 = result.epoch_step_epoch_log_acc2.prod()
+        result.step_step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
+        result.epoch_step_epoch_pbar_acc3 = result.epoch_step_epoch_pbar_acc3.prod()
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.epoch_step_epoch_log_acc2),
                    logger=True, on_epoch=True)
-        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2),
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.epoch_step_epoch_log_acc2),
                    logger=False, prog_bar=True, on_epoch=True)
-        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2),
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.epoch_step_epoch_log_acc2),
                    logger=True, prog_bar=True, on_epoch=True)
+        return result
+
+    # --------------------------
+    # EvalResults
+    # --------------------------
+    def validation_step_result_callbacks(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+
+        self.assert_backward = False
+        losses = [20, 19, 20, 21, 22, 23]
+        idx = self.current_epoch
+        loss = acc + losses[idx]
+        result = EvalResult(early_stop_on=loss, checkpoint_on=loss)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_step_result_no_callbacks(self, batch, batch_idx):
+        acc = self.step(batch, batch_idx)
+
+        self.assert_backward = False
+        losses = [20, 19, 20, 21, 22, 23, 50, 50, 50, 50, 50, 50]
+        idx = self.current_epoch
+        loss = acc + losses[idx]
+
+        result = EvalResult(checkpoint_on=loss)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_step_result_only_epoch_metrics(self, batch, batch_idx):
+        """
+        Only track epoch level metrics
+        """
+        acc = self.step(batch, batch_idx)
+        result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
+
+        # step only metrics
+        result.log('no_val_no_pbar', torch.tensor(11 + batch_idx).type_as(acc), prog_bar=False, logger=False)
+        result.log('val_step_log_acc', torch.tensor(11 + batch_idx).type_as(acc), prog_bar=False, logger=True)
+        result.log('val_step_log_pbar_acc', torch.tensor(12 + batch_idx).type_as(acc), prog_bar=True, logger=True)
+        result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc), prog_bar=True, logger=False)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_step_result_only_step_metrics(self, batch, batch_idx):
+        """
+        Only track epoch level metrics
+        """
+        acc = self.step(batch, batch_idx)
+        result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
+
+        # step only metrics
+        result.log('no_val_no_pbar', torch.tensor(11 + batch_idx).type_as(acc),
+                   prog_bar=False, logger=False, on_epoch=False, on_step=True)
+        result.log('val_step_log_acc', torch.tensor(11 + batch_idx).type_as(acc),
+                   prog_bar=False, logger=True, on_epoch=False, on_step=True)
+        result.log('val_step_log_pbar_acc', torch.tensor(12 + batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=False, on_step=True)
+        result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc),
+                   prog_bar=True, logger=False, on_epoch=False, on_step=True)
+        result.log('val_step_batch_idx', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=False, on_step=True)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_step_result_epoch_step_metrics(self, batch, batch_idx):
+        """
+        Only track epoch level metrics
+        """
+        acc = self.step(batch, batch_idx)
+        result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
+
+        # step only metrics
+        result.log('no_val_no_pbar', torch.tensor(11 + batch_idx).type_as(acc),
+                   prog_bar=False, logger=False, on_epoch=True, on_step=True)
+        result.log('val_step_log_acc', torch.tensor(11 + batch_idx).type_as(acc),
+                   prog_bar=False, logger=True, on_epoch=True, on_step=True)
+        result.log('val_step_log_pbar_acc', torch.tensor(12 + batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=True)
+        result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc),
+                   prog_bar=True, logger=False, on_epoch=True, on_step=True)
+        result.log('val_step_batch_idx', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=True)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_step_for_epoch_end_result(self, batch, batch_idx):
+        """
+        EvalResult flows to epoch end (without step_end)
+        """
+        acc = self.step(batch, batch_idx)
+        result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
+
+        # step only metrics
+        result.log('val_step_metric', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=False)
+        result.log('batch_idx', torch.tensor(batch_idx).type_as(acc),
+                   prog_bar=True, logger=True, on_epoch=True, on_step=False)
+
+        self.validation_step_called = True
+        return result
+
+    def validation_epoch_end_result(self, result):
+        self.validation_epoch_end_called = True
+
+        if self.trainer.running_sanity_check:
+            assert len(result.batch_idx) == 2
+        else:
+            assert len(result.batch_idx) == self.trainer.limit_val_batches
+
+        expected_val = result.val_step_metric.sum() / len(result.batch_idx)
+        result.val_step_metric = result.val_step_metric.mean()
+        result.batch_idx = result.batch_idx.mean()
+        assert result.val_step_metric == expected_val
+
+        result.log('val_epoch_end_metric', torch.tensor(189).type_as(result.val_step_metric), prog_bar=True)
+
         return result
 
     # --------------------------

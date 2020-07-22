@@ -86,7 +86,7 @@ def test_psnr_against_sklearn(sklearn_metric, torch_metric):
     for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]:
         pred = torch.randint(n_cls_pred, (500,), device=device, dtype=torch.float)
         target = torch.randint(n_cls_target, (500,), device=device, dtype=torch.float)
-    
+
         sk_score = sklearn_metric(target.cpu().detach().numpy(),
                                   pred.cpu().detach().numpy(),
                                   data_range=n_cls_target)

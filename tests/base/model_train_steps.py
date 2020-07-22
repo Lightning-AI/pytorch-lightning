@@ -1,7 +1,7 @@
 import math
 from abc import ABC
 from collections import OrderedDict
-from pytorch_lightning import TrainResult
+from pytorch_lightning import TrainResult, EvalResult
 
 import torch
 
@@ -70,4 +70,59 @@ class TrainingStepVariations(ABC):
         """
         result.log('train_epoch_end_metric', 1, on_epoch=True)
         self.training_epoch_end_called = True
+        return result
+
+    def eval_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x.to(self.device))
+        loss_val = y_hat.sum()
+        result = EvalResult(checkpoint_on=loss_val, early_stop_on=loss_val)
+
+        eval_name = 'validation' if not self.trainer.testing else 'test'
+        result.log(f'{eval_name}_step_metric', loss_val + 1, on_step=True)
+
+        setattr(self, f'{eval_name}_step_called', True)
+        return result
+
+    def eval_step_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        eval_name = 'validation' if not self.trainer.testing else 'test'
+        reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
+        setattr(result, f'step_{eval_name}_step_metric', reduced)
+
+        reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
+        setattr(result, f'epoch_{eval_name}_step_metric', reduced)
+
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.early_stop_on = result.early_stop_on.mean()
+        result.log(f'{eval_name}_step_end_metric', torch.tensor(1).type_as(result.checkpoint_on))
+        setattr(self, f'{eval_name}_step_end_called', True)
+        return result
+
+    def eval_epoch_end_full_loop_result_obj_dp(self, result):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        eval_name = 'validation' if not self.trainer.testing else 'test'
+        result.log(f'{eval_name}_epoch_end_metric', torch.tensor(1).type_as(result.checkpoint_on), on_epoch=True)
+        result.checkpoint_on = result.checkpoint_on.mean()
+        result.early_stop_on = result.early_stop_on.mean()
+        setattr(self, f'{eval_name}_epoch_end_called', True)
+
+        # reduce the parametrized values
+        reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
+        setattr(result, f'step_{eval_name}_step_metric', reduced)
+
+        reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
+        setattr(result, f'epoch_{eval_name}_step_metric', reduced)
+
+        reduced = getattr(result, f'{eval_name}_step_end_metric').mean()
+        setattr(result, f'{eval_name}_step_end_metric', reduced)
+
         return result

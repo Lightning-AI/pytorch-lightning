@@ -97,10 +97,23 @@ class Result(Dict):
         if 'meta' not in self:
             self.__setitem__('meta', {})
 
-        self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+        # if user requests both step and epoch, then we split the metric in two automatically
+        # one will be logged per step. the other per epoch
+        if on_step and on_epoch:
+            # set step version
+            step_name = f'step_{name}'
+            self.__set_meta(step_name, value, prog_bar, logger, on_step=True, on_epoch=False, reduce_fx=reduce_fx)
+            self.__setitem__(step_name, value)
 
-        # set the value
-        self.__setitem__(name, value)
+            # set epoch version
+            epoch_name = f'epoch_{name}'
+            self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True, reduce_fx=reduce_fx)
+            self.__setitem__(epoch_name, value)
+        else:
+            self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+
+            # set the value
+            self.__setitem__(name, value)
 
     def __set_meta(
             self,
@@ -111,7 +124,7 @@ class Result(Dict):
             on_step: bool,
             on_epoch: bool,
             reduce_fx: Callable,
-        ):
+    ):
         # set the meta for the item
         meta_value = value
         meta = dict(
@@ -122,6 +135,7 @@ class Result(Dict):
             reduce_fx=reduce_fx,
             value=meta_value
         )
+
         self['meta'][name] = meta
 
         # track whether any input requires reduction on epoch end
@@ -219,11 +233,13 @@ class Result(Dict):
 
     @classmethod
     def gather(cls, outputs):
-        meta = outputs[0]['meta']
+        meta = outputs[0].get('meta')
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
-        result['meta'] = meta
+
+        if meta:
+            result['meta'] = meta
         return result
 
     @classmethod
@@ -326,11 +342,10 @@ class EvalResult(Result):
     ):
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
+    def get_callback_metrics(self) -> dict:
+        result = {
+            'val_early_stop_on': self.early_stop_on,
+            'val_checkpoint_on': self.checkpoint_on
+        }
 
-# if __name__ == '__main__':
-#     import torch
-#     result = TrainResult()
-#     result.hiddens = torch.tensor(1)
-#     result.log('some', 123)
-#     print(result)
-#     result.minimize = torch.tensor(1)
+        return result

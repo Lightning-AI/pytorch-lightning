@@ -34,6 +34,7 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.core.step_result import EvalResult
 import warnings
 
 # warnings to ignore in trainer
@@ -416,6 +417,7 @@ class Trainer(
         self.current_epoch = 0
         self.interrupted = False
         self.should_stop = False
+        self.running_sanity_check = False
 
         # set default save path if user didn't provide one
         if default_root_dir is None:
@@ -1208,6 +1210,7 @@ class Trainer(
             self.reset_val_dataloader(ref_model)
 
             # hook and callback
+            self.running_sanity_check = True
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
@@ -1223,10 +1226,15 @@ class Trainer(
                 # when we get a list back, used only the last item
                 if isinstance(eval_results, list):
                     eval_results = eval_results[-1]
-                _, _, _, callback_metrics, _ = self.process_output(eval_results)
+
+                if isinstance(eval_results, EvalResult):
+                    callback_metrics = eval_results.callback_metrics
+                else:
+                    _, _, _, callback_metrics, _ = self.process_output(eval_results)
                 self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
+            self.running_sanity_check = False
 
     def test(
             self,
