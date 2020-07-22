@@ -389,10 +389,18 @@ class TrainerEvaluationLoopMixin(ABC):
         else:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
-                    flat = flatten_dict(eval_result)
+                    # with a scalar return, auto set it to "val_loss" for callbacks
+                    if isinstance(eval_result, torch.Tensor):
+                        flat = {'val_loss': eval_result}
+                    else:
+                        flat = flatten_dict(eval_result)
                     self.callback_metrics.update(flat)
             else:
-                flat = flatten_dict(eval_results)
+                # with a scalar return, auto set it to "val_loss" for callbacks
+                if isinstance(eval_results, torch.Tensor):
+                    flat = {'val_loss': eval_results}
+                else:
+                    flat = flatten_dict(eval_results)
                 self.callback_metrics.update(flat)
 
     def __run_eval_epoch_end(self, test_mode, outputs, dataloaders, using_eval_result):
@@ -444,6 +452,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
         if using_eval_result and not user_reduced:
             eval_results = self.__auto_reduce_result_objs(outputs)
+
+        if not isinstance(eval_results, list):
+            eval_results = [eval_results]
 
         return eval_results
 
