@@ -465,6 +465,10 @@ class Trainer(
 
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
+        # quick-fix for --gpus flag bug
+        if callable(gpus) and gpus.__name__ == self._arg_default.__name__:
+            self.on_gpu = False
+
         # tpu config
         if num_tpu_cores is not None:
             rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
