@@ -113,8 +113,8 @@ class TrainingStepVariations(ABC):
         setattr(self, f'{eval_name}_epoch_end_called', True)
 
         # reduce the parametrized values
-        reduced = getattr(result, f'{eval_name}_step_metric').mean()
-        setattr(result, f'{eval_name}_step_metric', reduced)
+        reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
+        setattr(result, f'step_{eval_name}_step_metric', reduced)
 
         reduced = getattr(result, f'{eval_name}_step_end_metric').mean()
         setattr(result, f'{eval_name}_step_end_metric', reduced)
