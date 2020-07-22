@@ -180,6 +180,7 @@ class EarlyStopping(Callback):
         if trainer.use_tpu and XLA_AVAILABLE:
             current = current.cpu()
 
+        import pdb; pdb.set_trace()
         if self.monitor_op(current - self.min_delta, self.best_score):
             self.best_score = current
             self.wait_count = 0
