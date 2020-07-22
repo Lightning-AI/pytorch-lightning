@@ -412,9 +412,6 @@ class TrainerEvaluationLoopMixin(ABC):
                                ' Use `test_epoch_end` instead.', DeprecationWarning)
 
             elif self.is_overridden('test_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
                 eval_results = model.test_epoch_end(eval_results)
                 user_reduced = True
 
