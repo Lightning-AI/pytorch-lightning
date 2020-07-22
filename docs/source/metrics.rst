@@ -234,6 +234,12 @@ RMSLE
 .. autoclass:: pytorch_lightning.metrics.regression.RMSLE
     :noindex:
 
+SSIM
+^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.SSIM
+    :noindex:
+
 ----------------
 
 Functional Metrics
@@ -401,6 +407,12 @@ psnr (F)
 ^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.psnr
+    :noindex:
+
+ssim (F)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.ssim
     :noindex:
 
 stat_scores_multiple_classes (F)

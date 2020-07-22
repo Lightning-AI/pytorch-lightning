@@ -2,13 +2,15 @@ import pytest
 import torch
 import numpy as np
 from skimage.metrics import peak_signal_noise_ratio as ski_psnr
+from skimage.metrics import structural_similarity as ski_ssim
 
 from pytorch_lightning.metrics.functional import (
     mae,
     mse,
     psnr,
     rmse,
-    rmsle
+    rmsle,
+    ssim
 )
 
 
@@ -86,10 +88,40 @@ def test_psnr_against_sklearn(sklearn_metric, torch_metric):
     for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]:
         pred = torch.randint(n_cls_pred, (500,), device=device, dtype=torch.float)
         target = torch.randint(n_cls_target, (500,), device=device, dtype=torch.float)
-    
+
         sk_score = sklearn_metric(target.cpu().detach().numpy(),
                                   pred.cpu().detach().numpy(),
                                   data_range=n_cls_target)
         sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
         pl_score = torch_metric(pred, target, data_range=n_cls_target)
         assert torch.allclose(sk_score, pl_score)
+
+
+@pytest.mark.parametrize(['size', 'channel', 'plus', 'multichannel'], [
+    pytest.param(16, 1, 0.125, False),
+    pytest.param(32, 1, 0.25, False),
+    pytest.param(48, 3, 0.5, True),
+    pytest.param(64, 4, 0.75, True),
+    pytest.param(128, 5, 1, True)
+])
+def test_ssim(size, channel, plus, multichannel):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    pred = torch.rand(1, channel, size, size, device=device)
+    target = pred + plus
+    ssim_idx = ssim(pred, target)
+    np_pred = np.random.rand(size, size, channel)
+    if multichannel is False:
+        np_pred = np_pred[:, :, 0]
+    np_target = np.add(np_pred, plus)
+    sk_ssim_idx = ski_ssim(np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True)
+    assert torch.allclose(ssim_idx, torch.tensor(sk_ssim_idx, dtype=torch.float, device=device), atol=1e-2, rtol=1e-2)
+
+    # test identical images
+    ssim_idx = ssim(pred, pred)
+    assert torch.allclose(ssim_idx, torch.tensor(1.0, device=device))
+
+    # test non-identical images
+    pred = torch.ones(1, channel, size, size, device=device)
+    target = torch.zeros(1, channel, size, size, device=device)
+    ssim_idx = ssim(pred, target)
+    assert torch.allclose(ssim_idx, torch.tensor(0.0, device=device))
