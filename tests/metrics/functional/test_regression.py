@@ -116,12 +116,5 @@ def test_ssim(size, channel, plus, multichannel):
     sk_ssim_idx = ski_ssim(np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True)
     assert torch.allclose(ssim_idx, torch.tensor(sk_ssim_idx, dtype=torch.float, device=device), atol=1e-2, rtol=1e-2)
 
-    # test identical images
     ssim_idx = ssim(pred, pred)
     assert torch.allclose(ssim_idx, torch.tensor(1.0, device=device))
-
-    # test non-identical images
-    pred = torch.ones(1, channel, size, size, device=device)
-    target = torch.zeros(1, channel, size, size, device=device)
-    ssim_idx = ssim(pred, target)
-    assert torch.allclose(ssim_idx, torch.tensor(0.0, device=device))

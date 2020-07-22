@@ -235,8 +235,6 @@ def ssim(
 
     Example:
 
-        >>> from pytorch_lightning import seed_everything
-        >>> seed_everything(666)
         >>> pred = torch.rand([16, 1, 16, 16])
         >>> target = pred * 1.25
         >>> ssim(pred, target)
@@ -248,12 +246,14 @@ def ssim(
             "Expected `pred` and `target` to have the same data type."
             f" Got pred: {pred.dtype} and target: {target.dtype}."
         )
-    elif pred.shape != target.shape:
+
+    if pred.shape != target.shape:
         raise ValueError(
             "Expected `pred` and `target` to have the same shape."
             f" Got pred: {pred.shape} and target: {target.shape}."
         )
-    elif len(pred.shape) != 4 or len(target.shape) != 4:
+
+    if len(pred.shape) != 4 or len(target.shape) != 4:
         raise ValueError(
             "Expected `pred` and `target` to have BxCxHxW shape."
             f" Got pred: {pred.shape} and target: {target.shape}."

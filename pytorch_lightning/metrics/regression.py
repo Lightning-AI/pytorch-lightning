@@ -240,8 +240,6 @@ class SSIM(Metric):
 
     Example:
 
-        >>> from pytorch_lightning import seed_everything
-        >>> seed_everything(666)
         >>> pred = torch.rand([16, 1, 16, 16])
         >>> target = pred * 1.25
         >>> metric = SSIM()
