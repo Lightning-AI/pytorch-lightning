@@ -96,6 +96,9 @@ class TrainingStepVariations(ABC):
         reduced = getattr(result, f'step_{eval_name}_step_metric').mean()
         setattr(result, f'step_{eval_name}_step_metric', reduced)
 
+        reduced = getattr(result, f'epoch_{eval_name}_step_metric').mean()
+        setattr(result, f'epoch_{eval_name}_step_metric', reduced)
+
         result.checkpoint_on = result.checkpoint_on.mean()
         result.early_stop_on = result.early_stop_on.mean()
         result.log(f'{eval_name}_step_end_metric', torch.tensor(1).type_as(result.checkpoint_on))
