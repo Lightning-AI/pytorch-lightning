@@ -2,7 +2,12 @@
 
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.trainer.trainer import Trainer
-
+    import os
+    import torch
+    from torch.nn import functional as F
+    from torch.utils.data import DataLoader
+    from torchvision.datasets import MNIST
+    from torchvision import transforms
 
 
 Quick Start
@@ -23,17 +28,11 @@ Step 1: Define a LightningModule
 .. testcode::
     :skipif: not TORCHVISION_AVAILABLE
 
-    import os
 
-    import torch
-    from torch.nn import functional as F
-    from torch.utils.data import DataLoader
-    from torchvision.datasets import MNIST
-    from torchvision import transforms
-    from pytorch_lightning import LightningModule, TrainResult, EvalResult
+    import pytorch_lightning as pl
     from pytorch_lightning.metrics.functional import accuracy
 
-    class LitModel(LightningModule):
+    class LitModel(pl.LightningModule):
 
         def __init__(self):
             super().__init__()
@@ -46,12 +45,12 @@ Step 1: Define a LightningModule
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = TrainResult(minimize=loss)
-            result.log('train_loss', loss)
+            result = pl.TrainResult(minimize=loss)
+            result.log('train_loss', loss, prog_bar=True)
             return result
 
         def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=0.001)
+            return torch.optim.Adam(self.parameters(), lr=0.0005)
 
         def train_dataloader(self):
             dataset = MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
@@ -65,12 +64,10 @@ Step 2: Fit with a Trainer
 .. testcode::
     :skipif: torch.cuda.device_count() < 8
 
-    from pytorch_lightning import Trainer
-
     model = LitModel()
 
     # most basic trainer, uses good defaults
-    trainer = Trainer(gpus=8, num_nodes=1)
+    trainer = pl.Trainer(gpus=8, num_nodes=1)
     trainer.fit(model)
 
 Under the hood, lightning does (in high-level pseudocode):
