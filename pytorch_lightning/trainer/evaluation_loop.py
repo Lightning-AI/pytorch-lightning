@@ -229,25 +229,17 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def __call_eval_loop_hook_start(self, test_mode):
-        model = self.get_model()
-
-        # on_[train/validation]_epoch_start hook
-        hook_root_name = 'test' if test_mode else 'validation'
-        hook_name = f'on_{hook_root_name}_epoch_start'
-        with self.profiler.profile(hook_name):
-            # call hook
-            getattr(self, hook_name)()
-
-            # model hooks
-            if self.is_function_implemented(hook_name):
-                getattr(model, hook_name)()
+        self.__call_eval_loop_hook_evt(self, test_mode, 'start')
 
     def __call_eval_loop_hook_end(self, test_mode):
+        self.__call_eval_loop_hook_evt(self, test_mode, 'end')
+
+    def __call_eval_loop_hook_evt(self, test_mode, epoch_event):
         model = self.get_model()
 
         # on_[train/validation]_epoch_start hook
         hook_root_name = 'test' if test_mode else 'validation'
-        hook_name = f'on_{hook_root_name}_epoch_end'
+        hook_name = f'on_{hook_root_name}_epoch_{epoch_event}'
         with self.profiler.profile(hook_name):
             # call hook
             getattr(self, hook_name)()
