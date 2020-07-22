@@ -438,6 +438,7 @@ class TrainerEvaluationLoopMixin(ABC):
     def __gather_epoch_end_eval_results(self, outputs):
         eval_results = []
         for epoch_output in outputs:
+            import pdb; pdb.set_trace()
             result = epoch_output[0].__class__.gather(epoch_output)
             if 'checkpoint_on' in result:
                 result.checkpoint_on = result.checkpoint_on.mean()
