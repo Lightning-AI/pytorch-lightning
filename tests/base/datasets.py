@@ -63,13 +63,7 @@ class MNIST(Dataset):
 
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         # FIXME: try to fix loading
-        for _ in range(30):
-            try:
-                self.data, self.targets = torch.load(os.path.join(self.cached_folder_path, data_file))
-            except Exception:
-                time.sleep(1)
-            else:
-                break
+        self.data, self.targets = _try_load(os.path.join(self.cached_folder_path, data_file))
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
@@ -109,6 +103,19 @@ class MNIST(Dataset):
             logging.info(f'Downloading {url}')
             fpath = os.path.join(data_folder, os.path.basename(url))
             urllib.request.urlretrieve(url, fpath)
+
+
+def _try_load(path_data, trials=30):
+    res = None
+    assert os.path.isfile(path_data)
+    for _ in range(trials):
+        try:
+            res = torch.load(path_data)
+        except Exception:
+            time.sleep(1)
+        else:
+            break
+    return res
 
 
 def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
@@ -195,7 +202,7 @@ class TrialMNIST(MNIST):
         for fname in (self.TRAIN_FILE_NAME, self.TEST_FILE_NAME):
             path_fname = os.path.join(super().cached_folder_path, fname)
             assert os.path.isfile(path_fname), 'Missing cached file: %s' % path_fname
-            data, targets = torch.load(path_fname)
+            data, targets = _try_load(path_fname)
             data, targets = self._prepare_subset(data, targets, self.num_samples, self.digits)
             torch.save((data, targets), os.path.join(self.cached_folder_path, fname))
 
