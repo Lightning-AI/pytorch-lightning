@@ -58,6 +58,8 @@ A lightningModule has your training/val/test loops, model specifications and opt
 
 Step 2: Fit with a Trainer
 --------------------------
+The trainer calls each loop at the correct time as needed. It also ensures it all works
+well across any accelerator.
 
 .. code-block:: python
 
@@ -85,6 +87,27 @@ The code above gives you the following for free:
 - Automatic 16-bit precision
 
 All of it 100% rigorously tested and benchmarked
+
+--------------
+
+Data
+----
+Lightning operates on standard PyTorch Dataloaders (of any flavor) and most anything that fits that paradigm.
+You can either pass the dataloaders into the `trainer.fit()` as described above, or you can define a few additional
+methods in the LightningModule
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
+
+        def train_dataloader(self):
+            return DataLoader(MNIST(PATH, train=True, download=True, transform=transforms.ToTensor()), shuffle=True)
+
+        def val_dataloader(self):
+            return DataLoader(MNIST(PATH, train=False, download=True, transform=transforms.ToTensor()))
+
+        def test_dataloader(self):
+            return DataLoader(MNIST(PATH, train=False, download=True, transform=transforms.ToTensor()))
 
 ----------
 
