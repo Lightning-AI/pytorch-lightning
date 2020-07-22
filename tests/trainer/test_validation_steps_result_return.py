@@ -417,6 +417,7 @@ def test_val_step_full_loop_result_dp(tmpdir):
     for metric in trainer.dev_debugger.logged_metrics:
         seen_keys.update(metric.keys())
 
+    import pdb; pdb.set_trace()
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'epoch_train_epoch_end_metric' in seen_keys
