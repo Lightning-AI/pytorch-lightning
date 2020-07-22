@@ -344,7 +344,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir):
     model.test_step = model.test_step__multiple_dataloaders
     model.test_epoch_end = model.test_epoch_end__multiple_dataloaders
 
-    # train, multiple val and multiple test passed with fast_dev_run = True
+    # train, multiple val and multiple test dataloaders passed with fast_dev_run = True
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -354,6 +354,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir):
     assert trainer.num_sanity_val_steps == 0
 
     trainer.fit(model)
+    assert not trainer.disable_validation
     assert trainer.num_training_batches == 1
     assert trainer.num_val_batches == [1] * len(trainer.val_dataloaders)
 
