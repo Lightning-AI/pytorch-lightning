@@ -46,7 +46,7 @@ Step 1: Build LightningModule
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.TrainResult(minimize=loss)
+            result = pl.TrainResult(minimize=loss, checkpoint_on=loss)
             result.log('train_loss', loss, prog_bar=True)
             return result
 
@@ -75,6 +75,15 @@ Step 2: Fit with a Trainer
 
     # to use advanced features such as GPUs/TPUs/16 bit you have to change NO CODE
     trainer = pl.Trainer(tpu_cores=8, precision=16)
+
+The code above gives you the following for free:
+
+- Automatic checkpoints
+- Automatic Tensorboard (or the logger of your choice)
+- Automatic CPU/GPU/TPU training
+- Automatic 16-bit precision
+
+All of it 100% rigorously tested and benchmarked
 
 ----------
 
