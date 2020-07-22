@@ -124,7 +124,7 @@ class Result(Dict):
             on_step: bool,
             on_epoch: bool,
             reduce_fx: Callable,
-        ):
+    ):
         # set the meta for the item
         meta_value = value
         meta = dict(
