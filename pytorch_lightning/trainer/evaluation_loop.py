@@ -374,6 +374,7 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def __update_callback_metrics(self, eval_results, using_eval_result):
+        import pdb; pdb.set_trace()
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
