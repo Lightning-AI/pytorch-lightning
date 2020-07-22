@@ -185,8 +185,10 @@ Lightning automatically:
 - Disables gradients and sets model to eval() in val loop
 - After val loop ends, enables gradients and sets model to train()
 
+-------------
+
 Adding a Test loop
-^^^^^^^^^^^^^^^^^^
+------------------
 You might also need a test loop
 
 .. testcode::
