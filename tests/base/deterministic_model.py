@@ -195,11 +195,11 @@ class DeterministicModel(LightningModule):
         result.epoch_step_epoch_log_acc2 = result.epoch_step_epoch_log_acc2.prod()
         result.step_step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
         result.epoch_step_epoch_pbar_acc3 = result.epoch_step_epoch_pbar_acc3.prod()
-        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.step_epoch_log_acc2),
+        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.epoch_step_epoch_log_acc2),
                    logger=True, on_epoch=True)
-        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.step_epoch_log_acc2),
+        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.epoch_step_epoch_log_acc2),
                    logger=False, prog_bar=True, on_epoch=True)
-        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.step_epoch_log_acc2),
+        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.epoch_step_epoch_log_acc2),
                    logger=True, prog_bar=True, on_epoch=True)
         return result
 
