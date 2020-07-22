@@ -237,7 +237,9 @@ class Result(Dict):
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
-        result['meta'] = meta
+
+        if meta:
+            result['meta'] = meta
         return result
 
     @classmethod
