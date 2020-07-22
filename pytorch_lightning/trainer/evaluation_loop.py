@@ -354,9 +354,8 @@ class TrainerEvaluationLoopMixin(ABC):
         # ---------------------
         # EVAL_EPOCH_END
         # ---------------------
-        import pdb; pdb.set_trace()
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
-        eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders, using_eval_result, model)
+        eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders, using_eval_result)
 
         # log callback metrics
         self.__update_callback_metrics(eval_results, using_eval_result)
@@ -398,15 +397,13 @@ class TrainerEvaluationLoopMixin(ABC):
                     flat = flatten_dict(eval_results)
                 self.callback_metrics.update(flat)
 
-    def __run_eval_epoch_end(self, test_mode, outputs, dataloaders, using_eval_result, model: LightningModule = None):
+    def __run_eval_epoch_end(self, test_mode, outputs, dataloaders, using_eval_result):
+        model = self.get_model()
 
         # with a single dataloader don't pass an array
         eval_results = outputs
         if len(dataloaders) == 1:
             eval_results = outputs[0]
-
-        if not model:
-            model = self.get_model()
 
         user_reduced = False
 
