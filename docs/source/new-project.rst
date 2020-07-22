@@ -101,13 +101,16 @@ methods in the LightningModule
     class LitModel(pl.LightningModule):
 
         def train_dataloader(self):
-            return DataLoader(MNIST(PATH, train=True, download=True, transform=transforms.ToTensor()), shuffle=True)
+            # your train transforms
+            return DataLoader(YOUR_DATASET)
 
         def val_dataloader(self):
-            return DataLoader(MNIST(PATH, train=False, download=True, transform=transforms.ToTensor()))
+            # your val transforms
+            return DataLoader(YOUR_DATASET)
 
         def test_dataloader(self):
-            return DataLoader(MNIST(PATH, train=False, download=True, transform=transforms.ToTensor()))
+            # your test transforms
+            return DataLoader(YOUR_DATASET)
 
 ----------
 
