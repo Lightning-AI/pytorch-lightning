@@ -360,7 +360,11 @@ class TrainerEvaluationLoopMixin(ABC):
         # ---------------------
         # EVAL_EPOCH_END
         # ---------------------
-        eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders)
+        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
+        eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders, using_eval_result)
+
+        # log callback metrics
+        self.__update_callback_metrics(eval_results, using_eval_result)
 
         # enable train mode again
         model.train()
@@ -375,7 +379,15 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_results
 
-    def __run_eval_epoch_end(self, test_mode, outputs, dataloaders):
+    def __update_callback_metrics(self, eval_results, using_eval_result):
+        if using_eval_result:
+            if isinstance(eval_results, list):
+                for eval_result in eval_results:
+                    self.callback_metrics = eval_result.callback_metrics
+            else:
+                self.callback_metrics = eval_results.callback_metrics
+
+    def __run_eval_epoch_end(self, test_mode, outputs, dataloaders, using_eval_result):
 
         # with a single dataloader don't pass an array
         eval_results = outputs
@@ -387,7 +399,6 @@ class TrainerEvaluationLoopMixin(ABC):
         user_reduced = False
 
         # gather result
-        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
         if using_eval_result:
             # returns a list with an EvalResult per epoch
             eval_results = self.__gather_epoch_end_eval_results(outputs)
@@ -463,9 +474,6 @@ class TrainerEvaluationLoopMixin(ABC):
             if 'early_stop_on' in result:
                 result.early_stop_on = result.early_stop_on.mean()
             eval_results.append(result)
-
-            # update callback metrics
-            self.callback_metrics = result.callback_metrics
 
         return eval_results
 
