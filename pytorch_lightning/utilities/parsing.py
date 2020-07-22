@@ -107,7 +107,6 @@ def flatten_dict(source, result=None):
     return result
 
 
-
 class AttributeDict(Dict):
     """Extended dictionary accesisable with dot notation.
 
