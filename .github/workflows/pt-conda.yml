@@ -38,7 +38,7 @@ jobs:
     # TODO: set source for nightly
 
     - name: Cache conda
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('environment.yml') }}
@@ -47,7 +47,7 @@ jobs:
 
     # Add another cache for Pip as not all packages lives in Conda env
     - name: Cache pip
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('requirements/base.txt') }}
@@ -80,7 +80,7 @@ jobs:
       shell: bash -l {0}
 
     - name: Cache datasets
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
