@@ -9,12 +9,23 @@ from torch.utils.data import DataLoader
 
 class _DataModuleWrapper(type):
     def __call__(cls, *args, **kwargs):
-        """A wrapper to inject rank_zero_only around user's prepare_data()
-        function in subclasses of LightningDataModule.
+        """A wrapper for LightningDataModule that:
+
+            1. Runs user defined subclass's __init__
+            2. Assures prepare_data() runs on rank 0
+            3. Runs prepare_data()
+            4. Runs setup()
         """
+
+        # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
-        pd = rank_zero_only(obj.prepare_data)
-        obj.prepare_data = pd
+
+        # Wrap instance's prepare_data function with rank_zero_only and reassign to instance
+        obj.prepare_data = rank_zero_only(obj.prepare_data)
+
+        # Run both prepare_data() and setup() post-init
+        obj.prepare_data()
+        obj.setup()
         return obj
 
 
