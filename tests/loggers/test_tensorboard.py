@@ -32,6 +32,9 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, 'checkpoints'))) == 1
+    # save_dir must be a subpath of weights_save_path
+    assert (os.path.relpath(trainer.weights_save_path, trainer.logger.save_dir) ==
+            os.path.join('lightning_logs', 'version_0', 'checkpoints'))
     #
     # # verify tb logs
     # event_acc = EventAccumulator(folder_path)

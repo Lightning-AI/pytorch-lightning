@@ -1,5 +1,6 @@
 import os
 import pickle
+from pathlib import Path, PurePath
 from unittest import mock
 
 from pytorch_lightning import Trainer
@@ -95,4 +96,7 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     trainer.fit(model)
 
     assert trainer.ckpt_path == trainer.weights_save_path == str(tmpdir / 'project' / version / 'checkpoints')
+    # save_dir must be a subpath of weights_save_path
+    assert (os.path.relpath(trainer.weights_save_path, logger.save_dir) ==
+            os.path.join('project', version, 'checkpoints'))
     assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
