@@ -17,6 +17,8 @@ class TrainerModelHooksMixin(ABC):
             model = self.get_model()
         super_object = LightningModule
 
+        # assert model, 'no model passes'
+
         if not hasattr(model, method_name):
             # in case of calling deprecated method
             return False

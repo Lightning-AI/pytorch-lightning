@@ -1,5 +1,6 @@
 import inspect
 from argparse import Namespace
+from typing import Dict
 
 
 def str_to_bool(val):
@@ -93,7 +94,20 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
         return path_args
 
 
-class AttributeDict(dict):
+def flatten_dict(source, result=None):
+    if result is None:
+        result = {}
+
+    for k, v in source.items():
+        if isinstance(v, dict):
+            _ = flatten_dict(v, result)
+        else:
+            result[k] = v
+
+    return result
+
+
+class AttributeDict(Dict):
     """Extended dictionary accesisable with dot notation.
 
     >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})

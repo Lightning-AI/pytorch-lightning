@@ -15,6 +15,25 @@ PRETEND_N_OF_GPUS = 16
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_early_stop_dp(tmpdir):
+    """Make sure DDP works. with early stopping"""
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gpus=[0, 1],
+        distributed_backend='dp',
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
     tutils.set_random_master_port()
@@ -106,25 +125,6 @@ def test_single_gpu_model(tmpdir, gpus):
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         gpus=gpus
-    )
-
-    model = EvalModelTemplate()
-    tpipes.run_model_test(trainer_options, model)
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_early_stop_dp(tmpdir):
-    """Make sure DDP works. with early stopping"""
-    tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        distributed_backend='dp',
     )
 
     model = EvalModelTemplate()

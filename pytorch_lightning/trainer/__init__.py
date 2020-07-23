@@ -603,15 +603,18 @@ num_sanity_val_steps
 
 Sanity check runs n batches of val before starting the training routine.
 This catches any bugs in your validation without having to wait for the first validation check.
-The Trainer uses 5 steps by default. Turn it off or modify it here.
+The Trainer uses 2 steps by default. Turn it off or modify it here.
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(num_sanity_val_steps=5)
+    trainer = Trainer(num_sanity_val_steps=2)
 
     # turn it off
     trainer = Trainer(num_sanity_val_steps=0)
+
+    # check all validation data
+    trainer = Trainer(num_sanity_val_steps=-1)
 
 num_tpu_cores
 ^^^^^^^^^^^^^
