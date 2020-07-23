@@ -29,7 +29,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits and transforms across models.
+
     Example::
+
         class MyDataModule(LightningDataModule):
             def __init__(self):
                 super().__init__()
@@ -48,8 +50,10 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
             def test_dataloader(self):
                 test_split = Dataset(...)
                 return DataLoader(test_split)
-    A DataModule implements 4 key methods
+
+    A DataModule implements 5 key methods
     1. **prepare_data** (things to do on 1 GPU not on every GPU in distributed mode)
+    2. **setup**  (things to do on every GPU in distributed mode)
     2. **train_dataloader** the training dataloader.
     3. **val_dataloader** the val dataloader.
     4. **test_dataloader** the test dataloader.
@@ -116,11 +120,16 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         """
         Use this to download and prepare data.
         In distributed (GPU, TPU), this will only be called once.
+
         .. warning:: Do not assign anything to the datamodule in this step since this will only be called on 1 GPU.
+
         Pseudocode::
+
             dm.prepare_data()
             dm.setup()
+
         Example::
+
             def prepare_data(self):
                 download_imagenet()
                 clean_imagenet()
@@ -134,6 +143,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         This hook is called on every process when using DDP.
 
         Example::
+
             def setup(self):
                 data = load_data(...)
                 self.train_ds, self.val_ds, self.test_ds = split_data(data)
@@ -148,11 +158,14 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         Note:
             Lightning adds the correct sampler for distributed and arbitrary hardware.
             There is no need to set it yourself.
+
         Example::
+
             def train_dataloader(self):
                 dataset = MNIST(root=PATH, train=True, transform=transforms.ToTensor(), download=False)
                 loader = torch.utils.data.DataLoader(dataset=dataset)
                 return loader
+
         """
         rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
 
@@ -167,7 +180,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
             There is no need to set it yourself.
         Note:
             You can also return a list of DataLoaders
+
         Example::
+
             def val_dataloader(self):
                 dataset = MNIST(root=PATH, train=False, transform=transforms.ToTensor(), download=False)
                 loader = torch.utils.data.DataLoader(dataset=dataset, shuffle=False)
@@ -185,7 +200,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
             There is no need to set it yourself.
         Note:
             You can also return a list of DataLoaders
+
         Example::
+
             def test_dataloader(self):
                 dataset = MNIST(root=PATH, train=False, transform=transforms.ToTensor(), download=False)
                 loader = torch.utils.data.DataLoader(dataset=dataset, shuffle=False)
@@ -251,10 +268,13 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 parsed and passed to the :class:`LightningDataModule`.
             **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
                 These must be valid DataModule arguments.
+
         Example::
+
             parser = ArgumentParser(add_help=False)
             parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
+
         """
         if isinstance(args, ArgumentParser):
             args = cls.parse_argparser(args)
