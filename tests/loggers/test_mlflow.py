@@ -39,6 +39,6 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
     assert trainer.ckpt_path == trainer.weights_save_path == (tmpdir / exp_id / run_id / 'checkpoints')
     # save_dir must be a subpath of weights_save_path
-    assert (os.path.relpath(trainer.weights_save_path, logger.save_dir) ==
-            os.path.join(exp_id, run_id, 'checkpoints'))
+    assert (os.path.relpath(trainer.weights_save_path, logger.save_dir)
+            == os.path.join(exp_id, run_id, 'checkpoints'))
     assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
