@@ -265,9 +265,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         Create an instance from CLI arguments.
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
-                parsed and passed to the :class:`LightningDataModule`.
+             parsed and passed to the :class:`LightningDataModule`.
             **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
-                These must be valid DataModule arguments.
+             These must be valid DataModule arguments.
 
         Example::
 
