@@ -8,13 +8,12 @@ from torch.utils.data import DataLoader
 
 
 class _DataModuleWrapper(type):
+
     def __call__(cls, *args, **kwargs):
         """A wrapper for LightningDataModule that:
 
             1. Runs user defined subclass's __init__
             2. Assures prepare_data() runs on rank 0
-            3. Runs prepare_data()
-            4. Runs setup()
         """
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
@@ -23,9 +22,6 @@ class _DataModuleWrapper(type):
         # Wrap instance's prepare_data function with rank_zero_only and reassign to instance
         obj.prepare_data = rank_zero_only(obj.prepare_data)
 
-        # Run both prepare_data() and setup() post-init
-        obj.prepare_data()
-        obj.setup()
         return obj
 
 
@@ -278,7 +274,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
             List with tuples of 3 values:
             (argument name, set with argument types, argument default value).
         """
-        datamodule_default_params = inspect.signature(cls).parameters
+        datamodule_default_params = inspect.signature(cls.__init__).parameters
         name_type_default = []
         for arg in datamodule_default_params:
             arg_type = datamodule_default_params[arg].annotation
