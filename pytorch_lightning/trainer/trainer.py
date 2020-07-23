@@ -950,6 +950,12 @@ class Trainer(
         if hasattr(model, 'hparams'):
             parsing.clean_namespace(model.hparams)
 
+        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+        if (train_dataloader or val_dataloaders) and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
+            )
+
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
         self.__attach_datamodule(model, datamodule)
@@ -1332,6 +1338,12 @@ class Trainer(
 
         if self.global_rank != 0:
             return
+
+        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+        if test_dataloaders and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
+            )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.__attach_datamodule(model or self.get_model(), datamodule)

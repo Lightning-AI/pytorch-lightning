@@ -39,6 +39,10 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 super().__init__()
             def prepare_data(self):
                 # download, split, etc...
+                # only called on rank 0
+            def setup(self):
+                # make assignments here
+                # called on every process in DDP
             def train_dataloader(self):
                 train_split = Dataset(...)
                 return DataLoader(train_split)
@@ -72,6 +76,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
     @property
     def train_transforms(self):
+        """
+        Optional transforms you can apply to train dataset
+        """
         return self._train_transforms
 
     @train_transforms.setter
@@ -80,6 +87,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
     @property
     def val_transforms(self):
+        """
+        Optional transforms you can apply to validation dataset
+        """
         return self._val_transforms
 
     @val_transforms.setter
@@ -88,6 +98,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
     @property
     def test_transforms(self):
+        """
+        Optional transforms you can apply to test dataset
+        """
         return self._test_transforms
 
     @test_transforms.setter
@@ -96,9 +109,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
     def size(self, dim=None) -> Union[Tuple, int]:
         """
-        Return the dimension of each input
-        Either as a tuple or list of tuples
+        Return the dimension of each input either as a tuple or list of tuples.
         """
+
         if dim is not None:
             return self.dims[dim]
 
@@ -109,18 +122,27 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         """
         Use this to download and prepare data.
         In distributed (GPU, TPU), this will only be called once.
-        This is called before requesting the dataloaders:
-        .. warning:: Do not assign anything to the model in this step since this will only be called on 1 GPU.
+        .. warning:: Do not assign anything to the datamodule in this step since this will only be called on 1 GPU.
         Pseudocode::
-            model.prepare_data()
-            model.train_dataloader()
-            model.val_dataloader()
-            model.test_dataloader()
+            dm.prepare_data()
+            dm.setup()
         Example::
             def prepare_data(self):
                 download_imagenet()
                 clean_imagenet()
                 cache_imagenet()
+        """
+
+    @abstractmethod
+    def setup(self, *args, **kwargs):
+        """
+        Use this to load your data from file, split it, etc. You are safe to make state assignments here.
+        This hook is called on every process when using DDP.
+
+        Example::
+            def setup(self):
+                data = load_data(...)
+                self.train_ds, self.val_ds, self.test_ds = split_data(data)
         """
 
     @abstractmethod
