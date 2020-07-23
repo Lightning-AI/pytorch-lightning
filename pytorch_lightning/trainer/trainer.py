@@ -1198,9 +1198,6 @@ class Trainer(
 
             return eval_loop_results
 
-        should_sanity_check = self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 \
-            and self.limit_val_batches > 0
-
         # run a few val batches before training starts
         self._run_sanity_check(ref_model, model)
 
@@ -1215,6 +1212,9 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
+        should_sanity_check = self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 \
+            and self.limit_val_batches > 0
+
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         if should_sanity_check:
