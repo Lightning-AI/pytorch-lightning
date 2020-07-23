@@ -321,7 +321,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     )
     trainer.fit(model)
 
-    # These should be different if the dirpath has be overridden
+    # These should be different if the dirpath has been overridden
     assert trainer.ckpt_path != trainer.default_root_dir
 
 

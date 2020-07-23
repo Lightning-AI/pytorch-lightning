@@ -419,10 +419,7 @@ class Trainer(
         self.should_stop = False
         self.running_sanity_check = False
 
-        # set default save path if user didn't provide one
-        if default_root_dir is None:
-            default_root_dir = os.getcwd()
-        self.default_root_dir = default_root_dir
+        self._default_root_dir = default_root_dir
 
         # init callbacks
         self.callbacks = callbacks or []
@@ -436,7 +433,7 @@ class Trainer(
         # configure checkpoint callback
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
-        self.weights_save_path = weights_save_path
+        self._weights_save_path = weights_save_path
         checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
@@ -893,6 +890,27 @@ class Trainer(
         """ Check if we should run validation during training. """
         val_loop_enabled = (self.is_overridden('validation_step') and self.limit_val_batches > 0)
         return val_loop_enabled or self.fast_dev_run
+
+    @property
+    def default_root_dir(self) -> str:
+        """ set default save path if user didn't provide one """
+        path = self._default_root_dir or os.getcwd()
+        path = os.path.normpath(path)
+        return path
+
+    @default_root_dir.setter
+    def default_root_dir(self, path: str):
+        self._default_root_dir = path
+
+    @property
+    def weights_save_path(self) -> str:
+        path = self._weights_save_path or self.default_root_dir
+        path = os.path.normpath(path)
+        return path
+
+    @weights_save_path.setter
+    def weights_save_path(self, path: str):
+        self._weights_save_path = path
 
     # -----------------------------
     # MODEL TRAINING

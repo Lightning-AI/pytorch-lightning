@@ -53,10 +53,6 @@ class TrainerCallbackConfigMixin(ABC):
         if checkpoint_callback:
             checkpoint_callback.save_function = self.save_checkpoint
 
-        # if weights_save_path is still none here, set to current working dir
-        if self.weights_save_path is None:
-            self.weights_save_path = self.default_root_dir
-
         return checkpoint_callback
 
     def configure_early_stopping(self, early_stop_callback):

@@ -242,10 +242,11 @@ class ModelCheckpoint(Callback):
         self.filename = '{epoch}'
 
         if trainer.logger is not None:
-            # weights_save_path overrides anything
-            save_dir = (getattr(trainer, 'weights_save_path', None)
-                        or getattr(trainer.logger, 'save_dir', None)
-                        or trainer.default_root_dir)
+            if trainer.weights_save_path != trainer.default_root_dir:
+                # the user has changed weights_save_path, it overrides anything
+                save_dir = trainer.weights_save_path
+            else:
+                save_dir = trainer.logger.save_dir or trainer.default_root_dir
 
             version = trainer.logger.version if isinstance(
                 trainer.logger.version, str) else f'version_{trainer.logger.version}'
@@ -263,7 +264,6 @@ class ModelCheckpoint(Callback):
         assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
 
         os.makedirs(self.dirpath, exist_ok=True)
-        trainer.ckpt_path = ckpt_path
         trainer.weights_save_path = ckpt_path
 
     @rank_zero_only
