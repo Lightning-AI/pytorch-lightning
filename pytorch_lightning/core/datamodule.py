@@ -15,7 +15,8 @@ class _DataModuleWrapper(type):
             1. Runs user defined subclass's __init__
             2. Assures prepare_data() runs on rank 0
         """
-        # Wrap cls's prepare_data function with rank_zero_only and reassign to instance
+
+        # Wrap cls's prepare_data function with rank_zero_only
         cls.prepare_data = rank_zero_only(cls.prepare_data)
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
