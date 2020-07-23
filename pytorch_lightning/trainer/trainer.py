@@ -1132,10 +1132,6 @@ class Trainer(
 
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
-            if self.is_overridden('setup', datamodule):
-                model.setup = datamodule.setup
-            if self.is_overridden('prepare_data', datamodule):
-                model.prepare_data = datamodule.prepare_data
             if self.is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
             if self.is_overridden('val_dataloader', datamodule):

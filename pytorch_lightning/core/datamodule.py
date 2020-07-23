@@ -3,11 +3,22 @@ from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from typing import Union, List, Tuple, Any
 
-from pytorch_lightning.utilities import rank_zero_warn, parsing
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, parsing
 from torch.utils.data import DataLoader
 
 
-class LightningDataModule(object):  # pragma: no cover
+class _DataModuleWrapper(type):
+    def __call__(cls, *args, **kwargs):
+        """A wrapper to inject rank_zero_only around user's prepare_data()
+        function in subclasses of LightningDataModule.
+        """
+        obj = type.__call__(cls, *args, **kwargs)
+        pd = rank_zero_only(obj.prepare_data)
+        obj.prepare_data = pd
+        return obj
+
+
+class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no cover
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits and transforms across models.
@@ -99,12 +110,6 @@ class LightningDataModule(object):  # pragma: no cover
                 download_imagenet()
                 clean_imagenet()
                 cache_imagenet()
-        """
-
-    @abstractmethod
-    def setup(self, stage):
-        """
-        Use this to make assignments to the class.
         """
 
     @abstractmethod
