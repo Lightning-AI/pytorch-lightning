@@ -159,7 +159,11 @@ class ModelCheckpoint(Callback):
         if os.path.isfile(filepath):
             os.remove(filepath)
 
-    def _save_model(self, filepath):
+    def _save_model(self, filepath, trainer, pl_module):
+
+        # in debugging, track when we save checkpoints
+        trainer.dev_debugger.track_checkpointing_history(filepath)
+
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
@@ -270,6 +274,15 @@ class ModelCheckpoint(Callback):
 
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
+
+        # support structured results
+        if metrics.get('checkpoint_on') is not None:
+            self.monitor = 'checkpoint_on'
+
+        # conditioned val metrics override conditioned train loop metrics
+        if metrics.get('val_checkpoint_on') is not None:
+            self.monitor = 'val_checkpoint_on'
+
         if self.save_top_k == 0:
             # no models are saved
             return
@@ -281,7 +294,7 @@ class ModelCheckpoint(Callback):
 
         if self.save_last:
             filepath = os.path.join(self.dirpath, self.prefix + 'last.ckpt')
-            self._save_model(filepath)
+            self._save_model(filepath, trainer, pl_module)
 
         filepath = self.format_checkpoint_name(epoch, metrics)
         version_cnt = 0
@@ -306,7 +319,7 @@ class ModelCheckpoint(Callback):
                     f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
                 )
             elif self.check_monitor_top_k(current):
-                self._do_check_save(filepath, current, epoch)
+                self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose > 0:
                 log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}')
 
@@ -315,9 +328,9 @@ class ModelCheckpoint(Callback):
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
 
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-            self._save_model(filepath)
+            self._save_model(filepath, trainer, pl_module)
 
-    def _do_check_save(self, filepath, current, epoch):
+    def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
         # remove kth
 
         del_list = []
@@ -343,7 +356,7 @@ class ModelCheckpoint(Callback):
                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                 f' {current:0.5f} (best {self.best_model_score:0.5f}), saving model to'
                 f' {filepath} as top {self.save_top_k}')
-        self._save_model(filepath)
+        self._save_model(filepath, trainer, pl_module)
 
         for cur_path in del_list:
             if cur_path != filepath:

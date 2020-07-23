@@ -68,12 +68,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: True if using amp
         self.use_amp = False
 
-        #: Current dtype
-        self._dtype = torch.float
-
-        #: device reference
-        self._device = torch.device('cpu')
-
         # optionally can be set by user
         self._example_input_array = None
 
@@ -476,8 +470,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 # CASE 2: multiple validation datasets
-                def validation_step(self, batch, batch_idx, dataset_idx):
-                    # dataset_idx tells you which dataset this is.
+                def validation_step(self, batch, batch_idx, dataloader_idx):
+                    # dataloader_idx tells you which dataset this is.
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -704,8 +698,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 # CASE 2: multiple test datasets
-                def test_step(self, batch, batch_idx, dataset_idx):
-                    # dataset_idx tells you which dataset this is.
+                def test_step(self, batch, batch_idx, dataloader_idx):
+                    # dataloader_idx tells you which dataset this is.
 
         Note:
             If you don't need to validate you don't need to implement this method.
@@ -1432,10 +1426,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     return loader
 
+                # can also return multiple dataloaders
+                def test_dataloader(self):
+                    return [loader_a, loader_b, ..., loader_n]
+
         Note:
             If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
             this method.
 
+        Note:
+            In the case where you return multiple test dataloaders, the :meth:`test_step`
+            will have an argument ``dataloader_idx`` which matches the order here.
         """
 
     def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
@@ -1487,7 +1488,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         Note:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
-            will have an argument ``dataset_idx`` which matches the order here.
+            will have an argument ``dataloader_idx`` which matches the order here.
         """
 
     def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:

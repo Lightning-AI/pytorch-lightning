@@ -33,6 +33,8 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.core.step_result import EvalResult
 import warnings
 
 # warnings to ignore in trainer
@@ -105,7 +107,7 @@ class Trainer(
         ...     def test_step(self, batch, batch_nb):
         ...         x, y = batch
         ...         loss = F.cross_entropy(self(x), y)
-        ...         return {'loss': loss, 'log': {'train_loss': loss}}
+        ...         return {'loss': loss, 'log': {'test_loss': loss}}
         ...
         ...     def configure_optimizers(self):
         ...         return torch.optim.Adam(self.parameters(), lr=0.02)
@@ -128,8 +130,9 @@ class Trainer(
         >>> trainer = Trainer(max_epochs=1, progress_bar_refresh_rate=0)
         >>> trainer.fit(model, train_loader)
         1
-        >>> trainer.test(model, train_loader)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-        1
+        >>> test_outputs = trainer.test(model, train_loader, verbose=False)
+        >>> len(test_outputs)
+        25
     """
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
@@ -382,7 +385,7 @@ class Trainer(
         # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
         # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
-            rank_zero_only.rank = os.environ['LOCAL_RANK']
+            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
         # training bookeeping
         self.total_batch_idx = 0
@@ -396,6 +399,9 @@ class Trainer(
         self.train_dataloader = None
         self.test_dataloaders = None
         self.val_dataloaders = None
+
+        # when true, prints test results
+        self.verbose_test = True
 
         # when .test() is called, it sets this
         self.tested_ckpt_path = None
@@ -411,6 +417,7 @@ class Trainer(
         self.current_epoch = 0
         self.interrupted = False
         self.should_stop = False
+        self.running_sanity_check = False
 
         # set default save path if user didn't provide one
         if default_root_dir is None:
@@ -611,6 +618,9 @@ class Trainer(
         self.init_amp()
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+
+        # tracks internal state for debugging
+        self.dev_debugger = InternalDebugger(self)
 
         # Callback system
         self.on_init_end()
@@ -1137,7 +1147,6 @@ class Trainer(
         if self.logger is not None:
             # save exp to get started
             self.logger.log_hyperparams(ref_model.hparams)
-
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
@@ -1175,27 +1184,44 @@ class Trainer(
         if self.testing:
             # only load test dataloader for testing
             # self.reset_test_dataloader(ref_model)
-            results = self.run_evaluation(test_mode=True)
+            eval_loop_results, _ = self.run_evaluation(test_mode=True)
 
-            # remove all cuda tensors
-            if results is not None and isinstance(results, dict) and len(results) > 0:
-                for k, v in results.items():
-                    if isinstance(v, torch.Tensor):
-                        results[k] = v.cpu().item()
-
-                return results
-            else:
+            if len(eval_loop_results) == 0:
                 return 1
+
+            # remove the tensors from the eval results
+            for i, result in enumerate(eval_loop_results):
+                if isinstance(result, dict):
+                    for k, v in result.items():
+                        if isinstance(v, torch.Tensor):
+                            result[k] = v.cpu().item()
+
+            return eval_loop_results
 
         should_sanity_check = self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 \
             and self.limit_val_batches > 0
 
+        # run a few val batches before training starts
+        self._run_sanity_check(ref_model, model)
+
+        # clear cache before training
+        if self.on_gpu and self.root_gpu is not None:
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
+
+        # CORE TRAINING LOOP
+        self.train()
+
+    def _run_sanity_check(self, ref_model, model):
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
         if should_sanity_check:
             self.reset_val_dataloader(ref_model)
 
             # hook and callback
+            self.running_sanity_check = True
             ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
@@ -1208,26 +1234,25 @@ class Trainer(
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
-                _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                # when we get a list back, used only the last item
+                if isinstance(eval_results, list):
+                    eval_results = eval_results[-1]
+
+                if isinstance(eval_results, EvalResult):
+                    callback_metrics = eval_results.callback_metrics
+                else:
+                    _, _, _, callback_metrics, _ = self.process_output(eval_results)
                 self.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
-
-        # clear cache before training
-        if self.on_gpu and self.root_gpu is not None:
-            # use context because of:
-            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-            with torch.cuda.device(f'cuda:{self.root_gpu}'):
-                torch.cuda.empty_cache()
-
-        # CORE TRAINING LOOP
-        self.train()
+            self.running_sanity_check = False
 
     def test(
             self,
             model: Optional[LightningModule] = None,
             test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            ckpt_path: Optional[str] = 'best'
+            ckpt_path: Optional[str] = 'best',
+            verbose: bool = True
     ):
         r"""
 
@@ -1241,6 +1266,11 @@ class Trainer(
 
             ckpt_path: Either ``best`` or path to the checkpoint you wish to test.
                 If ``None``, use the weights from the last epoch to test. Default to ``best``.
+
+            verbose: If True, prints the test results
+
+        Returns:
+            The final test result dictionary. If no test_epoch_end is defined returns a list of dictionaries
 
         Example::
 
@@ -1281,6 +1311,8 @@ class Trainer(
         # --------------------
         # SETUP HOOK
         # --------------------
+        self.verbose_test = verbose
+
         if self.global_rank != 0:
             return
 

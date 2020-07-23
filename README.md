@@ -361,6 +361,7 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Contextual Emotion Detection (DoubleDistilBert)](https://github.com/PyTorchLightning/emotion_transformer)
 - [Generative Adversarial Network](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0)
 - [Hyperparameter optimization with Optuna](https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py)
+- [Hyperparameter optimization with Ray Tune](https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html)
 - [Image Inpainting using Partial Convolutions](https://github.com/ryanwongsa/Image-Inpainting)
 - [MNIST on TPU](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_)
 - [NER (transformers, TPU, huggingface)](https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D)
@@ -371,7 +372,7 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Transformers transfer learning (Huggingface)](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf)
 - [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
 - [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
-- [Finetune BERT, RoBERTa etc on QA Datasets like SQuAD](https://github.com/tshrjn/Finetune-QA/)
+- [Transformers Question Answering (SQuAD)](https://github.com/tshrjn/Finetune-QA/)
 - [Pytorch-Lightning + Microsoft NNI with Docker](https://github.com/davinnovation/pytorch-boilerplate)
 
 ## Tutorials

@@ -21,12 +21,12 @@ def test_single_gpu_test(tmpdir):
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
     results = trainer.test()
-    assert 'test_acc' in results
+    assert 'test_acc' in results[0]
 
     old_weights = model.c_d1.weight.clone().detach().cpu()
 
     results = trainer.test(model)
-    assert 'test_acc' in results
+    assert 'test_acc' in results[0]
 
     # make sure weights didn't change
     new_weights = model.c_d1.weight.clone().detach().cpu()
@@ -50,12 +50,12 @@ def test_dp_test(tmpdir):
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
     results = trainer.test()
-    assert 'test_acc' in results
+    assert 'test_acc' in results[0]
 
     old_weights = model.c_d1.weight.clone().detach().cpu()
 
     results = trainer.test(model)
-    assert 'test_acc' in results
+    assert 'test_acc' in results[0]
 
     # make sure weights didn't change
     new_weights = model.c_d1.weight.clone().detach().cpu()
@@ -79,12 +79,12 @@ def test_ddp_spawn_test(tmpdir):
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
     results = trainer.test()
-    assert 'test_acc' in results
+    assert 'test_acc' in results[0]
 
     old_weights = model.c_d1.weight.clone().detach().cpu()
 
     results = trainer.test(model)
-    assert 'test_acc' in results
+    assert 'test_acc' in results[0]
 
     # make sure weights didn't change
     new_weights = model.c_d1.weight.clone().detach().cpu()

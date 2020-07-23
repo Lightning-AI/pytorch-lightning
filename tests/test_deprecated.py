@@ -126,31 +126,31 @@ class ModelVer0_7(EvalModelTemplate):
     def test_end(self, outputs):
         return {'test_loss': torch.tensor(0.7)}
 
-
-def test_tbd_remove_in_v1_0_0_model_hooks():
-
-    model = ModelVer0_6()
-
-    with pytest.deprecated_call(match='v1.0'):
-        trainer = Trainer(logger=False)
-        trainer.test(model)
-    assert trainer.callback_metrics == {'test_loss': torch.tensor(0.6)}
-
-    with pytest.deprecated_call(match='will be removed in v1.0'):
-        trainer = Trainer(logger=False)
-        # TODO: why `dataloder` is required if it is not used
-        result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
-    assert result == {'val_loss': torch.tensor(0.6)}
-
-    model = ModelVer0_7()
-
-    with pytest.deprecated_call(match='will be removed in v1.0'):
-        trainer = Trainer(logger=False)
-        trainer.test(model)
-    assert trainer.callback_metrics == {'test_loss': torch.tensor(0.7)}
-
-    with pytest.deprecated_call(match='will be removed in v1.0'):
-        trainer = Trainer(logger=False)
-        # TODO: why `dataloder` is required if it is not used
-        result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
-    assert result == {'val_loss': torch.tensor(0.7)}
+#
+# def test_tbd_remove_in_v1_0_0_model_hooks():
+#
+#     model = ModelVer0_6()
+#
+#     with pytest.deprecated_call(match='will be removed in v1.0. Use `test_epoch_end` instead'):
+#         trainer = Trainer(logger=False)
+#         trainer.test(model)
+#     assert trainer.callback_metrics == {'test_loss': torch.tensor(0.6)}
+#
+#     with pytest.deprecated_call(match='will be removed in v1.0. Use `validation_epoch_end` instead'):
+#         trainer = Trainer(logger=False)
+#         # TODO: why `dataloder` is required if it is not used
+#         result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
+#     assert result[0] == {'val_loss': torch.tensor(0.6)}
+#
+#     model = ModelVer0_7()
+#
+#     with pytest.deprecated_call(match='will be removed in v1.0. Use `test_epoch_end` instead'):
+#         trainer = Trainer(logger=False)
+#         trainer.test(model)
+#     assert trainer.callback_metrics == {'test_loss': torch.tensor(0.7)}
+#
+#     with pytest.deprecated_call(match='will be removed in v1.0. Use `validation_epoch_end` instead'):
+#         trainer = Trainer(logger=False)
+#         # TODO: why `dataloder` is required if it is not used
+#         result = trainer._evaluate(model, dataloaders=[[None]], max_batches=1)
+#     assert result[0] == {'val_loss': torch.tensor(0.7)}

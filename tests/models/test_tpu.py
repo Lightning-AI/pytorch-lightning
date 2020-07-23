@@ -151,23 +151,6 @@ def test_early_stop_checkpoints_on_tpu(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
-        tpu_cores=[1],
-    )
-    trainer.fit(model)
-    assert torch_xla._XLAC._xla_get_default_device() == 'xla:1'
-
-
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_early_stop_checkpoints_on_tpu(tmpdir):
-    """Test if single TPU core training works"""
-    model = EvalModelTemplate()
-    trainer = Trainer(
-        early_stop_callback=True,
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
         tpu_cores=[8],
     )
     trainer.fit(model)
