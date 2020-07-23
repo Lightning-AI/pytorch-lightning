@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
+from torch.optim.lr_scheduler import _LRScheduler
 from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -298,8 +299,13 @@ class TrainerDPMixin(ABC):
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= hvd.size()
 
+        # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
+        for scheduler in self.lr_schedulers:
+            scheduler = scheduler['scheduler']
+            if isinstance(scheduler, _LRScheduler):
+                scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
+
         if self.use_amp:
-            # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
