@@ -893,7 +893,11 @@ class Trainer(
 
     @property
     def default_root_dir(self) -> str:
-        """ set default save path if user didn't provide one """
+        """
+        The default location to save artifacts of loggers, checkpoints etc.
+        It is used as a fallback if logger or checkpoint callback do not define specific save paths.
+        Defaults to ``os.getcwd()``.
+        """
         path = self._default_root_dir or os.getcwd()
         path = os.path.normpath(path)
         return path
@@ -904,6 +908,11 @@ class Trainer(
 
     @property
     def weights_save_path(self) -> str:
+        """
+        The default location to save weights (checkpoints), e.g., when the
+        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a save location.
+        It defaults to :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir`.
+        """
         path = self._weights_save_path or self.default_root_dir
         path = os.path.normpath(path)
         return path

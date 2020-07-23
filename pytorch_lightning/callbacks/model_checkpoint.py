@@ -41,8 +41,10 @@ class ModelCheckpoint(Callback):
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
-            Can also be set to `None`, then it will be set to default location
-            during trainer construction.
+            Can also be set to `None`, then it will be set to the location
+            specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments.
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
@@ -233,8 +235,17 @@ class ModelCheckpoint(Callback):
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         """
-        Determine model checkpoint save directory at runtime. References attributes from the
-        Trainer's logger to determine where to save checkpoints.
+        Determines model checkpoint save directory at runtime. References attributes from the
+        trainer's logger to determine where to save checkpoints.
+        The base path for saving weights is set in this priority:
+
+        1.  Checkpoint callback's path (if passed in)
+        2.  The default_root_dir from trainer if trainer has no logger
+        3.  The weights_save_path from trainer, if user provides it
+        4.  User provided weights_saved_path
+
+        The base path gets extended with logger name and version (if these are available)
+        and subfolder "checkpoints".
         """
         if self.dirpath is not None:
             return  # short circuit
