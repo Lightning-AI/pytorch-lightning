@@ -4,7 +4,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.distributed as torch_distrib
@@ -18,10 +18,10 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.core.saving import ModelIO, PRIMITIVE_TYPES, ALLOWED_CONFIG_TYPES
-from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
+from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
 
 try:
@@ -33,7 +33,6 @@ else:
 
 
 class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -79,11 +78,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:
         self._example_input_array = example
-    
+
     @property
     def datamodule(self) -> Any:
         return self._datamodule
-    
+
     @datamodule.setter
     def datamodule(self, datamodule: Any) -> None:
         self._datamodule = datamodule
@@ -168,9 +167,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         """
 
-    def training_step(self, *args, **kwargs) -> Union[
-        int, Dict[str, Union[Tensor, Dict[str, Tensor]]]
-    ]:
+    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -261,8 +258,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def training_epoch_end(
-            self,
-            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """Called at the end of the training epoch with the outputs of all training steps.
 
@@ -337,9 +333,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def training_step_end(self, *args, **kwargs) -> Dict[
-        str, Union[Tensor, Dict[str, Tensor]]
-    ]:
+    def training_step_end(self, *args, **kwargs) -> Dict[str, Union[Tensor, Dict[str, Tensor]]]:
         """
         Use this when training with dp or ddp2 because :meth:`training_step`
         will operate on only part of the batch. However, this is still optional
@@ -558,8 +552,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def validation_epoch_end(
-            self,
-            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
@@ -785,8 +778,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def test_epoch_end(
-            self,
-            outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
     ) -> Dict[str, Dict[str, Tensor]]:
         """
         Called at the end of a test epoch with the output of all test steps.
@@ -862,11 +854,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def configure_ddp(
-            self,
-            model: 'LightningModule',
-            device_ids: List[int]
-    ) -> DistributedDataParallel:
+    def configure_ddp(self, model: 'LightningModule', device_ids: List[int]) -> DistributedDataParallel:
         r"""
         Override to init DDP in your own way or with your own wrapper.
         The only requirements are that:
@@ -896,11 +884,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return model
 
         """
-        model = LightningDistributedDataParallel(
-            model,
-            device_ids=device_ids,
-            find_unused_parameters=True
-        )
+        model = LightningDistributedDataParallel(model, device_ids=device_ids, find_unused_parameters=True)
         return model
 
     def _init_slurm_connection(self) -> None:
@@ -936,12 +920,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
-    def init_ddp_connection(
-            self,
-            global_rank: int,
-            world_size: int,
-            is_slurm_managing_tasks: bool = True
-    ) -> None:
+    def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
         """
         Override to define your custom way of setting up a distributed environment.
 
@@ -968,19 +947,17 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
 
         if 'WORLD_SIZE' in os.environ and int(os.environ['WORLD_SIZE']) != world_size:
-            rank_zero_warn(f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
-                           f"is not equal to the computed world size ({world_size}). Ignored.")
+            rank_zero_warn(
+                f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
+                f"is not equal to the computed world size ({world_size}). Ignored."
+            )
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
     def configure_apex(
-            self,
-            amp: object,
-            model: 'LightningModule',
-            optimizers: List[Optimizer],
-            amp_level: str
+        self, amp: object, model: 'LightningModule', optimizers: List[Optimizer], amp_level: str
     ) -> Tuple['LightningModule', List[Optimizer]]:
         r"""
         Override to init AMP your own way.
@@ -1010,9 +987,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         return model, optimizers
 
-    def configure_optimizers(self) -> Optional[Union[
-        Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]
-    ]]:
+    def configure_optimizers(
+        self,
+    ) -> Optional[Union[Optimizer, Sequence[Optimizer], Dict, Sequence[Dict], Tuple[List, List]]]:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
@@ -1129,15 +1106,15 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         rank_zero_warn('`configure_optimizers` must be implemented to be used with the Lightning Trainer')
 
     def optimizer_step(
-            self,
-            epoch: int,
-            batch_idx: int,
-            optimizer: Optimizer,
-            optimizer_idx: int,
-            second_order_closure: Optional[Callable] = None,
-            on_tpu: bool = False,
-            using_native_amp: bool = False,
-            using_lbfgs: bool = False,
+        self,
+        epoch: int,
+        batch_idx: int,
+        optimizer: Optimizer,
+        optimizer_idx: int,
+        second_order_closure: Optional[Callable] = None,
+        on_tpu: bool = False,
+        using_native_amp: bool = False,
+        using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the
@@ -1214,11 +1191,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             optimizer.step()
 
-    def optimizer_zero_grad(self,
-                            epoch: int,
-                            batch_idx: int,
-                            optimizer: Optimizer,
-                            optimizer_idx: int):
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Tensor, split_size: int) -> list:
@@ -1273,11 +1246,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_split = []
             for i, x in enumerate(batch):
                 if isinstance(x, torch.Tensor):
-                    split_x = x[:, t:t + split_size]
+                    split_x = x[:, t : t + split_size]
                 elif isinstance(x, collections.Sequence):
                     split_x = [None] * len(x)
                     for batch_idx in range(len(x)):
-                        split_x[batch_idx] = x[batch_idx][t:t + split_size]
+                        split_x[batch_idx] = x[batch_idx][t : t + split_size]
 
                 batch_split.append(split_x)
 
@@ -1383,8 +1356,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Deprecated in v0.5.0. Use :meth:`train_dataloader` instead. Will be removed in 1.0.0.
         """
         output = self.train_dataloader()
-        rank_zero_warn("`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
-                       " and this method will be removed in v1.0.0", DeprecationWarning)
+        rank_zero_warn(
+            "`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
+            " and this method will be removed in v1.0.0",
+            DeprecationWarning,
+        )
         return output
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
@@ -1590,9 +1566,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         # call .item() only once but store elements without graphs
         running_train_loss = self.trainer.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
-        tqdm_dict = {
-            'loss': '{:.3f}'.format(avg_training_loss)
-        }
+        tqdm_dict = {'loss': '{:.3f}'.format(avg_training_loss)}
 
         if self.trainer.truncated_bptt_steps is not None:
             tqdm_dict['split_idx'] = self.trainer.split_idx
@@ -1613,8 +1587,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Deprecated since v0.7.3.
             Use :meth:`get_progress_bar_dict` instead.
         """
-        rank_zero_warn("`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
-                       " and this method will be removed in v1.0.0", DeprecationWarning)
+        rank_zero_warn(
+            "`get_tqdm_dict` was renamed to `get_progress_bar_dict` in v0.7.3"
+            " and this method will be removed in v1.0.0",
+            DeprecationWarning,
+        )
         return self.get_progress_bar_dict()
 
     @classmethod

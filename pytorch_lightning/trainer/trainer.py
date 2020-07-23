@@ -1,46 +1,46 @@
 import inspect
 import os
+import warnings
 from argparse import ArgumentParser, Namespace
-from typing import Union, Optional, List, Dict, Tuple, Iterable, Any
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as torch_distrib
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, Callback
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler, BaseProfiler
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
+from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import (
-    TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10)
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import (
-    TrainerDPMixin, _parse_gpu_ids, determine_root_gpu_device, pick_multiple_gpus, _parse_tpu_cores)
+from pytorch_lightning.trainer.distrib_parts import (TrainerDPMixin, _parse_gpu_ids, _parse_tpu_cores,
+                                                     determine_root_gpu_device, pick_multiple_gpus)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
+from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn, parsing, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
-from pytorch_lightning.core.step_result import EvalResult
-import warnings
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 # warnings to ignore in trainer
-warnings.filterwarnings('ignore', message='torch.distributed.reduce_op is deprecated, '
-                                          'please use torch.distributed.ReduceOp instead')
+warnings.filterwarnings(
+    'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
+)
 
 try:
     from apex import amp
@@ -135,6 +135,7 @@ class Trainer(
         >>> len(test_outputs)
         25
     """
+
     DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
@@ -192,7 +193,7 @@ class Trainer(
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        overfit_pct: float = None  # backward compatible, todo: remove in v1.0.0
+        overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
     ):
         r"""
 
@@ -460,16 +461,18 @@ class Trainer(
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
         if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
-            raise MisconfigurationException(
-                "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+            raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
         self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
 
         # tpu config
         if num_tpu_cores is not None:
-            rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
-                           " and this argument will be removed in v0.9.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
+                " and this argument will be removed in v0.9.0",
+                DeprecationWarning,
+            )
 
         if tpu_cores is None:
             tpu_cores = num_tpu_cores
@@ -492,8 +495,11 @@ class Trainer(
         self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
-            rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
-                           " NaN grads will be printed automatically when detected.", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
+                " NaN grads will be printed automatically when detected.",
+                DeprecationWarning,
+            )
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -511,8 +517,9 @@ class Trainer(
         if self.fast_dev_run:
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
-            rank_zero_info('Running in fast_dev_run mode: will run a full train,'
-                           ' val and test loop using a single batch')
+            rank_zero_info(
+                'Running in fast_dev_run mode: will run a full train,' ' val and test loop using a single batch'
+            )
 
         # configure profiler
         if profiler is True:
@@ -572,8 +579,11 @@ class Trainer(
         # how much of the data to use
         # TODO: remove in 0.10.0
         if overfit_pct is not None:
-            rank_zero_warn("Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
-                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
+                " and this argument will be removed in v0.10.0",
+                DeprecationWarning,
+            )
             overfit_batches = overfit_pct
 
         # convert floats to ints
@@ -581,20 +591,29 @@ class Trainer(
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
-            rank_zero_warn("Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
-                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+                " and this argument will be removed in v0.10.0",
+                DeprecationWarning,
+            )
             limit_val_batches = val_percent_check
 
         # TODO: remove in 0.10.0
         if test_percent_check is not None:
-            rank_zero_warn("Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
-                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+                " and this argument will be removed in v0.10.0",
+                DeprecationWarning,
+            )
             limit_test_batches = test_percent_check
 
         # TODO: remove in 0.10.0
         if train_percent_check is not None:
-            rank_zero_warn("Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
-                           " and this argument will be removed in v0.10.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+                " and this argument will be removed in v0.10.0",
+                DeprecationWarning,
+            )
             limit_train_batches = train_percent_check
 
         self.limit_test_batches = _determine_limit_batches(limit_test_batches)
@@ -611,8 +630,11 @@ class Trainer(
 
         # Backward compatibility, TODO: remove in v0.9.0
         if use_amp is not None:
-            rank_zero_warn("Argument `use_amp` is now set by `precision` since v0.7.0"
-                           " and this method will be removed in v0.9.0", DeprecationWarning)
+            rank_zero_warn(
+                "Argument `use_amp` is now set by `precision` since v0.7.0"
+                " and this method will be removed in v0.9.0",
+                DeprecationWarning,
+            )
             self.precision = 16 if use_amp else 32
 
         self.amp_level = amp_level
@@ -752,7 +774,7 @@ class Trainer(
              ...}
 
         """
-        parser = ArgumentParser(parents=[parent_parser], add_help=False, )
+        parser = ArgumentParser(parents=[parent_parser], add_help=False,)
 
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
@@ -760,8 +782,9 @@ class Trainer(
         allowed_types = (str, float, int, bool)
 
         # TODO: get "help" from docstring :)
-        for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
-                                            if at[0] not in depr_arg_names):
+        for arg, arg_types, arg_default in (
+            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
+        ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
                 # skip argument with not supported type
@@ -774,6 +797,7 @@ class Trainer(
                     # redefine the type for ArgParser needed
                     def use_type(x):
                         return bool(parsing.str_to_bool(x))
+
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
@@ -892,18 +916,18 @@ class Trainer(
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        val_loop_enabled = (self.is_overridden('validation_step') and self.limit_val_batches > 0)
+        val_loop_enabled = self.is_overridden('validation_step') and self.limit_val_batches > 0
         return val_loop_enabled or self.fast_dev_run
 
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
     def fit(
-            self,
-            model: LightningModule,
-            train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            datamodule: Optional[LightningDataModule] = None
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
         Runs the full optimization routine.
@@ -1095,7 +1119,7 @@ class Trainer(
         smp = mp.get_context('spawn')
         q = smp.SimpleQueue()
 
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model, ))
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model,))
 
         # restore main state with best weights
         best_path = q.get()
@@ -1132,7 +1156,7 @@ class Trainer(
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
     def __attach_datamodule(self, model, datamodule=None):
-        
+
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 
@@ -1191,9 +1215,7 @@ class Trainer(
             if self.weights_summary in ModelSummary.MODES:
                 ref_model.summarize(mode=self.weights_summary)
             else:
-                raise MisconfigurationException(
-                    "weights_summary can be None, " + ", ".join(ModelSummary.MODES)
-                )
+                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
 
         # track model now.
         # if cluster resets state, the model will update with the saved weights
@@ -1234,8 +1256,9 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
-        should_sanity_check = self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 \
-            and self.limit_val_batches > 0
+        should_sanity_check = (
+            self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
+        )
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -1249,10 +1272,7 @@ class Trainer(
 
             num_loaders = len(self.val_dataloaders)
             max_batches = [self.num_sanity_val_steps] * num_loaders
-            eval_results = self._evaluate(model,
-                                          self.val_dataloaders,
-                                          max_batches,
-                                          False)
+            eval_results = self._evaluate(model, self.val_dataloaders, max_batches, False)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
@@ -1270,12 +1290,12 @@ class Trainer(
             self.running_sanity_check = False
 
     def test(
-            self,
-            model: Optional[LightningModule] = None,
-            test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            ckpt_path: Optional[str] = 'best',
-            verbose: bool = True,
-            datamodule: Optional[LightningDataModule] = None
+        self,
+        model: Optional[LightningModule] = None,
+        test_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        ckpt_path: Optional[str] = 'best',
+        verbose: bool = True,
+        datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
 
@@ -1367,7 +1387,8 @@ class Trainer(
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
             raise MisconfigurationException(
-                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.')
+                'ckpt_path is "best", but ModelCheckpoint is not configured to save the best model.'
+            )
 
         # load best weights
         if ckpt_path is not None:
@@ -1376,8 +1397,10 @@ class Trainer(
                 ckpt_path = self.checkpoint_callback.best_model_path
 
             if len(ckpt_path) == 0:
-                rank_zero_warn(f'.test() found no path for the best weights, {ckpt_path}. Please '
-                               f'specify a path for a checkpoint .test(ckpt_path=PATH)')
+                rank_zero_warn(
+                    f'.test() found no path for the best weights, {ckpt_path}. Please '
+                    f'specify a path for a checkpoint .test(ckpt_path=PATH)'
+                )
                 return {}
 
             ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
@@ -1440,50 +1463,59 @@ class Trainer(
             if not self.is_overridden('training_step', model):
                 raise MisconfigurationException(
                     'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                )
 
             if not self.is_overridden('train_dataloader', model):
                 raise MisconfigurationException(
                     'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                )
 
             if not self.is_overridden('configure_optimizers', model):
                 raise MisconfigurationException(
                     'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.')
+                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
+                )
 
             # Check val_dataloader, validation_step and validation_epoch_end
             if self.is_overridden('val_dataloader', model):
                 if not self.is_overridden('validation_step', model):
-                    raise MisconfigurationException('You have passed in a `val_dataloader()`'
-                                                    ' but have not defined `validation_step()`.')
+                    raise MisconfigurationException(
+                        'You have passed in a `val_dataloader()`' ' but have not defined `validation_step()`.'
+                    )
                 else:
                     if not self.is_overridden('validation_epoch_end', model):
                         rank_zero_warn(
                             'You have defined a `val_dataloader()` and have defined a `validation_step()`,'
                             ' you may also want to define `validation_epoch_end()` for accumulating stats.',
-                            RuntimeWarning
+                            RuntimeWarning,
                         )
             else:
                 if self.is_overridden('validation_step', model):
-                    raise MisconfigurationException('You have defined `validation_step()`,'
-                                                    ' but have not passed in a `val_dataloader()`.')
+                    raise MisconfigurationException(
+                        'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.'
+                    )
 
         # Check test_dataloader, test_step and test_epoch_end
         if self.is_overridden('test_dataloader', model):
             if not self.is_overridden('test_step', model):
-                raise MisconfigurationException('You have passed in a `test_dataloader()`'
-                                                ' but have not defined `test_step()`.')
+                raise MisconfigurationException(
+                    'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.'
+                )
             else:
                 if not self.is_overridden('test_epoch_end', model):
                     rank_zero_warn(
                         'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
-                        ' define `test_epoch_end()` for accumulating stats.', RuntimeWarning
+                        ' define `test_epoch_end()` for accumulating stats.',
+                        RuntimeWarning,
                     )
         else:
             if self.testing and self.is_overridden('test_step', model):
-                raise MisconfigurationException('You have defined `test_step()` but did not'
-                                                ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.')
+                raise MisconfigurationException(
+                    'You have defined `test_step()` but did not'
+                    ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.'
+                )
 
     def barrier(self, name):
         if self.use_ddp or self.use_ddp2:
@@ -1504,6 +1536,7 @@ class _PatchDataLoader(object):
         dataloader: Dataloader object to return when called.
 
     """
+
     def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
         self.dataloader = dataloader
 

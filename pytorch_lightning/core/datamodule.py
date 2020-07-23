@@ -1,14 +1,14 @@
 import inspect
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
-from typing import Union, List, Tuple, Any
+from typing import Any, List, Tuple, Union
 
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn, parsing
 from torch.utils.data import DataLoader
+
+from pytorch_lightning.utilities import parsing, rank_zero_only, rank_zero_warn
 
 
 class _DataModuleWrapper(type):
-
     def __call__(cls, *args, **kwargs):
         """A wrapper for LightningDataModule that:
 
@@ -56,13 +56,11 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     This allows you to share a full dataset without explaining what the splits, transforms or download
     process is.
     """
+
     name: str = ...
 
     def __init__(
-            self,
-            train_transforms=None,
-            val_transforms=None,
-            test_transforms=None,
+        self, train_transforms=None, val_transforms=None, test_transforms=None,
     ):
         super().__init__()
         self._train_transforms = train_transforms
@@ -208,8 +206,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         allowed_types = (str, float, int, bool)
 
         # TODO: get "help" from docstring :)
-        for arg, arg_types, arg_default in (at for at in cls.get_init_arguments_and_types()
-                                            if at[0] not in depr_arg_names):
+        for arg, arg_types, arg_default in (
+            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
+        ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
                 # skip argument with not supported type
@@ -222,6 +221,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                     # redefine the type for ArgParser needed
                     def use_type(x):
                         return bool(parsing.str_to_bool(x))
+
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
