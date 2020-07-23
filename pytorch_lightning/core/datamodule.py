@@ -263,6 +263,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
         """
         Create an instance from CLI arguments.
+
         Args:
             args: The parser or namespace to take arguments from. Only known arguments will be
              parsed and passed to the :class:`LightningDataModule`.
