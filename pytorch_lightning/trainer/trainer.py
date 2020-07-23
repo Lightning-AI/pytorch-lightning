@@ -886,14 +886,13 @@ class Trainer(
     @property
     def disable_validation(self) -> bool:
         """ Check if validation is disabled during training. """
-        disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
-            and not self.fast_dev_run
-        return disable_validation
+        return not self.enable_validation
 
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        return not self.disable_validation
+        val_loop_enabled = (self.is_overridden('validation_step') and self.limit_val_batches > 0)
+        return val_loop_enabled or self.fast_dev_run
 
     # -----------------------------
     # MODEL TRAINING
