@@ -1,6 +1,5 @@
 import os
 import pickle
-from pathlib import Path, PurePath
 from unittest import mock
 
 from pytorch_lightning import Trainer
