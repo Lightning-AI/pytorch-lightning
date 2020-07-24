@@ -53,14 +53,16 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
     A DataModule implements 5 key methods:
 
-    1. **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode).
-    2. **setup**  (things to do on every accelerator in distributed mode).
-    2. **train_dataloader** the training dataloader.
-    3. **val_dataloader** the val dataloader(s).
-    4. **test_dataloader** the test dataloader(s).
+    * **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode).
+    * **setup**  (things to do on every accelerator in distributed mode).
+    * **train_dataloader** the training dataloader.
+    * **val_dataloader** the val dataloader(s).
+    * **test_dataloader** the test dataloader(s).
+
 
     This allows you to share a full dataset without explaining how to download,
     split transform and process the data
+
     """
 
     name: str = ...
@@ -77,7 +79,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     @property
     def train_transforms(self):
         """
-        Optional transforms you can apply to train dataset
+        Optional transforms (or collection of transforms) you can apply to train dataset
         """
         return self._train_transforms
 
@@ -88,7 +90,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     @property
     def val_transforms(self):
         """
-        Optional transforms you can apply to validation dataset
+        Optional transforms (or collection of transforms) you can apply to validation dataset
         """
         return self._val_transforms
 
@@ -99,7 +101,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     @property
     def test_transforms(self):
         """
-        Optional transforms you can apply to test dataset
+        Optional transforms (or collection of transforms) you can apply to test dataset
         """
         return self._test_transforms
 
