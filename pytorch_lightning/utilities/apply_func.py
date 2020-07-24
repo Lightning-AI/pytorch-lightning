@@ -6,6 +6,7 @@ from typing import Any, Callable, Union
 import torch
 
 import importlib
+
 TORCHTEXT_AVAILABLE = importlib.util.find_spec("torchtext") is not None
 if TORCHTEXT_AVAILABLE:
     from torchtext.data import Batch
@@ -92,6 +93,7 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
     """
+
     def batch_to(data):
         # try to move torchtext data first
         if TORCHTEXT_AVAILABLE and isinstance(data, Batch):
@@ -119,7 +121,7 @@ def move_data_to_device(batch: Any, device: torch.device):
                     setattr(device_data, field, device_field)
 
             return device_data
-        else:
-            return data.to(device, non_blocking=True)
+
+        return data.to(device, non_blocking=True)
 
     return apply_to_collection(batch, dtype=(TransferableDataType, Batch), function=batch_to)
