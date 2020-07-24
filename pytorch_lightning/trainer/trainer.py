@@ -1481,8 +1481,9 @@ class Trainer(
             # Check val_dataloader, validation_step and validation_epoch_end
             if self.is_overridden('val_dataloader', model):
                 if not self.is_overridden('validation_step', model):
-                    raise MisconfigurationException(
-                        'You have passed in a `val_dataloader()`' ' but have not defined `validation_step()`.'
+                    rank_zero_warn(
+                        'You have passed in a `val_dataloader()`' ' but have not defined `validation_step()`.',
+                        RuntimeWarning
                     )
                 else:
                     if not self.is_overridden('validation_epoch_end', model):
@@ -1493,15 +1494,17 @@ class Trainer(
                         )
             else:
                 if self.is_overridden('validation_step', model):
-                    raise MisconfigurationException(
-                        'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.'
+                    rank_zero_warn(
+                        'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.',
+                        RuntimeWarning,
                     )
 
         # Check test_dataloader, test_step and test_epoch_end
         if self.is_overridden('test_dataloader', model):
             if not self.is_overridden('test_step', model):
-                raise MisconfigurationException(
-                    'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.'
+                rank_zero_warn(
+                    'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.',
+                    RuntimeWarning,
                 )
             else:
                 if not self.is_overridden('test_epoch_end', model):
@@ -1512,9 +1515,10 @@ class Trainer(
                     )
         else:
             if self.testing and self.is_overridden('test_step', model):
-                raise MisconfigurationException(
+                rank_zero_warn(
                     'You have defined `test_step()` but did not'
-                    ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.'
+                    ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.',
+                    RuntimeWarning,
                 )
 
     def barrier(self, name):
