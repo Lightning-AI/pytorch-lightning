@@ -460,8 +460,6 @@ class Trainer(
                 "track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
-        self.on_gpu = True if (gpus and torch.cuda.is_available()) else False
-
         # tpu config
         if num_tpu_cores is not None:
             rank_zero_warn("Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
@@ -528,6 +526,8 @@ class Trainer(
         self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
         self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
+
+        self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False
 
         # tpu state flags
         self.use_tpu = False
