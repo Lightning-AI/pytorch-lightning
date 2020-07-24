@@ -51,15 +51,15 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 test_split = Dataset(...)
                 return DataLoader(test_split)
 
-    A DataModule implements 5 key methods
-    
-    1. **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode)
-    2. **setup**  (things to do on every accelerator in distributed mode)
+    A DataModule implements 5 key methods:
+
+    1. **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode).
+    2. **setup**  (things to do on every accelerator in distributed mode).
     2. **train_dataloader** the training dataloader.
     3. **val_dataloader** the val dataloader(s).
     4. **test_dataloader** the test dataloader(s).
-    
-    This allows you to share a full dataset without explaining how to download, 
+
+    This allows you to share a full dataset without explaining how to download,
     split transform and process the data
     """
 
