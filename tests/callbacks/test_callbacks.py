@@ -27,9 +27,7 @@ def test_early_stopping_functionality(tmpdir):
         overfit_batches=0.20,
         max_epochs=20,
     )
-    result = trainer.fit(model)
-    print(trainer.current_epoch)
-
+    trainer.fit(model)
     assert trainer.current_epoch == 5, 'early_stopping failed'
 
 
