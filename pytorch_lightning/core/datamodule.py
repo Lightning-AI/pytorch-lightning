@@ -28,7 +28,7 @@ class _DataModuleWrapper(type):
 class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no cover
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
-    The main advantage is consistent data splits and transforms across models.
+    The main advantage is consistent data splits, data preparation and transforms across models.
 
     Example::
 
@@ -37,9 +37,9 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 super().__init__()
             def prepare_data(self):
                 # download, split, etc...
-                # only called on rank 0
+                # only called on 1 GPU/TPU in distributed
             def setup(self):
-                # make assignments here
+                # make assignments here (val/train/test split)
                 # called on every process in DDP
             def train_dataloader(self):
                 train_split = Dataset(...)
@@ -52,13 +52,15 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 return DataLoader(test_split)
 
     A DataModule implements 5 key methods
-    1. **prepare_data** (things to do on 1 GPU not on every GPU in distributed mode)
-    2. **setup**  (things to do on every GPU in distributed mode)
+    
+    1. **prepare_data** (things to do on 1 GPU/TPU not on every GPU/TPU in distributed mode)
+    2. **setup**  (things to do on every accelerator in distributed mode)
     2. **train_dataloader** the training dataloader.
-    3. **val_dataloader** the val dataloader.
-    4. **test_dataloader** the test dataloader.
-    This allows you to share a full dataset without explaining what the splits, transforms or download
-    process is.
+    3. **val_dataloader** the val dataloader(s).
+    4. **test_dataloader** the test dataloader(s).
+    
+    This allows you to share a full dataset without explaining how to download, 
+    split transform and process the data
     """
 
     name: str = ...
