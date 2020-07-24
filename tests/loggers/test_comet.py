@@ -104,7 +104,4 @@ def test_comet_logger_dirs_creation(tmpdir, monkeypatch):
     trainer.fit(model)
 
     assert trainer.ckpt_path == trainer.weights_save_path == (tmpdir / 'test' / version / 'checkpoints')
-    # save_dir must be a subpath of weights_save_path
-    assert (os.path.relpath(trainer.weights_save_path, logger.save_dir)
-            == os.path.join('test', version, 'checkpoints'))
     assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
