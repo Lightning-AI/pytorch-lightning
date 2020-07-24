@@ -15,9 +15,7 @@ from tests.base import EvalModelTemplate
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
-    """
-    Test that None in checkpoint callback is valid and that dirpath is set correctly
-    """
+    """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
     model = EvalModelTemplate()
 
