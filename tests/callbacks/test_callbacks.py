@@ -1,36 +1,6 @@
-from pathlib import Path
-
-import pytest
-import torch
-
-import tests.base.develop_utils as tutils
 from pytorch_lightning import Callback
 from pytorch_lightning import Trainer, LightningModule
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
-
-
-def test_early_stopping_functionality(tmpdir):
-
-    class CurrentModel(EvalModelTemplate):
-        def validation_epoch_end(self, outputs):
-            losses = [8, 4, 2, 3, 4, 5, 8, 10]
-            val_loss = losses[self.current_epoch]
-            return {'val_loss': torch.tensor(val_loss)}
-
-    model = CurrentModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        overfit_batches=0.20,
-        max_epochs=20,
-    )
-    result = trainer.fit(model)
-    print(trainer.current_epoch)
-
-    assert trainer.current_epoch == 5, 'early_stopping failed'
 
 
 def test_trainer_callback_system(tmpdir):
@@ -262,44 +232,3 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_end_called
     assert not test_callback.on_validation_batch_end_called
     assert not test_callback.on_validation_batch_start_called
-
-
-def test_early_stopping_no_val_step(tmpdir):
-    """Test that early stopping callback falls back to training metrics when no validation defined."""
-
-    class CurrentModel(EvalModelTemplate):
-        def training_step(self, *args, **kwargs):
-            output = super().training_step(*args, **kwargs)
-            output.update({'my_train_metric': output['loss']})  # could be anything else
-            return output
-
-    model = CurrentModel()
-    model.validation_step = None
-    model.val_dataloader = None
-
-    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=stopping,
-        overfit_batches=0.20,
-        max_epochs=2,
-    )
-    result = trainer.fit(model)
-
-    assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch < trainer.max_epochs
-
-
-def test_pickling(tmpdir):
-    import pickle
-    early_stopping = EarlyStopping()
-    ckpt = ModelCheckpoint(tmpdir)
-
-    early_stopping_pickled = pickle.dumps(early_stopping)
-    ckpt_pickled = pickle.dumps(ckpt)
-
-    early_stopping_loaded = pickle.loads(early_stopping_pickled)
-    ckpt_loaded = pickle.loads(ckpt_pickled)
-
-    assert vars(early_stopping) == vars(early_stopping_loaded)
-    assert vars(ckpt) == vars(ckpt_loaded)

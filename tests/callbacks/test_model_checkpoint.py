@@ -55,7 +55,6 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     assert ckpt_version == expected
 
 
-
 def test_pickling(tmpdir):
     ckpt = ModelCheckpoint(tmpdir)
 
