@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 
 
 def get_torchtext_data_iterator(include_lengths=False):
-    text_field = torchtext.data.Field(sequential=True, pad_first=False,
+    text_field = torchtext.data.Field(sequential=True, pad_first=False,  # nosec
                                       init_token="<s>", eos_token="</s>", include_lengths=include_lengths)  # nosec
 
     example1 = torchtext.data.example.Example.fromdict({"text": "a b c a c"}, {"text": ("text", text_field)})
