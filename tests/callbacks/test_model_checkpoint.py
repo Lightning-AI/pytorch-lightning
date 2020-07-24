@@ -26,8 +26,8 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint,
-        overfit_pct=0.20,
-        max_epochs=(save_top_k + 2),
+        overfit_batches=0.20,
+        max_epochs=2,
     )
     trainer.fit(model)
     assert checkpoint.dirpath == tmpdir / trainer.logger.name / f'version_0' / 'checkpoints'
@@ -45,8 +45,8 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        overfit_pct=0.2,
-        max_epochs=5,
+        overfit_batches=0.2,
+        max_epochs=2,
         logger=logger,
     )
     trainer.fit(model)
