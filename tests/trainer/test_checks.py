@@ -52,7 +52,7 @@ def test_wrong_validation_settings(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # check val_dataloader -> val_step
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.validation_step = None
         trainer.fit(model)
@@ -64,7 +64,7 @@ def test_wrong_validation_settings(tmpdir):
         trainer.fit(model)
 
     # check val_step -> val_dataloader
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.val_dataloader = None
         trainer.fit(model)
@@ -79,14 +79,6 @@ def test_wrong_test_settigs(tmpdir):
     """
     hparams = EvalModelTemplate.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-
-    # ----------------
-    # if have test_dataloader should  have test_step
-    # ----------------
-    with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(**hparams)
-        model.test_step = None
-        trainer.fit(model)
 
     # ----------------
     # if have test_dataloader  and  test_step recommend test_epoch_end
