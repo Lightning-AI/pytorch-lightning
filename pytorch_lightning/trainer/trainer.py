@@ -902,10 +902,6 @@ class Trainer(
         path = os.path.normpath(path)
         return path
 
-    @default_root_dir.setter
-    def default_root_dir(self, path: str):
-        self._default_root_dir = path
-
     @property
     def weights_save_path(self) -> str:
         """
@@ -916,10 +912,6 @@ class Trainer(
         path = self._weights_save_path or self.default_root_dir
         path = os.path.normpath(path)
         return path
-
-    @weights_save_path.setter
-    def weights_save_path(self, path: str):
-        self._weights_save_path = path
 
     # -----------------------------
     # MODEL TRAINING
