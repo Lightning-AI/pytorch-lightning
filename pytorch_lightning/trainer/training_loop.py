@@ -632,7 +632,7 @@ class TrainerTrainLoopMixin(ABC):
 
     def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
-        should_log_metrics = batch_idx % self.row_log_interval == 0 or self.should_stop
+        should_log_metrics = (batch_idx + 1) % self.row_log_interval == 0 or self.should_stop
         if should_log_metrics or self.fast_dev_run:
             # logs user requested information to logger
             metrics = batch_output.batch_log_metrics
