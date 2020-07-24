@@ -6,6 +6,7 @@ from pytorch_lightning.metrics.regression import (
     PSNR,
     RMSE,
     RMSLE,
+    SSIM
 )
 from pytorch_lightning.metrics.classification import (
     Accuracy,
@@ -54,6 +55,7 @@ __regression_metrics = [
     "PSNR",
     "RMSE",
     "RMSLE",
+    "SSIM"
 ]
 __sequence_metrics = ["BLEUScore"]
 __all__ = __regression_metrics + __classification_metrics + ["SklearnMetric"] + __sequence_metrics

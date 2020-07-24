@@ -102,7 +102,7 @@ class ProgressBarBase(Callback):
         total_val_batches = 0
         if trainer.fast_dev_run and trainer.val_dataloaders is not None:
             total_val_batches = len(trainer.val_dataloaders)
-        elif not self.trainer.disable_validation:
+        elif self.trainer.enable_validation:
             is_val_epoch = (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(trainer.num_val_batches) if is_val_epoch else 0
         return total_val_batches
@@ -302,7 +302,7 @@ class ProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
-        self.val_progress_bar.total = trainer.num_sanity_val_steps * len(trainer.val_dataloaders)
+        self.val_progress_bar.total = convert_inf(trainer.num_sanity_val_steps * len(trainer.val_dataloaders))
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):

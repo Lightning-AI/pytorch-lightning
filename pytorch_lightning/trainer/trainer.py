@@ -336,7 +336,8 @@ class Trainer(
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
-            num_sanity_val_steps: Sanity check runs n batches of val before starting the training routine.
+            num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
+                Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
 
@@ -408,7 +409,6 @@ class Trainer(
         # training state
         self.model = None
         self.testing = False
-        self.disable_validation = False
         self.prepare_data_per_node = prepare_data_per_node
         self.lr_schedulers = []
         self.optimizers = None
@@ -486,7 +486,7 @@ class Trainer(
         self.max_steps = max_steps
         self.min_steps = min_steps
 
-        self.num_sanity_val_steps = num_sanity_val_steps
+        self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn("Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
@@ -883,6 +883,17 @@ class Trainer(
         ref_model = self.model if not self.data_parallel else self.model.module
         return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
 
+    @property
+    def disable_validation(self) -> bool:
+        """ Check if validation is disabled during training. """
+        return not self.enable_validation
+
+    @property
+    def enable_validation(self) -> bool:
+        """ Check if we should run validation during training. """
+        val_loop_enabled = (self.is_overridden('validation_step') and self.limit_val_batches > 0)
+        return val_loop_enabled or self.fast_dev_run
+
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
@@ -1186,10 +1197,6 @@ class Trainer(
 
             return eval_loop_results
 
-        # check if we should run validation during training
-        self.disable_validation = not (self.is_overridden('validation_step') and self.limit_val_batches > 0) \
-            and not self.fast_dev_run
-
         # run a few val batches before training starts
         self._run_sanity_check(ref_model, model)
 
@@ -1204,9 +1211,12 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
+        should_sanity_check = self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 \
+            and self.limit_val_batches > 0
+
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
-        if not self.disable_validation and self.num_sanity_val_steps > 0:
+        if should_sanity_check:
             self.reset_val_dataloader(ref_model)
 
             # hook and callback
