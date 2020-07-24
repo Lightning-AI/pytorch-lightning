@@ -1498,28 +1498,26 @@ class Trainer(
                         'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.',
                         RuntimeWarning,
                     )
-
-        # Check test_dataloader, test_step and test_epoch_end
-        if self.is_overridden('test_dataloader', model):
-            if not self.is_overridden('test_step', model):
-                rank_zero_warn(
-                    'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.',
-                    RuntimeWarning,
-                )
-            else:
-                if not self.is_overridden('test_epoch_end', model):
-                    rank_zero_warn(
-                        'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
-                        ' define `test_epoch_end()` for accumulating stats.',
-                        RuntimeWarning,
-                    )
         else:
-            if self.testing and self.is_overridden('test_step', model):
-                rank_zero_warn(
-                    'You have defined `test_step()` but did not'
-                    ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.',
-                    RuntimeWarning,
-                )
+            # Check test_dataloader, test_step and test_epoch_end
+            if self.is_overridden('test_dataloader', model):
+                if not self.is_overridden('test_step', model):
+                    raise MisconfigurationException(
+                        'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.',
+                    )
+                else:
+                    if not self.is_overridden('test_epoch_end', model):
+                        rank_zero_warn(
+                            'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
+                            ' define `test_epoch_end()` for accumulating stats.',
+                            RuntimeWarning,
+                        )
+            else:
+                if self.is_overridden('test_step', model):
+                    raise MisconfigurationException(
+                        'You have defined `test_step()` but did not'
+                        ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.',
+                    )
 
     def barrier(self, name):
         if self.use_ddp or self.use_ddp2:
