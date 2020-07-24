@@ -274,9 +274,7 @@ class ModelCheckpoint(Callback):
         self.dirpath = ckpt_path
 
         assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-
         os.makedirs(self.dirpath, exist_ok=True)
-        trainer.weights_save_path = ckpt_path
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
