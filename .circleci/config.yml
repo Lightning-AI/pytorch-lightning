@@ -151,5 +151,15 @@ workflows:
       - build-Docs
       - TPU-tests
   cleanup:
+    triggers:
+      - schedule:
+          # The cron format is:
+          # min (0-59) hour (0-23) monthday (1-31) month (1-12) weekday (0-6, 0=Sun)
+          # Set to run at the first minute of every hour.
+          cron: "0 * * * *"
+          filters:
+            branches:
+              only:
+                - master
     jobs:
       - cleanup-gke-jobs
