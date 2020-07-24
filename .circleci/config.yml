@@ -85,7 +85,7 @@ references:
        sudo pip install pycobertura
        pycobertura show coverage.xml
 
-  delete_jobs: &delete_jobs
+  delete_gke_jobs: &delete_gke_jobs
    run:
      name: Delete GKE Jobs
      command: |
@@ -136,14 +136,12 @@ jobs:
   cleanup-gke-jobs:
     docker:
       - image: circleci/python:3.7
-    environment:
-      - MAX_CHECKS: 60
     steps:
       - gcp-gke/install
       - gcp-gke/update-kubeconfig-with-credentials:
           cluster: $GKE_CLUSTER
           perform-login: true
-      - *delete_jobs
+      - *delete_gke_jobs
 
 
 workflows:
@@ -153,12 +151,5 @@ workflows:
       - build-Docs
       - TPU-tests
   cleanup:
-    triggers:
-      - schedule:
-          cron: "0 * * * *"
-          filters:
-            branches:
-              only:
-                - master
     jobs:
       - cleanup-gke-jobs
