@@ -268,7 +268,7 @@ class ModelCheckpoint(Callback):
                 "checkpoints"
             )
         else:
-            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
+            ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
         self.dirpath = ckpt_path
 

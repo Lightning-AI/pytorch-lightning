@@ -125,7 +125,7 @@ def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logg
     assert trainer.weights_save_path == expected_weights_path
     assert trainer.default_root_dir == tmpdir
 
-    # with weights_save_path given, the logger path should not relate with checkpoint dir
+    # with weights_save_path given, the logger path and checkpoint path should be different
     save_dir = tmpdir / 'logs'
     weights_save_path = tmpdir / 'weights'
     logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
@@ -133,6 +133,12 @@ def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logg
     trainer.fit(model)
     expected_weights_path = weights_save_path / 'name' / 'version' / 'checkpoints'
     assert trainer.weights_save_path == expected_weights_path
+    assert trainer.default_root_dir == tmpdir
+
+    # no logger given
+    trainer = Trainer(**trainer_args, logger=False, weights_save_path=(tmpdir / 'foo'))
+    trainer.fit(model)
+    assert trainer.weights_save_path == tmpdir / 'foo' / 'checkpoints'
     assert trainer.default_root_dir == tmpdir
 
 
