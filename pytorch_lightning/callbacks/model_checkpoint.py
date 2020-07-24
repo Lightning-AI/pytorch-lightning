@@ -41,10 +41,11 @@ class ModelCheckpoint(Callback):
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
-            Can also be set to `None`, then it will be set to the location
+            By default, filepath is `None` and will be set at runtime to the location
             specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments.
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
+            and if the Trainer uses a logger, the path will also contain logger name and version.
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.

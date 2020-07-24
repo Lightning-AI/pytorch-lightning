@@ -909,8 +909,8 @@ class Trainer(
     @property
     def weights_save_path(self) -> str:
         """
-        The default location to save weights (checkpoints), e.g., when the
-        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a save location.
+        The default root location to save weights (checkpoints), e.g., when the
+        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         It defaults to :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir`.
         """
         path = self._weights_save_path or self.default_root_dir
