@@ -1,1 +1,0 @@
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
