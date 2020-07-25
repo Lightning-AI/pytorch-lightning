@@ -38,7 +38,7 @@ class DataParallelBackend(object):
 
         # init half precision
         if self.trainer.use_amp:
-            self.__init_half_precision(model)
+            model = self.__init_half_precision(model)
 
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
@@ -62,7 +62,8 @@ class DataParallelBackend(object):
         if native_amp_available:
             self.__init_native_amp(model)
         else:
-            self.__init_nvidia_apex(model)
+            model = self.__init_nvidia_apex(model)
+        return model
 
     def __init_native_amp(self, model):
         model.forward = torch.cuda.amp.autocast()(model.forward)
@@ -78,6 +79,8 @@ class DataParallelBackend(object):
         else:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
+
+        return model
 
     def train(self, model):
         results = self.trainer.run_pretrain_routine(model)
