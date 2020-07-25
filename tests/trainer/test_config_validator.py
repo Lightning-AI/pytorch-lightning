@@ -40,52 +40,42 @@ def test_wrong_configure_optimizers(tmpdir):
         trainer.fit(model)
 
 
-def test_wrong_validation_settings(tmpdir):
-    """ Test the following cases related to validation configuration of model:
-        * error if `val_dataloader()` is overridden but `validation_step()` is not
-        * if both `val_dataloader()` and `validation_step()` is overridden,
-            throw warning if `val_epoch_end()` is not defined
-        * error if `validation_step()` is overridden but `val_dataloader()` is not
+def test_val_loop_config(tmpdir):
+    """"
+    When either val loop or val data are missing raise warning
     """
     tutils.reset_seed()
     hparams = EvalModelTemplate.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    # check val_dataloader -> val_step
+    # no val data has val loop
     with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.validation_step = None
         trainer.fit(model)
 
-    # check val_step -> val_dataloader
-    with pytest.raises(MisconfigurationException):
+    # has val loop but no val data
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.val_dataloader = None
         trainer.fit(model)
 
 
-def test_wrong_test_settigs(tmpdir):
-    """ Test the following cases related to test configuration of model:
-        * error if `test_dataloader()` is overridden but `test_step()` is not
-        * if both `test_dataloader()` and `test_step()` is overridden,
-            throw warning if `test_epoch_end()` is not defined
-        * error if `test_step()` is overridden but `test_dataloader()` is not
+def test_test_loop_config(tmpdir):
+    """"
+    When either test loop or test data are missing
     """
     hparams = EvalModelTemplate.get_default_hparams()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    # ----------------
-    # if have test_step and NO test_dataloader passed in tell user to pass test_dataloader
-    # ----------------
-    with pytest.raises(MisconfigurationException):
+    # has test loop but no test data
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = None
         trainer.test(model)
 
-    # ----------------
-    # if have test_dataloader and NO test_step tell user to implement  test_step
-    # ----------------
-    with pytest.warns(UserWarning):
+    # has test data but no test loop
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
