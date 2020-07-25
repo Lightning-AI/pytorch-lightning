@@ -980,3 +980,34 @@ def test_trainer_pickle(tmpdir):
     )
     pickle.dumps(trainer)
     cloudpickle.dumps(trainer)
+
+
+def test_trainer_setup_call(tmpdir):
+    """Test setup call with fit and test call."""
+
+    class CurrentModel(EvalModelTemplate):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    class TrainerSubclass(Trainer):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    model = CurrentModel()
+
+    # fit model
+    trainer = TrainerSubclass(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False
+    )
+
+    trainer.fit(model)
+    assert trainer.stage == 'fit'
+    assert trainer.get_model().stage == 'fit'
+
+    trainer.test(ckpt_path=None)
+    assert trainer.stage == 'test'
+    assert trainer.get_model().stage == 'test'

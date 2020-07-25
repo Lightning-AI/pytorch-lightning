@@ -167,8 +167,8 @@ class TrainerDPMixin(ABC):
 
     def single_gpu_train(self, model):
         # call setup
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
+        if not self.testing:
+            self.setup('fit')
             model.setup('fit')
 
         model.cuda(self.root_gpu)
@@ -189,8 +189,8 @@ class TrainerDPMixin(ABC):
 
     def tpu_train(self, tpu_core_idx, model):
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
+        if not self.testing:
+            self.setup('fit')
             model.setup('fit')
 
         # put model on tpu
@@ -229,8 +229,8 @@ class TrainerDPMixin(ABC):
 
     def dp_train(self, model):
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
+        if not self.testing:
+            self.setup('fit')
             model.setup('fit')
 
         model.cuda(self.root_gpu)
@@ -275,8 +275,8 @@ class TrainerDPMixin(ABC):
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
+        if not self.testing:
+            self.setup('fit')
             model.setup('fit')
 
         if torch.cuda.is_available() and self.on_gpu:
