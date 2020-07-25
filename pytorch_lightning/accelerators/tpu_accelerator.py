@@ -43,19 +43,19 @@ class TPUAccelerator(object):
         #  COLAB_GPU is an env var available by default in Colab environments.
         self.start_method = 'fork' if self.trainer.on_colab_kaggle else 'spawn'
 
+    def teardown(self):
+
+        # when training completes, load the weights back in main process
+        self.__load_weights_on_main_process()
+
     def train(self, model):
         self.trainer.model = model
 
         # train
         if self.trainer.tpu_id is not None:
-            self.tpu_train(self.trainer.tpu_id, model)
+            self.tpu_train_in_process(self.trainer.tpu_id, model)
         else:
-            xmp.spawn(self.tpu_train, args=(model,), nprocs=self.trainer.tpu_cores, start_method=self.start_method)
-
-    def teardown(self):
-
-        # when training completes, load the weights back in main process
-        self.__load_weights_on_main_process()
+            xmp.spawn(self.tpu_train_in_process, args=(model,), nprocs=self.trainer.tpu_cores, start_method=self.start_method)
 
     def __load_weights_on_main_process(self):
         model = self.trainer.model
@@ -66,7 +66,10 @@ class TPUAccelerator(object):
 
         self.trainer.model = model
 
-    def tpu_train(self, tpu_core_idx, model):
+    def tpu_train_in_process(self, tpu_core_idx, model):
+        """
+        Here we are inside each individual process
+        """
         if not self.trainer.trainer.testing:
             self.trainer.setup('fit')
             model.setup('fit')
