@@ -55,7 +55,11 @@ class TPUAccelerator(object):
         if self.trainer.tpu_id is not None:
             self.tpu_train_in_process(self.trainer.tpu_id, model)
         else:
-            xmp.spawn(self.tpu_train_in_process, args=(model,), nprocs=self.trainer.tpu_cores, start_method=self.start_method)
+            xmp.spawn(self.tpu_train_in_process,
+                      args=(model,),
+                      nprocs=self.trainer.tpu_cores,
+                      start_method=self.start_method
+            )
 
     def __load_weights_on_main_process(self):
         model = self.trainer.model
@@ -91,8 +95,15 @@ class TPUAccelerator(object):
             self.trainer.save_spawn_weights(model)
 
     def __setup_tpu_training(self, model):
-        # put model on tpu
-        self.trainer._device = xm.xla_device(self.trainer.tpu_id) if self.trainer.tpu_id is not None else xm.xla_device()
+        # use the default device from the process
+        tpu_device = xm.xla_device()
+
+        # if given an ordinal device, use this as the device
+        if self.trainer.tpu_id is not None:
+            tpu_device = xm.xla_device(self.trainer.tpu_id)
+
+        # track the device and move model to it
+        self.trainer._device = tpu_device
         model.to(self.trainer._device)
 
         # get the appropriate tpu ranks
@@ -108,7 +119,10 @@ class TPUAccelerator(object):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.trainer.optimizers, self.trainer.lr_schedulers, self.trainer.optimizer_frequencies = self.trainer.init_optimizers(model)
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # init 16 bit for TPU
         if self.trainer.precision == 16:
