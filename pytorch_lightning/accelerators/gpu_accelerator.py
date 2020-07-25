@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
+
 try:
     from apex import amp
 except ImportError:
     APEX_AVAILABLE = False
 else:
     APEX_AVAILABLE = True
-
-from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE
 
 
 class GPUAccelerator(object):
@@ -43,7 +43,8 @@ class GPUAccelerator(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # TODO: remove with dropping NVIDIA AMP support
-        if self.trainer.use_amp and not NATIVE_AMP_AVALAIBLE:
+        native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+        if self.trainer.use_amp and not native_amp_available:
             self._setup_nvidia_apex(model)
 
     def _setup_nvidia_apex(self, model):
