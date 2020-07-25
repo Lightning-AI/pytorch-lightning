@@ -77,6 +77,6 @@ class ConfigValidator(object):
                 f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop'
             )
         if has_step and not has_loader:
-            raise MisconfigurationException(
+            rank_zero_warn(
                 f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop'
             )
