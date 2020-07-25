@@ -15,8 +15,7 @@
 import os
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import _logger as log
-
+from pytorch_lightning import _logger as log, LightningModule
 
 try:
     import torch_xla
@@ -48,7 +47,7 @@ class TPUBackend(object):
         # when training completes, load the weights back in main process
         self.__load_weights_on_main_process()
 
-    def train(self, model):
+    def train(self, model: LightningModule):
         self.trainer.model = model
 
         # train
@@ -71,7 +70,7 @@ class TPUBackend(object):
 
         self.trainer.model = model
 
-    def tpu_train_in_process(self, tpu_core_idx, model):
+    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule):
         """
         Here we are inside each individual process
         """
@@ -88,14 +87,14 @@ class TPUBackend(object):
         # save weights at the end of training
         self.__save_end_of_training_weights(model)
 
-    def __save_end_of_training_weights(self, model):
+    def __save_end_of_training_weights(self, model: LightningModule):
 
         # when training ends on these platforms dump weights to get out of the main process
         if self.trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
             self.trainer.save_spawn_weights(model)
 
-    def __setup_tpu_training(self, model):
+    def __setup_tpu_training(self, model: LightningModule):
         # use the default device from the process
         tpu_device = xm.xla_device()
 
