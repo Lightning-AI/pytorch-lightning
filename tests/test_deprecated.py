@@ -50,6 +50,10 @@ def test_tbd_remove_in_v0_10_0_trainer():
     with pytest.deprecated_call(match='will be removed in v0.10.0'):
         assert trainer.proc_rank == trainer.global_rank
 
+    with pytest.deprecated_call(match='will be removed in v0.10.0'):
+        trainer.ckpt_path = 'foo'
+        assert trainer.ckpt_path == trainer.weights_save_path == 'foo'
+
 
 def test_tbd_remove_in_v0_9_0_trainer():
     # test show_progress_bar set by progress_bar_refresh_rate

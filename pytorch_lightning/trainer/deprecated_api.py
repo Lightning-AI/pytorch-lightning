@@ -45,8 +45,9 @@ class TrainerDeprecatedAPITillVer0_10(ABC):
     limit_test_batches: Union[int, float]
     limit_train_batches: Union[int, float]
     overfit_batches: Union[int, float]
-    weights_save_path: str
     is_global_zero: bool
+    _weights_save_path: str
+    weights_save_path: str
 
     def __init__(self):
         super().__init__()  # mixin calls super too
@@ -133,4 +134,4 @@ class TrainerDeprecatedAPITillVer0_10(ABC):
         """Back compatibility, will be removed in v0.10.0"""
         rank_zero_warn("Attribute `ckpt_path` is now set by `weights_save_path` since v0.9.0"
                        " and this method will be removed in v0.10.0", DeprecationWarning)
-        self.weights_save_path = path
+        self._weights_save_path = path
