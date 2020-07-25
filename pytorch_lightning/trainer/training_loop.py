@@ -335,7 +335,7 @@ class TrainerTrainLoopMixin(ABC):
         # if reload_dataloaders_every_epoch, this is moved to the epoch loop
         if not self.reload_dataloaders_every_epoch:
             self.reset_train_dataloader(model)
-        
+
         if model.val_dataloader is not None:
             self.reset_val_dataloader(model)
 

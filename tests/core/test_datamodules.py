@@ -1,4 +1,5 @@
 import torch
+import pytest
 from pytorch_lightning import Trainer
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base import EvalModelTemplate
