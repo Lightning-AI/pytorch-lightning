@@ -13,6 +13,7 @@ class ConfigValidator(object):
         if (train_dataloader or val_dataloaders) and datamodule:
             raise MisconfigurationException(
                 'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
+            )
 
     def verify_loop_configurations(self, model: LightningModule):
         r"""
