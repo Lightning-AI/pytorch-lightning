@@ -373,6 +373,7 @@ class TrainerDDPMixin(ABC):
         return int(rank)
 
     def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
+        import pdb; pdb.set_trace()
         if data_parallel_device_ids is None:
             return
 
@@ -533,9 +534,6 @@ class TrainerDDPMixin(ABC):
                 gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
                 gpu_idx = int(gpus[self.local_rank])
 
-            print('-' * 100)
-            print(gpu_idx)
-            print('-' * 100)
             self.root_gpu = gpu_idx
             torch.cuda.set_device(self.root_gpu)
             model.cuda(self.root_gpu)
