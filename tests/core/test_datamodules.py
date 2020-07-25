@@ -180,7 +180,7 @@ def test_full_loop_ddp_spawn(tmpdir):
         max_epochs=3,
         weights_summary=None,
         distributed_backend='ddp_spawn',
-        gpus=2
+        gpus=[0, 1]
     )
     trainer.fit(model, dm)
 
