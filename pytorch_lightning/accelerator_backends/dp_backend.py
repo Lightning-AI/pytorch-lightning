@@ -87,6 +87,9 @@ class DataParallelBackend(object):
         return results
 
     def teardown(self, model):
+        # remove the DP wrapper
+        model = model.module
+
         # replace the original fwd function
         model.forward = self.model_autocast_original_forward
         return model
