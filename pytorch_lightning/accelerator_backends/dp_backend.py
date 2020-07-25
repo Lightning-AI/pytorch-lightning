@@ -100,10 +100,9 @@ class DataParallelBackend(object):
                 if scheduler.optimizer == optimizer:
                     # Find the mro belonging to the base lr scheduler class
                     for i, mro in enumerate(scheduler.__class__.__mro__):
-                        if (
-                            mro == optim.lr_scheduler._LRScheduler
-                            or mro == optim.lr_scheduler.ReduceLROnPlateau
-                        ):
+                        is_regular_scheduler = optim.lr_scheduler._LRScheduler
+                        is_lr_reduce_on_plateau = optim.lr_scheduler.ReduceLROnPlateau
+                        if is_regular_scheduler or is_lr_reduce_on_plateau:
                             idx = i
                             state = scheduler.state_dict()
                         else:
