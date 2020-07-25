@@ -22,7 +22,7 @@ references:
 
   checkout_ml_testing: &checkout_ml_testing
    run:
-     name: Checkout ml-testing-accelerator
+     name: Checkout ml-testing-accelerators
      command: |
        git clone https://github.com/GoogleCloudPlatform/ml-testing-accelerators.git
        cd ml-testing-accelerators
