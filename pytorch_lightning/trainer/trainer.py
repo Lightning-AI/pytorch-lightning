@@ -1505,7 +1505,7 @@ class Trainer(
                     )
             else:
                 if self.is_overridden('test_step', model):
-                    rank_zero_warn(
+                    raise MisconfigurationException(
                         'You have defined `test_step()` but did not'
                         ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.',
                     )
