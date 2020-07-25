@@ -28,7 +28,10 @@ class DataParallelBackend(object):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        self.trainer.optimizers, self.trainer.lr_schedulers, self.trainer.optimizer_frequencies = self.trainer.init_optimizers(model)
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # hack forward to do autocast for the user
         self.model_autocast_original_forward = model.forward
