@@ -1027,6 +1027,7 @@ class Trainer(
 
             self.ddp_train(process_idx=task, q=None, model=model)
         elif self.use_ddp:
+            import pdb; pdb.set_trace()
 
             # set testing if set in environ
             self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
