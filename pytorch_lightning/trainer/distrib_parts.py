@@ -165,28 +165,6 @@ class TrainerDPMixin(ABC):
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
 
-    def single_gpu_train(self, model):
-        # call setup
-        if not self.testing:
-            self.setup('fit')
-            model.setup('fit')
-
-        model.cuda(self.root_gpu)
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-        # TODO: remove with dropping NVIDIA AMP support
-        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
-            # An example
-            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
-            self.optimizers = optimizers
-            self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
-
-        results = self.run_pretrain_routine(model)
-        return results
-
     def tpu_train(self, tpu_core_idx, model):
         # call setup after the ddp process has connected
         if not self.testing:
