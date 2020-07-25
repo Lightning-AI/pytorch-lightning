@@ -661,7 +661,7 @@ class Trainer(
         # tracks internal state for debugging
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
-        self.accelerator = None
+        self.accelerator_backend = None
 
         # Callback system
         self.on_init_end()
@@ -1065,24 +1065,24 @@ class Trainer(
                 results = self.spawn_ddp_children(model)
 
         elif self.use_dp:
-            self.accelerator = DataParallelBackend(self)
-            model = self.accelerator.setup(model)
-            results = self.accelerator.train(model)
-            model = self.accelerator.teardown(model)
+            self.accelerator_backend = DataParallelBackend(self)
+            model = self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train(model)
+            model = self.accelerator_backend.teardown(model)
 
         elif self.use_horovod:
             results = self.horovod_train(model)
 
         elif self.single_gpu:
-            self.accelerator = GPUBackend(self)
-            self.accelerator.setup(model)
-            results = self.accelerator.train(model)
+            self.accelerator_backend = GPUBackend(self)
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train(model)
 
         elif self.use_tpu:
-            self.accelerator = TPUBackend(self)
-            self.accelerator.setup()
-            self.accelerator.train(model)
-            self.accelerator.teardown()
+            self.accelerator_backend = TPUBackend(self)
+            self.accelerator_backend.setup()
+            self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         # ON CPU
         else:
