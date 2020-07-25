@@ -1,8 +1,44 @@
+import pickle
 import torch
 import pytest
 from pytorch_lightning import Trainer
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base import EvalModelTemplate
+from argparse import ArgumentParser
+
+
+def test_base_datamodule(tmpdir):
+    dm = TrialMNISTDataModule()
+    dm.prepare_data()
+    dm.setup()
+
+
+def test_dm_add_argparse_args(tmpdir):
+    parser = ArgumentParser()
+    parser = TrialMNISTDataModule.add_argparse_args(parser)
+    args = parser.parse_args(['--data_dir', './my_data'])
+    assert args.data_dir == './my_data'
+
+
+def test_dm_init_from_argparse_args(tmpdir):
+    parser = ArgumentParser()
+    parser = TrialMNISTDataModule.add_argparse_args(parser)
+    args = parser.parse_args(['--data_dir', './my_data'])
+    dm = TrialMNISTDataModule.from_argparse_args(args)
+    dm.prepare_data()
+    dm.setup()
+
+
+def test_dm_pickle_after_init(tmpdir):
+    dm = TrialMNISTDataModule()
+    pickle.dumps(dm)
+
+
+def test_dm_pickle_after_setup(tmpdir):
+    dm = TrialMNISTDataModule()
+    dm.prepare_data()
+    dm.setup()
+    pickle.dumps(dm)
 
 
 def test_train_loop_only(tmpdir):
