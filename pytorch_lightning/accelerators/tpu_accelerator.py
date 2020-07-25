@@ -75,7 +75,7 @@ class TPUAccelerator(object):
         """
         Here we are inside each individual process
         """
-        if not self.trainer.trainer.testing:
+        if not self.trainer.testing:
             self.trainer.setup('fit')
             model.setup('fit')
 
