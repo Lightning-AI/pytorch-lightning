@@ -116,5 +116,3 @@ class TPUAccelerator(object):
 
         log.info(f'INIT TPU local core: {self.trainer.tpu_local_core_rank},'
                  f' global rank: {self.trainer.tpu_global_core_rank}')
-
-
