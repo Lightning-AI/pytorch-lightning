@@ -169,6 +169,9 @@ def test_full_loop_dp(tmpdir):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_ddp_spawn(tmpdir):
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
     dm = TrialMNISTDataModule(tmpdir)
     dm.prepare_data()
     dm.setup()
