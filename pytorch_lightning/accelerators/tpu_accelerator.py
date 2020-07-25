@@ -55,10 +55,11 @@ class TPUAccelerator(object):
         if self.trainer.tpu_id is not None:
             self.tpu_train_in_process(self.trainer.tpu_id, model)
         else:
-            xmp.spawn(self.tpu_train_in_process,
-                      args=(model,),
-                      nprocs=self.trainer.tpu_cores,
-                      start_method=self.start_method
+            xmp.spawn(
+                self.tpu_train_in_process,
+                args=(model,),
+                nprocs=self.trainer.tpu_cores,
+                start_method=self.start_method
             )
 
     def __load_weights_on_main_process(self):
