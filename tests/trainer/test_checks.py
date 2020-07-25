@@ -77,7 +77,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     # if have test_step and NO test_dataloader passed in tell user to pass test_dataloader
     # ----------------
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
         trainer.test(model)
@@ -85,7 +85,7 @@ def test_wrong_test_settigs(tmpdir):
     # ----------------
     # if have test_dataloader and NO test_step tell user to implement  test_step
     # ----------------
-    with pytest.raises(MisconfigurationException):
+    with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = LightningModule.test_dataloader
         model.test_step = None
