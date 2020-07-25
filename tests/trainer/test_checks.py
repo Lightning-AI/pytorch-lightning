@@ -57,12 +57,6 @@ def test_wrong_validation_settings(tmpdir):
         model.validation_step = None
         trainer.fit(model)
 
-    # check val_dataloader + val_step -> val_epoch_end
-    with pytest.warns(RuntimeWarning):
-        model = EvalModelTemplate(**hparams)
-        model.validation_epoch_end = None
-        trainer.fit(model)
-
     # check val_step -> val_dataloader
     with pytest.warns(RuntimeWarning):
         model = EvalModelTemplate(**hparams)
