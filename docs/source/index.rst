@@ -123,7 +123,6 @@ Indices and tables
 .. toctree::
    :hidden:
 
-   api/pytorch_lightning.accelerators
    api/pytorch_lightning.core
    api/pytorch_lightning.callbacks
    api/pytorch_lightning.loggers
