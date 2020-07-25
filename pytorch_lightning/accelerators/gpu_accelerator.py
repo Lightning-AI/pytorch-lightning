@@ -30,6 +30,9 @@ class GPUAccelerator(object):
 
         # TODO: remove with dropping NVIDIA AMP support
         if self.trainer.use_amp and not NATIVE_AMP_AVALAIBLE:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.trainer.optimizers = optimizers
-            self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
+            self._setup_nvidia_apex(model)
+
+    def _setup_nvidia_apex(self, model):
+        model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
+        self.trainer.optimizers = optimizers
+        self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
