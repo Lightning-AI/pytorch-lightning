@@ -37,7 +37,7 @@ class TPUBackend(object):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
 
         if not XLA_AVAILABLE:
-            raise MisconfigurationException('No TPU devices found.')
+            raise MisconfigurationException('PyTorch XLA not installed.')
 
         #  COLAB_GPU is an env var available by default in Colab environments.
         self.start_method = 'fork' if self.trainer.on_colab_kaggle else 'spawn'

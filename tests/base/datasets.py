@@ -105,14 +105,14 @@ class MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)
 
 
-def _try_load(path_data, trials=30):
+def _try_load(path_data, trials: int = 30, delta: float = 0.3):
     res = None
     assert os.path.isfile(path_data)
     for _ in range(trials):
         try:
             res = torch.load(path_data)
         except Exception:
-            time.sleep(1)
+            time.sleep(delta)
         else:
             break
     return res
