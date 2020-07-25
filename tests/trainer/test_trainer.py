@@ -543,12 +543,6 @@ def test_testpass_overrides(tmpdir):
         model.test_dataloader = LightningModule.test_dataloader
         Trainer().test(model)
 
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(**hparams)
-        model.test_step = LightningModule.test_step
-        Trainer().test(model)
-
     # No exceptions when one or both of test_step or test_end are implemented
     model = EvalModelTemplate(**hparams)
     model.test_step_end = LightningModule.test_step_end
