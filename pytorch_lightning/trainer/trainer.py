@@ -1513,7 +1513,7 @@ class Trainer(
                 else:
                     if not self.is_overridden('test_epoch_end', model):
                         rank_zero_warn(
-                            'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
+                            'You have defined a `test_dataloader()` and a `test_step()`, you may also want to'
                             ' define `test_epoch_end()` for accumulating stats.',
                             RuntimeWarning,
                         )
