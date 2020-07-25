@@ -1500,7 +1500,7 @@ class Trainer(
             # Check test_dataloader, test_step and test_epoch_end
             if self.is_overridden('test_dataloader', model):
                 if not self.is_overridden('test_step', model):
-                    raise MisconfigurationException(
+                    rank_zero_warn(
                         'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.',
                     )
             else:
