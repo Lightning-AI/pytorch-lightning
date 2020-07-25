@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Root module for all distributed operations in Lightning.
 Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
@@ -164,28 +178,6 @@ class TrainerDPMixin(ABC):
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
-
-    def single_gpu_train(self, model):
-        # call setup
-        if not self.testing:
-            self.setup('fit')
-            model.setup('fit')
-
-        model.cuda(self.root_gpu)
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-        # TODO: remove with dropping NVIDIA AMP support
-        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
-            # An example
-            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
-            self.optimizers = optimizers
-            self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
-
-        results = self.run_pretrain_routine(model)
-        return results
 
     def tpu_train(self, tpu_core_idx, model):
         # call setup after the ddp process has connected
