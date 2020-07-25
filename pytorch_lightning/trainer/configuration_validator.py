@@ -69,8 +69,8 @@ class ConfigValidator(object):
         if eval_loop_name == 'validation':
             loader_name = 'val_dataloader'
 
-        has_loader = self.trainer.is_overridden('test_dataloader', model)
-        has_step = self.trainer.is_overridden('test_step', model)
+        has_loader = self.trainer.is_overridden(loader_name, model)
+        has_step = self.trainer.is_overridden(step_name, model)
 
         if has_loader and not has_step:
             rank_zero_warn(
