@@ -458,6 +458,7 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 - Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 - Peter Yu [(yukw777)](https://github.com/yukw777)
+- Rohit Gupta [(rohitgr7)](https://github.com/rohitgr7)
 
 ---
 
