@@ -974,6 +974,11 @@ class Trainer(
         if hasattr(model, 'hparams'):
             parsing.clean_namespace(model.hparams)
 
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(train_dataloader, LightningDataModule):
+            datamodule = train_dataloader
+            train_dataloader = None
+
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
         if (train_dataloader or val_dataloaders) and datamodule:
             raise MisconfigurationException(
