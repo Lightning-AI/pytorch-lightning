@@ -51,7 +51,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerators.gpu_accelerator import GPUAccelerator
+from pytorch_lightning.accelerators import GPUAccelerator, TPUAccelerator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -1077,29 +1077,11 @@ class Trainer(
             self.accelerator.setup(model)
             results = self.run_pretrain_routine(model)
 
-        elif self.use_tpu:  # pragma: no-cover
-            rank_zero_info(f'training on {self.tpu_cores} TPU cores')
-
-            if not XLA_AVAILABLE:
-                raise MisconfigurationException('No TPU devices found.')
-
-            #  COLAB_GPU is an env var available by default in Colab environments.
-            start_method = 'fork' if self.on_colab_kaggle else 'spawn'
-
-            # track for predict
-            self.model = model
-
-            # train
-            if self.tpu_id is not None:
-                self.tpu_train(self.tpu_id, model)
-            else:
-                xmp.spawn(self.tpu_train, args=(model,), nprocs=self.tpu_cores, start_method=start_method)
-
-            # load weights if not interrupted
-            if self.on_colab_kaggle and not self.testing:
-                self.load_spawn_weights(model)
-
-            self.model = model
+        elif self.use_tpu:
+            self.accelerator = TPUAccelerator(self)
+            self.accelerator.setup()
+            self.accelerator.train(model)
+            self.accelerator.teardown()
 
         # ON CPU
         else:
