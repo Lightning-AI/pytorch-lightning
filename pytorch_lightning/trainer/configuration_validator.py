@@ -8,6 +8,12 @@ class ConfigValidator(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
+    def enforce_datamodule_dataloader_override(self, train_dataloader, val_dataloaders, datamodule):
+        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
+        if (train_dataloader or val_dataloaders) and datamodule:
+            raise MisconfigurationException(
+                'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
+
     def verify_loop_configurations(self, model: LightningModule):
         r"""
         Checks that the model is configured correctly before training or testing is started.

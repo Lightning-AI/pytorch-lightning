@@ -981,11 +981,7 @@ class Trainer(
             datamodule = train_dataloader
             train_dataloader = None
 
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloader or val_dataloaders) and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
-            )
+        self.config_validator.enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
