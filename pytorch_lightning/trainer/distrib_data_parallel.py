@@ -166,7 +166,7 @@ else:
 
 pid = os.getpid()
 rng1 = np.random.RandomState(pid)
-RANDOM_PORTS = rng1.randint(10000, 19999, 100)
+RANDOM_PORTS = rng1.randint(10000, 19999, 1000)
 
 
 class TrainerDDPMixin(ABC):
