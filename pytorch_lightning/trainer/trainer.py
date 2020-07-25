@@ -1492,7 +1492,7 @@ class Trainer(
                     )
             else:
                 if self.is_overridden('validation_step', model):
-                    rank_zero_warn(
+                    raise MisconfigurationException(
                         'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.',
                         RuntimeWarning,
                     )

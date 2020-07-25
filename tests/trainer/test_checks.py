@@ -58,7 +58,7 @@ def test_wrong_validation_settings(tmpdir):
         trainer.fit(model)
 
     # check val_step -> val_dataloader
-    with pytest.warns(RuntimeWarning):
+    with pytest.raises(MisconfigurationException):
         model = EvalModelTemplate(**hparams)
         model.val_dataloader = None
         trainer.fit(model)
