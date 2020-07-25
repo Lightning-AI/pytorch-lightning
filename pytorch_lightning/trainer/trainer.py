@@ -36,6 +36,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -644,6 +645,7 @@ class Trainer(
 
         # tracks internal state for debugging
         self.dev_debugger = InternalDebugger(self)
+        self.config_validator = ConfigValidator(self)
 
         # Callback system
         self.on_init_end()
@@ -974,18 +976,19 @@ class Trainer(
         if hasattr(model, 'hparams'):
             parsing.clean_namespace(model.hparams)
 
-        # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-        if (train_dataloader or val_dataloaders) and datamodule:
-            raise MisconfigurationException(
-                'You cannot pass train_dataloader or val_dataloaders to trainer.fit if you supply a datamodule'
-            )
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(train_dataloader, LightningDataModule):
+            datamodule = train_dataloader
+            train_dataloader = None
+
+        self.config_validator.enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
         self.__attach_datamodule(model, datamodule)
 
         # check that model is configured correctly
-        self.check_model_configuration(model)
+        self.config_validator.verify_loop_configurations(model)
 
         # callbacks
         self.on_fit_start()
@@ -1256,9 +1259,9 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
-        should_sanity_check = (
-            self.is_overridden('validation_step') and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
-        )
+
+        using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')
+        should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
         # to make sure program won't crash during val
@@ -1447,73 +1450,6 @@ class Trainer(
             model.teardown('test')
 
         return results
-
-    def check_model_configuration(self, model: LightningModule):
-        r"""
-        Checks that the model is configured correctly before training or testing is started.
-
-        Args:
-            model: The model to check the configuration.
-
-        """
-        # Check training_step, train_dataloader, configure_optimizer methods
-        if not self.testing:
-            if not self.is_overridden('training_step', model):
-                raise MisconfigurationException(
-                    'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
-                )
-
-            if not self.is_overridden('train_dataloader', model):
-                raise MisconfigurationException(
-                    'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
-                )
-
-            if not self.is_overridden('configure_optimizers', model):
-                raise MisconfigurationException(
-                    'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
-                )
-
-            # Check val_dataloader, validation_step and validation_epoch_end
-            if self.is_overridden('val_dataloader', model):
-                if not self.is_overridden('validation_step', model):
-                    raise MisconfigurationException(
-                        'You have passed in a `val_dataloader()`' ' but have not defined `validation_step()`.'
-                    )
-                else:
-                    if not self.is_overridden('validation_epoch_end', model):
-                        rank_zero_warn(
-                            'You have defined a `val_dataloader()` and have defined a `validation_step()`,'
-                            ' you may also want to define `validation_epoch_end()` for accumulating stats.',
-                            RuntimeWarning,
-                        )
-            else:
-                if self.is_overridden('validation_step', model):
-                    raise MisconfigurationException(
-                        'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.'
-                    )
-
-        # Check test_dataloader, test_step and test_epoch_end
-        if self.is_overridden('test_dataloader', model):
-            if not self.is_overridden('test_step', model):
-                raise MisconfigurationException(
-                    'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.'
-                )
-            else:
-                if not self.is_overridden('test_epoch_end', model):
-                    rank_zero_warn(
-                        'You have defined a `test_dataloader()` and have defined a `test_step()`, you may also want to'
-                        ' define `test_epoch_end()` for accumulating stats.',
-                        RuntimeWarning,
-                    )
-        else:
-            if self.testing and self.is_overridden('test_step', model):
-                raise MisconfigurationException(
-                    'You have defined `test_step()` but did not'
-                    ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.'
-                )
 
     def barrier(self, name):
         if self.use_ddp or self.use_ddp2:
