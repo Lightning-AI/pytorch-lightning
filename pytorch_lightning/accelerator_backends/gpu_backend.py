@@ -40,6 +40,10 @@ class GPUBackend(object):
         if self.trainer.use_amp and not native_amp_available:
             self._setup_nvidia_apex(model)
 
+    def train(self, model):
+        results = self.trainer.run_pretrain_routine(model)
+        return results
+
     def _setup_nvidia_apex(self, model):
         model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
         self.trainer.optimizers = optimizers

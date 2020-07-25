@@ -1064,8 +1064,6 @@ class Trainer(
                 self.set_random_port()
                 results = self.spawn_ddp_children(model)
 
-        # 1 gpu or dp option triggers training using DP module
-        # easier to avoid NCCL issues
         elif self.use_dp:
             self.accelerator = DataParallelBackend(self)
             model = self.accelerator.setup(model)
@@ -1078,7 +1076,7 @@ class Trainer(
         elif self.single_gpu:
             self.accelerator = GPUBackend(self)
             self.accelerator.setup(model)
-            results = self.run_pretrain_routine(model)
+            results = self.accelerator.train(model)
 
         elif self.use_tpu:
             self.accelerator = TPUBackend(self)
