@@ -36,6 +36,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -644,6 +645,7 @@ class Trainer(
 
         # tracks internal state for debugging
         self.dev_debugger = InternalDebugger(self)
+        self.config_validator = ConfigValidator(self)
 
         # Callback system
         self.on_init_end()
@@ -990,7 +992,7 @@ class Trainer(
         self.__attach_datamodule(model, datamodule)
 
         # check that model is configured correctly
-        self.check_model_configuration(model)
+        self.config_validator.verify_loop_configurations(model)
 
         # callbacks
         self.on_fit_start()
@@ -1454,61 +1456,6 @@ class Trainer(
             model.teardown('test')
 
         return results
-
-    def check_model_configuration(self, model: LightningModule):
-        r"""
-        Checks that the model is configured correctly before training or testing is started.
-
-        Args:
-            model: The model to check the configuration.
-
-        """
-        # Check training_step, train_dataloader, configure_optimizer methods
-        if not self.testing:
-            if not self.is_overridden('training_step', model):
-                raise MisconfigurationException(
-                    'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
-                )
-
-            if not self.is_overridden('train_dataloader', model):
-                raise MisconfigurationException(
-                    'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
-                )
-
-            if not self.is_overridden('configure_optimizers', model):
-                raise MisconfigurationException(
-                    'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
-                    ' `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined.'
-                )
-
-            # Check val_dataloader, validation_step and validation_epoch_end
-            if self.is_overridden('val_dataloader', model):
-                if not self.is_overridden('validation_step', model):
-                    rank_zero_warn(
-                        'You have passed in a `val_dataloader()`' ' but have not defined `validation_step()`.',
-                        RuntimeWarning
-                    )
-            else:
-                if self.is_overridden('validation_step', model):
-                    raise MisconfigurationException(
-                        'You have defined `validation_step()`,' ' but have not passed in a `val_dataloader()`.',
-                        RuntimeWarning,
-                    )
-        else:
-            # Check test_dataloader, test_step and test_epoch_end
-            if self.is_overridden('test_dataloader', model):
-                if not self.is_overridden('test_step', model):
-                    rank_zero_warn(
-                        'You have passed in a `test_dataloader()`' ' but have not defined `test_step()`.',
-                    )
-            else:
-                if self.is_overridden('test_step', model):
-                    raise MisconfigurationException(
-                        'You have defined `test_step()` but did not'
-                        ' implement `test_dataloader` nor passed in `.test(test_dataloader)`.',
-                    )
 
     def barrier(self, name):
         if self.use_ddp or self.use_ddp2:
