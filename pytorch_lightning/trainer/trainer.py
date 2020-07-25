@@ -51,7 +51,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerators import GPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -1073,12 +1073,12 @@ class Trainer(
             results = self.horovod_train(model)
 
         elif self.single_gpu:
-            self.accelerator = GPUAccelerator(self)
+            self.accelerator = GPUBackend(self)
             self.accelerator.setup(model)
             results = self.run_pretrain_routine(model)
 
         elif self.use_tpu:
-            self.accelerator = TPUAccelerator(self)
+            self.accelerator = TPUBackend(self)
             self.accelerator.setup()
             self.accelerator.train(model)
             self.accelerator.teardown()

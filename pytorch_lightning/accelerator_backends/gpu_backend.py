@@ -15,7 +15,7 @@
 import torch
 
 
-class GPUAccelerator(object):
+class GPUBackend(object):
 
     def __init__(self, trainer):
         self.trainer = trainer

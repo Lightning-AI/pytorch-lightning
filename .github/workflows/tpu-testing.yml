@@ -38,11 +38,11 @@ jobs:
         repository: PyTorchLightning/pytorch-lightning
         ref: ${{ github.event.pull_request.head.sha }}
 
-    - name: Checkout ml-testing-accelerators
+    - name: Checkout ml-testing-accelerator_backends
       uses: actions/checkout@v2
       with:
-        repository: GoogleCloudPlatform/ml-testing-accelerators
-        path: ml-testing-accelerators
+        repository: GoogleCloudPlatform/ml-testing-accelerator_backends
+        path: ml-testing-accelerator_backends
         ref: 5e88ac24f631c27045e62f0e8d5dfcf34e425e25
 
     - name: Setup gcloud CLI
