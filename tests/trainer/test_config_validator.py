@@ -49,13 +49,13 @@ def test_val_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # no val data has val loop
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(UserWarning):
         model = EvalModelTemplate(**hparams)
         model.validation_step = None
         trainer.fit(model)
 
     # has val loop but no val data
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(UserWarning):
         model = EvalModelTemplate(**hparams)
         model.val_dataloader = None
         trainer.fit(model)
@@ -69,13 +69,13 @@ def test_test_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # has test loop but no test data
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(UserWarning):
         model = EvalModelTemplate(**hparams)
         model.test_dataloader = None
         trainer.test(model)
 
     # has test data but no test loop
-    with pytest.warns(RuntimeWarning):
+    with pytest.warns(UserWarning):
         model = EvalModelTemplate(**hparams)
         model.test_step = None
         trainer.test(model, test_dataloaders=model.dataloader(train=False))
