@@ -1,0 +1,111 @@
+import torch
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from torch import optim
+
+try:
+    from apex import amp
+except ImportError:
+    APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
+
+
+class DataParallelBackend(object):
+
+    def __init__(self, trainer):
+        self.trainer = trainer
+        self.model_autocast_original_forward = None
+
+    def setup(self, model):
+        # call setup after the ddp process has connected
+        if not self.trainer.testing:
+            self.trainer.setup('fit')
+            model.setup('fit')
+
+        # put model on correct device
+        model.cuda(self.trainer.root_gpu)
+
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        self.trainer.optimizers, self.trainer.lr_schedulers, self.trainer.optimizer_frequencies = self.trainer.init_optimizers(model)
+
+        # hack forward to do autocast for the user
+        self.model_autocast_original_forward = model.forward
+
+        # init half precision
+        if self.trainer.use_amp:
+            self.__init_half_precision(model)
+
+        # init torch data parallel
+        model = self.__init_torch_data_parallel(model)
+
+        return model
+
+    def __init_torch_data_parallel(self, model):
+        # create list of device ids
+        device_ids = self.trainer.data_parallel_device_ids
+        if isinstance(device_ids, int):
+            device_ids = list(range(device_ids))
+
+        # set dp device
+        torch.cuda.set_device(self.trainer.root_gpu)
+        model = LightningDataParallel(model, device_ids=device_ids)
+        return model
+
+    def __init_half_precision(self, model):
+        native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+
+        if native_amp_available:
+            self.__init_native_amp(model)
+        else:
+            self.__init_nvidia_apex(model)
+
+    def __init_native_amp(self, model):
+        model.forward = torch.cuda.amp.autocast()(model.forward)
+
+    def __init_nvidia_apex(self, model):
+        # check for this bug (amp + dp + !01 doesn't work)
+        # https://github.com/NVIDIA/apex/issues/227
+        if self.trainer.amp_level == 'O2':
+            raise MisconfigurationException(
+                f'Amp level {self.trainer.amp_level} with DataParallel is not supported.'
+                f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
+                f' We recommend you switch to ddp if you want to use amp')
+        else:
+            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
+            self.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
+
+    def train(self, model):
+        results = self.trainer.run_pretrain_routine(model)
+        return results
+
+    def teardown(self, model):
+        # replace the original fwd function
+        model.forward = self.model_autocast_original_forward
+        return model
+
+    def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
+        """
+        Reinitialize optimizer.step properties added by schedulers
+        """
+        for scheduler in schedulers:
+            scheduler = scheduler['scheduler']
+
+            for optimizer in optimizers:
+                # check that we dont mix users optimizers and schedulers
+                if scheduler.optimizer == optimizer:
+                    # Find the mro belonging to the base lr scheduler class
+                    for i, mro in enumerate(scheduler.__class__.__mro__):
+                        if (
+                            mro == optim.lr_scheduler._LRScheduler
+                            or mro == optim.lr_scheduler.ReduceLROnPlateau
+                        ):
+                            idx = i
+                            state = scheduler.state_dict()
+                        else:
+                            state = None
+
+                scheduler.__class__.__mro__[idx].__init__(scheduler, optimizer)
+                if state is not None:
+                    scheduler.load_state_dict(state)

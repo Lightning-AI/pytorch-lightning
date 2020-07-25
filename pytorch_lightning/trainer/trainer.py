@@ -51,7 +51,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend
+from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend, DataParallelBackend
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -1067,7 +1067,10 @@ class Trainer(
         # 1 gpu or dp option triggers training using DP module
         # easier to avoid NCCL issues
         elif self.use_dp:
-            results = self.dp_train(model)
+            self.accelerator = DataParallelBackend(self)
+            model = self.accelerator.setup(model)
+            results = self.accelerator.train(model)
+            model = self.accelerator.teardown(model)
 
         elif self.use_horovod:
             results = self.horovod_train(model)
