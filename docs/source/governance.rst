@@ -18,3 +18,4 @@ Core Maintainers
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
 - Peter Yu (`yukw777 <https://github.com/yukw777>`_)
+- Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
