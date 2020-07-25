@@ -1258,7 +1258,7 @@ class Trainer(
     def _run_sanity_check(self, ref_model, model):
 
         should_sanity_check = (
-            model.val_dataloader is not None and
+            ref_model.val_dataloader is not None and
             self.is_overridden('validation_step') and
             self.num_sanity_val_steps > 0 and
             self.limit_val_batches > 0
