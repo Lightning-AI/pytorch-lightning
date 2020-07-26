@@ -167,7 +167,7 @@ Thus, if we wanted to add a validation loop you would add this to your
     ...         result.log('val_loss', loss)
     ...         return result
 
-The equivalent expanded version is the following:
+The equivalent expanded version (which you normally wouldn't need to use) is the following:
 
     >>> import pytorch_lightning as pl
     >>> class LitModel(pl.LightningModule):
