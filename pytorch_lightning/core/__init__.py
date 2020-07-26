@@ -114,6 +114,10 @@ To show how Lightning calls these, let's use the validation loop as an example:
 
 .. code-block:: python
 
+    # put model in prediction mode
+    model.eval()
+    torch.set_grad_enabled(False)
+
     val_outs = []
     for val_batch in val_data:
         # do something with each batch
@@ -123,6 +127,10 @@ To show how Lightning calls these, let's use the validation loop as an example:
     # do something with the outputs for all batches
     # like calculate validation set accuracy or loss
     validation_epoch_end(val_outs)
+
+    # put model back in train mode
+    model.train()
+    torch.set_grad_enabled(True)
 
 If we use dp or ddp2 mode, we can also define the ``XXX_step_end`` method to operate
 on all parts of the batch::
