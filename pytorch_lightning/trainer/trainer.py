@@ -1075,7 +1075,7 @@ class Trainer(
 
         elif self.single_gpu:
             self.accelerator_backend = GPUBackend(self)
-            self.accelerator_backend.setup(model)
+            model = self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
         elif self.use_tpu:

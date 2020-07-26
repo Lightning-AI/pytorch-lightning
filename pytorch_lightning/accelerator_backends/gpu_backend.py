@@ -46,7 +46,8 @@ class GPUBackend(object):
         # TODO: remove with dropping NVIDIA AMP support
         native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
         if self.trainer.use_amp and not native_amp_available:
-            self._setup_nvidia_apex(model)
+            model = self._setup_nvidia_apex(model)
+        return model
 
     def train(self, model):
         results = self.trainer.run_pretrain_routine(model)
@@ -56,3 +57,4 @@ class GPUBackend(object):
         model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
         self.trainer.optimizers = optimizers
         self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
+        return model
