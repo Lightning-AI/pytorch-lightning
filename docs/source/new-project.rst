@@ -333,6 +333,59 @@ over download/prepare/splitting data
             # do more...
             return self.train
 
+Building models based on Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Datamodules are the recommended approach when building models based on the data.
+
+First, define the information that you might need.
+
+.. code-block:: python
+
+    class MyDataModule(pl.DataModule):
+
+        def __init__(self):
+            super().__init__()
+            self.train_dims = None
+            self.vocab_size = 0
+
+        def prepare_data(self):
+            download_dataset()
+            tokenize()
+            build_vocab()
+
+        def setup(self):
+            vocab = load_vocab
+            self.vocab_size = len(vocab)
+
+            self.train, self.val, self.test = load_datasets()
+            self.train_dims = self.train.next_batch.size()
+
+        def train_dataloader(self):
+            transforms = ...
+            return DataLoader(self.train, transforms)
+
+        def val_dataloader(self):
+            transforms = ...
+            return DataLoader(self.val, transforms)
+
+        def test_dataloader(self):
+            transforms = ...
+            return DataLoader(self.test, transforms)
+
+Next, materialize the data and build your model
+
+.. code-block:: python
+
+    # build module
+    dm = MyDataModule()
+    dm.prepare_data()
+    dm.setup()
+
+    # pass in the properties you want
+    model = LitModel(image_width=dm.train_dims[0], image_height=dm.train_dims[1], vocab_length=dm.vocab_size)
+
+    # train
+    trainer.fit(model, dm)
 
 -----------------
 
