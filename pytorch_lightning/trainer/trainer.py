@@ -1122,12 +1122,6 @@ class Trainer(
         # used for testing or when we need to know that training succeeded
         return results or 1
 
-    def __run_ddp_spawn(self, model, nprocs):
-        self.accelerator_backend.setup()
-        self.accelerator_backend.train(model, nprocs)
-        results = self.accelerator_backend.teardown(model)
-        return results
-
     def can_prepare_data(self):
         if self.prepare_data_per_node:
             return self.local_rank == 0
