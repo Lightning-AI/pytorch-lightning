@@ -525,6 +525,10 @@ But you could have also logged by calling:
         loss = ...
         self.logger.summary.scalar('loss', loss, step=self.global_step)
 
+        # equivalent
+        result = TrainResult()
+        result.log('loss', loss)
+
 Which will generate automatic tensorboard logs.
 
 .. figure:: /_images/mnist_imgs/mnist_tb.png
