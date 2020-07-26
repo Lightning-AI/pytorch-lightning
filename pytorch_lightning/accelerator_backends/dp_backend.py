@@ -43,8 +43,6 @@ class DataParallelBackend(object):
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
 
-        self.trainer.model = model
-
         return model
 
     def __init_torch_data_parallel(self, model):
@@ -94,6 +92,9 @@ class DataParallelBackend(object):
 
         # replace the original fwd function
         model.forward = self.model_autocast_original_forward
+
+        self.trainer.model = model
+
         return model
 
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
