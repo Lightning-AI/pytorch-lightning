@@ -340,3 +340,9 @@ Test-tube
 
 .. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
     :noindex:
+
+FileLogger
+^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.loggers.file_logger.FileLogger
+    :noindex:

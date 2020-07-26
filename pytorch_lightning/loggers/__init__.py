@@ -2,6 +2,8 @@ from os import environ
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loggers.file_logger import FileLogger
+
 
 __all__ = [
     'LightningLoggerBase',
