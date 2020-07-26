@@ -1065,6 +1065,7 @@ class Trainer(
                 results = self.spawn_ddp_children(model)
 
         elif self.use_dp:
+            import pdb; pdb.set_trace()
             self.accelerator_backend = DataParallelBackend(self)
             model = self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
