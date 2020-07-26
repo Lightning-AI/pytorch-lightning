@@ -27,7 +27,7 @@ class CPUBackend(object):
 
         # call setup after the ddp process has connected
         if not self.trainer.testing:
-            self.setup('fit')
+            self.trainer.setup('fit')
             model.setup('fit')
 
         # CHOOSE OPTIMIZER
