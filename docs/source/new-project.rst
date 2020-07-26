@@ -389,6 +389,62 @@ Next, materialize the data and build your model
 
 -----------------
 
+Logging/progress bar
+--------------------
+Lightning has built-in logging to any of the supported loggers or progress bar.
+
+Log in train loop
+^^^^^^^^^^^^^^^^^
+To log from the training loop use the `TrainResult` object
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        acc = ...
+
+        # pick what to minimize
+        result = pl.TrainResult(minimize=loss)
+
+        # logs metric at the end of every training step (batch) to the tensorboard or user-specified logger
+        result.log('train_loss', loss)
+
+        # log to the progress bar only
+        result.log('train_acc', acc, prog_bar=True, logger=False)
+
+Then boot up your logger or tensorboard instance to view training logs
+
+.. code-block:: bash
+
+    tensorboard --logdir ./lightning_logs
+
+.. warning:: Refreshing the progress bar too frequently in Jupyter notebooks or Colab may freeze your UI.
+
+.. note:: TrainResult defaults to logging on every step, set `on_epoch` to also log the metric for the full epoch
+
+Log in Val/Test loop
+^^^^^^^^^^^^^^^^^^^^
+To log from the validation or test loop use a similar approach
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        loss = ...
+        acc = ...
+
+        # pick what to minimize
+        result = pl.EvalResult(checkpoint_on=acc, early_stop_on=loss)
+
+        # log the val loss averaged across the full epoch
+        result.log('val_loss', loss)
+
+        # log the val acc at each step AND for the full epoch (mean)
+        result.log('val_acc', acc, prog_bar=True, logger=True, on_epoch=True, on_step=True)
+
+.. note:: EvalResult defaults to logging for the full epoch, use `reduce_fx=torch.mean` to specify a different function.
+
+-----------------
+
 Why do you need Lightning?
 --------------------------
 Notice the code above has nothing about .cuda() or 16-bit or early stopping or logging, etc...
