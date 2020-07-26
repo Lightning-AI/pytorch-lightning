@@ -51,7 +51,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend, DataParallelBackend
+from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend, DataParallelBackend, DDPSpawnBackend
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -1055,10 +1055,16 @@ class Trainer(
                 self.ddp_train(process_idx=task, q=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                results = self.__run_ddp_spawn(model, nprocs=self.num_processes)
+                self.accelerator_backend = DDPSpawnBackend(self)
+                self.accelerator_backend.setup()
+                self.accelerator_backend.train(model, nprocs=self.num_processes)
+                results = self.accelerator_backend.teardown(model)
 
             elif self.distributed_backend == 'ddp_spawn':
-                results = self.__run_ddp_spawn(model, nprocs=self.num_processes)
+                self.accelerator_backend = DDPSpawnBackend(self)
+                self.accelerator_backend.setup()
+                self.accelerator_backend.train(model, nprocs=self.num_processes)
+                results = self.accelerator_backend.teardown(model)
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
@@ -1115,31 +1121,6 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return results or 1
-
-    def __run_ddp_spawn(self, model, nprocs):
-        self.set_random_port()
-
-        # pass in a state q
-        smp = mp.get_context('spawn')
-        q = smp.SimpleQueue()
-
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(q, model,))
-
-        # restore main state with best weights
-        best_path = q.get()
-        results = q.get()
-        last_path = q.get()
-
-        # transfer back the best path to the trainer
-        self.checkpoint_callback.best_model_path = best_path
-
-        # load last weights
-        if last_path is not None and not self.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
-
-        self.model = model
-        return results
 
     def can_prepare_data(self):
         if self.prepare_data_per_node:
