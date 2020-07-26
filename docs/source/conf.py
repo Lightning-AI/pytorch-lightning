@@ -138,6 +138,7 @@ language = None
 exclude_patterns = [
     'api/pytorch_lightning.rst',
     'api/pl_examples.*',
+    'api/pytorch_lightning.accelerator_backends.*',
     'api/modules.rst',
     'PULL_REQUEST_TEMPLATE.md',
 

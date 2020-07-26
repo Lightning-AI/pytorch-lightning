@@ -85,6 +85,16 @@ references:
        sudo pip install pycobertura
        pycobertura show coverage.xml
 
+  delete_gke_jobs: &delete_gke_jobs
+   run:
+     name: Delete GKE Jobs
+     command: |
+       # Match jobs whose age matches patterns like '1h' or '1d', i.e. any job
+       # that has been around longer than 1hr. First print all columns for
+       # matches, then execute the delete.
+       kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $0}'
+       kubectl delete job $(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $1}')
+
 jobs:
 
   TPU-tests:
@@ -123,9 +133,33 @@ jobs:
           path: docs/build/html/
           destination: html
 
+  cleanup-gke-jobs:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - gcp-gke/install
+      - gcp-gke/update-kubeconfig-with-credentials:
+          cluster: $GKE_CLUSTER
+          perform-login: true
+      - *delete_gke_jobs
+
+
 workflows:
   version: 2
   tpu-tests:
     jobs:
       - build-Docs
       - TPU-tests
+  cleanup:
+    triggers:
+      - schedule:
+          # The cron format is:
+          # min (0-59) hour (0-23) monthday (1-31) month (1-12) weekday (0-6, 0=Sun)
+          # Set to run at the first minute of every hour.
+          cron: "0 * * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - cleanup-gke-jobs
