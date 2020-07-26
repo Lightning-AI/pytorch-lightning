@@ -238,10 +238,19 @@ Under the hood, lightning does the following in (pseudocode):
 
 Data
 ----
-Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataloaders in 2 ways.
+Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataloaders in 3 ways.
 
-- Pass the dataloaders into `trainer.fit()`
-- Define them in the LightningModule
+Data in fit
+^^^^^^^^^^^
+Pass the dataloaders into `trainer.fit()`
+
+.. code-block:: python
+
+    trainer.fit(model, train_dataloader, val_dataloader)
+
+Data in LightningModule
+^^^^^^^^^^^^^^^^^^^^^^^
+For fast research prototyping, it might be easier to link the model with the dataloaders.
 
 .. code-block:: python
 
@@ -258,6 +267,65 @@ Lightning operates on standard PyTorch Dataloaders (of any flavor). Use dataload
         def test_dataloader(self):
             # your test transforms
             return DataLoader(YOUR_DATASET)
+
+DataModule
+^^^^^^^^^^
+A more reusable approach is to define a DataModule which is simply a collection of all 3 data splits but
+also captures:
+
+- download instructions.
+- processing.
+- splitting.
+- etc...
+
+.. code-block:: python
+
+    class MyDataModule(pl.DataModule):
+
+        def __init__(self):
+            ...
+
+        def train_dataloader(self):
+            # your train transforms
+            return DataLoader(YOUR_DATASET)
+
+        def val_dataloader(self):
+            # your val transforms
+            return DataLoader(YOUR_DATASET)
+
+        def test_dataloader(self):
+            # your test transforms
+            return DataLoader(YOUR_DATASET)
+
+And train like so:
+
+.. code-block:: python
+
+    dm = MyDataModule()
+    trainer.fit(model, dm)
+
+When doing distributed training, Datamodules have two optional arguments for granular control
+over download/prepare/splitting data
+
+.. code-block:: python
+
+    class MyDataModule(pl.DataModule):
+
+        def prepare_data(self):
+            # called only on 1 GPU
+            download()
+            tokenize()
+            etc()
+
+         def setup(self):
+            # called on every GPU (assigning state is OK)
+            self.train = ...
+            self.val = ...
+
+         def train_dataloader(self):
+            # do more...
+            return self.train
+
 
 -----------------
 
