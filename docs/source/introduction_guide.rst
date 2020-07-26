@@ -487,15 +487,11 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             logits = self(x)
             loss = F.nll_loss(logits, y)
 
-            # using the TrainResult instead of just the 'loss' directly enables advanced logging and reduction features
+            # using TrainResult to enable logging
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
 
             return result
-
-.. code-block:: python
-
-    class
 
 Again, this is the same PyTorch code, except that it's organized
 by the LightningModule. This organization now lets us train this model
