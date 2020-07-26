@@ -129,7 +129,7 @@ Use this method to generate the val dataloader. This is also a good place to pla
     ...         return DataLoader(self.val_dataset, transform=transforms, batch_size=64)
 
 test_dataloader
-^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 Use this method to generate the test dataloader. This is also a good place to place default transformations.
 
     >>> import pytorch_lightning as pl
