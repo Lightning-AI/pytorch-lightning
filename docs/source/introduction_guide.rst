@@ -303,7 +303,7 @@ Using DataModules allows easier sharing of full dataset definitions.
 .. note:: `setup` is called on every GPU (automatically)
 
 Models defined by data
-^^^^^^^^^^^^^^^^^^^^^^
+**********************
 When your models need to know about the data, it's best to process the data before passing it to the model.
 
 .. code-block:: python
