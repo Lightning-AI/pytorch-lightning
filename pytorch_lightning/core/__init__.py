@@ -219,7 +219,7 @@ Training_step_end method
 When using :class:`~pytorch_lightning.overrides.data_parallel.LightningDataParallel` or
 :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel`, the
 :meth:`~LightningModule.training_step`
-will be operating on a portion of the batch. This is normally ok but in special
+will be operating on a portion of the batch. This is normally okay but in special
 cases like calculating NCE loss using negative samples, we might want to
 perform a softmax across all samples in the batch.
 
