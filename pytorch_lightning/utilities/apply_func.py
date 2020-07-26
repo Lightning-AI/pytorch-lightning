@@ -101,25 +101,8 @@ def move_data_to_device(batch: Any, device: torch.device):
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
             for field in data.fields:
-                # Batch contains output of Field.process(...)
-                if isinstance(getattr(data, field), torch.Tensor):
-                    # standard case: usually a tensor hence .to(...) exists
-                    device_field = getattr(data, field).to(device, non_blocking=True)
-                    setattr(device_data, field, device_field)
-                elif isinstance(getattr(data, field), tuple):
-                    # Case of include_lengths=True then torchtext produces a tuple of two tensors
-                    # Use of generator expression to send  Tensors to device (alternative could be list comprehension)
-                    device_field = tuple(elem.to(device, non_blocking=True) for elem in getattr(data, field))
-                    setattr(device_data, field, device_field)
-                elif isinstance(getattr(data, field), list):
-                    # Case for completeness
-                    device_field = list(elem.to(device, non_blocking=True) for elem in getattr(data, field))
-                    setattr(device_data, field, device_field)
-                else:
-                    # Catch all assuming the class has a .to if not it will fail; and more cases are needed
-                    device_field = getattr(data, field).to(device, non_blocking=True)
-                    setattr(device_data, field, device_field)
-
+                device_field = move_data_to_device(getattr(data, field), device)
+                setattr(device_data, field, device_field)
             return device_data
 
         return data.to(device, non_blocking=True)
