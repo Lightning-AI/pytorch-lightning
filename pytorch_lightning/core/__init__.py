@@ -105,7 +105,8 @@ The general pattern is that each loop has a single method to worry about
 
 - ``___step``
 
-If you need more control, there are two optional loops.
+If you need more control, there are two optional methods.
+
 - ``___step_end``
 - ``___epoch_end``
 
