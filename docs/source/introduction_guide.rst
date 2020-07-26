@@ -299,8 +299,8 @@ Using DataModules allows easier sharing of full dataset definitions.
     model = LitModel(num_classes=imagenet_dm.num_classes)
     trainer.fit(model, imagenet_dm)
 
-`prepare_data` gets called on the `LOCAL_RANK=0` GPU per node. If your nodes share a file system,
-set `Trainer(prepare_data_per_node=False)` and it will be code from node=0, gpu=0 only.
+.. note:: `prepare_data` is called only one 1 GPU in distributed training (automatically)
+.. note:: `setup` is called on every GPU (automatically)
 
 Models defined by data
 ^^^^^^^^^^^^^^^^^^^^^^
