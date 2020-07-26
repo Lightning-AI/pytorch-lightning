@@ -268,6 +268,13 @@ For fast research prototyping, it might be easier to link the model with the dat
             # your test transforms
             return DataLoader(YOUR_DATASET)
 
+And fit like so:
+
+.. code-block:: python
+
+    model = LitModel()
+    trainer.fit(model)
+
 DataModule
 ^^^^^^^^^^
 A more reusable approach is to define a DataModule which is simply a collection of all 3 data splits but
