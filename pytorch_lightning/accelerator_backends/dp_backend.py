@@ -43,7 +43,7 @@ class DataParallelBackend(object):
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
 
-        return model
+        self.trainer.model = model
 
     def __init_torch_data_parallel(self, model):
         # create list of device ids
@@ -82,21 +82,15 @@ class DataParallelBackend(object):
 
         return model
 
-    def train(self, model):
-        self.trainer.model = model
+    def train(self):
+        model = self.trainer.model
         results = self.trainer.run_pretrain_routine(model)
         return results
 
-    def teardown(self, model):
-        # remove the DP wrapper
-        model = model.module
+    def teardown(self):
 
         # replace the original fwd function
-        model.forward = self.model_autocast_original_forward
-
-        self.trainer.model = model
-
-        return model
+        self.trainer.model.forward = self.model_autocast_original_forward
 
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
         """

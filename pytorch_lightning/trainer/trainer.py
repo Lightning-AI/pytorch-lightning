@@ -1066,9 +1066,9 @@ class Trainer(
 
         elif self.use_dp:
             self.accelerator_backend = DataParallelBackend(self)
-            model = self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
-            model = self.accelerator_backend.teardown(model)
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train()
+            self.accelerator_backend.teardown()
 
         elif self.use_horovod:
             results = self.horovod_train(model)
