@@ -80,11 +80,8 @@ Here are the only required methods.
     ...     def training_step(self, batch, batch_idx):
     ...         x, y = batch
     ...         y_hat = self(x)
-    ...         return {'loss': F.cross_entropy(y_hat, y)}
-    ...
-    ...     def train_dataloader(self):
-    ...         return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-    ...                                 transform=transforms.ToTensor()), batch_size=32)
+    ...         loss = F.cross_entropy(y_hat, y)
+    ...         return pl.TrainResult(loss)
     ...
     ...     def configure_optimizers(self):
     ...         return torch.optim.Adam(self.parameters(), lr=0.02)
@@ -93,20 +90,22 @@ Which you can train by doing:
 
 .. code-block:: python
 
-   trainer = pl.Trainer()
-   model = LitModel()
+    train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()))
+    trainer = pl.Trainer()
+    model = LitModel()
 
-   trainer.fit(model)
+   trainer.fit(model, train_loader)
 
 ----------
 
 Training loop structure
 -----------------------
 
-The general pattern is that each loop (training, validation, test loop)
-has 3 methods:
+The general pattern is that each loop has a single method to worry about
 
 - ``___step``
+
+If you need more control, there are two optional loops.
 - ``___step_end``
 - ``___epoch_end``
 
@@ -154,6 +153,18 @@ Thus, if we wanted to add a validation loop you would add this to your
     ...     def validation_step(self, batch, batch_idx):
     ...         x, y = batch
     ...         y_hat = self(x)
+    ...         loss = F.cross_entropy(y_hat, y)
+    ...         result = pl.EvalResult(checkpoint_on=loss)
+    ...         result.log('val_loss', loss)
+    ...         return result
+
+The equivalent expanded version is the following:
+
+    >>> import pytorch_lightning as pl
+    >>> class LitModel(pl.LightningModule):
+    ...     def validation_step(self, batch, batch_idx):
+    ...         x, y = batch
+    ...         y_hat = self(x)
     ...         return {'val_loss': F.cross_entropy(y_hat, y)}
     ...
     ...     def validation_epoch_end(self, outputs):
@@ -172,15 +183,10 @@ Add test loop
     ...     def test_step(self, batch, batch_idx):
     ...         x, y = batch
     ...         y_hat = self(x)
-    ...         return {'test_loss': F.cross_entropy(y_hat, y)}
-    ...
-    ...     def test_epoch_end(self, outputs):
-    ...         test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
-    ...         return {'test_loss': test_loss_mean}
-    ...
-    ...     def test_dataloader(self):
-    ...         # can also return a list of test dataloaders
-    ...         return DataLoader(...)
+    ...         loss = F.cross_entropy(y_hat, y)
+    ...         result = pl.EvalResult(checkpoint_on=loss)
+    ...         result.log('test_loss', loss)
+    ...         return result
 
 However, the test loop won't ever be called automatically to make sure you
 don't run your test data by accident. Instead you have to explicitly call:
@@ -190,12 +196,12 @@ don't run your test data by accident. Instead you have to explicitly call:
     # call after training
     trainer = Trainer()
     trainer.fit(model)
-    trainer.test()
+    trainer.test(test_dataloaders=test_dataloader)
 
     # or call with pretrained model
     model = MyLightningModule.load_from_checkpoint(PATH)
     trainer = Trainer()
-    trainer.test(model)
+    trainer.test(model, test_dataloaders=test_dataloader)
 
 ----------
 

@@ -4,8 +4,8 @@
     from pytorch_lightning.trainer.trainer import Trainer
 
 
-Introduction Guide
-==================
+Step-by-step walk-through
+=========================
 PyTorch Lightning provides a very simple template for organizing your PyTorch code. Once
 you've organized it into a LightningModule, it automates most of the training for you.
 
