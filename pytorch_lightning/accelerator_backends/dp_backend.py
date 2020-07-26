@@ -83,6 +83,7 @@ class DataParallelBackend(object):
         return model
 
     def train(self, model):
+        self.trainer.model = model
         results = self.trainer.run_pretrain_routine(model)
         return results
 
