@@ -51,7 +51,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend, DataParallelBackend, DDPSpawnBackend
+from pytorch_lightning import accelerator_backends
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -1040,6 +1040,7 @@ class Trainer(
                 task = int(os.environ['LOCAL_RANK'])
 
             self.ddp_train(process_idx=task, q=None, model=model)
+
         elif self.use_ddp:
 
             # set testing if set in environ
@@ -1055,13 +1056,13 @@ class Trainer(
                 self.ddp_train(process_idx=task, q=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                self.accelerator_backend = DDPSpawnBackend(self)
+                self.accelerator_backend = accelerator_backends.DDPSpawnBackend(self)
                 self.accelerator_backend.setup()
                 self.accelerator_backend.train(model, nprocs=self.num_processes)
                 results = self.accelerator_backend.teardown(model)
 
             elif self.distributed_backend == 'ddp_spawn':
-                self.accelerator_backend = DDPSpawnBackend(self)
+                self.accelerator_backend = accelerator_backends.DDPSpawnBackend(self)
                 self.accelerator_backend.setup()
                 self.accelerator_backend.train(model, nprocs=self.num_processes)
                 results = self.accelerator_backend.teardown(model)
@@ -1071,7 +1072,7 @@ class Trainer(
                 results = self.spawn_ddp_children(model)
 
         elif self.use_dp:
-            self.accelerator_backend = DataParallelBackend(self)
+            self.accelerator_backend = accelerator_backends.DataParallelBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
@@ -1080,32 +1081,20 @@ class Trainer(
             results = self.horovod_train(model)
 
         elif self.single_gpu:
-            self.accelerator_backend = GPUBackend(self)
+            self.accelerator_backend = accelerator_backends.GPUBackend(self)
             model = self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
         elif self.use_tpu:
-            self.accelerator_backend = TPUBackend(self)
+            self.accelerator_backend = accelerator_backends.TPUBackend(self)
             self.accelerator_backend.setup()
             self.accelerator_backend.train(model)
             self.accelerator_backend.teardown()
 
-        # ON CPU
         else:
-            # run through amp wrapper
-            if self.use_amp:
-                raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
-
-            # call setup after the ddp process has connected
-            if not self.testing:
-                self.setup('fit')
-                model.setup('fit')
-
-            # CHOOSE OPTIMIZER
-            # allow for lr schedulers as well
-            self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-            results = self.run_pretrain_routine(model)
+            self.accelerator_backend = accelerator_backends.CPUBackend(self)
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train(model)
 
         # callbacks
         self.on_fit_end()
