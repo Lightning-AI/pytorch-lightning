@@ -1,0 +1,3 @@
+from pytorch_lightning.accelerator_backends.gpu_backend import GPUBackend
+from pytorch_lightning.accelerator_backends.tpu_backend import TPUBackend
+from pytorch_lightning.accelerator_backends.dp_backend import DataParallelBackend

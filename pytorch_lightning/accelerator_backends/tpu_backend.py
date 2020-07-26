@@ -28,7 +28,7 @@ else:
     XLA_AVAILABLE = True
 
 
-class TPUAccelerator(object):
+class TPUBackend(object):
 
     def __init__(self, trainer):
         self.trainer = trainer

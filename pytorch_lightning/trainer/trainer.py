@@ -51,7 +51,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerators import GPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerator_backends import GPUBackend, TPUBackend, DataParallelBackend
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -661,7 +661,7 @@ class Trainer(
         # tracks internal state for debugging
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
-        self.accelerator = None
+        self.accelerator_backend = None
 
         # Callback system
         self.on_init_end()
@@ -1064,24 +1064,25 @@ class Trainer(
                 self.set_random_port()
                 results = self.spawn_ddp_children(model)
 
-        # 1 gpu or dp option triggers training using DP module
-        # easier to avoid NCCL issues
         elif self.use_dp:
-            results = self.dp_train(model)
+            self.accelerator_backend = DataParallelBackend(self)
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train()
+            self.accelerator_backend.teardown()
 
         elif self.use_horovod:
             results = self.horovod_train(model)
 
         elif self.single_gpu:
-            self.accelerator = GPUAccelerator(self)
-            self.accelerator.setup(model)
-            results = self.run_pretrain_routine(model)
+            self.accelerator_backend = GPUBackend(self)
+            model = self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train(model)
 
         elif self.use_tpu:
-            self.accelerator = TPUAccelerator(self)
-            self.accelerator.setup()
-            self.accelerator.train(model)
-            self.accelerator.teardown()
+            self.accelerator_backend = TPUBackend(self)
+            self.accelerator_backend.setup()
+            self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         # ON CPU
         else:

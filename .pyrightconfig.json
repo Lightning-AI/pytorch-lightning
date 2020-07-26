@@ -7,7 +7,7 @@
     "pytorch_lightning/__init__.py",
     "pytorch_lightning/callbacks",
     "pytorch_lightning/core",
-    "pytorch_lightning/accelerators",
+    "pytorch_lightning/accelerator_backends",
     "pytorch_lightning/loggers",
     "pytorch_lightning/logging",
     "pytorch_lightning/metrics",

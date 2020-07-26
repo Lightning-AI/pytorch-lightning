@@ -38,6 +38,9 @@ def test_single_gpu_test(tmpdir):
 def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
     model = EvalModelTemplate()
     trainer = pl.Trainer(
         default_root_dir=os.getcwd(),
