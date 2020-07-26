@@ -14,6 +14,13 @@
 
 import torch
 
+try:
+    from apex import amp
+except ImportError:
+    APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
+
 
 class GPUBackend(object):
 
