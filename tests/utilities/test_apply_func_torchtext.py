@@ -4,7 +4,7 @@ import torchtext
 import pytorch_lightning as pl
 
 
-def get_torchtext_data_iterator(include_lengths=False):
+def _get_torchtext_data_iterator(include_lengths=False):
     text_field = torchtext.data.Field(sequential=True, pad_first=False,  # nosec
                                       init_token="<s>", eos_token="</s>", include_lengths=include_lengths)  # nosec
 
@@ -30,7 +30,7 @@ def test_move_data_to_device_torchtext_include_length_true():
             super(DebugModel, self).__init__()
 
             # setup data loader generating batches with fields consisting of tuples of tensors
-            self.debug_data_loader, self.text_field = get_torchtext_data_iterator(include_lengths=True)
+            self.debug_data_loader, self.text_field = _get_torchtext_data_iterator(include_lengths=True)
 
             self.learning_rate = 0.001
 
@@ -111,7 +111,7 @@ def test_move_data_to_device_torchtext_include_length_false():
             super(DebugModel, self).__init__()
 
             # setup data loader generating batches with fields consisting of tensors
-            self.debug_data_loader, self.text_field = get_torchtext_data_iterator(include_lengths=False)
+            self.debug_data_loader, self.text_field = _get_torchtext_data_iterator(include_lengths=False)
 
             self.learning_rate = 0.001
 
