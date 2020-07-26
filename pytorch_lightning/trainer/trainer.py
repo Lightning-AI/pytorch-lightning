@@ -1055,7 +1055,10 @@ class Trainer(
                 self.ddp_train(process_idx=task, q=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                results = self.__run_ddp_spawn(model, nprocs=self.num_processes)
+                self.accelerator_backend = DDPSpawnBackend(self)
+                self.accelerator_backend.setup()
+                self.accelerator_backend.train(model, nprocs=self.num_processes)
+                results = self.accelerator_backend.teardown(model)
 
             elif self.distributed_backend == 'ddp_spawn':
                 self.accelerator_backend = DDPSpawnBackend(self)
