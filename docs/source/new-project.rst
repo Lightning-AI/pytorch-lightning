@@ -129,7 +129,7 @@ Under the hood, lightning does (in high-level pseudocode):
 
 Adding a Validation loop
 ------------------------
-To also add a validation loop add the following functions
+To add an (optional) validation loop add the following function
 
 .. testcode::
 
@@ -189,7 +189,7 @@ Lightning automatically:
 
 Adding a Test loop
 ------------------
-You might also need a test loop
+You might also need an optional test loop
 
 .. testcode::
 
