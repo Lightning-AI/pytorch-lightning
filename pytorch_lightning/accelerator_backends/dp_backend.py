@@ -43,6 +43,8 @@ class DataParallelBackend(object):
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
 
+        self.trainer.model = model
+
         return model
 
     def __init_torch_data_parallel(self, model):

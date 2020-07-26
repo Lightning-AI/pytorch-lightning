@@ -28,6 +28,7 @@ class GPUBackend(object):
         self.trainer = trainer
 
     def setup(self, model):
+
         # call setup
         if not self.trainer.testing:
             self.trainer.setup('fit')
