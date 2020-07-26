@@ -22,6 +22,7 @@ PyTorch Lightning Documentation
 
    callbacks
    lightning-module
+   datamodules
    loggers
    metrics
    hooks
