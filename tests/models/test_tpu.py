@@ -25,14 +25,18 @@ else:
 
 
 # 8 cores needs a big dataset
-def _long_train_loader():
+def _serial_train_loader():
     # https://colab.research.google.com/github/pytorch/xla/blob/master/contrib/colab/resnet18-training.ipynb
-    dataset = DataLoader(
-        TrialMNIST(
+
+    def _get_dataset():
+        return TrialMNIST(
             download=True,
             num_samples=2000,
             digits=(0, 1, 2, 5, 8),
-        ),
+        )
+
+    dataset = DataLoader(
+        SERIAL_EXEC.run(_get_dataset),
         batch_size=32,
     )
     return dataset
@@ -110,8 +114,8 @@ def test_model_tpu_cores_8(tmpdir):
 
     model = EvalModelTemplate()
     # 8 cores needs a big dataset
-    model.train_dataloader = SERIAL_EXEC.run(_long_train_loader)
-    model.val_dataloader = SERIAL_EXEC.run(_long_train_loader)
+    model.train_dataloader = _serial_train_loader
+    model.val_dataloader = _serial_train_loader
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
@@ -174,8 +178,8 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 
     model = EvalModelTemplate()
     # 8 cores needs a big dataset
-    model.train_dataloader = SERIAL_EXEC.run(_long_train_loader)
-    model.val_dataloader = SERIAL_EXEC.run(_long_train_loader)
+    model.train_dataloader = _serial_train_loader
+    model.val_dataloader = _serial_train_loader
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
