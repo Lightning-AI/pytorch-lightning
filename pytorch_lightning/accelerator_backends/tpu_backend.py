@@ -45,7 +45,6 @@ class TPUBackend(object):
         if not XLA_AVAILABLE:
             raise MisconfigurationException('PyTorch XLA not installed.')
 
-        #  COLAB_GPU is an env var available by default in Colab environments.
         # see: https://discuss.pytorch.org/t/segfault-with-multiprocessing-queue/81292/2
         self.start_method = 'fork'
 
