@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 
 
 class InternalDebugger(object):
@@ -10,6 +11,8 @@ class InternalDebugger(object):
         self.logged_metrics = []
         self.pbar_added_metrics = []
         self.saved_losses = []
+        self.saved_val_losses = []
+        self.saved_test_losses = []
         self.early_stopping_history = []
         self.checkpoint_callback_history = []
 
@@ -22,6 +25,21 @@ class InternalDebugger(object):
         if self.enabled:
             loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch, 'loss': loss.detach()}
             self.saved_losses.append(loss_dict)
+
+    def track_eval_loss_history(self, test_mode, batch_idx, dataloader_idx, output):
+        if self.enabled:
+            loss_dict = {
+                'sanity_check': self.trainer.running_sanity_check,
+                'dataloader_idx': dataloader_idx,
+                'batch_idx': batch_idx,
+                'epoch': self.trainer.current_epoch,
+                'output': output
+            }
+
+            if test_mode:
+                self.saved_test_losses.append(loss_dict)
+            else:
+                self.saved_val_losses.append(loss_dict)
 
     def track_pbar_metrics_history(self, metrics):
         if self.enabled:
@@ -52,3 +70,24 @@ class InternalDebugger(object):
                 'filepath': filepath
             }
             self.checkpoint_callback_history.append(debug_dict)
+
+    @property
+    def num_seen_sanity_check_batches(self):
+        count = len([x for x in self.saved_val_losses if x['sanity_check'] == True])
+        return count
+
+    @property
+    def num_seen_val_check_batches(self):
+        counts = Counter()
+        for x in self.saved_val_losses:
+            if x['sanity_check'] == False:
+                counts.update({x['dataloader_idx']: 1})
+        return counts
+
+    @property
+    def num_seen_test_check_batches(self):
+        counts = Counter()
+        for x in self.saved_test_losses:
+            if x['sanity_check'] == False:
+                counts.update({x['dataloader_idx']: 1})
+        return counts

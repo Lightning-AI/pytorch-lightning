@@ -1,3 +1,4 @@
+import os
 import platform
 from unittest.mock import patch
 
@@ -306,6 +307,8 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
 )
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for val & test dataloaders passed with batch limit as number"""
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
     model.test_dataloader = model.test_dataloader__multiple_mixed_length
@@ -323,19 +326,44 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
         limit_test_batches=limit_test_batches,
     )
     trainer.fit(model)
+
+    # -------------------------------------------
+    # MAKE SURE THE TRAINER SET THE CORRECT VALUES
+    # -------------------------------------------
     assert trainer.num_training_batches == limit_train_batches
     assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
     trainer.test(ckpt_path=None)
 
     # when the limit is greater than the number of test batches it should be the num in loaders
+    test_dataloader_lengths = [len(x) for x in model.test_dataloader()]
     if limit_test_batches > 1e10:
-        assert trainer.num_test_batches == [len(x) for x in model.test_dataloader()]
+        assert trainer.num_test_batches == test_dataloader_lengths
     else:
         assert trainer.num_test_batches == [limit_test_batches] * len(trainer.test_dataloaders)
+
+    # -------------------------------------------
+    # make sure we actually saw the expected num of batches
+    # -------------------------------------------
+    if limit_train_batches > 0:
+
+        # make sure val batches are as expected
+        assert len(trainer.dev_debugger.num_seen_val_check_batches) == num_val_dataloaders
+        for dataloader_idx, num_batches in trainer.dev_debugger.num_seen_val_check_batches.items():
+            assert num_batches == limit_val_batches
+
+        # make sure test batches are as expected
+        assert len(trainer.dev_debugger.num_seen_test_check_batches) == num_test_dataloaders
+        for dataloader_idx, num_batches in trainer.dev_debugger.num_seen_test_check_batches.items():
+            if limit_test_batches > 1e10:
+                assert num_batches == test_dataloader_lengths[dataloader_idx]
+            else:
+                assert num_batches == limit_test_batches
 
 
 def test_dataloaders_with_fast_dev_run(tmpdir):
     """Verify num_batches for train, val & test dataloaders passed with fast_dev_run = True"""
+    os.environ['PL_DEV_DEBUG'] = '1'
+
     model = EvalModelTemplate()
     model.val_dataloader = model.val_dataloader__multiple_mixed_length
     model.test_dataloader = model.test_dataloader__multiple_mixed_length
@@ -360,6 +388,10 @@ def test_dataloaders_with_fast_dev_run(tmpdir):
 
     trainer.test(ckpt_path=None)
     assert trainer.num_test_batches == [1] * len(trainer.test_dataloaders)
+
+    # verify sanity check batches match as expected
+    num_val_dataloaders = len(model.val_dataloader())
+    assert trainer.dev_debugger.num_seen_sanity_check_batches == trainer.num_sanity_val_steps * num_val_dataloaders
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
