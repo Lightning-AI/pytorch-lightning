@@ -473,18 +473,18 @@ class TrainerDDPMixin(ABC):
             sleep(delay)
 
         local_rank = 0
-        results = self.ddp_train(local_rank, q=None, model=model, is_master=True)
+        results = self.ddp_train(local_rank, mp_queue=None, model=model, is_master=True)
         del os.environ['WORLD_SIZE']
 
         return results
 
-    def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
         Args:
             process_idx:
-            q:
+            mp_queue: multiprocessing queue
             model:
             is_master:
             proc_offset:
@@ -577,7 +577,7 @@ class TrainerDDPMixin(ABC):
         model = self.get_model()
 
         # persist info in ddp_spawn
-        self.transfer_ddp_spawn_state_on_fit_end(model, q, results)
+        self.transfer_ddp_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()

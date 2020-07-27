@@ -92,7 +92,7 @@ def test_model_tpu_cores_8(tmpdir):
 
     # 8 cores needs a big dataset
     def long_train_loader():
-        dataset = DataLoader(TrialMNIST(download=True, num_samples=15000, digits=(0, 1, 2, 5, 8)), batch_size=32)
+        dataset = DataLoader(TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8)), batch_size=32)
         return dataset
     model.train_dataloader = long_train_loader
     model.val_dataloader = long_train_loader
@@ -157,7 +157,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
 
     # 8 cores needs a big dataset
     def long_train_loader():
-        dataset = DataLoader(TrialMNIST(download=True, num_samples=15000, digits=(0, 1, 2, 5, 8)), batch_size=32)
+        dataset = DataLoader(TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8)), batch_size=32)
         return dataset
     model.train_dataloader = long_train_loader
     model.val_dataloader = long_train_loader

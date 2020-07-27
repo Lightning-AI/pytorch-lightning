@@ -61,6 +61,35 @@ class TPUBackend(object):
                 start_method=self.start_method
             )
 
+    def _run_spawn(self, model, nprocs):
+
+        # pass in a state q
+        smp = xmp.get_context('spawn')
+        queue = smp.SimpleQueue()
+
+        xmp.spawn(
+            self.tpu_train_in_process,
+            args=(model, queue),
+            nprocs=self.trainer.tpu_cores,
+            start_method=self.start_method
+        )
+
+        # restore main state with best weights
+        best_path = queue.get()
+        results = queue.get()
+        last_path = queue.get()
+
+        # transfer back the best path to the trainer
+        self.checkpoint_callback.best_model_path = best_path
+
+        # load last weights
+        if last_path is not None and not self.testing:
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt)
+
+        self.model = model
+        return results
+
     def __load_weights_on_main_process(self):
         model = self.trainer.model
 
@@ -70,7 +99,7 @@ class TPUBackend(object):
 
         self.trainer.model = model
 
-    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule):
+    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, mp_queue):
         """
         Here we are inside each individual process
         """

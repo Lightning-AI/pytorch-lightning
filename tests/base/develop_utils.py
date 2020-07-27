@@ -60,7 +60,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate, path_expt=None):
+def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate):
     trained_model = module_class.load_from_checkpoint(root_weights_dir)
     assert trained_model is not None, 'loading model failed'
     return trained_model

@@ -59,13 +59,13 @@ class DDPSpawnBackend(object):
         self.trainer.model = model
         return results
 
-    def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
         Args:
             process_idx:
-            q:
+            mp_queue:
             model:
             is_master:
             proc_offset:
@@ -166,7 +166,7 @@ class DDPSpawnBackend(object):
         model = self.trainer.get_model()
 
         # persist info in ddp_spawn
-        self.trainer.transfer_ddp_spawn_state_on_fit_end(model, q, results)
+        self.trainer.transfer_ddp_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()
