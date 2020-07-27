@@ -163,6 +163,8 @@ else:
 
 try:
     from hydra.utils import to_absolute_path
+    from hydra.core.hydra_config import HydraConfig
+    from hydra.utils import get_original_cwd
 except ImportError:
     HYDRA_AVAILABLE = False
 else:
@@ -467,9 +469,7 @@ class TrainerDDPMixin(ABC):
             # if hydra is available and initialized, make sure to set the cwd correctly
             cwd: Optional[str] = None
             if HYDRA_AVAILABLE:
-                from hydra.core.hydra_config import HydraConfig
                 if HydraConfig.initialized():
-                    from hydra.utils import get_original_cwd
                     cwd = get_original_cwd()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
