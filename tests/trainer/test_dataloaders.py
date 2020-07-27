@@ -344,6 +344,8 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
     # -------------------------------------------
     # make sure we actually saw the expected num of batches
     # -------------------------------------------
+    num_val_dataloaders = len(model.val_dataloader())
+    num_test_dataloaders = len(model.test_dataloader())
     if limit_train_batches > 0:
 
         # make sure val batches are as expected
