@@ -17,9 +17,10 @@ import os
 import torch
 
 import torch.multiprocessing as mp
+from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import _logger as log, LightningModule
+from pytorch_lightning import _logger as log
 
 try:
     import torch_xla
@@ -48,7 +49,7 @@ class TPUBackend(object):
         self.start_method = 'fork' if self.trainer.on_colab_kaggle else 'spawn'
 
         # pass in a state q
-        smp = mp.get_context('spawn')
+        smp = mp.get_context(self.start_method)
         self.mp_queue = smp.SimpleQueue()
 
     def teardown(self, model):
