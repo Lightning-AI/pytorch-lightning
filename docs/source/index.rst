@@ -93,7 +93,7 @@ PyTorch Lightning Documentation
    weights_loading
    optimizers
    profiler
-   use_single_gpu
+   single_gpu
    sequences
    training_tricks
    transfer_learning

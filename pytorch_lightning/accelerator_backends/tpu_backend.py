@@ -15,8 +15,8 @@
 import os
 
 import torch
-
 import torch.multiprocessing as mp
+
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -161,4 +161,5 @@ class TPUBackend(object):
             os.environ['XLA_USE_BF16'] = str(1)
 
         log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
-                 f' global rank: {trainer.tpu_global_core_rank}')
+                 f' global rank: {trainer.tpu_global_core_rank}'
+                 f' with XLA_USE_BF16={os.environ["XLA_USE_BF16"]}')
