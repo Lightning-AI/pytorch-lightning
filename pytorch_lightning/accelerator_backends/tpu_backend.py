@@ -126,7 +126,7 @@ class TPUBackend(object):
 
     def __setup_tpu_training(self, model: LightningModule, trainer):
         # use the default device from the process
-        tpu_device = xm.xla_device()
+        # tpu_device = xm.xla_device()
 
         # if given an ordinal device, use this as the device
         if trainer.tpu_id is not None:
