@@ -63,7 +63,7 @@ class TPUBackend(object):
         # todo, pass also bets score
 
         # load last weights
-        if last_path is  not None and not self.trainer.testing:
+        if last_path and not self.trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt)
 
@@ -78,7 +78,7 @@ class TPUBackend(object):
 
         # train
         if self.trainer.tpu_id is not None:
-            self.tpu_train_in_process(self.trainer.tpu_id, model)
+            self.tpu_train_in_process(self.trainer.tpu_id, model, self.trainer, self.mp_queue)
         else:
             xmp.spawn(
                 self.tpu_train_in_process,
@@ -118,15 +118,13 @@ class TPUBackend(object):
         # persist info in spawn
         trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
-    @classmethod
-    def __save_end_of_training_weights(cls, model: LightningModule, trainer=None):
+    def __save_end_of_training_weights(self, model: LightningModule, trainer=None):
         # when training ends on these platforms dump weights to get out of the main process
         if trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
             trainer.save_spawn_weights(model)
 
-    @classmethod
-    def __setup_tpu_training(cls, model: LightningModule, trainer=None):
+    def __setup_tpu_training(self, model: LightningModule, trainer=None):
         # use the default device from the process
         tpu_device = xm.xla_device()
 
