@@ -46,7 +46,8 @@ class TPUBackend(object):
             raise MisconfigurationException('PyTorch XLA not installed.')
 
         #  COLAB_GPU is an env var available by default in Colab environments.
-        self.start_method = 'fork' if self.trainer.on_colab_kaggle else 'spawn'
+        # see: https://discuss.pytorch.org/t/segfault-with-multiprocessing-queue/81292/2
+        self.start_method = 'fork'
 
         # pass in a state q
         smp = mp.get_context(self.start_method)
