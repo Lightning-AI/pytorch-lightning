@@ -63,7 +63,6 @@ class MNIST(Dataset):
             raise RuntimeError('Dataset not found.')
 
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
-        # FIXME: try to fix loading
         self.data, self.targets = _try_load(os.path.join(self.cached_folder_path, data_file))
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
@@ -107,6 +106,7 @@ class MNIST(Dataset):
 
 
 def _try_load(path_data, trials: int = 30, delta: float = 1.):
+    """Resolving loading from the same time from multiple concurrentprocesses."""
     res, exp = None, None
     assert trials, "at least some trial has to be set"
     assert os.path.isfile(path_data), 'missing file: %s' % path_data
