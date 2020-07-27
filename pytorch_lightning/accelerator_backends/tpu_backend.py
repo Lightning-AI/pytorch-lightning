@@ -63,9 +63,9 @@ class TPUBackend(object):
         # todo, pass also bets score
 
         # load last weights
-        # if last_path is not None and not self.trainer.testing:
-        #     ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-        #     model.load_state_dict(ckpt)
+        if last_path is  not None and not self.trainer.testing:
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt)
 
         self.trainer.model = model
 
@@ -113,6 +113,8 @@ class TPUBackend(object):
         # save weights at the end of training
         self.__save_end_of_training_weights(model)
 
+        # for some reason the state is missing
+        self.trainer.distributed_backend = 'TPU'
         # persist info in spawn
         self.trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 

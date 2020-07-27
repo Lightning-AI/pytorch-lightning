@@ -586,7 +586,7 @@ class TrainerDDPMixin(ABC):
             return results
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        if self.distributed_backend not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
+        if self.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
             return
 
         # track the best model path
@@ -596,6 +596,7 @@ class TrainerDDPMixin(ABC):
 
         if self.global_rank == 0 and mp_queue is not None:
             rank_zero_warn('cleaning up ddp environment...')
+            # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
             mp_queue.put(results)
 
