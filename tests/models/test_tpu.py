@@ -12,6 +12,8 @@ from tests.base.develop_utils import pl_multi_process_test
 
 try:
     import torch_xla
+    import torch_xla.distributed.xla_multiprocessing as xmp
+    SERIAL_EXEC = xmp.MpSerialExecutor()
     # TODO: The tests are aborted if the following lines are uncommented. Must be resolved with XLA team
     # device = torch_xla.core.xla_model.xla_device()
     # device_type = torch_xla.core.xla_model.xla_device_hw(device)
@@ -24,11 +26,15 @@ else:
 
 # 8 cores needs a big dataset
 def _long_train_loader():
-    dataset = DataLoader(TrialMNIST(
-        download=True,
-        num_samples=500,
-        digits=(0, 1, 2, 5, 8)),
-        batch_size=16,
+    # https://colab.research.google.com/github/pytorch/xla/blob/master/contrib/colab/resnet18-training.ipynb
+    dataset = DataLoader(
+        SERIAL_EXEC.run(
+            TrialMNIST(
+                download=True,
+                num_samples=2000,
+                digits=(0, 1, 2, 5, 8)),
+                batch_size=32,
+        )
     )
     return dataset
 
