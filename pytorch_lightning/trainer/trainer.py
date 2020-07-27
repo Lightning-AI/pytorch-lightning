@@ -224,7 +224,8 @@ class Trainer(
 
             callbacks: Add a list of callbacks.
 
-            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed
+            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
+                Default: ``os.getcwd()``.
 
             gradient_clip_val: 0 means don't clip.
 
@@ -351,6 +352,7 @@ class Trainer(
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                     for checkpoints only. Use this if for whatever reason you need the checkpoints
                     stored in a different place than the logs written in `default_root_dir`.
+                    Defaults to `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
@@ -437,10 +439,8 @@ class Trainer(
         self.should_stop = False
         self.running_sanity_check = False
 
-        # set default save path if user didn't provide one
-        if default_root_dir is None:
-            default_root_dir = os.getcwd()
-        self.default_root_dir = default_root_dir
+        self._default_root_dir = default_root_dir or os.getcwd()
+        self._weights_save_path = weights_save_path or self._default_root_dir
 
         # init callbacks
         self.callbacks = callbacks or []
@@ -454,7 +454,6 @@ class Trainer(
         # configure checkpoint callback
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
-        self.weights_save_path = weights_save_path
         checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
@@ -936,6 +935,22 @@ class Trainer(
         """ Check if we should run validation during training. """
         val_loop_enabled = self.is_overridden('validation_step') and self.limit_val_batches > 0
         return val_loop_enabled or self.fast_dev_run
+
+    @property
+    def default_root_dir(self) -> str:
+        """
+        The default location to save artifacts of loggers, checkpoints etc.
+        It is used as a fallback if logger or checkpoint callback do not define specific save paths.
+        """
+        return os.path.normpath(self._default_root_dir)
+
+    @property
+    def weights_save_path(self) -> str:
+        """
+        The default root location to save weights (checkpoints), e.g., when the
+        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
+        """
+        return os.path.normpath(self._weights_save_path)
 
     # -----------------------------
     # MODEL TRAINING

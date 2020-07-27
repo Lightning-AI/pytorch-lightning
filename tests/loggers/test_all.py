@@ -1,5 +1,6 @@
 import atexit
 import inspect
+import os
 import pickle
 import platform
 from unittest import mock
@@ -80,6 +81,68 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
                                 (0, ['epoch', 'train_some_val']),
                                 (1, ['epoch', 'test_acc', 'test_loss'])]
+
+
+@pytest.mark.parametrize("logger_class", [
+    TensorBoardLogger,
+    CometLogger,
+    MLFlowLogger,
+    TestTubeLogger,
+    WandbLogger,
+])
+@mock.patch('pytorch_lightning.loggers.wandb.wandb')
+def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logger_class):
+    """ Test the combinations of save_dir, weights_save_path and default_root_dir.  """
+    if logger_class == CometLogger:
+        # prevent comet logger from trying to print at exit, since
+        # pytest's stdout/stderr redirection breaks it
+        monkeypatch.setattr(atexit, 'register', lambda _: None)
+
+    class TestLogger(logger_class):
+        # for this test it does not matter what these attributes are
+        # so we standardize them to make testing easier
+        @property
+        def version(self):
+            return 'version'
+
+        @property
+        def name(self):
+            return 'name'
+
+    model = EvalModelTemplate()
+    trainer_args = dict(
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+
+    # no weights_save_path given
+    save_dir = tmpdir / 'logs'
+    weights_save_path = None
+    logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
+    trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
+    trainer.fit(model)
+    assert trainer.weights_save_path == trainer.default_root_dir
+    assert trainer.checkpoint_callback.dirpath == os.path.join(logger.save_dir, 'name', 'version', 'checkpoints')
+    assert trainer.default_root_dir == tmpdir
+
+    # with weights_save_path given, the logger path and checkpoint path should be different
+    save_dir = tmpdir / 'logs'
+    weights_save_path = tmpdir / 'weights'
+    logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
+    trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
+    trainer.fit(model)
+    assert trainer.weights_save_path == weights_save_path
+    assert trainer.logger.save_dir == save_dir
+    assert trainer.checkpoint_callback.dirpath == weights_save_path / 'name' / 'version' / 'checkpoints'
+    assert trainer.default_root_dir == tmpdir
+
+    # no logger given
+    weights_save_path = tmpdir / 'weights'
+    trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
+    trainer.fit(model)
+    assert trainer.weights_save_path == weights_save_path
+    assert trainer.checkpoint_callback.dirpath == weights_save_path / 'checkpoints'
+    assert trainer.default_root_dir == tmpdir
 
 
 @pytest.mark.parametrize("logger_class", [

@@ -41,8 +41,11 @@ class ModelCheckpoint(Callback):
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
-            Can also be set to `None`, then it will be set to default location
-            during trainer construction.
+            By default, filepath is `None` and will be set at runtime to the location
+            specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
+            and if the Trainer uses a logger, the path will also contain logger name and version.
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
@@ -233,8 +236,17 @@ class ModelCheckpoint(Callback):
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         """
-        Determine model checkpoint save directory at runtime. References attributes from the
-        Trainer's logger to determine where to save checkpoints.
+        Determines model checkpoint save directory at runtime. References attributes from the
+        trainer's logger to determine where to save checkpoints.
+        The base path for saving weights is set in this priority:
+
+        1.  Checkpoint callback's path (if passed in)
+        2.  The default_root_dir from trainer if trainer has no logger
+        3.  The weights_save_path from trainer, if user provides it
+        4.  User provided weights_saved_path
+
+        The base path gets extended with logger name and version (if these are available)
+        and subfolder "checkpoints".
         """
         if self.dirpath is not None:
             return  # short circuit
@@ -242,10 +254,11 @@ class ModelCheckpoint(Callback):
         self.filename = '{epoch}'
 
         if trainer.logger is not None:
-            # weights_save_path overrides anything
-            save_dir = (getattr(trainer, 'weights_save_path', None)
-                        or getattr(trainer.logger, 'save_dir', None)
-                        or trainer.default_root_dir)
+            if trainer.weights_save_path != trainer.default_root_dir:
+                # the user has changed weights_save_path, it overrides anything
+                save_dir = trainer.weights_save_path
+            else:
+                save_dir = trainer.logger.save_dir or trainer.default_root_dir
 
             version = trainer.logger.version if isinstance(
                 trainer.logger.version, str) else f'version_{trainer.logger.version}'
@@ -256,15 +269,12 @@ class ModelCheckpoint(Callback):
                 "checkpoints"
             )
         else:
-            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
+            ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
         self.dirpath = ckpt_path
 
         assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-
         os.makedirs(self.dirpath, exist_ok=True)
-        trainer.ckpt_path = ckpt_path
-        trainer.weights_save_path = ckpt_path
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):

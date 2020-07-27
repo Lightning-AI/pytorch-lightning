@@ -28,9 +28,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
         max_epochs=2,
     )
     trainer.fit(model)
-
-    # These should be different if the dirpath has be overridden
-    assert trainer.ckpt_path != trainer.default_root_dir
+    assert checkpoint.dirpath == tmpdir / trainer.logger.name / f'version_0' / 'checkpoints'
 
 
 @pytest.mark.parametrize(
@@ -51,7 +49,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     )
     trainer.fit(model)
 
-    ckpt_version = Path(trainer.ckpt_path).parent.name
+    ckpt_version = Path(trainer.checkpoint_callback.dirpath).parent.name
     assert ckpt_version == expected
 
 
