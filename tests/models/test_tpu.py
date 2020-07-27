@@ -22,6 +22,17 @@ else:
     TPU_AVAILABLE = True
 
 
+# 8 cores needs a big dataset
+def _long_train_loader():
+    dataset = DataLoader(TrialMNIST(
+        download=True,
+        num_samples=2000,
+        digits=(0, 1, 2, 5, 8)),
+        batch_size=32,
+    )
+    return dataset
+
+
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
 def test_model_tpu_cores_1(tmpdir):
@@ -93,13 +104,9 @@ def test_model_tpu_cores_8(tmpdir):
     )
 
     model = EvalModelTemplate()
-
     # 8 cores needs a big dataset
-    def long_train_loader():
-        dataset = DataLoader(TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8)), batch_size=32)
-        return dataset
-    model.train_dataloader = long_train_loader
-    model.val_dataloader = long_train_loader
+    model.train_dataloader = _long_train_loader
+    model.val_dataloader = _long_train_loader
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
@@ -161,15 +168,11 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     )
 
     model = EvalModelTemplate()
-
     # 8 cores needs a big dataset
-    def long_train_loader():
-        dataset = DataLoader(TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8)), batch_size=32)
-        return dataset
-    model.train_dataloader = long_train_loader
-    model.val_dataloader = long_train_loader
+    model.train_dataloader = _long_train_loader
+    model.val_dataloader = _long_train_loader
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
