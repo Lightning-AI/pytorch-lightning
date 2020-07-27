@@ -24,22 +24,19 @@ else:
     TPU_AVAILABLE = True
 
 
+_LARGER_DATASET = TrialMNIST(
+    download=True,
+    num_samples=2000,
+    digits=(0, 1, 2, 5, 8),
+)
+
+
 # 8 cores needs a big dataset
 def _serial_train_loader():
-    # https://colab.research.google.com/github/pytorch/xla/blob/master/contrib/colab/resnet18-training.ipynb
-
-    def _get_dataset():
-        return TrialMNIST(
-            download=True,
-            num_samples=2000,
-            digits=(0, 1, 2, 5, 8),
-        )
-
-    dataset = DataLoader(
-        SERIAL_EXEC.run(_get_dataset),
+    return DataLoader(
+        _LARGER_DATASET,
         batch_size=32,
     )
-    return dataset
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
