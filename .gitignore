@@ -133,5 +133,6 @@ mnist/
 # pl tests
 ml-runs/
 *.zip
+*.ckpt
 pytorch\ lightning
 test-reports/

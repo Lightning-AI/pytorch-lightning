@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Lightning supports model training on a cluster managed by SLURM in the following cases:
 
@@ -166,7 +180,7 @@ else:
 
 pid = os.getpid()
 rng1 = np.random.RandomState(pid)
-RANDOM_PORTS = rng1.randint(10000, 19999, 100)
+RANDOM_PORTS = rng1.randint(10000, 19999, 1000)
 
 
 class TrainerDDPMixin(ABC):
@@ -309,6 +323,9 @@ class TrainerDDPMixin(ABC):
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
         rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
+
+        if torch.cuda.is_available() and not self.on_gpu:
+            rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
 
     def configure_slurm_ddp(self, num_gpu_nodes):
         self.is_slurm_managing_tasks = False
@@ -506,8 +523,8 @@ class TrainerDDPMixin(ABC):
         model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
+        if not self.testing:
+            self.setup('fit')
             model.setup('fit')
 
         # on world_size=0 let everyone know training is starting

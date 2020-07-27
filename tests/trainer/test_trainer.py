@@ -533,31 +533,6 @@ def test_benchmark_option(tmpdir):
     assert torch.backends.cudnn.benchmark
 
 
-def test_testpass_overrides(tmpdir):
-    # todo: check duplicated tests against trainer_checks
-    hparams = EvalModelTemplate.get_default_hparams()
-
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
-        model = EvalModelTemplate(**hparams)
-        model.test_dataloader = LightningModule.test_dataloader
-        Trainer().test(model)
-
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(**hparams)
-        model.test_step = LightningModule.test_step
-        Trainer().test(model)
-
-    # No exceptions when one or both of test_step or test_end are implemented
-    model = EvalModelTemplate(**hparams)
-    model.test_step_end = LightningModule.test_step_end
-    Trainer().test(model)
-
-    model = EvalModelTemplate(**hparams)
-    Trainer().test(model)
-
-
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
@@ -980,3 +955,34 @@ def test_trainer_pickle(tmpdir):
     )
     pickle.dumps(trainer)
     cloudpickle.dumps(trainer)
+
+
+def test_trainer_setup_call(tmpdir):
+    """Test setup call with fit and test call."""
+
+    class CurrentModel(EvalModelTemplate):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    class TrainerSubclass(Trainer):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    model = CurrentModel()
+
+    # fit model
+    trainer = TrainerSubclass(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False
+    )
+
+    trainer.fit(model)
+    assert trainer.stage == 'fit'
+    assert trainer.get_model().stage == 'fit'
+
+    trainer.test(ckpt_path=None)
+    assert trainer.stage == 'test'
+    assert trainer.get_model().stage == 'test'

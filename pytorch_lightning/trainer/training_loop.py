@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 The lightning training loop handles everything except the actual computations of your model.
  To decide what will happen in your training loop, define the `training_step` function.
@@ -335,7 +349,9 @@ class TrainerTrainLoopMixin(ABC):
         # if reload_dataloaders_every_epoch, this is moved to the epoch loop
         if not self.reload_dataloaders_every_epoch:
             self.reset_train_dataloader(model)
-        self.reset_val_dataloader(model)
+
+        if model.val_dataloader is not None:
+            self.reset_val_dataloader(model)
 
         # Train start events
         with self.profiler.profile('on_train_start'):
@@ -632,7 +648,7 @@ class TrainerTrainLoopMixin(ABC):
 
     def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
-        should_log_metrics = batch_idx % self.row_log_interval == 0 or self.should_stop
+        should_log_metrics = (batch_idx + 1) % self.row_log_interval == 0 or self.should_stop
         if should_log_metrics or self.fast_dev_run:
             # logs user requested information to logger
             metrics = batch_output.batch_log_metrics
