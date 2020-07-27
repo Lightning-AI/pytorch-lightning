@@ -28,7 +28,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
         max_epochs=2,
     )
     trainer.fit(model)
-    assert checkpoint.dirpath == tmpdir / trainer.logger.name / f'version_0' / 'checkpoints'
+    assert checkpoint.dirpath == tmpdir / trainer.logger.name / 'version_0' / 'checkpoints'
 
 
 @pytest.mark.parametrize(
