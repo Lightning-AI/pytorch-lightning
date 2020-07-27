@@ -26,9 +26,9 @@ else:
 def _long_train_loader():
     dataset = DataLoader(TrialMNIST(
         download=True,
-        num_samples=2000,
+        num_samples=500,
         digits=(0, 1, 2, 5, 8)),
-        batch_size=32,
+        batch_size=16,
     )
     return dataset
 

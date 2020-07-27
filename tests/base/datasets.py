@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 import urllib.request
 import time
 from typing import Tuple, Optional, Sequence
@@ -105,14 +106,14 @@ class MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)
 
 
-def _try_load(path_data, trials: int = 30, delta: float = 0.3):
+def _try_load(path_data, trials: int = 30, delta: float = 1.):
     res = None
     assert os.path.isfile(path_data), 'missing file: %s' % path_data
     for _ in range(trials):
         try:
             res = torch.load(path_data)
         except Exception as ex:
-            time.sleep(delta)
+            time.sleep(delta * random.random())
         else:
             break
     else:
