@@ -577,7 +577,7 @@ class TrainerDDPMixin(ABC):
         model = self.get_model()
 
         # persist info in ddp_spawn
-        self.transfer_ddp_spawn_state_on_fit_end(model, mp_queue, results)
+        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()
@@ -585,7 +585,7 @@ class TrainerDDPMixin(ABC):
         if self.global_rank == 0 and self.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
 
-    def transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
+    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         if self.distributed_backend not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
             return
 
@@ -594,17 +594,17 @@ class TrainerDDPMixin(ABC):
         if self.checkpoint_callback is not None:
             best_model_path = self.checkpoint_callback.best_model_path
 
-        if self.global_rank == 0 and q is not None:
+        if self.global_rank == 0 and mp_queue is not None:
             rank_zero_warn('cleaning up ddp environment...')
-            q.put(best_model_path)
-            q.put(results)
+            mp_queue.put(best_model_path)
+            mp_queue.put(results)
 
             # save the last weights
             last_path = None
             if not self.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 torch.save(model.state_dict(), last_path)
-            q.put(last_path)
+            mp_queue.put(last_path)
 
     def save_spawn_weights(self, model):
         """
@@ -613,7 +613,7 @@ class TrainerDDPMixin(ABC):
         :return:
         """
         if self.is_global_zero:
-            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_distributed_end.ckpt')
             self.save_checkpoint(path)
             return path
 
@@ -629,7 +629,7 @@ class TrainerDDPMixin(ABC):
 
         if self.is_global_zero:
             # load weights saved in ddp
-            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_distributed_end.ckpt')
             loaded_model = original_model.__class__.load_from_checkpoint(path)
 
             # copy loaded weights to old model

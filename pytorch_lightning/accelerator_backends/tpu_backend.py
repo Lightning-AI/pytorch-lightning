@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import os
+
+import torch
+
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log, LightningModule
@@ -32,6 +35,7 @@ class TPUBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.start_method = None
+        self.mp_queue = None
 
     def setup(self):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
@@ -42,10 +46,23 @@ class TPUBackend(object):
         #  COLAB_GPU is an env var available by default in Colab environments.
         self.start_method = 'fork' if self.trainer.on_colab_kaggle else 'spawn'
 
+        # pass in a state q
+        smp = xmp.get_context(self.start_method)
+        self.mp_queue = smp.SimpleQueue()
+
     def teardown(self):
+        # restore main state with best weights
+        best_path = self.mp_queue.get()
+        results = self.mp_queue.get()
+        last_path = self.mp_queue.get()
+
+        # transfer back the best path to the trainer
+        self.trainer.checkpoint_callback.best_model_path = best_path
+        # todo, pass also bets score
 
         # when training completes, load the weights back in main process
         self.__load_weights_on_main_process()
+        return results
 
     def train(self, model: LightningModule):
         self.trainer.model = model
@@ -56,39 +73,10 @@ class TPUBackend(object):
         else:
             xmp.spawn(
                 self.tpu_train_in_process,
-                args=(model,),
+                args=(model, self.mp_queue),
                 nprocs=self.trainer.tpu_cores,
                 start_method=self.start_method
             )
-
-    def _run_spawn(self, model, nprocs):
-
-        # pass in a state q
-        smp = xmp.get_context('spawn')
-        queue = smp.SimpleQueue()
-
-        xmp.spawn(
-            self.tpu_train_in_process,
-            args=(model, queue),
-            nprocs=self.trainer.tpu_cores,
-            start_method=self.start_method
-        )
-
-        # restore main state with best weights
-        best_path = queue.get()
-        results = queue.get()
-        last_path = queue.get()
-
-        # transfer back the best path to the trainer
-        self.checkpoint_callback.best_model_path = best_path
-
-        # load last weights
-        if last_path is not None and not self.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
-
-        self.model = model
-        return results
 
     def __load_weights_on_main_process(self):
         model = self.trainer.model
@@ -99,7 +87,7 @@ class TPUBackend(object):
 
         self.trainer.model = model
 
-    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, mp_queue):
+    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, mp_queue=None):
         """
         Here we are inside each individual process
         """
@@ -111,13 +99,15 @@ class TPUBackend(object):
         self.__setup_tpu_training(model)
 
         # Run the pretrain routine
-        self.trainer.run_pretrain_routine(model)
+        results = self.trainer.run_pretrain_routine(model)
 
         # save weights at the end of training
         self.__save_end_of_training_weights(model)
 
-    def __save_end_of_training_weights(self, model: LightningModule):
+        # persist info in spawn
+        self.trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
+    def __save_end_of_training_weights(self, model: LightningModule):
         # when training ends on these platforms dump weights to get out of the main process
         if self.trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
