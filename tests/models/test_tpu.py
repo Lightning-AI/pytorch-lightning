@@ -32,9 +32,10 @@ def _long_train_loader():
             TrialMNIST(
                 download=True,
                 num_samples=2000,
-                digits=(0, 1, 2, 5, 8)),
-                batch_size=32,
-        )
+                digits=(0, 1, 2, 5, 8),
+            )
+        ),
+        batch_size=32,
     )
     return dataset
 
