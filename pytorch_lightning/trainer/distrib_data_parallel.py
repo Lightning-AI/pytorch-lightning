@@ -251,7 +251,7 @@ class TrainerDDPMixin(ABC):
 
     def init_tpu(self):
         # turn off all the GPU stuff
-        self.distributed_backend = None
+        # self.distributed_backend = 'tpu'
 
         # enable tpu
         self.use_tpu = True

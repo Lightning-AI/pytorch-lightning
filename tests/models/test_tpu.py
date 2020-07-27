@@ -33,7 +33,7 @@ def test_model_tpu_cores_1(tmpdir):
         distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -51,7 +51,7 @@ def test_model_tpu_index_1(tmpdir):
         distributed_backend='tpu',
         tpu_cores=[1],
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -70,7 +70,7 @@ def test_model_tpu_index_5(tmpdir):
         distributed_backend='tpu',
         tpu_cores=[5],
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -89,7 +89,7 @@ def test_model_tpu_cores_8(tmpdir):
         distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -116,7 +116,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
         distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -136,7 +136,7 @@ def test_model_16bit_tpu_index_1(tmpdir):
         distributed_backend='tpu',
         tpu_cores=[1],
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -157,7 +157,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
