@@ -28,7 +28,7 @@ def _get_torchtext_data_iterator(include_lengths=False):
     return iterator, text_field
 
 
-def test_move_data_to_device_torchtext_include_length_true():
+def test_torchtext_field_include_length_true():
     """Test if batches created by torchtext with include_lengths=True raise an exception."""
 
     class DebugModel(pl.LightningModule):
@@ -179,7 +179,7 @@ def test_move_data_to_device_torchtext_include_length_false():
     assert result == 1
 
 
-def test_torchtext_include_lengths_false_batch_move_data_to_device():
+def test_batch_move_data_to_device_torchtext_include_lengths_false():
     cuda_device_cnt = torch.cuda.device_count()
     if cuda_device_cnt > 0:
         device = torch.device('cuda')
@@ -192,9 +192,13 @@ def test_torchtext_include_lengths_false_batch_move_data_to_device():
 
     # this call should not throw an error
     batch_on_device = move_data_to_device(batch, device)
+    # tensor with data
+    assert(batch_on_device.text[0].device == device)
+    # tensor with length of data
+    assert(batch_on_device.text[1].device == device)
 
 
-def test_torchtext_include_lengths_true_batch_move_data_to_device():
+def test_batch_move_data_to_device_torchtext_include_lengths_true():
     cuda_device_cnt = torch.cuda.device_count()
     if cuda_device_cnt > 0:
         device = torch.device('cuda')
@@ -207,3 +211,5 @@ def test_torchtext_include_lengths_true_batch_move_data_to_device():
 
     # this call should not throw an error
     batch_on_device = move_data_to_device(batch, device)
+    # tensor with data
+    assert(batch_on_device.text[0].device == device)
