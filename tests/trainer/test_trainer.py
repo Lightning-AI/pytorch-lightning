@@ -6,6 +6,7 @@ import sys
 import types
 from argparse import Namespace
 from pathlib import Path
+from unittest.mock import patch
 
 import cloudpickle
 import pytest
@@ -532,31 +533,6 @@ def test_benchmark_option(tmpdir):
     assert torch.backends.cudnn.benchmark
 
 
-def test_testpass_overrides(tmpdir):
-    # todo: check duplicated tests against trainer_checks
-    hparams = EvalModelTemplate.get_default_hparams()
-
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
-        model = EvalModelTemplate(**hparams)
-        model.test_dataloader = LightningModule.test_dataloader
-        Trainer().test(model)
-
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(**hparams)
-        model.test_step = LightningModule.test_step
-        Trainer().test(model)
-
-    # No exceptions when one or both of test_step or test_end are implemented
-    model = EvalModelTemplate(**hparams)
-    model.test_step_end = LightningModule.test_step_end
-    Trainer().test(model)
-
-    model = EvalModelTemplate(**hparams)
-    Trainer().test(model)
-
-
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
@@ -589,7 +565,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             with pytest.raises(FileNotFoundError):
                 trainer.test(ckpt_path='random.ckpt')
         else:
-            ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0].absolute())
+            ckpt_path = str(list((Path(tmpdir) / f'lightning_logs/version_{trainer.logger.version}/checkpoints').iterdir())[0].absolute())
             trainer.test(ckpt_path=ckpt_path)
             assert trainer.tested_ckpt_path == ckpt_path
 
@@ -807,6 +783,34 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
         assert trainer.tpu_id == expected_tpu_id
 
 
+@pytest.mark.parametrize(['limit_val_batches'], [
+    pytest.param(0.0),  # this should run no sanity checks
+    pytest.param(1),
+    pytest.param(1.0),
+    pytest.param(0.3),
+])
+def test_num_sanity_val_steps(tmpdir, limit_val_batches):
+    """
+    Test that num_sanity_val_steps=-1 runs through all validation data once.
+    Makes sure this setting is independent of limit_val_batches.
+    """
+    model = EvalModelTemplate()
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=-1,
+        limit_val_batches=limit_val_batches,  # should have no influence
+        max_steps=1,
+    )
+    assert trainer.num_sanity_val_steps == float('inf')
+    val_dataloaders = model.val_dataloader__multiple()
+
+    with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+        assert mocked.call_count == sum(len(dl) * (limit_val_batches > 0) for dl in val_dataloaders)
+
+
 @pytest.mark.parametrize("trainer_kwargs,expected", [
     pytest.param(
         dict(distributed_backend=None, gpus=None),
@@ -951,3 +955,34 @@ def test_trainer_pickle(tmpdir):
     )
     pickle.dumps(trainer)
     cloudpickle.dumps(trainer)
+
+
+def test_trainer_setup_call(tmpdir):
+    """Test setup call with fit and test call."""
+
+    class CurrentModel(EvalModelTemplate):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    class TrainerSubclass(Trainer):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    model = CurrentModel()
+
+    # fit model
+    trainer = TrainerSubclass(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False
+    )
+
+    trainer.fit(model)
+    assert trainer.stage == 'fit'
+    assert trainer.get_model().stage == 'fit'
+
+    trainer.test(ckpt_path=None)
+    assert trainer.stage == 'test'
+    assert trainer.get_model().stage == 'test'

@@ -9,9 +9,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added a PSNR metric: peak signal-to-noise ratio ([#2483](https://github.com/PyTorchLightning/pytorch-lightning/pull/2483))
+- Added SSIM metrics ([#2671](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671))
+- Added BLEU metrics ([#2535](https://github.com/PyTorchLightning/pytorch-lightning/pull/2535))
 
-- Added functional regression metrics ([#2492](https://github.com/PyTorchLightning/pytorch-lightning/pull/2492))
+- Added support for `Trainer(num_sanity_val_steps=-1)` to check all validation data before training ([#2246](https://github.com/PyTorchLightning/pytorch-lightning/pull/2246))
 
 ### Changed
 
@@ -24,15 +25,39 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed setup call while testing ([#2624](https://github.com/PyTorchLightning/pytorch-lightning/pull/2624))
+
+- Fixed Horovod backend to scale LR schedlers with the optimizer ([#2626](https://github.com/PyTorchLightning/pytorch-lightning/pull/2626))
+
+- Fixed `dtype` and `device` properties not getting updated in submodules ([#2657](https://github.com/PyTorchLightning/pytorch-lightning/pull/2657))
+
+## [0.8.5] - 2020-07-09
+
+### Added
+
+- Added a PSNR metric: peak signal-to-noise ratio ([#2483](https://github.com/PyTorchLightning/pytorch-lightning/pull/2483))
+- Added functional regression metrics ([#2492](https://github.com/PyTorchLightning/pytorch-lightning/pull/2492))
+
+### Removed
+
+- Removed auto val reduce ([#2462](https://github.com/PyTorchLightning/pytorch-lightning/pull/2462))
+
+### Fixed
+
 - Flattening Wandb Hyperparameters ([#2459](https://github.com/PyTorchLightning/pytorch-lightning/pull/2459))
-
 - Fixed using the same DDP python interpreter and actually running ([#2482](https://github.com/PyTorchLightning/pytorch-lightning/pull/2482))
-
 - Fixed model summary input type conversion for models that have input dtype different from model parameters ([#2510](https://github.com/PyTorchLightning/pytorch-lightning/pull/2510))
-
 - Made `TensorBoardLogger` and `CometLogger` pickleable ([#2518](https://github.com/PyTorchLightning/pytorch-lightning/pull/2518))
-
 - Fixed a problem with `MLflowLogger` creating multiple run folders ([#2502](https://github.com/PyTorchLightning/pytorch-lightning/pull/2502))
+- Fixed global_step increment ([#2455](https://github.com/PyTorchLightning/pytorch-lightning/pull/2455))
+- Fixed TPU hanging example ([#2488](https://github.com/PyTorchLightning/pytorch-lightning/pull/2488))
+- Fixed `argparse` default value bug ([#2526](https://github.com/PyTorchLightning/pytorch-lightning/pull/2526))
+- Fixed Dice and IoU to avoid NaN by adding small eps ([#2545](https://github.com/PyTorchLightning/pytorch-lightning/pull/2545))
+- Fixed accumulate gradients schedule at epoch 0 (continued) ([#2513](https://github.com/PyTorchLightning/pytorch-lightning/pull/2513))
+- Fixed Trainer `.fit()` returning last not best weights in "ddp_spawn" ([#2565](https://github.com/PyTorchLightning/pytorch-lightning/pull/2565))
+- Fixed passing (do not pass) TPU weights back on test ([#2566](https://github.com/PyTorchLightning/pytorch-lightning/pull/2566))
+- Fixed DDP tests and `.test()` ([#2512](https://github.com/PyTorchLightning/pytorch-lightning/pull/2512), [#2570](https://github.com/PyTorchLightning/pytorch-lightning/pull/2570))
+
 
 ## [0.8.4] - 2020-07-01
 

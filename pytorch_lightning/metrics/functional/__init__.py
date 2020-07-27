@@ -25,5 +25,7 @@ from pytorch_lightning.metrics.functional.regression import (
     mse,
     psnr,
     rmse,
-    rmsle
+    rmsle,
+    ssim
 )
+from pytorch_lightning.metrics.functional.nlp import bleu_score

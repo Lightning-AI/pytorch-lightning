@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Root module for all distributed operations in Lightning.
 Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
@@ -10,6 +24,7 @@ from abc import ABC, abstractmethod
 import time
 import random
 import torch
+from torch.optim.lr_scheduler import _LRScheduler
 from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.core.lightning import LightningModule
@@ -164,118 +179,10 @@ class TrainerDPMixin(ABC):
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
 
-    def single_gpu_train(self, model):
-        # call setup
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
-
-        model.cuda(self.root_gpu)
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-        # TODO: remove with dropping NVIDIA AMP support
-        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
-            # An example
-            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
-            self.optimizers = optimizers
-            self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
-
-        results = self.run_pretrain_routine(model)
-        return results
-
-    def tpu_train(self, tpu_core_idx, model):
-        # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
-
-        # put model on tpu
-        self._device = xm.xla_device(self.tpu_id) if self.tpu_id is not None else xm.xla_device()
-        model.to(self._device)
-
-        # get the appropriate tpu ranks
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
-
-        # avoid duplicating progress bar
-        if self.tpu_global_core_rank != 0 and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
-        self.global_rank = self.tpu_local_core_rank
-        rank_zero_only.rank = self.global_rank
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-        # init 16 bit for TPU
-        if self.precision == 16:
-            os.environ['XLA_USE_BF16'] = str(1)
-
-        log.info(f'INIT TPU local core: {self.tpu_local_core_rank},'
-                 f' global rank: {self.tpu_global_core_rank}')
-
-        # continue training routine
-        self.run_pretrain_routine(model)
-
-        # when training ends on these platforms dump weights to get out of the main process
-        if self.on_colab_kaggle:
-            rank_zero_warn('cleaning up... please do not interrupt')
-            self.save_spawn_weights(model)
-
-    def dp_train(self, model):
-        # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
-            model.setup('fit')
-
-        model.cuda(self.root_gpu)
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-        # hack forward to do autocast for the user
-        model_autocast_original_forward = model.forward
-        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
-            # wrap the user's forward in autocast and give it back at the end
-            model.forward = torch.cuda.amp.autocast()(model.forward)
-
-        # TODO: remove with dropping NVIDIA AMP support
-        # check for this bug (amp + dp + !01 doesn't work)
-        # https://github.com/NVIDIA/apex/issues/227
-        if self.use_dp and self.use_amp and not NATIVE_AMP_AVALAIBLE and not self.use_tpu:
-            if self.amp_level == 'O2':
-                raise MisconfigurationException(
-                    f'Amp level {self.amp_level} with DataParallel is not supported.'
-                    f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
-                    f' We recommend you switch to ddp if you want to use amp')
-            else:
-                model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
-                self.reinit_scheduler_properties(optimizers, self.lr_schedulers)
-
-        # create list of device ids
-        device_ids = self.data_parallel_device_ids
-        if isinstance(device_ids, int):
-            device_ids = list(range(device_ids))
-
-        # set dp device
-        torch.cuda.set_device(self.root_gpu)
-
-        model = LightningDataParallel(model, device_ids=device_ids)
-
-        result = self.run_pretrain_routine(model)
-        model.forward = model_autocast_original_forward
-
-        return result
-
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        self.setup('fit')
-        if self.is_function_implemented('setup', model):
+        if not self.testing:
+            self.setup('fit')
             model.setup('fit')
 
         if torch.cuda.is_available() and self.on_gpu:
@@ -298,8 +205,13 @@ class TrainerDPMixin(ABC):
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= hvd.size()
 
+        # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
+        for scheduler in self.lr_schedulers:
+            scheduler = scheduler['scheduler']
+            if isinstance(scheduler, _LRScheduler):
+                scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
+
         if self.use_amp:
-            # An example
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)

@@ -115,6 +115,42 @@ class ModelHooks(Module):
         """
         # do something when the epoch ends
 
+    def on_train_epoch_start(self) -> None:
+        """
+        Called in the training loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_train_epoch_end(self) -> None:
+        """
+        Called in the training loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_validation_epoch_start(self) -> None:
+        """
+        Called in the validation loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_validation_epoch_end(self) -> None:
+        """
+        Called in the validation loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_test_epoch_start(self) -> None:
+        """
+        Called in the test loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_test_epoch_end(self) -> None:
+        """
+        Called in the test loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
     def on_pre_performance_check(self) -> None:
         """
         Called at the very beginning of the validation loop.
