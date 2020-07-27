@@ -162,4 +162,4 @@ class TPUBackend(object):
 
         log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
                  f' global rank: {trainer.tpu_global_core_rank}'
-                 f' with XLA_USE_BF16={os.environ["XLA_USE_BF16"]}')
+                 f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
