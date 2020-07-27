@@ -16,6 +16,7 @@ import os
 
 import torch
 
+import torch.multiprocessing as mp
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log, LightningModule
@@ -47,10 +48,10 @@ class TPUBackend(object):
         self.start_method = 'fork' if self.trainer.on_colab_kaggle else 'spawn'
 
         # pass in a state q
-        smp = xmp.get_context(self.start_method)
+        smp = mp.get_context('spawn')
         self.mp_queue = smp.SimpleQueue()
 
-    def teardown(self):
+    def teardown(self, model):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()
@@ -59,6 +60,13 @@ class TPUBackend(object):
         # transfer back the best path to the trainer
         self.trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also bets score
+
+        # load last weights
+        if last_path is not None and not self.trainer.testing:
+            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+            model.load_state_dict(ckpt)
+
+        self.trainer.model = model
 
         # when training completes, load the weights back in main process
         self.__load_weights_on_main_process()
