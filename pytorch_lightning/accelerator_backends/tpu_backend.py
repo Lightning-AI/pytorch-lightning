@@ -82,7 +82,7 @@ class TPUBackend(object):
         else:
             xmp.spawn(
                 self.tpu_train_in_process,
-                args=(model, self.mp_queue),
+                args=(model, self.trainer, self.mp_queue),
                 nprocs=self.trainer.tpu_cores,
                 start_method=self.start_method
             )
@@ -96,67 +96,69 @@ class TPUBackend(object):
 
         self.trainer.model = model
 
-    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, mp_queue=None):
+    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, trainer=None, mp_queue=None):
         """
         Here we are inside each individual process
         """
-        if not self.trainer.testing:
-            self.trainer.setup('fit')
+        if not trainer:
+            trainer = self.trainer
+        if not trainer.testing:
+            trainer.setup('fit')
             model.setup('fit')
 
         # setup TPU training
-        self.__setup_tpu_training(model)
+        self.__setup_tpu_training(model, trainer)
 
         # Run the pretrain routine
-        results = self.trainer.run_pretrain_routine(model)
+        results = trainer.run_pretrain_routine(model)
 
         # save weights at the end of training
-        self.__save_end_of_training_weights(model)
+        self.__save_end_of_training_weights(model, trainer)
 
-        # for some reason the state is missing
-        self.trainer.distributed_backend = 'TPU'
         # persist info in spawn
-        self.trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
+        trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
-    def __save_end_of_training_weights(self, model: LightningModule):
+    @staticmethod
+    def __save_end_of_training_weights(model: LightningModule, trainer=None):
         # when training ends on these platforms dump weights to get out of the main process
-        if self.trainer.on_colab_kaggle:
+        if trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
-            self.trainer.save_spawn_weights(model)
+            trainer.save_spawn_weights(model)
 
-    def __setup_tpu_training(self, model: LightningModule):
+    @staticmethod
+    def __setup_tpu_training(model: LightningModule, trainer=None):
         # use the default device from the process
         tpu_device = xm.xla_device()
 
         # if given an ordinal device, use this as the device
-        if self.trainer.tpu_id is not None:
-            tpu_device = xm.xla_device(self.trainer.tpu_id)
+        if trainer.tpu_id is not None:
+            tpu_device = xm.xla_device(trainer.tpu_id)
 
         # track the device and move model to it
-        self.trainer._device = tpu_device
-        model.to(self.trainer._device)
+        trainer._device = tpu_device
+        model.to(trainer._device)
 
         # get the appropriate tpu ranks
-        self.trainer.tpu_local_core_rank = xm.get_local_ordinal()
-        self.trainer.tpu_global_core_rank = xm.get_ordinal()
+        trainer.tpu_local_core_rank = xm.get_local_ordinal()
+        trainer.tpu_global_core_rank = xm.get_ordinal()
 
         # avoid duplicating progress bar
-        if self.trainer.tpu_global_core_rank != 0 and self.trainer.progress_bar_callback is not None:
-            self.trainer.progress_bar_callback.disable()
+        if trainer.tpu_global_core_rank != 0 and trainer.progress_bar_callback is not None:
+            trainer.progress_bar_callback.disable()
 
-        self.trainer.global_rank = self.trainer.tpu_local_core_rank
-        rank_zero_only.rank = self.trainer.global_rank
+        trainer.global_rank = trainer.tpu_local_core_rank
+        rank_zero_only.rank = trainer.global_rank
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        optimizers, lr_schedulers, optimizer_frequencies = trainer.init_optimizers(model)
+        trainer.optimizers = optimizers
+        trainer.lr_schedulers = lr_schedulers
+        trainer.optimizer_frequencies = optimizer_frequencies
 
         # init 16 bit for TPU
-        if self.trainer.precision == 16:
+        if trainer.precision == 16:
             os.environ['XLA_USE_BF16'] = str(1)
 
-        log.info(f'INIT TPU local core: {self.trainer.tpu_local_core_rank},'
-                 f' global rank: {self.trainer.tpu_global_core_rank}')
+        log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
+                 f' global rank: {trainer.tpu_global_core_rank}')
