@@ -1,17 +1,19 @@
 import os
-from unittest.mock import patch
 
 import pytest
+from torch.utils.data import DataLoader
 
+import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-import tests.base.develop_pipelines as tpipes
 from tests.base.datasets import TrialMNIST
-from torch.utils.data import DataLoader
+from tests.base.develop_utils import pl_multi_process_test
 
 try:
     import torch_xla
+    import torch_xla.distributed.xla_multiprocessing as xmp
+    SERIAL_EXEC = xmp.MpSerialExecutor()
     # TODO: The tests are aborted if the following lines are uncommented. Must be resolved with XLA team
     # device = torch_xla.core.xla_model.xla_device()
     # device_type = torch_xla.core.xla_model.xla_device_hw(device)
@@ -22,16 +24,33 @@ else:
     TPU_AVAILABLE = True
 
 
+_LARGER_DATASET = TrialMNIST(
+    download=True,
+    num_samples=2000,
+    digits=(0, 1, 2, 5, 8),
+)
+
+
+# 8 cores needs a big dataset
+def _serial_train_loader():
+    return DataLoader(
+        _LARGER_DATASET,
+        batch_size=32,
+    )
+
+
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_base_tpu_model_1(tmpdir):
+@pl_multi_process_test
+def test_model_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -39,56 +58,78 @@ def test_base_tpu_model_1(tmpdir):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_base_tpu_model_idx_1(tmpdir):
+@pl_multi_process_test
+def test_model_tpu_index_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=[1],
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:1'
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_base_tpu_model_8(tmpdir):
+@pl_multi_process_test
+def test_model_tpu_index_5(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        tpu_cores=8,
+        distributed_backend='tpu',
+        tpu_cores=[5],
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:5'
 
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_model_tpu_cores_8(tmpdir):
+    """Make sure model trains on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        distributed_backend='tpu',
+        tpu_cores=8,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+    )
+
+    model = EvalModelTemplate()
     # 8 cores needs a big dataset
-    def long_train_loader():
-        dataset = DataLoader(TrialMNIST(download=True, num_samples=15000, digits=(0, 1, 2, 5, 8)), batch_size=32)
-        return dataset
-    model.train_dataloader = long_train_loader
-    model.val_dataloader = long_train_loader
+    model.train_dataloader = _serial_train_loader
+    model.val_dataloader = _serial_train_loader
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_base_tpu_16bit_model_core_1(tmpdir):
+@pl_multi_process_test
+def test_model_16bit_tpu_cores_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -97,50 +138,70 @@ def test_base_tpu_16bit_model_core_1(tmpdir):
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_base_tpu_16bit_model_idx_core(tmpdir):
+@pl_multi_process_test
+def test_model_16bit_tpu_index_1(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=[1],
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:1'
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_base_tpu_16bit_model_8_cores(tmpdir):
+@pl_multi_process_test
+def test_model_16bit_tpu_cores_8(tmpdir):
     """Make sure model trains on TPU."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
-
     # 8 cores needs a big dataset
-    def long_train_loader():
-        dataset = DataLoader(TrialMNIST(download=True, num_samples=15000, digits=(0, 1, 2, 5, 8)), batch_size=32)
-        return dataset
-    model.train_dataloader = long_train_loader
-    model.val_dataloader = long_train_loader
+    model.train_dataloader = _serial_train_loader
+    model.val_dataloader = _serial_train_loader
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_model_16bit_tpu_index_5(tmpdir):
+    """Test if distributed TPU core training works"""
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        precision=16,
+        max_epochs=1,
+        train_percent_check=0.4,
+        val_percent_check=0.2,
+        distributed_backend='tpu',
+        tpu_cores=[5],
+    )
+    trainer.fit(model)
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:5'
     assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
 def test_early_stop_checkpoints_on_tpu(tmpdir):
     """Test if single TPU core training works"""
     model = EvalModelTemplate()
@@ -151,44 +212,34 @@ def test_early_stop_checkpoints_on_tpu(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
-        tpu_cores=[8],
+        distributed_backend='tpu',
+        tpu_cores=[1],
     )
     trainer.fit(model)
-    assert torch_xla._XLAC._xla_get_default_device() == 'xla:8'
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:1'
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_single_tpu_core_model(tmpdir):
+@pl_multi_process_test
+def test_early_stop_checkpoints_on_tpu(tmpdir):
     """Test if single TPU core training works"""
     model = EvalModelTemplate()
     trainer = Trainer(
+        early_stop_callback=True,
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
-        max_epochs=1,
-        train_percent_check=0.1,
-        val_percent_check=0.1,
-        tpu_cores=8,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        distributed_backend='tpu',
+        tpu_cores=[5],
     )
     trainer.fit(model)
-    assert torch_xla._XLAC._xla_get_default_device() == 'xla:8'
+    assert torch_xla._XLAC._xla_get_default_device() == 'xla:5'
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
-def test_multi_core_tpu_model(tmpdir):
-    """Test if distributed TPU core training works"""
-    model = EvalModelTemplate()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        tpu_cores=[1, 8],
-    )
-    trainer.fit(model)
-    assert trainer.tpu_id is None
-
-
-@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
 
@@ -197,6 +248,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=8,
     )
     result = trainer.fit(
@@ -218,7 +270,17 @@ def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     assert Trainer(tpu_cores=tpu_cores).tpu_id == expected_tpu_id
 
 
-@patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
+def test_tpu_misconfiguration():
+    """Test if trainer.tpu_id is set as expected"""
+    with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
+        Trainer(
+            tpu_cores=[1, 8],
+            distributed_backend='tpu',
+        )
+
+
+# @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
+@pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
     model = EvalModelTemplate()
@@ -227,8 +289,9 @@ def test_exception_when_no_tpu_found(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
+        distributed_backend='tpu',
         tpu_cores=8,
     )
 
-    with pytest.raises(MisconfigurationException, match='No TPU devices found.'):
+    with pytest.raises(MisconfigurationException, match='PyTorch XLA not installed.'):
         trainer.fit(model)
