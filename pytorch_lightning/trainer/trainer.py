@@ -505,7 +505,11 @@ class Trainer(
         self.max_steps = max_steps
         self.min_steps = min_steps
 
-        self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
+        if num_sanity_val_steps == -1:
+            self.num_sanity_val_steps = float("inf")
+        else:
+            self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
+
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn(

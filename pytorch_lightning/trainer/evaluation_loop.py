@@ -350,6 +350,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 self.__eval_add_step_metrics(output)
 
+                # track debug metrics
+                self.dev_debugger.track_eval_loss_history(test_mode, batch_idx, dataloader_idx, output)
+
             outputs.append(dl_outputs)
 
         # ---------------------
