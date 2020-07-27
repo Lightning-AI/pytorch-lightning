@@ -90,7 +90,7 @@ jobs:
         # happened to the job in Kubernetes. If we try MAX_CHECKS times and
         # still the job hasn't finished, give up and return the starting
         # non-zero status code.
-        printf "Job not finished yet" && \
+        printf "Waiting for job to finish: " && \
         while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "." ; fi; sleep 30; done && \
         echo "Done waiting. Job status code: $status_code" && \
         # Allow time for logs to flush.
