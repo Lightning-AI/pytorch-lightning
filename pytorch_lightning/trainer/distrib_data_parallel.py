@@ -162,9 +162,8 @@ else:
 
 
 try:
-    from hydra.utils import to_absolute_path
+    from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd
 except ImportError:
     HYDRA_AVAILABLE = False
 else:
