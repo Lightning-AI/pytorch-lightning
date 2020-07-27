@@ -163,7 +163,6 @@ def test_model_16bit_tpu_cores_8(tmpdir):
     model.val_dataloader = long_train_loader
 
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
-    assert os.environ.get('XLA_USE_BF16') == str(1), "XLA_USE_BF16 was not set in environment variables"
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")

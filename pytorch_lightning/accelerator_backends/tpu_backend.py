@@ -118,15 +118,15 @@ class TPUBackend(object):
         # persist info in spawn
         trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
-    @staticmethod
-    def __save_end_of_training_weights(model: LightningModule, trainer=None):
+    @classmethod
+    def __save_end_of_training_weights(cls, model: LightningModule, trainer=None):
         # when training ends on these platforms dump weights to get out of the main process
         if trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
             trainer.save_spawn_weights(model)
 
-    @staticmethod
-    def __setup_tpu_training(model: LightningModule, trainer=None):
+    @classmethod
+    def __setup_tpu_training(cls, model: LightningModule, trainer=None):
         # use the default device from the process
         tpu_device = xm.xla_device()
 
