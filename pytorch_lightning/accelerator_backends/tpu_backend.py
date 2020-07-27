@@ -63,9 +63,9 @@ class TPUBackend(object):
         # todo, pass also bets score
 
         # load last weights
-        if last_path is not None and not self.trainer.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
+        # if last_path is not None and not self.trainer.testing:
+        #     ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
+        #     model.load_state_dict(ckpt)
 
         self.trainer.model = model
 
