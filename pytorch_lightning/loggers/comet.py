@@ -27,8 +27,8 @@ except ImportError:  # pragma: no-cover
     CometOfflineExperiment = None
     CometBaseExperiment = None
     API = None
-    _COMET_AVAILABLE = False
     generate_guid = None
+    _COMET_AVAILABLE = False
 
 import torch
 from torch import is_tensor
@@ -186,10 +186,7 @@ class CometLogger(LightningLoggerBase):
                     **self._kwargs,
                 )
         finally:
-            try:
-                del os.environ["COMET_EXPERIMENT_KEY"]
-            except KeyError:
-                pass
+            os.environ.pop("COMET_EXPERIMENT_KEY", None)
 
         if self._experiment_name:
             self._experiment.set_name(self._experiment_name)
