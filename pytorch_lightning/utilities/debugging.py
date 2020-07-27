@@ -73,14 +73,14 @@ class InternalDebugger(object):
 
     @property
     def num_seen_sanity_check_batches(self):
-        count = len([x for x in self.saved_val_losses if x['sanity_check'] == True])
+        count = len([x for x in self.saved_val_losses if x['sanity_check']])
         return count
 
     @property
     def num_seen_val_check_batches(self):
         counts = Counter()
         for x in self.saved_val_losses:
-            if x['sanity_check'] == False:
+            if not x['sanity_check']:
                 counts.update({x['dataloader_idx']: 1})
         return counts
 
@@ -88,6 +88,6 @@ class InternalDebugger(object):
     def num_seen_test_check_batches(self):
         counts = Counter()
         for x in self.saved_test_losses:
-            if x['sanity_check'] == False:
+            if not x['sanity_check']:
                 counts.update({x['dataloader_idx']: 1})
         return counts
