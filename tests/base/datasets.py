@@ -107,17 +107,21 @@ class MNIST(Dataset):
 
 
 def _try_load(path_data, trials: int = 30, delta: float = 1.):
-    res = None
+    res, exp = None, None
+    assert trials, "at least some trial has to be set"
     assert os.path.isfile(path_data), 'missing file: %s' % path_data
     for _ in range(trials):
         try:
             res = torch.load(path_data)
         except Exception as ex:
+            exp = ex
             time.sleep(delta * random.random())
         else:
             break
     else:
-        raise ex
+        # raise the caught exception if any
+        if exp:
+            raise exp
     return res
 
 
