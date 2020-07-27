@@ -306,7 +306,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch is None:
                     continue
 
-                # stop short when on fast_dev_run (sets max_batch=1)
+                # stop short when running on limited batches
                 if batch_idx >= dl_max_batches:
                     break
 
@@ -349,6 +349,9 @@ class TrainerEvaluationLoopMixin(ABC):
                     dl_outputs.append(output)
 
                 self.__eval_add_step_metrics(output)
+
+                # track debug metrics
+                self.dev_debugger.track_eval_loss_history(test_mode, batch_idx, dataloader_idx, output)
 
             outputs.append(dl_outputs)
 
@@ -513,13 +516,8 @@ class TrainerEvaluationLoopMixin(ABC):
             dataloaders = self.val_dataloaders
             max_batches = self.num_val_batches
 
-        # enable fast_dev_run without val loop
         if dataloaders is None:
             return [], []
-
-        # cap max batches to 1 when using fast_dev_run
-        if self.fast_dev_run:
-            max_batches = [1]
 
         # Validation/Test begin callbacks
         if test_mode:

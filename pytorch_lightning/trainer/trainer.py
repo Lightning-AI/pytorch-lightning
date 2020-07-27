@@ -278,7 +278,7 @@ class Trainer(
 
             check_val_every_n_epoch: Check val every n train epochs.
 
-            fast_dev_run: runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -505,7 +505,11 @@ class Trainer(
         self.max_steps = max_steps
         self.min_steps = min_steps
 
-        self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
+        if num_sanity_val_steps == -1:
+            self.num_sanity_val_steps = float("inf")
+        else:
+            self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
+
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn(
@@ -528,6 +532,9 @@ class Trainer(
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
+            limit_train_batches = 1
+            limit_val_batches = 1
+            limit_test_batches = 1
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
             rank_zero_info(
