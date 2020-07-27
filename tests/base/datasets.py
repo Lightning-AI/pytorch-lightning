@@ -107,7 +107,7 @@ class MNIST(Dataset):
 
 def _try_load(path_data, trials: int = 30, delta: float = 0.3):
     res = None
-    assert os.path.isfile(path_data)
+    assert os.path.isfile(path_data), 'missing file: %s' % path_data
     for _ in range(trials):
         try:
             res = torch.load(path_data)
@@ -115,6 +115,9 @@ def _try_load(path_data, trials: int = 30, delta: float = 0.3):
             time.sleep(delta)
         else:
             break
+    else:
+        import traceback
+        traceback.print_exc()
     return res
 
 
