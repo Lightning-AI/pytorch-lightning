@@ -1,8 +1,6 @@
 from functools import wraps
 from typing import Callable
 
-import torch
-
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 

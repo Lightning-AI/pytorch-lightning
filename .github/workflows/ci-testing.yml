@@ -30,6 +30,10 @@ jobs:
           # TODO: temporary fix till hanging jobs on macOS for py38 is resolved
           - python-version: 3.8
             os: macOS-10.15
+          # TODO: temporary fix till pyYaml can be installed, see: https://github.com/actions/setup-python/issues/114
+          - python-version: 3.7
+            os: ubuntu-18.04
+            requires: 'minimal'
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 25

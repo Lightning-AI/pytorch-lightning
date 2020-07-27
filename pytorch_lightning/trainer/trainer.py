@@ -51,7 +51,8 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning import accelerator_backends
+from pytorch_lightning.accelerator_backends import (
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend)
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -1061,7 +1062,7 @@ class Trainer(
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
 
-            self.ddp_train(process_idx=task, q=None, model=model)
+            self.ddp_train(process_idx=task, mp_queue=None, model=model)
 
         elif self.use_ddp:
 
@@ -1070,21 +1071,21 @@ class Trainer(
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(process_idx=task, q=None, model=model)
+                self.ddp_train(process_idx=task, mp_queue=None, model=model)
 
             # torchelastic or general non_slurm ddp
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
-                self.ddp_train(process_idx=task, q=None, model=model)
+                self.ddp_train(process_idx=task, mp_queue=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                self.accelerator_backend = accelerator_backends.DDPSpawnBackend(self)
+                self.accelerator_backend = DDPSpawnBackend(self)
                 self.accelerator_backend.setup()
                 self.accelerator_backend.train(model, nprocs=self.num_processes)
                 results = self.accelerator_backend.teardown(model)
 
             elif self.distributed_backend == 'ddp_spawn':
-                self.accelerator_backend = accelerator_backends.DDPSpawnBackend(self)
+                self.accelerator_backend = DDPSpawnBackend(self)
                 self.accelerator_backend.setup()
                 self.accelerator_backend.train(model, nprocs=self.num_processes)
                 results = self.accelerator_backend.teardown(model)
@@ -1094,7 +1095,7 @@ class Trainer(
                 results = self.spawn_ddp_children(model)
 
         elif self.use_dp:
-            self.accelerator_backend = accelerator_backends.DataParallelBackend(self)
+            self.accelerator_backend = DataParallelBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
@@ -1102,19 +1103,19 @@ class Trainer(
         elif self.use_horovod:
             results = self.horovod_train(model)
 
-        elif self.single_gpu:
-            self.accelerator_backend = accelerator_backends.GPUBackend(self)
+        elif self.use_single_gpu:
+            self.accelerator_backend = GPUBackend(self)
             model = self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
         elif self.use_tpu:
-            self.accelerator_backend = accelerator_backends.TPUBackend(self)
+            self.accelerator_backend = TPUBackend(self)
             self.accelerator_backend.setup()
             self.accelerator_backend.train(model)
-            self.accelerator_backend.teardown()
+            self.accelerator_backend.teardown(model)
 
         else:
-            self.accelerator_backend = accelerator_backends.CPUBackend(self)
+            self.accelerator_backend = CPUBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 

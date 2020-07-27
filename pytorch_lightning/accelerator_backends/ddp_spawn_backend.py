@@ -30,26 +30,27 @@ class DDPSpawnBackend(object):
 
     def __init__(self, trainer):
         self.trainer = trainer
-        self.q = None
+        self.mp_queue = None
 
     def setup(self):
         self.trainer.set_random_port()
 
         # pass in a state q
         smp = mp.get_context('spawn')
-        self.q = smp.SimpleQueue()
+        self.mp_queue = smp.SimpleQueue()
 
     def train(self, model, nprocs):
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.q, model,))
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.mp_queue, model,))
 
     def teardown(self, model):
         # restore main state with best weights
-        best_path = self.q.get()
-        results = self.q.get()
-        last_path = self.q.get()
+        best_path = self.mp_queue.get()
+        results = self.mp_queue.get()
+        last_path = self.mp_queue.get()
 
         # transfer back the best path to the trainer
         self.trainer.checkpoint_callback.best_model_path = best_path
+        # todo, pass also bets score
 
         # load last weights
         if last_path is not None and not self.trainer.testing:
@@ -59,13 +60,13 @@ class DDPSpawnBackend(object):
         self.trainer.model = model
         return results
 
-    def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
         Args:
             process_idx:
-            q:
+            mp_queue: multiprocessing queue
             model:
             is_master:
             proc_offset:
@@ -166,7 +167,7 @@ class DDPSpawnBackend(object):
         model = self.trainer.get_model()
 
         # persist info in ddp_spawn
-        self.trainer.transfer_ddp_spawn_state_on_fit_end(model, q, results)
+        self.trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()

@@ -171,16 +171,14 @@ else:
 
 try:
     import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
 except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
 
-pid = os.getpid()
-rng1 = np.random.RandomState(pid)
-RANDOM_PORTS = rng1.randint(10000, 19999, 1000)
+PID = os.getpid()
+RNG1 = np.random.RandomState(PID)
+RANDOM_PORTS = RNG1.randint(10000, 19999, 1000)
 
 
 class TrainerDDPMixin(ABC):
@@ -253,7 +251,7 @@ class TrainerDDPMixin(ABC):
 
     def init_tpu(self):
         # turn off all the GPU stuff
-        self.distributed_backend = None
+        # self.distributed_backend = 'tpu'
 
         # enable tpu
         self.use_tpu = True
@@ -263,7 +261,7 @@ class TrainerDDPMixin(ABC):
         self.use_ddp = False
         self.use_ddp2 = False
         self.use_horovod = False
-        self.single_gpu = False
+        self.use_single_gpu = False
 
         if distributed_backend is None:
             if self.has_horovodrun():
@@ -272,7 +270,7 @@ class TrainerDDPMixin(ABC):
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
-                self.single_gpu = True
+                self.use_single_gpu = True
             elif self.num_gpus > 1:
                 rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
                                ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
@@ -283,7 +281,7 @@ class TrainerDDPMixin(ABC):
         if distributed_backend == "dp":
             # do nothing if num_gpus == 0
             if self.num_gpus == 1:
-                self.single_gpu = True
+                self.use_single_gpu = True
                 self.use_dp = True
             elif self.num_gpus > 1:
                 self.use_dp = True
@@ -293,7 +291,7 @@ class TrainerDDPMixin(ABC):
                 if self.num_nodes > 1 or self.num_processes > 1:
                     self.use_ddp = True  # ddp_cpu
             elif self.num_gpus == 1:
-                self.single_gpu = True
+                self.use_single_gpu = True
                 self.use_ddp = True
             elif self.num_gpus > 1:
                 self.use_ddp = True
@@ -364,7 +362,6 @@ class TrainerDDPMixin(ABC):
     def determine_local_rank(self):
         if self.is_slurm_managing_tasks:
             return int(os.environ['SLURM_LOCALID'])
-
         else:
             return int(os.environ.get('LOCAL_RANK', 0))
 
@@ -476,18 +473,18 @@ class TrainerDDPMixin(ABC):
             sleep(delay)
 
         local_rank = 0
-        results = self.ddp_train(local_rank, q=None, model=model, is_master=True)
+        results = self.ddp_train(local_rank, mp_queue=None, model=model, is_master=True)
         del os.environ['WORLD_SIZE']
 
         return results
 
-    def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
         Args:
             process_idx:
-            q:
+            mp_queue: multiprocessing queue
             model:
             is_master:
             proc_offset:
@@ -580,7 +577,7 @@ class TrainerDDPMixin(ABC):
         model = self.get_model()
 
         # persist info in ddp_spawn
-        self.transfer_ddp_spawn_state_on_fit_end(model, q, results)
+        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()
@@ -588,8 +585,8 @@ class TrainerDDPMixin(ABC):
         if self.global_rank == 0 and self.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
 
-    def transfer_ddp_spawn_state_on_fit_end(self, model, q, results):
-        if self.distributed_backend not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
+    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
+        if self.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
             return
 
         # track the best model path
@@ -597,17 +594,18 @@ class TrainerDDPMixin(ABC):
         if self.checkpoint_callback is not None:
             best_model_path = self.checkpoint_callback.best_model_path
 
-        if self.global_rank == 0 and q is not None:
+        if self.global_rank == 0 and mp_queue is not None:
             rank_zero_warn('cleaning up ddp environment...')
-            q.put(best_model_path)
-            q.put(results)
+            # todo, pass complete checkpoint as state dictionary
+            mp_queue.put(best_model_path)
+            mp_queue.put(results)
 
             # save the last weights
             last_path = None
             if not self.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
                 torch.save(model.state_dict(), last_path)
-            q.put(last_path)
+            mp_queue.put(last_path)
 
     def save_spawn_weights(self, model):
         """
@@ -616,7 +614,7 @@ class TrainerDDPMixin(ABC):
         :return:
         """
         if self.is_global_zero:
-            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_distributed_end.ckpt')
             self.save_checkpoint(path)
             return path
 
@@ -632,7 +630,7 @@ class TrainerDDPMixin(ABC):
 
         if self.is_global_zero:
             # load weights saved in ddp
-            path = os.path.join(self.default_root_dir, '__temp_weight_ddp_end.ckpt')
+            path = os.path.join(self.default_root_dir, '__temp_weight_distributed_end.ckpt')
             loaded_model = original_model.__class__.load_from_checkpoint(path)
 
             # copy loaded weights to old model
