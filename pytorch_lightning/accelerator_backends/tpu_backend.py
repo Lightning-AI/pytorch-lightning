@@ -118,7 +118,7 @@ class TPUBackend(object):
         # persist info in spawn
         trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
-    def __save_end_of_training_weights(self, model: LightningModule, trainer=None):
+    def __save_end_of_training_weights(self, model: LightningModule, trainer):
         # when training ends on these platforms dump weights to get out of the main process
         if trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
