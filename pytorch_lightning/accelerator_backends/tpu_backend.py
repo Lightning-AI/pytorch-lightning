@@ -124,14 +124,15 @@ class TPUBackend(object):
             rank_zero_warn('cleaning up... please do not interrupt')
             trainer.save_spawn_weights(model)
 
-    def __setup_tpu_training(self, model: LightningModule, trainer=None):
+    def __setup_tpu_training(self, model: LightningModule, trainer):
         # use the default device from the process
         tpu_device = xm.xla_device()
 
         # if given an ordinal device, use this as the device
         if trainer.tpu_id is not None:
             tpu_device = xm.xla_device(trainer.tpu_id)
-
+        else:
+            tpu_device = xm.xla_device()
         # track the device and move model to it
         trainer._device = tpu_device
         model.to(trainer._device)
