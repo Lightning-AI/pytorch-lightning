@@ -30,6 +30,7 @@ def test_model_tpu_cores_1(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4
@@ -47,6 +48,7 @@ def test_model_tpu_index_1(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=[1],
         limit_train_batches=0.4,
         limit_val_batches=0.4
@@ -65,6 +67,7 @@ def test_model_tpu_index_5(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=[5],
         limit_train_batches=0.4,
         limit_val_batches=0.4
@@ -83,6 +86,7 @@ def test_model_tpu_cores_8(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4
@@ -109,6 +113,7 @@ def test_model_16bit_tpu_cores_1(tmpdir):
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4
@@ -128,6 +133,7 @@ def test_model_16bit_tpu_index_1(tmpdir):
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=[1],
         limit_train_batches=0.4,
         limit_val_batches=0.4
@@ -148,6 +154,7 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4
@@ -176,6 +183,7 @@ def test_model_16bit_tpu_index_5(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
+        distributed_backend='tpu',
         tpu_cores=[5],
     )
     trainer.fit(model)
@@ -195,6 +203,7 @@ def test_early_stop_checkpoints_on_tpu(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
+        distributed_backend='tpu',
         tpu_cores=[1],
     )
     trainer.fit(model)
@@ -213,6 +222,7 @@ def test_early_stop_checkpoints_on_tpu(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
+        distributed_backend='tpu',
         tpu_cores=[5],
     )
     trainer.fit(model)
@@ -229,6 +239,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
+        distributed_backend='tpu',
         tpu_cores=8,
     )
     result = trainer.fit(
@@ -253,7 +264,10 @@ def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
 def test_tpu_misconfiguration():
     """Test if trainer.tpu_id is set as expected"""
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
-        Trainer(tpu_cores=[1, 8])
+        Trainer(
+            tpu_cores=[1, 8],
+            distributed_backend='tpu',
+        )
 
 
 # @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
@@ -266,6 +280,7 @@ def test_exception_when_no_tpu_found(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
+        distributed_backend='tpu',
         tpu_cores=8,
     )
 
