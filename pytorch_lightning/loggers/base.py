@@ -272,9 +272,19 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
+    def update_agg_funcs(
+            self,
+            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+    ):
+        [logger.update_agg_funcs(agg_key_funcs, agg_default_func) for logger in self._logger_iterable]
+
     @property
     def experiment(self) -> List[Any]:
         return [logger.experiment for logger in self._logger_iterable]
+
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+        [logger.agg_and_log_metrics(metrics, step) for logger in self._logger_iterable]
 
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
@@ -290,6 +300,10 @@ class LoggerCollection(LightningLoggerBase):
 
     def close(self) -> None:
         [logger.close() for logger in self._logger_iterable]
+
+    @property
+    def save_dir(self) -> List[Optional[str]]:
+        return [logger.save_dir for logger in self._logger_iterable]
 
     @property
     def name(self) -> str:
