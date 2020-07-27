@@ -292,12 +292,12 @@ class ModelCheckpoint(Callback):
         if not gfile.exists(self.dirpath):
             makedirs(self.dirpath)
 
-    @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
-        # only run on main process
-        if trainer.global_rank != 0:
-            return
-
+        # To get checkpointing working on TPU, need to call _save_model
+        # for all ranks, to avoid deadlocks.  Assuming save_function is mapped
+        # to trainer.save_checkpoint, this will also work on GPU as save_checkpoint
+        # handles rank==0 vs rank!=0 logic.  If the user provides a custom
+        # save_function, they are responsible for adding rank==0 vs rank!=0 logic.
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
 
@@ -348,8 +348,6 @@ class ModelCheckpoint(Callback):
         else:
             if self.verbose > 0:
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
-
-            assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath, trainer, pl_module)
 
         if self.save_last:
@@ -384,6 +382,7 @@ class ModelCheckpoint(Callback):
                 f' {filepath} as top {self.save_top_k}')
         self._save_model(filepath, trainer, pl_module)
 
-        for cur_path in del_list:
-            if cur_path != filepath:
-                self._del_model(cur_path)
+        if trainer.global_rank == 0:
+            for cur_path in del_list:
+                if cur_path != filepath:
+                    self._del_model(cur_path)

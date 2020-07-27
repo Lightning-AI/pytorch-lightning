@@ -270,29 +270,41 @@ class TrainerIOMixin(ABC):
                 This points to the file that the checkpoint will be stored in.
         """
         tmp_path = str(filepath) + ".part"
+        if self.use_tpu:
+            xm.save(checkpoint, tmp_path, master_only=True, global_master=True)
+            if xm.is_master_ordinal(local=False):
+                os.replace(tmp_path, filepath)
         # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
         # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
         # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-        if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+        elif LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
             torch.save(checkpoint, tmp_path, _use_new_zipfile_serialization=False)
         else:
             torch.save(checkpoint, tmp_path)
         os.replace(tmp_path, filepath)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
-        checkpoint = self.dump_checkpoint(weights_only)
-
-        if self.is_global_zero:
+        def _do_save(chkpt):
             # do the actual save
             try:
-                self._atomic_save(checkpoint, filepath)
+                self._atomic_save(chkpt, filepath)
             except AttributeError as err:
-                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-                    del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-                rank_zero_warn(
-                    'Warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
-                )
-                self._atomic_save(checkpoint, filepath)
+                if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in chkpt:
+                    del chkpt[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
+                rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
+                               f' An attribute is not picklable {err}')
+                self._atomic_save(chkpt, filepath)
+
+        checkpoint = self.dump_checkpoint(weights_only)
+
+        # self._atomic_save has different behavior for XLA vs
+        # non-XLA.  In XLA, it has a barrier and internal logic to only
+        # save for rank==0, so need to call for all ranks. For non-XLA,
+        # it doesn't have rank==0 logic so only call for rank==0
+        if self.use_tpu:
+            _do_save(checkpoint)
+        elif self.is_global_zero:
+            _do_save(checkpoint)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
         """
