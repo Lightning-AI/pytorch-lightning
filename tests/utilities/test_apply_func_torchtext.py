@@ -8,12 +8,12 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-    SERIAL_EXEC = xmp.MpSerialExecutor()
-    # TODO: The tests are aborted if the following lines are uncommented. Must be resolved with XLA team
-    # device = torch_xla.core.xla_model.xla_device()
-    # device_type = torch_xla.core.xla_model.xla_device_hw(device)
-    # TPU_AVAILABLE = device_type == 'TPU'
+    # import torch_xla.distributed.xla_multiprocessing as xmp
+    # SERIAL_EXEC = xmp.MpSerialExecutor()
+    # # TODO: The tests are aborted if the following lines are uncommented. Must be resolved with XLA team
+    # # device = torch_xla.core.xla_model.xla_device()
+    # # device_type = torch_xla.core.xla_model.xla_device_hw(device)
+    # # TPU_AVAILABLE = device_type == 'TPU'
 except ImportError:
     TPU_AVAILABLE = False
 else:
