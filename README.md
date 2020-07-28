@@ -124,7 +124,7 @@ In Lightning, you organize your code into 3 distinct categories:
 
 Here's an example of how to refactor your research code into a [LightningModule](https://pytorch-lightning.readthedocs.io/en/latest/lightning-module.html).
 
-![PT to PL](docs/source/_images/lightning_module/pt_to_pl.png)
+![PT to PL](https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_2.gif)
 
 The rest of the code is automated by the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
 ![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
