@@ -398,12 +398,16 @@ To log from the training loop use the `TrainResult` object
 
         # pick what to minimize
         result = pl.TrainResult(minimize=loss)
-
-        # logs metric at the end of every training step (batch) to the tensorboard or user-specified logger
         result.log('train_loss', loss)
+        return result
 
-        # log to the progress bar only
-        result.log('train_acc', acc, prog_bar=True, logger=False)
+The TrainResult object simply allows you fine-grain control of what/when to log:
+
+.. code-block:: python
+
+        # equivalent
+        result.log('train_loss', loss)
+        result.log('train_loss', loss, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
 Then boot up your logger or tensorboard instance to view training logs
 
