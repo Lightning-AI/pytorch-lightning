@@ -419,6 +419,7 @@ Logging/progress bar
 
 .. image:: /_images/mnist_imgs/mnist_tb.png
     :width: 300
+    :align: center
     :alt: Example TB logs
 
 |
@@ -513,6 +514,7 @@ Log to the progress bar
 
 .. image:: /_images/mnist_imgs/mnist_cpu_bar.png
     :width: 500
+    :align: center
     :alt: Example CPU bar logging
 
 |
@@ -539,9 +541,40 @@ Or simply set `prog_bar=True` in either of the `EvalResult` or `TrainResult`
 
 Why do you need Lightning?
 --------------------------
-Notice the code above has nothing about .cuda() or 16-bit or early stopping or logging, etc...
-This is where Lightning adds a ton of value.
 
+Lightning is for you if
+^^^^^^^^^^^^^^^^^^^^^^^
+
+- You're a professional researcher/ml engineer working on non-trivial deep learning.
+- You already know PyTorch and are not a beginner.
+- You want to put models into production much faster.
+- You need full control of all the details but don't need the boilerplate.
+- You want to leverage the code written by hundreds of AI researchers,
+    research engineers and PhDs from the top AI labs in the world.
+- You need GPUs, multi-node training, half-precision and TPUs.
+- You want research code that is rigorously tested (500+ tests) across CPUs/multi-GPUs/multi-TPUs on every pull-request.
+
+Some more cool features
+^^^^^^^^^^^^^^^^^^^^^^^
+Here are (some) of the other things you can do with lightning:
+
+- Automatic checkpointing.
+- Automatic early stopping.
+- Automatically overfit your model for a sanity test.
+- Automatic truncated-back-propagation-through-time.
+- Automatically scale your batch size.
+- Automatically attempt to find a good learning rate.
+- Add arbitrary callbacks
+- Hit every line of your code once to see if you have bugs (instead of waiting hours to crash on validation ;)
+- Load checkpoints directly from S3.
+- Move from CPUs to GPUs or TPUs without code changes.
+- Profile your code for speed/memory bottlenecks.
+- Scale to massive compute clusters.
+- Use multiple dataloaders per train/val/test loop.
+- Use multiple optimizers to do Reinforcement learning or even GANs.
+
+Example:
+^^^^^^^^
 Without changing a SINGLE line of your code, you can now do the following with the above code
 
 .. code-block:: python
