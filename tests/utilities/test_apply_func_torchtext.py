@@ -29,12 +29,8 @@ def _get_torchtext_data_iterator(include_lengths=False):
 
 
 @pytest.mark.parametrize('include_lengths', [False, True])
-# @pytest.mark.parametrize(['device'],
-#                          [pytest.param(torch.device('cuda', 0)),
-#                           pytest.param(torch.device('cpu'))] if not torch.cuda.is_available() else [
-#                              pytest.param(torch.device('cpu'))])
-@pytest.mark.parametrize(['device'], [pytest.param(torch.device('cuda', 0)), pytest.param(torch.device('cpu'))])
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.parametrize(['device'], [pytest.param(torch.device('cuda', 0))])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test assumes GPU machine")
 def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
     data_iterator, _ = _get_torchtext_data_iterator(include_lengths=include_lengths)
     data_iter = iter(data_iterator)
@@ -48,3 +44,8 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
         assert (batch_on_device.text[1].device == device)
     else:
         assert (batch_on_device.text.device == device)
+
+
+@pytest.mark.parametrize('include_lengths', [False, True])
+def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths):
+    test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch.device('cpu'))
