@@ -154,8 +154,12 @@ workflows:
       - TPU-tests:
           filters:
             branches:
-              # only from forks
-              only: /^pull\/.*$/
+              # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
+              only:
+                # only from forks
+                - /^pull\/.*$/
+                # only from canonical repository
+                - /^(?!pull\/).*$/
   cleanup:
     triggers:
       - schedule:
