@@ -53,7 +53,7 @@ A lightningModule defines
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            return loss
+            return {'loss': loss, 'log': {'train_loss': loss}}
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0005)
@@ -137,7 +137,7 @@ To add an (optional) validation loop add the following function
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            return {'val_loss': loss}
+            return {'val_loss': loss, 'log': {'val_loss': loss}}
 
 And now the trainer will call the validation loop automatically
 
