@@ -550,8 +550,7 @@ Lightning is for you if
 - You already know PyTorch and are not a beginner.
 - You want to put models into production much faster.
 - You need full control of all the details but don't need the boilerplate.
-- You want to leverage the code written by hundreds of AI researchers,
-    research engineers and PhDs from the top AI labs in the world.
+- You want to leverage code written by hundreds of AI researchers, research engs and PhDs from the world's top AI labs.
 - You need GPUs, multi-node training, half-precision and TPUs.
 - You want research code that is rigorously tested (500+ tests) across CPUs/multi-GPUs/multi-TPUs on every pull-request.
 
