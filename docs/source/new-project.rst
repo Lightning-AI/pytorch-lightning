@@ -16,7 +16,7 @@ Once you've organized it into a LightningModule, it automates most of the traini
 
 To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
 
-.. figure:: /_images/mnist_imgs/pt_to_pl.jpg
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
    :alt: Convert from PyTorch to Lightning
 
 ----------
@@ -51,9 +51,7 @@ A lightningModule defines
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.TrainResult(minimize=loss, checkpoint_on=loss)
-            result.log('train_loss', loss, prog_bar=True)
-            return result
+            return loss
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0005)
@@ -68,20 +66,33 @@ well across any accelerator.
 .. code-block:: python
 
     # dataloader
-    train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), shuffle=True)
+    dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
+    train_loader = DataLoader(dataset)
 
     # init model
     model = LitModel()
 
     # most basic trainer, uses good defaults
-    trainer = pl.Trainer(gpus=8, num_nodes=1)
-    trainer.fit(
-        model,
-        train_loader,
-    )
+    trainer = pl.Trainer()
+    trainer.fit(model, train_loader)
 
-    # to use advanced features such as GPUs/TPUs/16 bit you have to change NO CODE
-    trainer = pl.Trainer(tpu_cores=8, precision=16)
+Using GPUs/TPUs
+^^^^^^^^^^^^^^^
+It's trivial to use GPUs or TPUs in Lightning. There's NO NEED to change your code, simply change the Trainer options.
+
+.. code-block:: python
+
+    # train on 1, 2, 4, n GPUs
+    Trainer(gpus=1)
+    Trainer(gpus=2)
+    Trainer(gpus=8, num_nodes=n)
+
+    # train on TPUs
+    Trainer(tpu_cores=8)
+    Trainer(tpu_cores=128)
+
+    # even half precision
+    Trainer(gpus=2, precision=16)
 
 The code above gives you the following for free:
 
@@ -123,6 +134,14 @@ Under the hood, lightning does (in high-level pseudocode):
             optimizer.step()
             optimizer.zero_grad()
 
+Main take-aways:
+
+- Lightning sets .train() and enables gradients when entering the training loop.
+- Lightning iterates over the epochs automatically.
+- Lightning iterates the dataloaders automatically.
+- Training_step gives you full control of the main loop.
+- .backward(), .step(), .zero_grad() are called for you. BUT, you can override this if you need manual control.
+
 ----------
 
 Adding a Validation loop
@@ -137,10 +156,7 @@ To add an (optional) validation loop add the following function
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = EvalResult(early_stop_on=loss, checkpoint_on=loss)
-            result.log('val_ce', loss)
-            result.log('val_acc', accuracy(y_hat, y))
-            return result
+            return {'val_loss': loss, 'log': {'val_loss': loss}}
 
 And now the trainer will call the validation loop automatically
 
@@ -166,14 +182,17 @@ Under the hood in pseudocode, lightning does the following:
         # ...
 
         if validate_at_some_point:
+            # disable grads + batchnorm + dropout
             torch.set_grad_enabled(False)
             model.eval()
+
             val_outs = []
             for val_batch in model.val_dataloader:
                 val_out = model.validation_step(val_batch)
                 val_outs.append(val_out)
-
             model.validation_epoch_end(val_outs)
+
+            # enable grads + batchnorm + dropout
             torch.set_grad_enabled(True)
             model.train()
 
@@ -197,10 +216,8 @@ You might also need an optional test loop
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.EvalResult(early_stop_on=loss, checkpoint_on=loss)
-            result.log('test_ce', loss)
-            result.log('test_acc', accuracy(y_hat, y), prog_bar=True)
-            return result
+            return {'test_loss': loss, 'log': {'test_loss': loss}}
+
 
 However, this time you need to specifically call test (this is done so you don't use the test set by mistake)
 
@@ -214,7 +231,7 @@ However, this time you need to specifically call test (this is done so you don't
     # OPTION 2:
     # test after loading weights
     model = LitModel.load_from_checkpoint(PATH)
-    trainer = Trainer(tpu_cores=1)
+    trainer = Trainer()
     trainer.test(test_dataloaders=test_dataloader)
 
 Test loop under the hood
@@ -223,14 +240,20 @@ Under the hood, lightning does the following in (pseudocode):
 
 .. code-block:: python
 
+    # disable grads + batchnorm + dropout
     torch.set_grad_enabled(False)
     model.eval()
+
     test_outs = []
     for test_batch in model.test_dataloader:
         test_out = model.test_step(val_batch)
         test_outs.append(test_out)
 
     model.test_epoch_end(test_outs)
+
+    # enable grads + batchnorm + dropout
+    torch.set_grad_enabled(True)
+    model.train()
 
 ---------------
 
@@ -380,7 +403,7 @@ Next, materialize the data and build your model
     dm.setup()
 
     # pass in the properties you want
-    model = LitModel(image_width=dm.train_dims[0], image_height=dm.train_dims[1], vocab_length=dm.vocab_size)
+    model = LitModel(image_width=dm.train_dims[0], vocab_length=dm.vocab_size)
 
     # train
     trainer.fit(model, dm)
@@ -389,26 +412,53 @@ Next, materialize the data and build your model
 
 Logging/progress bar
 --------------------
+
+|
+
+.. image:: /_images/mnist_imgs/mnist_tb.png
+    :width: 300
+    :align: center
+    :alt: Example TB logs
+
+|
+
 Lightning has built-in logging to any of the supported loggers or progress bar.
 
 Log in train loop
 ^^^^^^^^^^^^^^^^^
-To log from the training loop use the `TrainResult` object
+To log from the training loop use the `log` reserved key.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         loss = ...
-        acc = ...
+        return {'loss': loss, 'log': {'train_loss': loss}}
 
-        # pick what to minimize
+
+However, for more fine-grain control use the `TrainResult` object.
+These are equivalent:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        return {'loss': loss, 'log': {'train_loss': loss}}
+
+    # equivalent
+    def training_step(self, batch, batch_idx):
+        loss = ...
+
         result = pl.TrainResult(minimize=loss)
-
-        # logs metric at the end of every training step (batch) to the tensorboard or user-specified logger
         result.log('train_loss', loss)
+        return result
 
-        # log to the progress bar only
-        result.log('train_acc', acc, prog_bar=True, logger=False)
+But the TrainResult gives you error-checking and greater flexibility:
+
+.. code-block:: python
+
+        # equivalent
+        result.log('train_loss', loss)
+        result.log('train_loss', loss, prog_bar=False, logger=True, on_step=True, on_epoch=False)
 
 Then boot up your logger or tensorboard instance to view training logs
 
@@ -417,8 +467,7 @@ Then boot up your logger or tensorboard instance to view training logs
     tensorboard --logdir ./lightning_logs
 
 .. warning:: Refreshing the progress bar too frequently in Jupyter notebooks or Colab may freeze your UI.
-
-.. note:: TrainResult defaults to logging on every step, set `on_epoch` to also log the metric for the full epoch
+    We recommend you set `Trainer(progress_bar_refresh_rate=10)`
 
 Log in Val/Test loop
 ^^^^^^^^^^^^^^^^^^^^
@@ -429,25 +478,105 @@ To log from the validation or test loop use a similar approach
     def validation_step(self, batch, batch_idx):
         loss = ...
         acc = ...
+        val_output = {'loss': loss, 'acc': acc}
+        return val_output
 
-        # pick what to minimize
-        result = pl.EvalResult(checkpoint_on=acc, early_stop_on=loss)
+    def validation_epoch_end(self, validation_step_outputs):
+        # this step allows you to aggregate whatever you passed in from every val step
+        val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
+        val_epoch_acc = torch.stack([x['acc'] for x in val_output]).mean()
+        return {
+            'val_loss': val_epoch_loss,
+            'log': {'avg_val_loss': val_epoch_loss, 'avg_val_acc': val_epoch_acc}
+        }
 
-        # log the val loss averaged across the full epoch
+The recommended equivalent version in case you don't need to do anything special
+with all the outputs of the validation step:
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        loss = ...
+        acc = ...
+
+        result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
+        result.log('val_acc', acc)
+        return result
 
-        # log the val acc at each step AND for the full epoch (mean)
-        result.log('val_acc', acc, prog_bar=True, logger=True, on_epoch=True, on_step=True)
+.. note:: Only use `validation_epoch_end` if you need fine-grain control over aggreating all step outputs
 
-.. note:: EvalResult defaults to logging for the full epoch, use `reduce_fx=torch.mean` to specify a different function.
+
+Log to the progress bar
+^^^^^^^^^^^^^^^^^^^^^^^
+|
+
+.. image:: /_images/mnist_imgs/mnist_cpu_bar.png
+    :width: 500
+    :align: center
+    :alt: Example CPU bar logging
+
+|
+
+In addition to visual logging, you can log to the progress bar by using the keyword `progress_bar`:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        return {'loss': loss, 'progress_bar': {'train_loss': loss}}
+
+Or simply set `prog_bar=True` in either of the `EvalResult` or `TrainResult`
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        result = TrainResult(loss)
+        result.log('train_loss', loss, prog_bar=True)
+        return result
+
 
 -----------------
 
 Why do you need Lightning?
 --------------------------
-Notice the code above has nothing about .cuda() or 16-bit or early stopping or logging, etc...
-This is where Lightning adds a ton of value.
+The MAIN teakeaway points are:
 
+- Lightning is for professional AI researchers/production teams.
+- Lightning is organized PyTorch. It is not an abstraction.
+
+Lightning is for you if
+^^^^^^^^^^^^^^^^^^^^^^^
+
+- You're a professional researcher/ml engineer working on non-trivial deep learning.
+- You already know PyTorch and are not a beginner.
+- You want to put models into production much faster.
+- You need full control of all the details but don't need the boilerplate.
+- You want to leverage code written by hundreds of AI researchers, research engs and PhDs from the world's top AI labs.
+- You need GPUs, multi-node training, half-precision and TPUs.
+- You want research code that is rigorously tested (500+ tests) across CPUs/multi-GPUs/multi-TPUs on every pull-request.
+
+Some more cool features
+^^^^^^^^^^^^^^^^^^^^^^^
+Here are (some) of the other things you can do with lightning:
+
+- Automatic checkpointing.
+- Automatic early stopping.
+- Automatically overfit your model for a sanity test.
+- Automatic truncated-back-propagation-through-time.
+- Automatically scale your batch size.
+- Automatically attempt to find a good learning rate.
+- Add arbitrary callbacks
+- Hit every line of your code once to see if you have bugs (instead of waiting hours to crash on validation ;)
+- Load checkpoints directly from S3.
+- Move from CPUs to GPUs or TPUs without code changes.
+- Profile your code for speed/memory bottlenecks.
+- Scale to massive compute clusters.
+- Use multiple dataloaders per train/val/test loop.
+- Use multiple optimizers to do Reinforcement learning or even GANs.
+
+Example:
+^^^^^^^^
 Without changing a SINGLE line of your code, you can now do the following with the above code
 
 .. code-block:: python
