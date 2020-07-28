@@ -68,7 +68,8 @@ well across any accelerator.
 .. code-block:: python
 
     # dataloader
-    train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), shuffle=True)
+    dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
+    train_loader = DataLoader(dataset)
 
     # init model
     model = LitModel()
