@@ -416,8 +416,9 @@ Logging/progress bar
 --------------------
 Lightning has built-in logging to any of the supported loggers or progress bar.
 
-.. figure:: /_images/mnist_imgs/mnist_tb.png
-   :alt: mnist logs
+.. image:: /_images/mnist_imgs/mnist_tb.png
+    :width: 400
+    :alt: Example TB logs
 
 Log in train loop
 ^^^^^^^^^^^^^^^^^
