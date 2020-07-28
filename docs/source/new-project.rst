@@ -171,14 +171,17 @@ Under the hood in pseudocode, lightning does the following:
         # ...
 
         if validate_at_some_point:
+            # disable grads + batchnorm + dropout
             torch.set_grad_enabled(False)
             model.eval()
+
             val_outs = []
             for val_batch in model.val_dataloader:
                 val_out = model.validation_step(val_batch)
                 val_outs.append(val_out)
-
             model.validation_epoch_end(val_outs)
+
+            # enable grads + batchnorm + dropout
             torch.set_grad_enabled(True)
             model.train()
 
@@ -226,14 +229,20 @@ Under the hood, lightning does the following in (pseudocode):
 
 .. code-block:: python
 
+    # disable grads + batchnorm + dropout
     torch.set_grad_enabled(False)
     model.eval()
+
     test_outs = []
     for test_batch in model.test_dataloader:
         test_out = model.test_step(val_batch)
         test_outs.append(test_out)
 
     model.test_epoch_end(test_outs)
+
+    # enable grads + batchnorm + dropout
+    torch.set_grad_enabled(True)
+    model.train()
 
 ---------------
 
