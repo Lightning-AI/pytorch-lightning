@@ -233,7 +233,7 @@ However, this time you need to specifically call test (this is done so you don't
     # OPTION 2:
     # test after loading weights
     model = LitModel.load_from_checkpoint(PATH)
-    trainer = Trainer(tpu_cores=1)
+    trainer = Trainer()
     trainer.test(test_dataloaders=test_dataloader)
 
 Test loop under the hood
