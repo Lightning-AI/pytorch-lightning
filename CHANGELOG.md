@@ -70,6 +70,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed logging interval ([#2694](https://github.com/PyTorchLightning/pytorch-lightning/pull/2694))
 
+- Fixed loss value in the progress bar is wrong when `accumulate_grad_batches > 1` ([#2738](https://github.com/PyTorchLightning/pytorch-lightning/pull/2738))
+
+- Fixed correct CWD for ddp sub-processes when using Hydra ([#2719](https://github.com/PyTorchLightning/pytorch-lightning/pull/2719))
 
 ## [0.8.5] - 2020-07-09
 
