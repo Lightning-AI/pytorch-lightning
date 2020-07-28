@@ -194,10 +194,8 @@ You might also need an optional test loop
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.EvalResult(early_stop_on=loss, checkpoint_on=loss)
-            result.log('test_ce', loss)
-            result.log('test_acc', accuracy(y_hat, y), prog_bar=True)
-            return result
+            return {'test_loss': loss, 'log': {'test_loss': loss}}
+
 
 However, this time you need to specifically call test (this is done so you don't use the test set by mistake)
 
