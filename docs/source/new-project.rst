@@ -74,14 +74,26 @@ well across any accelerator.
     model = LitModel()
 
     # most basic trainer, uses good defaults
-    trainer = pl.Trainer(gpus=8, num_nodes=1)
-    trainer.fit(
-        model,
-        train_loader,
-    )
+    trainer = pl.Trainer()
+    trainer.fit(model, train_loader)
 
-    # to use advanced features such as GPUs/TPUs/16 bit you have to change NO CODE
-    trainer = pl.Trainer(tpu_cores=8, precision=16)
+Using GPUs/TPUs
+^^^^^^^^^^^^^^^
+It's trivial to use GPUs or TPUs in Lightning. There's NO NEED to change your code, simply change the Trainer options.
+
+.. code-block:: python
+
+    # train on 1, 2, 4, n GPUs
+    Trainer(gpus=1)
+    Trainer(gpus=2)
+    Trainer(gpus=8, num_nodes=n)
+
+    # train on TPUs
+    Trainer(tpu_cores=8)
+    Trainer(tpu_cores=128)
+
+    # even half precision
+    Trainer(gpus=2, precision=16)
 
 The code above gives you the following for free:
 
