@@ -405,7 +405,7 @@ Next, materialize the data and build your model
     dm.setup()
 
     # pass in the properties you want
-    model = LitModel(image_width=dm.train_dims[0], image_height=dm.train_dims[1], vocab_length=dm.vocab_size)
+    model = LitModel(image_width=dm.train_dims[0], vocab_length=dm.vocab_size)
 
     # train
     trainer.fit(model, dm)
