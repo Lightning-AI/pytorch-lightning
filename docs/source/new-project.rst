@@ -480,7 +480,10 @@ To log from the validation or test loop use a similar approach
         # this step allows you to aggregate whatever you passed in from every val step
         val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
         val_epoch_acc = torch.stack([x['acc'] for x in val_output]).mean()
-        return {'val_loss': val_epoch_loss, 'log': {'avg_val_loss': val_epoch_loss, 'avg_val_acc': val_epoch_acc}}
+        return {
+            'val_loss': val_epoch_loss,
+            'log': {'avg_val_loss': val_epoch_loss, 'avg_val_acc': val_epoch_acc}
+        }
 
 The recommended equivalent version in case you don't need to do anything special
 with all the outputs of the validation step:
