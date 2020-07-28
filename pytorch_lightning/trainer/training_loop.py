@@ -369,7 +369,7 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_horovod or self.use_tpu) \
+                if (self.use_ddp or self.use_horovod or self.on_tpu) \
                         and hasattr(self.train_dataloader, 'sampler') \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
