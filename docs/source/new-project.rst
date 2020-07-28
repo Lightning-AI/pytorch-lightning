@@ -123,6 +123,14 @@ Under the hood, lightning does (in high-level pseudocode):
             optimizer.step()
             optimizer.zero_grad()
 
+Main take-aways:
+
+- Lightning sets .train() and enables gradients when entering the training loop.
+- Lightning iterates over the epochs automatically.
+- Lightning iterates the dataloaders automatically.
+- Training_step gives you full control of the main loop.
+- .backward(), .step(), .zero_grad() are called for you. BUT, you can override this if you need manual control.
+
 ----------
 
 Adding a Validation loop
