@@ -394,14 +394,28 @@ To log from the training loop use the `TrainResult` object
 
     def training_step(self, batch, batch_idx):
         loss = ...
-        acc = ...
 
-        # pick what to minimize
         result = pl.TrainResult(minimize=loss)
         result.log('train_loss', loss)
         return result
 
-The TrainResult object simply allows you fine-grain control of what/when to log:
+These are equivalent:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+
+        result = pl.TrainResult(minimize=loss)
+        result.log('train_loss', loss)
+        return result
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        return {'loss': loss, 'log': {'train_loss': loss}}
+
+
+But the TrainResult gives you error-checking and greater flexibility:
 
 .. code-block:: python
 
