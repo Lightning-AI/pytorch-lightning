@@ -53,9 +53,7 @@ A lightningModule defines
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.TrainResult(minimize=loss, checkpoint_on=loss)
-            result.log('train_loss', loss, prog_bar=True)
-            return result
+            return loss
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0005)
