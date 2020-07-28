@@ -388,32 +388,30 @@ Lightning has built-in logging to any of the supported loggers or progress bar.
 
 Log in train loop
 ^^^^^^^^^^^^^^^^^
-To log from the training loop use the `TrainResult` object
+To log from the training loop use the `log` reserved key.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         loss = ...
+        return {'loss': loss, 'log': {'train_loss': loss}}
 
-        result = pl.TrainResult(minimize=loss)
-        result.log('train_loss', loss)
-        return result
 
+However, for more fine-grain control use the `TrainResult` object.
 These are equivalent:
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         loss = ...
+        return {'loss': loss, 'log': {'train_loss': loss}}
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
 
         result = pl.TrainResult(minimize=loss)
         result.log('train_loss', loss)
         return result
-
-    def training_step(self, batch, batch_idx):
-        loss = ...
-        return {'loss': loss, 'log': {'train_loss': loss}}
-
 
 But the TrainResult gives you error-checking and greater flexibility:
 
