@@ -414,9 +414,14 @@ Next, materialize the data and build your model
 
 Logging/progress bar
 --------------------
+
+|
+
 .. image:: /_images/mnist_imgs/mnist_tb.png
-    :width: 600
+    :width: 300
     :alt: Example TB logs
+
+|
 
 Lightning has built-in logging to any of the supported loggers or progress bar.
 
@@ -504,9 +509,13 @@ with all the outputs of the validation step:
 
 Log to the progress bar
 ^^^^^^^^^^^^^^^^^^^^^^^
+|
+
 .. image:: /_images/mnist_imgs/mnist_cpu_bar.png
-    :width: 300
+    :width: 500
     :alt: Example CPU bar logging
+
+|
 
 In addition to visual logging, you can log to the progress bar by using the keyword `progress_bar`:
 
