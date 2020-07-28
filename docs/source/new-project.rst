@@ -415,7 +415,7 @@ Next, materialize the data and build your model
 Logging/progress bar
 --------------------
 .. image:: /_images/mnist_imgs/mnist_tb.png
-    :width: 300
+    :width: 600
     :alt: Example TB logs
 
 Lightning has built-in logging to any of the supported loggers or progress bar.
