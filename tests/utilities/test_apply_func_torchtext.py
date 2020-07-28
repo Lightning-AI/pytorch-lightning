@@ -1,3 +1,4 @@
+import pytest
 import torch
 import torchtext
 from torchtext.data.example import Example
@@ -27,37 +28,23 @@ def _get_torchtext_data_iterator(include_lengths=False):
     return iterator, text_field
 
 
-def test_batch_move_data_to_device_torchtext_include_lengths_false():
-    cuda_device_cnt = torch.cuda.device_count()
-    if cuda_device_cnt > 0:
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
+# @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+# @pytest.mark.parametrize('device', [torch.device('cpu'), torch.device('cuda', 0)])
+@pytest.mark.parametrize('device', [torch.device('cpu')] if not torch.cuda.is_available() else [torch.device('cpu'), torch.device('cuda', 0)])
+@pytest.mark.parametrize('include_lengths', [False, True])
+def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
+    # cuda_device_cnt = torch.cuda.device_count()
+    # if cuda_device_cnt > 0:
+    #     device = torch.device('cuda')
+    # else:
+    #     device = torch.device('cpu')
 
-    data_iterator, _ = _get_torchtext_data_iterator(include_lengths=True)
+    data_iterator, _ = _get_torchtext_data_iterator(include_lengths=include_lengths)
     data_iter = iter(data_iterator)
     batch = next(data_iter)
 
-    # this call should not throw an error
     batch_on_device = move_data_to_device(batch, device)
     # tensor with data
     assert (batch_on_device.text[0].device == device)
     # tensor with length of data
     assert (batch_on_device.text[1].device == device)
-
-
-def test_batch_move_data_to_device_torchtext_include_lengths_true():
-    cuda_device_cnt = torch.cuda.device_count()
-    if cuda_device_cnt > 0:
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-
-    data_iterator, _ = _get_torchtext_data_iterator(include_lengths=False)
-    data_iter = iter(data_iterator)
-    batch = next(data_iter)
-
-    # this call should not throw an error
-    batch_on_device = move_data_to_device(batch, device)
-    # tensor with data
-    assert (batch_on_device.text[0].device == device)
