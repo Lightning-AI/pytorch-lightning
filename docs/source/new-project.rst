@@ -446,6 +446,7 @@ These are equivalent:
         loss = ...
         return {'loss': loss, 'log': {'train_loss': loss}}
 
+    # equivalent
     def training_step(self, batch, batch_idx):
         loss = ...
 
