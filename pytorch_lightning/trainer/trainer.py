@@ -51,7 +51,8 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning import accelerator_backends
+from pytorch_lightning.accelerator_backends import (
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend)
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -224,7 +225,8 @@ class Trainer(
 
             callbacks: Add a list of callbacks.
 
-            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed
+            default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
+                Default: ``os.getcwd()``.
 
             gradient_clip_val: 0 means don't clip.
 
@@ -277,7 +279,7 @@ class Trainer(
 
             check_val_every_n_epoch: Check val every n train epochs.
 
-            fast_dev_run: runs 1 batch of train, test  and val to find any bugs (ie: a sort of unit test).
+            fast_dev_run: runs 1 batch of train, test and val to find any bugs (ie: a sort of unit test).
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
 
@@ -351,6 +353,7 @@ class Trainer(
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                     for checkpoints only. Use this if for whatever reason you need the checkpoints
                     stored in a different place than the logs written in `default_root_dir`.
+                    Defaults to `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
@@ -437,10 +440,8 @@ class Trainer(
         self.should_stop = False
         self.running_sanity_check = False
 
-        # set default save path if user didn't provide one
-        if default_root_dir is None:
-            default_root_dir = os.getcwd()
-        self.default_root_dir = default_root_dir
+        self._default_root_dir = default_root_dir or os.getcwd()
+        self._weights_save_path = weights_save_path or self._default_root_dir
 
         # init callbacks
         self.callbacks = callbacks or []
@@ -454,7 +455,6 @@ class Trainer(
         # configure checkpoint callback
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
-        self.weights_save_path = weights_save_path
         checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
         if checkpoint_callback:
             self.callbacks.append(checkpoint_callback)
@@ -506,7 +506,11 @@ class Trainer(
         self.max_steps = max_steps
         self.min_steps = min_steps
 
-        self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
+        if num_sanity_val_steps == -1:
+            self.num_sanity_val_steps = float("inf")
+        else:
+            self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
+
         # Backward compatibility, TODO: remove in v0.9.0
         if print_nan_grads:
             rank_zero_warn(
@@ -529,6 +533,9 @@ class Trainer(
 
         self.fast_dev_run = fast_dev_run
         if self.fast_dev_run:
+            limit_train_batches = 1
+            limit_val_batches = 1
+            limit_test_batches = 1
             self.num_sanity_val_steps = 0
             self.max_epochs = 1
             rank_zero_info(
@@ -937,6 +944,22 @@ class Trainer(
         val_loop_enabled = self.is_overridden('validation_step') and self.limit_val_batches > 0
         return val_loop_enabled or self.fast_dev_run
 
+    @property
+    def default_root_dir(self) -> str:
+        """
+        The default location to save artifacts of loggers, checkpoints etc.
+        It is used as a fallback if logger or checkpoint callback do not define specific save paths.
+        """
+        return os.path.normpath(self._default_root_dir)
+
+    @property
+    def weights_save_path(self) -> str:
+        """
+        The default root location to save weights (checkpoints), e.g., when the
+        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
+        """
+        return os.path.normpath(self._weights_save_path)
+
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
@@ -1039,7 +1062,7 @@ class Trainer(
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
 
-            self.ddp_train(process_idx=task, q=None, model=model)
+            self.ddp_train(process_idx=task, mp_queue=None, model=model)
 
         elif self.use_ddp:
 
@@ -1048,21 +1071,21 @@ class Trainer(
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(process_idx=task, q=None, model=model)
+                self.ddp_train(process_idx=task, mp_queue=None, model=model)
 
             # torchelastic or general non_slurm ddp
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
-                self.ddp_train(process_idx=task, q=None, model=model)
+                self.ddp_train(process_idx=task, mp_queue=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
-                self.accelerator_backend = accelerator_backends.DDPSpawnBackend(self)
+                self.accelerator_backend = DDPSpawnBackend(self)
                 self.accelerator_backend.setup()
                 self.accelerator_backend.train(model, nprocs=self.num_processes)
                 results = self.accelerator_backend.teardown(model)
 
             elif self.distributed_backend == 'ddp_spawn':
-                self.accelerator_backend = accelerator_backends.DDPSpawnBackend(self)
+                self.accelerator_backend = DDPSpawnBackend(self)
                 self.accelerator_backend.setup()
                 self.accelerator_backend.train(model, nprocs=self.num_processes)
                 results = self.accelerator_backend.teardown(model)
@@ -1072,7 +1095,7 @@ class Trainer(
                 results = self.spawn_ddp_children(model)
 
         elif self.use_dp:
-            self.accelerator_backend = accelerator_backends.DataParallelBackend(self)
+            self.accelerator_backend = DataParallelBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
@@ -1080,19 +1103,19 @@ class Trainer(
         elif self.use_horovod:
             results = self.horovod_train(model)
 
-        elif self.single_gpu:
-            self.accelerator_backend = accelerator_backends.GPUBackend(self)
+        elif self.use_single_gpu:
+            self.accelerator_backend = GPUBackend(self)
             model = self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
         elif self.use_tpu:
-            self.accelerator_backend = accelerator_backends.TPUBackend(self)
+            self.accelerator_backend = TPUBackend(self)
             self.accelerator_backend.setup()
             self.accelerator_backend.train(model)
-            self.accelerator_backend.teardown()
+            self.accelerator_backend.teardown(model)
 
         else:
-            self.accelerator_backend = accelerator_backends.CPUBackend(self)
+            self.accelerator_backend = CPUBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 

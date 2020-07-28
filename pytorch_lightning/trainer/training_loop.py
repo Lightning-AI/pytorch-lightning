@@ -217,7 +217,7 @@ class TrainerTrainLoopMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     use_horovod: bool
-    single_gpu: bool
+    use_single_gpu: bool
     use_tpu: bool
     data_parallel_device_ids: ...
     check_val_every_n_epoch: ...
@@ -401,7 +401,7 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
+                    if (met_min_epochs and met_min_steps):
                         self.run_training_teardown()
                         return
                     else:
@@ -507,7 +507,7 @@ class TrainerTrainLoopMixin(ABC):
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
             should_check_val = self.should_check_val(batch_idx, is_last_batch)
-            if self.fast_dev_run or should_check_val:
+            if should_check_val:
                 self.run_evaluation(test_mode=False)
 
             # -----------------------------------------
@@ -530,7 +530,7 @@ class TrainerTrainLoopMixin(ABC):
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
-            if self.fast_dev_run or self.should_stop:
+            if self.should_stop:
                 break
 
         # let ddp devices catch up when using horovod
@@ -548,7 +548,7 @@ class TrainerTrainLoopMixin(ABC):
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
-        should_activate = not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val)
+        should_activate = not self.is_overridden('validation_step') and not should_check_val
         if should_activate:
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
@@ -1068,7 +1068,7 @@ class TrainerTrainLoopMixin(ABC):
             output = self.model.training_step(*args)
 
         # single GPU forward
-        elif self.single_gpu:
+        elif self.use_single_gpu:
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]

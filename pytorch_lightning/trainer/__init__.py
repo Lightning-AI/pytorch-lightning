@@ -291,12 +291,12 @@ Example::
     )
 
 default_root_dir
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 Default path for logs and weights when no logger
 or :class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.
 On certain clusters you might want to separate where logs and checkpoints
-are stored. If you don't then use this method for convenience.
+are stored. If you don't then use this argument for convenience.
 
 Example::
 
@@ -393,7 +393,7 @@ Under the hood the pseudocode looks like this:
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
 
-    # runs 1 train, val, test  batch and program ends
+    # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
 
 gpus
