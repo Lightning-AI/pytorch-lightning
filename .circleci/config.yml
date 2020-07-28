@@ -148,10 +148,18 @@ jobs:
 
 workflows:
   version: 2
-  tpu-tests:
+  build:
     jobs:
       - build-Docs
-      - TPU-tests
+      - TPU-tests:
+          filters:
+            branches:
+              # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
+              only:
+                # only from forks
+                - /^pull\/.*$/
+                # only from canonical repository
+                - /^(?!pull\/).*$/
   cleanup:
     triggers:
       - schedule:
