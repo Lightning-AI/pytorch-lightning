@@ -26,7 +26,7 @@ class TrainerAMPMixin(ABC):
             raise ModuleNotFoundError(
                 "You set `use_amp=True` but do not have apex installed."
                 " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
-                " and rerun with use_amp=True."
+                " and rerun with `use_amp=True`."
                 " This run will NOT use 16 bit precision."
             )
 
