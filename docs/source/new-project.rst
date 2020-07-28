@@ -542,6 +542,10 @@ Or simply set `prog_bar=True` in either of the `EvalResult` or `TrainResult`
 
 Why do you need Lightning?
 --------------------------
+The MAIN teakeaway points are:
+
+- Lightning is for professional AI researchers/production teams.
+- Lightning is organized PyTorch. It is not an abstraction.
 
 Lightning is for you if
 ^^^^^^^^^^^^^^^^^^^^^^^
