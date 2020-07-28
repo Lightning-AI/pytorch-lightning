@@ -337,7 +337,7 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - [Wandb](https://www.wandb.com/)
 - ...
 
-![tensorboard-support](docs/source/_images/general/tf_loss.png)
+![tensorboard-support](docs/source/_images/general/tf_loss.jpg)
 
 
 ## Lightning automates 40+ parts of DL/ML research

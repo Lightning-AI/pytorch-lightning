@@ -134,11 +134,13 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(accumulate_grad_batches=schedule,
-                      limit_train_batches=0.8,
-                      limit_val_batches=0.8,
-                      max_epochs=4,
-                      default_root_dir=tmpdir)
+    trainer = Trainer(
+        accumulate_grad_batches=schedule,
+        limit_train_batches=0.8,
+        limit_val_batches=0.8,
+        max_epochs=4,
+        default_root_dir=tmpdir,
+    )
 
     # test optimizer call freq matches scheduler
     def _optimizer_step(epoch, batch_idx, optimizer, optimizer_idx,
@@ -444,7 +446,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     trainer_options.update(
         default_root_dir=tmpdir,
         max_epochs=3,
-        max_steps=num_train_samples + 10
+        max_steps=num_train_samples + 10,
     )
 
     # fit model
@@ -458,7 +460,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # define less train epochs than steps
     trainer_options.update(
         max_epochs=2,
-        max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
+        max_steps=trainer_options['max_epochs'] * 2 * num_train_samples,
     )
 
     # fit model
@@ -481,7 +483,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
-        max_epochs=7
+        max_epochs=7,
     )
 
     # define less min steps than 1 epoch
