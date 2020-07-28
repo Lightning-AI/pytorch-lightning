@@ -417,7 +417,7 @@ Logging/progress bar
 Lightning has built-in logging to any of the supported loggers or progress bar.
 
 .. image:: /_images/mnist_imgs/mnist_tb.png
-    :width: 400
+    :width: 300
     :alt: Example TB logs
 
 Log in train loop
@@ -497,6 +497,27 @@ with all the outputs of the validation step:
         return result
 
 .. note:: Only use `validation_epoch_end` if you need fine-grain control over aggreating all step outputs
+
+
+Log to the progress bar
+^^^^^^^^^^^^^^^^^^^^^^^
+In addition to visual logging, you can log to the progress bar by using the keyword `progress_bar`:
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        return {'loss': loss, 'progress_bar': {'train_loss': loss}}
+
+Or simply set `prog_bar=True` in either of the `EvalResult` or `TrainResult`
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        result = TrainResult(loss)
+        result.log('train_loss', loss, prog_bar=True)
+        return result
+
 
 -----------------
 
