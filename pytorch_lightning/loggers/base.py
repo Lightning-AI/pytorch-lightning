@@ -302,8 +302,9 @@ class LoggerCollection(LightningLoggerBase):
         [logger.close() for logger in self._logger_iterable]
 
     @property
-    def save_dir(self) -> List[Optional[str]]:
-        return [logger.save_dir for logger in self._logger_iterable]
+    def save_dir(self) -> Optional[str]:
+        # Checkpoints should be saved to default / chosen location when using multiple loggers
+        return None
 
     @property
     def name(self) -> str:
