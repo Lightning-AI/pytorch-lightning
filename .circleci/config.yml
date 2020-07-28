@@ -154,8 +154,7 @@ workflows:
       - TPU-tests:
           filters:
             branches:
-              only:
-                - /pull.*/
+              ignore: /.*/
   cleanup:
     triggers:
       - schedule:
