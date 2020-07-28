@@ -154,7 +154,8 @@ workflows:
       - TPU-tests:
           filters:
             branches:
-              ignore: /.*/
+              # only from forks
+              only: /^pull\/.*$/
   cleanup:
     triggers:
       - schedule:
