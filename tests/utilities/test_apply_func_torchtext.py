@@ -28,9 +28,10 @@ def _get_torchtext_data_iterator(include_lengths=False):
     return iterator, text_field
 
 
-@pytest.mark.parametrize('device', [torch.device('cpu')] if not torch.cuda.is_available() else [torch.device('cpu'),
-                                                                                                torch.device('cuda',
-                                                                                                             0)])
+@pytest.mark.parametrize(['device'],
+                         [pytest.param(torch.device('cuda', 0)),
+                          pytest.param(torch.device('cpu'))] if torch.cuda.is_available() else [
+                             pytest.param(torch.device('cpu'))])
 @pytest.mark.parametrize('include_lengths', [False, True])
 def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, device):
     data_iterator, _ = _get_torchtext_data_iterator(include_lengths=include_lengths)
@@ -38,9 +39,10 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
     batch = next(data_iter)
     batch_on_device = move_data_to_device(batch, device)
 
-    # tensor with data
-    assert (batch_on_device.text[0].device == device)
-
     if include_lengths:
+        # tensor with data
+        assert (batch_on_device.text[0].device == device)
         # tensor with length of data
         assert (batch_on_device.text[1].device == device)
+    else:
+        assert (batch_on_device.text.device == device)
