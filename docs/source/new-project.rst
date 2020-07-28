@@ -137,10 +137,7 @@ To add an (optional) validation loop add the following function
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = EvalResult(early_stop_on=loss, checkpoint_on=loss)
-            result.log('val_ce', loss)
-            result.log('val_acc', accuracy(y_hat, y))
-            return result
+            return {'val_loss': loss}
 
 And now the trainer will call the validation loop automatically
 
