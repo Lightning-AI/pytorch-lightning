@@ -65,6 +65,7 @@ def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths
     test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch.device('cpu'))
 
 
+@pytest.mark.parametrize('include_lengths', [False, True])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_batch_move_data_to_device_torchtext_include_lengths_tpu(include_lengths):
     test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, xm.xla_device())
