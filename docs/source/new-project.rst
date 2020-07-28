@@ -430,8 +430,7 @@ Then boot up your logger or tensorboard instance to view training logs
     tensorboard --logdir ./lightning_logs
 
 .. warning:: Refreshing the progress bar too frequently in Jupyter notebooks or Colab may freeze your UI.
-
-.. note:: TrainResult defaults to logging on every step, set `on_epoch` to also log the metric for the full epoch
+    We recommend you set `Trainer(progress_bar_refresh_rate=10)`
 
 Log in Val/Test loop
 ^^^^^^^^^^^^^^^^^^^^
@@ -442,17 +441,30 @@ To log from the validation or test loop use a similar approach
     def validation_step(self, batch, batch_idx):
         loss = ...
         acc = ...
+        val_output = {'loss': loss, 'acc': acc}
+        return val_output
 
-        # pick what to minimize
-        result = pl.EvalResult(checkpoint_on=acc, early_stop_on=loss)
+    def validation_epoch_end(self, validation_step_outputs):
+        # this step allows you to aggregate whatever you passed in from every val step
+        val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
+        val_epoch_acc = torch.stack([x['acc'] for x in val_output]).mean()
+        return {'val_loss': val_epoch_loss, 'log': {'avg_val_loss': val_epoch_loss, 'avg_val_acc': val_epoch_acc}}
 
-        # log the val loss averaged across the full epoch
+The recommended equivalent version in case you don't need to do anything special
+with all the outputs of the validation step:
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        loss = ...
+        acc = ...
+
+        result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
+        result.log('val_acc', acc)
+        return result
 
-        # log the val acc at each step AND for the full epoch (mean)
-        result.log('val_acc', acc, prog_bar=True, logger=True, on_epoch=True, on_step=True)
-
-.. note:: EvalResult defaults to logging for the full epoch, use `reduce_fx=torch.mean` to specify a different function.
+.. note:: Only use `validation_epoch_end` if you need fine-grain control over aggreating all step outputs
 
 -----------------
 
