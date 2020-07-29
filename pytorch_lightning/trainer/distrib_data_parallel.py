@@ -381,7 +381,7 @@ class TrainerDDPMixin(ABC):
         if len(node_ids) == 0:
             return 0
         if len(node_ids) > 1:
-            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. " f"Using the first one.")
+            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. Using the first one.")
         k, rank = node_ids.pop()
         rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
         return int(rank)
