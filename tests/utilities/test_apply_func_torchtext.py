@@ -7,7 +7,6 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 try:
     import torch_xla
-    import torch_xla.core.xla_model as xm
 except ImportError:
     TPU_AVAILABLE = False
 else:
@@ -62,4 +61,4 @@ def test_batch_move_data_to_device_torchtext_include_lengths_cpu(include_lengths
 @pytest.mark.parametrize('include_lengths', [False, True])
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 def test_batch_move_data_to_device_torchtext_include_lengths_tpu(include_lengths):
-    test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, xm.xla_device())
+    test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, torch_xla._XLAC._xla_get_default_device())
