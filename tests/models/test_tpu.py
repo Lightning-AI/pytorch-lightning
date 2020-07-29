@@ -240,14 +240,22 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, distributed_backend='tpu', tpu_cores=8)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,	
+        distributed_backend='tpu',	
+        tpu_cores=8,
+    )
     result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
 
 @pytest.mark.parametrize(
     ['tpu_cores', 'expected_tpu_id'],
-    [pytest.param(1, None), pytest.param(8, None), pytest.param([1], 1), pytest.param([8], 8)],
+    [pytest.param(1, None),
+     pytest.param(8, None),
+     pytest.param([1], 1),
+     pytest.param([8], 8)],
 )
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected"""
@@ -258,7 +266,8 @@ def test_tpu_misconfiguration():
     """Test if trainer.tpu_id is set as expected"""
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
         Trainer(
-            tpu_cores=[1, 8], distributed_backend='tpu',
+            tpu_cores=[1, 8],
+            distributed_backend='tpu',
         )
 
 
