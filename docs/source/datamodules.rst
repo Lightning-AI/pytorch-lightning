@@ -151,7 +151,7 @@ The recommended way to use a DataModule is simply:
 
     dm = MNISTDataModule()
     model = Model()
-    trainer.fit(model, dm)
+    trainer.fit(model, datamodule=dm)
 
     trainer.test(datamodule=dm)
 
@@ -165,7 +165,7 @@ still ensures the method runs on the correct devices)
     dm.setup()
 
     model = Model(num_classes=dm.num_classes, width=dm.width, vocab=dm.vocab)
-    trainer.fit(model, dm)
+    trainer.fit(model, datamodule=dm)
 
     trainer.test(model, datamodule=dm)
 
