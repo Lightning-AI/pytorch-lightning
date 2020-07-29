@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import inspect
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
@@ -28,15 +29,40 @@ class _DataModuleWrapper(type):
 
             1. Runs user defined subclass's __init__
             2. Assures prepare_data() runs on rank 0
+            3. Lets you check prepare_data and setup to see if they've been called
         """
 
         # Wrap cls's prepare_data function with rank_zero_only
         cls.prepare_data = rank_zero_only(cls.prepare_data)
 
+        # prepare_data and setup wrapped w/ function to track if they've been called.
+        # Usage: your_dm.setup.has_been_called & your_dm.prepare_data.has_been_called
+        cls.prepare_data = track_func_calls(cls.prepare_data)
+        cls.setup = track_func_calls(cls.setup)
+
         # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
 
         return obj
+
+
+def track_func_calls(fn):
+    """A decorator that checks if a function has been called.
+
+    Args:
+        fn (function): Function that will be tracked to see if it has been called.
+
+    Returns:
+        callable: Your function with an added bool attr fn.has_been_called.
+    """
+    @functools.wraps(fn)
+    def wrapped_fn(*args, **kwargs):
+        wrapped_fn.has_been_called = True
+        return fn(*args, **kwargs)
+
+    wrapped_fn.has_been_called = False
+
+    return wrapped_fn
 
 
 class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no cover
