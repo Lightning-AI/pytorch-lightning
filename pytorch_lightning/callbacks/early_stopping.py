@@ -35,9 +35,9 @@ class EarlyStopping(Callback):
         min_delta: minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
-            improvement. Default: ``0``.
+            improvement. Default: ``0.0``.
         patience: number of validation epochs with no improvement
-            after which training will be stopped. Default: ``0``.
+            after which training will be stopped. Default: ``3``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of {auto, min, max}. In `min` mode,
             training will stop when the quantity
