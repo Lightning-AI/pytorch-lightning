@@ -34,10 +34,10 @@ matching transforms and data processing/downloads steps required.
     ...         return DataLoader(self.train_dataset, batch_size=64)
     ...
     ...     def val_dataloader(self):
-    ...         return DataLoader(self.mnist_val, batch_size=64)
+    ...         return DataLoader(self.val_dataset, batch_size=64)
     ...
     ...     def test_dataloader(self):
-    ...         return DataLoader(self.mnist_test, batch_size=64)
+    ...         return DataLoader(self.test_dataset, batch_size=64)
 
 ---------------
 

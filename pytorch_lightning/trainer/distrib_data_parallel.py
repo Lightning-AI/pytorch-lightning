@@ -162,7 +162,8 @@ else:
 
 
 try:
-    from hydra.utils import to_absolute_path
+    from hydra.utils import to_absolute_path, get_original_cwd
+    from hydra.core.hydra_config import HydraConfig
 except ImportError:
     HYDRA_AVAILABLE = False
 else:
@@ -464,7 +465,12 @@ class TrainerDDPMixin(ABC):
             env_copy['LOCAL_RANK'] = f'{local_rank}'
 
             # start process
-            proc = subprocess.Popen(command, env=env_copy)
+            # if hydra is available and initialized, make sure to set the cwd correctly
+            cwd: Optional[str] = None
+            if HYDRA_AVAILABLE:
+                if HydraConfig.initialized():
+                    cwd = get_original_cwd()
+            proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.interactive_ddp_procs.append(proc)
 
             # starting all processes at once can cause issues

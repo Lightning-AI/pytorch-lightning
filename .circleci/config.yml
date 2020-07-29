@@ -40,9 +40,7 @@ references:
         # $CI_PULL_REQUEST seems to be of form: https://github.com/org/repo-name/pull/11.
         # Grab the last bit, e.g. pull/11, convert to pull/11/head, and use it
         # for the GITHUB_REF so Docker can pull the latest pending code in PR.
-        git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head
-        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" .
-        #docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
+        if [ -z "$CI_PULL_REQUEST" ]; then docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1"; else git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head && docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" .; fi
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
@@ -66,7 +64,7 @@ references:
        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
        # Allow time for logs to flush.
-       sleep 10 && \
+       sleep 30 && \
        echo "JOB_NAME: $job_name" && \
        gcloud logging read "resource.type=k8s_container resource.labels.project_id=$GOOGLE_PROJECT_ID resource.labels.location=$GOOGLE_COMPUTE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$GOOGLE_PROJECT_ID > /tmp/full_output.txt && \
        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
@@ -148,10 +146,18 @@ jobs:
 
 workflows:
   version: 2
-  tpu-tests:
+  build:
     jobs:
       - build-Docs
-      - TPU-tests
+      - TPU-tests:
+          filters:
+            branches:
+              # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
+              only:
+                # only from forks
+                - /^pull\/.*$/
+                # only from canonical repository
+                - /^(?!pull\/).*$/
   cleanup:
     triggers:
       - schedule:

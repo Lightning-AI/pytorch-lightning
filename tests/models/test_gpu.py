@@ -136,7 +136,11 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    trainer_options = dict(
+    model = EvalModelTemplate()
+    fit_options = dict(train_dataloader=model.train_dataloader(),
+                       val_dataloaders=model.val_dataloader())
+
+    trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
@@ -145,12 +149,6 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         gpus=[0, 1],
         distributed_backend='ddp_spawn'
     )
-
-    model = EvalModelTemplate()
-    fit_options = dict(train_dataloader=model.train_dataloader(),
-                       val_dataloaders=model.val_dataloader())
-
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model, **fit_options)
     assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
 

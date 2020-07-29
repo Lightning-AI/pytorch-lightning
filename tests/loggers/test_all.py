@@ -73,6 +73,7 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
         limit_train_batches=0.2,
         limit_val_batches=0.5,
         fast_dev_run=True,
+        default_root_dir=tmpdir,
     )
     trainer.fit(model)
     trainer.test()

@@ -68,6 +68,22 @@ conda install pytorch-lightning -c conda-forge
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
 - [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
 
+## PyTorch Lightning is just organized PyTorch
+![PT to PL](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/fast_2.gif)
+
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
+It's more of a PyTorch style-guide than a framework.
+
+In Lightning, you organize your code into 3 distinct categories:
+
+1. Research code (goes in the LightningModule).
+2. Engineering code (you delete, and is handled by the Trainer).
+3. Non-essential research code (logging, etc... this goes in Callbacks).
+
+Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
+
+Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
+
 ## Refactoring your PyTorch code + benefits + full walk-through
 [![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
 
@@ -103,31 +119,12 @@ trainer = pl.Trainer(gpus=8, precision=16)
 trainer.fit(model, train_loader)
 ```
 
-Other examples:
-[MNIST hello world](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL)
-[GAN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=P0bSmCw57aV5)
-[BERT](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=7uQVI-xv9Ddj)
-[DQN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=NWvMLBDySQI5)
-[MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
-
-## What is it?
-[READ THIS QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
-
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
-It's more of a PyTorch style-guide than a framework.
-
-In Lightning, you organize your code into 3 distinct categories:
-
-1. Research code (goes in the LightningModule).
-2. Engineering code (you delete, and is handled by the Trainer).
-3. Non-essential research code (logging, etc... this goes in Callbacks).
-
-Here's an example of how to refactor your research code into a [LightningModule](https://pytorch-lightning.readthedocs.io/en/latest/lightning-module.html).
-
-![PT to PL](docs/source/_images/lightning_module/pt_to_pl.png)
-
-The rest of the code is automated by the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
-![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
+Other examples:   
+[MNIST hello world](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL)   
+[GAN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=P0bSmCw57aV5)   
+[BERT](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=7uQVI-xv9Ddj)   
+[DQN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=NWvMLBDySQI5)   
+[MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)    
 
 ## Testing Rigour
 All the automated code by the Trainer is [tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests).
@@ -337,7 +334,7 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - [Wandb](https://www.wandb.com/)
 - ...
 
-![tensorboard-support](docs/source/_images/general/tf_loss.png)
+![tensorboard-support](docs/source/_images/general/tf_loss.jpg)
 
 
 ## Lightning automates 40+ parts of DL/ML research

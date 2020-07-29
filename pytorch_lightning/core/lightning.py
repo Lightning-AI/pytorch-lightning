@@ -1544,7 +1544,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Example:
             .. code-block:: python
 
-
                 def on_save_checkpoint(self, checkpoint):
                     # 99% of use cases you don't need to implement this method
                     checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
@@ -1558,7 +1557,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
-        Additional items to be displayed in the progress bar.
+        Implement this to override the default items displayed in the progress bar.
+        By default it includes the average loss value, split index of BPTT (if used)
+        and the version of the experiment when using a logger.
+
+        .. code-block::
+
+            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
+
+        Here is an example how to override the defaults:
+
+        .. code-block:: python
+
+            def get_progress_bar_dict(self):
+                # don't show the version number
+                items = super().get_progress_bar_dict()
+                items.pop("v_num", None)
+                return items
 
         Return:
             Dictionary with the items to be displayed in the progress bar.
@@ -1572,7 +1587,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             tqdm_dict['split_idx'] = self.trainer.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
-            tqdm_dict['v_num'] = self.trainer.logger.version
+            version = self.trainer.logger.version
+            # show last 4 places of long version strings
+            version = version[-4:] if isinstance(version, str) else version
+            tqdm_dict['v_num'] = version
 
         return tqdm_dict
 

@@ -772,7 +772,7 @@ class TrainerTrainLoopMixin(ABC):
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
 
                     # calculate running loss for display
-                    self.running_loss.append(self.batch_loss_value.mean())
+                    self.running_loss.append(self.batch_loss_value.mean() * self.accumulate_grad_batches)
 
                     # reset for next set of accumulated grads
                     self.batch_loss_value.reset()

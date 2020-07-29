@@ -36,6 +36,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         logger=logger,
         gpus=[0, 1],
         distributed_backend='dp',
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -85,6 +86,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         logger=logger,
         gpus=[0, 1],
         distributed_backend='ddp_spawn',
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -130,6 +132,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -269,14 +272,13 @@ def test_model_saving_loading(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # traning complete
