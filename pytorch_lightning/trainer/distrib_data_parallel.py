@@ -307,7 +307,7 @@ class TrainerDDPMixin(ABC):
         elif distributed_backend == "ddp_cpu":
             if self.num_gpus > 0:
                 rank_zero_warn(
-                    'You requested one or more GPUs, but set the backend to `ddp_cpu`.' ' Training will not use GPUs.'
+                    'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
                 )
             self.use_ddp = True
             self.data_parallel_device_ids = None
