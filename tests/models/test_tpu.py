@@ -25,12 +25,12 @@ else:
     TPU_AVAILABLE = True
 
 
-_LARGER_DATASET = TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8),)
+_LARGER_DATASET = TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8))
 
 
 # 8 cores needs a big dataset
 def _serial_train_loader():
-    return DataLoader(_LARGER_DATASET, batch_size=32,)
+    return DataLoader(_LARGER_DATASET, batch_size=32)
 
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
@@ -240,8 +240,8 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, distributed_backend='tpu', tpu_cores=8,)
-    result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader(),)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, distributed_backend='tpu', tpu_cores=8)
+    result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
 
