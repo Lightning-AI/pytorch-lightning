@@ -4,18 +4,41 @@ branding:
   icon: message-square
   color: purple
 on: [pull_request]
+    
 jobs:
-  build:
-    name: Thanks for contributing to PyTorch Lightning!
+  job1:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    # Map a step output to a job output
+    outputs:
+      is_first: ${{ steps.set_output.outputs.is_first }}
     steps:
-      - uses: actions/first-interaction@v1
+      - name: first interaction
+        id: first_interaction
+        uses: actions/first-interaction@v1
+      - name: set output
+        id: set_output
+        run: echo "::set-output name=is_first::true"
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: needs.job1.outputs.is_first == "true"
+    steps:
+      - name: send email 
+        id: send_email
+        uses: dawidd6/action-send-mail@v2
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          pr-message: "Hey there, thanks for contributing to PyTorch Lightning!
-                       Community is the DNA of PyTorch Lightning. We are proud of our devoted contributors for the hard work and efforts!
-                       To show our appreciation, everyone who contributes to Lightning is eligible to receive free SWAG!
-                       Please fill out this form to claim yours -> https://forms.gle/srbe3JE9Qy56Ndxs6
-                       
-                       
-                       "
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{secrets.MAIL_USERNAME}}
+          password: ${{secrets.MAIL_PASSWORD}}
+          subject: Github Actions job result
+          # Literal body:
+          body: |
+            Hey there @${{ github.actor }}, thanks for contributing to PyTorch Lightning!
+            Community is the DNA of PyTorch Lightning. We are proud of our devoted contributors for the hard work and efforts!
+            To show our appreciation, everyone who contributes to Lightning is eligible to receive free SWAG!
+            Please fill out this form to claim yours -> https://forms.gle/srbe3JE9Qy56Ndxs6
+          # how do i get the contrbutor's email?
+          to: ${{secrets.MAIL_USERNAME}}
+          from: PyTorch Lightning # <user@example.com>
