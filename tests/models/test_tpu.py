@@ -247,7 +247,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
 @pytest.mark.parametrize(
     ['tpu_cores', 'expected_tpu_id'],
-    [pytest.param(1, None), pytest.param(8, None), pytest.param([1], 1), pytest.param([8], 8),],
+    [pytest.param(1, None), pytest.param(8, None), pytest.param([1], 1), pytest.param([8], 8)],
 )
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected"""
