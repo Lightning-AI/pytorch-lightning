@@ -21,7 +21,7 @@ local tputests = base.BaseTest {
   command: utils.scriptCommand(
     |||
       cd pytorch-lightning
-      coverage run --source=pytorch_lightning -m pytest tests/models/test_tpu.py -v
+      coverage run --source=pytorch_lightning -m pytest tests/models/test_tpu.py tests/utilities/test_apply_func_torchtext.py -v
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
