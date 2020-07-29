@@ -13,6 +13,20 @@ def test_base_datamodule(tmpdir):
     dm.setup()
 
 
+def test_dm_has_been_called(tmpdir):
+    dm = TrialMNISTDataModule()
+    assert dm.prepare_data.has_been_called is False
+    assert dm.setup.has_been_called is False
+
+    dm.prepare_data()
+    assert dm.prepare_data.has_been_called is True
+    assert dm.setup.has_been_called is False
+
+    dm.setup()
+    assert dm.prepare_data.has_been_called is True
+    assert dm.setup.has_been_called is True
+
+
 def test_dm_add_argparse_args(tmpdir):
     parser = ArgumentParser()
     parser = TrialMNISTDataModule.add_argparse_args(parser)
@@ -43,8 +57,6 @@ def test_dm_pickle_after_setup(tmpdir):
 
 def test_train_loop_only(tmpdir):
     dm = TrialMNISTDataModule(tmpdir)
-    dm.prepare_data()
-    dm.setup()
 
     model = EvalModelTemplate()
     model.validation_step = None
@@ -69,8 +81,6 @@ def test_train_loop_only(tmpdir):
 
 def test_train_val_loop_only(tmpdir):
     dm = TrialMNISTDataModule(tmpdir)
-    dm.prepare_data()
-    dm.setup()
 
     model = EvalModelTemplate()
     model.validation_step = None
@@ -87,13 +97,11 @@ def test_train_val_loop_only(tmpdir):
     # fit model
     result = trainer.fit(model)
     assert result == 1
-    assert trainer.callback_metrics['loss'] < 0.50
+    assert trainer.callback_metrics['loss'] < 0.65
 
 
 def test_full_loop(tmpdir):
     dm = TrialMNISTDataModule(tmpdir)
-    dm.prepare_data()
-    dm.setup()
 
     model = EvalModelTemplate()
 
@@ -117,8 +125,6 @@ def test_full_loop(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
 def test_full_loop_single_gpu(tmpdir):
     dm = TrialMNISTDataModule(tmpdir)
-    dm.prepare_data()
-    dm.setup()
 
     model = EvalModelTemplate()
 
@@ -143,8 +149,6 @@ def test_full_loop_single_gpu(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_dp(tmpdir):
     dm = TrialMNISTDataModule(tmpdir)
-    dm.prepare_data()
-    dm.setup()
 
     model = EvalModelTemplate()
 
@@ -173,8 +177,6 @@ def test_full_loop_ddp_spawn(tmpdir):
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
     dm = TrialMNISTDataModule(tmpdir)
-    dm.prepare_data()
-    dm.setup()
 
     model = EvalModelTemplate()
 
