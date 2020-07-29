@@ -1,10 +1,13 @@
 import pickle
+from argparse import ArgumentParser
+
 import torch
 import pytest
+
 from pytorch_lightning import Trainer
-from tests.base.datamodules import TrialMNISTDataModule
 from tests.base import EvalModelTemplate
-from argparse import ArgumentParser
+from tests.base.datamodules import TrialMNISTDataModule
+from tests.base.develop_utils import reset_seed
 
 
 def test_base_datamodule(tmpdir):
@@ -80,6 +83,8 @@ def test_train_loop_only(tmpdir):
 
 
 def test_train_val_loop_only(tmpdir):
+    reset_seed()
+
     dm = TrialMNISTDataModule(tmpdir)
 
     model = EvalModelTemplate()
@@ -101,6 +106,8 @@ def test_train_val_loop_only(tmpdir):
 
 
 def test_full_loop(tmpdir):
+    reset_seed()
+
     dm = TrialMNISTDataModule(tmpdir)
 
     model = EvalModelTemplate()
@@ -124,6 +131,8 @@ def test_full_loop(tmpdir):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
 def test_full_loop_single_gpu(tmpdir):
+    reset_seed()
+
     dm = TrialMNISTDataModule(tmpdir)
 
     model = EvalModelTemplate()
@@ -148,6 +157,8 @@ def test_full_loop_single_gpu(tmpdir):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_dp(tmpdir):
+    reset_seed()
+
     dm = TrialMNISTDataModule(tmpdir)
 
     model = EvalModelTemplate()
@@ -175,6 +186,8 @@ def test_full_loop_dp(tmpdir):
 def test_full_loop_ddp_spawn(tmpdir):
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
+    reset_seed()
 
     dm = TrialMNISTDataModule(tmpdir)
 
