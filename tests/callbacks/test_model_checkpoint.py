@@ -21,19 +21,13 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        checkpoint_callback=checkpoint,
-        overfit_batches=0.20,
-        max_epochs=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2,)
     trainer.fit(model)
-    assert checkpoint.dirpath == tmpdir / trainer.logger.name / f'version_0' / 'checkpoints'
+    assert checkpoint.dirpath == tmpdir / trainer.logger.name / 'version_0' / 'checkpoints'
 
 
 @pytest.mark.parametrize(
-    'logger_version,expected',
-    [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+    'logger_version,expected', [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
 )
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
@@ -41,12 +35,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        overfit_batches=0.2,
-        max_epochs=2,
-        logger=logger,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger,)
     trainer.fit(model)
 
     ckpt_version = Path(trainer.checkpoint_callback.dirpath).parent.name
@@ -83,8 +72,9 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         # on rank 0 we expect the saved files and on all others no saves
-        assert (trainer.global_rank == 0 and self.count == self.expected_count) \
-            or (trainer.global_rank > 0 and self.count == 0)
+        assert (trainer.global_rank == 0 and self.count == self.expected_count) or (
+            trainer.global_rank > 0 and self.count == 0
+        )
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
