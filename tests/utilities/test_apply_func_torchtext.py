@@ -15,9 +15,10 @@ def _get_torchtext_data_iterator(include_lengths=False):
     example2 = Example.fromdict({"text": "b c a a"}, {"text": ("text", text_field)})
     example3 = Example.fromdict({"text": "c b a"}, {"text": ("text", text_field)})
 
-    dataset = torchtext.data.Dataset([example1, example2, example3],
-                                     {"text": text_field}
-                                     )
+    dataset = torchtext.data.Dataset(
+        [example1, example2, example3],
+        {"text": text_field},
+    )
     text_field.build_vocab(dataset)
 
     iterator = torchtext.data.Iterator(dataset, batch_size=3,
