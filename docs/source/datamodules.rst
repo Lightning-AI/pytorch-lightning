@@ -19,7 +19,7 @@ matching transforms and data processing/downloads steps required.
     ...         MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
     ...         MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
     ...
-    ...     def setup(self, stage):
+    ...     def setup(self):
     ...         mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transforms.ToTensor())
     ...         mnist_test = MNIST(os.getcwd(), train=False, download=False, transform=transforms.ToTensor())
     ...         # train/val split
@@ -79,7 +79,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 
     >>> import pytorch_lightning as pl
     >>> class MNISTDataModule(pl.LightningDataModule):
-    ...     def setup(self, stage):
+    ...     def setup(self):
     ...         mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transforms.ToTensor())
     ...         mnist_test = MNIST(os.getcwd(), train=False, download=False, transform=transforms.ToTensor())
     ...         # train/val split
