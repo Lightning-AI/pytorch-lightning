@@ -273,9 +273,11 @@ class TrainerDDPMixin(ABC):
             elif self.num_gpus == 1:
                 self.use_single_gpu = True
             elif self.num_gpus > 1:
-                rank_zero_warn('You requested multiple GPUs but did not specify a backend, e.g.'
-                               ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
-                               ' Setting distributed_backend=ddp_spawn for you.')
+                rank_zero_warn(
+                    'You requested multiple GPUs but did not specify a backend, e.g.'
+                    ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
+                    ' Setting distributed_backend=ddp_spawn for you.'
+                )
                 self.distributed_backend = 'ddp_spawn'
                 distributed_backend = 'ddp_spawn'
 
@@ -304,8 +306,9 @@ class TrainerDDPMixin(ABC):
                 self.use_ddp2 = True
         elif distributed_backend == "ddp_cpu":
             if self.num_gpus > 0:
-                rank_zero_warn('You requested one or more GPUs, but set the backend to `ddp_cpu`.'
-                               ' Training will not use GPUs.')
+                rank_zero_warn(
+                    'You requested one or more GPUs, but set the backend to `ddp_cpu`.' ' Training will not use GPUs.'
+                )
             self.use_ddp = True
             self.data_parallel_device_ids = None
             self.on_gpu = False
@@ -378,8 +381,7 @@ class TrainerDDPMixin(ABC):
         if len(node_ids) == 0:
             return 0
         if len(node_ids) > 1:
-            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. "
-                        f"Using the first one.")
+            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. " f"Using the first one.")
         k, rank = node_ids.pop()
         rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
         return int(rank)
@@ -610,7 +612,11 @@ class TrainerDDPMixin(ABC):
             last_path = None
             if not self.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                torch.save(model.state_dict(), last_path)
+                # Can't use the new zipfile serialization yet because there's a bug in
+                # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
+                # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
+                # TODO: remove the _use_new_zipfile_serialization kwarg once the bug is fixed.
+                torch.save(model.state_dict(), last_path, _use_new_zipfile_serialization=False)
             mp_queue.put(last_path)
 
     def save_spawn_weights(self, model):
