@@ -1,5 +1,5 @@
 from abc import ABC
-from collections import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from copy import copy
 from typing import Any, Callable, Union
 
