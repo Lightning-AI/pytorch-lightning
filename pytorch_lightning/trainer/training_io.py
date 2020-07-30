@@ -87,6 +87,7 @@ import os
 import re
 import signal
 from abc import ABC
+from distutils.version import LooseVersion
 from subprocess import call
 from pkg_resources import parse_version
 
@@ -264,7 +265,7 @@ class TrainerIOMixin(ABC):
         # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
         # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
         # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-        if parse_version(torch.__version__) == parse_version('1.6.0'):
+        if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
             torch.save(checkpoint, tmp_path, _use_new_zipfile_serialization=False)
         else:
             torch.save(checkpoint, tmp_path)

@@ -130,6 +130,7 @@ When the script starts again, Lightning will:
 import os
 import re
 from abc import ABC, abstractmethod
+from distutils.version import LooseVersion
 from typing import Union, List, Optional, Callable, Tuple
 import subprocess
 import sys
@@ -616,7 +617,7 @@ class TrainerDDPMixin(ABC):
                 # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
                 # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
                 # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-                if parse_version(torch.__version__) == parse_version('1.6.0'):
+                if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
                     torch.save(model.state_dict(), last_path, _use_new_zipfile_serialization=False)
                 else:
                     torch.save(model.state_dict(), last_path)
