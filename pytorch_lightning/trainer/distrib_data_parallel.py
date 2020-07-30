@@ -136,6 +136,7 @@ import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
+from packaging.version import parse
 
 import torch
 from pytorch_lightning import _logger as log
@@ -612,11 +613,14 @@ class TrainerDDPMixin(ABC):
             last_path = None
             if not self.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                # Can't use the new zipfile serialization yet because there's a bug in
+                # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
                 # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
                 # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
                 # TODO: remove the _use_new_zipfile_serialization kwarg once the bug is fixed.
-                torch.save(model.state_dict(), last_path, _use_new_zipfile_serialization=False)
+                if parse(torch.__version__) == parse('1.6.0'):
+                    torch.save(model.state_dict(), last_path, _use_new_zipfile_serialization=False)
+                else:
+                    torch.save(model.state_dict(), last_path)
             mp_queue.put(last_path)
 
     def save_spawn_weights(self, model):

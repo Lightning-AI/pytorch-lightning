@@ -88,6 +88,7 @@ import re
 import signal
 from abc import ABC
 from subprocess import call
+from packaging.version import parse
 
 import torch
 import torch.distributed as torch_distrib
@@ -260,11 +261,18 @@ class TrainerIOMixin(ABC):
                 This points to the file that the checkpoint will be stored in.
         """
         tmp_path = str(filepath) + ".part"
+        # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
+        # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
+        # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
+        # TODO: remove the _use_new_zipfile_serialization kwarg once the bug is fixed.
+        if parse(torch.__version__) == parse('1.6.0'):
+            torch.save(checkpoint, tmp_path, _use_new_zipfile_serialization=False)
+        else:
+            torch.save(checkpoint, tmp_path)
         # Can't use the new zipfile serialization yet because there's a bug in
         # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
         # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
         # TODO: remove the _use_new_zipfile_serialization kwarg once the bug is fixed.
-        torch.save(checkpoint, tmp_path, _use_new_zipfile_serialization=False)
         os.replace(tmp_path, filepath)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
