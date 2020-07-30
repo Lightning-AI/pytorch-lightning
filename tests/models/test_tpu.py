@@ -240,6 +240,25 @@ def test_early_stop_checkpoints_on_tpu(tmpdir):
 
 @pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
 @pl_multi_process_test
+def test_tpu_grad_norm(tmpdir):
+    """Test if grad_norm works on TPU."""
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        distributed_backend='tpu',
+        tpu_cores=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.4,
+        gradient_clip_val=0.1,
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU"""
 
