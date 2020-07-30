@@ -25,12 +25,7 @@ class ExperimentWriter(object):
     Experiment writer for CSVLogger.
 
     Currently supports to log hyperparameters and metrics in YAML and CSV
-    format. Creates the directory structure:
-    ```
-        log_dir/
-            hparams.yaml
-            metrics.csv
-    ```
+    format, respectively.
 
     Args:
         log_dir: Directory for the experiment logs
