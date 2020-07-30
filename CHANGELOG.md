@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * tests for val loop flow ([#2605](https://github.com/PyTorchLightning/pytorch-lightning/pull/2605))
   * `EvalResult` support for train and val. loop ([#2615](https://github.com/PyTorchLightning/pytorch-lightning/pull/2615), [#2651](https://github.com/PyTorchLightning/pytorch-lightning/pull/2651))
 
-- Added class `DataModule` ([#2668](https://github.com/PyTorchLightning/pytorch-lightning/pull/2668))
+- Added class `LightningDataModule` ([#2668](https://github.com/PyTorchLightning/pytorch-lightning/pull/2668))
 
 - Added support for PyTorch 1.6 ([#2745](https://github.com/PyTorchLightning/pytorch-lightning/pull/2745))
 
@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Enable val/test loop disabling ([#2692](https://github.com/PyTorchLightning/pytorch-lightning/pull/2692))
 
-- Reactor into `accelerator` module:
+- Refactor into `accelerator` module:
     * GPU training ([#2704](https://github.com/PyTorchLightning/pytorch-lightning/pull/2704))
     * TPU training ([#2708](https://github.com/PyTorchLightning/pytorch-lightning/pull/2708))
 
