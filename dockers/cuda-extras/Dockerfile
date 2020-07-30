@@ -1,5 +1,5 @@
 # Existing images:
-# --build-arg TORCH_VERSION=1.6 --build-arg CUDA_VERSION=10.1
+# --build-arg TORCH_VERSION=1.6.0 --build-arg CUDA_VERSION=10.1
 # --build-arg TORCH_VERSION=1.5 --build-arg CUDA_VERSION=10.1
 # --build-arg TORCH_VERSION=1.4 --build-arg CUDA_VERSION=10.1
 # --build-arg TORCH_VERSION=1.3 --build-arg CUDA_VERSION=10.1
@@ -26,12 +26,14 @@ COPY ./tests/install_AMP.sh install_AMP.sh
 COPY ./requirements/base.txt requirements.txt
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-tests.txt
+COPY ./requirements/examples.txt requirements-examples.txt
 
 RUN apt-get update && apt-get install -y cmake && \
     # Install AMP
     bash install_AMP.sh && \
-    pip install -r requirements.txt --user && \
-    pip install -r requirements-extra.txt --user && \
-    # pip install -r requirements-tests.txt --user && \
+    pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html && \
+    pip install -r requirements-extra.txt && \
+    pip install -r requirements-examples.txt && \
+    # pip install -r requirements-tests.txt && \
     rm requirements* && \
     pip list
