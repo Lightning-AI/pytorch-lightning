@@ -342,7 +342,7 @@ Test-tube
     :noindex:
 
 CSVLogger
-^^^^^^^^^^
+^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.loggers.csv.CSVLogger
     :noindex:
