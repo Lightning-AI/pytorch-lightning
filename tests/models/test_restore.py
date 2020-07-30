@@ -309,7 +309,7 @@ def test_model_saving_loading(tmpdir):
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 
