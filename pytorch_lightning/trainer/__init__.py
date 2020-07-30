@@ -616,12 +616,6 @@ The Trainer uses 2 steps by default. Turn it off or modify it here.
     # check all validation data
     trainer = Trainer(num_sanity_val_steps=-1)
 
-num_tpu_cores
-^^^^^^^^^^^^^
-.. warning:: .. deprecated:: 0.7.6
-
-    Use `tpu_cores` instead. Will remove 0.9.0.
-
 Example::
 
     python -m torch_xla.distributed.xla_dist
@@ -737,15 +731,6 @@ Example::
     # one day
     trainer = Trainer(precision=8|4|2)
 
-print_nan_grads
-^^^^^^^^^^^^^^^
-
-.. warning:: .. deprecated:: 0.7.2.
-
-    Has no effect. When detected, NaN grads will be printed automatically.
-    Will remove 0.9.0.
-
-
 process_position
 ^^^^^^^^^^^^^^^^
 Orders the progress bar. Useful when running multiple trainers on the same node.
@@ -853,18 +838,6 @@ How often to add logging rows (does not write to disk)
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
 
-use_amp:
-
-.. warning:: .. deprecated:: 0.7.0
-
-    Use `precision` instead. Will remove 0.9.0.
-
-show_progress_bar
-^^^^^^^^^^^^^^^^^
-
-.. warning:: .. deprecated:: 0.7.2
-
-    Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^
