@@ -1181,7 +1181,6 @@ class Trainer(
 
             # hook and callback
             self.running_sanity_check = True
-            ref_model.on_sanity_check_start()
             self.on_sanity_check_start()
 
             num_loaders = len(self.val_dataloaders)
