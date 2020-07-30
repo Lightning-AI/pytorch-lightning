@@ -279,3 +279,34 @@ def test_full_loop_ddp_spawn(tmpdir):
     result = trainer.test(datamodule=dm)
     result = result[0]
     assert result['test_acc'] > 0.8
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_full_loop_ddp_spawn_non_picklable(tmpdir):
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
+    reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+    dm.non_pickle_thing = lambda x: x**2
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+        distributed_backend='ddp_spawn',
+        gpus=[0, 1]
+    )
+    trainer.fit(model, dm)
+
+    # fit model
+    result = trainer.fit(model)
+    assert result == 1
+
+    # test
+    result = trainer.test(datamodule=dm)
+    result = result[0]
+    assert result['test_acc'] > 0.8
