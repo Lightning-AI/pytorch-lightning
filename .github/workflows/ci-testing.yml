@@ -101,9 +101,9 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows' && matrix.python-version != '3.8'
+      if: runner.os != 'windows'
       run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
           HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements/extra.txt)
