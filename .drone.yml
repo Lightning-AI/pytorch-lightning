@@ -6,7 +6,7 @@ name: torch-GPU
 
 steps:
 - name: testing
-  image: pytorchlightning/pytorch_lightning:cuda-extras-py3.7-torch1.6
+  image: pytorchlightning/pytorch_lightning:cuda-extras-py3.7-torch1.5
 
   environment:
     SLURM_LOCALID: 0

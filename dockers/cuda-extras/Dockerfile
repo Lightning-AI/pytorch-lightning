@@ -31,9 +31,10 @@ COPY ./requirements/examples.txt requirements-examples.txt
 RUN apt-get update && apt-get install -y cmake && \
     # Install AMP
     bash install_AMP.sh && \
-    pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html && \
+    pip install -r requirements.txt && \
+    # HOROVOD_BUILD_ARCH_FLAGS="-mfma" && \
     pip install -r requirements-extra.txt && \
     pip install -r requirements-examples.txt && \
-    # pip install -r requirements-tests.txt && \
+    pip install -r requirements-tests.txt && \
     rm requirements* && \
     pip list
