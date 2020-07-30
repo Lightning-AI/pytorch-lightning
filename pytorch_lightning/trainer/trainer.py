@@ -34,7 +34,7 @@ from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, T
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_9, TrainerDeprecatedAPITillVer0_10
+from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.distrib_parts import (TrainerDPMixin, _parse_gpu_ids, _parse_tpu_cores,
                                                      determine_root_gpu_device, pick_multiple_gpus)
@@ -98,7 +98,6 @@ class Trainer(
     TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerLRFinderMixin,
-    TrainerDeprecatedAPITillVer0_9,
     TrainerDeprecatedAPITillVer0_10,
 ):
     """
@@ -152,8 +151,6 @@ class Trainer(
         >>> len(test_outputs)
         25
     """
-
-    DEPRECATED_IN_0_9 = ('use_amp', 'show_progress_bar', 'training_tqdm_dict', 'num_tpu_cores')
 
     def __init__(
         self,
@@ -521,10 +518,6 @@ class Trainer(
         # NVIDIA setup
         self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
-        # backward compatibility
-        if show_progress_bar is not None:
-            self.show_progress_bar = show_progress_bar
-
         self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
@@ -654,7 +647,6 @@ class Trainer(
              ...
              ('precision', (<class 'int'>,), 32),
              ('prepare_data_per_node', (<class 'bool'>,), True),
-             ('print_nan_grads', (<class 'bool'>,), False),
              ('process_position', (<class 'int'>,), 0),
              ('profiler',
               (<class 'pytorch_lightning.profiler.profilers.BaseProfiler'>,
