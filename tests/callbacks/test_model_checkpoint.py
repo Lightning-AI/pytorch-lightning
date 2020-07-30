@@ -21,12 +21,7 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,	
-        checkpoint_callback=checkpoint,	
-        overfit_batches=0.20,	
-        max_epochs=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
     assert checkpoint.dirpath == tmpdir / trainer.logger.name / 'version_0' / 'checkpoints'
 
@@ -40,12 +35,7 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,	
-        overfit_batches=0.2,	
-        max_epochs=2,	
-        logger=logger,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger)
     trainer.fit(model)
 
     ckpt_version = Path(trainer.checkpoint_callback.dirpath).parent.name
