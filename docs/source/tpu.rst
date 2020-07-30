@@ -29,7 +29,7 @@ How to access TPUs
 ------------------
 To access TPUs, there are three main ways.
 
-1. Using google colab.
+1. Using Google Colab.
 2. Using Google Cloud (GCP).
 3. Using Kaggle.
 
