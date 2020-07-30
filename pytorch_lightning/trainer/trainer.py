@@ -188,7 +188,6 @@ class Trainer(
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
         precision: int = 32,
-        print_nan_grads: bool = False,  # backward compatible, todo: remove in v0.9.0
         weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
         weights_save_path: Optional[str] = None,
         num_sanity_val_steps: int = 2,
@@ -204,9 +203,6 @@ class Trainer(
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
-        num_tpu_cores: Optional[int] = None,  # backward compatible, todo: remove in v0.9.0
-        use_amp=None,  # backward compatible, todo: remove in v0.9.0
-        show_progress_bar=None,  # backward compatible, todo: remove in v0.9.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -230,19 +226,9 @@ class Trainer(
 
             gradient_clip_val: 0 means don't clip.
 
-            gradient_clip:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `gradient_clip_val` instead. Will remove 0.9.0.
-
             process_position: orders the progress bar when running multiple models on same machine.
 
             num_nodes: number of GPU nodes for distributed training.
-
-            nb_gpu_nodes:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `num_nodes` instead. Will remove 0.9.0.
 
             gpus: Which GPUs to train on.
 
@@ -255,15 +241,7 @@ class Trainer(
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on [1]
 
-            num_tpu_cores: How many TPU cores to train on (1 or 8)
-                .. warning:: .. deprecated:: 0.7.6. Will remove 0.9.0.
-
             log_gpu_memory: None, 'min_max', 'all'. Might slow performance
-
-            show_progress_bar:
-                .. warning:: .. deprecated:: 0.7.2
-
-                        Set `progress_bar_refresh_rate` to positive integer to enable. Will remove 0.9.0.
 
             progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
                 Ignored when a custom callback is passed to :paramref:`~Trainer.callbacks`.
@@ -285,17 +263,7 @@ class Trainer(
 
             max_epochs: Stop training once this number of epochs is reached.
 
-            max_nb_epochs:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `max_epochs` instead. Will remove 0.9.0.
-
             min_epochs: Force training for at least these many epochs
-
-            min_nb_epochs:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `min_epochs` instead. Will remove 0.9.0.
 
             max_steps: Stop training after this number of steps. Disabled by default (None).
 
@@ -328,25 +296,9 @@ class Trainer(
 
             row_log_interval: How often to add logging rows (does not write to disk)
 
-            add_row_log_interval:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `row_log_interval` instead. Will remove 0.9.0.
-
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            use_amp:
-                .. warning:: .. deprecated:: 0.7.0
-
-                    Use `precision` instead. Will remove 0.9.0.
-
             precision: Full precision (32), half precision (16).
-
-            print_nan_grads:
-                .. warning:: .. deprecated:: 0.7.2
-
-                    Has no effect. When detected, NaN grads will be printed automatically.
-                    Will remove 0.9.0.
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -480,16 +432,6 @@ class Trainer(
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
-        # tpu config
-        if num_tpu_cores is not None:
-            rank_zero_warn(
-                "Argument `num_tpu_cores` is now set by `tpu_cores` since v0.7.6"
-                " and this argument will be removed in v0.9.0",
-                DeprecationWarning,
-            )
-
-        if tpu_cores is None:
-            tpu_cores = num_tpu_cores
         self.tpu_cores = _parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
 
@@ -510,14 +452,6 @@ class Trainer(
             self.num_sanity_val_steps = float("inf")
         else:
             self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
-
-        # Backward compatibility, TODO: remove in v0.9.0
-        if print_nan_grads:
-            rank_zero_warn(
-                "Argument `print_nan_grads` has no effect and will be removed in v0.9.0."
-                " NaN grads will be printed automatically when detected.",
-                DeprecationWarning,
-            )
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -650,15 +584,6 @@ class Trainer(
         self.autocast_original_forward = None
         self.precision = precision
         self.scaler = None
-
-        # Backward compatibility, TODO: remove in v0.9.0
-        if use_amp is not None:
-            rank_zero_warn(
-                "Argument `use_amp` is now set by `precision` since v0.7.0"
-                " and this method will be removed in v0.9.0",
-                DeprecationWarning,
-            )
-            self.precision = 16 if use_amp else 32
 
         self.amp_level = amp_level
         self.init_amp()
