@@ -159,6 +159,21 @@ def test_train_val_loop_only(tmpdir):
     assert trainer.callback_metrics['loss'] < 0.6
 
 
+def test_test_loop_only(tmpdir):
+    reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+    )
+    trainer.test(model, datamodule=dm)
+
+
 def test_full_loop(tmpdir):
     reset_seed()
 
