@@ -156,10 +156,6 @@ workflows:
               only:
                 # only from forks
                 - /^pull\/.*$/
-                # only from canonical repository
-                - /^(?!pull\/).*$/
-              # todo: temporary fix as the "only" above contains master
-              ignore: master
   cleanup:
     triggers:
       - schedule:
