@@ -136,7 +136,7 @@ import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
-from packaging.version import parse
+from pkg_resources import parse_version
 
 import torch
 from pytorch_lightning import _logger as log
@@ -616,7 +616,7 @@ class TrainerDDPMixin(ABC):
                 # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
                 # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
                 # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-                if parse(torch.__version__) == parse('1.6.0'):
+                if parse_version(torch.__version__) == parse_version('1.6.0'):
                     torch.save(model.state_dict(), last_path, _use_new_zipfile_serialization=False)
                 else:
                     torch.save(model.state_dict(), last_path)
