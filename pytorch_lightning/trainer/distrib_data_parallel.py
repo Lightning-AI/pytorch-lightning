@@ -616,7 +616,6 @@ class TrainerDDPMixin(ABC):
                 # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
                 # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
                 # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-                # TODO: remove the _use_new_zipfile_serialization kwarg once the bug is fixed.
                 if parse(torch.__version__) == parse('1.6.0'):
                     torch.save(model.state_dict(), last_path, _use_new_zipfile_serialization=False)
                 else:
