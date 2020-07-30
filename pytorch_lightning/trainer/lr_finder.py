@@ -77,16 +77,17 @@ class TrainerLRFinderMixin(ABC):
                     ' either has field `lr` or `learning_rate` that can overridden')
         log.info(f'Learning rate set to {lr}')
 
-    def lr_find(self,
-                model: LightningModule,
-                train_dataloader: Optional[DataLoader] = None,
-                val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-                min_lr: float = 1e-8,
-                max_lr: float = 1,
-                num_training: int = 100,
-                mode: str = 'exponential',
-                early_stop_threshold: float = 4.0,
-                num_accumulation_steps=None):
+    def lr_find(
+            self,
+            model: LightningModule,
+            train_dataloader: Optional[DataLoader] = None,
+            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            min_lr: float = 1e-8,
+            max_lr: float = 1,
+            num_training: int = 100,
+            mode: str = 'exponential',
+            early_stop_threshold: float = 4.0,
+    ):
         r"""
         lr_find enables the user to do a range test of good initial learning rates,
         to reduce the amount of guesswork in picking a good starting learning rate.
@@ -112,9 +113,6 @@ class TrainerLRFinderMixin(ABC):
             early_stop_threshold: threshold for stopping the search. If the
                 loss at any point is larger than early_stop_threshold*best_loss
                 then the search is stopped. To disable, set to None.
-
-            num_accumulation_steps: deprepecated, number of batches to calculate loss over.
-                Set trainer argument ``accumulate_grad_batches`` instead.
 
         Example::
 

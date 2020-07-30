@@ -41,6 +41,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed deprecated: ([#2760](https://github.com/PyTorchLightning/pytorch-lightning/pull/2760))
+    * core decorator `data_loader`
+    * Module hook `on_sanity_check_start` and loading `load_from_metrics`
+    * package `pytorch_lightning.logging`
+    * Trainer arguments: `show_progress_bar`, `num_tpu_cores`, `use_amp`, `print_nan_grads`
+    * LR Finder argument `num_accumulation_steps`
 
 ### Fixed
 
