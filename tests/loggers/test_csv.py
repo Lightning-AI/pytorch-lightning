@@ -4,7 +4,7 @@ import pytest
 import torch
 import os
 
-from pytorch_lightning.loggers import FileLogger
+from pytorch_lightning.loggers import CSVLogger
 
 
 def test_file_logger_automatic_versioning(tmpdir):
@@ -14,7 +14,7 @@ def test_file_logger_automatic_versioning(tmpdir):
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
 
-    logger = FileLogger(save_dir=tmpdir, name="exp")
+    logger = CSVLogger(save_dir=tmpdir, name="exp")
 
     assert logger.version == 2
 
@@ -27,7 +27,7 @@ def test_file_logger_manual_versioning(tmpdir):
     root_dir.mkdir("version_1")
     root_dir.mkdir("version_2")
 
-    logger = FileLogger(save_dir=tmpdir, name="exp", version=1)
+    logger = CSVLogger(save_dir=tmpdir, name="exp", version=1)
 
     assert logger.version == 1
 
@@ -39,7 +39,7 @@ def test_file_logger_named_version(tmpdir):
     tmpdir.mkdir(exp_name)
     expected_version = "2020-02-05-162402"
 
-    logger = FileLogger(save_dir=tmpdir, name=exp_name, version=expected_version)
+    logger = CSVLogger(save_dir=tmpdir, name=exp_name, version=expected_version)
     logger.log_hyperparams({"a": 1, "b": 2})
     logger.save()
     assert logger.version == expected_version
@@ -50,7 +50,7 @@ def test_file_logger_named_version(tmpdir):
 @pytest.mark.parametrize("name", ['', None])
 def test_file_logger_no_name(tmpdir, name):
     """Verify that None or empty name works"""
-    logger = FileLogger(save_dir=tmpdir, name=name)
+    logger = CSVLogger(save_dir=tmpdir, name=name)
     logger.save()
     assert logger.root_dir == tmpdir
     assert os.listdir(tmpdir / 'version_0')
@@ -58,7 +58,7 @@ def test_file_logger_no_name(tmpdir, name):
 
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_file_logger_log_metrics(tmpdir, step_idx):
-    logger = FileLogger(tmpdir)
+    logger = CSVLogger(tmpdir)
     metrics = {
         "float": 0.3,
         "int": 1,
@@ -70,7 +70,7 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
 
 
 def test_file_logger_log_hyperparams(tmpdir):
-    logger = FileLogger(tmpdir)
+    logger = CSVLogger(tmpdir)
     hparams = {
         "float": 0.3,
         "int": 1,

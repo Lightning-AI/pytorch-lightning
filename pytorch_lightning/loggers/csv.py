@@ -1,6 +1,9 @@
 """
-File logger
------------
+CSV logger
+----------
+
+CSV logger for basic experiment logging that does not require opening ports
+
 """
 import io
 import os
@@ -14,10 +17,25 @@ from typing import Optional, Dict, Any, Union
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_only
 
 
 class ExperimentWriter(object):
+    r"""
+    Experiment writer for CSVLogger.
+
+    Currently supports to log hyperparameters and metrics in YAML and CSV
+    format. Creates the directory structure:
+    ```
+        log_dir/
+            hparams.yaml
+            metrics.csv
+    ```
+
+    Args:
+        log_dir: Directory for the experiment logs
+    """
+
     NAME_HPARAMS_FILE = 'hparams.yaml'
     NAME_METRICS_FILE = 'metrics.csv'
 
@@ -27,15 +45,21 @@ class ExperimentWriter(object):
         self.metrics_keys = ["step"]
 
         self.log_dir = log_dir
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+        if os.path.exists(self.log_dir):
+            rank_zero_warn(
+                f"Experiment logs directory {self.log_dir} exists and is not empty. "
+                "Previous log files in this directory will be deleted when the new ones are saved!"
+            )
+        os.makedirs(self.log_dir, exist_ok=True)
 
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
 
     def log_hparams(self, params):
+        """Record hparams"""
         self.hparams.update(params)
 
     def log_metrics(self, metrics_dict, step=None):
+        """Record metrics"""
         def _handle_value(value):
             if isinstance(value, torch.Tensor):
                 return value.item()
@@ -53,6 +77,7 @@ class ExperimentWriter(object):
         self.metrics.append(new_row)
 
     def save(self):
+        """Save recorded hparams and metrics into files"""
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
 
@@ -63,15 +88,15 @@ class ExperimentWriter(object):
                 self.writer.writerows(self.metrics)
 
 
-class FileLogger(LightningLoggerBase):
+class CSVLogger(LightningLoggerBase):
     r"""
     Log to local file system in yaml and CSV format. Logs are saved to
     ``os.path.join(save_dir, name, version)``.
 
     Example:
         >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.loggers import FileLogger
-        >>> logger = FileLogger("logs", name="my_exp_name")
+        >>> from pytorch_lightning.loggers import CSVLogger
+        >>> logger = CSVLogger("logs", name="my_exp_name")
         >>> trainer = Trainer(logger=logger)
 
     Args:
