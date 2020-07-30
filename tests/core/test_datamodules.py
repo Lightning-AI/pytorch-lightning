@@ -16,18 +16,64 @@ def test_base_datamodule(tmpdir):
     dm.setup()
 
 
-def test_dm_has_been_called(tmpdir):
+def test_base_datamodule_with_verbose_setup(tmpdir):
     dm = TrialMNISTDataModule()
-    assert dm.prepare_data.has_been_called is False
-    assert dm.setup.has_been_called is False
+    dm.prepare_data()
+    dm.setup('fit')
+    dm.setup('test')
+
+
+def test_data_hooks_called(tmpdir):
+    dm = TrialMNISTDataModule()
+    assert dm.has_prepared_data is False
+    assert dm.has_setup_fit is False
+    assert dm.has_setup_test is False
 
     dm.prepare_data()
-    assert dm.prepare_data.has_been_called is True
-    assert dm.setup.has_been_called is False
+    assert dm.has_prepared_data is True
+    assert dm.has_setup_fit is False
+    assert dm.has_setup_test is False
 
     dm.setup()
-    assert dm.prepare_data.has_been_called is True
-    assert dm.setup.has_been_called is True
+    assert dm.has_prepared_data is True
+    assert dm.has_setup_fit is True
+    assert dm.has_setup_test is True
+
+
+def test_data_hooks_called_verbose(tmpdir):
+    dm = TrialMNISTDataModule()
+    assert dm.has_prepared_data is False
+    assert dm.has_setup_fit is False
+    assert dm.has_setup_test is False
+
+    dm.prepare_data()
+    assert dm.has_prepared_data is True
+    assert dm.has_setup_fit is False
+    assert dm.has_setup_test is False
+
+    dm.setup('fit')
+    assert dm.has_prepared_data is True
+    assert dm.has_setup_fit is True
+    assert dm.has_setup_test is False
+
+    dm.setup('test')
+    assert dm.has_prepared_data is True
+    assert dm.has_setup_fit is True
+    assert dm.has_setup_test is True
+
+
+def test_data_hooks_called_with_stage_kwarg(tmpdir):
+    dm = TrialMNISTDataModule()
+    dm.prepare_data()
+    assert dm.has_prepared_data is True
+
+    dm.setup(stage='fit')
+    assert dm.has_setup_fit is True
+    assert dm.has_setup_test is False
+
+    dm.setup(stage='test')
+    assert dm.has_setup_fit is True
+    assert dm.has_setup_test is True
 
 
 def test_dm_add_argparse_args(tmpdir):
@@ -55,6 +101,14 @@ def test_dm_pickle_after_setup(tmpdir):
     dm = TrialMNISTDataModule()
     dm.prepare_data()
     dm.setup()
+    pickle.dumps(dm)
+
+
+def test_dm_pickle_after_setup_verbose(tmpdir):
+    dm = TrialMNISTDataModule()
+    dm.prepare_data()
+    dm.setup('fit')
+    dm.setup('test')
     pickle.dumps(dm)
 
 

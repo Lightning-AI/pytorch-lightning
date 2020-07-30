@@ -16,7 +16,7 @@ import functools
 import inspect
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -32,13 +32,10 @@ class _DataModuleWrapper(type):
             3. Lets you check prepare_data and setup to see if they've been called
         """
 
-        # Wrap cls's prepare_data function with rank_zero_only
-        cls.prepare_data = rank_zero_only(cls.prepare_data)
-
-        # prepare_data and setup wrapped w/ function to track if they've been called.
-        # Usage: your_dm.setup.has_been_called & your_dm.prepare_data.has_been_called
-        cls.prepare_data = track_func_calls(cls.prepare_data)
-        cls.setup = track_func_calls(cls.setup)
+        # Track prepare_data calls and make sure it runs on rank zero
+        cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
+        # Track setup calls
+        cls.setup = track_data_hook_calls(cls.setup)
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
@@ -46,21 +43,45 @@ class _DataModuleWrapper(type):
         return obj
 
 
-def track_func_calls(fn):
-    """A decorator that checks if a function has been called.
+def track_data_hook_calls(fn):
+    """A decorator that checks if prepare_data/setup have been called.
+
+    - When dm.prepare_data() is called, dm.has_prepared_data gets set to True
+    - When dm.setup('fit') is called, dm.has_setup_fit gets set to True
+    - When dm.setup('test') is called, dm.has_setup_test gets set to True
+    - When dm.setup() is called without stage arg, both dm.has_setup_fit and dm.has_setup_test get set to True
 
     Args:
         fn (function): Function that will be tracked to see if it has been called.
 
     Returns:
-        callable: Your function with an added bool attr fn.has_been_called.
+        function: Decorated function that tracks its call status and saves it to private attrs in its obj instance.
     """
+
     @functools.wraps(fn)
     def wrapped_fn(*args, **kwargs):
-        wrapped_fn.has_been_called = True
-        return fn(*args, **kwargs)
 
-    wrapped_fn.has_been_called = False
+        # The object instance from which setup or prepare_data was called
+        obj = args[0]
+
+        # If calling setup, we check the stage and assign stage-specific bool args
+        if fn.__name__ == 'setup':
+
+            # Get stage either by grabbing from args or checking kwargs.
+            # If not provided, set call status of 'fit' and 'test' to True.
+            # We do this so __attach_datamodule in trainer.py doesn't mistakenly call setup('test') on trainer.test()
+            stage = args[1] if len(args) > 1 else kwargs.get('stage', None)
+
+            if stage == 'fit' or stage is None:
+                obj._has_setup_fit = True
+
+            if stage == 'test' or stage is None:
+                obj._has_setup_test = True
+
+        if fn.__name__ == 'prepare_data':
+            obj._has_prepared_data = True
+
+        return fn(*args, **kwargs)
 
     return wrapped_fn
 
@@ -116,6 +137,11 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         self._test_transforms = test_transforms
         self.dims = ()
 
+        # Private attrs to keep track of whether or not data hooks have been called yet
+        self._has_prepared_data = False
+        self._has_setup_fit = False
+        self._has_setup_test = False
+
     @property
     def train_transforms(self):
         """
@@ -159,6 +185,33 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
         return self.dims
 
+    @property
+    def has_prepared_data(self):
+        """Return bool letting you know if datamodule.prepare_data() has been called or not.
+
+        Returns:
+            bool: True if datamodule.prepare_data() has been called. False by default.
+        """
+        return self._has_prepared_data
+
+    @property
+    def has_setup_fit(self):
+        """Return bool letting you know if datamodule.setup('fit') has been called or not.
+
+        Returns:
+            bool: True if datamodule.setup('fit') has been called. False by default.
+        """
+        return self._has_setup_fit
+
+    @property
+    def has_setup_test(self):
+        """Return bool letting you know if datamodule.setup('test') has been called or not.
+
+        Returns:
+            bool: True if datamodule.setup('test') has been called. False by default.
+        """
+        return self._has_setup_test
+
     @abstractmethod
     def prepare_data(self, *args, **kwargs):
         """
@@ -181,14 +234,14 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         """
 
     @abstractmethod
-    def setup(self, *args, **kwargs):
+    def setup(self, stage: Optional[str] = None):
         """
         Use this to load your data from file, split it, etc. You are safe to make state assignments here.
         This hook is called on every process when using DDP.
 
         Example::
 
-            def setup(self):
+            def setup(self, stage):
                 data = load_data(...)
                 self.train_ds, self.val_ds, self.test_ds = split_data(data)
         """

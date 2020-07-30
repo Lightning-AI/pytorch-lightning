@@ -941,7 +941,7 @@ class Trainer(
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.__attach_datamodule(model, datamodule)
+        self.__attach_datamodule(model, datamodule, 'fit')
 
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
@@ -1069,17 +1069,29 @@ class Trainer(
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
-    def __attach_datamodule(self, model, datamodule=None):
+    def __attach_datamodule(self, model, datamodule, stage):
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
-            if self.is_overridden('prepare_data', datamodule) and not datamodule.prepare_data.has_been_called:
+
+            # If datamodule.prepare_data() has not been called yet, call it
+            if self.is_overridden('prepare_data', datamodule) and not datamodule.has_prepared_data:
                 datamodule.prepare_data()
-            if self.is_overridden('setup', datamodule) and not datamodule.setup.has_been_called:
-                datamodule.setup()
+
+            # If datamodule.setup('fit') has not been called yet, call it
+            if stage == 'fit':
+                if self.is_overridden('setup', datamodule) and not datamodule.has_setup_fit:
+                    datamodule.setup('fit')
+
+            # If datamodule.setup('test') has not been called yet, call it
+            if stage == 'test':
+                if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
+                    datamodule.setup('test')
+
+            # Override loader hooks
             if self.is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
             if self.is_overridden('val_dataloader', datamodule):
@@ -1283,7 +1295,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model or self.get_model(), datamodule)
+        self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         self.setup('test')
 
