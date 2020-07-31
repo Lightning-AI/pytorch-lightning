@@ -409,12 +409,7 @@ def test_load_model_from_checkpoint_extra_args(tmpdir):
     of the model."""
 
     hparams = EvalModelTemplate.get_default_hparams()
-
-    # Ensure that `self.save_hyperparameters` is not called:
-    _EvalModelTemplateMod = EvalModelTemplate
-    _EvalModelTemplateMod._save_hparams = False
-
-    model = _EvalModelTemplateMod(**hparams)
+    model = EvalModelTemplate(**hparams, save_hparams=False)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,

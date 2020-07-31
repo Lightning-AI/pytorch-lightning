@@ -177,10 +177,12 @@ class ModelIO(object):
 
             # 4. Update cls_kwargs_new with cls_kwargs_old
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-            if args_name in cls_init_args_name and args_name != 'kwargs':
-                cls_kwargs_new.update({args_name: cls_kwargs_old})
-            else:
-                cls_kwargs_new.update(cls_kwargs_old)
+            if args_name == 'kwargs':
+                # in case the class cannot take any extra argument filter only the possible
+                cls_kwargs.update(**model_args)
+            elif args_name:
+                if args_name in cls_init_args_name:
+                    cls_kwargs.update({args_name: model_args})
 
         if not cls_spec.varkw:
             # filter kwargs according to class init unless it allows any argument via kwargs
