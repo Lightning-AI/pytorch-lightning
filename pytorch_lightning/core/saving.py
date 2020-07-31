@@ -156,38 +156,44 @@ class ModelIO(object):
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, strict: bool = True, **cls_kwargs):
+    def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args_new, strict: bool = True, **cls_kwargs_new):
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-            model_args = {}
+            cls_kwargs_old = {}
 
-            # add some back compatibility, the actual one shall be last
-            for hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS + (cls.CHECKPOINT_HYPER_PARAMS_KEY,):
-                if hparam_key in checkpoint:
-                    model_args.update(checkpoint[hparam_key])
+            # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
+            for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
+                if _old_hparam_key in checkpoint:
+                    cls_kwargs_old.update({_old_hparam_key: checkpoint[_old_hparam_key]})
 
-            model_args = _convert_loaded_hparams(model_args, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            # 2. Try to restore model hparams from checkpoint using the new key
+            _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
+            cls_kwargs_old.update({_new_hparam_key: checkpoint[_new_hparam_key]})
 
+            # 3. Ensure that `cls_kwargs_old` has the right type
+            cls_kwargs_old = _convert_loaded_hparams(cls_kwargs_old, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+
+            # 4. Update cls_kwargs_new with cls_kwargs_old
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-
-            if args_name == 'kwargs':
-                # in case the class cannot take any extra argument filter only the possible
-                cls_kwargs.update(**model_args)
-            elif args_name:
-                if args_name in cls_init_args_name:
-                    cls_kwargs.update({args_name: model_args})
+            if args_name and args_name in cls_init_args_name:
+                cls_kwargs_new.update({args_name: cls_kwargs_old})
+            else:
+                cls_kwargs_new.update(cls_kwargs_old)
 
         if not cls_spec.varkw:
             # filter kwargs according to class init unless it allows any argument via kwargs
-            cls_kwargs = {k: v for k, v in cls_kwargs.items() if k in cls_init_args_name}
+            cls_kwargs_new = {k: v for k, v in cls_kwargs_new.items() if k in cls_init_args_name}
 
         # prevent passing positional arguments if class does not accept any
-        if len(cls_spec.args) <= 1 and not cls_spec.varargs and not cls_spec.kwonlyargs:
-            cls_args, cls_kwargs = [], {}
+        if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
+            _cls_args_new, _cls_kwargs_new = [], {}
+        else:
+            _cls_args_new, _cls_kwargs_new = cls_args_new, cls_kwargs_new
 
-        model = cls(*cls_args, **cls_kwargs)
+        model = cls(*cls_args_new, **cls_kwargs_new)
+
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'], strict=strict)
 
