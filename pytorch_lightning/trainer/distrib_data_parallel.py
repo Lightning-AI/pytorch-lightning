@@ -488,7 +488,7 @@ class TrainerDDPMixin(ABC):
 
         return results
 
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0, datamodule=None):
+    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
@@ -531,8 +531,8 @@ class TrainerDDPMixin(ABC):
 
         # call setup after the ddp process has connected
         if not self.testing:
-            if datamodule is not None:
-                datamodule.setup('fit')
+            if self.datamodule is not None:
+                self.datamodule.setup('fit')
             self.setup('fit')
             model.setup('fit')
 

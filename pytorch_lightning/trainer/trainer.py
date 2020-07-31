@@ -378,6 +378,7 @@ class Trainer(
 
         # training state
         self.model = None
+        self.datamodule = None
         self.testing = False
         self.prepare_data_per_node = prepare_data_per_node
         self.lr_schedulers = []
