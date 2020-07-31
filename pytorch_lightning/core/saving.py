@@ -166,23 +166,21 @@ class ModelIO(object):
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
             for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
                 if _old_hparam_key in checkpoint:
-                    cls_kwargs_old.update(checkpoint[_old_hparam_key])
+                    cls_kwargs_old.update({_old_hparam_key: checkpoint[_old_hparam_key]})
 
             # 2. Try to restore model hparams from checkpoint using the new key
             _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-            cls_kwargs_old.update(checkpoint[_new_hparam_key])
+            cls_kwargs_old.update({_new_hparam_key: checkpoint[_new_hparam_key]})
 
             # 3. Ensure that `cls_kwargs_old` has the right type
             cls_kwargs_old = _convert_loaded_hparams(cls_kwargs_old, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             # 4. Update cls_kwargs_new with cls_kwargs_old
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-            if args_name == 'kwargs':
-                # in case the class cannot take any extra argument filter only the possible
-                cls_kwargs.update(**model_args)
-            elif args_name:
-                if args_name in cls_init_args_name:
-                    cls_kwargs.update({args_name: model_args})
+            if args_name and args_name in cls_init_args_name:
+                cls_kwargs_new.update({args_name: cls_kwargs_old})
+            else:
+                cls_kwargs_new.update(cls_kwargs_old)
 
         if not cls_spec.varkw:
             # filter kwargs according to class init unless it allows any argument via kwargs
