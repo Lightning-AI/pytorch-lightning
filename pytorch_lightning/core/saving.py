@@ -178,8 +178,6 @@ class ModelIO(object):
             elif args_name:
                 if args_name in cls_init_args_name:
                     cls_kwargs.update({args_name: model_args})
-            else:
-                cls_args = (model_args,) + cls_args
 
         if not cls_spec.varkw:
             # filter kwargs according to class init unless it allows any argument via kwargs
