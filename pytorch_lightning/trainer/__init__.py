@@ -118,7 +118,7 @@ Reproducibility
 ---------------
 
 To ensure full reproducibility from run to run you need to set seeds for pseudo-random generators,
-and set ``deterministic``` flag in ``Trainer``.
+and set ``deterministic`` flag in ``Trainer``.
 
 Example::
 
