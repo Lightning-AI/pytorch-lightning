@@ -183,11 +183,11 @@ def stat_scores_multiple_classes(
     target.clamp_max_(max=num_classes)
 
     if reduction == 'none':
-        tps = torch.zeros((num_classes+1,), device=pred.device)
-        fps = torch.zeros((num_classes+1,), device=pred.device)
-        tns = torch.zeros((num_classes+1,), device=pred.device)
-        fns = torch.zeros((num_classes+1,), device=pred.device)
-        sups = torch.zeros((num_classes+1,), device=pred.device)
+        tps = torch.zeros((num_classes + 1,), device=pred.device)
+        fps = torch.zeros((num_classes + 1,), device=pred.device)
+        tns = torch.zeros((num_classes + 1,), device=pred.device)
+        fns = torch.zeros((num_classes + 1,), device=pred.device)
+        sups = torch.zeros((num_classes + 1,), device=pred.device)
 
         match_true = (pred == target).float()
         match_false = 1 - match_true
@@ -209,12 +209,12 @@ def stat_scores_multiple_classes(
 
     elif reduction == 'sum' or reduction == 'elementwise_mean':
         count_match_true = (pred == target).sum().float()
-        oob_tp, oob_fp, oob_tn, oob_fn, oob_sup  = stat_scores(pred, target, num_classes, argmax_dim)
+        oob_tp, oob_fp, oob_tn, oob_fn, oob_sup = stat_scores(pred, target, num_classes, argmax_dim)
 
         tps = count_match_true - oob_tp
         fps = pred.nelement() - count_match_true - oob_fp
         fns = pred.nelement() - count_match_true - oob_fn
-        tns = pred.nelement() * num_classes - (tps + fps + fns + oob_tn)
+        tns = pred.nelement() * (num_classes + 1) - (tps + fps + fns + oob_tn)
         sups = pred.nelement() - oob_sup.float()
 
         if reduction == 'elementwise_mean':
