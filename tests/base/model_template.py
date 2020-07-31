@@ -37,6 +37,7 @@ class EvalModelTemplate(
 
     >>> model = EvalModelTemplate()
     """
+    _save_hparams = True
 
     def __init__(
             self,
@@ -50,11 +51,10 @@ class EvalModelTemplate(
             hidden_dim: int = 1000,
             b1: float = 0.5,
             b2: float = 0.999,
-            save_hparams=True,
     ):
         # init superclass
         super().__init__()
-        if save_hparams:
+        if self._save_hparams:
             self.save_hyperparameters()
 
         self.drop_prob = drop_prob
@@ -124,7 +124,6 @@ class EvalModelTemplate(
             hidden_dim=1000,
             b1=0.5,
             b2=0.999,
-            save_hparams=True
         )
 
         if continue_training:
