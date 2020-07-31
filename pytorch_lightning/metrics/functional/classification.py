@@ -198,10 +198,11 @@ def stat_scores_multiple_classes(
         return tps, fps, tns, fns, sups
 
     elif reduction == 'sum' or reduction == 'elementwise_mean':
-        match_true = (pred == target).float()
-        tps = match_true.sum()
-        fps = pred.nelement() - match_true.sum()
-        fns = pred.nelement() - match_true.sum()
+        count_match_true = (pred == target).sum().float()
+
+        tps = count_match_true
+        fps = pred.nelement() - count_match_true
+        fns = pred.nelement() - count_match_true
         tns = pred.nelement() * num_classes - (tps + fps + fns)
         sups = pred.nelement()
 
