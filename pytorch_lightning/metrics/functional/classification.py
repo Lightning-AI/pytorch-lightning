@@ -173,7 +173,7 @@ def stat_scores_multiple_classes(
     """
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
-        
+
     num_classes = get_num_classes(pred=pred, target=target,
                                   num_classes=num_classes)
 
