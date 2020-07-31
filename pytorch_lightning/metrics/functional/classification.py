@@ -205,9 +205,7 @@ def stat_scores_multiple_classes(
         fns = fns[:num_classes]
         sups = sups[:num_classes]
 
-        return tps, fps, tns, fns, sups
-
-    elif reduction == 'sum' or reduction == 'elementwise_mean':
+    if reduction == 'sum' or reduction == 'elementwise_mean':
         count_match_true = (pred == target).sum().float()
         oob_tp, oob_fp, oob_tn, oob_fn, oob_sup = stat_scores(pred, target, num_classes, argmax_dim)
 
@@ -224,10 +222,10 @@ def stat_scores_multiple_classes(
             tns /= num_classes
             sups /= num_classes
 
-        return tps, fps, tns, fns, sups
-
     else:
         raise ValueError("reduction type %s not supported" % reduction)
+
+    return tps, fps, tns, fns, sups
 
 
 def accuracy(
