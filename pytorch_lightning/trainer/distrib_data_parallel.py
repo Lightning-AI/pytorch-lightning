@@ -145,6 +145,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 
 
@@ -204,6 +205,7 @@ class TrainerDDPMixin(ABC):
     node_rank: int
     tpu_cores: int
     testing: bool
+    datamodule: Optional[LightningDataModule]
 
     @property
     @abstractmethod
