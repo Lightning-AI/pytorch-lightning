@@ -1033,7 +1033,7 @@ class Trainer(
 
         else:
             self.accelerator_backend = CPUBackend(self)
-            self.accelerator_backend.setup(model)
+            self.accelerator_backend.setup(model, datamodule=datamodule)
             results = self.accelerator_backend.train(model)
 
         # callbacks
@@ -1080,11 +1080,6 @@ class Trainer(
             # If datamodule.prepare_data() has not been called yet, call it
             if self.is_overridden('prepare_data', datamodule) and not datamodule.has_prepared_data:
                 datamodule.prepare_data()
-
-            # If datamodule.setup('fit') has not been called yet, call it
-            if stage == 'fit':
-                if self.is_overridden('setup', datamodule) and not datamodule.has_setup_fit:
-                    datamodule.setup('fit')
 
             # If datamodule.setup('test') has not been called yet, call it
             if stage == 'test':

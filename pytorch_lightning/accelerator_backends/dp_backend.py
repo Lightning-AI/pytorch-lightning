@@ -31,10 +31,13 @@ class DataParallelBackend(object):
         self.trainer = trainer
         self.model_autocast_original_forward = None
 
-    def setup(self, model):
+    def setup(self, model, datamodule=None):
         # call setup after the ddp process has connected
         if not self.trainer.testing:
+            if datamodule is not None:
+                datamodule.setup('fit')
             self.trainer.setup('fit')
+
             model.setup('fit')
 
         # put model on correct device

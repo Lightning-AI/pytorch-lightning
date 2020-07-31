@@ -28,11 +28,14 @@ class GPUBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def setup(self, model):
+    def setup(self, model, datamodule=None):
 
         # call setup
         if not self.trainer.testing:
+            if datamodule is not None:
+                datamodule.setup('fit')
             self.trainer.setup('fit')
+
             model.setup('fit')
 
         model.cuda(self.trainer.root_gpu)

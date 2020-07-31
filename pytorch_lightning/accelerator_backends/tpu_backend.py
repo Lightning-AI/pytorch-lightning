@@ -96,14 +96,17 @@ class TPUBackend(object):
 
         self.trainer.model = model
 
-    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, trainer=None, mp_queue=None):
+    def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, trainer=None, mp_queue=None, datamodule=None):
         """
         Here we are inside each individual process
         """
         if not trainer:
             trainer = self.trainer
         if not trainer.testing:
+            if datamodule is not None:
+                datamodule.setup('fit')
             trainer.setup('fit')
+
             model.setup('fit')
 
         # setup TPU training

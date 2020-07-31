@@ -20,14 +20,18 @@ class CPUBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def setup(self, model):
+    def setup(self, model, datamodule=None):
         # run through amp wrapper
         if self.trainer.use_amp:
             raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
         # call setup after the ddp process has connected
         if not self.trainer.testing:
+            if datamodule is not None:
+                datamodule.setup('fit')
+
             self.trainer.setup('fit')
+
             model.setup('fit')
 
         # CHOOSE OPTIMIZER
