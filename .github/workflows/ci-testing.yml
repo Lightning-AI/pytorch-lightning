@@ -42,7 +42,7 @@ jobs:
 
     - name: Update Pip
       run: |
-        pip install -U -u -q "pip>=20.1"  # needed for get pip cacher folder
+        pip install --quiet "pip>=20.1" --upgrade --user  # needed for get pip cacher folder
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
@@ -54,13 +54,8 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
+        # remove Horovod from requirements
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
-
-    # TODO: remove after https://github.com/pytorch/pytorch/issues/32186 is resolved
-    #- name: Setup Windows on Latest
-    #  if: runner.os == 'windows' && matrix.requires == 'latest'
-    #  run: |
-    #    python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch<1.5') ; open(fname, 'w').write(req)"
 
     # versions <= 1.3 may have issues on mac with some BLAS ops due to missing mkl (https://github.com/pytorch/pytorch/issues/18996)
     - name: Setup MacOS Minimal
@@ -92,8 +87,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade-strategy only-if-needed
-        # pip install -q "PyYAML>=5.3.1"  # needed for installing dependencues
+        # python -m pip install --upgrade --user pip
+        pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
         HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --requirement ./requirements/devel.txt --quiet --upgrade-strategy "only-if-needed"
         python --version
         pip --version
