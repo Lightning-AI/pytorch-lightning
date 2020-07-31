@@ -57,10 +57,10 @@ jobs:
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
 
     # TODO: remove after https://github.com/pytorch/pytorch/issues/32186 is resolved
-    - name: Setup Windows on Latest
-      if: runner.os == 'windows' && matrix.requires == 'latest'
-      run: |
-        python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch<1.5') ; open(fname, 'w').write(req)"
+    #- name: Setup Windows on Latest
+    #  if: runner.os == 'windows' && matrix.requires == 'latest'
+    #  run: |
+    #    python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch<1.5') ; open(fname, 'w').write(req)"
 
     # versions <= 1.3 may have issues on mac with some BLAS ops due to missing mkl (https://github.com/pytorch/pytorch/issues/18996)
     - name: Setup MacOS Minimal

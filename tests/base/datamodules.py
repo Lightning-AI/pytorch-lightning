@@ -5,7 +5,6 @@ from tests.base.datasets import TrialMNIST
 
 
 class TrialMNISTDataModule(LightningDataModule):
-
     def __init__(self, data_dir: str = './'):
         super().__init__()
         self.data_dir = data_dir
@@ -13,7 +12,7 @@ class TrialMNISTDataModule(LightningDataModule):
     def prepare_data(self):
         TrialMNIST(self.data_dir, train=True, download=True)
         TrialMNIST(self.data_dir, train=False, download=True)
-    
+
     def setup(self):
         mnist_full = TrialMNIST(root=self.data_dir, train=True, num_samples=64, download=True)
         self.mnist_train, self.mnist_val = random_split(mnist_full, [128, 64])

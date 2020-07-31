@@ -61,7 +61,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=ckpt_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 
@@ -99,7 +99,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=ckpt_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 
