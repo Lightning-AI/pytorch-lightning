@@ -1033,7 +1033,7 @@ class Trainer(
 
         else:
             self.accelerator_backend = CPUBackend(self)
-            self.accelerator_backend.setup(model, datamodule=datamodule)
+            self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
         # callbacks
@@ -1093,6 +1093,8 @@ class Trainer(
                 model.val_dataloader = datamodule.val_dataloader
             if self.is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+
+            self.datamodule = datamodule
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.

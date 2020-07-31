@@ -60,7 +60,7 @@ class DDPSpawnBackend(object):
         self.trainer.model = model
         return results
 
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0, datamodule=None):
+    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
@@ -107,8 +107,8 @@ class DDPSpawnBackend(object):
 
         # call setup after the ddp process has connected
         if not self.trainer.testing:
-            if datamodule is not None:
-                datamodule.setup('fit')
+            if self.trainer.datamodule is not None:
+                self.trainer.datamodule.setup('fit')
             self.trainer.setup('fit')
 
             model.setup('fit')

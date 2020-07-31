@@ -31,11 +31,11 @@ class DataParallelBackend(object):
         self.trainer = trainer
         self.model_autocast_original_forward = None
 
-    def setup(self, model, datamodule=None):
+    def setup(self, model):
         # call setup after the ddp process has connected
         if not self.trainer.testing:
-            if datamodule is not None:
-                datamodule.setup('fit')
+            if self.trainer.datamodule is not None:
+                self.trainer.datamodule.setup('fit')
             self.trainer.setup('fit')
 
             model.setup('fit')
