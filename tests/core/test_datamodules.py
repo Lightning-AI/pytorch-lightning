@@ -97,21 +97,6 @@ def test_dm_pickle_after_init(tmpdir):
     pickle.dumps(dm)
 
 
-def test_dm_pickle_after_setup(tmpdir):
-    dm = TrialMNISTDataModule()
-    dm.prepare_data()
-    dm.setup()
-    pickle.dumps(dm)
-
-
-def test_dm_pickle_after_setup_verbose(tmpdir):
-    dm = TrialMNISTDataModule()
-    dm.prepare_data()
-    dm.setup('fit')
-    dm.setup('test')
-    pickle.dumps(dm)
-
-
 def test_train_loop_only(tmpdir):
     dm = TrialMNISTDataModule(tmpdir)
 
