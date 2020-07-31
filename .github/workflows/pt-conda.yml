@@ -38,12 +38,21 @@ jobs:
     # TODO: set source for nightly
 
     - name: Cache conda
-      uses: actions/cache@v1
-      env:   # Increase this value to reset cache if etc/example-environment.yml has not changed
-        CACHE_NUMBER: 0
+      uses: actions/cache@v2
       with:
         path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
+        key: ${{ runner.os }}-conda-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('environment.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-conda-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-
+
+    # Add another cache for Pip as not all packages lives in Conda env
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('requirements/base.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-
 
     # https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf
     # https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
@@ -52,7 +61,8 @@ jobs:
       with:
           # auto-update-conda: true
           auto-activate-base: false
-          miniconda-version: 4.7.12
+          # miniconda-version: 4.7.12  # This downloads a new conda, use the conda-version
+          conda-version: 4.7.12
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           activate-environment: pl-env
@@ -70,7 +80,7 @@ jobs:
       shell: bash -l {0}
 
     - name: Cache datasets
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
