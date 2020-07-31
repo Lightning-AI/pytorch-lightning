@@ -48,3 +48,4 @@ dependencies:
         - wandb>=0.8.21
         - neptune-client>=0.4.109
         - horovod>=0.19.1
+        - onnxruntime>=1.3.0
