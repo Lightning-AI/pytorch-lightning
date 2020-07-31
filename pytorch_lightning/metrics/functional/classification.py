@@ -179,15 +179,19 @@ def stat_scores_multiple_classes(
     pred = pred.view((-1, )).long()
     target = target.view((-1, )).long()
 
+    pred.clamp_max_(max=num_classes)
+    target.clamp_max_(max=num_classes)
+
     if reduction == 'none':
-        tps = torch.zeros((num_classes,), device=pred.device)
-        fps = torch.zeros((num_classes,), device=pred.device)
-        tns = torch.zeros((num_classes,), device=pred.device)
-        fns = torch.zeros((num_classes,), device=pred.device)
-        sups = torch.zeros((num_classes,), device=pred.device)
+        tps = torch.zeros((num_classes+1,), device=pred.device)
+        fps = torch.zeros((num_classes+1,), device=pred.device)
+        tns = torch.zeros((num_classes+1,), device=pred.device)
+        fns = torch.zeros((num_classes+1,), device=pred.device)
+        sups = torch.zeros((num_classes+1,), device=pred.device)
 
         match_true = (pred == target).float()
         match_false = 1 - match_true
+        # unused slots due to class out of bound (0 ~ num_classes-1)
 
         tps.scatter_add_(0, pred, match_true)
         fps.scatter_add_(0, pred, match_false)
@@ -195,16 +199,23 @@ def stat_scores_multiple_classes(
         tns = pred.size(0) - (tps + fps + fns)
         sups.scatter_add_(0, target, torch.ones_like(match_true))
 
+        tps = tps[:num_classes]
+        fps = fps[:num_classes]
+        tns = tns[:num_classes]
+        fns = fns[:num_classes]
+        sups = sups[:num_classes]
+
         return tps, fps, tns, fns, sups
 
     elif reduction == 'sum' or reduction == 'elementwise_mean':
         count_match_true = (pred == target).sum().float()
+        oob_tp, oob_fp, oob_tn, oob_fn, oob_sup  = stat_scores(pred, target, num_classes, argmax_dim)
 
-        tps = count_match_true
-        fps = pred.nelement() - count_match_true
-        fns = pred.nelement() - count_match_true
-        tns = pred.nelement() * num_classes - (tps + fps + fns)
-        sups = pred.nelement()
+        tps = count_match_true - oob_tp
+        fps = pred.nelement() - count_match_true - oob_fp
+        fns = pred.nelement() - count_match_true - oob_fn
+        tns = pred.nelement() * num_classes - (tps + fps + fns + oob_tn)
+        sups = pred.nelement() - oob_sup.float()
 
         if reduction == 'elementwise_mean':
             tps /= num_classes
