@@ -42,7 +42,7 @@ jobs:
 
     - name: Update Pip
       run: |
-        pip install -U -q "pip>=20.1"  # needed for get pip cacher folder
+        pip install -U -u -q "pip>=20.1"  # needed for get pip cacher folder
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
