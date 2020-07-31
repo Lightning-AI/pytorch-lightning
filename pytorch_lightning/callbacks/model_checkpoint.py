@@ -50,7 +50,7 @@ class ModelCheckpoint(Callback):
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
         save_last: always saves the model at the end of the epoch. Default: ``False``.
-        save_top_k: if `save_top_k == k`,
+        save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
