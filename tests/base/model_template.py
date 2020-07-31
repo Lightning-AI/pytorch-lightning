@@ -125,6 +125,7 @@ class EvalModelTemplate(
             hidden_dim=1000,
             b1=0.5,
             b2=0.999,
+            save_hparams=True
         )
 
         if continue_training:
