@@ -138,11 +138,10 @@ def stat_scores_multiple_classes(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        argmax_dim: int = 1,
+        argmax_dim: int = 1
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calls the stat_scores function iteratively for all classes, thus
-    calculating the number of true postive, false postive, true negative
+    Calculates the number of true postive, false postive, true negative
     and false negative for each class
 
     Args:
@@ -177,13 +176,23 @@ def stat_scores_multiple_classes(
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
 
+    pred = pred.view((-1, )).long()
+    target = target.view((-1, )).long()
+
     tps = torch.zeros((num_classes,), device=pred.device)
     fps = torch.zeros((num_classes,), device=pred.device)
     tns = torch.zeros((num_classes,), device=pred.device)
     fns = torch.zeros((num_classes,), device=pred.device)
     sups = torch.zeros((num_classes,), device=pred.device)
-    for c in range(num_classes):
-        tps[c], fps[c], tns[c], fns[c], sups[c] = stat_scores(pred=pred, target=target, class_index=c)
+
+    match_true = (pred == target).float()
+    match_false = 1 - match_true
+
+    tps.scatter_add_(0, pred, match_true)
+    fps.scatter_add_(0, pred, match_false)
+    fns.scatter_add_(0, target, match_false)
+    tns = pred.size(0) - (tps + fps + fns)
+    sups.scatter_add_(0, target, torch.ones_like(match_true))
 
     return tps, fps, tns, fns, sups
 
