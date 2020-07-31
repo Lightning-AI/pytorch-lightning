@@ -138,7 +138,8 @@ def stat_scores_multiple_classes(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        argmax_dim: int = 1
+        argmax_dim: int = 1,
+        reduction: str = 'none'
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates the number of true postive, false postive, true negative
@@ -170,8 +171,7 @@ def stat_scores_multiple_classes(
         >>> sups
         tensor([1., 0., 1., 1.])
     """
-    num_classes = get_num_classes(pred=pred, target=target,
-                                  num_classes=num_classes)
+    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
@@ -179,22 +179,43 @@ def stat_scores_multiple_classes(
     pred = pred.view((-1, )).long()
     target = target.view((-1, )).long()
 
-    tps = torch.zeros((num_classes,), device=pred.device)
-    fps = torch.zeros((num_classes,), device=pred.device)
-    tns = torch.zeros((num_classes,), device=pred.device)
-    fns = torch.zeros((num_classes,), device=pred.device)
-    sups = torch.zeros((num_classes,), device=pred.device)
+    if reduction == 'none':
+        tps = torch.zeros((num_classes,), device=pred.device)
+        fps = torch.zeros((num_classes,), device=pred.device)
+        tns = torch.zeros((num_classes,), device=pred.device)
+        fns = torch.zeros((num_classes,), device=pred.device)
+        sups = torch.zeros((num_classes,), device=pred.device)
 
-    match_true = (pred == target).float()
-    match_false = 1 - match_true
+        match_true = (pred == target).float()
+        match_false = 1 - match_true
 
-    tps.scatter_add_(0, pred, match_true)
-    fps.scatter_add_(0, pred, match_false)
-    fns.scatter_add_(0, target, match_false)
-    tns = pred.size(0) - (tps + fps + fns)
-    sups.scatter_add_(0, target, torch.ones_like(match_true))
+        tps.scatter_add_(0, pred, match_true)
+        fps.scatter_add_(0, pred, match_false)
+        fns.scatter_add_(0, target, match_false)
+        tns = pred.size(0) - (tps + fps + fns)
+        sups.scatter_add_(0, target, torch.ones_like(match_true))
 
-    return tps, fps, tns, fns, sups
+        return tps, fps, tns, fns, sups
+
+    elif reduction == 'sum' or reduction == 'elementwise_mean':
+        match_true = (pred == target).float()
+        tps = match_true.sum()
+        fps = pred.nelement() - match_true.sum()
+        fns = pred.nelement() - match_true.sum()
+        tns = pred.nelement() * num_classes - (tps + fps + fns)
+        sups = pred.nelement()
+
+        if reduction == 'elementwise_mean':
+            tps /= num_classes
+            fps /= num_classes
+            fns /= num_classes
+            tns /= num_classes
+            sups /= num_classes
+
+        return tps, fps, tns, fns, sups
+
+    else:
+        raise ValueError("reduction type %s not supported" % reduction)
 
 
 def accuracy(
@@ -228,16 +249,13 @@ def accuracy(
         tensor(0.7500)
 
     """
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
-        pred=pred, target=target, num_classes=num_classes)
-
     if not (target > 0).any() and num_classes is None:
         raise RuntimeError("cannot infer num_classes when target is all zero")
 
-    if reduction in ('elementwise_mean', 'sum'):
-        return reduce(sum(tps) / sum(sups), reduction=reduction)
-    if reduction == 'none':
-        return reduce(tps / sups, reduction=reduction)
+    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
+        pred=pred, target=target, num_classes=num_classes, reduction=reduction)
+
+    return tps / sups
 
 
 def confusion_matrix(
