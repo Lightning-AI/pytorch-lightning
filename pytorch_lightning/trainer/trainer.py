@@ -955,12 +955,10 @@ class Trainer(
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
+            if datamodule is not None:
+                datamodule.prepare_data()
             model.prepare_data()
             self._is_data_prepared = True
-
-            # If datamodule.prepare_data() has not been called yet, call it
-            if dm_prepare_data_called:
-                datamodule.prepare_data()
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
