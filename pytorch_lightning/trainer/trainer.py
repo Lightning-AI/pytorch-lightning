@@ -958,6 +958,10 @@ class Trainer(
             model.prepare_data()
             self._is_data_prepared = True
 
+            # If datamodule.prepare_data() has not been called yet, call it
+            if dm_prepare_data_called:
+                datamodule.prepare_data()
+
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
@@ -1053,10 +1057,14 @@ class Trainer(
         return results or 1
 
     def can_prepare_data(self):
+        should_call_dm_prepare_data = True
+        if self.datamodule is not None and self.is_overridden('prepare_data', self.datamodule):
+            should_call_dm_prepare_data = not self.datamodule.has_prepared_data
+
         if self.prepare_data_per_node:
-            return self.local_rank == 0
+            return self.local_rank == 0 and should_call_dm_prepare_data
         else:
-            return self.node_rank == 0 and self.local_rank == 0
+            return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -1078,9 +1086,9 @@ class Trainer(
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
-            # If datamodule.prepare_data() has not been called yet, call it
-            if self.is_overridden('prepare_data', datamodule) and not datamodule.has_prepared_data:
-                datamodule.prepare_data()
+            # # If datamodule.prepare_data() has not been called yet, call it
+            # if self.is_overridden('prepare_data', datamodule) and not datamodule.has_prepared_data:
+            #     datamodule.prepare_data()
 
             # If datamodule.setup('test') has not been called yet, call it
             if stage == 'test':
