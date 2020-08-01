@@ -163,7 +163,7 @@ class TrainerDataLoadingMixin(ABC):
                     ' `replace_sampler_ddp`=False if you want to use your custom sampler.')
 
             # replace with distributed sampler
-            sampler = self._get_distributed_sampler(dataloader)
+            sampler = self._get_distributed_sampler(dataloader, train)
             dataloader = self.replace_sampler(dataloader, sampler)
 
         return dataloader
@@ -179,7 +179,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = type(dataloader)(**dl_args)
         return dataloader
 
-    def _get_distributed_sampler(self, dataloader):
+    def _get_distributed_sampler(self, dataloader, train):
         if self.use_tpu:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
         elif self.use_horovod:
@@ -193,6 +193,8 @@ class TrainerDataLoadingMixin(ABC):
             }
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
+
+        kwargs['shuffle'] = train
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
