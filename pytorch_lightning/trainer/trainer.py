@@ -1385,7 +1385,9 @@ class Trainer(
         # call setup after the ddp process has connected
         stage_name = 'test' if self.testing else 'fit'
         if self.datamodule is not None:
-            self.datamodule.setup(stage_name)
+            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
+            if not called:
+                self.datamodule.setup(stage_name)
         self.setup(stage_name)
 
         model = self.get_model()
