@@ -641,36 +641,36 @@ def test_dataloader_reinit_for_subclass(tmpdir):
             CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
 
 
+class DistribSamplerCallback(Callback):
+
+    def on_train_start(self, trainer, pl_module):
+        train_sampler = trainer.train_dataloader.sampler
+        assert isinstance(train_sampler, DistributedSampler)
+        assert train_sampler.shuffle
+
+    def on_validation_start(self, trainer, pl_module):
+        val_sampler = trainer.val_dataloaders[0].sampler
+        assert isinstance(val_sampler, DistributedSampler)
+        assert not val_sampler.shuffle
+
+    def on_test_start(self, trainer, pl_module):
+        test_sampler = trainer.test_dataloaders[0].sampler
+        assert isinstance(test_sampler, DistributedSampler)
+        assert not test_sampler.shuffle
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
 def test_dataloader_distributed_sampler(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend """
 
-    class DistribCallback(Callback):
-
-        def on_train_start(self, trainer, pl_module):
-            train_sampler = trainer.train_dataloader.sampler
-            assert isinstance(train_sampler, DistributedSampler)
-            assert train_sampler.shuffle
-
-        def on_validation_start(self, trainer, pl_module):
-            val_sampler = trainer.val_dataloaders[0].sampler
-            assert isinstance(val_sampler, DistributedSampler)
-            assert not val_sampler.shuffle
-
-        def on_test_start(self, trainer, pl_module):
-            test_sampler = trainer.test_dataloaders[0].sampler
-            assert isinstance(test_sampler, DistributedSampler)
-            assert not test_sampler.shuffle
-
     model = EvalModelTemplate()
-
     trainer = Trainer(
         gpus=[0, 1],
         num_nodes=1,
         distributed_backend='ddp_spawn',
         default_root_dir=tmpdir,
         max_steps=1,
-        callbacks=[DistribCallback()]
+        callbacks=[DistribSamplerCallback()]
     )
     trainer.fit(model)
     trainer.test(ckpt_path=None)
