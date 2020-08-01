@@ -10,6 +10,8 @@ ARG TORCH_VERSION=1.6.0
 ARG CUDA_VERSION=10.1
 ARG CUDNN_VERSION=7
 
+# TODO: make his imagge from pure Ubuntu + install all NVIDIA drivers
+# FROM nvidia/cuda:${CUDA_VERSION}-base
 FROM pytorch/pytorch:${TORCH_VERSION}-cuda${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
 
 SHELL ["/bin/bash", "-c"]
