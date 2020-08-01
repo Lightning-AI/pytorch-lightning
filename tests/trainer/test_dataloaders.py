@@ -659,7 +659,7 @@ def test_dataloader_distributed_sampler(tmpdir):
 
     assert isinstance(model.train_dataloader().sampler, DistributedSampler)
     assert isinstance(model.val_dataloader().sampler, DistributedSampler)
-    assert isinstance(model.val_dataloader().sampler, DistributedSampler)
+    assert isinstance(model.test_dataloader().sampler, DistributedSampler)
 
     assert model.train_dataloader().sampler.shuffle
     assert not model.val_dataloader().sampler.shuffle
