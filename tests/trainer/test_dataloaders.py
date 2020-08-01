@@ -7,6 +7,7 @@ import torch
 from packaging.version import parse
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import IterableDataset, Subset
+from torch.utils.data.distributed import DistributedSampler
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer
@@ -638,6 +639,31 @@ def test_dataloader_reinit_for_subclass(tmpdir):
     with pytest.raises(MisconfigurationException, match='DistributedSampler'):
         trainer.auto_add_sampler(
             CustomDataLoader(list(range(1000)), sampler=CustomSampler(list(range(1000)))), train=True)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs')
+def test_dataloader_distributed_sampler(tmpdir):
+    """ Test DistributedSampler and it's arguments for DDP backend """
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        gpus=[0, 1],
+        num_nodes=1,
+        distributed_backend='ddp_spawn',
+        default_root_dir=tmpdir
+    )
+
+    trainer.fit()
+    trainer.test(ckpt_path=None)
+
+    assert isinstance(model.train_dataloader().sampler, DistributedSampler)
+    assert isinstance(model.val_dataloader().sampler, DistributedSampler)
+    assert isinstance(model.val_dataloader().sampler, DistributedSampler)
+
+    assert model.train_dataloader().sampler.shuffle
+    assert not model.val_dataloader().sampler.shuffle
+    assert not model.test_dataloader().sampler.shuffle
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
