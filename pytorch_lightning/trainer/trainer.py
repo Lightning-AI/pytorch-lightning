@@ -1297,8 +1297,6 @@ class Trainer(
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
 
-        self.setup('test')
-
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
         else:
@@ -1310,7 +1308,6 @@ class Trainer(
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
-        model.setup('test')
 
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
@@ -1356,8 +1353,6 @@ class Trainer(
         return results
 
     def __test_given_model(self, model, test_dataloaders):
-        # setup hook
-        model.setup('test')
 
         # attach data
         if test_dataloaders is not None:
@@ -1385,6 +1380,16 @@ class Trainer(
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
+
+    def call_setup_hook(self):
+        # call setup after the ddp process has connected
+        stage_name = 'test' if self.testing else 'fit'
+        if self.datamodule is not None:
+            self.datamodule.setup(stage_name)
+        self.setup(stage_name)
+
+        model = self.get_model()
+        model.setup(stage_name)
 
 
 class _PatchDataLoader(object):

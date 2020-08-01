@@ -82,11 +82,14 @@ class TrainerDPMixin(ABC):
     on_colab_kaggle: str
     save_spawn_weights: Callable
     logger: ...
-    datamodule: ...
 
     @property
     @abstractmethod
     def use_amp(self) -> bool:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def call_setup_hook(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -181,11 +184,7 @@ class TrainerDPMixin(ABC):
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        if not self.testing:
-            if self.datamodule is not None:
-                self.datamodule.setup('fit')
-            self.setup('fit')
-            model.setup('fit')
+        self.call_setup_hook()
 
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank

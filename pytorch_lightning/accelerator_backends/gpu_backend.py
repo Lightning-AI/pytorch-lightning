@@ -31,12 +31,7 @@ class GPUBackend(object):
     def setup(self, model):
 
         # call setup
-        if not self.trainer.testing:
-            if self.trainer.datamodule is not None:
-                self.trainer.datamodule.setup('fit')
-            self.trainer.setup('fit')
-
-            model.setup('fit')
+        self.trainer.call_setup_hook()
 
         model.cuda(self.trainer.root_gpu)
 
