@@ -10,7 +10,7 @@ from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
 
 import tests.base.develop_pipelines as tpipes
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.trainer.data_loading import _has_iterable_dataset, _has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
@@ -645,6 +645,23 @@ def test_dataloader_reinit_for_subclass(tmpdir):
 def test_dataloader_distributed_sampler(tmpdir):
     """ Test DistributedSampler and it's arguments for DDP backend """
 
+    class DistribCallback(Callback):
+
+        def on_train_start(self, trainer, pl_module):
+            train_sampler = trainer.train_dataloader.sampler
+            assert isinstance(train_sampler, DistributedSampler)
+            assert train_sampler.shuffle
+
+        def on_validation_start(self, trainer, pl_module):
+            val_sampler = trainer.val_dataloaders[0].sampler
+            assert isinstance(val_sampler, DistributedSampler)
+            assert not val_sampler.shuffle
+
+        def on_test_start(self, trainer, pl_module):
+            test_sampler = trainer.test_dataloaders[0].sampler
+            assert isinstance(test_sampler, DistributedSampler)
+            assert not test_sampler.shuffle
+
     model = EvalModelTemplate()
 
     trainer = Trainer(
@@ -652,23 +669,11 @@ def test_dataloader_distributed_sampler(tmpdir):
         num_nodes=1,
         distributed_backend='ddp_spawn',
         default_root_dir=tmpdir,
-        max_epochs=1
+        max_steps=1,
+        callbacks=[DistribCallback()]
     )
-
     trainer.fit(model)
     trainer.test(ckpt_path=None)
-
-    train_sampler = trainer.train_dataloader.sampler
-    val_sampler = trainer.val_dataloaders[0].sampler
-    test_sampler = trainer.test_dataloaders[0].sampler
-
-    assert isinstance(train_sampler, DistributedSampler)
-    assert isinstance(val_sampler, DistributedSampler)
-    assert isinstance(test_sampler, DistributedSampler)
-
-    assert train_sampler.shuffle
-    assert not val_sampler.shuffle
-    assert not test_sampler.shuffle
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
