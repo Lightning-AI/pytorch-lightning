@@ -357,7 +357,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = self.is_overridden('test_dataloader', model)
         has_step = self.is_overridden('test_step', model)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders =\
+            self.num_test_batches, self.test_dataloaders, self.ref_dataloaders =\
                 self._reset_eval_dataloader(model, 'test')
 
     def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
