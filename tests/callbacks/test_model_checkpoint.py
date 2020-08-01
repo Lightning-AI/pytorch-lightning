@@ -15,29 +15,19 @@ from tests.base import EvalModelTemplate
 
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
-    """
-    Test that None in checkpoint callback is valid and that chkp_path is set correctly
-    """
+    """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
     model = EvalModelTemplate()
 
     checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        checkpoint_callback=checkpoint,
-        overfit_pct=0.20,
-        max_epochs=(save_top_k + 2),
-    )
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
-
-    # These should be different if the dirpath has be overridden
-    assert trainer.ckpt_path != trainer.default_root_dir
+    assert checkpoint.dirpath == tmpdir / trainer.logger.name / 'version_0' / 'checkpoints'
 
 
 @pytest.mark.parametrize(
-    'logger_version,expected',
-    [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+    'logger_version,expected', [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
 )
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
@@ -45,15 +35,10 @@ def test_model_checkpoint_path(tmpdir, logger_version, expected):
     model = EvalModelTemplate()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        overfit_pct=0.2,
-        max_epochs=5,
-        logger=logger,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger)
     trainer.fit(model)
 
-    ckpt_version = Path(trainer.ckpt_path).parent.name
+    ckpt_version = Path(trainer.checkpoint_callback.dirpath).parent.name
     assert ckpt_version == expected
 
 
@@ -78,17 +63,18 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
         self.count = 0
         self.expected_count = expected_count
 
-    def _save_model(self, filepath):
+    def _save_model(self, filepath, trainer, pl_module):
         # make sure we don't save twice
         assert not os.path.isfile(filepath)
         self.count += 1
-        super()._save_model(filepath)
+        super()._save_model(filepath, trainer, pl_module)
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         # on rank 0 we expect the saved files and on all others no saves
-        assert (trainer.global_rank == 0 and self.count == self.expected_count) \
-            or (trainer.global_rank > 0 and self.count == 0)
+        assert (trainer.global_rank == 0 and self.count == self.expected_count) or (
+            trainer.global_rank > 0 and self.count == 0
+        )
 
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")

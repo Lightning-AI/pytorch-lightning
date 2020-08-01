@@ -4,14 +4,14 @@
     from pytorch_lightning.trainer.trainer import Trainer
 
 
-Introduction Guide
-==================
+Step-by-step walk-through
+=========================
 PyTorch Lightning provides a very simple template for organizing your PyTorch code. Once
 you've organized it into a LightningModule, it automates most of the training for you.
 
 To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
 
-.. figure:: /_images/mnist_imgs/pt_to_pl.jpg
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
    :alt: Convert from PyTorch to Lightning
 
 As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
@@ -198,8 +198,7 @@ EXACTLY the same as you would a PyTorch Module.
 Data
 ^^^^
 
-The Lightning Module organizes your dataloaders and data processing as well.
-Here's the PyTorch code for loading MNIST
+Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIST.
 
 .. testcode::
     :skipif: not TORCHVISION_AVAILABLE
@@ -231,81 +230,92 @@ Here's the PyTorch code for loading MNIST
     Processing...
     Done!
 
-When using PyTorch Lightning, we use the exact same code except we organize it into
-the LightningModule
+There's nothing special you need to do with PyTorch Lightning! Just pass in the dataloaders to the `.fit()` function.
 
-.. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+.. code-block:: python
 
-    from torch.utils.data import DataLoader, random_split
-    from torchvision.datasets import MNIST
-    import os
-    from torchvision import datasets, transforms
+    model = LitMNIST()
+    trainer = Trainer()
+    trainer.fit(model, mnist_train)
 
-    class LitMNIST(LightningModule):
+DataModules
+***********
+Defining free-floating dataloaders, splits, download instructions and such can get messy.
+In this case, it's better to group the full definition of a dataset into a `DataModule` which includes:
 
-        def train_dataloader(self):
-            transform=transforms.Compose([transforms.ToTensor(),
-                                          transforms.Normalize((0.1307,), (0.3081,))])
-            mnist_train = MNIST(os.getcwd(), train=True, download=False,
-                                transform=transform)
-            return DataLoader(mnist_train, batch_size=64)
+- Download instructions
+- Processing instructions
+- Split instructions
+- Train dataloader
+- Val dataloader(s)
+- Test dataloader(s)
 
-Notice the code is exactly the same, except now the training dataloading has been organized by the LightningModule
-under the `train_dataloader` method. This is great because if you run into a project that uses Lightning and want
-to figure out how they prepare their training data you can just look in the `train_dataloader` method.
+.. code-block:: python
 
-Usually though, we want to separate the things that write to disk in data-processing from
-things like transforms which happen in memory. This is only relevant in multi-GPU or TPU training.
+    class MyDataModule(pl.DataModule):
 
-.. testcode::
-
-    class LitMNIST(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.train_dims = None
+            self.vocab_size = 0
 
         def prepare_data(self):
-            # download only (not called on every GPU, just the root GPU per node)
-            MNIST(os.getcwd(), train=True, download=True)
+            # called only on 1 GPU
+            download_dataset()
+            tokenize()
+            build_vocab()
+
+        def setup(self):
+            # called on every GPU
+            vocab = load_vocab
+            self.vocab_size = len(vocab)
+
+            self.train, self.val, self.test = load_datasets()
+            self.train_dims = self.train.next_batch.size()
 
         def train_dataloader(self):
-            # no download, just transform
-            transform=transforms.Compose([transforms.ToTensor(),
-                                          transforms.Normalize((0.1307,), (0.3081,))])
-            mnist_train = MNIST(os.getcwd(), train=True, download=False,
-                                transform=transform)
-            return DataLoader(mnist_train, batch_size=64)
+            transforms = ...
+            return DataLoader(self.train, transforms)
 
-Doing it in the `prepare_data` method ensures that when you have
-multiple GPUs you won't overwrite the data. This is a contrived example
-but it gets more complicated with things like NLP or Imagenet.
+        def val_dataloader(self):
+            transforms = ...
+            return DataLoader(self.val, transforms)
 
-`prepare_data` gets called on the `LOCAL_RANK=0` GPU per node. If your nodes share a file system,
-set `Trainer(prepare_data_per_node=False)` and it will be code from node=0, gpu=0 only.
+        def test_dataloader(self):
+            transforms = ...
+            return DataLoader(self.test, transforms)
 
-In general fill these methods with the following:
+Using DataModules allows easier sharing of full dataset definitions.
 
-.. testcode::
+.. code-block:: python
 
-    class LitMNIST(LightningModule):
+    # use an MNIST dataset
+    mnist_dm = MNISTDatamodule()
+    model = LitModel(num_classes=mnist.num_classes)
+    trainer.fit(model, mnist_dm)
 
-        def prepare_data(self):
-            # stuff here is done once at the very beginning of training
-            # before any distributed training starts
+    # or other datasets with the same model
+    imagenet_dm = ImagenetDatamodule()
+    model = LitModel(num_classes=imagenet_dm.num_classes)
+    trainer.fit(model, imagenet_dm)
 
-            # download stuff
-            # save to disk
-            # etc...
-            ...
-
-        def train_dataloader(self):
-            # data transforms
-            # dataset creation
-            # return a DataLoader
-            ...
+.. note:: `prepare_data` is called only one 1 GPU in distributed training (automatically)
+.. note:: `setup` is called on every GPU (automatically)
 
 Models defined by data
-^^^^^^^^^^^^^^^^^^^^^^
-Sometimes a model needs to know about the data to be built (ie: number of classes or vocab size).
-In this case we recommend the following:
+**********************
+When your models need to know about the data, it's best to process the data before passing it to the model.
+
+.. code-block:: python
+
+    # init dm AND call the processing manually
+    dm = ImagenetDataModule()
+    dm.prepare_data()
+    dm.setup()
+
+    model = LitModel(out_features=dm.num_classes, img_width=dm.img_width, img_height=dm.img_height)
+    trainer.fit(model)
+
 
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
@@ -402,17 +412,48 @@ in the LightningModule
             x, y = batch
             logits = self(x)
             loss = F.nll_loss(logits, y)
-            return {'loss': loss}
-            # return loss (also works)
+            return loss
 
 Again, this is the same PyTorch code except that it has been organized by the LightningModule.
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
+
+TrainResult
+^^^^^^^^^^^
+Whenever you'd like more control over the outputs of the `training_step` use a `TrainResult` object which can:
+
+- log to Tensorboard or the other logger of your choice.
+- log to the progress-bar.
+- log on every step.
+- log aggregate epoch metrics.
+
+.. code-block:: python
+
+    def training_step(...):
+        return loss
+
+        # equivalent
+        return pl.TrainResult(loss)
+
+        # log a metric
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss)
+
+        # equivalent
+        result.log('train_loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, reduce_fx=torch.mean)
+
+If you are only using a training_loop (`training_step`) without a
+validation or test loop (`validation_step`, `test_step`), you can still use EarlyStopping or automatic checkpointing
+
+.. code-block:: python
+
+    result = pl.TrainResult(loss, checkpoint_on=loss, early_stop_on=loss)
+    return result
 
 ----------------
 
 Training
 --------
-So far we defined 4 key ingredients in pure PyTorch but organized the code inside the LightningModule.
+So far we defined 4 key ingredients in pure PyTorch but organized the code with the LightningModule.
 
 1. Model.
 2. Training data.
@@ -421,7 +462,7 @@ So far we defined 4 key ingredients in pure PyTorch but organized the code insid
 
 For clarity, we'll recall that the full LightningModule now looks like this.
 
-.. testcode::
+.. code-block:: python
 
     class LitMNIST(LightningModule):
         def __init__(self):
@@ -441,23 +482,16 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             x = torch.log_softmax(x, dim=1)
             return x
 
-        def train_dataloader(self):
-            transform=transforms.Compose([transforms.ToTensor(),
-                                          transforms.Normalize((0.1307,), (0.3081,))])
-            mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transform)
-            return DataLoader(mnist_train, batch_size=64)
-
-        def configure_optimizers(self):
-            return Adam(self.parameters(), lr=1e-3)
-
         def training_step(self, batch, batch_idx):
             x, y = batch
             logits = self(x)
             loss = F.nll_loss(logits, y)
 
-            # add logging
-            logs = {'loss': loss}
-            return {'loss': loss, 'log': logs}
+            # using TrainResult to enable logging
+            result = pl.TrainResult(loss)
+            result.log('train_loss', loss)
+
+            return result
 
 Again, this is the same PyTorch code, except that it's organized
 by the LightningModule. This organization now lets us train this model
@@ -471,7 +505,7 @@ Train on CPU
 
     model = LitMNIST()
     trainer = Trainer()
-    trainer.fit(model)
+    trainer.fit(model, train_loader)
 
 You should see the following weights summary and progress bar
 
@@ -481,7 +515,7 @@ You should see the following weights summary and progress bar
 Logging
 ^^^^^^^
 
-When we added the `log` key in the return dictionary it went into the built in tensorboard logger.
+When we added the `TrainResult` in the return dictionary it went into the built-in tensorboard logger.
 But you could have also logged by calling:
 
 .. code-block:: python
@@ -489,7 +523,11 @@ But you could have also logged by calling:
     def training_step(self, batch, batch_idx):
         # ...
         loss = ...
-        self.logger.summary.scalar('loss', loss)
+        self.logger.summary.scalar('loss', loss, step=self.global_step)
+
+        # equivalent
+        result = TrainResult()
+        result.log('loss', loss)
 
 Which will generate automatic tensorboard logs.
 
@@ -507,7 +545,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 
     model = LitMNIST()
     trainer = Trainer(gpus=1)
-    trainer.fit(model)
+    trainer.fit(model, train_loader)
 
 
 .. figure:: /_images/mnist_imgs/mnist_gpu.png
@@ -522,7 +560,7 @@ Or you can also train on multiple GPUs.
 
     model = LitMNIST()
     trainer = Trainer(gpus=8)
-    trainer.fit(model)
+    trainer.fit(model, train_loader)
 
 Or multiple nodes
 
@@ -531,7 +569,7 @@ Or multiple nodes
     # (32 GPUs)
     model = LitMNIST()
     trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
-    trainer.fit(model)
+    trainer.fit(model, train_loader)
 
 Refer to the `distributed computing guide for more details <multi_gpu.rst>`_.
 
@@ -560,14 +598,15 @@ In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU c
 of this program. This means that without taking any care you will download the dataset N times which
 will cause all sorts of issues.
 
-To solve this problem, move the download code to the `prepare_data` method in the LightningModule.
+To solve this problem, make sure your download code is in the `prepare_data` method in the DataModule.
 In this method we do all the preparation we need to do once (instead of on every gpu).
 
-`prepare_data` can be called in two ways, once per node or only on the root node (`Trainer(prepare_data_per_node=False)`).
+`prepare_data` can be called in two ways, once per node or only on the root node
+(`Trainer(prepare_data_per_node=False)`).
 
-.. testcode::
+.. code-block:: python
 
-    class LitMNIST(LightningModule):
+    class MNISTDataModule(LightningDataModule):
         def prepare_data(self):
             # download only
             MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
@@ -605,9 +644,10 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
 .. code-block:: python
 
+    dm = MNISTDataModule()
     model = LitMNIST()
     trainer = Trainer(tpu_cores=8)
-    trainer.fit(model)
+    trainer.fit(model, dm)
 
 You'll now see the TPU cores booting up.
 
@@ -634,7 +674,43 @@ split of the data reaches a minimum.
 Just like the `training_step`, we can define a `validation_step` to check whatever
 metrics we care about, generate samples or add more to our logs.
 
+Since the `validation_step` processes a single batch, use the `EvalResult` to log metrics for the full epoch.
+
 .. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        result = pl.EvalResult(checkpoint_on=loss)
+        result.log('val_loss', loss)
+
+        # equivalent
+        result.log('val_loss', loss, prog_bar=False, logger=True, on_step=False, on_epoch=True, reduce_fx=torch.mean)
+        return result
+
+Now we can train with a validation loop as well.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+
+    model = LitMNIST()
+    trainer = Trainer(tpu_cores=8)
+    trainer.fit(model, train_loader, val_loader)
+
+You may have noticed the words `Validation sanity check` logged. This is because Lightning runs 2 batches
+of validation before starting to train. This is a kind of unit test to make sure that if you have a bug
+in the validation loop, you won't need to potentially wait a full epoch to find out.
+
+.. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
+
+Val loop under the hood
+^^^^^^^^^^^^^^^^^^^^^^^
+Under the hood, Lightning does the following:
+
+.. code-block:: python
+
+    model = Model()
+    model.train()
+    torch.set_grad_enabled(True)
 
     for epoch in epochs:
         for batch in data:
@@ -642,6 +718,9 @@ metrics we care about, generate samples or add more to our logs.
             # train
 
         # validate
+        model.eval()
+        torch.set_grad_enabled(False)
+
         outputs = []
         for batch in val_data:
             x, y = batch                        # validation_step
@@ -651,56 +730,19 @@ metrics we care about, generate samples or add more to our logs.
 
         full_loss = outputs.mean()              # validation_epoch_end
 
-Since the `validation_step` processes a single batch,
-in Lightning we also have a `validation_epoch_end` method which allows you to compute
-statistics on the full dataset after an epoch of validation data and not just the batch.
-
-In addition, we define a `val_dataloader` method which tells the trainer what data to use for validation.
-Notice we split the train split of MNIST into train, validation. We also have to make sure to do the
-sample split in the `train_dataloader` method.
-
-.. testcode::
-
-    class LitMNIST(LightningModule):
-        def validation_step(self, batch, batch_idx):
-            x, y = batch
-            logits = self(x)
-            loss = F.nll_loss(logits, y)
-            return {'val_loss': loss}
-
-        def validation_epoch_end(self, outputs):
-            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-            tensorboard_logs = {'val_loss': avg_loss}
-            return {'val_loss': avg_loss, 'log': tensorboard_logs}
-
-        def val_dataloader(self):
-            transform=transforms.Compose([transforms.ToTensor(),
-                                          transforms.Normalize((0.1307,), (0.3081,))])
-            mnist_train = MNIST(os.getcwd(), train=True, download=False,
-                                transform=transform)
-            _, mnist_val = random_split(mnist_train, [55000, 5000])
-            mnist_val = DataLoader(mnist_val, batch_size=64)
-            return mnist_val
-
-Again, we've just organized the regular PyTorch code into two steps, the `validation_step` method which
-operates on a single batch and the `validation_epoch_end` method to compute statistics on all batches.
-
-If you have these methods defined, Lightning will call them automatically. Now we can train
-while checking the validation set.
+Optional methods
+^^^^^^^^^^^^^^^^
+If you still need even more fine-grain control, define the other optional methods for the loop.
 
 .. code-block:: python
 
-    from pytorch_lightning import Trainer
+    def validation_step(self, batch, batch_idx):
+        val_step_output = {'step_output': x}
+        return val_step_output
 
-    model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
-    trainer.fit(model)
-
-You may have noticed the words `Validation sanity check` logged. This is because Lightning runs 5 batches
-of validation before starting to train. This is a kind of unit test to make sure that if you have a bug
-in the validation loop, you won't need to potentially wait a full epoch to find out.
-
-.. note:: Lightning disables gradients, puts model in eval mode and does everything needed for validation.
+    def validation_epoch_end(self, val_step_outputs):
+        for val_step_output in val_step_outputs:
+            # each object here is what you passed back at each validation_step
 
 ----------------
 
@@ -709,32 +751,19 @@ Testing
 Once our research is done and we're about to publish or deploy a model, we normally want to figure out
 how it will generalize in the "real world." For this, we use a held-out split of the data for testing.
 
-Just like the validation loop, we define exactly the same steps for testing:
+Just like the validation loop, we define a test loop
 
-- test_step
-- test_epoch_end
-- test_dataloader
-
-.. testcode::
+.. code-block:: python
 
     class LitMNIST(LightningModule):
         def test_step(self, batch, batch_idx):
             x, y = batch
             logits = self(x)
             loss = F.nll_loss(logits, y)
-            return {'val_loss': loss}
+            result = pl.EvalResult()
+            result.log('test_loss', loss)
+            return result
 
-        def test_epoch_end(self, outputs):
-            avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-            tensorboard_logs = {'val_loss': avg_loss}
-            return {'val_loss': avg_loss, 'log': tensorboard_logs}
-
-        def test_dataloader(self):
-            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-            mnist_train = MNIST(os.getcwd(), train=False, download=False, transform=transform)
-            _, mnist_val = random_split(mnist_train, [55000, 5000])
-            mnist_val = DataLoader(mnist_val, batch_size=64)
-            return mnist_val
 
 However, to make sure the test set isn't used inadvertently, Lightning has a separate API to run tests.
 Once you train your model simply call `.test()`.
@@ -748,7 +777,8 @@ Once you train your model simply call `.test()`.
     trainer.fit(model)
 
     # run test set
-    trainer.test()
+    result = trainer.test()
+    print(result)
 
 .. rst-class:: sphx-glr-script-out
 
@@ -891,11 +921,7 @@ default implementation
 .. testcode::
 
     def backward(self, use_amp, loss, optimizer):
-        if use_amp:
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
-        else:
-            loss.backward()
+        loss.backward()
 
 With your own
 
@@ -903,7 +929,7 @@ With your own
 
     class LitMNIST(LightningModule):
 
-        def backward(self, use_amp, loss, optimizer):
+        def backward(self, use_amp, loss, optimizer, optimizer_idx):
             # do a custom way of backward
             loss.backward(retain_graph=True)
 

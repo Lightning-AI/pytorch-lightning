@@ -32,26 +32,12 @@ class ModelIO(object):
     CHECKPOINT_HYPER_PARAMS_TYPE = 'hparams_type'
 
     @classmethod
-    def load_from_metrics(cls, weights_path, tags_csv, map_location=None):
-        r"""
-        Warning:
-            Deprecated in version 0.7.0. You should use :meth:`load_from_checkpoint` instead.
-            Will be removed in v0.9.0.
-        """
-        rank_zero_warn(
-            "`load_from_metrics` method has been unified with `load_from_checkpoint` in v0.7.0."
-            " The deprecated method will be removed in v0.9.0.", DeprecationWarning
-        )
-        return cls.load_from_checkpoint(weights_path, tags_csv=tags_csv, map_location=map_location)
-
-    @classmethod
     def load_from_checkpoint(
             cls,
             checkpoint_path: str,
             *args,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             hparams_file: Optional[str] = None,
-            tags_csv: Optional[str] = None,  # backward compatible, todo: remove in v0.9.0
             **kwargs
     ):
         r"""
@@ -84,21 +70,6 @@ class ModelIO(object):
                 If your model's `hparams` argument is :class:`~argparse.Namespace`
                 and .yaml file has hierarchical structure, you need to refactor your model to treat
                 `hparams` as :class:`~dict`.
-
-                .csv files are acceptable here till v0.9.0, see tags_csv argument for detailed usage.
-            tags_csv:
-                .. warning:: .. deprecated:: 0.7.6
-
-                    `tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0.
-
-                Optional path to a .csv file with two columns (key, value)
-                as in this example::
-
-                    key,value
-                    drop_prob,0.2
-                    batch_size,32
-
-                Use this method to pass in a .csv file with the hparams you'd like to use.
             hparam_overrides: A dictionary with keys to override in the hparams
             kwargs: Any keyword args needed to init the model.
 
@@ -140,11 +111,6 @@ class ModelIO(object):
             checkpoint = pl_load(checkpoint_path, map_location=map_location)
         else:
             checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        # add the hparams from csv file to checkpoint
-        if tags_csv is not None:
-            hparams_file = tags_csv
-            rank_zero_warn('`tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0', DeprecationWarning)
 
         if hparams_file is not None:
             extension = hparams_file.split('.')[-1]

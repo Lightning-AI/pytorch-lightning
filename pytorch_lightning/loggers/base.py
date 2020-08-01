@@ -272,24 +272,46 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
+    def update_agg_funcs(
+            self,
+            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+    ):
+        for logger in self._logger_iterable:
+            logger.update_agg_funcs(agg_key_funcs, agg_default_func)
+
     @property
     def experiment(self) -> List[Any]:
         return [logger.experiment for logger in self._logger_iterable]
 
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+        for logger in self._logger_iterable:
+            logger.agg_and_log_metrics(metrics, step)
+
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.log_metrics(metrics, step)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        [logger.log_hyperparams(params) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.log_hyperparams(params)
 
     def save(self) -> None:
-        [logger.save() for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.save()
 
     def finalize(self, status: str) -> None:
-        [logger.finalize(status) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.finalize(status)
 
     def close(self) -> None:
-        [logger.close() for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.close()
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        # Checkpoints should be saved to default / chosen location when using multiple loggers
+        return None
 
     @property
     def name(self) -> str:

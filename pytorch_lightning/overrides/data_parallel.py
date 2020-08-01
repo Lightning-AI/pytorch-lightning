@@ -6,6 +6,7 @@ import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
+from pytorch_lightning.core.step_result import Result
 
 
 def _find_tensors(obj):  # pragma: no-cover
@@ -63,7 +64,34 @@ class LightningDataParallel(DataParallel):
 
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
-        return self.gather(outputs, self.output_device)
+
+        if isinstance(outputs[0], Result):
+            outputs = self.__gather_structured_result(outputs)
+        else:
+            outputs = self.gather(outputs, self.output_device)
+        return outputs
+
+    def __gather_structured_result(self, outputs):
+        prototype_output = outputs[0]
+        original_class = prototype_output.__class__
+        outputs = [dict(x) for x in outputs]
+
+        # remove all the meta info
+        meta = outputs[0]['meta']
+        for i, output in enumerate(outputs):
+            del output['meta']
+
+        outputs = self.gather(outputs, self.output_device)
+
+        # pass minimize to constructor for TrainResult
+        if 'minimize' in outputs:
+            result = original_class(outputs['minimize'])
+        else:
+            result = original_class()
+
+        result.update(outputs)
+        result['meta'] = meta
+        return result
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
@@ -159,6 +187,8 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
                 # this also avoids accidental slicing of `input` if it is a Tensor
                 if not isinstance(input, (list, tuple)):
                     input = (input,)
+
+                module = module.to(device)
 
                 # ---------------
                 # CHANGE

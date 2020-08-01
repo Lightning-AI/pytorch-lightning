@@ -245,7 +245,7 @@ def main(args: Namespace) -> None:
     )
 
     if args.evaluate:
-        trainer.run_evaluation()
+        trainer.test()
     else:
         trainer.fit(model)
 

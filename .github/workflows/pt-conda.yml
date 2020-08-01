@@ -23,10 +23,10 @@ jobs:
         os: [ubuntu-20.04]
         python-version: [3.7]
         # todo: add nightly versions
-        pytorch-version: [1.3, 1.4, 1.5]  # , 1.6, 1.7
+        pytorch-version: [1.3, 1.4, 1.5, 1.6]  # , 1.7
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
     - uses: actions/checkout@v2
 
@@ -38,12 +38,21 @@ jobs:
     # TODO: set source for nightly
 
     - name: Cache conda
-      uses: actions/cache@v1
-      env:   # Increase this value to reset cache if etc/example-environment.yml has not changed
-        CACHE_NUMBER: 0
+      uses: actions/cache@v2
       with:
         path: ~/conda_pkgs_dir
-        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
+        key: ${{ runner.os }}-conda-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('environment.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-conda-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-
+
+    # Add another cache for Pip as not all packages lives in Conda env
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-${{ hashFiles('requirements/base.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-pt${{ matrix.pytorch-version }}-
 
     # https://docs.conda.io/projects/conda/en/4.6.0/_downloads/52a95608c49671267e40c689e0bc00ca/conda-cheatsheet.pdf
     # https://gist.github.com/mwouts/9842452d020c08faf9e84a3bba38a66f
@@ -52,16 +61,17 @@ jobs:
       with:
           # auto-update-conda: true
           auto-activate-base: false
-          miniconda-version: 4.7.12
+          # miniconda-version: 4.7.12  # This downloads a new conda, use the conda-version
+          conda-version: 4.7.12
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
           activate-environment: pl-env
           use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows' && matrix.python-version != '3.8'
+      if: runner.os != 'windows'
       run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
           HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements/extra.txt)
@@ -70,7 +80,7 @@ jobs:
       shell: bash -l {0}
 
     - name: Cache datasets
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
