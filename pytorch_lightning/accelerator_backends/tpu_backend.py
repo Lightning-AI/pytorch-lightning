@@ -106,7 +106,6 @@ class TPUBackend(object):
             if self.trainer.datamodule is not None:
                 self.trainer.datamodule.setup('fit')
             trainer.setup('fit')
-
             model.setup('fit')
 
         # setup TPU training

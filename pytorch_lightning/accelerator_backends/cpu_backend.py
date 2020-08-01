@@ -31,7 +31,6 @@ class CPUBackend(object):
                 self.trainer.datamodule.setup('fit')
 
             self.trainer.setup('fit')
-
             model.setup('fit')
 
         # CHOOSE OPTIMIZER

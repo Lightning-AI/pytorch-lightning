@@ -82,6 +82,7 @@ class TrainerDPMixin(ABC):
     on_colab_kaggle: str
     save_spawn_weights: Callable
     logger: ...
+    datamodule: ...
 
     @property
     @abstractmethod
@@ -181,6 +182,8 @@ class TrainerDPMixin(ABC):
     def horovod_train(self, model):
         # call setup after the ddp process has connected
         if not self.testing:
+            if self.datamodule is not None:
+                self.datamodule.setup('fit')
             self.setup('fit')
             model.setup('fit')
 

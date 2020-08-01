@@ -1084,14 +1084,10 @@ class Trainer(
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
-            # # If datamodule.prepare_data() has not been called yet, call it
-            # if self.is_overridden('prepare_data', datamodule) and not datamodule.has_prepared_data:
-            #     datamodule.prepare_data()
-
             # If datamodule.setup('test') has not been called yet, call it
-            if stage == 'test':
-                if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
-                    datamodule.setup('test')
+            # if stage == 'test':
+            #     if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
+            #         datamodule.setup('test')
 
             # Override loader hooks
             if self.is_overridden('train_dataloader', datamodule):

@@ -37,7 +37,6 @@ class DataParallelBackend(object):
             if self.trainer.datamodule is not None:
                 self.trainer.datamodule.setup('fit')
             self.trainer.setup('fit')
-
             model.setup('fit')
 
         # put model on correct device
