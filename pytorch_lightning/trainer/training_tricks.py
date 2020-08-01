@@ -269,7 +269,7 @@ def _adjust_batch_size(trainer,
         if hasattr(model, batch_arg_name):
             setattr(model, batch_arg_name, value)
         else:
-            setattr(model.hparams, batch_arg_name, value)        
+            setattr(model.hparams, batch_arg_name, value)
         new_size = value
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')

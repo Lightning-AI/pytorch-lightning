@@ -224,8 +224,8 @@ class TrainerDataLoadingMixin(ABC):
             elif self.limit_train_batches not in (0.0, 1.0):
                 raise MisconfigurationException(
                     'When using an infinite DataLoader (e.g. with an IterableDataset'
-                    f' or when DataLoader does not implement `__len__`) for `limit_train_batches`,'
-                    f' `Trainer(limit_train_batches)` must be `0.0`, `1.0` or `int`')
+                    ' or when DataLoader does not implement `__len__`) for `limit_train_batches`,'
+                    ' `Trainer(limit_train_batches)` must be `0.0`, `1.0` or `int`')
 
         # determine when to check validation
         # if int passed in, val checks that often
