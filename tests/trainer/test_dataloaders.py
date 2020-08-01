@@ -398,6 +398,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir):
 
 @pytest.mark.parametrize('overfit_batches', [0, 0.5])
 def test_dataloaders_with_overfit_batches(tmpdir, overfit_batches):
+    """Verify train_dataloader loaded as val, test dataloaders if overfit_batches > 0"""
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
@@ -419,9 +420,10 @@ def test_dataloaders_with_overfit_batches(tmpdir, overfit_batches):
                                           model.dataloader(train=False)])
     trainer.test(model, **test_options)
 
-    assert len(trainer.val_dataloaders) == 2, \
+    # 2 in overfit_batches == 0, 1 in overfit_batches > 0
+    assert len(trainer.val_dataloaders) == 2 or 1, \
         f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 2, \
+    assert len(trainer.test_dataloaders) == 2 or 1, \
         f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 

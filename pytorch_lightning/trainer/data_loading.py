@@ -266,6 +266,7 @@ class TrainerDataLoadingMixin(ABC):
         # use the training loader as val and test when overfitting
         if self.overfit_batches > 0:
             dataloaders = self.request_dataloader(getattr(model, 'train_dataloader'))
+            # ref_dataloaders for comparing with train_dataloader
             ref_dataloaders = self.request_dataloader(getattr(model, f'{mode}_dataloader'))
         else:
             dataloaders = self.request_dataloader(getattr(model, f'{mode}_dataloader'))

@@ -604,6 +604,8 @@ class TrainerEvaluationLoopMixin(ABC):
         if (test_mode and len(self.test_dataloaders) > 1) \
                 or (not test_mode and len(self.val_dataloaders) > 1):
             args.append(dataloader_idx)
+
+        # multiple val or test dataloaders > train_dataloader when overfit_batches > 0
         elif (test_mode and len(self.ref_dataloaders) > len(self.test_dataloaders)) \
                 or (not test_mode and len(self.ref_dataloaders) > len(self.val_dataloaders)):
             args.append(dataloader_idx)
