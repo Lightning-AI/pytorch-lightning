@@ -654,7 +654,7 @@ def test_dataloader_distributed_sampler(tmpdir):
         default_root_dir=tmpdir
     )
 
-    trainer.fit()
+    trainer.fit(model)
     trainer.test(ckpt_path=None)
 
     assert isinstance(model.train_dataloader().sampler, DistributedSampler)
