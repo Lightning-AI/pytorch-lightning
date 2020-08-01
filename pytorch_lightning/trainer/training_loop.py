@@ -169,6 +169,7 @@ from torch.utils.data import DataLoader
 import torch.distributed as torch_distrib
 from copy import copy
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
@@ -347,46 +348,48 @@ class TrainerTrainLoopMixin(ABC):
             # model hooks
             model.on_train_start()
 
-        # run all epochs
-        for epoch in range(self.current_epoch, self.max_epochs):
-            # reset train dataloader
-            if self.reload_dataloaders_every_epoch:
-                self.reset_train_dataloader(model)
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            if (self.use_ddp or self.use_horovod) \
-                    and hasattr(self.train_dataloader, 'sampler') \
-                    and hasattr(self.train_dataloader.sampler, 'set_epoch'):
-                self.train_dataloader.sampler.set_epoch(epoch)
+        if True:  # just here to enable easier merging. TODO: remove last minute
 
-            # update training progress in trainer and model
-            model.current_epoch = epoch
-            self.current_epoch = epoch
+            # run all epochs
+            for epoch in range(self.current_epoch, self.max_epochs):
+                # reset train dataloader
+                if self.reload_dataloaders_every_epoch:
+                    self.reset_train_dataloader(model)
+                # set seed for distributed sampler (enables shuffling for each epoch)
+                if (self.use_ddp or self.use_horovod) \
+                        and hasattr(self.train_dataloader, 'sampler') \
+                        and hasattr(self.train_dataloader.sampler, 'set_epoch'):
+                    self.train_dataloader.sampler.set_epoch(epoch)
 
-            # changing gradient according accumulation_scheduler
-            self.accumulation_scheduler.on_epoch_start(self, self.get_model())
+                # update training progress in trainer and model
+                model.current_epoch = epoch
+                self.current_epoch = epoch
 
-            # stores accumulated grad fractions per batch
-            self.batch_loss_value = TensorRunningAccum(
-                window_length=self.accumulate_grad_batches
-            )
+                # changing gradient according accumulation_scheduler
+                self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
-            # -----------------
-            # RUN TNG EPOCH
-            # -----------------
-            self.run_training_epoch()
+                # stores accumulated grad fractions per batch
+                self.batch_loss_value = TensorRunningAccum(
+                    window_length=self.accumulate_grad_batches
+                )
 
-            if self.max_steps and self.max_steps <= self.global_step:
-                return
+                # -----------------
+                # RUN TNG EPOCH
+                # -----------------
+                self.run_training_epoch()
 
-            # update LR schedulers
-            self.update_learning_rates(interval='epoch')
+                if self.max_steps and self.max_steps <= self.global_step:
+                    return
 
-            # early stopping
-            met_min_epochs = epoch >= self.min_epochs - 1
-            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+                # update LR schedulers
+                self.update_learning_rates(interval='epoch')
+
+                # early stopping
+                met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if (met_min_epochs and met_min_steps):
+                    if met_min_epochs and met_min_steps:
                         return
                     else:
                         log.info('Trainer was signaled to stop but required minimum epochs'
