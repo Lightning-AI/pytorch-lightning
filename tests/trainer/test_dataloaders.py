@@ -651,7 +651,8 @@ def test_dataloader_distributed_sampler(tmpdir):
         gpus=[0, 1],
         num_nodes=1,
         distributed_backend='ddp_spawn',
-        default_root_dir=tmpdir
+        default_root_dir=tmpdir,
+        max_epochs=1
     )
 
     trainer.fit(model)
