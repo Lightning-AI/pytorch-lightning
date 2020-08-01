@@ -261,7 +261,7 @@ class TrainerDataLoadingMixin(ABC):
             mode: Either `'val'` or `'test'`
 
         Returns:
-            Tuple (num_batches, dataloaders)
+            Tuple (num_batches, dataloaders, ref_dataloaders)
         """
         # use the training loader as val and test when overfitting
         if self.overfit_batches > 0:
@@ -269,6 +269,7 @@ class TrainerDataLoadingMixin(ABC):
             ref_dataloaders = self.request_dataloader(getattr(model, f'{mode}_dataloader'))
         else:
             dataloaders = self.request_dataloader(getattr(model, f'{mode}_dataloader'))
+            ref_dataloaders = []
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
