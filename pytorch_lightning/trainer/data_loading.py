@@ -347,7 +347,8 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = self.is_overridden('val_dataloader', model)
         has_step = self.is_overridden('validation_step', model)
         if has_loader and has_step:
-            self.num_val_batches, self.val_dataloaders, self.ref_dataloaders = self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders, self.ref_dataloaders =\
+                self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.

@@ -43,6 +43,7 @@ class ValidationEpochEndVariations(ABC):
 
         pbar = {}
         logs = {}
+        print(outputs)
         for dl_output_list in outputs:
             output_keys = dl_output_list[0].keys()
             output_keys = [x for x in output_keys if 'val_' in x]

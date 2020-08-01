@@ -396,6 +396,35 @@ def test_dataloaders_with_fast_dev_run(tmpdir):
     assert trainer.dev_debugger.num_seen_sanity_check_batches == trainer.num_sanity_val_steps * num_val_dataloaders
 
 
+@pytest.mark.parametrize('overfit_batches', [0, 0.5])
+def test_dataloaders_with_overfit_batches(tmpdir, overfit_batches):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = EvalModelTemplate()
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    model.test_step = model.test_step__multiple_dataloaders
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        overfit_batches=overfit_batches)
+
+    fit_options = dict(train_dataloader=model.dataloader(train=True),
+                       val_dataloaders=[model.dataloader(train=False),
+                                        model.dataloader(train=False)])
+    trainer.fit(model, **fit_options)
+
+    test_options = dict(test_dataloaders=[model.dataloader(train=False),
+                                          model.dataloader(train=False)])
+    trainer.test(model, **test_options)
+
+    assert len(trainer.val_dataloaders) == 2, \
+        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+    assert len(trainer.test_dataloaders) == 2, \
+        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+
+
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     """Verify that dataloaders can be passed to fit"""
