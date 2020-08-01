@@ -658,13 +658,17 @@ def test_dataloader_distributed_sampler(tmpdir):
     trainer.fit(model)
     trainer.test(ckpt_path=None)
 
-    assert isinstance(model.train_dataloader().sampler, DistributedSampler)
-    assert isinstance(model.val_dataloader().sampler, DistributedSampler)
-    assert isinstance(model.test_dataloader().sampler, DistributedSampler)
+    train_sampler = trainer.train_dataloader.sampler
+    val_sampler = trainer.val_dataloaders[0].sampler
+    test_sampler = trainer.test_dataloaders[0].sampler
 
-    assert model.train_dataloader().sampler.shuffle
-    assert not model.val_dataloader().sampler.shuffle
-    assert not model.test_dataloader().sampler.shuffle
+    assert isinstance(train_sampler, DistributedSampler)
+    assert isinstance(val_sampler, DistributedSampler)
+    assert isinstance(test_sampler, DistributedSampler)
+
+    assert train_sampler.shuffle
+    assert not val_sampler.shuffle
+    assert not test_sampler.shuffle
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 3, reason='Test requires multiple GPUs')
