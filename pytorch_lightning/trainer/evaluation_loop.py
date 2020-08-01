@@ -602,7 +602,9 @@ class TrainerEvaluationLoopMixin(ABC):
         args = [batch, batch_idx]
 
         if (test_mode and len(self.test_dataloaders) > 1) \
-                or (not test_mode and len(self.val_dataloaders) >= 1):
+                or (not test_mode and len(self.val_dataloaders) > 1):
+            args.append(dataloader_idx)
+        elif (len(self.ref_dataloaders) > len(self.val_dataloaders)):
             args.append(dataloader_idx)
 
         # handle DP, DDP forward

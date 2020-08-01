@@ -266,11 +266,15 @@ class TrainerDataLoadingMixin(ABC):
         # use the training loader as val and test when overfitting
         if self.overfit_batches > 0:
             dataloaders = self.request_dataloader(getattr(model, 'train_dataloader'))
+            ref_dataloaders = self.request_dataloader(getattr(model, f'{mode}_dataloader'))
         else:
             dataloaders = self.request_dataloader(getattr(model, f'{mode}_dataloader'))
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
+
+        if not isinstance(ref_dataloaders, list):
+            ref_dataloaders = [ref_dataloaders]
 
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]
@@ -331,7 +335,7 @@ class TrainerDataLoadingMixin(ABC):
 
                 loader_num_batches.append(num_batches)
 
-        return loader_num_batches, dataloaders
+        return loader_num_batches, dataloaders, ref_dataloaders
 
     def reset_val_dataloader(self, model: LightningModule) -> None:
         """Resets the validation dataloader and determines the number of batches.
@@ -342,7 +346,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = self.is_overridden('val_dataloader', model)
         has_step = self.is_overridden('validation_step', model)
         if has_loader and has_step:
-            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders, self.ref_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.
