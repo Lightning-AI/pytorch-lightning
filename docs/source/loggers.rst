@@ -45,15 +45,14 @@ Logging from a LightningModule
 ------------------------------
 There are two ways to get a LightningModule to log.
 
-- The first is manual logging where you control the aggregation
-of metrics.
+- The first is manual logging where you control the aggregation of metrics.
 - The second way is where you defer the aggregation to the Trainer.
 
 Training loop logging
 ^^^^^^^^^^^^^^^^^^^^^
 
-Manual logging
-**************
+Train Manual logging
+*********************
 Use this approach when you want fine-control over your logging.
 
 For the training loop, return the 'log' or 'progress_bar' keywords.
@@ -103,8 +102,8 @@ Or if you need epoch level metrics, you can also implement the `epoch_end` metho
 .. note:: After the `training_step` output is processed, we call detach on the loss so that memory remains low. The
     inputs to `training_epoch_end` have all detached losses
 
-Automatic logging
-*****************
+Train automatic logging
+***********************
 If you do not need to do anything special except reduce metrics, you can use the `TrainResult` object to do
 the aggregation for you. This means you won't need the `step_end` or `epoch_end` method.
 
@@ -187,8 +186,8 @@ the aggregation for you. This means you won't need the `step_end` or `epoch_end`
 Validation loop logging
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Manual logging
-**************
+Val manual logging
+******************
 In manual logging, only the output of `validation_epoch_end` is used for logging. The reason is that during
 validation, the model is not learning, so each batch is treated independently and thus epoch metrics
 don't really make sense unless you want a histogram.
@@ -211,8 +210,8 @@ where you aggregate them.
 in `dp` or `ddp2` mode (DataParallel), feel free to also use the `validation_step_end` method to aggregate for the
 batch as was shown in `training_step_end`.
 
-Automatic logging
-*****************
+Val automatic logging
+*********************
 The above is a lot of work if you're not doing anything special in your validation loop, other than just logging.
 In that case, use the `EvalResult` object:
 
