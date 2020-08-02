@@ -982,8 +982,8 @@ class Trainer(
         use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
 
         # torchelastic or general non_slurm ddp
-        use_torchelastic_ddp = self.use_ddp and 'WORLD_SIZE' in os.environ \
-                               and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        use_torchelastic_ddp = self.use_ddp and te_flags_passed
 
         use_ddp_spawn = self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']
 
