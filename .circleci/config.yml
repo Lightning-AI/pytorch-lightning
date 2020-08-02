@@ -153,9 +153,11 @@ workflows:
           filters:
             branches:
               # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
-              only:
-                # only from forks
-                - /^pull\/.*$/
+              #only:
+              #  # only from forks
+              #  - /^pull\/.\d+$/
+              ignore:
+                - master
   cleanup:
     triggers:
       - schedule:
