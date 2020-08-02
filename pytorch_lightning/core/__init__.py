@@ -214,12 +214,12 @@ don't run your test data by accident. Instead you have to explicitly call:
 
 -------------
 
-Eval/TrainResult
-^^^^^^^^^^^^^^^^
+TrainResult
+^^^^^^^^^^^
 When you are using the `_step_end` and `_epoch_end` only for aggregating metrics and then logging,
 consider using either a `EvalResult` or `TrainResult` instead.
 
-Here's a traomg loop structure
+Here's a training loop structure
 
 .. code-block:: python
 
@@ -243,6 +243,8 @@ using the equivalent syntax via the `TrainResult` object:
         result.log('train_loss', loss, prog_bar=True)
         return result
 
+EvalResult
+^^^^^^^^^^
 Same for val/test loop
 
 .. code-block:: python
