@@ -975,26 +975,39 @@ class Trainer(
         # set testing if set in environ
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
+        # -------------------
+        # determine ddp mode
+        # -------------------
+        # SLURM ddp
+        use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
+
+        # torchelastic or general non_slurm ddp
+        use_torchelastic_ddp = self.use_ddp and 'WORLD_SIZE' in os.environ \
+                               and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+
+        use_ddp_spawn = self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']
+
+        # -------------------
+        # route ddp
+        # -------------------
         # DDP2 (cluster only)
         if self.use_ddp2:
             self.accelerator_backend = DDP2Backend(self)
             self.accelerator_backend.setup()
             self.accelerator_backend.train(model)
 
-        # SLURM ddp
-        elif self.use_ddp and self.is_slurm_managing_tasks:
+        elif use_slurm_ddp:
             self.accelerator_backend = DDPBackend(self)
             self.accelerator_backend.slurm_setup()
             self.accelerator_backend.train(model)
 
-        # torchelastic or general non_slurm ddp
-        elif self.use_ddp and 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
+        elif use_torchelastic_ddp:
             self.accelerator_backend = DDPBackend(self)
             self.accelerator_backend.torchelastic_setup()
             self.accelerator_backend.train(model)
 
         # regular ddp using .spawn
-        elif self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']:
+        elif use_ddp_spawn:
             self.accelerator_backend = DDPSpawnBackend(self)
             self.accelerator_backend.setup()
             self.accelerator_backend.train(model, nprocs=self.num_processes)
