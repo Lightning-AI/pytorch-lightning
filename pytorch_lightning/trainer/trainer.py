@@ -52,7 +52,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.accelerator_backends import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend)
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -972,52 +972,41 @@ class Trainer(
             self._run_lr_finder_internally(model)
             model.logger = self.logger  # reset logger binding
 
-        # route to appropriate start method
-        # when using multi-node or DDP within a node start each module in a separate process
+        # set testing if set in environ
+        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+
+        # DDP2 (cluster only)
         if self.use_ddp2:
-            if self.is_slurm_managing_tasks:
-                task = int(os.environ['SLURM_LOCALID'])
+            self.accelerator_backend = DDP2Backend(self)
+            self.accelerator_backend.setup()
+            self.accelerator_backend.train(model)
 
-            # torchelastic or general non_slurm ddp2
-            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
-                task = int(os.environ['LOCAL_RANK'])
-
+        # SLURM ddp
+        elif self.use_ddp and self.is_slurm_managing_tasks:
+            task = int(os.environ['SLURM_LOCALID'])
             self.accelerator_backend = DDPBackend(self)
             self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
 
-        elif self.use_ddp:
+        # torchelastic or general non_slurm ddp
+        elif self.use_ddp and 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
+            task = int(os.environ['LOCAL_RANK'])
+            self.accelerator_backend = DDPBackend(self)
+            self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
 
-            # set testing if set in environ
-            self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+        # regular ddp using .spawn
+        elif self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']:
+            self.accelerator_backend = DDPSpawnBackend(self)
+            self.accelerator_backend.setup()
+            self.accelerator_backend.train(model, nprocs=self.num_processes)
+            results = self.accelerator_backend.teardown(model)
 
-            if self.is_slurm_managing_tasks:
-                task = int(os.environ['SLURM_LOCALID'])
-                self.accelerator_backend = DDPBackend(self)
-                self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
+        # ddp
+        elif self.distributed_backend == 'ddp':
+            self.set_random_port()
+            self.accelerator_backend = DDPBackend(self)
+            results = self.accelerator_backend.spawn_ddp_children(model)
 
-            # torchelastic or general non_slurm ddp
-            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
-                task = int(os.environ['LOCAL_RANK'])
-                self.accelerator_backend = DDPBackend(self)
-                self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
-
-            elif self.distributed_backend == 'ddp_cpu':
-                self.accelerator_backend = DDPSpawnBackend(self)
-                self.accelerator_backend.setup()
-                self.accelerator_backend.train(model, nprocs=self.num_processes)
-                results = self.accelerator_backend.teardown(model)
-
-            elif self.distributed_backend == 'ddp_spawn':
-                self.accelerator_backend = DDPSpawnBackend(self)
-                self.accelerator_backend.setup()
-                self.accelerator_backend.train(model, nprocs=self.num_processes)
-                results = self.accelerator_backend.teardown(model)
-
-            elif self.distributed_backend == 'ddp':
-                self.set_random_port()
-                self.accelerator_backend = DDPBackend(self)
-                results = self.accelerator_backend.spawn_ddp_children(model)
-
+        # dp
         elif self.use_dp:
             self.accelerator_backend = DataParallelBackend(self)
             self.accelerator_backend.setup(model)
