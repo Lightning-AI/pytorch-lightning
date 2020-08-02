@@ -263,7 +263,8 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
         pytest.param(1.0, 1.0, 1.0),
     ]
 )
-def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
+def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
+                                                    limit_val_batches, limit_test_batches):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent"""
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
