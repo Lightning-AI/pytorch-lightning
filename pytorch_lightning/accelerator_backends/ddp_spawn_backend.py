@@ -60,7 +60,7 @@ class DDPSpawnBackend(object):
         self.trainer.model = model
         return results
 
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
 
@@ -68,15 +68,10 @@ class DDPSpawnBackend(object):
             process_idx:
             mp_queue: multiprocessing queue
             model:
-            is_master:
-            proc_offset:
 
         Returns:
 
         """
-        # offset the process id if requested
-        process_idx = process_idx + proc_offset
-
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
@@ -126,11 +121,6 @@ class DDPSpawnBackend(object):
         # copy model to each gpu
         if self.trainer.on_gpu:
             gpu_idx = process_idx
-            if is_master:
-                # source of truth is cuda for gpu idx
-                gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-                gpu_idx = int(gpus[self.trainer.local_rank])
-
             self.trainer.root_gpu = gpu_idx
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
