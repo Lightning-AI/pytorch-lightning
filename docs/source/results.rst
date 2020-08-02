@@ -10,6 +10,8 @@ the loops as they are and do not use the `EvalResult` or `TrainResult` objects.
 
 .. note:: These objects are optional and should only be used if you don't need full control of the loops.
 
+------------------
+
 Training loop example
 ---------------------
 We can simplify the following multi-method training loop:
