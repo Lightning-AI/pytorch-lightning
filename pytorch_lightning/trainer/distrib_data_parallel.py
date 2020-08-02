@@ -462,6 +462,7 @@ class TrainerDDPMixin(ABC):
 
         # since this script sets the visible devices we replace the gpus flag with a number
         num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
+        import pdb; pdb.set_trace()
 
         if '--gpus' in command:
             gpu_flag_idx = command.index('--gpus')
