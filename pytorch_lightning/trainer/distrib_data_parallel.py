@@ -165,15 +165,6 @@ else:
 
 
 try:
-    from hydra.utils import to_absolute_path, get_original_cwd
-    from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
-
-
-try:
     import torch_xla
 except ImportError:
     XLA_AVAILABLE = False
