@@ -52,7 +52,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.accelerator_backends import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackendTemp)
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend)
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -982,7 +982,7 @@ class Trainer(
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
 
-            self.accelerator_backend = DDPBackendTemp(self)
+            self.accelerator_backend = DDPBackend(self)
             self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
 
         elif self.use_ddp:
@@ -992,13 +992,13 @@ class Trainer(
 
             if self.is_slurm_managing_tasks:
                 task = int(os.environ['SLURM_LOCALID'])
-                self.accelerator_backend = DDPBackendTemp(self)
+                self.accelerator_backend = DDPBackend(self)
                 self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
 
             # torchelastic or general non_slurm ddp
             elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
                 task = int(os.environ['LOCAL_RANK'])
-                self.accelerator_backend = DDPBackendTemp(self)
+                self.accelerator_backend = DDPBackend(self)
                 self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
 
             elif self.distributed_backend == 'ddp_cpu':
@@ -1015,7 +1015,7 @@ class Trainer(
 
             elif self.distributed_backend == 'ddp':
                 self.set_random_port()
-                self.accelerator_backend = DDPBackendTemp(self)
+                self.accelerator_backend = DDPBackend(self)
                 results = self.accelerator_backend.spawn_ddp_children(model)
 
         elif self.use_dp:
