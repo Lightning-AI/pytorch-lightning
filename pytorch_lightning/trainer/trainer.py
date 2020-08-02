@@ -309,7 +309,7 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
-            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer 
+            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
                 sequence.
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
@@ -324,9 +324,9 @@ class Trainer(
                 rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this 
-                will toggled automatically when ddp is used. By default it will add ``shuffle=True`` for 
-                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it, 
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
+                will toggled automatically when ddp is used. By default it will add ``shuffle=True`` for
+                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
                 you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
 
             benchmark: If true enables cudnn.benchmark.
