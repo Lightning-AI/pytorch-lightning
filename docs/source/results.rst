@@ -38,6 +38,8 @@ using the equivalent syntax via the `TrainResult` object:
         result.log('train_loss', loss, prog_bar=True)
         return result
 
+--------------------
+
 Validation loop example
 -----------------------
 We can replace the following validation/test loop:
