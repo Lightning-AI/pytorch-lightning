@@ -196,6 +196,7 @@ class TrainerDDPMixin(ABC):
     node_rank: int
     tpu_cores: int
     testing: bool
+    global_rank: int
     datamodule: Optional[LightningDataModule]
 
     @property
