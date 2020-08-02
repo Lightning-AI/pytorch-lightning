@@ -371,6 +371,37 @@ class TrainResult(Result):
         """
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
+    def log_dict(
+            self,
+            dictionary: dict,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
+    ):
+        """
+        Log a dictonary of values at once
+
+        Example::
+
+            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
+            result.log_dict(values)
+
+        Args:
+            dictionary:
+            value:
+            prog_bar:
+            logger:
+            on_step:
+            on_epoch:
+            reduce_fx:
+            enable_graph:
+        """
+        for k, v in dictionary.items():
+            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+
 
 class EvalResult(Result):
 
@@ -447,6 +478,37 @@ class EvalResult(Result):
             enable_graph: if True, will not auto detach the graph :
         """
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+
+    def log_dict(
+            self,
+            dictionary: dict,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            enable_graph: bool = False,
+    ):
+        """
+        Log a dictonary of values at once
+
+        Example::
+
+            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
+            result.log_dict(values)
+
+        Args:
+            dictionary:
+            value:
+            prog_bar:
+            logger:
+            on_step:
+            on_epoch:
+            reduce_fx:
+            enable_graph:
+        """
+        for k, v in dictionary.items():
+            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
     def get_callback_metrics(self) -> dict:
         result = {
