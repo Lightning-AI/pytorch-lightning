@@ -184,6 +184,7 @@ class Trainer(
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
+        sync_bn_backend: str = 'torch',
         precision: int = 32,
         weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
         weights_save_path: Optional[str] = None,
@@ -296,7 +297,9 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
+            sync_bn_backend: Backend used for sync batchnorm.
+
+            precision: Full precision (32), half precision (16).
 
             weights_summary: Prints a summary of the weights when training begins.
 

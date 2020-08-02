@@ -957,6 +957,30 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
+    def configure_sync_bn(self, model: 'LightningModule', backend: str = 'torch') -> 'LightningModule':
+        """
+        Add global batchnorm for a model spread across multiple GPUs and nodes.
+
+        Override to synchronize batchnorm between specific process groups instead
+        of the whole world.
+
+        Args:
+            model: pointer to current :class:`LightningModule`.
+            backend: select between 'torch' and 'apex'.
+
+        Return:
+            LightningModule with batchnorm layers converted to sync batchnorm
+        """
+        # process_group = None defaults to whole world in both cases
+        if backend == 'torch':
+            return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
+        elif backend == 'apex':
+            import apex
+
+            return apex.parallel.convert_syncbn_model(model, process_group=None)
+        else:
+            raise ValueError("only torch and apex options are supported for sync_batchnorm at the moment.")
+
     def configure_apex(
         self, amp: object, model: 'LightningModule', optimizers: List[Optimizer], amp_level: str
     ) -> Tuple['LightningModule', List[Optimizer]]:
