@@ -462,7 +462,6 @@ class TrainerDDPMixin(ABC):
 
         # since this script sets the visible devices we replace the gpus flag with a number
         num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
-        import pdb; pdb.set_trace()
 
         if '--gpus' in command:
             gpu_flag_idx = command.index('--gpus')
@@ -554,9 +553,14 @@ class TrainerDDPMixin(ABC):
         # copy model to each gpu
         if self.on_gpu:
             gpu_idx = process_idx
+
+            # when using ddp, the master process (proc 0) continues running as the main one
+            # this means that the local rank will always be 0
+            # (even if cuda visible devices has other visible gpus)
+            # this means that the master process needs to pull the 0th visible index as the device number
             if is_master:
-                # source of truth is cuda for gpu idx
-                gpu_idx = self.local_rank
+                available_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+                gpu_idx = int(available_gpus[self.local_rank])
 
             self.root_gpu = gpu_idx
             torch.cuda.set_device(self.root_gpu)
