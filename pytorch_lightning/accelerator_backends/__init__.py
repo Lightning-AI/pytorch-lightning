@@ -3,3 +3,5 @@ from pytorch_lightning.accelerator_backends.tpu_backend import TPUBackend
 from pytorch_lightning.accelerator_backends.dp_backend import DataParallelBackend
 from pytorch_lightning.accelerator_backends.ddp_spawn_backend import DDPSpawnBackend
 from pytorch_lightning.accelerator_backends.cpu_backend import CPUBackend
+from pytorch_lightning.accelerator_backends.ddp_backend import DDPBackend
+from pytorch_lightning.accelerator_backends.ddp2_backend import DDP2Backend
