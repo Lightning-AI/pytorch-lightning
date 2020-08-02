@@ -378,6 +378,7 @@ class Trainer(
 
         # training state
         self.model = None
+        self.datamodule = None
         self.testing = False
         self.prepare_data_per_node = prepare_data_per_node
         self.lr_schedulers = []
@@ -941,7 +942,7 @@ class Trainer(
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.__attach_datamodule(model, datamodule)
+        self.__attach_datamodule(model, datamodule, 'fit')
 
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
@@ -954,6 +955,8 @@ class Trainer(
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
+            if datamodule is not None:
+                datamodule.prepare_data()
             model.prepare_data()
             self._is_data_prepared = True
 
@@ -1052,10 +1055,14 @@ class Trainer(
         return results or 1
 
     def can_prepare_data(self):
+        should_call_dm_prepare_data = True
+        if self.datamodule is not None and self.is_overridden('prepare_data', self.datamodule):
+            should_call_dm_prepare_data = not self.datamodule.has_prepared_data
+
         if self.prepare_data_per_node:
-            return self.local_rank == 0
+            return self.local_rank == 0 and should_call_dm_prepare_data
         else:
-            return self.node_rank == 0 and self.local_rank == 0
+            return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -1069,19 +1076,28 @@ class Trainer(
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
-    def __attach_datamodule(self, model, datamodule=None):
+    def __attach_datamodule(self, model, datamodule, stage):
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
+
+            # If datamodule.setup('test') has not been called yet, call it
+            # if stage == 'test':
+            #     if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
+            #         datamodule.setup('test')
+
+            # Override loader hooks
             if self.is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
             if self.is_overridden('val_dataloader', datamodule):
                 model.val_dataloader = datamodule.val_dataloader
             if self.is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+
+            self.datamodule = datamodule
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
@@ -1279,9 +1295,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model or self.get_model(), datamodule)
-
-        self.setup('test')
+        self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -1294,7 +1308,6 @@ class Trainer(
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
-        model.setup('test')
 
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
@@ -1340,8 +1353,6 @@ class Trainer(
         return results
 
     def __test_given_model(self, model, test_dataloaders):
-        # setup hook
-        model.setup('test')
 
         # attach data
         if test_dataloaders is not None:
@@ -1369,6 +1380,16 @@ class Trainer(
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
+
+    def call_setup_hook(self, model):
+        # call setup after the ddp process has connected
+        stage_name = 'test' if self.testing else 'fit'
+        if self.datamodule is not None:
+            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
+            if not called:
+                self.datamodule.setup(stage_name)
+        self.setup(stage_name)
+        model.setup(stage_name)
 
 
 class _PatchDataLoader(object):

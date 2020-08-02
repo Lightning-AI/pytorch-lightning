@@ -33,9 +33,7 @@ class DataParallelBackend(object):
 
     def setup(self, model):
         # call setup after the ddp process has connected
-        if not self.trainer.testing:
-            self.trainer.setup('fit')
-            model.setup('fit')
+        self.trainer.call_setup_hook(model)
 
         # put model on correct device
         model.cuda(self.trainer.root_gpu)

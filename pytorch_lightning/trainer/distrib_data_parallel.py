@@ -145,6 +145,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 
 
@@ -204,10 +205,15 @@ class TrainerDDPMixin(ABC):
     node_rank: int
     tpu_cores: int
     testing: bool
+    datamodule: Optional[LightningDataModule]
 
     @property
     @abstractmethod
     def is_global_zero(self) -> bool:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def call_setup_hook(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @property
@@ -530,9 +536,7 @@ class TrainerDDPMixin(ABC):
         model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # call setup after the ddp process has connected
-        if not self.testing:
-            self.setup('fit')
-            model.setup('fit')
+        self.call_setup_hook(model)
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero:

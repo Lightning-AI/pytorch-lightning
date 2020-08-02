@@ -102,9 +102,8 @@ class TPUBackend(object):
         """
         if not trainer:
             trainer = self.trainer
-        if not trainer.testing:
-            trainer.setup('fit')
-            model.setup('fit')
+
+        trainer.call_setup_hook(model)
 
         # setup TPU training
         self.__setup_tpu_training(model, trainer)

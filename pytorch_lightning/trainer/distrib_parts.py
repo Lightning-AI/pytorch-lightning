@@ -89,6 +89,10 @@ class TrainerDPMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
+    def call_setup_hook(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
     def run_pretrain_routine(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -180,9 +184,7 @@ class TrainerDPMixin(ABC):
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        if not self.testing:
-            self.setup('fit')
-            model.setup('fit')
+        self.call_setup_hook(model)
 
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
