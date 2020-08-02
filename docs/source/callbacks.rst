@@ -20,6 +20,7 @@ An overall Lightning system should have:
 2. LightningModule for all research code.
 3. Callbacks for non-essential code.
 
+|
 
 Example:
 
