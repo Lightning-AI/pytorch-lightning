@@ -969,17 +969,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             backend: select between 'torch' and 'apex'.
 
         Return:
-            LightningModule with batchnorm layers converted to sync batchnorm
+            LightningModule with batchnorm layers converted to synchronized
+            between process groups
         """
         # process_group = None defaults to whole world in both cases
         if backend == 'torch':
-            return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
+            model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
         elif backend == 'apex':
             import apex
 
-            return apex.parallel.convert_syncbn_model(model, process_group=None)
+            model = apex.parallel.convert_syncbn_model(model, process_group=None)
         else:
             raise ValueError("only torch and apex options are supported for sync_batchnorm at the moment.")
+
+        return model
 
     def configure_apex(
         self, amp: object, model: 'LightningModule', optimizers: List[Optimizer], amp_level: str
