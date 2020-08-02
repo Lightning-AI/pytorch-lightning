@@ -31,7 +31,7 @@ class GPUBackend(object):
     def setup(self, model):
 
         # call setup
-        self.trainer.call_setup_hook()
+        self.trainer.call_setup_hook(model)
 
         model.cuda(self.trainer.root_gpu)
 

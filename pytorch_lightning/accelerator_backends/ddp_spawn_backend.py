@@ -106,7 +106,7 @@ class DDPSpawnBackend(object):
         )
 
         # call setup after the ddp process has connected
-        self.trainer.call_setup_hook()
+        self.trainer.call_setup_hook(model)
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero:

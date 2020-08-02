@@ -536,7 +536,7 @@ class TrainerDDPMixin(ABC):
         model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
 
         # call setup after the ddp process has connected
-        self.call_setup_hook()
+        self.call_setup_hook(model)
 
         # on world_size=0 let everyone know training is starting
         if self.is_global_zero:

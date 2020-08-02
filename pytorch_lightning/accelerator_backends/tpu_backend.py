@@ -103,7 +103,7 @@ class TPUBackend(object):
         if not trainer:
             trainer = self.trainer
 
-        trainer.call_setup_hook()
+        trainer.call_setup_hook(model)
 
         # setup TPU training
         self.__setup_tpu_training(model, trainer)

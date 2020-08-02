@@ -1381,7 +1381,7 @@ class Trainer(
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
 
-    def call_setup_hook(self):
+    def call_setup_hook(self, model):
         # call setup after the ddp process has connected
         stage_name = 'test' if self.testing else 'fit'
         if self.datamodule is not None:
@@ -1389,8 +1389,6 @@ class Trainer(
             if not called:
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
-
-        model = self.get_model()
         model.setup(stage_name)
 
 
