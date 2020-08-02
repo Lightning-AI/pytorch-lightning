@@ -256,15 +256,11 @@ def test_multiple_dataloaders_passed_to_fit(tmpdir, ckpt_path):
         f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
-@pytest.mark.parametrize(
-    ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
-    [
-        pytest.param(0.0, 0.0, 0.0),
-        pytest.param(1.0, 1.0, 1.0),
-    ]
-)
-def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
-                                                    limit_val_batches, limit_test_batches):
+@pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
+    pytest.param(0.0, 0.0, 0.0),
+    pytest.param(1.0, 1.0, 1.0),
+])
+def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent"""
     model = EvalModelTemplate()
     model.train_dataloader = model.train_dataloader__infinite
@@ -288,13 +284,10 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
     assert trainer.num_test_batches[0] == 0 if limit_test_batches == 0.0 else float('inf')
 
 
-@pytest.mark.parametrize(
-    ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
-    [
-        pytest.param(0, 0, 0),
-        pytest.param(10, 10, 10),
-    ]
-)
+@pytest.mark.parametrize(['limit_train_batches', 'limit_val_batches', 'limit_test_batches'], [
+    pytest.param(0, 0, 0),
+    pytest.param(10, 10, 10),
+])
 def test_inf_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
     model = EvalModelTemplate()
