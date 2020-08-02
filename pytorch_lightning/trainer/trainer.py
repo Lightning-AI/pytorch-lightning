@@ -988,7 +988,7 @@ class Trainer(
         use_ddp_spawn = self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']
 
         # -------------------
-        # route ddp
+        # route training mode
         # -------------------
         # DDP2 (cluster only)
         if self.use_ddp2:
