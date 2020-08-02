@@ -1,8 +1,9 @@
 Result
 ======
-Lightning has two results objects `TrainResult` and `EvalResult` which can remove the need for
-a `_step_end` or `_epoch_end` loop. If these loops are only used to aggregate logging statistics,
-then replace those loops with the respective result object.
+Lightning has two results objects `TrainResult` and `EvalResult`.
+
+When your `_step_end` or `_epoch_end` does nothing but aggregate metrics to log, you can delete those
+methods and use a Result object instead.
 
 However, if you need fine-grain control to do more than logging or a complex aggregation, then keep
 the loops as they are and do not use the `EvalResult` or `TrainResult` objects.
