@@ -391,7 +391,6 @@ class TrainResult(Result):
 
         Args:
             dictionary:
-            value:
             prog_bar:
             logger:
             on_step:
@@ -499,7 +498,6 @@ class EvalResult(Result):
 
         Args:
             dictionary:
-            value:
             prog_bar:
             logger:
             on_step:
