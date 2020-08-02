@@ -134,7 +134,7 @@ class DDPBackendTemp(object):
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        model.trainer = self
+        model.trainer = self.trainer
         model.init_ddp_connection(
             self.trainer.global_rank,
             self.trainer.world_size,
