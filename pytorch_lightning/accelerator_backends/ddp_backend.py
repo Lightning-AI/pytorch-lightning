@@ -128,15 +128,9 @@ class DDPBackend(object):
             self.trainer.progress_bar_callback.disable()
 
         # determine which process we are and world size
-        if self.trainer.use_ddp:
-            self.trainer.local_rank = process_idx
-            self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-            self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-        elif self.trainer.use_ddp2:
-            self.trainer.local_rank = self.trainer.node_rank
-            self.trainer.global_rank = self.trainer.node_rank
-            self.trainer.world_size = self.trainer.num_nodes
+        self.trainer.local_rank = process_idx
+        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
+        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
@@ -199,8 +193,6 @@ class DDPBackend(object):
         # DDP2 uses all GPUs on the machine
         if self.trainer.distributed_backend == 'ddp' or self.trainer.distributed_backend == 'ddp_spawn':
             device_ids = [self.trainer.root_gpu]
-        elif self.trainer.use_ddp2:
-            device_ids = self.trainer.data_parallel_device_ids
         else:  # includes ddp_cpu
             device_ids = None
 
