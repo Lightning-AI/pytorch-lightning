@@ -15,21 +15,14 @@ We can simplify the following multi-method training loop:
 
 .. code-block:: python
 
-    def training_step(self, batch_subset, batch_idx):
-        return {'train_step_preds': pred, 'train_step_target': target}
+    def training_step(self, batch, batch_idx):
+        return {'loss': loss}
 
-    def training_step_end(self, all_batch_outputs):
-        batch_acc = 0
-        batch_preds = torch.stack([x['train_step_preds'] for x in all_batch_outputs])
-        batch_targets = torch.stack([x['train_step_target'] for x in all_batch_outputs])
-
-        batch_loss = F.cross_entropy(batch_preds, batch_targets)
-        batch_acc = metrics.functional.accuracy(batch_preds, batch_targets)
-
+    def training_epoch_end(self, training_step_outputs):
+        epoch_loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
         return {
-            'loss': batch_loss,
-            'log': {'train_loss': batch_loss, 'batch_accuracy': batch_acc},
-            'progress_bar': {'train_loss': batch_loss, 'batch_accuracy': batch_acc}
+            'log': {'epoch_loss': epoch_loss},
+            'progress_bar': {'epoch_loss': epoch_loss}
         }
 
 using the equivalent syntax via the `TrainResult` object:
@@ -38,11 +31,8 @@ using the equivalent syntax via the `TrainResult` object:
 
     def training_step(self, batch_subset, batch_idx):
         loss = ...
-        batch_subset_acc = ...
-
         result = pl.TrainResult(minimize=loss)
         result.log('train_loss', loss, prog_bar=True)
-        result.log('batch_acc', batch_subset_acc, prog_bar=True)
         return result
 
 Validation loop example
