@@ -301,6 +301,30 @@ class TrainResult(Result):
             checkpoint_on: Union[Tensor, bool] = None,
             hiddens: Optional[Tensor] = None,
     ):
+        """
+        Used in train loop to auto-log to a logger or progress bar without needing to define
+        a train_step_end or train_epoch_end method
+
+        Example::
+
+            def training_step(self, batch, batch_idx):
+                loss = ...
+                result = pl.TrainResult(loss)
+                result.log('train_loss', loss)
+                return result
+
+            # without val/test loop can model checkpoint or early stop
+            def training_step(self, batch, batch_idx):
+                loss = ...
+                result = pl.TrainResult(loss, early_stop_on=loss, checkpoint_on=loss)
+                result.log('train_loss', loss)
+                return result
+
+        Args:
+            early_stop_on:
+            checkpoint_on:
+            hiddens:
+        """
 
         super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
 
@@ -315,6 +339,36 @@ class TrainResult(Result):
             reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
     ):
+        """
+        Log a key, value
+
+        Example::
+
+            result.log('train_loss', loss)
+
+            # defaults used
+            result.log(
+                name,
+                value,
+                on_step=True,
+                on_epoch=False,
+                logger=True,
+                prog_bar=False,
+                reduce_fx=torch.mean,
+                enable_graph=False
+            )
+
+
+        Args:
+            name: key name
+            value: value name
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the training loop aggregated
+            reduce_fx: Torch.mean by default
+            enable_graph: if True, will not auto detach the graph
+        """
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
 
@@ -326,6 +380,29 @@ class EvalResult(Result):
             checkpoint_on: Optional[Tensor] = None,
             hiddens: Optional[Tensor] = None,
     ):
+        """
+        Used in val/train loop to auto-log to a logger or progress bar without needing to define
+        a _step_end or _epoch_end method
+
+        Example::
+
+            def validation_step(self, batch, batch_idx):
+                loss = ...
+                result = EvalResult()
+                result.log('val_loss', loss)
+                return result
+
+            def test_step(self, batch, batch_idx):
+                loss = ...
+                result = EvalResult()
+                result.log('val_loss', loss)
+                return result
+
+        Args:
+            early_stop_on:
+            checkpoint_on:
+            hiddens:
+        """
 
         super().__init__(None, early_stop_on, checkpoint_on, hiddens)
 
@@ -340,6 +417,35 @@ class EvalResult(Result):
             reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
     ):
+        """
+        Log a key, value
+
+        Example::
+
+            result.log('val_loss', loss)
+
+            # defaults used
+            result.log(
+                name,
+                value,
+                on_step=False,
+                on_epoch=True,
+                logger=True,
+                prog_bar=False,
+                reduce_fx=torch.mean
+            )
+
+
+        Args:
+            name: key name
+            value: value name
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the validation loop or test loop aggregated
+            reduce_fx: Torch.mean by default
+            enable_graph: if True, will not auto detach the graph :
+        """
         super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
 
     def get_callback_metrics(self) -> dict:

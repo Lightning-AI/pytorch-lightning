@@ -215,7 +215,7 @@ Logging has the same behavior as `TrainResult` but the logging defaults are diff
     TrainResult().log('val', val, on_step=True, on_epoch=False, logger=True, prog_bar=False, reduce_fx=torch.mean)
 
     # EvalResult logs by default at the end of an epoch only
-    TrainResult().log('val', val, on_step=False, on_epoch=True, logger=True, prog_bar=False, reduce_fx=torch.mean)
+    EvalResult().log('val', val, on_step=False, on_epoch=True, logger=True, prog_bar=False, reduce_fx=torch.mean)
 
 Val/Test loop
 ^^^^^^^^^^^^^
