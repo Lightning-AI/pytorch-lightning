@@ -166,18 +166,18 @@ class ModelIO(object):
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
             for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
                 if _old_hparam_key in checkpoint:
-                    cls_kwargs_old.update({_old_hparam_key: checkpoint[_old_hparam_key]})
+                    cls_kwargs_old.update(checkpoint[_old_hparam_key])
 
             # 2. Try to restore model hparams from checkpoint using the new key
             _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-            cls_kwargs_old.update({_new_hparam_key: checkpoint[_new_hparam_key]})
+            cls_kwargs_old.update(checkpoint[_new_hparam_key])
 
             # 3. Ensure that `cls_kwargs_old` has the right type
             cls_kwargs_old = _convert_loaded_hparams(cls_kwargs_old, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             # 4. Update cls_kwargs_new with cls_kwargs_old
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-            if args_name and args_name in cls_init_args_name:
+            if args_name in cls_init_args_name and args_name != 'kwargs':
                 cls_kwargs_new.update({args_name: cls_kwargs_old})
             else:
                 cls_kwargs_new.update(cls_kwargs_old)
@@ -192,7 +192,7 @@ class ModelIO(object):
         else:
             _cls_args_new, _cls_kwargs_new = cls_args_new, cls_kwargs_new
 
-        model = cls(*cls_args_new, **cls_kwargs_new)
+        model = cls(*_cls_args_new, **_cls_kwargs_new)
 
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'], strict=strict)
