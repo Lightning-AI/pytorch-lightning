@@ -983,15 +983,15 @@ class Trainer(
 
         # SLURM ddp
         elif self.use_ddp and self.is_slurm_managing_tasks:
-            task = int(os.environ['SLURM_LOCALID'])
             self.accelerator_backend = DDPBackend(self)
-            self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
+            self.accelerator_backend.slurm_setup()
+            self.accelerator_backend.train(model)
 
         # torchelastic or general non_slurm ddp
         elif self.use_ddp and 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
-            task = int(os.environ['LOCAL_RANK'])
             self.accelerator_backend = DDPBackend(self)
-            self.accelerator_backend.ddp_train(process_idx=task, mp_queue=None, model=model)
+            self.accelerator_backend.torchelastic_setup()
+            self.accelerator_backend.train(model)
 
         # regular ddp using .spawn
         elif self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']:

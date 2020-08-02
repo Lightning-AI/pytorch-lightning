@@ -30,6 +30,16 @@ class DDPBackend(object):
 
     def __init__(self, trainer):
         self.trainer = trainer
+        self.task_idx = None
+
+    def slurm_setup(self):
+        self.task_idx = int(os.environ['SLURM_LOCALID'])
+
+    def torchelastic_setup(self):
+        self.task_idx = int(os.environ['LOCAL_RANK'])
+
+    def train(self, model):
+        self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def spawn_ddp_children(self, model):
         port = os.environ['MASTER_PORT']
