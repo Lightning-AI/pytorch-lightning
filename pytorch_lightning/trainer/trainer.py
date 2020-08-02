@@ -295,7 +295,7 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            precision: Full precision (32), half precision (16).
+            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -309,12 +309,13 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
-            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
+            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer 
+                sequence.
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
 
-            profiler:  To profile individual steps during training and assist in
+            profiler:  To profile individual steps during training and assist in identifying bottlenecks.
 
             reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
 
@@ -323,12 +324,14 @@ class Trainer(
                 rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement.
-                If not specified this will toggled automatically ddp is used
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this 
+                will toggled automatically when ddp is used. By default it will add ``shuffle=True`` for 
+                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it, 
+                you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
 
             benchmark: If true enables cudnn.benchmark.
 
-            deterministic: If true enables cudnn.deterministic
+            deterministic: If true enables cudnn.deterministic.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
