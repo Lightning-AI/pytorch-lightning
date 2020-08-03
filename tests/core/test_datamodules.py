@@ -312,4 +312,5 @@ def test_full_loop_ddp_spawn(tmpdir):
     # test
     result = trainer.test(datamodule=dm)
     result = result[0]
+    print(result['test_acc'])
     assert result['test_acc'] > 0.8
