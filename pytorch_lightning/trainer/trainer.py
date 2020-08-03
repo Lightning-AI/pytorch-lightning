@@ -1370,9 +1370,11 @@ class Trainer(
         # sets up testing so we short circuit to eval
         self.set_random_port(force=True)
         self.testing = True
+        os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
         results = self.fit(model)
         self.testing = False
+        del os.environ['PL_TESTING_MODE']
 
         # teardown
         if self.is_function_implemented('teardown'):
