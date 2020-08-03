@@ -1334,7 +1334,7 @@ class Trainer(
             model.load_state_dict(ckpt['state_dict'])
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model, datamodule, 'test')
+        self.__attach_datamodule(model, datamodule)
 
         # attach dataloaders
         if test_dataloaders is not None:
@@ -1360,7 +1360,7 @@ class Trainer(
     def __test_given_model(self, model, test_dataloaders, datamodule):
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model, datamodule, 'test')
+        self.__attach_datamodule(model, datamodule)
 
         # attach data
         if test_dataloaders is not None:
