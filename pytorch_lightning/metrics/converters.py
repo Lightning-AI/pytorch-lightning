@@ -241,7 +241,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
     """
 
     if torch.distributed.is_available() and torch.distributed.is_initialized():
-        divide_by_process_number = False
+        divide_by_world_size = False
 
         if group is None:
             group = torch.distributed.group.WORLD
@@ -257,7 +257,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
         torch.distributed.all_reduce(result, op=reduce_op, group=group,
                                      async_op=False)
 
-        if divide_by_process_number:
+        if divide_by_world_size:
             result = result / torch.distributed.get_world_size(group)
 
     return result
