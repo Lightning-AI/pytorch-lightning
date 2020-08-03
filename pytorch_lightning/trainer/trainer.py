@@ -317,7 +317,7 @@ class Trainer(
 
             profiler:  To profile individual steps during training and assist in identifying bottlenecks.
 
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence. Sets learning
