@@ -1299,19 +1299,16 @@ class Trainer(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
 
-        # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
-
         if model is not None:
-            results = self.__test_given_model(model, test_dataloaders)
+            results = self.__test_given_model(model, test_dataloaders, datamodule)
         else:
-            results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
+            results = self.__test_using_best_weights(ckpt_path, test_dataloaders, datamodule)
 
         self.teardown('test')
 
         return results
 
-    def __test_using_best_weights(self, ckpt_path, test_dataloaders):
+    def __test_using_best_weights(self, ckpt_path, test_dataloaders, datamodule):
         model = self.get_model()
 
         # if user requests the best checkpoint but we don't have it, error
@@ -1336,6 +1333,9 @@ class Trainer(
             ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
             model.load_state_dict(ckpt['state_dict'])
 
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.__attach_datamodule(model, datamodule, 'test')
+
         # attach dataloaders
         if test_dataloaders is not None:
             self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
@@ -1357,7 +1357,10 @@ class Trainer(
 
         return results
 
-    def __test_given_model(self, model, test_dataloaders):
+    def __test_given_model(self, model, test_dataloaders, datamodule):
+
+        # Attach datamodule to get setup/prepare_data added to model before the call to it below
+        self.__attach_datamodule(model, datamodule, 'test')
 
         # attach data
         if test_dataloaders is not None:
