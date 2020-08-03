@@ -14,6 +14,7 @@
 
 import torch
 
+from pytorch_lightning.core import LightningModule
 try:
     from apex import amp
 except ImportError:
@@ -30,9 +31,7 @@ class GPUBackend(object):
     def setup(self, model):
 
         # call setup
-        if not self.trainer.testing:
-            self.trainer.setup('fit')
-            model.setup('fit')
+        self.trainer.call_setup_hook(model)
 
         model.cuda(self.trainer.root_gpu)
 
@@ -45,7 +44,7 @@ class GPUBackend(object):
 
         # TODO: remove with dropping NVIDIA AMP support
         native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
-        if self.trainer.use_amp and not native_amp_available:
+        if APEX_AVAILABLE and self.trainer.use_amp and not native_amp_available:
             model = self._setup_nvidia_apex(model)
         return model
 
@@ -53,7 +52,7 @@ class GPUBackend(object):
         results = self.trainer.run_pretrain_routine(model)
         return results
 
-    def _setup_nvidia_apex(self, model):
+    def _setup_nvidia_apex(self, model: LightningModule):
         model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
         self.trainer.optimizers = optimizers
         self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

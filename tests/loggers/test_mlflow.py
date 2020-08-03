@@ -37,5 +37,5 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert set(os.listdir(tmpdir / exp_id)) == {run_id, 'meta.yaml'}
     assert 'epoch' in os.listdir(tmpdir / exp_id / run_id / 'metrics')
     assert set(os.listdir(tmpdir / exp_id / run_id / 'params')) == model.hparams.keys()
-    assert trainer.ckpt_path == trainer.weights_save_path == (tmpdir / exp_id / run_id / 'checkpoints')
-    assert set(os.listdir(trainer.ckpt_path)) == {'epoch=0.ckpt'}
+    assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / 'checkpoints')
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}

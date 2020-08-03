@@ -69,7 +69,7 @@ class TrainerDPMixin(ABC):
     use_ddp2: bool
     use_ddp: bool
     testing: bool
-    single_gpu: bool
+    use_single_gpu: bool
     root_gpu: ...
     amp_level: str
     precision: ...
@@ -79,7 +79,6 @@ class TrainerDPMixin(ABC):
     use_tpu: bool
     data_parallel_device_ids: ...
     progress_bar_callback: ...
-    tpu_id: Optional[int]
     on_colab_kaggle: str
     save_spawn_weights: Callable
     logger: ...
@@ -87,6 +86,10 @@ class TrainerDPMixin(ABC):
     @property
     @abstractmethod
     def use_amp(self) -> bool:
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def call_setup_hook(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -129,7 +132,7 @@ class TrainerDPMixin(ABC):
             m.use_ddp = self.use_ddp
             m.use_amp = self.use_amp
             m.testing = self.testing
-            m.single_gpu = self.single_gpu
+            m.use_single_gpu = self.use_single_gpu
             m.use_tpu = self.use_tpu
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
@@ -181,9 +184,7 @@ class TrainerDPMixin(ABC):
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        if not self.testing:
-            self.setup('fit')
-            model.setup('fit')
+        self.call_setup_hook(model)
 
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank

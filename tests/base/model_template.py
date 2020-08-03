@@ -73,9 +73,7 @@ class EvalModelTemplate(
         self.test_step_end_called = False
         self.test_epoch_end_called = False
 
-        # if you specify an example input, the summary will show input/output for each layer
-        # TODO: to be fixed in #1773
-        # self.example_input_array = torch.rand(5, 28 * 28)
+        self.example_input_array = torch.rand(5, 28 * 28)
 
         # build model
         self.__build_model()

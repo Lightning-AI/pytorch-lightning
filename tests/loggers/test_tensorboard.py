@@ -17,7 +17,10 @@ from tests.base import EvalModelTemplate
 def test_tensorboard_hparams_reload(tmpdir):
     model = EvalModelTemplate()
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
     trainer.fit(model)
 
     folder_path = trainer.logger.log_dir

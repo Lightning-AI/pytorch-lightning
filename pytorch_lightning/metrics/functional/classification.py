@@ -1,7 +1,6 @@
 import sys
-from collections import Sequence
 from functools import wraps
-from typing import Optional, Tuple, Callable
+from typing import Callable, Optional, Sequence, Tuple
 
 import torch
 from torch.nn import functional as F
@@ -171,11 +170,11 @@ def stat_scores_multiple_classes(
         >>> sups
         tensor([1., 0., 1., 1.])
     """
-    num_classes = get_num_classes(pred=pred, target=target,
-                                  num_classes=num_classes)
-
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
+
+    num_classes = get_num_classes(pred=pred, target=target,
+                                  num_classes=num_classes)
 
     tps = torch.zeros((num_classes,), device=pred.device)
     fps = torch.zeros((num_classes,), device=pred.device)

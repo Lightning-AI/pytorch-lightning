@@ -26,9 +26,7 @@ class CPUBackend(object):
             raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
         # call setup after the ddp process has connected
-        if not self.trainer.testing:
-            self.trainer.setup('fit')
-            model.setup('fit')
+        self.trainer.call_setup_hook(model)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well

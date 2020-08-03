@@ -2,6 +2,7 @@ import collections
 import inspect
 import os
 import re
+import tempfile
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
@@ -859,9 +860,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Override to init DDP in your own way or with your own wrapper.
         The only requirements are that:
 
-        1. On a validation batch the call goes to ``model.validation_step``.
-        2. On a training batch the call goes to ``model.training_step``.
-        3. On a testing batch, the call goes to ``model.test_step``.+
+        1. On a validation batch, the call goes to ``model.validation_step``.
+        2. On a training batch, the call goes to ``model.training_step``.
+        3. On a testing batch, the call goes to ``model.test_step``.
 
         Args:
             model: the :class:`LightningModule` currently being optimized.
@@ -1544,7 +1545,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Example:
             .. code-block:: python
 
-
                 def on_save_checkpoint(self, checkpoint):
                     # 99% of use cases you don't need to implement this method
                     checkpoint['something_cool_i_want_to_save'] = my_cool_pickable_object
@@ -1558,7 +1558,23 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
         r"""
-        Additional items to be displayed in the progress bar.
+        Implement this to override the default items displayed in the progress bar.
+        By default it includes the average loss value, split index of BPTT (if used)
+        and the version of the experiment when using a logger.
+
+        .. code-block::
+
+            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
+
+        Here is an example how to override the defaults:
+
+        .. code-block:: python
+
+            def get_progress_bar_dict(self):
+                # don't show the version number
+                items = super().get_progress_bar_dict()
+                items.pop("v_num", None)
+                return items
 
         Return:
             Dictionary with the items to be displayed in the progress bar.
@@ -1572,7 +1588,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             tqdm_dict['split_idx'] = self.trainer.split_idx
 
         if self.trainer.logger is not None and self.trainer.logger.version is not None:
-            tqdm_dict['v_num'] = self.trainer.logger.version
+            version = self.trainer.logger.version
+            # show last 4 places of long version strings
+            version = version[-4:] if isinstance(version, str) else version
+            tqdm_dict['v_num'] = version
 
         return tqdm_dict
 
@@ -1704,6 +1723,44 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             self.hparams.update(hp)
         else:
             self._hparams = hp
+
+    def to_onnx(self, file_path: str, input_sample: Optional[Tensor] = None, **kwargs):
+        """Saves the model in ONNX format
+
+        Args:
+            file_path: The path of the file the model should be saved to.
+            input_sample: A sample of an input tensor for tracing.
+            **kwargs: Will be passed to torch.onnx.export function.
+
+        Example:
+            >>> class SimpleModel(LightningModule):
+            ...     def __init__(self):
+            ...         super().__init__()
+            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+            ...
+            ...     def forward(self, x):
+            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+            ...     model = SimpleModel()
+            ...     input_sample = torch.randn((1, 64))
+            ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
+            ...     os.path.isfile(tmpfile.name)
+            True
+        """
+
+        if isinstance(input_sample, Tensor):
+            input_data = input_sample
+        elif self.example_input_array is not None:
+            input_data = self.example_input_array
+        else:
+            raise ValueError(f'input_sample and example_input_array tensors are both missing.')
+
+        if 'example_outputs' not in kwargs:
+            self.eval()
+            kwargs['example_outputs'] = self(input_data)
+
+        torch.onnx.export(self, input_data, file_path, **kwargs)
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:
