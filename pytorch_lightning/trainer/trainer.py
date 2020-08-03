@@ -430,6 +430,9 @@ class Trainer(
         self.num_nodes = num_nodes
         self.log_gpu_memory = log_gpu_memory
 
+        # sync-bn backend
+        self.sync_bn_backend = sync_bn_backend
+
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
