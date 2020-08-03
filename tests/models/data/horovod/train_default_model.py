@@ -63,7 +63,6 @@ def run_test_from_config(trainer_options):
     if trainer.global_rank > 0:
         # on higher ranks the checkpoint location is unknown
         # we want to test checkpointing on rank 0 only
-        assert not hasattr(trainer, 'ckpt_path')
         assert not trainer.checkpoint_callback.best_model_path
         return
 

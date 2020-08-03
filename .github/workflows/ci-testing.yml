@@ -40,6 +40,10 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Update Pip
+      run: |
+        pip install --quiet "pip>=20.1" --upgrade --user  # needed for get pip cacher folder
+
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
       if: runner.os == 'macOS'
@@ -50,13 +54,8 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
+        # remove Horovod from requirements
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)"
-
-    # TODO: remove after https://github.com/pytorch/pytorch/issues/32186 is resolved
-    - name: Setup Windows on Latest
-      if: runner.os == 'windows' && matrix.requires == 'latest'
-      run: |
-        python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('torch>=1.3', 'torch<1.5') ; open(fname, 'w').write(req)"
 
     # versions <= 1.3 may have issues on mac with some BLAS ops due to missing mkl (https://github.com/pytorch/pytorch/issues/18996)
     - name: Setup MacOS Minimal
@@ -73,23 +72,23 @@ jobs:
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Get pip cache
+    - name: Get pip cache dir
       id: pip-cache
       run: |
-        python -c "from pip._internal.locations import USER_CACHE_DIR; print('::set-output name=dir::' + USER_CACHE_DIR)"
+        echo "::set-output name=dir::$(pip cache dir)"
 
-    - name: Cache pip
-      uses: actions/cache@v1
+    - name: pip cache
+      uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-pip-${{ hashFiles('requirements/base.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-pip-${{ hashFiles('requirements/base.txt') }}-${{ hashFiles('requirements/extra.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-pip-
+          ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-pip-
 
     - name: Install dependencies
       run: |
         # python -m pip install --upgrade --user pip
-        pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade-strategy only-if-needed
+        pip install --requirement requirements/base.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet --upgrade
         HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --requirement ./requirements/devel.txt --quiet --upgrade-strategy "only-if-needed"
         python --version
         pip --version
@@ -97,9 +96,9 @@ jobs:
       shell: bash
 
     - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows' && matrix.python-version != '3.8'
+      if: runner.os != 'windows'
       run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')")
+        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
           HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --no-cache-dir $(grep "horovod" requirements/extra.txt)
@@ -108,7 +107,7 @@ jobs:
       shell: bash
 
     - name: Cache datasets
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file

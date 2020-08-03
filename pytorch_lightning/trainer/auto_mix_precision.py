@@ -21,12 +21,12 @@ class TrainerAMPMixin(ABC):
             log.info('Using native 16bit precision.')
             return
 
-        # TODO: replace `use_amp` by `precision` all below for v0.9.0
         if self.use_amp and not APEX_AVAILABLE:  # pragma: no-cover
             raise ModuleNotFoundError(
                 "You set `use_amp=True` but do not have apex installed."
-                "Install apex first using this guide and rerun with use_amp=True:"
-                "https://github.com/NVIDIA/apex#linux his run will NOT use 16 bit precision"
+                " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"
+                " and rerun with `use_amp=True`."
+                " This run will NOT use 16 bit precision."
             )
 
         if self.use_amp:

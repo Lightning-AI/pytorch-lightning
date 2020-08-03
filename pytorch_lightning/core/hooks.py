@@ -65,15 +65,6 @@ class ModelHooks(Module):
         If on DDP it is called on every process
         """
 
-    # TODO: remove in v0.9.0
-    def on_sanity_check_start(self):
-        """
-        Called before starting evaluation.
-
-        Warning:
-            Deprecated. Will be removed in v0.9.0.
-        """
-
     def on_train_start(self) -> None:
         """
         Called at the beginning of training before sanity check.
