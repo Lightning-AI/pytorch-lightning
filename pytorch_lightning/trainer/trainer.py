@@ -325,7 +325,7 @@ class Trainer(
                 To use a different key, set a string instead of True with the key name.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
-                will toggled automatically when ddp is used. By default it will add ``shuffle=True`` for
+                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
                 you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
 
