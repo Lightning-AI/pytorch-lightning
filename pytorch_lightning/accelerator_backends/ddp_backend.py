@@ -58,17 +58,14 @@ class DDPBackend(object):
     def spawn_ddp_children(self, model):
         port = os.environ['MASTER_PORT']
 
-        master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
+        master_address = os.environ.get('MASTER_ADDR', '127.0.0.1')
         os.environ['MASTER_PORT'] = f'{port}'
         os.environ['MASTER_ADDR'] = f'{master_address}'
 
         # allow the user to pass the node rank
         node_rank = '0'
-        if 'NODE_RANK' in os.environ:
-            node_rank = os.environ['NODE_RANK']
-        if 'GROUP_RANK' in os.environ:
-            node_rank = os.environ['GROUP_RANK']
-
+        node_rank = os.environ.get('NODE_RANK', node_rank)
+        node_rank = os.environ.get('GROUP_RANK', node_rank)
         os.environ['NODE_RANK'] = node_rank
         os.environ['LOCAL_RANK'] = '0'
 
