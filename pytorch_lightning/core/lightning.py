@@ -39,7 +39,7 @@ def run_once(fn):
     def wrapper(*args, **kwargs):
         if not wrapper.has_run:
             wrapper.has_run = True
-            print('running it once on ', rank_zero_only.rank)
+            # print('running it once on ', rank_zero_only.rank)
             fn(*args, **kwargs)
     wrapper.has_run = False
     return wrapper
