@@ -165,15 +165,6 @@ else:
 
 
 try:
-    from hydra.utils import to_absolute_path, get_original_cwd
-    from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
-
-
-try:
     import torch_xla
 except ImportError:
     XLA_AVAILABLE = False
@@ -205,6 +196,7 @@ class TrainerDDPMixin(ABC):
     node_rank: int
     tpu_cores: int
     testing: bool
+    global_rank: int
     datamodule: Optional[LightningDataModule]
 
     @property
@@ -428,175 +420,6 @@ class TrainerDDPMixin(ABC):
             default_port = os.environ.get('MASTER_PORT', default_port)
 
         os.environ['MASTER_PORT'] = str(default_port)
-
-    def spawn_ddp_children(self, model):
-        port = os.environ['MASTER_PORT']
-
-        master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
-        os.environ['MASTER_PORT'] = f'{port}'
-        os.environ['MASTER_ADDR'] = f'{master_address}'
-
-        # allow the user to pass the node rank
-        node_rank = '0'
-        if 'NODE_RANK' in os.environ:
-            node_rank = os.environ['NODE_RANK']
-        if 'GROUP_RANK' in os.environ:
-            node_rank = os.environ['GROUP_RANK']
-
-        os.environ['NODE_RANK'] = node_rank
-        os.environ['LOCAL_RANK'] = '0'
-
-        # when user is using hydra find the absolute path
-        path_lib = abspath if not HYDRA_AVAILABLE else to_absolute_path
-
-        # pull out the commands used to run the script and resolve the abs file path
-        command = sys.argv
-        try:
-            full_path = path_lib(command[0])
-        except Exception as e:
-            full_path = abspath(command[0])
-
-        command[0] = full_path
-        # use the same python interpreter and actually running
-        command = [sys.executable] + command
-
-        # since this script sets the visible devices we replace the gpus flag with a number
-        num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
-
-        if '--gpus' in command:
-            gpu_flag_idx = command.index('--gpus')
-            command[gpu_flag_idx + 1] = f'{num_gpus}'
-
-        os.environ['WORLD_SIZE'] = f'{num_gpus * self.num_nodes}'
-
-        self.interactive_ddp_procs = []
-        for local_rank in range(1, self.num_processes):
-            env_copy = os.environ.copy()
-            env_copy['LOCAL_RANK'] = f'{local_rank}'
-
-            # start process
-            # if hydra is available and initialized, make sure to set the cwd correctly
-            cwd: Optional[str] = None
-            if HYDRA_AVAILABLE:
-                if HydraConfig.initialized():
-                    cwd = get_original_cwd()
-            proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.interactive_ddp_procs.append(proc)
-
-            # starting all processes at once can cause issues
-            # with dataloaders delay between 1-10 seconds
-            delay = np.random.uniform(1, 5, 1)[0]
-            sleep(delay)
-
-        local_rank = 0
-        results = self.ddp_train(local_rank, mp_queue=None, model=model, is_master=True)
-        del os.environ['WORLD_SIZE']
-
-        return results
-
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
-        """
-        Entry point for ddp
-
-        Args:
-            process_idx:
-            mp_queue: multiprocessing queue
-            model:
-            is_master:
-            proc_offset:
-
-        Returns:
-
-        """
-        # offset the process id if requested
-        process_idx = process_idx + proc_offset
-
-        # show progressbar only on progress_rank 0
-        if (self.node_rank != 0 or process_idx != 0) and self.progress_bar_callback is not None:
-            self.progress_bar_callback.disable()
-
-        # determine which process we are and world size
-        if self.use_ddp:
-            self.local_rank = process_idx
-            self.global_rank = self.node_rank * self.num_processes + process_idx
-            self.world_size = self.num_nodes * self.num_processes
-
-        elif self.use_ddp2:
-            self.local_rank = self.node_rank
-            self.global_rank = self.node_rank
-            self.world_size = self.num_nodes
-
-        # set warning rank
-        rank_zero_only.rank = self.global_rank
-
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
-        model.trainer = self
-        model.init_ddp_connection(self.global_rank, self.world_size, self.is_slurm_managing_tasks)
-
-        # call setup after the ddp process has connected
-        self.call_setup_hook(model)
-
-        # on world_size=0 let everyone know training is starting
-        if self.is_global_zero:
-            log.info('-' * 100)
-            log.info(f'distributed_backend={self.distributed_backend}')
-            log.info(f'All DDP processes registered. Starting ddp with {self.world_size} processes')
-            log.info('-' * 100)
-
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = self.init_optimizers(model)
-
-        # MODEL
-        # copy model to each gpu
-        if self.on_gpu:
-            gpu_idx = process_idx
-            if is_master:
-                # source of truth is cuda for gpu idx
-                gpu_idx = self.local_rank
-
-            self.root_gpu = gpu_idx
-            torch.cuda.set_device(self.root_gpu)
-            model.cuda(self.root_gpu)
-
-        # set model properties before going into wrapper
-        self.copy_trainer_model_properties(model)
-
-        # AMP
-        # run through amp wrapper before going to distributed DP
-        # TODO: remove with dropping NVIDIA AMP support
-        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
-            model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
-            self.optimizers = optimizers
-            self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)
-
-        # DDP2 uses all GPUs on the machine
-        if self.distributed_backend == 'ddp' or self.distributed_backend == 'ddp_spawn':
-            device_ids = [self.root_gpu]
-        elif self.use_ddp2:
-            device_ids = self.data_parallel_device_ids
-        else:  # includes ddp_cpu
-            device_ids = None
-
-        # allow user to configure ddp
-        model = model.configure_ddp(model, device_ids)
-
-        # continue training routine
-        results = self.run_pretrain_routine(model)
-
-        # get original model
-        model = self.get_model()
-
-        # persist info in ddp_spawn
-        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
-
-        # clean up memory
-        torch.cuda.empty_cache()
-
-        if self.global_rank == 0 and self.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
-            return results
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         if self.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
