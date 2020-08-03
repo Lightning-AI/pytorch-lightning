@@ -1299,6 +1299,8 @@ class Trainer(
                 'You cannot pass test_dataloaders to trainer.test if you supply a datamodule'
             )
 
+        import pdb; pdb.set_trace()
+
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
         self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
 
