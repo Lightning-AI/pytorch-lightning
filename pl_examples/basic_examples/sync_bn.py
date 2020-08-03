@@ -1,5 +1,9 @@
 """
 Sync-bn with DDP (GPU)
+
+This code is to verify that batch statistics are synchronized across GPUs using sync-bn.
+When sync_bn_backend is set to 'torch' or 'apex', the training loop should run for 3 iterations.
+When sync_bn_backend is set to None, the code should result in an AssertionError.
 """
 import os
 import math
@@ -33,7 +37,7 @@ class MNISTDataModule(pl.LightningDataModule):
 
         # self.dims is returned when you call dm.size()
         # Setting default dims here because we know them.
-        # Could optionally be assigned dynamically in dm.setup() 
+        # Could optionally be assigned dynamically in dm.setup()
         self.dims = (1, 28, 28)
 
     def prepare_data(self):
@@ -65,7 +69,7 @@ class MNISTDataModule(pl.LightningDataModule):
 class SyncBNModule(pl.LightningModule):
     def __init__(self, **kwargs):
         super().__init__()
-        
+
         self.bn_targets = None
         if 'bn_targets' in kwargs:
             self.bn_targets = kwargs['bn_targets']
@@ -76,8 +80,9 @@ class SyncBNModule(pl.LightningModule):
     def forward(self, x, batch_idx):
         with torch.no_grad():
             out_bn = self.bn_layer(x.view(x.size(0), -1))
-            
+
             if self.bn_targets:
+                bn_target = self.bn_targets[batch_idx]
                 print('#######')
                 print(self.trainer.local_rank)
                 print(out_bn.shape)
@@ -105,15 +110,15 @@ class SyncBNModule(pl.LightningModule):
         Define parameters that only apply to this model
         """
         parser = ArgumentParser(parents=[parent_parser])
-        
+
         parser.add_argument('--nodes', default=1, type=int)
         parser.add_argument('--gpu', default=2, type=int)
-        
+
         parser.add_argument('--epochs', default=1, type=int)
         parser.add_argument('--steps', default=3, type=int)
-        
+
         parser.add_argument('--sync_bn', default='torch', type=str)
-        
+
         return parser
 
 
@@ -156,7 +161,7 @@ def run_cli():
     model = SyncBNModule()
 
     bn_outputs = []
-    
+
     # shuffle is false by default
     for idx, batch in enumerate(train_dataloader):
         x, y = batch
