@@ -32,7 +32,7 @@ def test_default_args(mock_argparse, tmpdir):
 
 @pytest.mark.parametrize('cli_args', [
     ['--accumulate_grad_batches=22'],
-    ['--print_nan_grads', '--weights_save_path=./'],
+    ['--weights_save_path=./'],
     []
 ])
 def test_add_argparse_args_redefined(cli_args):

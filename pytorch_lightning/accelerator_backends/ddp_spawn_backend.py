@@ -30,26 +30,27 @@ class DDPSpawnBackend(object):
 
     def __init__(self, trainer):
         self.trainer = trainer
-        self.q = None
+        self.mp_queue = None
 
     def setup(self):
         self.trainer.set_random_port()
 
         # pass in a state q
         smp = mp.get_context('spawn')
-        self.q = smp.SimpleQueue()
+        self.mp_queue = smp.SimpleQueue()
 
     def train(self, model, nprocs):
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.q, model,))
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.mp_queue, model,))
 
     def teardown(self, model):
         # restore main state with best weights
-        best_path = self.q.get()
-        results = self.q.get()
-        last_path = self.q.get()
+        best_path = self.mp_queue.get()
+        results = self.mp_queue.get()
+        last_path = self.mp_queue.get()
 
         # transfer back the best path to the trainer
         self.trainer.checkpoint_callback.best_model_path = best_path
+        # todo, pass also bets score
 
         # load last weights
         if last_path is not None and not self.trainer.testing:
@@ -59,23 +60,18 @@ class DDPSpawnBackend(object):
         self.trainer.model = model
         return results
 
-    def ddp_train(self, process_idx, q, model, is_master=False, proc_offset=0):
+    def ddp_train(self, process_idx, mp_queue, model):
         """
         Entry point for ddp
 
         Args:
             process_idx:
-            q:
+            mp_queue: multiprocessing queue
             model:
-            is_master:
-            proc_offset:
 
         Returns:
 
         """
-        # offset the process id if requested
-        process_idx = process_idx + proc_offset
-
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
@@ -105,9 +101,7 @@ class DDPSpawnBackend(object):
         )
 
         # call setup after the ddp process has connected
-        if not self.trainer.testing:
-            self.trainer.setup('fit')
-            model.setup('fit')
+        self.trainer.call_setup_hook(model)
 
         # on world_size=0 let everyone know training is starting
         if self.trainer.is_global_zero:
@@ -127,11 +121,6 @@ class DDPSpawnBackend(object):
         # copy model to each gpu
         if self.trainer.on_gpu:
             gpu_idx = process_idx
-            if is_master:
-                # source of truth is cuda for gpu idx
-                gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-                gpu_idx = int(gpus[self.trainer.local_rank])
-
             self.trainer.root_gpu = gpu_idx
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
@@ -166,7 +155,7 @@ class DDPSpawnBackend(object):
         model = self.trainer.get_model()
 
         # persist info in ddp_spawn
-        self.trainer.transfer_ddp_spawn_state_on_fit_end(model, q, results)
+        self.trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()

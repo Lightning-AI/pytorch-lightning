@@ -40,9 +40,7 @@ references:
         # $CI_PULL_REQUEST seems to be of form: https://github.com/org/repo-name/pull/11.
         # Grab the last bit, e.g. pull/11, convert to pull/11/head, and use it
         # for the GITHUB_REF so Docker can pull the latest pending code in PR.
-        git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head
-        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" .
-        #docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
+        if [ -z "$CI_PULL_REQUEST" ]; then docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1"; else git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head && docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" .; fi
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
@@ -62,7 +60,8 @@ references:
        # happened to the job in Kubernetes. If we try MAX_CHECKS times and
        # still the job hasn't finished, give up and return the starting
        # non-zero status code.
-       while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else echo "Job not finished yet"; fi; sleep 30; done && \
+       printf "Waiting for job to finish: " && \
+       while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
        # Allow time for logs to flush.
        sleep 30 && \
@@ -101,7 +100,8 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - MAX_CHECKS: 60
+      - MAX_CHECKS: 240
+      - CHECK_SPEEP: 5
     steps:
       - checkout
       - go/install
@@ -146,10 +146,18 @@ jobs:
 
 workflows:
   version: 2
-  tpu-tests:
+  build:
     jobs:
       - build-Docs
-      - TPU-tests
+      - TPU-tests:
+          filters:
+            branches:
+              # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
+              only:
+                # only from forks
+                - /^pull\/.*$/
+                # only from canonical repository
+                - /^(?!pull\/).*$/
   cleanup:
     triggers:
       - schedule:

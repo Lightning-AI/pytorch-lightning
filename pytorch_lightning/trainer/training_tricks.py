@@ -64,27 +64,29 @@ class TrainerTrainingTricksMixin(ABC):
 
         # this code is a modification of torch.nn.utils.clip_grad_norm_
         # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
-        if self.gradient_clip_val > 0:
-            model = self.get_model()
-            parameters = model.parameters()
-            max_norm = float(self.gradient_clip_val)
-            norm_type = float(2.0)
-            if isinstance(parameters, torch.Tensor):
-                parameters = [parameters]
-            parameters = list(filter(lambda p: p.grad is not None, parameters))
-            if norm_type == math.inf:
-                total_norm = max(p.grad.data.abs().max() for p in parameters)
-            else:
-                device = parameters[0].device
-                total_norm = torch.zeros([], device=device if parameters else None)
-                for p in parameters:
-                    param_norm = p.grad.data.pow(norm_type).sum()
-                    total_norm.add_(param_norm)
-                total_norm = (total_norm ** (1. / norm_type))
-            eps = EPSILON_FP16 if self.precision == 16 else EPSILON
-            clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
-            for p in parameters:
-                p.grad.data.mul_(torch.where(clip_coef < 1, clip_coef, torch.tensor(1., device=device)))
+        if self.gradient_clip_val <= 0:
+            return
+        model = self.get_model()
+        parameters = model.parameters()
+        max_norm = float(self.gradient_clip_val)
+        norm_type = float(2.0)
+        if isinstance(parameters, torch.Tensor):
+            parameters = [parameters]
+        parameters = list(filter(lambda p: p.grad is not None, parameters))
+        if norm_type == math.inf:
+            total_norm = max(p.grad.data.abs().max() for p in parameters)
+        else:
+            device = parameters[0].device
+            out = torch.empty(len(parameters), device=device)
+            for i, p in enumerate(parameters):
+                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
+            total_norm = torch.norm(out, norm_type)
+
+        eps = EPSILON_FP16 if self.precision == 16 else EPSILON
+        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
+        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
+        for p in parameters:
+            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
     def print_nan_gradients(self) -> None:
         model = self.get_model()
@@ -150,7 +152,10 @@ class TrainerTrainingTricksMixin(ABC):
 
         """
         if not hasattr(model, batch_arg_name):
-            raise MisconfigurationException(f'Field {batch_arg_name} not found in `model.hparams`')
+            if not hasattr(model.hparams, batch_arg_name):
+                raise MisconfigurationException(
+                    'Neither of `model.batch_size` and `model.hparams.batch_size` found.'
+                )
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
@@ -256,9 +261,15 @@ def _adjust_batch_size(trainer,
 
     """
     model = trainer.get_model()
-    batch_size = getattr(model, batch_arg_name)
+    if hasattr(model, batch_arg_name):
+        batch_size = getattr(model, batch_arg_name)
+    else:
+        batch_size = getattr(model.hparams, batch_arg_name)
     if value:
-        setattr(model, batch_arg_name, value)
+        if hasattr(model, batch_arg_name):
+            setattr(model, batch_arg_name, value)
+        else:
+            setattr(model.hparams, batch_arg_name, value)        
         new_size = value
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
@@ -266,7 +277,7 @@ def _adjust_batch_size(trainer,
         new_size = int(batch_size * factor)
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-        setattr(model, batch_arg_name, new_size)
+        setattr(model.hparams, batch_arg_name, new_size)
     return new_size
 
 

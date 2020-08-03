@@ -87,7 +87,9 @@ import os
 import re
 import signal
 from abc import ABC
+from distutils.version import LooseVersion
 from subprocess import call
+from pkg_resources import parse_version
 
 import torch
 import torch.distributed as torch_distrib
@@ -151,8 +153,7 @@ class TrainerIOMixin(ABC):
     scaler: ...
 
     def get_model(self):
-        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel,
-                                               LightningDataParallel))
+        is_dp_module = isinstance(self.model, (LightningDistributedDataParallel, LightningDataParallel))
         model = self.model.module if is_dp_module else self.model
         return model
 
@@ -225,11 +226,11 @@ class TrainerIOMixin(ABC):
 
             # find job id
             job_id = os.environ['SLURM_JOB_ID']
-            cmd = 'scontrol requeue {}'.format(job_id)
+            cmd = ['scontrol', 'requeue', job_id]
 
             # requeue job
             log.info(f'requeing job {job_id}...')
-            result = call(cmd, shell=True)
+            result = call(cmd)
 
             # print result text
             if result == 0:
@@ -261,7 +262,13 @@ class TrainerIOMixin(ABC):
                 This points to the file that the checkpoint will be stored in.
         """
         tmp_path = str(filepath) + ".part"
-        torch.save(checkpoint, tmp_path)
+        # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
+        # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
+        # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
+        if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+            torch.save(checkpoint, tmp_path, _use_new_zipfile_serialization=False)
+        else:
+            torch.save(checkpoint, tmp_path)
         os.replace(tmp_path, filepath)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
@@ -274,8 +281,9 @@ class TrainerIOMixin(ABC):
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-                rank_zero_warn('Warning, `module_arguments` dropped from checkpoint.'
-                               f' An attribute is not picklable {err}')
+                rank_zero_warn(
+                    'Warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
+                )
                 self._atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
@@ -493,8 +501,9 @@ class TrainerIOMixin(ABC):
         except AttributeError as err:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-            rank_zero_warn('warning, `module_arguments` dropped from checkpoint.'
-                           f' An attribute is not picklable {err}')
+            rank_zero_warn(
+                'warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
+            )
             self._atomic_save(checkpoint, filepath)
 
         return filepath

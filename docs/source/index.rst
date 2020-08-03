@@ -26,6 +26,7 @@ PyTorch Lightning Documentation
    loggers
    metrics
    hooks
+   results
    trainer
 
 .. toctree::
@@ -99,6 +100,7 @@ PyTorch Lightning Documentation
    transfer_learning
    tpu
    test_set
+   production_inference
 
 .. toctree::
    :maxdepth: 1

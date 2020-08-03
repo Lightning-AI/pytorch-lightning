@@ -429,7 +429,7 @@ def main(args: argparse.Namespace) -> None:
 
         trainer = pl.Trainer(
             weights_summary=None,
-            show_progress_bar=True,
+            progress_bar_refresh_rate=1,
             num_sanity_val_steps=0,
             gpus=args.gpus,
             min_epochs=args.nb_epochs,
