@@ -48,3 +48,20 @@ def auto_move_data(fn: Callable) -> Callable:
         return fn(self, *args, **kwargs)
 
     return auto_transfer_args
+
+
+def run_once(fn):
+    """
+    Decorate a function or method to make it run only once.
+    Subsequent calls will result in a no-operation.
+    """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+            fn(*args, **kwargs)
+
+    wrapper.has_run = False
+    return wrapper
+
+

@@ -16,6 +16,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.core.decorators import run_once
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -31,18 +32,6 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
-
-
-
-def run_once(fn):
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            wrapper.has_run = True
-            fn(*args, **kwargs)
-    wrapper.has_run = False
-    return wrapper
-
-
 
 
 class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
@@ -965,8 +954,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
                 f"is not equal to the computed world size ({world_size}). Ignored."
             )
-
-        print('MASTER PORT', os.environ['MASTER_PORT'])
 
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")

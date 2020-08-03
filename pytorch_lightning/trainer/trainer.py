@@ -1348,7 +1348,6 @@ class Trainer(
         # run tests
         self.tested_ckpt_path = ckpt_path
         self.set_random_port()
-        # self.set_random_port()
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
