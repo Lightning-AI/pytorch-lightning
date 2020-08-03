@@ -67,6 +67,8 @@ def run_cli():
     for idx, batch in enumerate(train_dataloader):
         x, y = batch
 
+    assert 1 == 0
+
 
 
     # each LightningModule defines arguments relevant to it
