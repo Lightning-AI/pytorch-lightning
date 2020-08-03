@@ -33,6 +33,18 @@ else:
     XLA_AVAILABLE = True
 
 
+
+def run_once(fn):
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+            fn(*args, **kwargs)
+    wrapper.has_run = False
+    return wrapper
+
+
+
+
 class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -921,6 +933,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
+    @run_once
     def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
         """
         Override to define your custom way of setting up a distributed environment.
