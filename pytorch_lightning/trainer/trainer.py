@@ -287,7 +287,8 @@ class Trainer(
 
                     Use `limit_test_batches` instead. Will remove v0.10.0.
 
-            val_check_interval: How often within one training epoch to check the validation set
+            val_check_interval: How often to check the validation set. Use float to check within a training epoch,
+                use int to check every n steps (batches).
 
             log_save_interval: Writes logs to disk this often
 
