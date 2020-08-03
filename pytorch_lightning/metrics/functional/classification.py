@@ -207,7 +207,7 @@ def stat_scores_multiple_classes(
         fns = fns[:num_classes]
         sups = sups[:num_classes]
 
-    if reduction == 'sum' or reduction == 'elementwise_mean':
+    elif reduction == 'sum' or reduction == 'elementwise_mean':
         count_match_true = (pred == target).sum().float()
         oob_tp, oob_fp, oob_tn, oob_fn, oob_sup = stat_scores(pred, target, num_classes, argmax_dim)
 
