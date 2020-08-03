@@ -182,6 +182,10 @@ def stat_scores_multiple_classes(
     pred.clamp_max_(max=num_classes)
     target.clamp_max_(max=num_classes)
 
+    possible_reductions = ('none', 'sum', 'elementwise_mean')
+    if reduction not in possible_reductions:
+        raise ValueError("reduction type %s not supported" % reduction)
+
     if reduction == 'none':
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
@@ -191,7 +195,6 @@ def stat_scores_multiple_classes(
 
         match_true = (pred == target).float()
         match_false = 1 - match_true
-        # unused slots due to class out of bound (0 ~ num_classes-1)
 
         tps.scatter_add_(0, pred, match_true)
         fps.scatter_add_(0, pred, match_false)
@@ -221,9 +224,6 @@ def stat_scores_multiple_classes(
             fns /= num_classes
             tns /= num_classes
             sups /= num_classes
-
-    else:
-        raise ValueError("reduction type %s not supported" % reduction)
 
     return tps, fps, tns, fns, sups
 
