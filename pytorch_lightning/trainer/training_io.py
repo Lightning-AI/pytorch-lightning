@@ -226,11 +226,11 @@ class TrainerIOMixin(ABC):
 
             # find job id
             job_id = os.environ['SLURM_JOB_ID']
-            cmd = 'scontrol requeue {}'.format(job_id)
+            cmd = ['scontrol', 'requeue', job_id]
 
             # requeue job
             log.info(f'requeing job {job_id}...')
-            result = call(cmd, shell=True)
+            result = call(cmd)
 
             # print result text
             if result == 0:
