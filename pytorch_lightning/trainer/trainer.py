@@ -1008,7 +1008,7 @@ class Trainer(
                 results = self.accelerator_backend.teardown(model)
 
             elif self.distributed_backend == 'ddp':
-                self.set_random_port(force=True)
+                self.set_random_port()
                 results = self.spawn_ddp_children(model)
 
         elif self.use_dp:
@@ -1324,7 +1324,7 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        #self.set_random_port(force=True)
+        self.set_random_port(force=True)
         # self.set_random_port()
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
@@ -1338,7 +1338,7 @@ class Trainer(
             model_ref = self.get_model()
             model_ref.teardown('test')
 
-        torch_distrib.destroy_process_group()
+        #torch_distrib.destroy_process_group()
 
         return results
 
@@ -1352,7 +1352,7 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        #self.set_random_port(force=True)
+        self.set_random_port(force=True)
         # self.set_random_port()
         self.testing = True
         self.model = model
@@ -1363,7 +1363,7 @@ class Trainer(
         if self.is_function_implemented('teardown'):
             model.teardown('test')
 
-        torch_distrib.destroy_process_group()
+        #torch_distrib.destroy_process_group()
 
         return results
 
