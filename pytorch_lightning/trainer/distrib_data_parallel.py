@@ -179,8 +179,8 @@ except ImportError:
 else:
     XLA_AVAILABLE = True
 
-PID = os.getpid()
-RNG1 = np.random.RandomState(PID)
+#PID = os.getpid()
+RNG1 = np.random.RandomState(0)
 RANDOM_PORTS = RNG1.randint(10000, 19999, 1000)
 
 
