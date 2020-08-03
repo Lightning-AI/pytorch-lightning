@@ -24,7 +24,6 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
-from pytorch_lightning.utilities import rank_zero_only
 
 try:
     import torch_xla.core.xla_model as xm
@@ -39,7 +38,6 @@ def run_once(fn):
     def wrapper(*args, **kwargs):
         if not wrapper.has_run:
             wrapper.has_run = True
-            # print('running it once on ', rank_zero_only.rank)
             fn(*args, **kwargs)
     wrapper.has_run = False
     return wrapper
