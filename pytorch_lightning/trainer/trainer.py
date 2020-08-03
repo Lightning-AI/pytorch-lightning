@@ -1338,6 +1338,8 @@ class Trainer(
             model_ref = self.get_model()
             model_ref.teardown('test')
 
+        torch_distrib.destroy_process_group()
+
         return results
 
     def __test_given_model(self, model, test_dataloaders):
