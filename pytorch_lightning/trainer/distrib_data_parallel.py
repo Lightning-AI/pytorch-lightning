@@ -172,10 +172,8 @@ else:
     XLA_AVAILABLE = True
 
 
-print('rank at import ', rank_zero_only.rank)
 PID = os.getpid()
 RNG1 = np.random.RandomState(PID)
-#RANDOM_PORTS = list(range(10000, 20000))
 RANDOM_PORTS = RNG1.randint(10000, 19999, 1000)
 
 
