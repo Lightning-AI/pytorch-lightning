@@ -26,9 +26,10 @@ EPSILON = 1e-12
 
 
 class MNISTDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str = './', batch_size=32):
+    def __init__(self, data_dir: str = './', batch_size=32, dist_sampler=False):
         super().__init__()
 
+        self.dist_sampler = dist_sampler
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.transform = transforms.Compose([
@@ -58,7 +59,10 @@ class MNISTDataModule(pl.LightningDataModule):
             self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
 
     def train_dataloader(self):
-        dist_sampler = DistributedSampler(self.mnist_train, shuffle=False)
+        dist_sampler = None
+        if self.dist_sampler:
+            dist_sampler = DistributedSampler(self.mnist_train, shuffle=False)
+
         return DataLoader(
             self.mnist_train, batch_size=self.batch_size, sampler=dist_sampler, shuffle=False
         )
@@ -187,7 +191,7 @@ def run_cli():
 
     # reset datamodule
     # batch-size = 16 because 2 GPUs in DDP
-    dm = MNISTDataModule(batch_size=16)
+    dm = MNISTDataModule(batch_size=16, dist_sampler=True)
     dm.prepare_data()
     dm.setup(stage=None)
 
