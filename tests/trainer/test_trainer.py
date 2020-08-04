@@ -144,7 +144,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
             checkpoint_path=ckpt_path,
             hparams_file=hparams_path,
         )
-    except:
+    except Exception:
         failed = True
 
     assert failed, "Model should not been loaded since the extra layer added."
@@ -156,7 +156,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
             hparams_file=hparams_path,
             strict=False,
         )
-    except:
+    except Exception:
         failed = True
 
     assert not failed, "Model should be loaded due to strict=False."
