@@ -922,7 +922,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
-    @run_once
+    #@run_once
     def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
         """
         Override to define your custom way of setting up a distributed environment.
@@ -936,6 +936,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
         """
+        from torch.distributed.distributed_c10d import is_initialized
+        if is_initialized():
+            return
+
         if is_slurm_managing_tasks:
             self._init_slurm_connection()
 
