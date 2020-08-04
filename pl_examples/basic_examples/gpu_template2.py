@@ -32,6 +32,7 @@ def main(args):
         limit_train_batches=10,
         limit_val_batches=10,
         max_epochs=1,
+        callbacks=[DebugCallback()],
     )
 
     # ------------------------
