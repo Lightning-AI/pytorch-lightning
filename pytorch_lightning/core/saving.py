@@ -117,7 +117,7 @@ class ModelIO(object):
             checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         if hparams_file is not None:
-            if type(hparams_file) == str:
+            if isinstance(hparams_file, str):
                 extension = hparams_file.split('.')[-1]
                 if extension.lower() in ('csv'):
                     hparams = load_hparams_from_tags_csv(hparams_file)
