@@ -937,8 +937,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         """
         from torch.distributed.distributed_c10d import is_initialized
-        #if is_initialized():
-            #return
+        if is_initialized():
+            return
 
         if is_slurm_managing_tasks:
             self._init_slurm_connection()
