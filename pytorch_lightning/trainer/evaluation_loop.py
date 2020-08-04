@@ -609,6 +609,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # handle DP, DDP forward
         if self.use_ddp or self.use_dp or self.use_ddp2:
+            # SOMETHING GOES WRONG HERE, test loop is stuck
             output = model(*args)
             return output
 
