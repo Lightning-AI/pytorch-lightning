@@ -250,7 +250,7 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
             reduce_op = torch.distributed.ReduceOp.SUM
         elif isinstance(reduce_op, str) and reduce_op in ('avg', 'mean'):
             reduce_op = torch.distributed.ReduceOp.SUM
-            divide_by_process_number = True
+            divide_by_world_size = True
 
         # sync all processes before reduction
         torch.distributed.barrier(group=group)
