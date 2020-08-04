@@ -131,7 +131,7 @@ class ModelIO(object):
                     hparams = load_hparams_from_yaml(hparams_file)
                 else:
                     raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
-            elif type(hparams_file) == dict:
+            elif isinstance(hparams_file, dict):
                 hparams = hparams_file
             else:
                 raise ValueError('`hparams_file` must be either a dict or a path to .csv, .yml or .yaml.')
