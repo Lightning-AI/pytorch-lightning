@@ -152,11 +152,18 @@ class DDPBackend(object):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        model.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
-        )
+
+        from torch.distributed import is_initialized
+        if not is_master or not is_initialized():
+            assert is_master and self.trainer.global_rank == 0
+            # on rank > 0, we always need to initialize, because these are new processes
+            model.init_ddp_connection(
+                self.trainer.global_rank,
+                self.trainer.world_size,
+                self.trainer.is_slurm_managing_tasks
+            )
+        else:
+            print('already initialized', os.environ['MASTER_PORT'], os.getpid(), is_master)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)

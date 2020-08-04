@@ -936,11 +936,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             is_slurm_managing_tasks: is cluster managed by SLURM.
 
         """
-        from torch.distributed import is_initialized
-        if is_initialized():
-            print('already initialized', os.environ['MASTER_PORT'], os.getpid())
-            return
-
         if is_slurm_managing_tasks:
             self._init_slurm_connection()
 

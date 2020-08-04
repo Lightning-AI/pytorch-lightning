@@ -1296,7 +1296,7 @@ class Trainer(
         self.verbose_test = verbose
 
         if self.global_rank != 0:
-            print('testing on global rank > 0 does not work???')
+            # do nothing, rank 0 process will launch new processes for testing
             return
 
         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
