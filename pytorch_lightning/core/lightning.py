@@ -938,6 +938,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         from torch.distributed.distributed_c10d import is_initialized
         if is_initialized():
+            print('already initialized', os.environ['MASTER_PORT'], os.getpid())
             return
 
         if is_slurm_managing_tasks:
@@ -958,7 +959,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
                 f"is not equal to the computed world size ({world_size}). Ignored."
             )
-        print('master port init', os.environ['MASTER_PORT'])
+        print('master port init', os.environ['MASTER_PORT'], os.getpid())
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
