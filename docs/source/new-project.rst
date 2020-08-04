@@ -36,6 +36,7 @@ A lightningModule defines
 
 
     import pytorch_lightning as pl
+    from pytorch_lightning.metrics.functional import accuracy
 
     class LitModel(pl.LightningModule):
 
@@ -155,15 +156,7 @@ To add an (optional) validation loop add the following function
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-
-            result = pl.EvalResult(checkpoint_on=loss)
-            result.log('avg_val_loss', step_dict['loss'],
-                        on_epoch=True, reduce_fx=torch.mean)
-            return result 
-
-.. note:: We have introduced a `Result` object which enables concise logging. This is the
-          recommended default return object (the same can be done in `train_step` and `test_step`).
-          More advanced return options later in the docs.
+            return {'val_loss': loss, 'log': {'val_loss': loss}}
 
 And now the trainer will call the validation loop automatically
 
@@ -223,14 +216,8 @@ You might also need an optional test loop
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
+            return {'test_loss': loss, 'log': {'test_loss': loss}}
 
-            result = pl.EvalResult()
-            result.log('avg_test_loss', step_dict['loss'],
-                        on_epoch=True, reduce_fx=torch.mean)
-            return result 
-
-.. note:: This `Result` object does not interact with any callbacks like `on_checkpoint`,
-          and so its sole purpose is to log the `avg_test_loss`.
 
 However, this time you need to specifically call test (this is done so you don't use the test set by mistake)
 
