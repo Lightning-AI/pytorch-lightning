@@ -692,7 +692,7 @@ class Hinge(SklearnMetric):
         >>> y_true = torch.tensor([1, 1, 0, 0])
         >>> metric = Hinge()
         >>> metric(pred_decision, y_true)
-        tensor([1.6285])
+        tensor([1.6300])
 
     """
 
@@ -1193,7 +1193,7 @@ class ExplainedVariance(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = ExplainedVariance()
         >>> metric(y_pred, y_true)
-        tensor([0.957])
+        tensor([0.9572])
     """
 
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'variance_weighted',
@@ -1243,7 +1243,7 @@ class MeanAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.500])
+        tensor([0.5000])
 
     """
 
@@ -1294,7 +1294,7 @@ class MeanSquaredError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanSquaredError()
         >>> metric(y_pred, y_true)
-        tensor([0.375])
+        tensor([0.3750])
 
     """
 
@@ -1490,11 +1490,11 @@ class MeanPoissonDeviance(SklearnMetric):
 
     Example:
 
-        >>> y_pred = torch.tensor([2, 0, 1, 4])
+        >>> y_pred = torch.tensor([2, 0.5, 1, 4])
         >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
         >>> metric = MeanPoissonDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.1760])
+        tensor([0.9034])
     """
 
     def __init__(self,
@@ -1582,9 +1582,9 @@ class MeanTweedieDeviance(SklearnMetric):
 
     Example:
 
-        >>> y_pred = torch.tensor([0.5, 0.5, 2., 2.])
-        >>> y_true = torch.tensor([2, 0.5, 1, 4])
-        >>> metric = MeanGammaDeviance()
+        >>> y_pred = torch.tensor([2, 0.5, 1, 4])
+        >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
+        >>> metric = MeanTweedieDeviance()
         >>> metric(y_pred, y_true)
         tensor([1.8125])
     """
