@@ -974,7 +974,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             LightningModule with batchnorm layers converted to synchronized
             between process groups, if backend is not None
         """
-        if backend is None:
+        if backend is None or backend == 'None':
             return model
 
         # process_group = None defaults to whole world in both cases

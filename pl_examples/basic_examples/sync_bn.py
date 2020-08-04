@@ -52,7 +52,7 @@ class MNISTDataModule(pl.LightningDataModule):
         # Assign train/val datasets for use in dataloaders
         if stage == 'fit' or stage is None:
             mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
-            self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
+            self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000], generator=torch.Generator().manual_seed(234))
 
         # Assign test dataset for use in dataloader(s)
         if stage == 'test' or stage is None:
@@ -78,6 +78,7 @@ class SyncBNModule(pl.LightningModule):
     def __init__(self, gpu_count=1, **kwargs):
         super().__init__()
 
+        self.gpu_count = gpu_count
         self.bn_targets = None
         if 'bn_targets' in kwargs:
             self.bn_targets = kwargs['bn_targets']
@@ -101,6 +102,7 @@ class SyncBNModule(pl.LightningModule):
                     bn_target_1 = bn_target[self.trainer.local_rank::self.gpu_count]
                     bn_target_1 = bn_target_1.to(out_bn.device)
                     print(torch.sum(torch.abs(bn_target_1 - out_bn)))
+                exit(-1)
 
         out = self.linear(out_bn)
 
