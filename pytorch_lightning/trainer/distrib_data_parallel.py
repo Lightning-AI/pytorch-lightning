@@ -172,9 +172,10 @@ else:
     XLA_AVAILABLE = True
 
 
-PID = os.getpid()
-RNG1 = np.random.RandomState(PID)
-RANDOM_PORTS = RNG1.randint(10000, 19999, 1000)
+#PID = os.getpid()
+#RNG1 = np.random.RandomState(PID)
+#RANDOM_PORTS = RNG1.randint(10000, 19999, 1000)
+RANDOM_PORTS = list(range(10000, 20000))
 
 
 class TrainerDDPMixin(ABC):
