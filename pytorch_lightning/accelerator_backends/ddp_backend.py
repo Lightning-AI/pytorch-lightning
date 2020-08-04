@@ -57,7 +57,7 @@ class DDPBackend(object):
 
     def spawn_ddp_children(self, model):
         print('setting port on ', self.trainer.global_rank)
-        self.trainer.set_random_port()
+        self.trainer.set_random_port(force=True)
         port = os.environ['MASTER_PORT']
 
         master_address = os.environ.get('MASTER_ADDR', '127.0.0.1')
