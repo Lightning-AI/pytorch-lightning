@@ -150,7 +150,7 @@ def test_sync_reduce_ddp_mean():
     tutils.set_random_master_port()
 
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize, False), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, False, True), nprocs=worldsize)
 
 
 def test_sync_reduce_simple():
