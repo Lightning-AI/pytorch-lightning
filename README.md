@@ -21,7 +21,7 @@
 -->
 </div>
 
----   
+---
 ## Trending contributors
 
 [![](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/images/0)](https://sourcerer.io/fame/williamFalcon/pytorchlightning/pytorch-lightning/links/0)
@@ -38,14 +38,18 @@
 ## Continuous Integration
 <center>
 
-| System / PyTorch ver. | 1.3 (min. req.) | 1.4 | 1.5 (latest) |
-| :---: | :---: | :---: | :---: |
-| Conda py3.7 [linux] | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) |
-| Linux py3.7 [GPU] | - | - | [![Build Status](http://35.192.60.23/api/badges/PyTorchLightning/pytorch-lightning/status.svg)](http://35.192.60.23/PyTorchLightning/pytorch-lightning) |
-| Linux py3.7 [TPU] | - | - | ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg) |
-| Linux py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
-| OSX py3.6 / py3.7 | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
-| Windows py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |[![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - |
+| System / PyTorch ver. | 1.3 (min. req.)* | 1.4 | 1.5 | 1.6 (latest) |
+| :---: | :---: | :---: | :---: | :---: |
+| Conda py3.7 [linux] | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | ![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg) | 
+| Linux py3.7 [GPUs**] | - | - | - | [![Build Status](http://35.192.60.23/api/badges/PyTorchLightning/pytorch-lightning/status.svg)](http://35.192.60.23/PyTorchLightning/pytorch-lightning) |
+| Linux py3.7 [TPUs***] | - | - | - | ![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg) |
+| Linux py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
+| OSX py3.6 / py3.7 | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) |
+| Windows py3.6 / py3.7 / py3.8 | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) | - | - | [![CI testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20testing/badge.svg?event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22) 
+
+- _\* `torch>=1.4` is the minimal pytorch version for Python 3.8_
+- _\** tests run on two NVIDIA K80_
+- _\*** tests run on Google GKE TPUv2/3_
 
 </center>
 
@@ -62,15 +66,27 @@ conda install pytorch-lightning -c conda-forge
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [stable](https://pytorch-lightning.readthedocs.io/en/stable)
+- [0.8.5](https://pytorch-lightning.readthedocs.io/en/0.8.5/)
 - [0.8.4](https://pytorch-lightning.readthedocs.io/en/0.8.4/)
 - [0.8.3](https://pytorch-lightning.readthedocs.io/en/0.8.3/)
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
 - [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
-- [0.7.5](https://pytorch-lightning.readthedocs.io/en/0.7.5/)
-- [0.7.3](https://pytorch-lightning.readthedocs.io/en/0.7.3/)
-- [0.7.1](https://pytorch-lightning.readthedocs.io/en/0.7.1/)
-- [0.6.0](https://pytorch-lightning.readthedocs.io/en/0.6.0/)
-- [0.5.3](https://pytorch-lightning.readthedocs.io/en/0.5.3.2/)
+
+## PyTorch Lightning is just organized PyTorch
+![PT to PL](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/fast_2.gif)
+
+Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
+It's more of a PyTorch style-guide than a framework.
+
+In Lightning, you organize your code into 3 distinct categories:
+
+1. Research code (goes in the LightningModule).
+2. Engineering code (you delete, and is handled by the Trainer).
+3. Non-essential research code (logging, etc... this goes in Callbacks).
+
+Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
+
+Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
 
 ## Refactoring your PyTorch code + benefits + full walk-through
 [![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
@@ -103,47 +119,28 @@ class LitClassifier(pl.LightningModule):
 train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
 
 model = LitClassifier()
-trainer = pl.Trainer(gpus=8, precision=16)    
-trainer.fit(model, train_loader) 
+trainer = pl.Trainer(gpus=8, precision=16)
+trainer.fit(model, train_loader)
 ```
 
-Other examples:    
-[MNIST hello world](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL)    
-[GAN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=P0bSmCw57aV5)     
-[BERT](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=7uQVI-xv9Ddj)    
+Other examples:   
+[MNIST hello world](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL)   
+[GAN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=P0bSmCw57aV5)   
+[BERT](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=7uQVI-xv9Ddj)   
 [DQN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=NWvMLBDySQI5)   
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)    
 
-## What is it?
-[READ THIS QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
-
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
-It's more of a PyTorch style-guide than a framework. 
-
-In Lightning, you organize your code into 3 distinct categories:
-
-1. Research code (goes in the LightningModule).
-2. Engineering code (you delete, and is handled by the Trainer).
-3. Non-essential research code (logging, etc... this goes in Callbacks).
-
-Here's an example of how to refactor your research code into a [LightningModule](https://pytorch-lightning.readthedocs.io/en/latest/lightning-module.html).
-
-![PT to PL](docs/source/_images/lightning_module/pt_to_pl.png)
-
-The rest of the code is automated by the [Trainer](https://pytorch-lightning.readthedocs.io/en/latest/trainer.html)!
-![PT to PL](docs/source/_images/lightning_module/pt_trainer.png)
-
 ## Testing Rigour
-All the automated code by the Trainer is [tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests).   
+All the automated code by the Trainer is [tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests).
 
-For every PR we test all combinations of:    
-- PyTorch 1.3, 1.4, 1.5    
-- Python 3.6, 3.7, 3.8   
-- Linux, OSX, Windows   
-- Multiple GPUs   
+For every PR we test all combinations of:
+- PyTorch 1.3, 1.4, 1.5
+- Python 3.6, 3.7, 3.8
+- Linux, OSX, Windows
+- Multiple GPUs
 
-**How does performance compare with vanilla PyTorch?**   
-We have tests to ensure we get the EXACT same results in under 600 ms difference per epoch. In reality, lightning adds about a 300 ms overhead per epoch.   
+**How does performance compare with vanilla PyTorch?**
+We have tests to ensure we get the EXACT same results in under 600 ms difference per epoch. In reality, lightning adds about a 300 ms overhead per epoch.
 [Check out the parity tests here](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/benchmarks).
 
 Overall, Lightning guarantees rigorously tested, correct, modern best practices for the automated parts.
@@ -185,7 +182,7 @@ This is how lightning separates the science (red) from engineering (blue).
 If your code is not a huge mess you should be able to organize it into a LightningModule in less than 1 hour.
 If your code IS a mess, then you needed to clean up anyhow ;)
 
-[Check out this step-by-step guide](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).    
+[Check out this step-by-step guide](https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09).
 [Or watch this video](https://www.youtube.com/watch?v=QHww1JH7IDU).
 
 
@@ -196,7 +193,7 @@ If your code IS a mess, then you needed to clean up anyhow ;)
 Although your research/production project might start simple, once you add things like GPU AND TPU training, 16-bit precision, etc, you end up spending more time engineering than researching. Lightning automates AND rigorously tests those parts for you.
 
 ## Support
-- [8 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, Ph.D. students from top AI labs. 
+- [8 core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, Ph.D. students from top AI labs.
 - 100+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
@@ -339,9 +336,9 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - [Neptune.ai](https://neptune.ai/)
 - [Comet.ml](https://www.comet.ml/site/)
 - [Wandb](https://www.wandb.com/)
-- ...  
+- ...
 
-![tensorboard-support](docs/source/_images/general/tf_loss.png)
+![tensorboard-support](docs/source/_images/general/tf_loss.jpg)
 
 
 ## Lightning automates 40+ parts of DL/ML research
@@ -365,6 +362,7 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Contextual Emotion Detection (DoubleDistilBert)](https://github.com/PyTorchLightning/emotion_transformer)
 - [Generative Adversarial Network](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0)
 - [Hyperparameter optimization with Optuna](https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py)
+- [Hyperparameter optimization with Ray Tune](https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html)
 - [Image Inpainting using Partial Convolutions](https://github.com/ryanwongsa/Image-Inpainting)
 - [MNIST on TPU](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_)
 - [NER (transformers, TPU, huggingface)](https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D)
@@ -375,7 +373,7 @@ Check out this awesome list of research papers and implementations done with Lig
 - [Transformers transfer learning (Huggingface)](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf)
 - [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
 - [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
-- [Finetune BERT, RoBERTa etc on QA Datasets like SQuAD](https://github.com/tshrjn/Finetune-QA/)
+- [Transformers Question Answering (SQuAD)](https://github.com/tshrjn/Finetune-QA/)
 - [Pytorch-Lightning + Microsoft NNI with Docker](https://github.com/davinnovation/pytorch-boilerplate)
 
 ## Tutorials
@@ -396,27 +394,27 @@ If you have any questions, feel free to:
 ---
 
 ## FAQ
-**How do I use Lightning for rapid research?**    
+**How do I use Lightning for rapid research?**
 [Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)
 
-**Why was Lightning created?**    
+**Why was Lightning created?**
 Lightning has 3 goals in mind:
 
 1. Maximal flexibility while abstracting out the common boilerplate across research projects.
 2. Reproducibility. If all projects use the LightningModule template, it will be much much easier to understand what's going on and where to look! It will also mean every implementation follows a standard format.
 3. Democratizing PyTorch power-user features. Distributed training? 16-bit? know you need them but don't want to take the time to implement? All good... these come built into Lightning.
 
-**How does Lightning compare with Ignite and fast.ai?**    
+**How does Lightning compare with Ignite and fast.ai?**
 [Here's a thorough comparison](https://medium.com/@_willfalcon/pytorch-lightning-vs-pytorch-ignite-vs-fast-ai-61dc7480ad8a).
 
-**Is this another library I have to learn?**    
+**Is this another library I have to learn?**
 Nope! We use pure Pytorch everywhere and don't add unnecessary abstractions!
 
-**Are there plans to support Python 2?**    
+**Are there plans to support Python 2?**
 Nope.
 
-**Are there plans to support virtualenv?**    
-Nope. Please use anaconda or miniconda.    
+**Are there plans to support virtualenv?**
+Nope. Please use anaconda or miniconda.
 ```bash
 conda activate my_env
 pip install pytorch-lightning
@@ -443,6 +441,8 @@ You can also install any past release `0.X.Y` from this repository:
 pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.zip --upgrade
 ```
 
+---
+
 ## Lightning team
 
 #### Leads
@@ -460,10 +460,12 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 - Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
+- Peter Yu [(yukw777)](https://github.com/yukw777)
+- Rohit Gupta [(rohitgr7)](https://github.com/rohitgr7)
 
 ---
 
-#### Funding    
+#### Funding
 Building open-source software with only a few part-time people is hard! We've secured funding to make sure we can
 hire a full-time staff, attend conferences, and move faster through implementing features you request.
 

@@ -116,7 +116,7 @@ class WandbLogger(LightningLoggerBase):
                 group=self._group)
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
-                self.save_dir = self._experiment.dir
+                self._save_dir = self._experiment.dir
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
@@ -135,12 +135,15 @@ class WandbLogger(LightningLoggerBase):
         self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
 
     @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
+
+    @property
     def name(self) -> Optional[str]:
         # don't create an experiment if we don't have one
-        name = self._experiment.project_name() if self._experiment else None
-        return name
+        return self._experiment.project_name() if self._experiment else self._name
 
     @property
     def version(self) -> Optional[str]:
         # don't create an experiment if we don't have one
-        return self._experiment.id if self._experiment else None
+        return self._experiment.id if self._experiment else self._id

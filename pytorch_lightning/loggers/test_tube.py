@@ -68,7 +68,7 @@ class TestTubeLogger(LightningLoggerBase):
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
         super().__init__()
-        self.save_dir = save_dir
+        self._save_dir = save_dir
         self._name = name
         self.description = description
         self.debug = debug
@@ -140,6 +140,10 @@ class TestTubeLogger(LightningLoggerBase):
         if not self.debug:
             exp = self.experiment
             exp.close()
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
 
     @property
     def name(self) -> str:

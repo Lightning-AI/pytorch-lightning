@@ -7,6 +7,7 @@ Monitor a validation metric and stop training when it stops improving.
 """
 from copy import deepcopy
 
+import os
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -34,9 +35,9 @@ class EarlyStopping(Callback):
         min_delta: minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
-            improvement. Default: ``0``.
+            improvement. Default: ``0.0``.
         patience: number of validation epochs with no improvement
-            after which training will be stopped. Default: ``0``.
+            after which training will be stopped. Default: ``3``.
         verbose: verbosity mode. Default: ``False``.
         mode: one of {auto, min, max}. In `min` mode,
             training will stop when the quantity
@@ -133,19 +134,46 @@ class EarlyStopping(Callback):
         self.best_score = state_dict['best_score']
         self.patience = state_dict['patience']
 
-    def on_sanity_check_end(self, trainer, pl_module):
-        logs = trainer.callback_metrics
-        self._validate_condition_metric(logs)
-
     def on_validation_end(self, trainer, pl_module):
         self._run_early_stopping_check(trainer, pl_module)
 
+    def on_validation_epoch_end(self, trainer, pl_module):
+        val_es_key = 'val_early_stop_on'
+        if trainer.callback_metrics.get(val_es_key) is not None:
+            self.monitor = val_es_key
+
+        # disable strict checking when using structured results
+        if val_es_key in trainer.callback_metrics:
+            self.strict = False
+
+        self._validate_condition_metric(trainer.callback_metrics)
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        # disable early stopping in train loop when there's a val loop
+        if self.monitor == 'val_early_stop_on':
+            return
+
+        # early stopping can also work in the train loop when there is no val loop and when using structured results
+        should_check_early_stop = False
+        train_es_key = 'early_stop_on'
+        if trainer.callback_metrics.get(train_es_key, None) is not None:
+            self.monitor = train_es_key
+            should_check_early_stop = True
+
+        if should_check_early_stop:
+            self._run_early_stopping_check(trainer, pl_module)
+
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
+
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
 
         current = logs.get(self.monitor)
+
+        # when in dev debugging
+        trainer.dev_debugger.track_early_stopping_history(current)
+
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
 

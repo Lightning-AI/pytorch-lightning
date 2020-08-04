@@ -39,7 +39,7 @@ class ModelHooks(Module):
                     # don't do this
                     self.something = else
 
-                def setup(step):
+                def setup(stage):
                     data = Load_data(...)
                     self.l1 = nn.Linear(28, data.num_classes)
 
@@ -63,15 +63,6 @@ class ModelHooks(Module):
         """
         Called at the very end of fit.
         If on DDP it is called on every process
-        """
-
-    # TODO: remove in v0.9.0
-    def on_sanity_check_start(self):
-        """
-        Called before starting evaluation.
-
-        Warning:
-            Deprecated. Will be removed in v0.9.0.
         """
 
     def on_train_start(self) -> None:
@@ -112,6 +103,42 @@ class ModelHooks(Module):
     def on_epoch_end(self) -> None:
         """
         Called in the training loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_train_epoch_start(self) -> None:
+        """
+        Called in the training loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_train_epoch_end(self) -> None:
+        """
+        Called in the training loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_validation_epoch_start(self) -> None:
+        """
+        Called in the validation loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_validation_epoch_end(self) -> None:
+        """
+        Called in the validation loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_test_epoch_start(self) -> None:
+        """
+        Called in the test loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_test_epoch_end(self) -> None:
+        """
+        Called in the test loop at the very end of the epoch.
         """
         # do something when the epoch ends
 

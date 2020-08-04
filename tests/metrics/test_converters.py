@@ -124,7 +124,6 @@ def _ddp_test_fn(rank, worldsize):
         'Sync-Reduce does not work properly with DDP and Tensors'
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_reduce_ddp():
     """Make sure sync-reduce works with DDP"""
@@ -213,7 +212,6 @@ def _ddp_test_numpy_metric(rank, worldsize):
     _test_numpy_metric(True)
 
 
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_numpy_metric_ddp():
     tutils.reset_seed()

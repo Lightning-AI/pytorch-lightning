@@ -1,11 +1,11 @@
 import inspect
 from abc import ABC, abstractmethod
 
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerModelHooksMixin(ABC):
-
     def is_function_implemented(self, f_name, model=None):
         if model is None:
             model = self.get_model()
@@ -15,7 +15,11 @@ class TrainerModelHooksMixin(ABC):
     def is_overridden(self, method_name: str, model: LightningModule = None) -> bool:
         if model is None:
             model = self.get_model()
-        super_object = LightningModule
+        # if you pass DataModule instead of None or a LightningModule, we use LightningDataModule as super
+        # TODO - refector this function to accept model_name, instance, parent so it makes more sense
+        super_object = LightningModule if not isinstance(model, LightningDataModule) else LightningDataModule
+
+        # assert model, 'no model passes'
 
         if not hasattr(model, method_name):
             # in case of calling deprecated method

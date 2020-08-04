@@ -51,7 +51,7 @@ class TensorBoardLogger(LightningLoggerBase):
                  **kwargs):
         super().__init__()
         self._save_dir = save_dir
-        self._name = name
+        self._name = name or ''
         self._version = version
 
         self._experiment = None
@@ -105,10 +105,6 @@ class TensorBoardLogger(LightningLoggerBase):
         os.makedirs(self.root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
-
-    @experiment.setter
-    def experiment(self, exp):
-        self._experiment = exp
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],

@@ -14,10 +14,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.spawn
-@pytest.mark.parametrize("backend", ['dp', 'ddp'])
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_running_test_pretrained_model_distrib(tmpdir, backend):
+def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_master_port()
 
@@ -37,7 +35,58 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
         checkpoint_callback=checkpoint,
         logger=logger,
         gpus=[0, 1],
-        distributed_backend=backend,
+        distributed_backend='dp',
+        default_root_dir=tmpdir,
+    )
+
+    # fit model
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'training failed to complete'
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+
+    # run test set
+    new_trainer = Trainer(**trainer_options)
+    results = new_trainer.test(pretrained_model)
+    pretrained_model.cpu()
+
+    # test we have good test accuracy
+    acc = results[0]['test_acc']
+    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
+
+    dataloaders = model.test_dataloader()
+    if not isinstance(dataloaders, list):
+        dataloaders = [dataloaders]
+
+    for dataloader in dataloaders:
+        tpipes.run_prediction(dataloader, pretrained_model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
+    """Verify `test()` on pretrained model."""
+    tutils.set_random_master_port()
+
+    model = EvalModelTemplate()
+
+    # exp file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+
+    # exp file to get weights
+    checkpoint = tutils.init_checkpoint_callback(logger)
+
+    trainer_options = dict(
+        progress_bar_refresh_rate=0,
+        max_epochs=2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        checkpoint_callback=checkpoint,
+        logger=logger,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -48,16 +97,15 @@ def test_running_test_pretrained_model_distrib(tmpdir, backend):
 
     # correct result and ok accuracy
     assert result == 1, 'training failed to complete'
-    pretrained_model = tutils.load_model_from_checkpoint(logger,
-                                                         trainer.checkpoint_callback.dirpath,
-                                                         module_class=EvalModelTemplate)
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # run test set
     new_trainer = Trainer(**trainer_options)
-    new_trainer.test(pretrained_model)
+    results = new_trainer.test(pretrained_model)
+    pretrained_model.cpu()
 
-    # test we have good test accuracy
-    tutils.assert_ok_model_acc(new_trainer)
+    acc = results[0]['test_acc']
+    assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = model.test_dataloader()
     if not isinstance(dataloaders, list):
@@ -84,6 +132,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -223,14 +272,13 @@ def test_model_saving_loading(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # traning complete
@@ -261,7 +309,7 @@ def test_model_saving_loading(tmpdir):
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 
