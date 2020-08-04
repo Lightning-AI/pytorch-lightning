@@ -404,17 +404,9 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
 
 def test_load_model_from_checkpoint_extra_args(tmpdir):
-    """Check if model weights can be loaded from a checkpoint when
-    `self.save_hyperparameters()` was not called in the `__init__` method
-    of the model."""
+    """Check that model args can be passed/changed when `load_from_checkpoint` is called."""
 
-    hparams = EvalModelTemplate.get_default_hparams()
-
-    # Ensure that `self.save_hyperparameters` is not called:
-    _EvalModelTemplateMod = EvalModelTemplate
-    _EvalModelTemplateMod._save_hparams = False
-
-    model = _EvalModelTemplateMod(**hparams)
+    model = EvalModelTemplate()
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
@@ -425,15 +417,18 @@ def test_load_model_from_checkpoint_extra_args(tmpdir):
         default_root_dir=tmpdir,
     )
 
-    # fit model
+    # Fit model
     trainer = Trainer(**trainer_options)
     trainer.fit(model)
 
-    # load last checkpoint
+    # Load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(last_checkpoint, **hparams)
+    pretrained_model = EvalModelTemplate.load_from_checkpoint(last_checkpoint, b1=0.5, b2=0.888)
 
-    # assert weights are the same
+    # Assert that model args were changed accordingly
+    # Assert that model weights did not change
+    assert pretrained_model.b1 == 0.5  # `b1` arg did not change
+    assert pretrained_model.b2 == 0.888  # `b2` arg changed
     for (old_name, old_p), (new_name, new_p) in zip(model.named_parameters(), pretrained_model.named_parameters()):
         assert torch.all(torch.eq(old_p, new_p)), 'loaded weights are not the same as the saved weights'
 
