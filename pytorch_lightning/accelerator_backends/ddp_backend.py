@@ -155,7 +155,7 @@ class DDPBackend(object):
 
         from torch.distributed import is_initialized
         if not is_master or not is_initialized():
-            assert is_master and self.trainer.global_rank == 0
+            assert not (is_master and self.trainer.global_rank > 0)
             # on rank > 0, we always need to initialize, because these are new processes
             model.init_ddp_connection(
                 self.trainer.global_rank,
