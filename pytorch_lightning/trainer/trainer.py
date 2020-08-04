@@ -1317,7 +1317,7 @@ class Trainer(
 
         if torch.distributed.is_initialized():
             print('destroy in test', self.global_rank, os.getpid())
-            torch.distributed.destroy_process_group(())
+            torch.distributed.destroy_process_group()
 
         return results
 
