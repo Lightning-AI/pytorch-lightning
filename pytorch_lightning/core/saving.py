@@ -123,7 +123,7 @@ class ModelIO(object):
             rank_zero_warn('`tags_csv` argument is deprecated in v0.7.6. Will be removed v0.9.0', DeprecationWarning)
 
         if hparams_file is not None:
-            if type(hparams_file) == str:
+            if isinstance(hparams_file, str):
                 extension = hparams_file.split('.')[-1]
                 if extension.lower() in ('csv'):
                     hparams = load_hparams_from_tags_csv(hparams_file)
