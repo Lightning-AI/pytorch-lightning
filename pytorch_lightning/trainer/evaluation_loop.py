@@ -291,6 +291,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
+            print('here 1')
             dl_outputs = []
 
             # on TPU we have to wrap it under the ParallelLoader
@@ -303,6 +304,7 @@ class TrainerEvaluationLoopMixin(ABC):
             dl_max_batches = max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
+                print('here 2')
                 if batch is None:
                     continue
 
@@ -600,7 +602,7 @@ class TrainerEvaluationLoopMixin(ABC):
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
-
+        print('here 3')
         if (test_mode and len(self.test_dataloaders) > 1) \
                 or (not test_mode and len(self.val_dataloaders) > 1):
             args.append(dataloader_idx)
@@ -609,6 +611,8 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.use_ddp or self.use_dp or self.use_ddp2:
             output = model(*args)
             return output
+
+        print('here 4')
 
         # Horovod
         if self.use_horovod and self.on_gpu:
@@ -634,5 +638,7 @@ class TrainerEvaluationLoopMixin(ABC):
             output = model.test_step(*args)
         else:
             output = model.validation_step(*args)
+
+        print('here 5')
 
         return output
