@@ -136,8 +136,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' \
-        if url_ckpt else new_weights_path
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
 
     failed = False
     try:
@@ -145,7 +144,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
             checkpoint_path=ckpt_path,
             hparams_file=hparams_path,
         )
-    except Exception:
+    except:
         failed = True
 
     assert failed, "Model should not been loaded since the extra layer added."
@@ -157,7 +156,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
             hparams_file=hparams_path,
             strict=False,
         )
-    except Exception:
+    except:
         failed = True
 
     assert not failed, "Model should be loaded due to strict=False."
