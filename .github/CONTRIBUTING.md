@@ -58,19 +58,22 @@ Have a favorite feature from other libraries like fast.ai or transformers? Those
 
 ## Contribution Types
 
-We are currently looking for help implementing new features or adding bug fixes.
+We are always looking for help implementing new features or fixing bugs.
 
 A lot of good work has already been done in project mechanics (requirements/base.txt, setup.py, pep8, badges, ci, etc...) so we're in a good state there thanks to all the early contributors (even pre-beta release)!
 
 ### Bug Fixes:
 
-1. Submit a github issue - try to describe what happened so others can reproduce it too (config, code samples, expected vs. actual behaviour). 
+1. If you find a bug please submit a github issue.
+- Make sure the title explains the issue.
+- Describe your setup, what you are trying to do, expected v. actual behaviour. Please add configs and code samples.
+- Add details on how to reproduce the issue- a minimal test case is always best, colab is also great.
  Note, that the sample code shall be minimal and if needed with publicly available data.
 2. Try to fix it or recommend a solution...
- We highly recommend to use test driven approach
-   * convert your minimal code example to a unit/integration test with assert on expected results
-   * start with debugging the issue... you can run just this particular test in your IDE and draft a fix
-   * verify that your test case fails on the master branch and only passes with the fix applied
+ We highly recommend to use test driven approach:
+   * Convert your minimal code example to a unit/integration test with assert on expected results.
+   * Start by debugging the issue... You can run just this particular test in your IDE and draft a fix.
+   * Verify that your test case fails on the master branch and only passes with the fix applied.
 3. Submit a PR!
 
 _**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution and we can help you or finish it with you :]_
@@ -180,22 +183,29 @@ To do so, login to [CircleCI](https://app.circleci.com/) and enable your forked 
 
 We welcome any useful contribution! For your convenience here's a recommended workflow:
 
-0. Think about what you want to do - fix a bug, repair docs, etc.
-1. Start your work locally (usually until you need our CI testing)
-   - create a branch and prepare your changes
-   - hint: do not work with your master directly, it may become complicated when you need to rebase
-   - hint: give your PR a good name! it will be useful later when you may work on multiple tasks/PRs
-2. Create a "Draft PR" which is clearly marked, to let us know you don't need feedback yet.
-3. When you feel ready for integrating your work, mark your PR "Ready for review".
-4. Use tags in PR name for following cases:
-   - **[blocked by #<number>]** if you work is depending on others changes
-   - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime
+0. Think about what you want to do - fix a bug, repair docs, etc. If you want to implement a new feature or enhance an existing one, start by opening a GitHub issue to explain the feature and the motivation. Memebrs from core-contributors will take a look (it might take some time- we are often overloaded with issues!) and discuss it. Once an agreement was reached- start coding.
+1. Start your work locally (usually until you need our CI testing).
+   - Create a branch and prepare your changes.
+   - Tip: do not work with your master directly, it may become complicated when you need to rebase.
+   - Tip: give your PR a good name! it will be useful later when you may work on multiple tasks/PRs.
+2. Test your code!
+   - It is always good practice to start coding by creating a test case, verifying it breaks with current behaviour, and passes with your new changes.
+   - Make sure your new tests cover all different edge cases.
+   - Make sure all exceptions are handled.
+3. Create a "Draft PR" which is clearly marked, to let us know you don't need feedback yet.
+4. When you feel ready for integrating your work, mark your PR "Ready for review".
+   - Your code should be readable and follow the project's design principles.
+   - Make sure all tests are passing.
+   - Make sure you add a GitHub issue to your PR.
+5. Use tags in PR name for following cases:
+   - **[blocked by #<number>]** if you work is depending on others changes.
+   - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer
 
 1. **How can I help/contribute?**
 
-   All help is very welcome - reporting bugs, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
+   All help is extremly welcome - reporting bugs, fixing documentation, adding test cases, solving issues and preparing bug fixes. To solve some issues you can start with label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before you start to implement anything check that the issue description that it is clear and self-assign the task to you (if it is not possible, just comment that you take it and we assign it to you...).
 
 2. **Is there a recommendation for branch names?**
 
