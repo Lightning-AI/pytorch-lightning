@@ -136,17 +136,18 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
-    
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' \
+        if url_ckpt else new_weights_path
+
     failed = False
     try:
         EvalModelTemplate.load_from_checkpoint(
             checkpoint_path=ckpt_path,
             hparams_file=hparams_path,
         )
-    except:
+    except Exception:
         failed = True
-    
+
     assert failed, "Model should not been loaded since the extra layer added."
 
     failed = False
@@ -156,7 +157,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
             hparams_file=hparams_path,
             strict=False,
         )
-    except:
+    except Exception:
         failed = True
 
     assert not failed, "Model should be loaded due to strict=False."

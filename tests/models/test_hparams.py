@@ -196,9 +196,9 @@ def test_load_dict_hparams(tmpdir):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
     hparam_dict = raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-    hparam_dict['test_arg'] == 26
+    hparam_dict['test_arg'] = 26
     # verify that model loads correctly
-    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, hparams_file=hparam_dict)
+    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123, hparams_file=hparam_dict)
     assert model.hparams.test_arg == 26
 
     return raw_checkpoint_path
