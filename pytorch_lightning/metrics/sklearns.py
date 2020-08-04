@@ -248,7 +248,7 @@ class BalancedAccuracy(SklearnMetric):
         >>> y_true = torch.tensor([0, 0, 1, 1])
         >>> metric = BalancedAccuracy()
         >>> metric(y_pred, y_true)
-        tensor([0.8333])
+        tensor([0.7500])
 
     """
 
@@ -295,7 +295,7 @@ class CohenKappaScore(SklearnMetric):
 
         >>> y_pred = torch.tensor([1, 2, 0, 2])
         >>> y_true = torch.tensor([2, 2, 2, 1])
-        >>> metric = ConfusionMatrix()
+        >>> metric = CohenKappaScore()
         >>> metric(y_pred, y_true)
         tensor([-0.3333])
 
@@ -403,7 +403,7 @@ class DCG(SklearnMetric):
         >>> y_score = torch.tensor([[.1, .2, .3, 4, 70]])
         >>> y_true = torch.tensor([[10, 0, 0, 1, 5]])
         >>> metric = DCG()
-        >>> metric(y_true, y_score)
+        >>> metric(y_score, y_true)
         tensor([9.4995])
     """
 
@@ -645,7 +645,7 @@ class Hamming(SklearnMetric):
         >>> y_true = torch.tensor([1, 1, 2, 3])
         >>> metric = Hamming()
         >>> metric(y_pred, y_true)
-        tensor([0.25])
+        tensor([0.2500])
 
     """
 
@@ -690,7 +690,7 @@ class Hinge(SklearnMetric):
 
         >>> pred_decision = torch.tensor([-2.17, -0.97, -0.19, -0.43])
         >>> y_true = torch.tensor([1, 1, 0, 0])
-        >>> metric = Hamming()
+        >>> metric = Hinge()
         >>> metric(pred_decision, y_true)
         tensor([1.6285])
 
@@ -738,7 +738,7 @@ class Jaccard(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 1])
         >>> metric = Jaccard()
         >>> metric(y_pred, y_true)
-        tensor([0.6666])
+        tensor([0.3333])
 
     """
 
@@ -1191,7 +1191,7 @@ class ExplainedVariance(SklearnMetric):
 
         >>> y_pred = torch.tensor([2.5, 0.0, 2, 8])
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
-        >>> metric = R2Score()
+        >>> metric = ExplainedVariance()
         >>> metric(y_pred, y_true)
         tensor([0.957])
     """
@@ -1243,7 +1243,7 @@ class MeanAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.5])
+        tensor([0.500])
 
     """
 
@@ -1347,7 +1347,7 @@ class MeanSquaredLogError(SklearnMetric):
         >>> y_true = torch.tensor([3, 5, 2.5, 7])
         >>> metric = MeanSquaredLogError()
         >>> metric(y_pred, y_true)
-        tensor([0.039])
+        tensor([0.0397])
     """
 
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
@@ -1397,7 +1397,7 @@ class MedianAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MedianAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.5])
+        tensor([0.500])
     """
 
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
@@ -1444,7 +1444,7 @@ class R2Score(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = R2Score()
         >>> metric(y_pred, y_true)
-        tensor([0.948])
+        tensor([0.9486])
     """
 
     def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
@@ -1494,7 +1494,7 @@ class MeanPoissonDeviance(SklearnMetric):
         >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
         >>> metric = MeanPoissonDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.4260])
+        tensor([1.1760])
     """
 
     def __init__(self,
@@ -1540,7 +1540,7 @@ class MeanGammaDeviance(SklearnMetric):
         >>> y_true = torch.tensor([2, 0.5, 1, 4])
         >>> metric = MeanGammaDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.0568])
+        tensor([1.0569])
     """
 
     def __init__(self,
@@ -1583,10 +1583,10 @@ class MeanTweedieDeviance(SklearnMetric):
     Example:
 
         >>> y_pred = torch.tensor([0.5, 0.5, 2., 2.])
-        >>> y_true = torch.tensor([2, 0, 1, 4])
+        >>> y_true = torch.tensor([2, 0.5, 1, 4])
         >>> metric = MeanGammaDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.4260])
+        tensor([1.8125])
     """
 
     def __init__(self, power: float = 0,
