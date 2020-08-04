@@ -413,13 +413,14 @@ class TrainerDDPMixin(ABC):
         """
         # pick a random port first
         assert self.num_nodes == 1, 'random port can only be called from single node training'
-        global RANDOM_PORTS
-        default_port = RANDOM_PORTS[-1]
-        RANDOM_PORTS = RANDOM_PORTS[:-1]
+
+        default_port = os.environ.get('MASTER_PORT')
 
         # when not forced, use the user port
-        if not force:
-            default_port = os.environ.get('MASTER_PORT', default_port)
+        if force or not default_port:
+            global RANDOM_PORTS
+            default_port = RANDOM_PORTS[-1]
+            RANDOM_PORTS = RANDOM_PORTS[:-1]
 
         os.environ['MASTER_PORT'] = str(default_port)
 
