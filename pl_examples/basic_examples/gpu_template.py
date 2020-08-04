@@ -22,12 +22,17 @@ def main(args):
     # ------------------------
     trainer = Trainer.from_argparse_args(
         args,
-        distributed_backend='ddp'
+        distributed_backend='ddp',
+        limit_train_batches=10,
+        limit_val_batches=10,
+        max_epochs=1,
     )
 
     # ------------------------
     # 3 START TRAINING
     # ------------------------
+    trainer.test(model)
+    trainer.fit(model)
     trainer.test(model)
     trainer.fit(model)
 
