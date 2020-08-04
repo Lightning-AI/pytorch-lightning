@@ -4,10 +4,16 @@ Runs a model on a single node across multiple gpus.
 import os
 from argparse import ArgumentParser
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer, seed_everything, Callback
 from pl_examples.models.lightning_template import LightningTemplateModel
 
 seed_everything(234)
+
+
+class DebugCallback(Callback):
+
+    def on_test_batch_end(self, trainer, pl_module):
+        print('test_batch', trainer.global_rank)
 
 
 def main(args):
