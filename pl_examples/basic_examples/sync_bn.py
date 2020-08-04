@@ -67,7 +67,7 @@ class MNISTDataModule(pl.LightningDataModule):
 
 
 class SyncBNModule(pl.LightningModule):
-    def __init__(self, **kwargs):
+    def __init__(self, gpu_count=1, **kwargs):
         super().__init__()
 
         self.bn_targets = None
@@ -82,13 +82,18 @@ class SyncBNModule(pl.LightningModule):
             out_bn = self.bn_layer(x.view(x.size(0), -1))
 
             if self.bn_targets:
-                bn_target = self.bn_targets[batch_idx]
-                print('#######')
-                print(self.trainer.local_rank)
-                print(out_bn.shape)
-                print('#######')
+                bn_target = self.bn_targets[batch_idx // 2]
 
-                assert 1 == 0
+            # both rank 0 and rank 1 get the same first batch
+            if self.trainer.local_rank == 0:
+                bn_target_0 = bn_target[self.trainer.local_rank::self.gpu_count]
+                bn_target_0 = bn_target_0.to(out_bn.device)
+                print(torch.sum(torch.abs(bn_target_0 - out_bn)))
+            elif self.trainer.local_rank == 1:
+                bn_target_1 = bn_target[self.trainer.local_rank::self.gpu_count]
+                bn_target_1 = bn_target_1.to(out_bn.device)
+                print(torch.sum(torch.abs(bn_target_1 - out_bn)))
+
         out = self.linear(out_bn)
 
         return out, out_bn
@@ -127,7 +132,7 @@ def main(args, datamodule, bn_outputs):
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
-    model = SyncBNModule(bn_targets=bn_outputs)
+    model = SyncBNModule(gpu_count=args.gpu, bn_targets=bn_outputs)
 
     # ------------------------
     # 2 INIT TRAINER
@@ -140,6 +145,7 @@ def main(args, datamodule, bn_outputs):
         max_steps=args.steps,
         sync_bn_backend=args.sync_bn,
         num_sanity_val_steps=0,
+        replace_sampler_ddp=False,
     )
 
     # ------------------------
