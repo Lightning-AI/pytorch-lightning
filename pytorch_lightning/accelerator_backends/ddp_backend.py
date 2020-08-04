@@ -222,5 +222,10 @@ class DDPBackend(object):
         # clean up memory
         torch.cuda.empty_cache()
 
+        # clean up dist group
+        #if self.use_ddp or self.use_ddp2:
+        import torch.distributed as torch_distrib
+        torch_distrib.destroy_process_group()
+
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
