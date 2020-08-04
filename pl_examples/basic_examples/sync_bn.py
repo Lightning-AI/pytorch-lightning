@@ -18,6 +18,7 @@ import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import random_split
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 
 pl.seed_everything(234)
@@ -57,7 +58,10 @@ class MNISTDataModule(pl.LightningDataModule):
             self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
 
     def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=self.batch_size, shuffle=False)
+        dist_sampler = DistributedSampler(self.mnist_train, shuffle=False)
+        return DataLoader(
+            self.mnist_train, batch_size=self.batch_size, sampler=dist_sampler, shuffle=False
+        )
 
     def val_dataloader(self):
         return DataLoader(self.mnist_val, batch_size=self.batch_size, shuffle=False)
@@ -84,15 +88,15 @@ class SyncBNModule(pl.LightningModule):
             if self.bn_targets:
                 bn_target = self.bn_targets[batch_idx // 2]
 
-            # both rank 0 and rank 1 get the same first batch
-            if self.trainer.local_rank == 0:
-                bn_target_0 = bn_target[self.trainer.local_rank::self.gpu_count]
-                bn_target_0 = bn_target_0.to(out_bn.device)
-                print(torch.sum(torch.abs(bn_target_0 - out_bn)))
-            elif self.trainer.local_rank == 1:
-                bn_target_1 = bn_target[self.trainer.local_rank::self.gpu_count]
-                bn_target_1 = bn_target_1.to(out_bn.device)
-                print(torch.sum(torch.abs(bn_target_1 - out_bn)))
+                # both rank 0 and rank 1 get the same first batch
+                if self.trainer.local_rank == 0:
+                    bn_target_0 = bn_target[self.trainer.local_rank::self.gpu_count]
+                    bn_target_0 = bn_target_0.to(out_bn.device)
+                    print(torch.sum(torch.abs(bn_target_0 - out_bn)))
+                elif self.trainer.local_rank == 1:
+                    bn_target_1 = bn_target[self.trainer.local_rank::self.gpu_count]
+                    bn_target_1 = bn_target_1.to(out_bn.device)
+                    print(torch.sum(torch.abs(bn_target_1 - out_bn)))
 
         out = self.linear(out_bn)
 
