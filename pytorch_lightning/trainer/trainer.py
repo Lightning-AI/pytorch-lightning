@@ -184,6 +184,7 @@ class Trainer(
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
+        sync_bn: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
         weights_save_path: Optional[str] = None,
@@ -295,6 +296,8 @@ class Trainer(
             row_log_interval: How often to add logging rows (does not write to disk)
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
+
+            sync_bn: Synchronize batch norm layers between process groups/whole world.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
@@ -426,6 +429,9 @@ class Trainer(
         # Transfer params
         self.num_nodes = num_nodes
         self.log_gpu_memory = log_gpu_memory
+
+        # sync-bn backend
+        self.sync_bn = sync_bn
 
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch

@@ -176,6 +176,10 @@ class DDPBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
+        # call sync_bn before .cuda(), configure_apex and configure_ddp
+        if self.trainer.sync_bn:
+            model = model.configure_sync_bn(model)
+
         # MODEL
         # copy model to each gpu
         if self.trainer.on_gpu:
