@@ -74,8 +74,10 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
     dict(limit_val_batches=1.2),
     dict(limit_test_batches=-0.1),
     dict(limit_test_batches=1.2),
-    dict(val_check_interval=1.1),
-    dict(overfit_batches=1.1),
+    dict(val_check_interval=-0.1),
+    dict(val_check_interval=1.2),
+    dict(overfit_batches=-0.1),
+    dict(overfit_batches=1.2),
 ])
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
     with pytest.raises(MisconfigurationException, match='passed invalid value'):
