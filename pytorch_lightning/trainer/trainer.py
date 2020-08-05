@@ -299,7 +299,7 @@ class Trainer(
 
             sync_bn: Synchronize batch norm layers between process groups/whole world.
 
-            precision: Full precision (32), half precision (16).
+            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
             weights_summary: Prints a summary of the weights when training begins.
 
