@@ -279,10 +279,15 @@ def ssim(
     device = pred.device
 
     channel = pred.size(1)
-
     kernel = _gaussian_kernel(channel, kernel_size, sigma, device)
 
-    input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])
+    # Concatenate
+    # pred for mu_pred
+    # target for mu_target
+    # pred * pred for sigma_pred
+    # target * target for sigma_target
+    # pred * target for sigma_pred_target
+    input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])  # (5 * B, C, H, W)
     outputs = F.conv2d(input_list, kernel, groups=channel)
     output_list = [outputs[x * pred.size(0): (x + 1) * pred.size(0)] for x in range(len(outputs))]
 
