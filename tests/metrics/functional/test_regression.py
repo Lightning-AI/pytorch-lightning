@@ -97,21 +97,21 @@ def test_psnr_against_sklearn(sklearn_metric, torch_metric):
         assert torch.allclose(sk_score, pl_score)
 
 
-@pytest.mark.parametrize(['size', 'channel', 'plus', 'multichannel'], [
+@pytest.mark.parametrize(['size', 'channel', 'coef', 'multichannel'], [
     pytest.param(16, 1, 0.9, False),
     pytest.param(32, 3, 0.8, True),
     pytest.param(48, 4, 0.7, True),
     pytest.param(64, 5, 0.6, True)
 ])
-def test_ssim(size, channel, plus, multichannel):
+def test_ssim(size, channel, coef, multichannel):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     pred = torch.rand(size, channel, size, size, device=device)
-    target = pred * plus
+    target = pred * coef
     ssim_idx = ssim(pred, target, data_range=1.0)
     np_pred = pred.permute(0, 2, 3, 1).cpu().numpy()
     if multichannel is False:
         np_pred = np_pred[:, :, :, 0]
-    np_target = np.multiply(np_pred, plus)
+    np_target = np.multiply(np_pred, coef)
     sk_ssim_idx = ski_ssim(
         np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True, data_range=1.0
     )
