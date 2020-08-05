@@ -9,7 +9,7 @@ class TrainerCallbackHookMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     # the proper values/initialisation should be done in child class
     callbacks: List[Callback] = []
-    get_model: Callable = ...
+    get_model: Callable
 
     def setup(self, stage: str):
         """Called in the beginning of fit and test"""
