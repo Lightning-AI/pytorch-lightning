@@ -317,7 +317,7 @@ class TrainerDataLoadingMixin(ABC):
                     raise MisconfigurationException(
                         'When using an IterableDataset for `limit_{mode}_batches`,'
                         f' `Trainer(limit_{mode}_batches)` must be `0.0`, `1.0` or an int. An int k specifies'
-                        f' num_{mode}_batches to use.')
+                        f' `num_{mode}_batches` to use.')
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
