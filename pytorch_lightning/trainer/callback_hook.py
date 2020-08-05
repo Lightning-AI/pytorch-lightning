@@ -111,6 +111,16 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_batch_end(self, self.get_model())
 
+    def on_train_batch_start(self):
+        """Called when the training batch begins."""
+        for callback in self.callbacks:
+            callback.on_train_batch_start(self, self.get_model())
+
+    def on_train_batch_end(self):
+        """Called when the training batch ends."""
+        for callback in self.callbacks:
+            callback.on_train_batch_end(self, self.get_model())
+
     def on_validation_batch_start(self):
         """Called when the validation batch begins."""
         for callback in self.callbacks:
