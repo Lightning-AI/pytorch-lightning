@@ -13,23 +13,9 @@ except ImportError:
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 
-PATH_ROOT = os.path.dirname(__file__)
 builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
-
-
-def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
-    with open(os.path.join(path_dir, 'requirements', 'base.txt'), 'r') as file:
-        lines = [ln.strip() for ln in file.readlines()]
-    reqs = []
-    for ln in lines:
-        # filer all comments
-        if comment_char in ln:
-            ln = ln[:ln.index(comment_char)]
-        if ln:  # if requirement is not empty
-            reqs.append(ln)
-    return reqs
 
 
 def load_long_description():
@@ -42,6 +28,72 @@ def load_long_description():
     text = text.replace('.svg', '.png')
     return text
 
+
+extras = {
+    'base': [
+        'numpy>=1.16.4',
+        'torch>=1.3',
+        'tensorboard>=1.14',
+        'future>=0.17.1',
+        'PyYAML>=5.1',
+        'tqdm>=4.41.0'
+    ],
+    'docs': [
+        'sphinx>=2.0, <3.0',
+        'recommonmark',
+        'm2r',
+        'nbsphinx',
+        'pandoc',
+        'docutils',
+        'sphinxcontrib-fulltoc',
+        'sphinxcontrib-mockautodoc',
+
+        # Splitting line here to adhere to style standards
+        'pt_lightning_sphinx_theme @ '
+        'git+git://github.com/PytorchLightning/lightning_sphinx_theme.git'
+        '@b635a2a21883f830d4e063ede6df64f0b5773683#egg=pt-lightning-sphinx-theme'
+
+        'sphinx-autodoc-typehints',
+        'sphinx-paramlinks<0.4.0'
+    ],
+    'examples': [
+        'torchvision>=0.4.0, <0.7',
+        'gym>=0.17.0'
+    ],
+    'extra': [
+        'neptune-client>=0.4.109',
+        'comet-ml>=1.0.56',
+        'mlflow>=1.0.0',
+        'test_tube>=0.7.5',
+        'wandb>=0.8.21',
+        'matplotlib>=3.1.1',
+        'horovod>=0.19.2',
+        'omegaconf>=2.0.0',
+        'scikit-learn>=0.20.0',
+        'torchtext>=0.3.1, <0.7',
+        'onnx>=1.7.0',
+        'onnxruntime>=1.3.0'
+    ],
+    'test': [
+        'coverage',
+        'codecov>=2.1',
+        'pytest>=3.0.5',
+        'pytest-cov',
+        'pytest-flake8',
+        'flake8',
+        'flake8-black',
+        'check-manifest',
+        'twine==1.13.0',
+        'scikit-image',
+        'black==19.10b0',
+        'pre-commit>=1.0',
+        'cloudpickle>=1.2',
+        'nltk>=3.3'
+    ]
+}
+extras['dev'] = extras['base'] + extras['extra'] + extras['test']
+extras['all'] = extras['dev'] + extras['examples'] + extras['docs']
+base_requirements = extras.pop('base')
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -67,7 +119,8 @@ setup(
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
-    install_requires=load_requirements(PATH_ROOT),
+    install_requires=base_requirements,
+    extras_require=extras,
 
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
