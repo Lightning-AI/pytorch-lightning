@@ -263,6 +263,8 @@ class TrainerTrainLoopMixin(ABC):
     on_train_end: Callable
     on_batch_start: Callable
     on_batch_end: Callable
+    on_train_batch_start: Callable
+    on_train_batch_end: Callable
     on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
@@ -690,12 +692,22 @@ class TrainerTrainLoopMixin(ABC):
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
         # Batch start events
+        # TODO: deprecate 1.0
         with self.profiler.profile('on_batch_start'):
             # callbacks
             self.on_batch_start()
             # hooks
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
+                if response == -1:
+                    return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+
+        with self.profiler.profile('on_train_batch_start'):
+            # callbacks
+            self.on_train_batch_start()
+            # hooks
+            if self.is_function_implemented('on_train_batch_start'):
+                response = self.get_model().on_train_batch_start(batch)
                 if response == -1:
                     return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
@@ -784,6 +796,13 @@ class TrainerTrainLoopMixin(ABC):
             # model hooks
             if self.is_function_implemented('on_batch_end'):
                 self.get_model().on_batch_end()
+
+        with self.profiler.profile('on_train_batch_end'):
+            # callbacks
+            self.on_train_batch_end()
+            # model hooks
+            if self.is_function_implemented('on_train_batch_end'):
+                self.get_model().on_train_batch_end()
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
