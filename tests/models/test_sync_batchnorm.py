@@ -1,21 +1,13 @@
-import os
-import math
-import numpy as np
-
 import pytest
-from collections import namedtuple
-import tests.base.develop_utils as tutils
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 import pytorch_lightning as pl
-from pytorch_lightning import Trainer
+import tests.base.develop_utils as tutils
+from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule
-
-
-pl.seed_everything(234)
-FLOAT16_EPSILON = np.finfo(np.float16).eps
 
 
 class SyncBNModule(pl.LightningModule):
@@ -60,6 +52,7 @@ class SyncBNModule(pl.LightningModule):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_batchnorm_ddp(tmpdir):
+    seed_everything(234)
     tutils.set_random_master_port()
 
     # define datamodule and dataloader
