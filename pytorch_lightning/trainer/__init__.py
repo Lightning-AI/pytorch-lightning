@@ -184,7 +184,7 @@ If enabled and `gpus` is an integer, pick available gpus automatically.
 This is especially useful when GPUs are configured to be in "exclusive mode",
 such that only one process at a time can access them.
 
-.. testcode::
+Example::
 
     # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
     trainer = Trainer(gpus=2, auto_select_gpus=False)
