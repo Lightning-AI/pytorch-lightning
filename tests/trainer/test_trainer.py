@@ -377,7 +377,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         # Bind methods to keep track of epoch numbers, batch numbers it has seen
         # as well as number of times it has called on_load_checkpoint()
         model.on_epoch_end = types.MethodType(increment_epoch, model)
-        model.on_batch_start = types.MethodType(increment_batch, model)
+        model.on_train_batch_start = types.MethodType(increment_batch, model)
         model.on_load_checkpoint = types.MethodType(increment_on_load_checkpoint, model)
         return model
 
@@ -691,7 +691,7 @@ def test_trainer_interrupted_flag(tmpdir):
         def __init__(self):
             super().__init__()
 
-        def on_batch_start(self, trainer, pl_module):
+        def on_train_batch_start(self, trainer, pl_module):
             raise KeyboardInterrupt
 
     class HandleInterruptCallback(Callback):
