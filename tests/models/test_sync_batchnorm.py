@@ -1,7 +1,6 @@
 import os
 import math
 import numpy as np
-from argparse import ArgumentParser
 
 import pytest
 from collections import namedtuple
@@ -58,11 +57,10 @@ class SyncBNModule(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.linear.parameters(), lr=0.02)
 
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_batchnorm_ddp(tmpdir):
     tutils.set_random_master_port()
-
-    parent_parser = ArgumentParser(add_help=False)
 
     # define datamodule and dataloader
     dm = MNISTDataModule()
