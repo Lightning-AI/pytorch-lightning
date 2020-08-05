@@ -1249,7 +1249,7 @@ class MeanAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.5000])
+        tensor([0.500])
 
     """
 
