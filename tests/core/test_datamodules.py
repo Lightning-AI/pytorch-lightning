@@ -1,8 +1,8 @@
 import pickle
 from argparse import ArgumentParser
 
-import torch
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate

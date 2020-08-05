@@ -3,7 +3,6 @@
 #   Especially reduction and reducing across processes won't be tested here!
 
 import torch
-from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
 from pytorch_lightning.metrics.regression import (
     MAE, MSE, RMSE, RMSLE, PSNR, SSIM

@@ -2,12 +2,13 @@
 Tests to ensure that the training loop works with a dict
 """
 import os
-import torch
-from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
-from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
-from tests.base import EvalModelTemplate
+
 import pytest
+import torch
+
+from pytorch_lightning import Trainer
+from tests.base import EvalModelTemplate
+from tests.base.deterministic_model import DeterministicModel
 
 
 # test with train_step_end
