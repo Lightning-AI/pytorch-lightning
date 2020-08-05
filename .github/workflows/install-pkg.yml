@@ -39,14 +39,16 @@ jobs:
       # max-parallel: 6
       matrix:
         # PyTorch 1.5 is failing on Win and bolts requires torchvision>=0.5
-        os: [ubuntu-20.04]  # , windows-2019
+        os: [ubuntu-20.04, windows-2019, macOS-10.15]
         python-version: [3.6, 3.7, 3.8]
 
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: ${{ matrix.python-version }}
+
+      # todo: add cache, but before saving we need to remove PL
 
       - name: Create package
         run: |
