@@ -9,10 +9,8 @@ import io
 import os
 import csv
 import torch
-
 from argparse import Namespace
 from typing import Optional, Dict, Any, Union
-
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
@@ -41,8 +39,8 @@ class ExperimentWriter(object):
         self.log_dir = log_dir
         if os.path.exists(self.log_dir):
             rank_zero_warn(
-                f"Experiment logs directory {self.log_dir} exists and is not empty. "
-                "Previous log files in this directory will be deleted when the new ones are saved!"
+                f"Experiment logs directory {self.log_dir} exists and is not empty."
+                " Previous log files in this directory will be deleted when the new ones are saved!"
             )
         os.makedirs(self.log_dir, exist_ok=True)
 
@@ -121,9 +119,9 @@ class CSVLogger(LightningLoggerBase):
         If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used
         and the checkpoint will be saved in "save_dir/version_dir"
         """
-        if self.name is None or len(self.name) == 0:
-            return self._save_dir
-        return os.path.join(self._save_dir, self.name)
+        if not self.name:
+            return self.save_dir
+        return os.path.join(self.save_dir, self.name)
 
     @property
     def log_dir(self) -> str:
@@ -153,7 +151,7 @@ class CSVLogger(LightningLoggerBase):
             self.logger.experiment.some_experiment_writer_function()
 
         """
-        if self._experiment is not None:
+        if self._experiment:
             return self._experiment
 
         os.makedirs(self.root_dir, exist_ok=True)
