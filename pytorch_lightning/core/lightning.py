@@ -985,7 +985,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
             model = apex.parallel.convert_syncbn_model(model, process_group=None)
         else:
-            raise ValueError("only torch and apex options are supported for sync_batchnorm at the moment.")
+            raise ValueError("only `torch` and `apex` options are supported for sync_batchnorm at the moment.")
 
         return model
 

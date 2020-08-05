@@ -7,6 +7,7 @@ When sync_bn_backend is set to None, the code should result in an AssertionError
 """
 import os
 import math
+import numpy as np
 from argparse import ArgumentParser
 
 import torch
@@ -17,12 +18,18 @@ import pytorch_lightning as pl
 import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import random_split
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 
 
 pl.seed_everything(234)
-EPSILON = 1e-12
+FLOAT16_EPSILON = np.finfo(np.float16).eps
+
+
+TRANSFORM = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
 
 
 class MNISTDataModule(pl.LightningDataModule):
@@ -32,10 +39,6 @@ class MNISTDataModule(pl.LightningDataModule):
         self.dist_sampler = dist_sampler
         self.data_dir = data_dir
         self.batch_size = batch_size
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
 
         # self.dims is returned when you call dm.size()
         # Setting default dims here because we know them.
@@ -51,12 +54,11 @@ class MNISTDataModule(pl.LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         if stage == 'fit' or stage is None:
-            mnist_full = MNIST(self.data_dir, train=True, transform=self.transform)
-            self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000], generator=torch.Generator().manual_seed(234))
+            self.mnist_train = MNIST(self.data_dir, train=True, transform=TRANSFORM)
 
         # Assign test dataset for use in dataloader(s)
         if stage == 'test' or stage is None:
-            self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transform)
+            self.mnist_test = MNIST(self.data_dir, train=False, transform=TRANSFORM)
 
     def train_dataloader(self):
         dist_sampler = None
@@ -66,9 +68,6 @@ class MNISTDataModule(pl.LightningDataModule):
         return DataLoader(
             self.mnist_train, batch_size=self.batch_size, sampler=dist_sampler, shuffle=False
         )
-
-    def val_dataloader(self):
-        return DataLoader(self.mnist_val, batch_size=self.batch_size, shuffle=False)
 
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size, shuffle=False)
@@ -91,18 +90,12 @@ class SyncBNModule(pl.LightningModule):
             out_bn = self.bn_layer(x.view(x.size(0), -1))
 
             if self.bn_targets:
-                bn_target = self.bn_targets[batch_idx // 2]
-
-                # both rank 0 and rank 1 get the same first batch
-                if self.trainer.local_rank == 0:
-                    bn_target_0 = bn_target[self.trainer.local_rank::self.gpu_count]
-                    bn_target_0 = bn_target_0.to(out_bn.device)
-                    print(torch.sum(torch.abs(bn_target_0 - out_bn)))
-                elif self.trainer.local_rank == 1:
-                    bn_target_1 = bn_target[self.trainer.local_rank::self.gpu_count]
-                    bn_target_1 = bn_target_1.to(out_bn.device)
-                    print(torch.sum(torch.abs(bn_target_1 - out_bn)))
-                exit(-1)
+                bn_target = self.bn_targets[batch_idx]
+                
+                # executes on both GPUs
+                bn_target = bn_target[self.trainer.local_rank::self.gpu_count]
+                bn_target = bn_target.to(out_bn.device)
+                assert torch.sum(torch.abs(bn_target - out_bn)) < FLOAT16_EPSILON
 
         out = self.linear(out_bn)
 
@@ -111,7 +104,7 @@ class SyncBNModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
 
-        y_hat = self(x, batch_idx)
+        y_hat, _ = self(x, batch_idx)
         loss = F.cross_entropy(y_hat, y)
 
         return pl.TrainResult(loss)
@@ -179,14 +172,14 @@ def run_cli():
     bn_outputs = []
 
     # shuffle is false by default
-    for idx, batch in enumerate(train_dataloader):
+    for batch_idx, batch in enumerate(train_dataloader):
         x, y = batch
 
-        out, out_bn = model.forward(x, idx)
+        out, out_bn = model.forward(x, batch_idx)
         bn_outputs.append(out_bn)
 
         # get 3 steps
-        if idx == 2:
+        if batch_idx == 2:
             break
 
     bn_outputs = [x.cuda() for x in bn_outputs]
