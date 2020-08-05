@@ -484,11 +484,28 @@ AveragePrecision (sk)
 .. autofunction:: pytorch_lightning.metrics.sklearns.AveragePrecision
     :noindex:
 
+BalancedAccuracy (sk)
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.BalancedAccuracy
+    :noindex:
+
+CohenKappaScore (sk)
+^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.CohenKappaScore
+    :noindex:
 
 ConfusionMatrix (sk)
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.ConfusionMatrix
+    :noindex:
+
+DCG (sk)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.DCG
     :noindex:
 
 F1 (sk)
@@ -501,6 +518,24 @@ FBeta (sk)
 ^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.FBeta
+    :noindex:
+
+Hamming (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Hamming
+    :noindex:
+
+Hinge (sk)
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Hinge
+    :noindex:
+
+Jaccard (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Jaccard
     :noindex:
 
 Precision (sk)
@@ -532,3 +567,58 @@ AUROC (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.AUROC
     :noindex:
+
+ExplainedVariance (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.ExplainedVariance
+    :noindex:
+
+MeanAbsoluteError (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanAbsoluteError
+    :noindex:
+    
+MeanSquaredError (sk)
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredError
+    :noindex:
+    
+MeanSquaredLogError (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredLogError
+    :noindex:
+    
+MedianAbsoluteError (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MedianAbsoluteError
+    :noindex:
+    
+R2Score (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.R2Score
+    :noindex:
+    
+MeanPoissonDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanPoissonDeviance
+    :noindex:
+
+MeanGammaDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanGammaDeviance
+    :noindex:
+    
+MeanTweedieDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanTweedieDeviance
+    :noindex:
+    

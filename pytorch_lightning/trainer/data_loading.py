@@ -212,18 +212,19 @@ class TrainerDataLoadingMixin(ABC):
         # automatically add samplers
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
+        self.num_training_batches = len(self.train_dataloader) if _has_len(self.train_dataloader) else float('inf')
         self._worker_check(self.train_dataloader, 'train dataloader')
         self._check_batch_limits('limit_train_batches')
 
-        if not _has_len(self.train_dataloader):
-            self.num_training_batches = float('inf')
-        else:
-            # try getting the length
-            if isinstance(self.limit_train_batches, float):
-                self.num_training_batches = len(self.train_dataloader)
-                self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
-            else:
-                self.num_training_batches = min(len(self.train_dataloader), self.limit_train_batches)
+        if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
+            self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
+        elif self.num_training_batches != float('inf'):
+            self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
+        elif self.limit_train_batches != 1.0:
+            raise MisconfigurationException(
+                'When using an IterableDataset for `limit_train_batches`,'
+                ' `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies'
+                ' `num_training_batches` to use.')
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -241,8 +242,7 @@ class TrainerDataLoadingMixin(ABC):
                     self.val_check_batch = float('inf')
                 else:
                     raise MisconfigurationException(
-                        'When using an infinite DataLoader (e.g. with an IterableDataset'
-                        ' or when DataLoader does not implement `__len__`) for `train_dataloader`,'
+                        'When using an IterableDataset for `train_dataloader`,'
                         ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
                         ' checking validation every k training batches.')
             else:
@@ -304,24 +304,21 @@ class TrainerDataLoadingMixin(ABC):
             for i, dataloader in enumerate(dataloaders):
                 num_batches = len(dataloader) if _has_len(dataloader) else float('inf')
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
+                self._check_batch_limits(f'limit_{mode}_batches')
 
                 # percent or num_steps
                 limit_eval_batches = getattr(self, f'limit_{mode}_batches')
 
-                if num_batches != float('inf'):
-                    self._check_batch_limits(f'limit_{mode}_batches')
-
-                    # limit num batches either as a percent or num steps
-                    if isinstance(limit_eval_batches, float):
-                        num_batches = int(num_batches * limit_eval_batches)
-                    else:
-                        num_batches = min(len(dataloader), limit_eval_batches)
-
-                elif limit_eval_batches not in (0.0, 1.0):
+                # limit num batches either as a percent or num steps
+                if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
+                    num_batches = min(num_batches, int(limit_eval_batches))
+                elif num_batches != float('inf'):
+                    num_batches = int(num_batches * limit_eval_batches)
+                elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
-                        'When using an infinite DataLoader (e.g. with an IterableDataset'
-                        f' or when DataLoader does not implement `__len__`) for `limit_{mode}_batches`,'
-                        f' `Trainer(limit_{mode}_batches)` must be `0.0` or `1.0`.')
+                        'When using an IterableDataset for `limit_{mode}_batches`,'
+                        f' `Trainer(limit_{mode}_batches)` must be `0.0`, `1.0` or an int. An int k specifies'
+                        f' `num_{mode}_batches` to use.')
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
