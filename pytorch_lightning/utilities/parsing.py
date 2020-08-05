@@ -158,7 +158,7 @@ def lightning_hasattr(model, attribute):
                 attr = True
     else:
         attr = False
-        
+
     return attr
 
 

@@ -94,6 +94,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed shell injection vulnerability in subprocess call ([#2786](https://github.com/PyTorchLightning/pytorch-lightning/pull/2786))
 
+- Fixed lr finder and hparams compatibility ([#2821](https://github.com/PyTorchLightning/pytorch-lightning/pull/2821))
+
 ## [0.8.5] - 2020-07-09
 
 ### Added
