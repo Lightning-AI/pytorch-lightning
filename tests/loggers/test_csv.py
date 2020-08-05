@@ -4,7 +4,9 @@ import pytest
 import torch
 import os
 
+from pytorch_lightning.core.saving import load_hparams_from_yaml
 from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 
 
 def test_file_logger_automatic_versioning(tmpdir):
@@ -67,6 +69,10 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
     }
     logger.log_metrics(metrics, step_idx)
     logger.save()
+
+    path_yaml = os.path.join(logger.log_dir, ExperimentWriter.NAME_HPARAMS_FILE)
+    params = load_hparams_from_yaml(path_yaml)
+    assert all([n in params for n in metrics])
 
 
 def test_file_logger_log_hyperparams(tmpdir):
