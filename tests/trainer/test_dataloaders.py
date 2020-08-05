@@ -53,19 +53,15 @@ def test_fit_val_loader_only(tmpdir):
 
 
 @pytest.mark.parametrize("dataloader_options", [
-    dict(val_check_interval=1.1),
     dict(val_check_interval=10000),
 ])
 def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
-
     model = EvalModelTemplate()
-
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         **dataloader_options,
     )
-
     with pytest.raises(ValueError):
         # fit model
         trainer.fit(model)
@@ -78,9 +74,11 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
     dict(limit_val_batches=1.2),
     dict(limit_test_batches=-0.1),
     dict(limit_test_batches=1.2),
+    dict(val_check_interval=1.1),
+    dict(overfit_batches=1.1),
 ])
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match='passed invalid value'):
         Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,

@@ -103,21 +103,6 @@ class TrainerDataLoadingMixin(ABC):
     def is_overridden(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _check_batch_limits(self, name: str) -> None:
-        # TODO: verify it is still needed and deprecate it..
-        value = getattr(self, name)
-
-        # ints are fine
-        if isinstance(value, int):
-            return
-
-        msg = f'`{name}` must lie in the range [0.0, 1.0], but got {value:.3f}. (or pass in an int)'
-        if name == 'val_check_interval':
-            msg += ' If you want to disable validation set `limit_val_batches` to 0.0 instead.'
-
-        if not 0. <= value <= 1.:
-            raise ValueError(msg)
-
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         on_windows = platform.system() == 'Windows'
 
@@ -214,7 +199,6 @@ class TrainerDataLoadingMixin(ABC):
 
         self.num_training_batches = len(self.train_dataloader) if _has_len(self.train_dataloader) else float('inf')
         self._worker_check(self.train_dataloader, 'train dataloader')
-        self._check_batch_limits('limit_train_batches')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
@@ -246,8 +230,6 @@ class TrainerDataLoadingMixin(ABC):
                         ' `Trainer(val_check_interval)` must be `1.0` or an int. An int k specifies'
                         ' checking validation every k training batches.')
             else:
-                self._check_batch_limits('val_check_interval')
-
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
@@ -304,7 +286,6 @@ class TrainerDataLoadingMixin(ABC):
             for i, dataloader in enumerate(dataloaders):
                 num_batches = len(dataloader) if _has_len(dataloader) else float('inf')
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
-                self._check_batch_limits(f'limit_{mode}_batches')
 
                 # percent or num_steps
                 limit_eval_batches = getattr(self, f'limit_{mode}_batches')

@@ -534,7 +534,6 @@ class Trainer(
         # logging
         self.configure_logger(logger)
         self.log_save_interval = log_save_interval
-        self.val_check_interval = val_check_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -546,9 +545,6 @@ class Trainer(
                 DeprecationWarning,
             )
             overfit_batches = overfit_pct
-
-        # convert floats to ints
-        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -580,6 +576,8 @@ class Trainer(
         self.limit_test_batches = _determine_limit_batches(limit_test_batches)
         self.limit_val_batches = _determine_limit_batches(limit_val_batches)
         self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.val_check_interval = _determine_limit_batches(val_check_interval)
+        self.overfit_batches = _determine_limit_batches(overfit_batches)
         self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
@@ -1437,5 +1435,5 @@ def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
         return int(batches)
     else:
         raise MisconfigurationException(
-            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+            f'You have passed invalid value {batches}, it has to be in (0, 1) or an int.'
         )
