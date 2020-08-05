@@ -279,12 +279,8 @@ def ssim(
     device = pred.device
 
     channel = pred.size(1)
-    pad_h = (kernel_size[0] - 1) // 2
-    pad_w = (kernel_size[1] - 1) // 2
 
     kernel = _gaussian_kernel(channel, kernel_size, sigma, device)
-    pred = F.pad(pred, (pad_w, pad_w, pad_h, pad_h), mode='reflect')
-    target = F.pad(target, (pad_w, pad_w, pad_h, pad_h), mode='reflect')
 
     input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])
     outputs = F.conv2d(input_list, kernel, groups=channel)
