@@ -4,6 +4,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 import tests.base.develop_utils as tutils
+import sys
 
 
 def _setup_ddp(rank, worldsize):
@@ -17,7 +18,7 @@ def _setup_ddp(rank, worldsize):
 
 def _ddp_test_fn(rank, worldsize, result_cls: Result):
     _setup_ddp(rank, worldsize)
-    tensor = torch.tensor([1.0], device="cuda:0")
+    tensor = torch.tensor([1.0])
 
     res = result_cls.log("test_tensor", tensor, sync_ddp=True, sync_ddp_op=torch.distributed.ReduceOp.SUM)
 
@@ -25,7 +26,7 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
 
 
 @pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
 def test_result_reduce_ddp(result_cls):
     """Make sure result logging works with DDP"""
     tutils.reset_seed()
