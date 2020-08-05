@@ -39,7 +39,7 @@ jobs:
       # max-parallel: 6
       matrix:
         # PyTorch 1.5 is failing on Win and bolts requires torchvision>=0.5
-        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        os: [ubuntu-20.04, macOS-10.15 , windows-2019]  #
         python-version: [3.6, 3.7, 3.8]
 
     steps:
@@ -48,8 +48,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # todo: add cache, but before saving we need to remove PL
-
       - name: Create package
         run: |
           # python setup.py check --metadata --strict
@@ -57,9 +55,11 @@ jobs:
 
       - name: Install package
         run: |
-          pip install virtualenv
-          virtualenv vEnv ; source vEnv/bin/activate
+          # pip install virtualenv
+          # virtualenv vEnv --system-site-packages
+          # source vEnv/bin/activate
           # pip install -r requirements.txt
           pip install dist/*
           cd .. & python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          deactivate ; rm -rf vEnv
+          # deactivate
+          # rm -rf vEnv
