@@ -219,13 +219,12 @@ class TrainerDataLoadingMixin(ABC):
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
         elif self.num_training_batches != float('inf'):
-            self.num_training_batches = min(1.0, self.num_training_batches)
             self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 'When using an IterableDataset for `limit_train_batches`,'
                 ' `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies'
-                ' num_training_batches to use.')
+                ' `num_training_batches` to use.')
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -305,6 +304,7 @@ class TrainerDataLoadingMixin(ABC):
             for i, dataloader in enumerate(dataloaders):
                 num_batches = len(dataloader) if _has_len(dataloader) else float('inf')
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
+                self._check_batch_limits(f'limit_{mode}_batches')
 
                 # percent or num_steps
                 limit_eval_batches = getattr(self, f'limit_{mode}_batches')
@@ -313,7 +313,6 @@ class TrainerDataLoadingMixin(ABC):
                 if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
                     num_batches = min(num_batches, int(limit_eval_batches))
                 elif num_batches != float('inf'):
-                    num_batches = min(1.0, num_batches)
                     num_batches = int(num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
