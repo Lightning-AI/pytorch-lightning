@@ -83,7 +83,18 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 1. Submit a github issue - describe what is the motivation of such feature (adding the use case or an example is helpful).
 2. Let's discuss to determine the feature scope.
-3. Submit a PR! (with updated docs and tests🙃).
+3. Submit a PR!
+ We reccomend test driven approach to adding new features as well:
+  * Write a test for the functionality you want to add.
+  * Write the functional code until the test passes.
+4. Add/update the relevant tests!
+ * This PR is a good example for [adding a new metric](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671), and this one for [a new logger](https://github.com/PyTorchLightning/pytorch-lightning/pull/2535)
+  
+
+### Test cases:
+ 
+Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
+
 
 ---
 
