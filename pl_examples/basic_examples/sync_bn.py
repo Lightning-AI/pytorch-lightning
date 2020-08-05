@@ -2,7 +2,7 @@
 Sync-bn with DDP (GPU)
 
 This code is to verify that batch statistics are synchronized across GPUs using sync-bn.
-When sync_bn_backend is set to 'torch' or 'apex', the training loop should run for 3 iterations.
+When sync_bn_backend is set to `torch` the training loop should run for 3 iterations.
 When sync_bn_backend is set to None, the code should result in an AssertionError.
 """
 import os
@@ -26,12 +26,6 @@ pl.seed_everything(234)
 FLOAT16_EPSILON = np.finfo(np.float16).eps
 
 
-TRANSFORM = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-
-
 class MNISTDataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str = './', batch_size=32, dist_sampler=False):
         super().__init__()
@@ -39,6 +33,11 @@ class MNISTDataModule(pl.LightningDataModule):
         self.dist_sampler = dist_sampler
         self.data_dir = data_dir
         self.batch_size = batch_size
+
+        self.transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
 
         # self.dims is returned when you call dm.size()
         # Setting default dims here because we know them.
@@ -54,11 +53,11 @@ class MNISTDataModule(pl.LightningDataModule):
 
         # Assign train/val datasets for use in dataloaders
         if stage == 'fit' or stage is None:
-            self.mnist_train = MNIST(self.data_dir, train=True, transform=TRANSFORM)
+            self.mnist_train = MNIST(self.data_dir, train=True, transform=self.transforms)
 
         # Assign test dataset for use in dataloader(s)
         if stage == 'test' or stage is None:
-            self.mnist_test = MNIST(self.data_dir, train=False, transform=TRANSFORM)
+            self.mnist_test = MNIST(self.data_dir, train=False, transform=self.transforms)
 
     def train_dataloader(self):
         dist_sampler = None
@@ -91,7 +90,7 @@ class SyncBNModule(pl.LightningModule):
 
             if self.bn_targets:
                 bn_target = self.bn_targets[batch_idx]
-                
+
                 # executes on both GPUs
                 bn_target = bn_target[self.trainer.local_rank::self.gpu_count]
                 bn_target = bn_target.to(out_bn.device)

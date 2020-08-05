@@ -957,35 +957,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
-    def configure_sync_bn(
-        self, model: 'LightningModule', backend: Optional[str] = None
-    ) -> 'LightningModule':
+    def configure_sync_bn(self, model: 'LightningModule') -> 'LightningModule':
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
 
         Override to synchronize batchnorm between specific process groups instead
-        of the whole world.
+        of the whole world or use a different sync_bn like `apex`'s version.
 
         Args:
             model: pointer to current :class:`LightningModule`.
-            backend: select between 'torch', 'apex' and None.
 
         Return:
-            LightningModule with batchnorm layers converted to synchronized
-            between process groups, if backend is not None
+            LightningModule with batchnorm layers synchronized between process groups
         """
-        if backend is None or backend == 'None':
-            return model
-
-        # process_group = None defaults to whole world in both cases
-        if backend == 'torch':
-            model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
-        elif backend == 'apex':
-            import apex
-
-            model = apex.parallel.convert_syncbn_model(model, process_group=None)
-        else:
-            raise ValueError("only `torch` and `apex` options are supported for sync_batchnorm at the moment.")
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model, process_group=None)
 
         return model
 
