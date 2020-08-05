@@ -153,8 +153,8 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
         val_batches_seen = 0
         test_batches_seen = 0
 
-        def on_batch_start(self, trainer, pl_module):
-            super().on_batch_start(trainer, pl_module)
+        def on_train_batch_start(self, trainer, pl_module):
+            super().on_train_batch_start(trainer, pl_module)
             assert self.train_batch_idx == trainer.batch_idx
 
         def on_train_batch_end(self, trainer, pl_module):

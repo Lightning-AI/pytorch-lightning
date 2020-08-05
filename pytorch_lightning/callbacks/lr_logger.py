@@ -64,7 +64,7 @@ class LearningRateLogger(Callback):
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'step')
         if trainer.logger and latest_stat:
             trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
