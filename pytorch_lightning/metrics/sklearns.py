@@ -1056,6 +1056,9 @@ class ROC(SklearnMetric):
     Note:
         this implementation is restricted to the binary classification task.
 
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
+
     Example:
 
         >>> y_pred = torch.tensor([0, 1, 2, 3])
@@ -1128,6 +1131,9 @@ class AUROC(SklearnMetric):
     Note:
         this implementation is restricted to the binary classification task
         or multilabel classification task in label indicator format.
+
+    Warning:
+            Every metric call will cause a GPU synchronization, which may slow down your code
 
     """
 
