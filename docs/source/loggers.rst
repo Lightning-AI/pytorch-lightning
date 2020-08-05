@@ -344,5 +344,5 @@ Test-tube
 CSVLogger
 ^^^^^^^^^
 
-.. autoclass:: pytorch_lightning.loggers.csv.CSVLogger
+.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
     :noindex:
