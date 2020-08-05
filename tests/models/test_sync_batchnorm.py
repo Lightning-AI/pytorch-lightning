@@ -3,14 +3,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import pytorch_lightning as pl
-import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer, seed_everything, LightningModule, TrainResult
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.base.datamodules import MNISTDataModule
+from tests.base.develop_utils import set_random_master_port
 
 
-class SyncBNModule(pl.LightningModule):
+class SyncBNModule(LightningModule):
     def __init__(self, gpu_count=1, **kwargs):
         super().__init__()
 
@@ -44,7 +43,7 @@ class SyncBNModule(pl.LightningModule):
         y_hat, _ = self(x, batch_idx)
         loss = F.cross_entropy(y_hat, y)
 
-        return pl.TrainResult(loss)
+        return TrainResult(loss)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.linear.parameters(), lr=0.02)
@@ -53,7 +52,7 @@ class SyncBNModule(pl.LightningModule):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
-    tutils.set_random_master_port()
+    set_random_master_port()
 
     # define datamodule and dataloader
     dm = MNISTDataModule()
