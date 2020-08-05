@@ -1601,6 +1601,7 @@ class MeanTweedieDeviance(SklearnMetric):
         """
         Args:
             power: tweedie power parameter:
+
                 * power < 0: Extreme stable distribution. Requires: y_pred > 0.
                 * power = 0 : Normal distribution, output corresponds to mean_squared_error.
                     y_true and y_pred can be any real numbers.
