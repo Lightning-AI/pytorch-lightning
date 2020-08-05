@@ -559,4 +559,3 @@ class EvalResult(Result):
         result = {"val_early_stop_on": self.early_stop_on, "val_checkpoint_on": self.checkpoint_on}
 
         return result
-
