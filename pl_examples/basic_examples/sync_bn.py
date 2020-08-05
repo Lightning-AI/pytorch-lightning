@@ -2,8 +2,8 @@
 Sync-bn with DDP (GPU)
 
 This code is to verify that batch statistics are synchronized across GPUs using sync-bn.
-When sync_bn_backend is set to `torch` the training loop should run for 3 iterations.
-When sync_bn_backend is set to None, the code should result in an AssertionError.
+When sync_bn is set to True the training loop should run for 3 iterations.
+When sync_bn is set to False, the code should result in an AssertionError.
 """
 import os
 import math
