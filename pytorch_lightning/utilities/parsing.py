@@ -147,17 +147,19 @@ def lightning_hasattr(model, attribute):
         and the old hparams namespace/dict """
     # Check if attribute in model
     if hasattr(model, attribute):
-        return True
+        attr = True
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             if attribute in model.hparams:
-                return True
+                attr = True
         else:
             if hasattr(model.hparams, attribute):
-                return True
+                attr = True
     else:
-        return False
+        attr = False
+        
+    return attr
 
 
 def lightning_getattr(model, attribute):
@@ -165,16 +167,17 @@ def lightning_getattr(model, attribute):
         and the old hparams namespace/dict """
     # Check if attribute in model
     if hasattr(model, attribute):
-        return getattr(model, attribute)
+        attr = getattr(model, attribute)
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
-            return model.hparams[attribute]
+            attr = model.hparams[attribute]
         else:
-            return getattr(model.hparams, attribute)
+            attr = getattr(model.hparams, attribute)
     else:
         raise ValueError(f'{attribute} is not stored in the model namespace'
                          ' or the `hparams` namespace/dict.')
+    return attr
 
 
 def lightning_setattr(model, attribute, value):
@@ -183,12 +186,10 @@ def lightning_setattr(model, attribute, value):
     # Check if attribute in model
     if hasattr(model, attribute):
         setattr(model, attribute, value)
-        return
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             model.hparams[attribute] = value
-            return
         else:
             setattr(model.hparams, attribute, value)
     else:
