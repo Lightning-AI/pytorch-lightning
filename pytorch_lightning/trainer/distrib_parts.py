@@ -37,6 +37,7 @@ from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBL
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 
 try:
     from apex import amp
@@ -471,9 +472,33 @@ def pick_single_gpu(exclude_gpus: list):
     raise RuntimeError("No GPUs available.")
 
 
-def pick_multiple_gpus(nb):
+def pick_single_gpu_realist_workload(exclude_gpus: list, model, batch):
+    for i in range(torch.cuda.device_count()):
+        if i in exclude_gpus:
+            continue
+        # Try to allocate on device:
+        device = torch.device(f"cuda:{i}")
+        try:
+            model_device = model.to(device) 
+            batch_device = batch.to(device)
+            model_device.train() # record grads 
+            model_device(batch_device)
+        except RuntimeError as exception:
+            if is_oom_error(exception): # clean after the failed attempt
+                garbage_collection_cuda()
+            else: raise
+            continue
+        return i
+    raise RuntimeError("No GPUs available.")
+
+
+def pick_multiple_gpus(nb, model=None):
     picked = []
     for _ in range(nb):
-        picked.append(pick_single_gpu(exclude_gpus=picked))
+        if not model: picked.append(pick_single_gpu(exclude_gpus=picked))
+        else : 
+            assert hasattr(model, 'train_dataloader')
+            picked.append(pick_single_gpu_realist_workload(exclude_gpus=picked, model=model, batch=next(iter(model.train_dataloader))))
 
+    if len(picked) < 1: raise RuntimeError("None of the GPUs could accept the given workload.")
     return picked

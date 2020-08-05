@@ -487,6 +487,7 @@ class Trainer(
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
+        self.auto_select_gpus = auto_select_gpus
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
@@ -964,6 +965,9 @@ class Trainer(
             model.prepare_data()
             self._is_data_prepared = True
 
+        # Run updated auto GPU selection with the actual model/input data
+        if self.auto_select_gpus: self.update_auto_selected_gpus(model)
+
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
@@ -1400,6 +1404,15 @@ class Trainer(
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
         model.setup(stage_name)
+
+    def update_auto_selected_gpus(self, model):
+        # Called when model/data is known. Ensure the GPU used have enough VRAM. 
+        self.gpus = pick_multiple_gpus(len(self.gpus), model) # At most the current number of GPUs
+
+        self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
+        self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
+        self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False 
+        self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
 
 class _PatchDataLoader(object):
