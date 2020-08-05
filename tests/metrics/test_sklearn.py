@@ -60,7 +60,7 @@ from pytorch_lightning.metrics.sklearns import (
     MeanPoissonDeviance,
     MeanGammaDeviance,
     MeanTweedieDeviance,
-    ExplainedVariance
+    ExplainedVariance,
 )
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
