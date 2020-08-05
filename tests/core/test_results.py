@@ -27,7 +27,7 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
 
 
 @pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
-@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_result_reduce_ddp(result_cls):
     """Make sure result logging works with DDP"""
     tutils.reset_seed()

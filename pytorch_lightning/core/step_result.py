@@ -381,7 +381,7 @@ class TrainResult(Result):
             reduce_fx: Torch.mean by default
             enable_graph: if True, will not auto detach the graph
         """
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph, 
+        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
                     sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
 
     def log_dict(
@@ -530,7 +530,7 @@ class EvalResult(Result):
             enable_graph:
         """
         for k, v in dictionary.items():
-            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph, 
+            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
                      sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
 
     def get_callback_metrics(self) -> dict:
