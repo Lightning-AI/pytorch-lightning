@@ -284,7 +284,7 @@ def ssim(
 
     input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])
     outputs = F.conv2d(input_list, kernel, groups=channel)
-    output_list = [outputs[x * pred.size(0) : (x + 1) * pred.size(0)] for x in range(len(outputs))]
+    output_list = [outputs[x * pred.size(0): (x + 1) * pred.size(0)] for x in range(len(outputs))]
 
     mu_pred_sq = output_list[0].pow(2)
     mu_target_sq = output_list[1].pow(2)

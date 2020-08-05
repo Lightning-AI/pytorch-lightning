@@ -112,7 +112,9 @@ def test_ssim(size, channel, plus, multichannel):
     if multichannel is False:
         np_pred = np_pred[:, :, :, 0]
     np_target = np.multiply(np_pred, plus)
-    sk_ssim_idx = ski_ssim(np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True, data_range=1.0)
+    sk_ssim_idx = ski_ssim(
+        np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True, data_range=1.0
+    )
     assert torch.allclose(ssim_idx, torch.tensor(sk_ssim_idx, dtype=torch.float, device=device), atol=1e-4)
 
     ssim_idx = ssim(pred, pred)
