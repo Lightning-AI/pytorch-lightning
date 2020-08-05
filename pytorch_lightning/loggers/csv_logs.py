@@ -37,7 +37,6 @@ class ExperimentWriter(object):
     def __init__(self, log_dir: str) -> None:
         self.hparams = {}
         self.metrics = []
-        self.metrics_keys = ["step"]
 
         self.log_dir = log_dir
         if os.path.exists(self.log_dir):
@@ -63,24 +62,27 @@ class ExperimentWriter(object):
         if step is None:
             step = len(self.metrics)
 
-        new_row = dict.fromkeys(self.metrics_keys)
-        new_row['step'] = step
-        for k, v in metrics_dict.items():
-            if k not in self.metrics_keys:
-                self.metrics_keys.append(k)
-            new_row[k] = _handle_value(v)
-        self.metrics.append(new_row)
+        metrics = {k: _handle_value(v) for k, v in metrics_dict.items()}
+        metrics['step'] = step
+        self.metrics.append(metrics)
 
     def save(self) -> None:
         """Save recorded hparams and metrics into files"""
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
 
-        if self.metrics:
-            with io.open(self.metrics_file_path, 'w', newline='') as f:
-                self.writer = csv.DictWriter(f, fieldnames=self.metrics_keys)
-                self.writer.writeheader()
-                self.writer.writerows(self.metrics)
+        if not self.metrics:
+            return
+
+        last_m = {}
+        for m in self.metrics:
+            last_m.update(m)
+        metrics_keys = list(last_m.keys())
+
+        with io.open(self.metrics_file_path, 'w', newline='') as f:
+            self.writer = csv.DictWriter(f, fieldnames=metrics_keys)
+            self.writer.writeheader()
+            self.writer.writerows(self.metrics)
 
 
 class CSVLogger(LightningLoggerBase):
