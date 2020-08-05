@@ -290,7 +290,10 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
 
 @pytest.mark.parametrize(
     ['limit_train_batches', 'limit_val_batches', 'limit_test_batches'],
-    [pytest.param(10, 10, 10)]
+    [
+        pytest.param(0, 0, 0),
+        pytest.param(10, 10, 10),
+    ]
 )
 def test_inf_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number"""
