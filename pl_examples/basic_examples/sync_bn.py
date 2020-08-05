@@ -17,7 +17,6 @@ import pytorch_lightning as pl
 
 import torchvision.transforms as transforms
 from torchvision.datasets import MNIST
-from torch.utils.data import random_split
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 
@@ -120,6 +119,7 @@ class SyncBNModule(pl.LightningModule):
 
         parser.add_argument('--nodes', default=1, type=int)
         parser.add_argument('--gpu', default=2, type=int)
+        parser.add_argument('--dist_backend', default='ddp', type=str)
 
         parser.add_argument('--epochs', default=1, type=int)
         parser.add_argument('--steps', default=3, type=int)
@@ -142,7 +142,7 @@ def main(args, datamodule, bn_outputs):
     trainer = pl.Trainer(
         gpus=args.gpu,
         num_nodes=args.nodes,
-        distributed_backend='ddp',
+        distributed_backend=args.dist_backend,
         max_epochs=args.epochs,
         max_steps=args.steps,
         sync_bn=args.bn_sync,
