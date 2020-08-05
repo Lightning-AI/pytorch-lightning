@@ -291,7 +291,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def clip_gradients(self):
+    def clip_gradients(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -817,7 +817,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
-        self.clip_gradients()
+        self.clip_gradients(optimizer)
 
         # ------------------
         # .STEP + ZERO_GRAD
