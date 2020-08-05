@@ -151,15 +151,9 @@ def lightning_hasattr(model, attribute):
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
-            if attribute in model.hparams:
-                attr = True
-            else:
-                attr = False
+            attr = attribute in model.hparams
         else:
-            if hasattr(model.hparams, attribute):
-                attr = True
-            else:
-                attr = False
+            attr = hasattr(model.hparams, attribute)
     else:
         attr = False
 
