@@ -25,7 +25,7 @@ import time
 import random
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence, NoneType
+from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import _logger as log
