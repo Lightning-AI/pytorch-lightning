@@ -124,7 +124,7 @@ class SyncBNModule(pl.LightningModule):
         parser.add_argument('--epochs', default=1, type=int)
         parser.add_argument('--steps', default=3, type=int)
 
-        parser.add_argument('--sync_bn', default='torch', type=str)
+        parser.add_argument('--bn_sync', default=False, type=bool)
 
         return parser
 
@@ -145,7 +145,7 @@ def main(args, datamodule, bn_outputs):
         distributed_backend='ddp',
         max_epochs=args.epochs,
         max_steps=args.steps,
-        sync_bn_backend=args.sync_bn,
+        sync_bn_backend=args.bn_sync,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
     )
