@@ -25,7 +25,10 @@ def test_gpu_template(cli_args):
         run_cli()
 
 
-@pytest.mark.parametrize('cli_args', ['--max_epochs 1 --max_steps 3 --num_nodes 1 --gpus 2'])
+@pytest.mark.parametrize(
+    'cli_args',
+    ['--max_epochs 1 --max_steps 3 --num_nodes 1 --gpus 2 --dist_backend ddp_spawn --bn_sync']
+)
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_sync_bn(cli_args):
     """Test running CLI for an example with sync bn."""
