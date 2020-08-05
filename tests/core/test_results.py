@@ -20,7 +20,8 @@ def _ddp_test_fn(rank, worldsize, result_cls: Result):
     _setup_ddp(rank, worldsize)
     tensor = torch.tensor([1.0])
 
-    res = result_cls.log("test_tensor", tensor, sync_ddp=True, sync_ddp_op=torch.distributed.ReduceOp.SUM)
+    res = result_cls()
+    res.log("test_tensor", tensor, sync_ddp=True, sync_ddp_op=torch.distributed.ReduceOp.SUM)
 
     assert res["test_tensor"].item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
 
