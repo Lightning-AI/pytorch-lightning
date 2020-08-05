@@ -44,6 +44,7 @@ def load_long_description():
     text = text.replace('.svg', '.png')
     return text
 
+
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
 # From remote, use like `pip install pytorch-lightning[dev, docs]`
