@@ -15,14 +15,17 @@ def _get_test_cases():
 
     class TestModel2:  # test for hparams namespace
         hparams = TestHparamsNamespace()
+
     model2 = TestModel2()
 
     class TestModel3:  # test for hparams dict
         hparams = TestHparamsDict
+
     model3 = TestModel3()
 
     class TestModel4:  # fail case
         batch_size = 1
+
     model4 = TestModel4()
 
     return model1, model2, model3, model4
