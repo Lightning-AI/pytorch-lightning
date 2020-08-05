@@ -153,9 +153,13 @@ def lightning_hasattr(model, attribute):
         if isinstance(model.hparams, dict):
             if attribute in model.hparams:
                 attr = True
+            else:
+                attr = False
         else:
             if hasattr(model.hparams, attribute):
                 attr = True
+            else:
+                attr = False
     else:
         attr = False
 
