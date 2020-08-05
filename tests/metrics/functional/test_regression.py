@@ -98,23 +98,22 @@ def test_psnr_against_sklearn(sklearn_metric, torch_metric):
 
 
 @pytest.mark.parametrize(['size', 'channel', 'plus', 'multichannel'], [
-    pytest.param(16, 1, 0.125, False),
-    pytest.param(32, 1, 0.25, False),
-    pytest.param(48, 3, 0.5, True),
-    pytest.param(64, 4, 0.75, True),
-    pytest.param(128, 5, 1, True)
+    pytest.param(16, 1, 0.9, False),
+    pytest.param(32, 3, 0.8, True),
+    pytest.param(48, 4, 0.7, True),
+    pytest.param(64, 5, 0.6, True)
 ])
 def test_ssim(size, channel, plus, multichannel):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    pred = torch.rand(1, channel, size, size, device=device)
-    target = pred + plus
-    ssim_idx = ssim(pred, target)
-    np_pred = np.random.rand(size, size, channel)
+    pred = torch.rand(size, channel, size, size, device=device)
+    target = pred * plus
+    ssim_idx = ssim(pred, target, data_range=1.0)
+    np_pred = pred.permute(0, 2, 3, 1).cpu().numpy()
     if multichannel is False:
-        np_pred = np_pred[:, :, 0]
-    np_target = np.add(np_pred, plus)
-    sk_ssim_idx = ski_ssim(np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True)
-    assert torch.allclose(ssim_idx, torch.tensor(sk_ssim_idx, dtype=torch.float, device=device), atol=1e-2, rtol=1e-2)
+        np_pred = np_pred[:, :, :, 0]
+    np_target = np.multiply(np_pred, plus)
+    sk_ssim_idx = ski_ssim(np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True, data_range=1.0)
+    assert torch.allclose(ssim_idx, torch.tensor(sk_ssim_idx, dtype=torch.float, device=device), atol=1e-4)
 
     ssim_idx = ssim(pred, pred)
     assert torch.allclose(ssim_idx, torch.tensor(1.0, device=device))

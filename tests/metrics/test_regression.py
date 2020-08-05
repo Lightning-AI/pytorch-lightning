@@ -65,6 +65,6 @@ def test_ssim():
     assert ssim.name == 'ssim'
 
     pred = torch.rand([16, 1, 16, 16])
-    target = pred * 1.25
+    target = pred * 0.75
     score = ssim(pred, target)
     assert isinstance(score, torch.Tensor)

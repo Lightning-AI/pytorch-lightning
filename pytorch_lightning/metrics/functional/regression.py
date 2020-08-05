@@ -236,9 +236,9 @@ def ssim(
     Example:
 
         >>> pred = torch.rand([16, 1, 16, 16])
-        >>> target = pred * 1.25
+        >>> target = pred * 0.75
         >>> ssim(pred, target)
-        tensor(0.9520)
+        tensor(0.9219)
     """
 
     if pred.dtype != target.dtype:
@@ -279,17 +279,24 @@ def ssim(
     device = pred.device
 
     channel = pred.size(1)
+    pad_h = (kernel_size[0] - 1) // 2
+    pad_w = (kernel_size[1] - 1) // 2
+
     kernel = _gaussian_kernel(channel, kernel_size, sigma, device)
-    mu_pred = F.conv2d(pred, kernel, groups=channel)
-    mu_target = F.conv2d(target, kernel, groups=channel)
+    pred = F.pad(pred, (pad_w, pad_w, pad_h, pad_h), mode='reflect')
+    target = F.pad(target, (pad_w, pad_w, pad_h, pad_h), mode='reflect')
 
-    mu_pred_sq = mu_pred.pow(2)
-    mu_target_sq = mu_target.pow(2)
-    mu_pred_target = mu_pred * mu_target
+    input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])
+    outputs = F.conv2d(input_list, kernel, groups=channel)
+    output_list = [outputs[x * pred.size(0) : (x + 1) * pred.size(0)] for x in range(len(outputs))]
 
-    sigma_pred_sq = F.conv2d(pred * pred, kernel, groups=channel) - mu_pred_sq
-    sigma_target_sq = F.conv2d(target * target, kernel, groups=channel) - mu_target_sq
-    sigma_pred_target = F.conv2d(pred * target, kernel, groups=channel) - mu_pred_target
+    mu_pred_sq = output_list[0].pow(2)
+    mu_target_sq = output_list[1].pow(2)
+    mu_pred_target = output_list[0] * output_list[1]
+
+    sigma_pred_sq = output_list[2] - mu_pred_sq
+    sigma_target_sq = output_list[3] - mu_target_sq
+    sigma_pred_target = output_list[4] - mu_pred_target
 
     UPPER = 2 * sigma_pred_target + C2
     LOWER = sigma_pred_sq + sigma_target_sq + C2
