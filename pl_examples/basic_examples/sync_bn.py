@@ -124,7 +124,7 @@ class SyncBNModule(pl.LightningModule):
         parser.add_argument('--epochs', default=1, type=int)
         parser.add_argument('--steps', default=3, type=int)
 
-        parser.add_argument('--bn_sync', default=False, type=bool)
+        parser.add_argument('--bn_sync', action='store_true')
 
         return parser
 
