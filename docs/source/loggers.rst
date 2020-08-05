@@ -41,6 +41,207 @@ Note:
 
 ----------
 
+Logging from a LightningModule
+------------------------------
+There are two ways to get a LightningModule to log.
+
+- The first is manual logging where you control the aggregation of metrics.
+- The second way is where you defer the aggregation to the Trainer.
+
+Training loop logging
+^^^^^^^^^^^^^^^^^^^^^
+
+Train Manual logging
+*********************
+Use this approach when you want fine-control over your logging.
+
+For the training loop, return the 'log' or 'progress_bar' keywords.
+
+- `log` sends to the `self.logger` object (tensorboard, etc)
+- `progress_bar` sends to the progress bar display
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        return {
+            'loss': loss,
+            'log': {'train_loss': loss, 'batch_accuracy': accuracy}
+        }
+
+If using DataParallel or DDP2, you may want to return metrics for the full batch and not just the batch subset
+
+.. code-block:: python
+
+    def training_step(self, batch_subset, batch_idx):
+        return {'train_step_preds': pred, 'train_step_target': target}
+
+    def training_step_end(self, all_batch_outputs):
+        batch_acc = 0
+        batch_preds = torch.stack([x['train_step_preds'] for x in all_batch_outputs])
+        batch_targets = torch.stack([x['train_step_target'] for x in all_batch_outputs])
+
+        batch_loss = F.cross_entropy(batch_preds, batch_targets)
+        batch_acc = metrics.functional.accuracy(batch_preds, batch_targets)
+
+        return {
+            'loss': batch_loss,
+            'log': {'train_loss': batch_loss, 'batch_accuracy': batch_acc},
+            'progress_bar': {'train_loss': batch_loss, 'batch_accuracy': batch_acc}
+        }
+
+Or if you need epoch level metrics, you can also implement the `epoch_end` method
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        return {'loss': loss}
+
+    def training_epoch_end(self, training_step_outputs):
+        epoch_loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
+
+.. note:: After the `training_step` output is processed, we call detach on the loss so that memory remains low. The
+    inputs to `training_epoch_end` have all detached losses
+
+Train automatic logging
+***********************
+If you do not need to do anything special except reduce metrics, you can use the `TrainResult` object to do
+the aggregation for you. This means you won't need the `step_end` or `epoch_end` method.
+
+`training_step` only: These are equivalent,
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        return {'loss': loss, 'log': {'train_loss': loss}}
+
+    # ------------
+    # equivalent
+    # ------------
+    def training_step(self, batch, batch_idx):
+        loss = ...
+
+        result = pl.TrainResult(minimize=loss)
+        result.log('train_loss', loss)
+        return result
+
+`training_step` + `training_step_end`: These are also equivalent,
+
+.. code-block:: python
+
+    def training_step(self, batch_subset, batch_idx):
+        return {'train_step_preds': pred, 'train_step_target': target}
+
+    def training_step_end(self, all_batch_outputs):
+        batch_acc = 0
+        batch_preds = torch.stack([x['train_step_preds'] for x in all_batch_outputs])
+        batch_targets = torch.stack([x['train_step_target'] for x in all_batch_outputs])
+
+        batch_loss = F.cross_entropy(batch_preds, batch_targets)
+        batch_acc = metrics.functional.accuracy(batch_preds, batch_targets)
+
+        return {
+            'loss': batch_loss,
+            'log': {'train_loss': batch_loss, 'batch_accuracy': batch_acc},
+            'progress_bar': {'train_loss': batch_loss, 'batch_accuracy': batch_acc}
+        }
+
+    # ------------
+    # equivalent
+    # ------------
+    def training_step(self, batch_subset, batch_idx):
+        loss = ...
+        batch_subset_acc = ...
+
+        result = pl.TrainResult(minimize=loss)
+        result.log('train_loss', loss, prog_bar=True)
+        result.log('batch_acc', batch_subset_acc, prog_bar=True)
+        return result
+
+`training_step` + `training_epoch_end`: These are also equivalent,
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        return {'loss': loss}
+
+    def training_epoch_end(self, training_step_outputs):
+        epoch_loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
+        return {
+            'log': {'epoch_loss': epoch_loss},
+            'progress_bar': {'epoch_loss': epoch_loss}
+        }
+
+    # ------------
+    # equivalent
+    # ------------
+    def training_step(self, batch, batch_idx):
+        loss = ...
+        batch_subset_acc = ...
+
+        result = pl.TrainResult(minimize=loss)
+        result.log('train_loss', loss, on_epoch=True, prog_bar=True)
+        return result
+
+Validation loop logging
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Val manual logging
+******************
+In manual logging, only the output of `validation_epoch_end` is used for logging. The reason is that during
+validation, the model is not learning, so each batch is treated independently and thus epoch metrics
+don't really make sense unless you want a histogram.
+
+To log, you need two methods, `validation_step` where you compute the metrics per batch, and `validation_epoch_end`
+where you aggregate them.
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        return {'some_metric': some_metric}
+
+    def validation_epoch_end(self, validation_step_outputs):
+        some_metric_mean = torch.stack([x['some_metric'] for x in validation_step_outputs]).mean()
+        return {
+            'log': {'some_metric_mean': some_metric_mean},
+            'progress_bar': {'some_metric_mean': some_metric_mean}
+        }
+
+in `dp` or `ddp2` mode (DataParallel), feel free to also use the `validation_step_end` method to aggregate for the
+batch as was shown in `training_step_end`.
+
+Val automatic logging
+*********************
+The above is a lot of work if you're not doing anything special in your validation loop, other than just logging.
+In that case, use the `EvalResult` object:
+
+The `EvalResult` removes the need for the `step_end` or `epoch_end` method unless you really
+need it (as described above)
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        return {'some_metric': some_metric}
+
+    def validation_epoch_end(self, validation_step_outputs):
+        some_metric_mean = torch.stack([x['some_metric'] for x in validation_step_outputs]).mean()
+        return {
+            'log': {'some_metric_mean': some_metric_mean},
+            'progress_bar': {'some_metric_mean': some_metric_mean}
+        }
+
+    # ------------
+    # equivalent
+    # ------------
+    def validation_step(self, batch, batch_idx):
+        some_metric = ...
+        result = pl.EvalResult(checkpoint_on=some_metric)
+        result.log('some_metric', some_metric, prog_bar=True)
+        return result
+
+
+----------
+
 Custom Logger
 -------------
 

@@ -5,15 +5,17 @@ on:
     branches:
       - master
   # TODO: temporal disable TPU testing until we find way how to pass credentials to forked PRs
-  pull_request:
-    branches:
-      - master
+#  pull_request:
+#    branches:
+#      - master
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
   IMAGE: gcr.io/${{ secrets.GKE_PROJECT }}/tpu-testing-image
+  MAX_CHECKS: 240
+  CHECK_SPEEP: 5
 
 jobs:
   setup-build-publish-deploy:
@@ -60,7 +62,7 @@ jobs:
       shell: bash
     - name: Build and Push Docker Image
       run: |
-        cd docker/tpu
+        cd dockers/tpu-tests
         docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
         docker push "$IMAGE:$GITHUB_RUN_ID"
       shell: bash
@@ -77,27 +79,27 @@ jobs:
 
     - name: Deploy the job on the kubernetes cluster
       run: |-
-        job_name=$(jsonnet -J ml-testing-accelerators/ docker/tpu/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$IMAGE --ext-str image-tag=$GITHUB_RUN_ID | kubectl create -f -) && \
         job_name=${job_name#job.batch/} && \
         job_name=${job_name% created} && \
         echo "Waiting on kubernetes job: $job_name in cluster: $GKE_CLUSTER" && \
         i=0 && \
-        # 30 checks spaced 30s apart = 900s total.
-        max_checks=30 && \
+        # 60 checks spaced 30s apart = 900s total.
         status_code=2 && \
         # Check on the job periodically. Set the status code depending on what
-        # happened to the job in Kubernetes. If we try max_checks times and
+        # happened to the job in Kubernetes. If we try MAX_CHECKS times and
         # still the job hasn't finished, give up and return the starting
         # non-zero status code.
-        while [ $i -lt $max_checks ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else echo "Job not finished yet"; fi; sleep 30; done && \
+        printf "Waiting for job to finish: " && \
+        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "." ; fi; sleep $CHECK_SPEEP; done && \
         echo "Done waiting. Job status code: $status_code" && \
         # Allow time for logs to flush.
-        sleep 60 && \
+        sleep 30 && \
         echo "JOB_NAME: $job_name" && \
         echo "GKE_CLUSTER: $GKE_CLUSTER" && \
         echo "GKE_ZONE: $GKE_ZONE" && \
         gcloud logging read "resource.type=k8s_container resource.labels.project_id=$PROJECT_ID resource.labels.location=$GKE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$PROJECT_ID > /tmp/full_output.txt && \
-        csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/' && \
+        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
         # First portion is the test logs. Print these to Github Action stdout.
         cat xx00 && \
         echo "Done with log retrieval attempt." && \
@@ -127,6 +129,5 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage
         flags: tpu,pytest
-        env_vars: ${{ runner.os }},python
         name: TPU-coverage
         fail_ci_if_error: true

@@ -1,66 +1,70 @@
-import pytest
+# NOTE: This file only tests if modules with arguments are running fine.
+#   The actual metric implementation is tested in functional/test_regression.py
+#   Especially reduction and reducing across processes won't be tested here!
+
 import torch
+from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
 from pytorch_lightning.metrics.regression import (
-    MAE, MSE, RMSE, RMSLE
+    MAE, MSE, RMSE, RMSLE, PSNR, SSIM
 )
 
 
-@pytest.mark.parametrize(['pred', 'target', 'exp'], [
-    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.], .25),
-    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.], 3.)
-])
-def test_mse(pred, target, exp):
+def test_mse():
     mse = MSE()
     assert mse.name == 'mse'
 
-    score = mse(pred=torch.tensor(pred),
-                target=torch.tensor(target))
-
+    pred = torch.tensor([0., 1, 2, 3])
+    target = torch.tensor([0., 1, 2, 2])
+    score = mse(pred, target)
     assert isinstance(score, torch.Tensor)
-    assert score.item() == exp
 
 
-@pytest.mark.parametrize(['pred', 'target', 'exp'], [
-    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.], .5),
-    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.], 1.7321)
-])
-def test_rmse(pred, target, exp):
+def test_rmse():
     rmse = RMSE()
     assert rmse.name == 'rmse'
 
-    score = rmse(pred=torch.tensor(pred),
-                 target=torch.tensor(target))
-
+    pred = torch.tensor([0., 1, 2, 3])
+    target = torch.tensor([0., 1, 2, 2])
+    score = rmse(pred, target)
     assert isinstance(score, torch.Tensor)
-    assert pytest.approx(score.item(), rel=1e-3) == exp
 
 
-@pytest.mark.parametrize(['pred', 'target', 'exp'], [
-    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.], .25),
-    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.], 1.5)
-])
-def test_mae(pred, target, exp):
+def test_mae():
     mae = MAE()
     assert mae.name == 'mae'
 
-    score = mae(pred=torch.tensor(pred),
-                target=torch.tensor(target))
-
+    pred = torch.tensor([0., 1, 2, 3])
+    target = torch.tensor([0., 1, 2, 2])
+    score = mae(pred, target)
     assert isinstance(score, torch.Tensor)
-    assert score.item() == exp
 
 
-@pytest.mark.parametrize(['pred', 'target', 'exp'], [
-    pytest.param([0., 1., 2., 3.], [0., 1., 2., 2.], .0207),
-    pytest.param([4., 3., 2., 1.], [1., 4., 3., 2.], .2841)
-])
-def test_rmsle(pred, target, exp):
+def test_rmsle():
     rmsle = RMSLE()
     assert rmsle.name == 'rmsle'
 
-    score = rmsle(pred=torch.tensor(pred),
-                  target=torch.tensor(target))
-
+    pred = torch.tensor([0., 1, 2, 3])
+    target = torch.tensor([0., 1, 2, 2])
+    score = rmsle(pred, target)
     assert isinstance(score, torch.Tensor)
-    assert pytest.approx(score.item(), rel=1e-3) == exp
+
+
+def test_psnr():
+    psnr = PSNR()
+    assert psnr.name == 'psnr'
+
+    pred = torch.tensor([0., 1, 2, 3])
+    target = torch.tensor([0., 1, 2, 2])
+    score = psnr(pred, target)
+    assert isinstance(score, torch.Tensor)
+
+
+def test_ssim():
+    ssim = SSIM()
+    assert ssim.name == 'ssim'
+
+    pred = torch.rand([16, 1, 16, 16])
+    target = pred * 1.25
+    score = ssim(pred, target)
+    assert isinstance(score, torch.Tensor)

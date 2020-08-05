@@ -32,7 +32,7 @@ def test_default_args(mock_argparse, tmpdir):
 
 @pytest.mark.parametrize('cli_args', [
     ['--accumulate_grad_batches=22'],
-    ['--print_nan_grads', '--weights_save_path=./'],
+    ['--weights_save_path=./'],
     []
 ])
 def test_add_argparse_args_redefined(cli_args):
@@ -102,7 +102,21 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
     pytest.param('--tpu_cores=8',
                  {'tpu_cores': 8}),
     pytest.param("--tpu_cores=1,",
-                 {'tpu_cores': '1,'})
+                 {'tpu_cores': '1,'}),
+    pytest.param(
+        "",
+        {
+            # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
+            # They should not be changed by the argparse interface.
+            "min_steps": None,
+            "max_steps": None,
+            "log_gpu_memory": None,
+            "distributed_backend": None,
+            "weights_save_path": None,
+            "truncated_bptt_steps": None,
+            "resume_from_checkpoint": None,
+            "profiler": None,
+        }),
 ])
 def test_argparse_args_parsing(cli_args, expected):
     """Test multi type argument with bool."""

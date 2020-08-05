@@ -11,8 +11,107 @@ from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_ro
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
-
 PRETEND_N_OF_GPUS = 16
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_early_stop_dp(tmpdir):
+    """Make sure DDP works. with early stopping"""
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gpus=[0, 1],
+        distributed_backend='dp',
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_none_backend(tmpdir):
+    """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
+    tutils.set_random_master_port()
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        distributed_backend=None,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
+        gpus=2
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
+    """Make sure DDP works. with early stopping"""
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        max_epochs=50,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
+    )
+
+    model = EvalModelTemplate()
+    tpipes.run_model_test(trainer_options, model)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model_dp(tmpdir):
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gpus=[0, 1],
+        distributed_backend='dp',
+        progress_bar_refresh_rate=0
+    )
+
+    model = EvalModelTemplate()
+
+    tpipes.run_model_test(trainer_options, model)
+
+    # test memory helper functions
+    memory.get_memory_profile('min_max')
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model_ddp_spawn(tmpdir):
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
+        progress_bar_refresh_rate=0
+    )
+
+    model = EvalModelTemplate()
+
+    tpipes.run_model_test(trainer_options, model)
+
+    # test memory helper functions
+    memory.get_memory_profile('min_max')
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -32,97 +131,26 @@ def test_single_gpu_model(tmpdir, gpus):
     tpipes.run_model_test(trainer_options, model)
 
 
-@pytest.mark.spawn
-@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_model(tmpdir, backend):
-    """Make sure DDP works."""
-    tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        gpus=[0, 1],
-        distributed_backend=backend,
-    )
-
-    model = EvalModelTemplate()
-    # tutils.run_model_test(trainer_options, model)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
-
-    # test memory helper functions
-    memory.get_memory_profile('min_max')
-
-
-@pytest.mark.spawn
-@pytest.mark.parametrize("backend", ['dp', 'ddp', 'ddp2'])
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_early_stop(tmpdir, backend):
-    """Make sure DDP works. with early stopping"""
-    tutils.set_random_master_port()
-
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        max_epochs=50,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0, 1],
-        distributed_backend=backend,
-    )
-
-    model = EvalModelTemplate()
-    # tutils.run_model_test(trainer_options, model)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
-
-
-@pytest.mark.spawn
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_master_port()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
-        max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        gpus=[0, 1],
-        distributed_backend='ddp'
-    )
-
     model = EvalModelTemplate()
     fit_options = dict(train_dataloader=model.train_dataloader(),
                        val_dataloaders=model.val_dataloader())
 
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model, **fit_options)
-    assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
-
-
-@pytest.mark.spawn
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_none_backend(tmpdir):
-    """Make sure when using multiple GPUs the user can't use `distributed_backend = None`."""
-    trainer_options = dict(
+    trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-        gpus='-1'
+        limit_train_batches=0.2,
+        limit_val_batches=0.2,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn'
     )
-
-    model = EvalModelTemplate()
-    with pytest.warns(UserWarning):
-        tpipes.run_model_test(trainer_options, model)
+    result = trainer.fit(model, **fit_options)
+    assert result == 1, "DDP doesn't work with dataloaders passed to fit()."
 
 
 @pytest.fixture
@@ -264,7 +292,7 @@ def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
 
 @pytest.mark.gpus_param_tests
 @pytest.mark.parametrize("gpus", [-1, '-1'])
-def test_parse_gpu_returns_None_when_no_devices_are_available(mocked_device_count_0, gpus):
+def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_count_0, gpus):
     with pytest.raises(MisconfigurationException):
         _parse_gpu_ids(gpus)
 

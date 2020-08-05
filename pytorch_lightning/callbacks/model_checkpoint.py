@@ -41,13 +41,16 @@ class ModelCheckpoint(Callback):
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
 
-            Can also be set to `None`, then it will be set to default location
-            during trainer construction.
+            By default, filepath is `None` and will be set at runtime to the location
+            specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
+            and if the Trainer uses a logger, the path will also contain logger name and version.
 
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
         save_last: always saves the model at the end of the epoch. Default: ``False``.
-        save_top_k: if `save_top_k == k`,
+        save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
@@ -159,7 +162,11 @@ class ModelCheckpoint(Callback):
         if os.path.isfile(filepath):
             os.remove(filepath)
 
-    def _save_model(self, filepath):
+    def _save_model(self, filepath, trainer, pl_module):
+
+        # in debugging, track when we save checkpoints
+        trainer.dev_debugger.track_checkpointing_history(filepath)
+
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
@@ -229,8 +236,17 @@ class ModelCheckpoint(Callback):
     @rank_zero_only
     def on_train_start(self, trainer, pl_module):
         """
-        Determine model checkpoint save directory at runtime. References attributes from the
-        Trainer's logger to determine where to save checkpoints.
+        Determines model checkpoint save directory at runtime. References attributes from the
+        trainer's logger to determine where to save checkpoints.
+        The base path for saving weights is set in this priority:
+
+        1.  Checkpoint callback's path (if passed in)
+        2.  The default_root_dir from trainer if trainer has no logger
+        3.  The weights_save_path from trainer, if user provides it
+        4.  User provided weights_saved_path
+
+        The base path gets extended with logger name and version (if these are available)
+        and subfolder "checkpoints".
         """
         if self.dirpath is not None:
             return  # short circuit
@@ -238,13 +254,11 @@ class ModelCheckpoint(Callback):
         self.filename = '{epoch}'
 
         if trainer.logger is not None:
-            # weights_save_path overrides anything
-            if getattr(trainer, 'weights_save_path', None) is not None:
+            if trainer.weights_save_path != trainer.default_root_dir:
+                # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer.weights_save_path
             else:
-                save_dir = (getattr(trainer.logger, 'save_dir', None)
-                            or getattr(trainer.logger, '_save_dir', None)
-                            or trainer.default_root_dir)
+                save_dir = trainer.logger.save_dir or trainer.default_root_dir
 
             version = trainer.logger.version if isinstance(
                 trainer.logger.version, str) else f'version_{trainer.logger.version}'
@@ -255,15 +269,12 @@ class ModelCheckpoint(Callback):
                 "checkpoints"
             )
         else:
-            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
+            ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
         self.dirpath = ckpt_path
 
         assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-
         os.makedirs(self.dirpath, exist_ok=True)
-        trainer.ckpt_path = ckpt_path
-        trainer.weights_save_path = ckpt_path
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
@@ -273,6 +284,15 @@ class ModelCheckpoint(Callback):
 
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
+
+        # support structured results
+        if metrics.get('checkpoint_on') is not None:
+            self.monitor = 'checkpoint_on'
+
+        # conditioned val metrics override conditioned train loop metrics
+        if metrics.get('val_checkpoint_on') is not None:
+            self.monitor = 'val_checkpoint_on'
+
         if self.save_top_k == 0:
             # no models are saved
             return
@@ -284,7 +304,7 @@ class ModelCheckpoint(Callback):
 
         if self.save_last:
             filepath = os.path.join(self.dirpath, self.prefix + 'last.ckpt')
-            self._save_model(filepath)
+            self._save_model(filepath, trainer, pl_module)
 
         filepath = self.format_checkpoint_name(epoch, metrics)
         version_cnt = 0
@@ -309,7 +329,7 @@ class ModelCheckpoint(Callback):
                     f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
                 )
             elif self.check_monitor_top_k(current):
-                self._do_check_save(filepath, current, epoch)
+                self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose > 0:
                 log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}')
 
@@ -318,9 +338,9 @@ class ModelCheckpoint(Callback):
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
 
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-            self._save_model(filepath)
+            self._save_model(filepath, trainer, pl_module)
 
-    def _do_check_save(self, filepath, current, epoch):
+    def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
         # remove kth
 
         del_list = []
@@ -346,7 +366,7 @@ class ModelCheckpoint(Callback):
                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                 f' {current:0.5f} (best {self.best_model_score:0.5f}), saving model to'
                 f' {filepath} as top {self.save_top_k}')
-        self._save_model(filepath)
+        self._save_model(filepath, trainer, pl_module)
 
         for cur_path in del_list:
             if cur_path != filepath:

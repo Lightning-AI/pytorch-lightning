@@ -41,6 +41,8 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self.name = name
         self._dtype = torch.get_default_dtype()
         self._device = torch.device('cpu')
+
+        # Register hooks
         self.register_forward_pre_hook(self.input_convert)
         self.register_forward_hook(self.output_convert)
         self.register_forward_hook(self.ddp_sync)
@@ -57,14 +59,14 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         raise NotImplementedError
 
-    def compute(self, module: nn.Module, input: Any, output: Any):
+    def compute(self, module: nn.Module, data: Any, output: Any):
         """
         Implement additionally metric computations to be done after the ddp sync
 
         Args:
             module: current metric module
 
-            input: input to forward method
+            data: input to forward method
 
             output: output from forward method
 
@@ -74,14 +76,14 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         return output
 
-    def ddp_sync(self, module: nn.Module, input: Any, output: Any):
+    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
         """
         Implement how the outputs from forward should be synced
 
         Args:
             module: current metric module
 
-            input: input to forward method
+            data: input to forward method
 
             output: output from forward method
 
@@ -91,28 +93,28 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         return output
 
-    def input_convert(self, module: nn.Module, input: Any):
+    def input_convert(self, module: nn.Module, data: Any):
         """
         Implement how the inputs should be casted before calling forward
 
         Args:
             module: current metric module
 
-            input: input to forward method
+            data: input to forward method
 
         Returns:
-            casted input
+            casted data
         """
-        return input
+        return data
 
-    def output_convert(self, module: nn.Module, input: Any, output: Any):
+    def output_convert(self, module: nn.Module, data: Any, output: Any):
         """
         Implement how outputs from forward should be casted
 
         Args:
             module: current metric module
 
-            input: input to forward method
+            data: input to forward method
 
             output: output from forward method
 
@@ -131,8 +133,7 @@ class TensorMetric(Metric):
 
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None,
-                 ddp_normalize: bool = False):
+                 reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -141,26 +142,24 @@ class TensorMetric(Metric):
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
-            ddp_normalize: if true, will divide the DDP reduce result by the world rank
         """
         super().__init__(name)
         self.reduce_group = reduce_group
         self.reduce_op = reduce_op
-        self.ddp_normalize = ddp_normalize
 
-    def input_convert(self, module: nn.Module, input: Any):
-        return apply_to_collection(input,
+    def input_convert(self, module: nn.Module, data: Any):
+        return apply_to_collection(data,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def output_convert(self, module: nn.Module, input: Any, output: Any):
+    def output_convert(self, module: nn.Module, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, convert_to_tensor,
                                    self.dtype, self.device)
 
-    def ddp_sync(self, module: nn.Module, input: Any, output: Any):
+    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
-                                   self.reduce_group, self.reduce_op, self.ddp_normalize)
+                                   self.reduce_group, self.reduce_op)
 
 
 class TensorCollectionMetric(Metric):
@@ -182,8 +181,7 @@ class TensorCollectionMetric(Metric):
 
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None,
-                 ddp_normalize: bool = False):
+                 reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -192,28 +190,26 @@ class TensorCollectionMetric(Metric):
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
-            ddp_normalize: if true, will divide the DDP reduce result by the world rank
         """
         super().__init__(name)
         self.reduce_group = reduce_group
         self.reduce_op = reduce_op
-        self.ddp_normalize = ddp_normalize
 
-    def input_convert(self, module: nn.Module, input: Any):
-        return apply_to_collection(input,
+    def input_convert(self, module: nn.Module, data: Any):
+        return apply_to_collection(data,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def output_convert(self, module: nn.Module, input: Any, output: Any):
+    def output_convert(self, module: nn.Module, data: Any, output: Any):
         return apply_to_collection(output,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def ddp_sync(self, module: nn.Module, input: Any, output: Any):
+    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
-                                   self.reduce_group, self.reduce_op, self.ddp_normalize)
+                                   self.reduce_group, self.reduce_op)
 
 
 class NumpyMetric(Metric):
@@ -226,8 +222,7 @@ class NumpyMetric(Metric):
 
     def __init__(self, name: str,
                  reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None,
-                 ddp_normalize: bool = False):
+                 reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -236,24 +231,22 @@ class NumpyMetric(Metric):
                 Defaults to all processes (world)
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
-            ddp_normalize: if true, will divide the DDP reduce result by the world rank
         """
         super().__init__(name)
         self.reduce_group = reduce_group
         self.reduce_op = reduce_op
-        self.ddp_normalize = ddp_normalize
 
-    def input_convert(self, module: nn.Module, input: Any):
-        return apply_to_collection(input,
+    def input_convert(self, module: nn.Module, data: Any):
+        return apply_to_collection(data,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_numpy)
 
-    def output_convert(self, module: nn.Module, input: Any, output: Any):
+    def output_convert(self, module: nn.Module, data: Any, output: Any):
         return apply_to_collection(output,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def ddp_sync(self, module: nn.Module, input: Any, output: Any):
+    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
-                                   self.reduce_group, self.reduce_op, self.ddp_normalize)
+                                   self.reduce_group, self.reduce_op)

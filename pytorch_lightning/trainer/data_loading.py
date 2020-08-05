@@ -163,7 +163,7 @@ class TrainerDataLoadingMixin(ABC):
                     ' `replace_sampler_ddp`=False if you want to use your custom sampler.')
 
             # replace with distributed sampler
-            sampler = self._get_distributed_sampler(dataloader)
+            sampler = self._get_distributed_sampler(dataloader, train)
             dataloader = self.replace_sampler(dataloader, sampler)
 
         return dataloader
@@ -179,7 +179,7 @@ class TrainerDataLoadingMixin(ABC):
         dataloader = type(dataloader)(**dl_args)
         return dataloader
 
-    def _get_distributed_sampler(self, dataloader):
+    def _get_distributed_sampler(self, dataloader, train):
         if self.use_tpu:
             kwargs = dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
         elif self.use_horovod:
@@ -193,6 +193,8 @@ class TrainerDataLoadingMixin(ABC):
             }
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
+
+        kwargs['shuffle'] = train
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
@@ -221,7 +223,7 @@ class TrainerDataLoadingMixin(ABC):
                 self.num_training_batches = len(self.train_dataloader)
                 self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
             else:
-                self.num_training_batches = self.limit_train_batches
+                self.num_training_batches = min(len(self.train_dataloader), self.limit_train_batches)
 
         # determine when to check validation
         # if int passed in, val checks that often
@@ -313,7 +315,7 @@ class TrainerDataLoadingMixin(ABC):
                     if isinstance(limit_eval_batches, float):
                         num_batches = int(num_batches * limit_eval_batches)
                     else:
-                        num_batches = limit_eval_batches
+                        num_batches = min(len(dataloader), limit_eval_batches)
 
                 elif limit_eval_batches not in (0.0, 1.0):
                     raise MisconfigurationException(
@@ -339,9 +341,10 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        if self.is_overridden('validation_step'):
-            self.num_val_batches, self.val_dataloaders = \
-                self._reset_eval_dataloader(model, 'val')
+        has_loader = self.is_overridden('val_dataloader', model)
+        has_step = self.is_overridden('validation_step', model)
+        if has_loader and has_step:
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.
@@ -349,7 +352,9 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        if self.is_overridden('test_step'):
+        has_loader = self.is_overridden('test_dataloader', model)
+        has_step = self.is_overridden('test_step', model)
+        if has_loader and has_step:
             self.num_test_batches, self.test_dataloaders =\
                 self._reset_eval_dataloader(model, 'test')
 

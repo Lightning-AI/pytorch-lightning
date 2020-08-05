@@ -1,8 +1,7 @@
 import torch
 
-# from pl_examples import LightningTemplateModel
 from pytorch_lightning import Trainer
-from tests.base.develop_utils import load_model_from_checkpoint, init_checkpoint_callback, get_default_logger, \
+from tests.base.develop_utils import load_model_from_checkpoint, get_default_logger, \
     reset_seed
 
 
@@ -16,11 +15,9 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
     # correct result and ok accuracy
     assert result == 1, 'amp + ddp model failed to complete'
 
-    # test model loading
     pretrained_model = load_model_from_checkpoint(
         trainer.logger,
-        trainer.checkpoint_callback.dirpath,
-        path_expt=trainer_options.get('default_root_dir'),
+        trainer.checkpoint_callback.best_model_path,
     )
 
     # test new model accuracy
@@ -38,6 +35,7 @@ def run_model_test_without_loggers(trainer_options, model, min_acc: float = 0.50
 
 
 def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, with_hpc: bool = True):
+
     reset_seed()
     save_dir = trainer_options['default_root_dir']
 
@@ -46,26 +44,24 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
     trainer_options.update(logger=logger)
 
     if 'checkpoint_callback' not in trainer_options:
-        # logger file to get weights
-        checkpoint = init_checkpoint_callback(logger)
-        trainer_options.update(checkpoint_callback=checkpoint)
+        trainer_options.update(checkpoint_callback=True)
 
-    # fit model
     trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # correct result and ok accuracy
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1, 'trainer failed'
 
     # test model loading
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.dirpath)
+    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path)
 
     # test new model accuracy
     test_loaders = model.test_dataloader()
     if not isinstance(test_loaders, list):
         test_loaders = [test_loaders]
 
-    [run_prediction(dataloader, pretrained_model) for dataloader in test_loaders]
+    for dataloader in test_loaders:
+        run_prediction(dataloader, pretrained_model)
 
     if with_hpc:
         if trainer.use_ddp or trainer.use_ddp2:
@@ -81,22 +77,25 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
 
 def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):
     # run prediction on 1 batch
-    for batch in dataloader:
-        break
-
+    batch = next(iter(dataloader))
     x, y = batch
     x = x.view(x.size(0), -1)
 
     if dp:
-        output = trained_model(batch, 0)
+        with torch.no_grad():
+            output = trained_model(batch, 0)
         acc = output['val_acc']
         acc = torch.mean(acc).item()
 
     else:
-        y_hat = trained_model(x)
+        with torch.no_grad():
+            y_hat = trained_model(x)
+        y_hat = y_hat.cpu()
 
         # acc
         labels_hat = torch.argmax(y_hat, dim=1)
+
+        y = y.cpu()
         acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         acc = torch.tensor(acc)
         acc = acc.item()

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import sys
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -114,27 +115,44 @@ def _setup_ddp(rank, worldsize):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def _ddp_test_fn(rank, worldsize):
+def _ddp_test_fn(rank, worldsize, add_offset: bool, reduction_mean=False):
     _setup_ddp(rank, worldsize)
-    tensor = torch.tensor([1.], device='cuda:0')
+    if add_offset:
+        tensor = torch.tensor([float(rank)])
+    else:
+        tensor = torch.tensor([1.], )
+    if reduction_mean:
+        reduced_tensor = sync_ddp_if_available(tensor, reduce_op='avg')
 
-    reduced_tensor = sync_ddp_if_available(tensor)
+        manual_reduction = sum([i for i in range(dist.get_world_size())]) / dist.get_world_size()
+        print(reduced_tensor)
+        print(manual_reduction)
+        assert reduced_tensor.item() == manual_reduction
+    else:
+        reduced_tensor = sync_ddp_if_available(tensor)
 
-    assert reduced_tensor.item() == dist.get_world_size(), \
-        'Sync-Reduce does not work properly with DDP and Tensors'
+        assert reduced_tensor.item() == dist.get_world_size(), \
+            'Sync-Reduce does not work properly with DDP and Tensors'
 
 
-@pytest.mark.spawn
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
 def test_sync_reduce_ddp():
     """Make sure sync-reduce works with DDP"""
     tutils.reset_seed()
     tutils.set_random_master_port()
 
     worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    mp.spawn(_ddp_test_fn, args=(worldsize, False), nprocs=worldsize)
 
-    # dist.destroy_process_group()
+
+@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
+def test_sync_reduce_ddp_mean():
+    """Make sure sync-reduce works with DDP"""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    worldsize = 2
+    mp.spawn(_ddp_test_fn, args=(worldsize, True, True), nprocs=worldsize)
 
 
 def test_sync_reduce_simple():
@@ -173,7 +191,7 @@ def _ddp_test_tensor_metric(rank, worldsize):
     _test_tensor_metric(True)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
 def test_tensor_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -213,8 +231,7 @@ def _ddp_test_numpy_metric(rank, worldsize):
     _test_numpy_metric(True)
 
 
-@pytest.mark.spawn
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
 def test_numpy_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()

@@ -278,7 +278,7 @@ class ConfusionMatrix(SklearnMetric):
             y_true: Ground truth (correct) target values.
 
         Return:
-            Confusion matrix (array of shape [n_classes, n_classes])
+            Confusion matrix (array of shape [num_classes, num_classes])
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true)

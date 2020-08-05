@@ -47,7 +47,7 @@ jobs:
         python -c "from pip._internal.locations import USER_CACHE_DIR; print('::set-output name=dir::' + USER_CACHE_DIR)"
 
     - name: Cache pip
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}-pip-${{ hashFiles('requirements/base.txt') }}
@@ -57,7 +57,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade --user pip
-        pip install --requirement ./requirements/base.txt --quiet  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade-strategy only-if-needed
+        pip install --requirement ./requirements/base.txt --quiet  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement ./requirements/test.txt --quiet --upgrade-strategy only-if-needed
         # pip install tox coverage
         python --version
@@ -66,7 +66,7 @@ jobs:
       shell: bash
 
     - name: Cache datasets
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
         path: Datasets # This path is specific to Ubuntu
         # Look to see if there is a cache hit for the corresponding requirements file
@@ -98,6 +98,5 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.xml
         flags: cpu,pytest
-        env_vars: ${{ runner.os }},python${{ matrix.python-version }}
         name: Base-coverage
-        fail_ci_if_error: true
+        fail_ci_if_error: false

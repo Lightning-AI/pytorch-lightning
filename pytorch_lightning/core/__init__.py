@@ -80,11 +80,8 @@ Here are the only required methods.
     ...     def training_step(self, batch, batch_idx):
     ...         x, y = batch
     ...         y_hat = self(x)
-    ...         return {'loss': F.cross_entropy(y_hat, y)}
-    ...
-    ...     def train_dataloader(self):
-    ...         return DataLoader(MNIST(os.getcwd(), train=True, download=True,
-    ...                                 transform=transforms.ToTensor()), batch_size=32)
+    ...         loss = F.cross_entropy(y_hat, y)
+    ...         return pl.TrainResult(loss)
     ...
     ...     def configure_optimizers(self):
     ...         return torch.optim.Adam(self.parameters(), lr=0.02)
@@ -93,26 +90,33 @@ Which you can train by doing:
 
 .. code-block:: python
 
-   trainer = pl.Trainer()
-   model = LitModel()
+    train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()))
+    trainer = pl.Trainer()
+    model = LitModel()
 
-   trainer.fit(model)
+    trainer.fit(model, train_loader)
 
 ----------
 
 Training loop structure
 -----------------------
 
-The general pattern is that each loop (training, validation, test loop)
-has 3 methods:
+The general pattern is that each loop has a single method to worry about
 
 - ``___step``
+
+If you need more control, there are two optional methods.
+
 - ``___step_end``
 - ``___epoch_end``
 
 To show how Lightning calls these, let's use the validation loop as an example:
 
 .. code-block:: python
+
+    # put model in prediction mode
+    model.eval()
+    torch.set_grad_enabled(False)
 
     val_outs = []
     for val_batch in val_data:
@@ -123,6 +127,10 @@ To show how Lightning calls these, let's use the validation loop as an example:
     # do something with the outputs for all batches
     # like calculate validation set accuracy or loss
     validation_epoch_end(val_outs)
+
+    # put model back in train mode
+    model.train()
+    torch.set_grad_enabled(True)
 
 If we use dp or ddp2 mode, we can also define the ``XXX_step_end`` method to operate
 on all parts of the batch::
@@ -154,6 +162,18 @@ Thus, if we wanted to add a validation loop you would add this to your
     ...     def validation_step(self, batch, batch_idx):
     ...         x, y = batch
     ...         y_hat = self(x)
+    ...         loss = F.cross_entropy(y_hat, y)
+    ...         result = pl.EvalResult(checkpoint_on=loss)
+    ...         result.log('val_loss', loss)
+    ...         return result
+
+The equivalent expanded version (which you normally wouldn't need to use) is the following:
+
+    >>> import pytorch_lightning as pl
+    >>> class LitModel(pl.LightningModule):
+    ...     def validation_step(self, batch, batch_idx):
+    ...         x, y = batch
+    ...         y_hat = self(x)
     ...         return {'val_loss': F.cross_entropy(y_hat, y)}
     ...
     ...     def validation_epoch_end(self, outputs):
@@ -172,15 +192,10 @@ Add test loop
     ...     def test_step(self, batch, batch_idx):
     ...         x, y = batch
     ...         y_hat = self(x)
-    ...         return {'test_loss': F.cross_entropy(y_hat, y)}
-    ...
-    ...     def test_epoch_end(self, outputs):
-    ...         test_loss_mean = torch.stack([x['test_loss'] for x in outputs]).mean()
-    ...         return {'test_loss': test_loss_mean}
-    ...
-    ...     def test_dataloader(self):
-    ...         # can also return a list of test dataloaders
-    ...         return DataLoader(...)
+    ...         loss = F.cross_entropy(y_hat, y)
+    ...         result = pl.EvalResult(checkpoint_on=loss)
+    ...         result.log('test_loss', loss)
+    ...         return result
 
 However, the test loop won't ever be called automatically to make sure you
 don't run your test data by accident. Instead you have to explicitly call:
@@ -190,12 +205,69 @@ don't run your test data by accident. Instead you have to explicitly call:
     # call after training
     trainer = Trainer()
     trainer.fit(model)
-    trainer.test()
+    trainer.test(test_dataloaders=test_dataloader)
 
     # or call with pretrained model
     model = MyLightningModule.load_from_checkpoint(PATH)
     trainer = Trainer()
-    trainer.test(model)
+    trainer.test(model, test_dataloaders=test_dataloader)
+
+-------------
+
+TrainResult
+^^^^^^^^^^^
+When you are using the `_step_end` and `_epoch_end` only for aggregating metrics and then logging,
+consider using either a `EvalResult` or `TrainResult` instead.
+
+Here's a training loop structure
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        return {'loss': loss}
+
+    def training_epoch_end(self, training_step_outputs):
+        epoch_loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
+        return {
+            'log': {'epoch_loss': epoch_loss},
+            'progress_bar': {'epoch_loss': epoch_loss}
+        }
+
+using the equivalent syntax via the `TrainResult` object:
+
+.. code-block:: python
+
+    def training_step(self, batch_subset, batch_idx):
+        loss = ...
+        result = pl.TrainResult(minimize=loss)
+        result.log('train_loss', loss, prog_bar=True)
+        return result
+
+EvalResult
+^^^^^^^^^^
+Same for val/test loop
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        return {'some_metric': some_metric}
+
+    def validation_epoch_end(self, validation_step_outputs):
+        some_metric_mean = torch.stack([x['some_metric'] for x in validation_step_outputs]).mean()
+        return {
+            'log': {'some_metric_mean': some_metric_mean},
+            'progress_bar': {'some_metric_mean': some_metric_mean}
+        }
+
+With the equivalent using the `EvalResult` syntax
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        some_metric = ...
+        result = pl.EvalResult(checkpoint_on=some_metric)
+        result.log('some_metric', some_metric, prog_bar=True)
+        return result
 
 ----------
 
@@ -204,7 +276,7 @@ Training_step_end method
 When using :class:`~pytorch_lightning.overrides.data_parallel.LightningDataParallel` or
 :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel`, the
 :meth:`~LightningModule.training_step`
-will be operating on a portion of the batch. This is normally ok but in special
+will be operating on a portion of the batch. This is normally okay but in special
 cases like calculating NCE loss using negative samples, we might want to
 perform a softmax across all samples in the batch.
 
@@ -250,56 +322,6 @@ When you init a new tensor in your code, just use :meth:`~torch.Tensor.type_as`:
 
 ----------
 
-Data preparation
-----------------
-Data preparation in PyTorch follows 5 steps:
-
-1. Download
-2. Clean and (maybe) save to disk
-3. Load inside :class:`~torch.utils.data.Dataset`
-4. Apply transforms (rotate, tokenize, etc...)
-5. Wrap inside a :class:`~torch.utils.data.DataLoader`
-
-When working in distributed settings, steps 1 and 2 have to be done
-from a single GPU, otherwise you will overwrite these files from
-every GPU. The :class:`~LightningModule` has the
-:class:`~LightningModule.prepare_data` method to
-allow for this:
-
-    >>> import pytorch_lightning as pl
-    >>> class LitModel(pl.LightningModule):
-    ...     def prepare_data(self):
-    ...         # download
-    ...         MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
-    ...         MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
-    ...
-    ...     def setup(self, stage):
-    ...         mnist_train = MNIST(os.getcwd(), train=True, download=False, transform=transforms.ToTensor())
-    ...         mnist_test = MNIST(os.getcwd(), train=False, download=False, transform=transforms.ToTensor())
-    ...         # train/val split
-    ...         mnist_train, mnist_val = random_split(mnist_train, [55000, 5000])
-    ...
-    ...         # assign to use in dataloaders
-    ...         self.train_dataset = mnist_train
-    ...         self.val_dataset = mnist_val
-    ...         self.test_dataset = mnist_test
-    ...
-    ...     def train_dataloader(self):
-    ...         return DataLoader(self.train_dataset, batch_size=64)
-    ...
-    ...     def val_dataloader(self):
-    ...         return DataLoader(self.mnist_val, batch_size=64)
-    ...
-    ...     def test_dataloader(self):
-    ...         return DataLoader(self.mnist_test, batch_size=64)
-
-Note:
-    :meth:`~LightningModule.prepare_data` is called once.
-
-Note:
-    Do anything with data that needs to happen ONLY once here, like download, tokenize, etc...
-
-
 Lifecycle
 ---------
 The methods in the :class:`~LightningModule` are called in this order:
@@ -336,8 +358,11 @@ LightningModule Class
 
 """
 
-from pytorch_lightning.core.decorators import data_loader
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 
-__all__ = ['LightningModule', 'data_loader']
+__all__ = [
+    'LightningDataModule',
+    'LightningModule',
+]
 # __call__ = __all__

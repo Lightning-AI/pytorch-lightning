@@ -51,7 +51,7 @@ class TensorBoardLogger(LightningLoggerBase):
                  **kwargs):
         super().__init__()
         self._save_dir = save_dir
-        self._name = name
+        self._name = name or ''
         self._version = version
 
         self._experiment = None
