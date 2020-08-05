@@ -145,7 +145,7 @@ def main(args, datamodule, bn_outputs):
         distributed_backend='ddp',
         max_epochs=args.epochs,
         max_steps=args.steps,
-        sync_bn_backend=args.bn_sync,
+        sync_bn=args.bn_sync,
         num_sanity_val_steps=0,
         replace_sampler_ddp=False,
     )
