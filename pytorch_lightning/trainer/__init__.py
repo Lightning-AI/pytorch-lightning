@@ -858,7 +858,7 @@ How often to add logging rows (does not write to disk)
 sync_batchnorm
 ^^^^^^^^^^^^^^^^^
 
-Enable synchrnization between batchnorm layers across all GPUs.
+Enable synchronization between batchnorm layers across all GPUs.
 
 .. testcode::
 
