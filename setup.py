@@ -44,9 +44,11 @@ def load_long_description():
     text = text.replace('.svg', '.png')
     return text
 
-
+# https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
+# Define package extras. These are only installed if you specify them.
+# From remote, use like `pip install pytorch-lightning[dev, docs]`
+# From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
-    'base': load_requirements(),
     'docs': load_requirements(file_name='docs.txt'),
     'examples': load_requirements(file_name='examples.txt'),
     'extra': load_requirements(file_name='extra.txt'),
@@ -54,7 +56,6 @@ extras = {
 }
 extras['dev'] = extras['extra'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples'] + extras['docs']
-base_requirements = extras.pop('base')
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -80,7 +81,7 @@ setup(
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
-    install_requires=base_requirements,
+    install_requires=load_requirements(),
     extras_require=extras,
 
     project_urls={
