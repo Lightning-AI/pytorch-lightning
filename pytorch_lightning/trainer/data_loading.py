@@ -220,7 +220,7 @@ class TrainerDataLoadingMixin(ABC):
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
         elif self.num_training_batches != float('inf'):
             self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
-        elif self.limit_train_batches not in (0.0, 1.0):
+        elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
                 'When using an IterableDataset for `limit_train_batches`,'
                 ' `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies'
@@ -313,7 +313,7 @@ class TrainerDataLoadingMixin(ABC):
                     num_batches = min(num_batches, int(limit_eval_batches))
                 elif num_batches != float('inf'):
                     num_batches = int(num_batches * limit_eval_batches)
-                elif limit_eval_batches not in (0.0, 1.0):
+                elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         'When using an IterableDataset for `limit_{mode}_batches`,'
                         f' `Trainer(limit_{mode}_batches)` must be `0.0`, `1.0` or an int. An int k specifies'
