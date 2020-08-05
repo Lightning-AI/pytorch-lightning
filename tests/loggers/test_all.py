@@ -5,11 +5,13 @@ import pickle
 import platform
 from unittest import mock
 
+import cloudpickle
 import pytest
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, Callback
 from pytorch_lightning.loggers import (
+    CSVLogger,
     TensorBoardLogger,
     MLFlowLogger,
     NeptuneLogger,
@@ -34,6 +36,7 @@ def _get_logger_args(logger_class, save_dir):
 
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
+    CSVLogger,
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
@@ -85,6 +88,7 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
 
 
 @pytest.mark.parametrize("logger_class", [
+    CSVLogger,
     TensorBoardLogger,
     CometLogger,
     MLFlowLogger,
@@ -148,6 +152,7 @@ def test_loggers_save_dir_and_weights_save_path(wandb, tmpdir, monkeypatch, logg
 
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
+    CSVLogger,
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
@@ -170,6 +175,7 @@ def test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 
     # test pickling loggers
     pickle.dumps(logger)
+    cloudpickle.dumps(logger)
 
     trainer = Trainer(
         max_epochs=1,
@@ -226,6 +232,7 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
+    CSVLogger,
     CometLogger,
     MLFlowLogger,
     NeptuneLogger,
