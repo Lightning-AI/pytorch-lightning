@@ -88,13 +88,14 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
   * Write a test for the functionality you want to add.
   * Write the functional code until the test passes.
 4. Add/update the relevant tests!
- * This PR is a good example for [adding a new metric](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671), and this one for [a new logger](https://github.com/PyTorchLightning/pytorch-lightning/pull/2535)
+ * [This PR](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/PyTorchLightning/pytorch-lightning/pull/2535)
   
 
 ### Test cases:
  
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
+Most of the tests in PyTorch Lightning train a full MNIST model under various trainer conditions (ddp, ddp2+amp, etc...). The tests expect the model to perform to a reasonable degree of testing accuracy to pass. Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)
 
 ---
 
