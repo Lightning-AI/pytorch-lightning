@@ -25,7 +25,7 @@ import time
 import random
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
-from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
+from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence, NoneType
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning import _logger as log
@@ -472,12 +472,13 @@ def pick_single_gpu(exclude_gpus: list):
     raise RuntimeError("No GPUs available.")
 
 
-def pick_single_gpu_realist_workload(exclude_gpus: list, model, batch):
+def pick_single_gpu_realist_workload(exclude_gpus: list, model:LightningModule):
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:
             continue
         # Try to allocate on device:
         device = torch.device(f"cuda:{i}")
+        batch=next(iter(model.train_dataloader))
         try:
             model_device = model.to(device) 
             batch_device = batch.to(device)
@@ -492,13 +493,24 @@ def pick_single_gpu_realist_workload(exclude_gpus: list, model, batch):
     raise RuntimeError("No GPUs available.")
 
 
-def pick_multiple_gpus(nb, model=None):
+def pick_multiple_gpus(nb:int, model:Optional[LightningModule] = None) -> list:
+    r""" Pick available GPUs 
+    
+    Args:
+        nb: the max number of GPU to pick
+        model: (optional) a LightningModule with model and train_loader attached
+
+    Return:
+        a list of GPU index availables
+
+    Note: if model is not None, a GPU is considered available if it is able to run in `train` mode a batch
+    """
     picked = []
     for _ in range(nb):
         if not model: picked.append(pick_single_gpu(exclude_gpus=picked))
         else : 
             assert hasattr(model, 'train_dataloader')
-            picked.append(pick_single_gpu_realist_workload(exclude_gpus=picked, model=model, batch=next(iter(model.train_dataloader))))
+            picked.append(pick_single_gpu_realist_workload(exclude_gpus=picked, model=model))
 
     if len(picked) < 1: raise RuntimeError("None of the GPUs could accept the given workload.")
     return picked
