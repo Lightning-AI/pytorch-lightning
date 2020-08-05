@@ -763,6 +763,20 @@ def test_gpu_choice(tmpdir):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
 
 
+def test_gpu_choice_workload(tmpdir):
+    """ Test if the training is not allowed by `pick_single_gpu_realist_workload` by using an overly large batch-size """
+    model = EvalModelTemplate()
+    model.train_dataloader.batch_size = 50000 # the size of MNIST trainset
+    trainer = Trainer(
+        max_steps=1,
+        max_epochs=1,
+        default_root_dir=tmpdir,
+    )
+
+    with pytest.raises(RuntimeError, match=r'.*None of the GPUs could accept the given workload.*'):
+        trainer.fit(model)
+        
+
 @pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id', 'error_expected'], [
     pytest.param(1, None, False),
     pytest.param(8, None, False),

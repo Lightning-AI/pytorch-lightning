@@ -480,10 +480,11 @@ def pick_single_gpu_realist_workload(exclude_gpus: list, model:LightningModule):
         device = torch.device(f"cuda:{i}")
         batch=next(iter(model.train_dataloader))
         try:
-            model_device = model.to(device) 
-            batch_device = batch.to(device)
-            model_device.train() # record grads 
-            model_device(batch_device)
+            with torch.set_grad_enabled(True):
+                model_device = model.to(device) 
+                batch_device = batch.to(device)
+                model_device.train() # record grads 
+                model_device(batch_device)
         except RuntimeError as exception:
             if is_oom_error(exception): # clean after the failed attempt
                 garbage_collection_cuda()
