@@ -117,7 +117,7 @@ class Accuracy(SklearnMetric):
             self,
             y_pred: np.ndarray,
             y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None
+            sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Computes the accuracy
@@ -220,7 +220,7 @@ class AveragePrecision(SklearnMetric):
             self,
             y_score: np.ndarray,
             y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None
+            sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
@@ -256,7 +256,8 @@ class BalancedAccuracy(SklearnMetric):
             self,
             adjusted: bool = False,
             reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM):
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             adjusted: If ``True``, the result sis adjusted for chance, such that random performance
@@ -271,8 +272,12 @@ class BalancedAccuracy(SklearnMetric):
                          reduce_op=reduce_op,
                          adjusted=adjusted)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> float:
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ) -> float:
         """
         Args:
             y_pred: the array containing the predictions (already in categorical form)
@@ -283,7 +288,8 @@ class BalancedAccuracy(SklearnMetric):
             balanced accuracy score
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
+        return super().forward(y_true=y_true,
+                               y_pred=y_pred,
                                sample_weight=sample_weight)
 
 
@@ -301,10 +307,13 @@ class CohenKappaScore(SklearnMetric):
 
     """
 
-    def __init__(self, labels: Optional[Sequence] = None,
-                 weights: Optional[str] = None,
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            labels: Optional[Sequence] = None,
+            weights: Optional[str] = None,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             labels: List of labels to index the matrix. This may be used to reorder
@@ -325,8 +334,12 @@ class CohenKappaScore(SklearnMetric):
                          labels=labels,
                          weights=weights)
 
-    def forward(self, y1: np.ndarray, y2: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> float:
+    def forward(
+            self,
+            y1: np.ndarray,
+            y2: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ) -> float:
         """
         Args:
             y_1: Labels assigned by first annotator
@@ -359,7 +372,8 @@ class ConfusionMatrix(SklearnMetric):
     """
 
     def __init__(
-            self, labels: Optional[Sequence] = None,
+            self,
+            labels: Optional[Sequence] = None,
             reduce_group: Any = group.WORLD,
             reduce_op: Any = ReduceOp.SUM,
     ):
@@ -407,10 +421,14 @@ class DCG(SklearnMetric):
         tensor([9.4995])
     """
 
-    def __init__(self, k: Optional[int] = None,
-                 log_base: float = 2, ignore_ties: bool = False,
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            k: Optional[int] = None,
+            log_base: float = 2,
+            ignore_ties: bool = False,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             k: only consider the hightest k score in the ranking
@@ -424,10 +442,16 @@ class DCG(SklearnMetric):
         super().__init__('dcg_score',
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
-                         k=k, log_base=log_base, ignore_ties=ignore_ties)
+                         k=k,
+                         log_base=log_base,
+                         ignore_ties=ignore_ties)
 
-    def forward(self, y_score: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> float:
+    def forward(
+            self,
+            y_score: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ) -> float:
         """
         Args:
             y_score: target scores, either probability estimates, confidence values
@@ -439,7 +463,8 @@ class DCG(SklearnMetric):
             DCG score
 
         """
-        return super().forward(y_true=y_true, y_score=y_score,
+        return super().forward(y_true=y_true,
+                               y_score=y_score,
                                sample_weight=sample_weight)
 
 
@@ -472,7 +497,8 @@ class F1(SklearnMetric):
     """
 
     def __init__(
-            self, labels: Optional[Sequence] = None,
+            self,
+            labels: Optional[Sequence] = None,
             pos_label: Union[str, int] = 1,
             average: Optional[str] = 'macro',
             reduce_group: Any = group.WORLD,
@@ -524,7 +550,7 @@ class F1(SklearnMetric):
             self,
             y_pred: np.ndarray,
             y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None
+            sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -619,7 +645,7 @@ class FBeta(SklearnMetric):
             self,
             y_pred: np.ndarray,
             y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None
+            sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -649,8 +675,11 @@ class Hamming(SklearnMetric):
 
     """
 
-    def __init__(self, reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
@@ -667,7 +696,7 @@ class Hamming(SklearnMetric):
             self,
             y_pred: np.ndarray,
             y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None
+            sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -696,9 +725,12 @@ class Hinge(SklearnMetric):
 
     """
 
-    def __init__(self, labels: Optional[Sequence] = None,
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            labels: Optional[Sequence] = None,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             labels: Integer array of labels.
@@ -712,8 +744,12 @@ class Hinge(SklearnMetric):
                          reduce_op=reduce_op,
                          labels=labels)
 
-    def forward(self, pred_decision: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> float:
+    def forward(
+            self,
+            pred_decision: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ) -> float:
         """
         Args:
             pred_decision : Predicted decisions
@@ -725,7 +761,8 @@ class Hinge(SklearnMetric):
 
         """
         return super().forward(pred_decision=pred_decision,
-                               y_true=y_true, sample_weight=sample_weight)
+                               y_true=y_true,
+                               sample_weight=sample_weight)
 
 
 class Jaccard(SklearnMetric):
@@ -742,10 +779,14 @@ class Jaccard(SklearnMetric):
 
     """
 
-    def __init__(self, labels: Optional[Sequence] = None,
-                 pos_label: Union[str, int] = 1, average: Optional[str] = 'macro',
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            labels: Optional[Sequence] = None,
+            pos_label: Union[str, int] = 1,
+            average: Optional[str] = 'macro',
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             labels: Integer array of labels.
@@ -788,8 +829,12 @@ class Jaccard(SklearnMetric):
                          pos_label=pos_label,
                          average=average)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None) -> Union[np.ndarray, float]:
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ) -> Union[np.ndarray, float]:
         """
         Args:
             y_pred : Estimated targets as returned by a classifier.
@@ -1022,7 +1067,7 @@ class PrecisionRecallCurve(SklearnMetric):
             self,
             probas_pred: np.ndarray,
             y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None
+            sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -1099,7 +1144,7 @@ class ROC(SklearnMetric):
             self,
             y_score: np.ndarray,
             y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None
+            sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -1202,9 +1247,12 @@ class ExplainedVariance(SklearnMetric):
         tensor([0.9572])
     """
 
-    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'variance_weighted',
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            multioutput: Optional[Union[str, List[float]]] = 'variance_weighted',
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             multioutput: either one of the strings [‘raw_values’, ‘uniform_average’, 'variance_weighted']
@@ -1220,8 +1268,12 @@ class ExplainedVariance(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ):
         """
         Args:
             y_pred: Estimated target values
@@ -1253,9 +1305,12 @@ class MeanAbsoluteError(SklearnMetric):
 
     """
 
-    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             multioutput: either one of the strings [‘raw_values’, ‘uniform_average’]
@@ -1283,7 +1338,8 @@ class MeanAbsoluteError(SklearnMetric):
             Mean absolute error
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
+        return super().forward(y_true=y_true,
+                               y_pred=y_pred,
                                sample_weight=sample_weight)
 
 
@@ -1301,13 +1357,19 @@ class MeanSquaredError(SklearnMetric):
         >>> metric = MeanSquaredError()
         >>> metric(y_pred, y_true)
         tensor([0.3750])
+        >>> metric = MeanSquaredError(squared=True)
+        >>> metric(y_pred, y_true)
+        tensor([0.6124])
 
     """
 
-    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-                 squared: bool = True,
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+            squared: bool = False,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             multioutput: either one of the strings [‘raw_values’, ‘uniform_average’]
@@ -1323,9 +1385,14 @@ class MeanSquaredError(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op,
                          multioutput=multioutput)
+        self.squared = squared
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ):
         """
         Args:
             y_pred: Estimated target values
@@ -1336,8 +1403,11 @@ class MeanSquaredError(SklearnMetric):
             Mean squared error
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
-                               sample_weight=sample_weight)
+        mse = super().forward(y_true=y_true, y_pred=y_pred,
+                              sample_weight=sample_weight)
+        if self.squared:
+            mse = np.sqrt(mse)
+        return mse
 
 
 class MeanSquaredLogError(SklearnMetric):
@@ -1356,9 +1426,12 @@ class MeanSquaredLogError(SklearnMetric):
         tensor([0.0397])
     """
 
-    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             multioutput: either one of the strings [‘raw_values’, ‘uniform_average’]
@@ -1374,8 +1447,12 @@ class MeanSquaredLogError(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ):
         """
         Args:
             y_pred: Estimated target values
@@ -1406,9 +1483,12 @@ class MedianAbsoluteError(SklearnMetric):
         tensor([0.5000])
     """
 
-    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             multioutput: either one of the strings [‘raw_values’, ‘uniform_average’]
@@ -1453,9 +1533,12 @@ class R2Score(SklearnMetric):
         tensor([0.9486])
     """
 
-    def __init__(self, multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             multioutput: either one of the strings [‘raw_values’, ‘uniform_average’, 'variance_weighted']
@@ -1471,8 +1554,12 @@ class R2Score(SklearnMetric):
                          reduce_op=reduce_op,
                          multioutput=multioutput)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ):
         """
         Args:
             y_pred: Estimated target values
@@ -1503,9 +1590,11 @@ class MeanPoissonDeviance(SklearnMetric):
         tensor([0.9034])
     """
 
-    def __init__(self,
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
@@ -1517,8 +1606,12 @@ class MeanPoissonDeviance(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ):
         """
         Args:
             y_pred: Estimated target values
@@ -1549,9 +1642,11 @@ class MeanGammaDeviance(SklearnMetric):
         tensor([1.0569])
     """
 
-    def __init__(self,
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
@@ -1563,8 +1658,12 @@ class MeanGammaDeviance(SklearnMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ):
         """
         Args:
             y_pred: Estimated target values
@@ -1595,9 +1694,12 @@ class MeanTweedieDeviance(SklearnMetric):
         tensor([1.8125])
     """
 
-    def __init__(self, power: float = 0,
-                 reduce_group: Any = group.WORLD,
-                 reduce_op: Any = ReduceOp.SUM):
+    def __init__(
+            self,
+            power: float = 0,
+            reduce_group: Any = group.WORLD,
+            reduce_op: Any = ReduceOp.SUM,
+    ):
         """
         Args:
             power: tweedie power parameter:
@@ -1621,8 +1723,12 @@ class MeanTweedieDeviance(SklearnMetric):
                          reduce_op=reduce_op,
                          power=power)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(
+            self,
+            y_pred: np.ndarray,
+            y_true: np.ndarray,
+            sample_weight: Optional[np.ndarray] = None,
+    ):
         """
         Args:
             y_pred: Estimated target values
