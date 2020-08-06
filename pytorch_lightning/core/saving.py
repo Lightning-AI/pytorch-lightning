@@ -161,7 +161,7 @@ class ModelIO(object):
         cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-            cls_kwargs_old = {}
+            cls_kwargs_loaded = {}
 
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
             for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
