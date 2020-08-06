@@ -29,7 +29,7 @@ def variation_test_fit_test(trainer, model):
 
 
 def get_variations():
-    variations = [v for v in locals() if v.startswith("variation")]
+    variations = [v for v in locals().keys() if v.startswith("variation")]
     return variations
 
 
