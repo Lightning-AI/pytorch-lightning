@@ -127,7 +127,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     result = trainer.fit(model)
 
     # traning complete
-    assert result == 1, 'amp + ddp model failed to complete'
+    assert result == 1
 
     # save model
     new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -138,7 +138,6 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
 
-    failed = False
     try:
         EvalModelTemplate.load_from_checkpoint(
             checkpoint_path=ckpt_path,
@@ -146,6 +145,8 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         )
     except Exception:
         failed = True
+    else:
+        failed = False
 
     assert failed, "Model should not been loaded since the extra layer added."
 
