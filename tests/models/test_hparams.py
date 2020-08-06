@@ -174,35 +174,6 @@ def test_explicit_missing_args_hparams(tmpdir):
 
     return raw_checkpoint_path
 
-
-def test_load_dict_hparams(tmpdir):
-    """
-    Tests that a model can take regular args and assign
-    """
-
-    # define model
-    class LocalModel(EvalModelTemplate):
-        def __init__(self, test_arg, test_arg2):
-            super().__init__()
-            self.save_hyperparameters('test_arg')
-
-    model = LocalModel(test_arg=14, test_arg2=90)
-
-    # verify we can train
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
-    trainer.fit(model)
-
-    # make sure the raw checkpoint saved the properties
-    raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    raw_checkpoint = torch.load(raw_checkpoint_path)
-    hparam_dict = raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
-    hparam_dict['test_arg'] = 26
-    # verify that model loads correctly
-    model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123, hparams_file=hparam_dict)
-    assert model.hparams.test_arg == 26
-
-    return raw_checkpoint_path
-
 # -------------------------
 # SPECIFIC TESTS
 # -------------------------

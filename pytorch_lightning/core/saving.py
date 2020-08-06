@@ -62,8 +62,6 @@ class ModelIO(object):
                     dataloader:
                         batch_size: 32
 
-                Or pass a dict directly.
-
                 You most likely won't need this since Lightning will always save the hyperparameters
                 to the checkpoint.
                 However, if your checkpoint weights don't have the hyperparameters saved,
@@ -117,18 +115,13 @@ class ModelIO(object):
             checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
 
         if hparams_file is not None:
-            if isinstance(hparams_file, str):
-                extension = hparams_file.split('.')[-1]
-                if extension.lower() in ('csv'):
-                    hparams = load_hparams_from_tags_csv(hparams_file)
-                elif extension.lower() in ('yml', 'yaml'):
-                    hparams = load_hparams_from_yaml(hparams_file)
-                else:
-                    raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
-            elif isinstance(hparams_file, dict):
-                hparams = hparams_file
+            extension = hparams_file.split('.')[-1]
+            if extension.lower() in ('csv'):
+                hparams = load_hparams_from_tags_csv(hparams_file)
+            elif extension.lower() in ('yml', 'yaml'):
+                hparams = load_hparams_from_yaml(hparams_file)
             else:
-                raise ValueError('`hparams_file` must be either a dict or a path to .csv, .yml or .yaml.')
+                raise ValueError('.csv, .yml or .yaml is required for `hparams_file`')
 
             hparams['on_gpu'] = False
 
