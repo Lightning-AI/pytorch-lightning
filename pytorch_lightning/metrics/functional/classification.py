@@ -138,7 +138,7 @@ def stat_scores_multiple_classes(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         argmax_dim: int = 1,
-        reduction: str = 'none'
+        reduction: str = 'none',
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Calculates the number of true postive, false postive, true negative
@@ -175,17 +175,19 @@ def stat_scores_multiple_classes(
 
     num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
-    pred = pred.view((-1, )).long()
-    target = target.view((-1, )).long()
-
-    pred.clamp_max_(max=num_classes)
-    target.clamp_max_(max=num_classes)
+    if pred.dtype != torch.bool:
+        pred.clamp_max_(max=num_classes)
+    if target.dtype != torch.bool:
+        target.clamp_max_(max=num_classes)
 
     possible_reductions = ('none', 'sum', 'elementwise_mean')
     if reduction not in possible_reductions:
         raise ValueError("reduction type %s not supported" % reduction)
 
     if reduction == 'none':
+        pred = pred.view((-1, )).long()
+        target = target.view((-1, )).long()
+
         tps = torch.zeros((num_classes + 1,), device=pred.device)
         fps = torch.zeros((num_classes + 1,), device=pred.device)
         tns = torch.zeros((num_classes + 1,), device=pred.device)
