@@ -68,8 +68,8 @@ class ConfigureOptimizersPool(ABC):
                                                                       T_0=1, T_mult=2,
                                                                       eta_min=eta_min)
         return optimizer, [{'scheduler': lr_scheduler,
-                              'interval': 'step',
-                              'monitor': 'iter_frac'}]
+                            'interval': 'step',
+                            'monitor': 'iter_frac'}]
 
     def configure_optimizers__cosine_annealing_warm_restarts(self):
         eta_min = self.learning_rate / 100.0
@@ -78,8 +78,8 @@ class ConfigureOptimizersPool(ABC):
                                                                       T_0=1, T_mult=2,
                                                                       eta_min=eta_min)
         return optimizer, [{'scheduler': lr_scheduler,
-                              'interval': 'epoch',
-                              'monitor': 'epoch'}]
+                            'interval': 'epoch',
+                            'monitor': 'epoch'}]
 
     def configure_optimizers__param_groups(self):
         param_groups = [
