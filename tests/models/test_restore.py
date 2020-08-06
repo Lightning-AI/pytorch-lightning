@@ -182,7 +182,6 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt.keys(), 'module_arguments missing from checkpoints'
 
     # Ensure that model can be correctly restored from checkpoint
-
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly

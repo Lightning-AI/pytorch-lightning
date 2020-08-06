@@ -166,31 +166,31 @@ class ModelIO(object):
             # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
             for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
                 if _old_hparam_key in checkpoint:
-                    cls_kwargs_old.update({_old_hparam_key: checkpoint[_old_hparam_key]})
+                    cls_kwargs_loaded.update({_old_hparam_key: checkpoint[_old_hparam_key]})
 
             # 2. Try to restore model hparams from checkpoint using the new key
             _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-            cls_kwargs_old.update({_new_hparam_key: checkpoint[_new_hparam_key]})
+            cls_kwargs_loaded.update({_new_hparam_key: checkpoint[_new_hparam_key]})
 
             # 3. Ensure that `cls_kwargs_old` has the right type
-            cls_kwargs_old = _convert_loaded_hparams(cls_kwargs_old, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+            cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
 
             # 4. Update cls_kwargs_new with cls_kwargs_old
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
             if args_name and args_name in cls_init_args_name:
-                cls_kwargs_new.update({args_name: cls_kwargs_old})
+                cls_kwargs_extra.update({args_name: cls_kwargs_loaded})
             else:
-                cls_kwargs_new.update(cls_kwargs_old)
+                cls_kwargs_extra.update(cls_kwargs_loaded)
 
         if not cls_spec.varkw:
             # filter kwargs according to class init unless it allows any argument via kwargs
-            cls_kwargs_new = {k: v for k, v in cls_kwargs_new.items() if k in cls_init_args_name}
+            cls_kwargs_extra = {k: v for k, v in cls_kwargs_extra.items() if k in cls_init_args_name}
 
         # prevent passing positional arguments if class does not accept any
         if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
             _cls_args_new, _cls_kwargs_new = [], {}
         else:
-            _cls_args_new, _cls_kwargs_new = cls_args_new, cls_kwargs_new
+            _cls_args_new, _cls_kwargs_new = cls_args_extra, cls_kwargs_extra
 
         model = cls(*_cls_args_new, **_cls_kwargs_new)
 
