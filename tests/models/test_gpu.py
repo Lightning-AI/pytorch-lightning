@@ -109,7 +109,7 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args):
 
     for variation in train_default_model.get_variations():
         command = [sys.executable, file, '--variation', variation] + cli_args
-        p = subprocess.Popen(command, stderr=subprocess.PIPE)
+        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         std, err = p.communicate()
         assert std and not err
 
