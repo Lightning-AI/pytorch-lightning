@@ -271,7 +271,7 @@ class TrainerTrainLoopMixin(ABC):
     get_iter_idx_opts = {'epoch': lambda curr_epoch, curr_batch,
                                          dataset_len: curr_epoch,
                          'iter_frac': lambda curr_epoch, curr_batch, dataset_len:
-                                 (curr_epoch + curr_batch/ (1.0 * dataset_len))
+                         (curr_epoch + curr_batch / (1.0 * dataset_len))
                          }
 
     @abstractmethod

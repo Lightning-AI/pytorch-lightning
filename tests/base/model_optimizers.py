@@ -62,7 +62,7 @@ class ConfigureOptimizersPool(ABC):
         return [optimizer], [lr_scheduler]
 
     def configure_optimizers__cosine_annealing_warm_restarts(self):
-        eta_min = self.learning_rate/100.0
+        eta_min = self.learning_rate / 100.0
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                       T_0=1, T_mult=2,
