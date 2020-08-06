@@ -460,7 +460,12 @@ class TrainerTrainLoopMixin(ABC):
 
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
-        self.train_dataloader_len = len(train_dataloader)
+        try:
+            self.train_dataloader_len = len(train_dataloader)
+        except TypeError:
+            self.train_dataloader_len = 0
+        except NotImplementedError:
+            self.train_dataloader_len = 0
 
         # bookkeeping
         epoch_output = []
@@ -556,7 +561,8 @@ class TrainerTrainLoopMixin(ABC):
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
     def update_train_loop_lr_schedulers(self):
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or (self.train_dataloader_len - (self.batch_idx + 1) == 0):
+        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or \
+                (self.train_dataloader_len - (self.batch_idx + 1) == 0):
             # update lr
             self.update_learning_rates(interval='step')
 
@@ -644,7 +650,8 @@ class TrainerTrainLoopMixin(ABC):
 
     def increment_accumulated_grad_global_step(self):
         # progress global step according to grads progress
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or (self.train_dataloader_len - (self.batch_idx + 1) == 0):
+        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or \
+                (self.train_dataloader_len - (self.batch_idx + 1) == 0):
             self.global_step += 1
         self.total_batch_idx += 1
 
@@ -779,7 +786,8 @@ class TrainerTrainLoopMixin(ABC):
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-                if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or (self.train_dataloader_len - (self.batch_idx + 1) == 0):
+                if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or \
+                        (self.train_dataloader_len - (self.batch_idx + 1) == 0):
 
                     # backward
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
