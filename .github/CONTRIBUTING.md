@@ -137,7 +137,7 @@ formatting errors. In certain cases, a missing blank line or a wrong indent can 
 Run these commands
 
 ```bash
-pip install -r requirements/docs.txt
+pip install ".[docs]"
 cd docs
 make html
 ```
@@ -159,8 +159,7 @@ Testing your work locally will help you speed up the process since it allows you
 To setup a local development environment, install both local and test dependencies:
 
 ```bash
-python -m pip install -r requirements/devel.txt
-python -m pip install -r requirements/examples.txt
+python -m pip install ".[dev, examples]"
 python -m pip install pre-commit
 ```
 
