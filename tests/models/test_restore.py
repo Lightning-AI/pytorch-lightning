@@ -349,10 +349,9 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     trainer.save_checkpoint(new_weights_path)
 
     # load new model
-    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
-    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' \
-        if url_ckpt else new_weights_path
+    hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
+    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = hparams_url if url_ckpt else new_weights_path
 
     # this shall pass
     EvalModelTemplate.load_from_checkpoint(
