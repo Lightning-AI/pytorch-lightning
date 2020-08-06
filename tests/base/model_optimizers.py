@@ -67,7 +67,7 @@ class ConfigureOptimizersPool(ABC):
         lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                       T_0=1, T_mult=2,
                                                                       eta_min=eta_min)
-        return [optimizer], [{'scheduler': lr_scheduler,
+        return optimizer, [{'scheduler': lr_scheduler,
                               'interval': 'step',
                               'monitor': 'iter_frac'}]
 
@@ -77,7 +77,7 @@ class ConfigureOptimizersPool(ABC):
         lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
                                                                       T_0=1, T_mult=2,
                                                                       eta_min=eta_min)
-        return [optimizer], [{'scheduler': lr_scheduler,
+        return optimizer, [{'scheduler': lr_scheduler,
                               'interval': 'epoch',
                               'monitor': 'epoch'}]
 
