@@ -1,6 +1,6 @@
+import numpy as np
 import pytest
 import torch
-import numpy as np
 from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 from skimage.metrics import structural_similarity as ski_ssim
 

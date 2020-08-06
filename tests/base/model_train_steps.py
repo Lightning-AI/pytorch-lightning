@@ -1,9 +1,10 @@
 import math
 from abc import ABC
 from collections import OrderedDict
-from pytorch_lightning import TrainResult, EvalResult
 
 import torch
+
+from pytorch_lightning import TrainResult, EvalResult
 
 
 class TrainingStepVariations(ABC):
