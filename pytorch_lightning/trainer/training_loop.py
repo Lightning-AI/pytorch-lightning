@@ -256,7 +256,6 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
-
     # Callback system
     callbacks: List[Callback]
     on_train_start: Callable
@@ -269,6 +268,11 @@ class TrainerTrainLoopMixin(ABC):
     on_keyboard_interrupt: Callable
     on_train_epoch_start: Callable
     on_train_epoch_end: Callable
+    get_iter_idx_opts = {'epoch': lambda curr_epoch, curr_batch,
+                                         dataset_len: curr_epoch,
+                         'iter_frac': lambda curr_epoch, curr_batch, dataset_len:
+                                 (curr_epoch + curr_batch/ (1.0 * dataset_len))
+                         }
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -767,7 +771,6 @@ class TrainerTrainLoopMixin(ABC):
                 # ------------------------------
                 # gradient update with accumulated gradients
                 if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
-
                     # backward
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
 
@@ -1125,20 +1128,35 @@ class TrainerTrainLoopMixin(ABC):
             # Take step if call to update_learning_rates matches the interval key and
             # the current step modulo the schedulers frequency is zero
             if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
-                # If instance of ReduceLROnPlateau, we need to pass validation loss
-                if lr_scheduler['reduce_on_plateau']:
+                # If instance of monitor parameter specified we need to pass metric indicated
+                if 'monitor' in lr_scheduler.keys():
                     monitor_key = lr_scheduler['monitor']
-                    monitor_val = self.callback_metrics.get(monitor_key)
-                    if monitor_val is None:
-                        avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        raise MisconfigurationException(
-                            f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                            f' which is not available. Available metrics are: {avail_metrics}.'
-                            ' Condition can be set using `monitor` key in lr scheduler dict'
-                        )
+                    monitor_val = self._get_monitor_val(monitor_key)
                     lr_scheduler['scheduler'].step(monitor_val)
                 else:
                     lr_scheduler['scheduler'].step()
+
+    def _get_iter_idx(self, mode):
+        if mode in self.get_iter_idx_opts:
+            return self.get_iter_idx_opts[mode](self.current_epoch, self.batch_idx,
+                                                self.num_training_batches)
+        else:
+            MisconfigurationException("Key Error. '{}' is not in get_iter_idx_opts dictionary! "
+                                      "Specify lambda for '{}' in get_iter_idx_opts dictionary.")
+
+    def _get_monitor_val(self, monitor_key):
+        if monitor_key not in self.get_iter_idx_opts.keys():
+            monitor_val = self.callback_metrics.get(monitor_key)
+            if monitor_val is None:
+                avail_metrics = ','.join(list(self.callback_metrics.keys()))
+                raise MisconfigurationException(
+                    f'ReduceLROnPlateau conditioned on metric {monitor_key}'
+                    f' which is not available. Available metrics are: {avail_metrics}.'
+                    ' Condition can be set using `monitor` key in lr scheduler dict'
+                )
+        else:
+            monitor_val = self._get_iter_idx(mode=monitor_key)
+        return monitor_val
 
 
 def _with_is_last(iterable):
