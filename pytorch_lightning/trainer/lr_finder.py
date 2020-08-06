@@ -24,7 +24,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 
 
 class TrainerLRFinderMixin(ABC):
@@ -57,24 +57,26 @@ class TrainerLRFinderMixin(ABC):
         """ Call lr finder internally during Trainer.fit() """
         lr_finder = self.lr_find(model)
         lr = lr_finder.suggestion()
+
         # TODO: log lr.results to self.logger
         if isinstance(self.auto_lr_find, str):
             # Try to find requested field, may be nested
-            if _nested_hasattr(model, self.auto_lr_find):
-                _nested_setattr(model, self.auto_lr_find, lr)
+            if lightning_hasattr(model, self.auto_lr_find):
+                lightning_setattr(model, self.auto_lr_find, lr)
             else:
                 raise MisconfigurationException(
                     f'`auto_lr_find` was set to {self.auto_lr_find}, however'
-                    ' could not find this as a field in `model.hparams`.')
+                    ' could not find this as a field in `model` or `model.hparams`.')
         else:
-            if hasattr(model, 'lr'):
-                model.lr = lr
-            elif hasattr(model, 'learning_rate'):
-                model.learning_rate = lr
+            if lightning_hasattr(model, 'lr'):
+                lightning_setattr(model, 'lr', lr)
+            elif lightning_hasattr(model, 'learning_rate'):
+                lightning_setattr(model, 'learning_rate', lr)
             else:
                 raise MisconfigurationException(
-                    'When auto_lr_find is set to True, expects that hparams'
-                    ' either has field `lr` or `learning_rate` that can overridden')
+                    'When auto_lr_find is set to True, expects that `model` or'
+                    ' `model.hparams` either has field `lr` or `learning_rate`'
+                    ' that can overridden')
         log.info(f'Learning rate set to {lr}')
 
     def lr_find(
@@ -492,22 +494,3 @@ class _ExponentialLR(_LRScheduler):
     @property
     def lr(self):
         return self._lr
-
-
-def _nested_hasattr(obj, path):
-    parts = path.split(".")
-    for part in parts:
-        if hasattr(obj, part):
-            obj = getattr(obj, part)
-        else:
-            return False
-    else:
-        return True
-
-
-def _nested_setattr(obj, path, val):
-    parts = path.split(".")
-    for part in parts[:-1]:
-        if hasattr(obj, part):
-            obj = getattr(obj, part)
-    setattr(obj, parts[-1], val)

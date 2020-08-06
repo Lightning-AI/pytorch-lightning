@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
@@ -291,7 +291,7 @@ def test_full_loop_ddp_spawn(tmpdir):
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
-    reset_seed()
+    seed_everything(1234)
 
     dm = TrialMNISTDataModule(tmpdir)
 
