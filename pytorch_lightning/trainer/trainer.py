@@ -958,7 +958,7 @@ class Trainer(
         self.config_validator.verify_loop_configurations(model)
 
         # callbacks
-        self.on_fit_start()
+        self.on_fit_start(model)
         if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
 
