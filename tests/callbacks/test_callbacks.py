@@ -41,11 +41,11 @@ def test_trainer_callback_system(tmpdir):
             self.on_test_start_called = False
             self.on_test_end_called = False
 
-        def setup(self, trainer, stage: str):
+        def setup(self, trainer, pl_module, stage: str):
             assert isinstance(trainer, Trainer)
             self.setup_called = True
 
-        def teardown(self, trainer, step: str):
+        def teardown(self, trainer, pl_module, step: str):
             assert isinstance(trainer, Trainer)
             self.teardown_called = True
 
@@ -57,11 +57,11 @@ def test_trainer_callback_system(tmpdir):
             assert isinstance(trainer, Trainer)
             self.on_init_end_called = True
 
-        def on_fit_start(self, trainer):
+        def on_fit_start(self, trainer, pl_module):
             assert isinstance(trainer, Trainer)
             self.on_fit_start_called = True
 
-        def on_fit_end(self, trainer):
+        def on_fit_end(self, trainer, pl_module):
             assert isinstance(trainer, Trainer)
             self.on_fit_end_called = True
 
