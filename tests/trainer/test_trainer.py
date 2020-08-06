@@ -998,5 +998,7 @@ def test_trainer_ddp_spawn_none_checkpoint(tmpdir):
         checkpoint_callback=None,
         distributed_backend="ddp_spawn"
     )
+    assert trainer.checkpoint_callback=None
     result = trainer.fit(model)
+    assert trainer.checkpoint_callback=None
     assert result == 1
