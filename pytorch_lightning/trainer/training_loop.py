@@ -462,9 +462,7 @@ class TrainerTrainLoopMixin(ABC):
         train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
         try:
             self.train_dataloader_len = len(train_dataloader)
-        except TypeError:
-            self.train_dataloader_len = 0
-        except NotImplementedError:
+        except (NotImplementedError, TypeError):
             self.train_dataloader_len = 0
 
         # bookkeeping
