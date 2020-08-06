@@ -39,6 +39,34 @@ Every optimizer you use can be paired with any `LearningRateScheduler <https://p
       ]
       return optimizers, schedulers
 
+    # CosineAnnealingWarmRestarts scheduler stepped each iteration with the fraction of passed data as epoch value to the step function
+    def configure_optimizers(self):
+      optimizers = [Adam(...)]
+      schedulers = [
+         {
+            'scheduler': CosineAnnealingWarmRestarts(optimizers[0], ...),
+            'monitor': 'iter_frac', # Default: val_loss
+            'interval': 'step'
+         }
+      ]
+      return optimizers, schedulers
+
+    # Iter frac implements a lambda function to compute current training idx in the following way
+    curr_epoch + curr_batch/ (1.0 * dataset_len)
+
+    # CosineAnnealingWarmRestarts scheduler stepped each epoch with the current epoch idx as epoch value to the step function
+    def configure_optimizers(self):
+      optimizers = [Adam(...)]
+      schedulers = [
+         {
+            'scheduler': CosineAnnealingWarmRestarts(optimizers[0], ...),
+            'monitor': 'epoch', # Default: val_loss
+            'interval': 'epoch'
+         }
+      ]
+      return optimizers, schedulers
+
+
 ----------
 
 Use multiple optimizers (like GANs)

@@ -61,6 +61,26 @@ class ConfigureOptimizersPool(ABC):
         lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
         return [optimizer], [lr_scheduler]
 
+    def configure_optimizers__cosine_annealing_warm_restarts(self):
+        eta_min = self.learning_rate/100.0
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
+        lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
+                                                                      T_0=1, T_mult=2,
+                                                                      eta_min=eta_min)
+        return [optimizer], [{'scheduler': lr_scheduler,
+                              'interval': 'step',
+                              'monitor': 'iter_frac'}]
+
+    def configure_optimizers__cosine_annealing_warm_restarts(self):
+        eta_min = self.learning_rate / 100.0
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
+        lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
+                                                                      T_0=1, T_mult=2,
+                                                                      eta_min=eta_min)
+        return [optimizer], [{'scheduler': lr_scheduler,
+                              'interval': 'epoch',
+                              'monitor': 'epoch'}]
+
     def configure_optimizers__param_groups(self):
         param_groups = [
             {'params': list(self.parameters())[:2], 'lr': self.learning_rate * 0.1},
