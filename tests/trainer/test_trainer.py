@@ -989,6 +989,7 @@ def test_trainer_setup_call(tmpdir):
     assert trainer.stage == 'test'
     assert trainer.get_model().stage == 'test'
 
+
 def test_trainer_ddp_spawn_none_checkpoint(tmpdir):
     model = EvalModelTemplate()
     trainer = Trainer(
