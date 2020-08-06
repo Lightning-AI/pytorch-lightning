@@ -45,9 +45,8 @@ jobs:
           # pip install virtualenv
           # virtualenv vEnv --system-site-packages
           # source vEnv/bin/activate
-          # pip install -r requirements.txt
           # this is just a hotfix because of Win cannot install it directly
-          pip install --find-links https://download.pytorch.org/whl/torch_stable.html torch
+          pip install -r requirements.txt --find-links https://download.pytorch.org/whl/torch_stable.html
           pip install dist/*
           cd .. & python -c "import pytorch_lightning as pl ; print(pl.__version__)"
           # deactivate
