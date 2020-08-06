@@ -988,3 +988,14 @@ def test_trainer_setup_call(tmpdir):
     trainer.test(ckpt_path=None)
     assert trainer.stage == 'test'
     assert trainer.get_model().stage == 'test'
+
+def test_trainer_ddp_spawn_none_checkpoint(tmpdir):
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=None,
+        distributed_backend="ddp_spawn"
+    )
+    result = trainer.fit(model)
+    assert result == 1
