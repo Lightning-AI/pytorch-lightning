@@ -748,13 +748,11 @@ def test_gradient_clipping(tmpdir):
     trainer.fit(model)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_gpu_choice(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
     )
-    # Only run if CUDA is available
-    if not torch.cuda.is_available():
-        return
 
     num_gpus = torch.cuda.device_count()
     Trainer(**trainer_options, gpus=num_gpus, auto_select_gpus=True)
@@ -763,19 +761,28 @@ def test_gpu_choice(tmpdir):
         Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_gpu_choice_workload(tmpdir):
-    """ Test if the training is not allowed by `pick_single_gpu_realist_workload` by using an overly large batch-size """
-    model = EvalModelTemplate()
-    model.train_dataloader.batch_size = 50000 # the size of MNIST trainset
+    """ Test if the training is not allowed by `pick_single_gpu_realist_workload` by using an overly large batch-size
+    TODO: not adapted for new gen GPUs with very large VRAM
+    """
+    class CurrentModel(EvalModelTemplate):
+        def train_dataloader(self):
+            # Aim to overload the VRAM with the whole MNIST
+            from tests.base.dataloaders import MNIST
+            return torch.utils.data.DataLoader(MNIST(root=self.data_root, train=True, download=True), batch_size=60000)
+
+    model = CurrentModel()
     trainer = Trainer(
         max_steps=1,
         max_epochs=1,
         default_root_dir=tmpdir,
+        gpus=1,
+        auto_select_gpus=True,
     )
-
     with pytest.raises(RuntimeError, match=r'.*None of the GPUs could accept the given workload.*'):
         trainer.fit(model)
-        
+
 
 @pytest.mark.parametrize(['tpu_cores', 'expected_tpu_id', 'error_expected'], [
     pytest.param(1, None, False),

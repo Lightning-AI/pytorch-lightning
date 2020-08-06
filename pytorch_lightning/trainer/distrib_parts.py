@@ -472,31 +472,32 @@ def pick_single_gpu(exclude_gpus: list):
     raise RuntimeError("No GPUs available.")
 
 
-def pick_single_gpu_realist_workload(exclude_gpus: list, model:LightningModule):
+def pick_single_gpu_realist_workload(exclude_gpus: list, model:LightningModule) -> int:
+    batch = next(iter(model.train_dataloader))
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:
             continue
         # Try to allocate on device:
         device = torch.device(f"cuda:{i}")
-        batch=next(iter(model.train_dataloader))
         try:
             with torch.set_grad_enabled(True):
-                model_device = model.to(device) 
+                model_device = model.to(device)
                 batch_device = batch.to(device)
-                model_device.train() # record grads 
+                model_device.train()  # record grads
                 model_device(batch_device)
         except RuntimeError as exception:
-            if is_oom_error(exception): # clean after the failed attempt
+            if is_oom_error(exception):  # clean after the failed attempt
                 garbage_collection_cuda()
-            else: raise
+            else:
+                raise
             continue
         return i
-    raise RuntimeError("No GPUs available.")
+    return -1
 
 
 def pick_multiple_gpus(nb:int, model:Optional[LightningModule] = None) -> list:
-    r""" Pick available GPUs 
-    
+    r""" Pick available GPUs
+
     Args:
         nb: the max number of GPU to pick
         model: (optional) a LightningModule with model and train_loader attached
@@ -508,10 +509,17 @@ def pick_multiple_gpus(nb:int, model:Optional[LightningModule] = None) -> list:
     """
     picked = []
     for _ in range(nb):
-        if not model: picked.append(pick_single_gpu(exclude_gpus=picked))
-        else : 
+        if not model:
+            picked.append(pick_single_gpu(exclude_gpus=picked))
+        else:
             assert hasattr(model, 'train_dataloader')
-            picked.append(pick_single_gpu_realist_workload(exclude_gpus=picked, model=model))
+            pick = pick_single_gpu_realist_workload(exclude_gpus=picked, model=model)
+            if pick != -1:
+                picked.append(pick)
+            else:
+                print(f'There were less than {nb} GPUs capable for this workload')
+                break
 
-    if len(picked) < 1: raise RuntimeError("None of the GPUs could accept the given workload.")
+    if len(picked) < 1:
+        raise RuntimeError("None of the GPUs could accept the given workload.")
     return picked
