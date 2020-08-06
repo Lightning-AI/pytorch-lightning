@@ -150,6 +150,12 @@ def stat_scores_multiple_classes(
         num_classes: number of classes if known
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
+        reduction: method for reducing result values (default: none)
+            Available reduction methods:
+
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Return:
         True Positive, False Positive, True Negative, False Negative, Support
