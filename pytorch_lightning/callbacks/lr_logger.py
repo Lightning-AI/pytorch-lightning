@@ -38,9 +38,10 @@ class LearningRateLogger(Callback):
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
     """
-    def __init__(self):
+    def __init__(self, global_step=True):
         self.lrs = None
         self.lr_sch_names = []
+        self._global_step = global_step
 
     def on_train_start(self, trainer, pl_module):
         """ Called before training, determines unique names for all lr
@@ -67,13 +68,15 @@ class LearningRateLogger(Callback):
     def on_train_batch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'step')
         if trainer.logger and latest_stat:
-            trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
+            step = trainer.global_step if self._global_step == True else trainer.current_epoch
+            trainer.logger.log_metrics(latest_stat, step=step)
 
     def on_epoch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'epoch')
         if trainer.logger and latest_stat:
-            trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
-
+            step = trainer.global_step if self._global_step == True else trainer.current_epoch
+            trainer.logger.log_metrics(latest_stat, step=step)
+            
     def _extract_lr(self, trainer, interval):
         """ Extracts learning rates for lr schedulers and saves information
             into dict structure. """
