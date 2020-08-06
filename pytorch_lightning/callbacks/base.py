@@ -46,6 +46,14 @@ class Callback(abc.ABC):
         """Called when the validation sanity check ends."""
         pass
 
+    def on_train_batch_start(self, trainer, pl_module):
+        """Called when the validation batch begins."""
+        pass
+
+    def on_train_batch_end(self, trainer, pl_module):
+        """Called when the validation batch ends."""
+        pass
+
     def on_train_epoch_start(self, trainer, pl_module):
         """Called when the train epoch begins."""
         pass

@@ -77,7 +77,7 @@ class ModelHooks(Module):
         """
         # do something at the end of training
 
-    def on_batch_start(self, batch: Any) -> None:
+    def on_train_batch_start(self, batch: Any) -> None:
         """
         Called in the training loop before anything happens for that batch.
 
@@ -88,9 +88,30 @@ class ModelHooks(Module):
         """
         # do something when the batch starts
 
+    def on_train_batch_end(self) -> None:
+        """
+        Called in the training loop after the batch.
+        """
+        # do something when the batch end
+
+    def on_batch_start(self, batch: Any) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+
+        If you return -1 here, you will skip training for the rest of the current epoch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+
+        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_start` instead)
+        """
+        # do something when the batch starts
+
     def on_batch_end(self) -> None:
         """
         Called in the training loop after the batch.
+
+        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_end` instead)
         """
         # do something when the batch ends
 
