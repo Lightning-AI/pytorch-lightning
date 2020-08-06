@@ -16,11 +16,9 @@ from pytorch_lightning.utilities.cloud_io import gfile, cloud_open
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 try:
-    from omegaconf import Container
+    from omegaconf import OmegaConf
 except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
+    OmegaConf = None
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -330,11 +328,11 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not gfile.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
-    if Container is not None and (OmegaConf.is_config(hparams) or
-                                  OmegaConf.is_config(v) for v in hparams.values() ):
-        from omegaconf import OmegaConf
-
-        OmegaConf.save(hparams, config_yaml, resolve=True)
+    if OmegaConf is not None:
+        if OmegaConf.is_config(hparams):
+            OmegaConf.save(hparams, config_yaml, resolve=True)
+        elif (OmegaConf.is_config(v) for v in hparams.values()):
+            OmegaConf.save(OmegaConf.create(hparams), config_yaml, resolve=True)
         return
 
     # saving the standard way
