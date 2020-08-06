@@ -186,13 +186,12 @@ bash .run_local_tests.sh
 
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
-**CircleCI:** For convenience, you can also use your own CircleCI building which will be triggered with each commit.
+**GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
-To do so, login to [CircleCI](https://app.circleci.com/) and enable your forked project in the dashboard. It will just work after that.
 
 **Docker:** Another option is utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 ```bash
-python -m coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --flake8
+python -m pytest pytorch_lightning tests pl_examples -v --flake8
 ```
 
 ### Pull Request
