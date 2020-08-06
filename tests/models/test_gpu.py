@@ -1,3 +1,6 @@
+import subprocess
+import sys
+from pathlib import Path
 from collections import namedtuple
 
 import pytest
@@ -11,6 +14,9 @@ from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_ro
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
+
+from tests.models.data.ddp import train_default_model
+
 PRETEND_N_OF_GPUS = 16
 
 
@@ -90,6 +96,23 @@ def test_multi_gpu_model_dp(tmpdir):
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
+
+
+@pytest.mark.parametrize('cli_args', [
+    '--max_epochs 1 --gpus 2 --distributed_backend ddp',
+])
+@pytest.mark.parametrize('variation', train_default_model.get_variations())
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
+    file = Path(train_default_model.__file__).absolute()
+    cli_args = cli_args.split(' ') if cli_args else []
+    cli_args += ['--default_root_dir', str(tmpdir)]
+    cli_args += ['--variation', variation]
+    command = [sys.executable, file] + cli_args
+
+    p = subprocess.Popen(command, stderr=subprocess.PIPE)
+    std, err = p.communicate()
+    assert std and not err
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
