@@ -472,7 +472,7 @@ def pick_single_gpu(exclude_gpus: list):
     raise RuntimeError("No GPUs available.")
 
 
-def pick_single_gpu_realist_workload(exclude_gpus: list, model:LightningModule) -> int:
+def pick_single_gpu_realist_workload(exclude_gpus: list, model: LightningModule) -> int:
     batch = next(iter(model.train_dataloader))
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:
@@ -495,7 +495,7 @@ def pick_single_gpu_realist_workload(exclude_gpus: list, model:LightningModule) 
     return -1
 
 
-def pick_multiple_gpus(nb:int, model:Optional[LightningModule] = None) -> list:
+def pick_multiple_gpus(nb: int, model: Optional[LightningModule] = None) -> list:
     r""" Pick available GPUs
 
     Args:
