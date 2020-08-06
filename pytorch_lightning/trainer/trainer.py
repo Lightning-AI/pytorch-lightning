@@ -1055,13 +1055,12 @@ class Trainer(
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
-        # callbacks
+        # on fit end callback
         self.on_fit_end()
-
-        # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
 
+        # teardown callback
         self.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')

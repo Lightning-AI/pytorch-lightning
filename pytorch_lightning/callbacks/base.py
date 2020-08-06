@@ -14,11 +14,11 @@ class Callback(abc.ABC):
     Abstract base class used to build new callbacks.
     """
 
-    def setup(self, trainer, stage: str):
+    def setup(self, trainer, pl_module, stage: str):
         """Called when fit or test begins"""
         pass
 
-    def teardown(self, trainer, stage: str):
+    def teardown(self, trainer, pl_module, stage: str):
         """Called when fit or test ends"""
         pass
 
@@ -30,11 +30,11 @@ class Callback(abc.ABC):
         """Called when the trainer initialization ends, model has not yet been set."""
         pass
 
-    def on_fit_start(self, trainer):
+    def on_fit_start(self, trainer, pl_module):
         """Called when fit begins"""
         pass
 
-    def on_fit_end(self, trainer):
+    def on_fit_end(self, trainer, pl_module):
         """Called when fit ends"""
         pass
 

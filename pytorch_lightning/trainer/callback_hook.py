@@ -14,12 +14,12 @@ class TrainerCallbackHookMixin(ABC):
     def setup(self, stage: str):
         """Called in the beginning of fit and test"""
         for callback in self.callbacks:
-            callback.setup(self, stage)
+            callback.setup(self, self.get_model(), stage)
 
     def teardown(self, stage: str):
         """Called at the end of fit and test"""
         for callback in self.callbacks:
-            callback.teardown(self, stage)
+            callback.teardown(self, self.get_model(), stage)
 
     def on_init_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""
@@ -34,12 +34,12 @@ class TrainerCallbackHookMixin(ABC):
     def on_fit_start(self):
         """Called when the trainer initialization begins, model has not yet been set."""
         for callback in self.callbacks:
-            callback.on_fit_start(self)
+            callback.on_fit_start(self, self.get_model())
 
     def on_fit_end(self):
         """Called when the trainer initialization begins, model has not yet been set."""
         for callback in self.callbacks:
-            callback.on_fit_end(self)
+            callback.on_fit_end(self, self.get_model())
 
     def on_sanity_check_start(self):
         """Called when the validation sanity check starts."""
