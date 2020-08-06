@@ -170,7 +170,7 @@ _Artifacts_ tab in CircleCI when you click on the task named _ci/circleci: Build
 
 ### Testing
 
-Testing your work locally will help you speed up the process since it allows you to focus on particular (failing) test-cases.
+**Local:** Testing your work locally will help you speed up the process since it allows you to focus on particular (failing) test-cases.
 To setup a local development environment, install both local and test dependencies:
 
 ```bash
@@ -186,9 +186,14 @@ bash .run_local_tests.sh
 
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
-For convenience, you can also use your own CircleCI building which will be triggered with each commit.
+**CircleCI:** For convenience, you can also use your own CircleCI building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
 To do so, login to [CircleCI](https://app.circleci.com/) and enable your forked project in the dashboard. It will just work after that.
+
+**Docker:** Another option is utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
+```bash
+python -m coverage run --source pytorch_lightning -m py.test pytorch_lightning tests pl_examples -v --flake8
+```
 
 ### Pull Request
 
