@@ -317,6 +317,12 @@ Comet
 .. autoclass:: pytorch_lightning.loggers.comet.CometLogger
     :noindex:
 
+CSVLogger
+^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
+    :noindex:
+
 MLFlow
 ^^^^^^
 
@@ -341,8 +347,8 @@ Test-tube
 .. autoclass:: pytorch_lightning.loggers.test_tube.TestTubeLogger
     :noindex:
 
-CSVLogger
-^^^^^^^^^
+Weights and Biases
+^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: pytorch_lightning.loggers.csv_logs.CSVLogger
+.. autoclass:: pytorch_lightning.loggers.wandb.WandbLogger
     :noindex:
