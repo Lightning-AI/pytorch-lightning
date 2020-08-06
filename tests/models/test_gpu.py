@@ -100,10 +100,10 @@ def test_multi_gpu_model_dp(tmpdir):
 
 variations = train_default_model.get_variations()
 
+@pytest.mark.parametrize('variation', variations)
 @pytest.mark.parametrize('cli_args', [
     '--max_epochs 1 --gpus 2 --distributed_backend ddp',
 ])
-@pytest.mark.parametrize('variation', variations)
 #@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     assert True
