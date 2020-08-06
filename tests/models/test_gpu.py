@@ -98,7 +98,7 @@ def test_multi_gpu_model_dp(tmpdir):
     memory.get_memory_profile('min_max')
 
 
-@pytest.mark.parametrize(['cli_args'], [
+@pytest.mark.parametrize('cli_args', [
     pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),
 ])
 @pytest.mark.parametrize('variation', train_default_model.get_variations())
