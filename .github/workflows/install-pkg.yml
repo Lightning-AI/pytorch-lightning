@@ -40,13 +40,17 @@ jobs:
           twine check dist/*
           python setup.py clean
 
+      - name: Setup Windows
+        if: runner.os == 'windows'
+        run: |
+          # this is just a hotfix because of Win cannot install it directly
+          pip install -r requirements.txt --find-links https://download.pytorch.org/whl/torch_stable.html
+
       - name: Install package
         run: |
           # pip install virtualenv
           # virtualenv vEnv --system-site-packages
           # source vEnv/bin/activate
-          # this is just a hotfix because of Win cannot install it directly
-          pip install -r requirements.txt --find-links https://download.pytorch.org/whl/torch_stable.html
           pip install dist/*
           cd .. & python -c "import pytorch_lightning as pl ; print(pl.__version__)"
           # deactivate
