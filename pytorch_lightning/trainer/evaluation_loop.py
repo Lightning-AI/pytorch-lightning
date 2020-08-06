@@ -312,9 +312,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # callbacks
                 if test_mode:
-                    self.on_test_batch_start()
+                    self.on_test_batch_start(batch, batch_idx, dataloader_idx)
                 else:
-                    self.on_validation_batch_start()
+                    self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
 
                 # -----------------
                 # RUN EVALUATION STEP

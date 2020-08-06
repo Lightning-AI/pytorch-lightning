@@ -46,11 +46,11 @@ class Callback(abc.ABC):
         """Called when the validation sanity check ends."""
         pass
 
-    def on_train_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the validation batch begins."""
         pass
 
-    def on_train_batch_end(self, trainer, pl_module):
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the validation batch ends."""
         pass
 
@@ -90,19 +90,19 @@ class Callback(abc.ABC):
         """Called when the training batch begins."""
         pass
 
-    def on_validation_batch_start(self, trainer, pl_module):
+    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the validation batch begins."""
         pass
 
-    def on_validation_batch_end(self, trainer, pl_module):
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the validation batch ends."""
         pass
 
-    def on_test_batch_start(self, trainer, pl_module):
+    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the test batch begins."""
         pass
 
-    def on_test_batch_end(self, trainer, pl_module):
+    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the test batch ends."""
         pass
 

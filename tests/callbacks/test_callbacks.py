@@ -89,27 +89,27 @@ def test_trainer_callback_system(tmpdir):
             _check_args(trainer, pl_module)
             self.on_batch_end_called = True
 
-        def on_train_batch_start(self, trainer, pl_module):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             _check_args(trainer, pl_module)
             self.on_train_batch_start_called = True
 
-        def on_train_batch_end(self, trainer, pl_module):
+        def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             _check_args(trainer, pl_module)
             self.on_train_batch_end_called = True
 
-        def on_validation_batch_start(self, trainer, pl_module):
+        def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             _check_args(trainer, pl_module)
             self.on_validation_batch_start_called = True
 
-        def on_validation_batch_end(self, trainer, pl_module):
+        def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             _check_args(trainer, pl_module)
             self.on_validation_batch_end_called = True
 
-        def on_test_batch_start(self, trainer, pl_module):
+        def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             _check_args(trainer, pl_module)
             self.on_test_batch_start_called = True
 
-        def on_test_batch_end(self, trainer, pl_module):
+        def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             _check_args(trainer, pl_module)
             self.on_test_batch_end_called = True
 

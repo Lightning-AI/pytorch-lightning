@@ -703,11 +703,12 @@ class TrainerTrainLoopMixin(ABC):
                     return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
         with self.profiler.profile('on_train_batch_start'):
-            # callbacks
-            self.on_train_batch_start()
+            # forward support for multiple loaders
+            dataloader_idx = 0
+            self.on_train_batch_start(batch, batch_idx, dataloader_idx)
             # hooks
             if self.is_function_implemented('on_train_batch_start'):
-                response = self.get_model().on_train_batch_start(batch)
+                response = self.get_model().on_train_batch_start(batch, batch_idx, dataloader_idx)
                 if response == -1:
                     return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
@@ -798,11 +799,12 @@ class TrainerTrainLoopMixin(ABC):
                 self.get_model().on_batch_end()
 
         with self.profiler.profile('on_train_batch_end'):
-            # callbacks
-            self.on_train_batch_end()
+            # forward support for multiple loaders
+            dataloader_idx = 0
+            self.on_train_batch_end(batch, batch_idx, dataloader_idx)
             # model hooks
             if self.is_function_implemented('on_train_batch_end'):
-                self.get_model().on_train_batch_end()
+                self.get_model().on_train_batch_end(batch, batch_idx, dataloader_idx)
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
