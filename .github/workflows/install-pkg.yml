@@ -44,7 +44,7 @@ jobs:
         if: runner.os == 'windows'
         run: |
           # this is just a hotfix because of Win cannot install it directly
-          pip install -r requirements.txt --find-links https://download.pytorch.org/whl/torch_stable.html
+          pip install -r requirements/base.txt --find-links https://download.pytorch.org/whl/torch_stable.html
 
       - name: Install package
         run: |
