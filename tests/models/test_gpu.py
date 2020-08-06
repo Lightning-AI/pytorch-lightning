@@ -112,6 +112,11 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args):
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         std, err = p.communicate()
         assert std and not err
+        if p.returncode:
+            print(std)
+            print(err)
+            print(command)
+            raise RuntimeError('error')
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
