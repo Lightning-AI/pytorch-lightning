@@ -29,7 +29,7 @@ def variation_test_fit_test(trainer, model):
 
 
 def get_variations():
-    variations = [v for v in locals().keys() if v.startswith("variation")]
+    variations = [v for v in globals() if v.startswith("variation")]
     return variations
 
 
@@ -46,7 +46,7 @@ def main():
     trainer = Trainer.from_argparse_args(args)
 
     # run the chosen variation
-    run_variation = locals()[args.variation]
+    run_variation = globals()[args.variation]
     run_variation(trainer, model)
 
 
