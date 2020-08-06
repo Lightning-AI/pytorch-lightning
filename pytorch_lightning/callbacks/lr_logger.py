@@ -16,12 +16,16 @@ from pytorch_lightning.utilities import rank_zero_warn
 class LearningRateLogger(Callback):
     r"""
     Automatically logs learning rate for learning rate schedulers during training.
-
+    
+    Args:
+        global_step_flag (bool): record `global_step` value if `global_step_flag` 
+            is True else record `current_epoch` value. Default: ``True``
+        
     Example::
 
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import LearningRateLogger
-        >>> lr_logger = LearningRateLogger()
+        >>> lr_logger = LearningRateLogger(global_step_flag=True)
         >>> trainer = Trainer(callbacks=[lr_logger])
 
     Logging names are automatically determined based on optimizer class name.
@@ -38,10 +42,10 @@ class LearningRateLogger(Callback):
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
     """
-    def __init__(self, global_step=True):
+    def __init__(self, global_step_flag: bool = True):
         self.lrs = None
         self.lr_sch_names = []
-        self._global_step = global_step
+        self._global_step_flag = global_step_flag
 
     def on_train_start(self, trainer, pl_module):
         """ Called before training, determines unique names for all lr
@@ -68,14 +72,14 @@ class LearningRateLogger(Callback):
     def on_train_batch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'step')
         if trainer.logger and latest_stat:
-            step = trainer.global_step if self._global_step == True else trainer.current_epoch
-            trainer.logger.log_metrics(latest_stat, step=step)
+            _step = trainer.global_step if self._global_step_flag else trainer.current_epoch
+            trainer.logger.log_metrics(latest_stat, step=_step)
 
     def on_epoch_start(self, trainer, pl_module):
         latest_stat = self._extract_lr(trainer, 'epoch')
         if trainer.logger and latest_stat:
-            step = trainer.global_step if self._global_step == True else trainer.current_epoch
-            trainer.logger.log_metrics(latest_stat, step=step)
+            _step = trainer.global_step if self._global_step_flag else trainer.current_epoch
+            trainer.logger.log_metrics(latest_stat, step=_step)
             
     def _extract_lr(self, trainer, interval):
         """ Extracts learning rates for lr schedulers and saves information
