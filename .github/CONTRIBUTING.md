@@ -42,13 +42,13 @@ Treat code changes the way you treat a startup: validate that it's a needed feat
 
 #### Backward-compatible API
 
-We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backwards compatible with good deprecation warnings.
+We all hate updating our deep learning packages because we don't want to refactor a bunch of stuff. In Lightning, we make sure every change we make which could break an API is backward compatible with good deprecation warnings.
 
 **You shouldn't be afraid to upgrade Lightning :)**
 
 #### Gain User Trust
 
-As a researcher you can't have any part of your code going wrong. So, make thorough tests to ensure that every implementation of a new trick or subtle change is correct.
+As a researcher, you can't have any part of your code going wrong. So, make thorough tests to ensure that every implementation of a new trick or subtle change is correct.
 
 #### Interoperability
 
@@ -70,7 +70,7 @@ A lot of good work has already been done in project mechanics (requirements/base
 - Add details on how to reproduce the issue - a minimal test case is always best, colab is also great.
  Note, that the sample code shall be minimal and if needed with publicly available data.
 2. Try to fix it or recommend a solution...
- We highly recommend to use test driven approach:
+ We highly recommend to use test-driven approach:
    * Convert your minimal code example to a unit/integration test with assert on expected results.
    * Start by debugging the issue... You can run just this particular test in your IDE and draft a fix.
    * Verify that your test case fails on the master branch and only passes with the fix applied.
@@ -104,7 +104,7 @@ Most of the tests in PyTorch Lightning train a trial MNIST model under various t
 ### Original code
 
 All added or edited code shall be the own original work of the particular contributor.
-If you use some third-party implementation, all such blocks/functions/modules shall be properly referred and if possible also agreed by code's author. For example - `This code is inpired from http://...`.
+If you use some third-party implementation, all such blocks/functions/modules shall be properly referred and if possible also agreed by code's author. For example - `This code is inspired from http://...`.
 In case you adding new dependencies, make sure that they are compatible with the actual PyTorch Lightning license (ie. dependencies should be _at least_ as permissive as the PyTorch Lightning license).
 
 ### Coding Style
@@ -115,7 +115,7 @@ In case you adding new dependencies, make sure that they are compatible with the
 ### Documentation
 
 We are using Sphinx with Napoleon extension.
-Moreover we set Google style to follow with type convention.
+Moreover, we set Google style to follow with type convention.
 
 - [Napoleon formatting with Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
 - [ReStructured Text (reST)](https://docs.pylonsproject.org/projects/docs-style-guide/)
@@ -225,7 +225,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 3. **How to rebase my PR?**
 
-   We recommend creating a PR in separate branch other than `master`, especially if you plan submitting several changes and do not want to wait until the fist one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
+   We recommend creating a PR in separate branch other than `master`, especially if you plan submitting several changes and do not want to wait until the first one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
 
    ```bash
    git fetch --all --prune
@@ -238,6 +238,6 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    ```bash
    git checkout my-PR-branch
    git rebase master
-   # follow git instructions to resolve conflists
+   # follow git instructions to resolve conflicts
    git push -f
    ```
