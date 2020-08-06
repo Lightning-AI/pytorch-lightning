@@ -361,7 +361,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     )
 
     # this shall fail
-    with pytest.raises(RuntimeError, match='Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
+    with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
         EvalModelTemplate.load_from_checkpoint(
             checkpoint_path=ckpt_path,
             hparams_file=hparams_path,
