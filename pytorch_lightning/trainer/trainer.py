@@ -956,7 +956,7 @@ class Trainer(
         self.config_validator.verify_loop_configurations(model)
 
         # callbacks
-        self.on_fit_start()
+        self.on_fit_start(model)
         if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
 
@@ -1053,13 +1053,12 @@ class Trainer(
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
-        # callbacks
+        # on fit end callback
         self.on_fit_end()
-
-        # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
 
+        # teardown callback
         self.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
@@ -1154,6 +1153,11 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
+        # on pretrain routine start
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_start'):
+            ref_model.on_pretrain_routine_start()
+
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ModelSummary.MODES:
@@ -1195,6 +1199,11 @@ class Trainer(
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
 
         # CORE TRAINING LOOP
         self.train()

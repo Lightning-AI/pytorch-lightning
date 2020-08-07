@@ -368,7 +368,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         def increment_epoch(self):
             self.num_epochs_seen += 1
 
-        def increment_batch(self, _):
+        def increment_batch(self, batch, batch_idx, dataloader_idx):
             self.num_batches_seen += 1
 
         def increment_on_load_checkpoint(self, _):
@@ -691,7 +691,7 @@ def test_trainer_interrupted_flag(tmpdir):
         def __init__(self):
             super().__init__()
 
-        def on_train_batch_start(self, trainer, pl_module):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             raise KeyboardInterrupt
 
     class HandleInterruptCallback(Callback):
@@ -988,17 +988,3 @@ def test_trainer_setup_call(tmpdir):
     trainer.test(ckpt_path=None)
     assert trainer.stage == 'test'
     assert trainer.get_model().stage == 'test'
-
-
-def test_trainer_ddp_spawn_none_checkpoint(tmpdir):
-    model = EvalModelTemplate()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        checkpoint_callback=None,
-        distributed_backend="ddp_spawn"
-    )
-    assert trainer.checkpoint_callback is None
-    result = trainer.fit(model)
-    assert trainer.checkpoint_callback is None
-    assert result == 1
