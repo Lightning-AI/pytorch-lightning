@@ -864,6 +864,18 @@ Enable synchronization between batchnorm layers across all GPUs.
 
     trainer = Trainer(sync_batchnorm=True)
 
+amp_type
+^^^^^^^^
+
+Define of preferable mixed precion - NVIDIA Apex ("apex") or PyTorch build-in ("native") supported from v1.6.
+
+.. testcode::
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_type='apex')
+    # using PyTorch build-in
+    trainer = Trainer(amp_type='native')
+
 val_percent_check
 ^^^^^^^^^^^^^^^^^
 
