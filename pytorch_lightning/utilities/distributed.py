@@ -1,7 +1,8 @@
-from functools import wraps
-import warnings
-from pytorch_lightning import _logger as log
 import os
+import warnings
+from functools import wraps
+
+from pytorch_lightning import _logger as log
 
 
 def rank_zero_only(fn):

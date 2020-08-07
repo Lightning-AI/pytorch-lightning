@@ -1,7 +1,7 @@
-import torch
-
 from pathlib import Path
 from urllib.parse import urlparse
+
+import torch
 
 
 def load(path_or_url: str, map_location=None):

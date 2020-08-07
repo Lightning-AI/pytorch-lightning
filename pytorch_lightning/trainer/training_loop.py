@@ -157,29 +157,28 @@ in your model.
     trainer = Trainer(terminate_on_nan=True)
 
 """
-import os
 import subprocess
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import Callable
 from typing import Union, List
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 import torch.distributed as torch_distrib
-from copy import copy
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.core.step_result import EvalResult, TrainResult, Result
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 try:
     from apex import amp
