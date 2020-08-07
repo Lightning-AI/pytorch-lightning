@@ -21,6 +21,7 @@
 -->
 </div>
 
+
 ---
 ## Trending contributors
 
@@ -87,6 +88,11 @@ In Lightning, you organize your code into 3 distinct categories:
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
 Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
+
+---
+### [Tune in for our PyTorch Lightning 101 class with William Falcon and Alfredo Canziani! New episodes every week!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+[![IMAGE ALT TEXT HERE](docs/source/_images/general/PTL_Part2_Thumbnail.png)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+---
 
 ## Refactoring your PyTorch code + benefits + full walk-through
 [![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
