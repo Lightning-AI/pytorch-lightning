@@ -27,13 +27,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional, Generator, Union
 
-from torch.nn import Module
-
-import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-from pytorch_lightning import _logger as log
 from torch import optim
+from torch.nn import Module
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
@@ -41,6 +38,9 @@ from torchvision import models
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
+
+import pytorch_lightning as pl
+from pytorch_lightning import _logger as log
 
 BN_TYPES = (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)
 DATA_URL = 'https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip'

@@ -2,11 +2,11 @@ import ast
 import csv
 import inspect
 import os
+from argparse import Namespace
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
 import torch
 import yaml
-from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict

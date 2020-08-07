@@ -1,13 +1,14 @@
 import itertools
 import threading
-from itertools import chain
 from collections import Mapping, Iterable
+from itertools import chain
 
 import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel._functions import Gather
+
 from pytorch_lightning.core.step_result import Result
 
 

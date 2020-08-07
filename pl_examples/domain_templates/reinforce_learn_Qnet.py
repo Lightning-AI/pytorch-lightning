@@ -16,12 +16,9 @@ see the metrics:
 tensorboard --logdir default
 """
 
-import pytorch_lightning as pl
-
-from typing import Tuple, List
-
 import argparse
 from collections import OrderedDict, deque, namedtuple
+from typing import Tuple, List
 
 import gym
 import numpy as np
@@ -31,6 +28,8 @@ import torch.optim as optim
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
+
+import pytorch_lightning as pl
 
 
 class DQN(nn.Module):
