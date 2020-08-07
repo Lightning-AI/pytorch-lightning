@@ -199,7 +199,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        use_amp: str = 'native',
+        amp_type: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -365,7 +365,7 @@ class Trainer(
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
-        self.__setup_amp_type(use_amp)
+        self.__setup_amp_type(amp_type)
 
         # training bookeeping
         self.total_batch_idx = 0
