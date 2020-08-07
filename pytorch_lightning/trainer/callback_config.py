@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from abc import ABC, abstractmethod
 from typing import List, Optional
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
