@@ -22,7 +22,7 @@ class CPUBackend(object):
 
     def setup(self, model):
         # run through amp wrapper
-        if self.trainer.use_amp:
+        if self.trainer.amp_type:
             raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
         # call setup after the ddp process has connected

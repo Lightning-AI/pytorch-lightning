@@ -210,11 +210,6 @@ class TrainerDDPMixin(ABC):
     def num_gpus(self) -> int:
         """Warning: this is just empty shell for code implemented in other class."""
 
-    @property
-    @abstractmethod
-    def use_amp(self) -> bool:
-        """Warning: this is just empty shell for code implemented in other class."""
-
     @abstractmethod
     def copy_trainer_model_properties(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""

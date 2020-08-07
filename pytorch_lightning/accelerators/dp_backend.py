@@ -49,7 +49,7 @@ class DataParallelBackend(object):
         self.model_autocast_original_forward = model.forward
 
         # init half precision
-        if self.trainer.use_amp:
+        if self.trainer.amp_type:
             model = self.__init_half_precision(model)
 
         # init torch data parallel

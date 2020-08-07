@@ -155,7 +155,6 @@ class TrainerIOMixin(ABC):
     on_tpu: bool
     num_training_batches: int
     accumulate_grad_batches: int
-    use_amp: bool
     scaler: ...
     use_tpu: bool
     amp_type: AMPType
