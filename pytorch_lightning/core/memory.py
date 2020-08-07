@@ -9,9 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"

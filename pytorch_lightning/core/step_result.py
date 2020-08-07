@@ -1,8 +1,10 @@
 import numbers
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
-from torch import Tensor
-import torch
 from copy import copy
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
+
+import torch
+from torch import Tensor
+
 from pytorch_lightning.metrics.converters import _sync_ddp_if_available
 
 

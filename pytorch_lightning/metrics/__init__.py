@@ -1,13 +1,3 @@
-from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
-from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
-from pytorch_lightning.metrics.regression import (
-    MAE,
-    MSE,
-    PSNR,
-    RMSE,
-    RMSLE,
-    SSIM
-)
 from pytorch_lightning.metrics.classification import (
     Accuracy,
     AveragePrecision,
@@ -24,12 +14,22 @@ from pytorch_lightning.metrics.classification import (
     PrecisionRecall,
     IoU,
 )
+from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
+from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
+from pytorch_lightning.metrics.nlp import BLEUScore
+from pytorch_lightning.metrics.regression import (
+    MAE,
+    MSE,
+    PSNR,
+    RMSE,
+    RMSLE,
+    SSIM
+)
 from pytorch_lightning.metrics.sklearns import (
     AUC,
     PrecisionRecallCurve,
     SklearnMetric,
 )
-from pytorch_lightning.metrics.nlp import BLEUScore
 
 __classification_metrics = [
     "AUC",

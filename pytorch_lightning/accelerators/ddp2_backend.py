@@ -13,10 +13,12 @@
 # limitations under the License
 
 import os
+
 import torch
+
+from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:

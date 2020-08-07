@@ -1,8 +1,8 @@
 """
 Trainer Learning Rate Finder
 """
-import os
 import importlib
+import os
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence, Tuple, List, Union
 

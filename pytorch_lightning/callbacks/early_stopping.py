@@ -7,7 +7,6 @@ Monitor a validation metric and stop training when it stops improving.
 """
 from copy import deepcopy
 
-import os
 import numpy as np
 import torch
 import torch.distributed as dist
