@@ -132,7 +132,9 @@ else:
 try:
     from omegaconf import Container
 except ImportError:
-    Container = None
+    OMEGACONF_AVAILABLE = False
+else:
+    OMEGACONF_AVAILABLE = True
 
 
 class TrainerIOMixin(ABC):
@@ -390,7 +392,7 @@ class TrainerIOMixin(ABC):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # add arguments to the checkpoint
             checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-            if Container is not None:
+            if OMEGACONF_AVAILABLE:
                 if isinstance(model.hparams, Container):
                     checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
 

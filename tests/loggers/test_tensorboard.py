@@ -4,6 +4,7 @@ from argparse import Namespace
 import pytest
 import torch
 import yaml
+from omegaconf import OmegaConf
 from packaging import version
 
 from pytorch_lightning import Trainer
@@ -11,29 +12,28 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.skipif(version.parse(torch.__version__) < version.parse('1.5.0'),
-                    reason='Minimal PT version is set to 1.5')
+@pytest.mark.skipif(
+    version.parse(torch.__version__) < version.parse("1.5.0"),
+    reason="Minimal PT version is set to 1.5",
+)
 def test_tensorboard_hparams_reload(tmpdir):
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        max_epochs=1,
-        default_root_dir=tmpdir,
-    )
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     trainer.fit(model)
 
     folder_path = trainer.logger.log_dir
 
     # make sure yaml is there
-    with open(os.path.join(folder_path, 'hparams.yaml')) as file:
+    with open(os.path.join(folder_path, "hparams.yaml")) as file:
         # The FullLoader parameter handles the conversion from YAML
         # scalar values to Python the dictionary format
         yaml_params = yaml.safe_load(file)
-        assert yaml_params['b1'] == 0.5
+        assert yaml_params["b1"] == 0.5
         assert len(yaml_params.keys()) == 10
 
     # verify artifacts
-    assert len(os.listdir(os.path.join(folder_path, 'checkpoints'))) == 1
+    assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
     #
     # # verify tb logs
     # event_acc = EventAccumulator(folder_path)
@@ -88,13 +88,13 @@ def test_tensorboard_named_version(tmpdir):
     assert os.listdir(tmpdir / name / expected_version)
 
 
-@pytest.mark.parametrize("name", ['', None])
+@pytest.mark.parametrize("name", ["", None])
 def test_tensorboard_no_name(tmpdir, name):
     """Verify that None or empty name works"""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
     logger.log_hyperparams({"a": 1, "b": 2})  # Force data to be written
     assert logger.root_dir == tmpdir
-    assert os.listdir(tmpdir / 'version_0')
+    assert os.listdir(tmpdir / "version_0")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
@@ -104,7 +104,7 @@ def test_tensorboard_log_metrics(tmpdir, step_idx):
         "float": 0.3,
         "int": 1,
         "FloatTensor": torch.tensor(0.1),
-        "IntTensor": torch.tensor(1)
+        "IntTensor": torch.tensor(1),
     }
     logger.log_metrics(metrics, step_idx)
 
@@ -116,10 +116,10 @@ def test_tensorboard_log_hyperparams(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {'a': {'b': 'c'}},
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
-        "namespace": Namespace(foo=Namespace(bar='buzz')),
-        "layer": torch.nn.BatchNorm1d
+        "namespace": Namespace(foo=Namespace(bar="buzz")),
+        "layer": torch.nn.BatchNorm1d,
     }
     logger.log_hyperparams(hparams)
 
@@ -131,10 +131,28 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
         "int": 1,
         "string": "abc",
         "bool": True,
-        "dict": {'a': {'b': 'c'}},
+        "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
-        "namespace": Namespace(foo=Namespace(bar='buzz')),
-        "layer": torch.nn.BatchNorm1d
+        "namespace": Namespace(foo=Namespace(bar="buzz")),
+        "layer": torch.nn.BatchNorm1d,
     }
-    metrics = {'abc': torch.tensor([0.54])}
+    metrics = {"abc": torch.tensor([0.54])}
+    logger.log_hyperparams(hparams, metrics)
+
+
+def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
+    logger = TensorBoardLogger(tmpdir)
+    hparams = {
+        "float": 0.3,
+        "int": 1,
+        "string": "abc",
+        "bool": True,
+        "dict": {"a": {"b": "c"}},
+        "list": [1, 2, 3],
+        # "namespace": Namespace(foo=Namespace(bar="buzz")),
+        # "layer": torch.nn.BatchNorm1d,
+    }
+    hparams = OmegaConf.create(hparams)
+
+    metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)
