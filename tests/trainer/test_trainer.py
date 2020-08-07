@@ -192,14 +192,11 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize(
-    ['schedule'],
-    [
+@pytest.mark.parametrize('schedule', [
         pytest.param({1: 20, 3: 40}),
         pytest.param(30),
-        pytest.param(40)
-    ]
-)
+        pytest.param(40),
+])
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule):
     """
     Verify optimizer.step() applied to last batch while grad accumulation
