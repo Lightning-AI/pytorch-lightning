@@ -192,6 +192,55 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     trainer.fit(model)
 
 
+@pytest.mark.parametrize(
+    ['schedule'],
+    [
+        pytest.param({1: 20, 3: 40}),
+        pytest.param(30),
+        pytest.param(40)
+    ]
+)
+def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule):
+    """
+    Verify optimizer.step() applied to last batch while grad accumulation
+    """
+
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        accumulate_grad_batches=schedule,
+        max_epochs=4,
+        default_root_dir=tmpdir,
+    )
+
+    loss_backward = [0] * len(list(model.parameters()))
+    opt_step = [torch.tensor([0.])] * len(list(model.parameters()))
+
+    def on_after_backward_():
+        for i, param in enumerate(model.parameters()):
+            loss_backward[i] = param.clone().data
+
+    def on_before_zero_grad_(optimizer):
+        for i, param in enumerate(model.parameters()):
+            opt_step[i] = param.clone().data
+
+    def on_train_batch_end_():
+        # to check optimizer.step() called or not
+        for i, (loss_param, opt_param) in enumerate(zip(loss_backward, opt_step)):
+            if trainer.current_epoch == 0:  # for accumulate_grad_batches={0: 1}
+                assert torch.equal(loss_param, opt_param) is False
+            if len(trainer.train_dataloader) == trainer.batch_idx + 1:
+                # model.parameters() got updated
+                assert torch.equal(loss_param, opt_param) is False
+
+    # for the test
+    model.on_after_backward = on_after_backward_
+    model.on_before_zero_grad = on_before_zero_grad_
+    model.on_train_batch_end = on_train_batch_end_
+
+    trainer.fit(model)
+
+
 def test_loading_meta_tags(tmpdir):
     """ test for backward compatibility to meta_tags.csv """
     tutils.reset_seed()
