@@ -20,7 +20,7 @@ try:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
-    _COMET_AVAILABLE = True
+    from comet_ml.config import get_config, get_api_key
 except ImportError:  # pragma: no-cover
     CometExperiment = None
     CometExistingExperiment = None
@@ -29,6 +29,8 @@ except ImportError:  # pragma: no-cover
     API = None
     generate_guid = None
     _COMET_AVAILABLE = False
+else:
+    _COMET_AVAILABLE = True
 
 import torch
 from torch import is_tensor
@@ -81,8 +83,11 @@ class CometLogger(LightningLoggerBase):
         >>> trainer = Trainer(logger=comet_logger)
 
     Args:
-        api_key: Required in online mode. API key, found on Comet.ml
-        save_dir: Required in offline mode. The path for the directory to save local comet logs
+        api_key: Required in online mode. API key, found on Comet.ml. If not given, this
+            will be loaded from the environment variable COMET_API_KEY or ~/.comet.config
+            if either exists.
+        save_dir: Required in offline mode. The path for the directory to save local
+            comet logs. If given, this also sets the directory for saving checkpoints.
         workspace: Optional. Name of workspace for this user
         project_name: Optional. Send your experiment to a specific project.
             Otherwise will be sent to Uncategorized Experiments.
@@ -91,6 +96,10 @@ class CometLogger(LightningLoggerBase):
             This is used to determine version number
         experiment_name: Optional. String representing the name for this particular experiment on Comet.ml.
         experiment_key: Optional. If set, restores from existing experiment.
+        offline: If api_key and save_dir are both given, this determines whether
+            the experiment will be in online or offline mode. This is useful if you use
+            save_dir to control the checkpoints directory and have a ~/.comet.config
+            file but still want to run offline experiments.
     """
 
     def __init__(
@@ -102,6 +111,7 @@ class CometLogger(LightningLoggerBase):
         rest_api_key: Optional[str] = None,
         experiment_name: Optional[str] = None,
         experiment_key: Optional[str] = None,
+        offline: bool = False,
         **kwargs,
     ):
 
@@ -112,10 +122,15 @@ class CometLogger(LightningLoggerBase):
             )
         super().__init__()
         self._experiment = None
-        self._save_dir = save_dir
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
-        if api_key is not None:
+        api_key = api_key or get_api_key(None, get_config())
+
+        if api_key is not None and save_dir is not None:
+            self.mode = "offline" if offline else "online"
+            self.api_key = api_key
+            self._save_dir = save_dir
+        elif api_key is not None:
             self.mode = "online"
             self.api_key = api_key
         elif save_dir is not None:

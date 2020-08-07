@@ -1,9 +1,10 @@
 import os
 
+import numpy as np
 import onnxruntime
 import pytest
 import torch
-import numpy as np
+
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
@@ -84,7 +85,7 @@ def test_error_if_no_input(tmpdir):
     model = EvalModelTemplate()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onxx")
-    with pytest.raises(ValueError, match=r'input_sample and example_input_array tensors are both missing'):
+    with pytest.raises(ValueError, match=r'`input_sample` and `example_input_array` tensors are both missing'):
         model.to_onnx(file_path)
 
 

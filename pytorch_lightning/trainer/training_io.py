@@ -116,6 +116,13 @@ else:
     XLA_AVAILABLE = True
 
 try:
+    from apex import amp
+except ImportError:
+    APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
+
+try:
     import horovod.torch as hvd
 except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
@@ -317,6 +324,8 @@ class TrainerIOMixin(ABC):
         # restore amp scaling
         if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        elif self.use_amp and not NATIVE_AMP_AVALAIBLE and 'amp_scaling_state' in checkpoint:
+            amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
@@ -368,6 +377,8 @@ class TrainerIOMixin(ABC):
             # save native amp scaling
             if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
+            elif self.use_amp and not NATIVE_AMP_AVALAIBLE:
+                checkpoint['amp_scaling_state'] = amp.state_dict()
 
         # add the module_arguments and state_dict from the model
         model = self.get_model()
@@ -523,6 +534,8 @@ class TrainerIOMixin(ABC):
         # restore amp scaling
         if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        elif self.use_amp and not NATIVE_AMP_AVALAIBLE and 'amp_scaling_state' in checkpoint:
+            amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         if self.root_gpu is not None:
             model.cuda(self.root_gpu)
