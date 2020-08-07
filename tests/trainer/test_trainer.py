@@ -224,7 +224,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule):
         for i, param in enumerate(model.parameters()):
             opt_step[i] = param.clone().data
 
-    def on_train_batch_end_():
+    def on_train_batch_end_(batch, batch_idx, dataloader_idx):
         # to check optimizer.step() called or not
         for i, (loss_param, opt_param) in enumerate(zip(loss_backward, opt_step)):
             if trainer.current_epoch == 0:  # for accumulate_grad_batches={0: 1}
