@@ -151,9 +151,7 @@ from pytorch_lightning.core.lightning import LightningModule
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import horovod.torch as hvd

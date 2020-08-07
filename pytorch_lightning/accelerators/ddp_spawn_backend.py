@@ -23,9 +23,7 @@ from pytorch_lightning import _logger as log
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 
 class DDPSpawnBackend(object):

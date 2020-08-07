@@ -18,9 +18,7 @@ from pytorch_lightning.trainer.auto_mix_precision import AMPType
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 
 class GPUBackend(object):

@@ -184,9 +184,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl

@@ -40,9 +40,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla.core.xla_model as xm

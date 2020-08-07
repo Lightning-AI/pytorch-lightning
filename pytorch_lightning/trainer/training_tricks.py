@@ -31,9 +31,7 @@ from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5

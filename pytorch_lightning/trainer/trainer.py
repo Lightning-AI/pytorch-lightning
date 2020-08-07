@@ -61,9 +61,7 @@ warnings.filterwarnings(
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla
