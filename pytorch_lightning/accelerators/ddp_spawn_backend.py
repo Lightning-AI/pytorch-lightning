@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import os
 import torch
 import torch.multiprocessing as mp
-from pytorch_lightning.utilities.distributed import rank_zero_only
+
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 try:
     from apex import amp

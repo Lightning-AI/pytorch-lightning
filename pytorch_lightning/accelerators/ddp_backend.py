@@ -13,16 +13,18 @@
 # limitations under the License
 
 import os
-import torch
 import subprocess
 import sys
-from time import sleep
-import numpy as np
 from os.path import abspath
+from time import sleep
+from typing import Optional
+
+import numpy as np
+import torch
+
+from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning import _logger as log
-from typing import Optional
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd

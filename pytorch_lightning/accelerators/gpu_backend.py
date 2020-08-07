@@ -15,6 +15,7 @@
 import torch
 
 from pytorch_lightning.core import LightningModule
+
 try:
     from apex import amp
 except ImportError:
