@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-def test_single_gpu_test(tmpdir):
+def test_set_max_step(tmpdir):
     """
     Test that trainer auto-sets the max steps automatically
     """
