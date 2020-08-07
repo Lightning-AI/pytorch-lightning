@@ -101,6 +101,16 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_train_end(self, self.get_model())
 
+    def on_pretrain_routine_start(self):
+        """Called when the train begins."""
+        for callback in self.callbacks:
+            callback.on_pretrain_routine_start(self, self.get_model())
+
+    def on_pretrain_routine_end(self):
+        """Called when the train ends."""
+        for callback in self.callbacks:
+            callback.on_pretrain_routine_end(self, self.get_model())
+
     def on_batch_start(self):
         """Called when the training batch begins."""
         for callback in self.callbacks:

@@ -118,6 +118,14 @@ class Callback(abc.ABC):
         """Called when the train ends."""
         pass
 
+    def on_pretrain_routine_start(self, trainer, pl_module):
+        """Called when the pretrain routine begins."""
+        pass
+
+    def on_pretrain_routine_end(self, trainer, pl_module):
+        """Called when the pretrain routine ends."""
+        pass
+
     def on_validation_start(self, trainer, pl_module):
         """Called when the validation loop begins."""
         pass

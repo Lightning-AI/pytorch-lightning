@@ -1155,6 +1155,11 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
+        # on pretrain routine start
+        self.on_pretrain_routine_start()
+        if self.is_function_implemented('on_pretrain_routine_start'):
+            model.on_pretrain_routine_start()
+
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ModelSummary.MODES:
@@ -1196,6 +1201,11 @@ class Trainer(
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end()
+        if self.is_function_implemented('on_pretrain_routine_end'):
+            model.on_pretrain_routine_end()
 
         # CORE TRAINING LOOP
         self.train()

@@ -77,6 +77,30 @@ class ModelHooks(Module):
         """
         # do something at the end of training
 
+    def on_pretrain_routine_start(self) -> None:
+        """
+        Called at the beginning of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the start of the pretrain routine
+
+    def on_pretrain_routine_end(self) -> None:
+        """
+        Called at the end of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the end of the pretrain routine
+
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
