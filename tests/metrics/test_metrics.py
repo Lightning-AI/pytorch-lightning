@@ -144,7 +144,7 @@ def test_metric(metric: Metric):
         assert metric(input1, input2).dtype == torch.float16
 
 
-#@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("metric", [
     DummyTensorMetric(),
     DummyNumpyMetric(),
@@ -157,14 +157,13 @@ def test_pickable(tmpdir, metric: Metric):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=10,
-        gpus=[0]#, 1],
-        #distributed_backend='ddp_spawn',
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
     )
 
     class ModelwithMetrics(EvalModelTemplate):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            #self.metric = metric
 
     model = ModelwithMetrics()
     tpipes.run_model_test(trainer_options, model)
