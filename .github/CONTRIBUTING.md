@@ -65,34 +65,37 @@ A lot of good work has already been done in project mechanics (requirements/base
 ### Bug Fixes:
 
 1. If you find a bug please submit a github issue.
+
 - Make sure the title explains the issue.
 - Describe your setup, what you are trying to do, expected vs. actual behaviour. Please add configs and code samples.
 - Add details on how to reproduce the issue - a minimal test case is always best, colab is also great.
- Note, that the sample code shall be minimal and if needed with publicly available data.
+  Note, that the sample code shall be minimal and if needed with publicly available data.
+
 2. Try to fix it or recommend a solution...
- We highly recommend to use test-driven approach:
-   * Convert your minimal code example to a unit/integration test with assert on expected results.
-   * Start by debugging the issue... You can run just this particular test in your IDE and draft a fix.
-   * Verify that your test case fails on the master branch and only passes with the fix applied.
+   We highly recommend to use test-driven approach:
+   - Convert your minimal code example to a unit/integration test with assert on expected results.
+   - Start by debugging the issue... You can run just this particular test in your IDE and draft a fix.
+   - Verify that your test case fails on the master branch and only passes with the fix applied.
 3. Submit a PR!
 
 _**Note**, even if you do not find the solution, sending a PR with a test covering the issue is a valid contribution and we can help you or finish it with you :]_
-
 
 ### New Features:
 
 1. Submit a github issue - describe what is the motivation of such feature (adding the use case or an example is helpful).
 2. Let's discuss to determine the feature scope.
 3. Submit a PR!
- We recommend test driven approach to adding new features as well:
-  * Write a test for the functionality you want to add.
-  * Write the functional code until the test passes.
+   We recommend test driven approach to adding new features as well:
+
+- Write a test for the functionality you want to add.
+- Write the functional code until the test passes.
+
 4. Add/update the relevant tests!
- * [This PR](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/PyTorchLightning/pytorch-lightning/pull/2535)
-  
+
+- [This PR](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/PyTorchLightning/pytorch-lightning/pull/2721)
 
 ### Test cases:
- 
+
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
 Most of the tests in PyTorch Lightning train a trial MNIST model under various trainer conditions (ddp, ddp2+amp, etc...). The tests expect the model to perform to a reasonable degree of testing accuracy to pass. Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-f6bl2l0l-JYMK3tbAgAmGRrlNr00f1A)
@@ -160,9 +163,10 @@ make html
 and open `docs/build/html/index.html` in your browser.
 
 Notes:
- - You need to have LaTeX installed for rendering math equations. You can for example install TeXLive by doing one of the following:
-    * on Ubuntu (Linux) run `apt-get install texlive` or otherwise follow the instructions on the TeXLive website
-    * use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
+
+- You need to have LaTeX installed for rendering math equations. You can for example install TeXLive by doing one of the following:
+  - on Ubuntu (Linux) run `apt-get install texlive` or otherwise follow the instructions on the TeXLive website
+  - use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
 - with PL used class meta you need to use python 3.7 or higher
 
 When you send a PR the continuous integration will run tests and build the docs. You can access a preview of the html pages in the
@@ -198,7 +202,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 1. Start your work locally (usually until you need our CI testing).
    - Create a branch and prepare your changes.
    - Tip: do not work with your master directly, it may become complicated when you need to rebase.
-   - Tip: give your PR a good name! it will be useful later when you may work on multiple tasks/PRs.
+   - Tip: give your PR a good name! It will be useful later when you may work on multiple tasks/PRs.
 2. Test your code!
    - It is always good practice to start coding by creating a test case, verifying it breaks with current behaviour, and passes with your new changes.
    - Make sure your new tests cover all different edge cases.
