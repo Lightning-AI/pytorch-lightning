@@ -368,7 +368,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         def increment_epoch(self):
             self.num_epochs_seen += 1
 
-        def increment_batch(self, _):
+        def increment_batch(self, batch, batch_idx, dataloader_idx):
             self.num_batches_seen += 1
 
         def increment_on_load_checkpoint(self, _):
