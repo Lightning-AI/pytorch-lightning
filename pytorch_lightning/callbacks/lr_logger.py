@@ -80,7 +80,8 @@ class LearningRateLogger(Callback):
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
         else:
-            pass
+            raise MisconfigurationException(
+                'logging_interval should be `step` or `epoch` or None.')
     
     def on_epoch_start(self, trainer, pl_module):
         if self.logging_interval is None:
@@ -92,7 +93,8 @@ class LearningRateLogger(Callback):
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
         else:
-            pass
+            raise MisconfigurationException(
+                'logging_interval should be `step` or `epoch` or None.')
             
     def _extract_lr(self, trainer, interval):
         """ Extracts learning rates for lr schedulers and saves information
