@@ -50,14 +50,15 @@ def test_lr_logger_no_lr(tmpdir):
         assert result
 
 
-def test_lr_logger_multi_lrs(tmpdir):
+@pytest.mark.parametrize("logging_interval", ['step', 'epoch'])
+def test_lr_logger_multi_lrs(tmpdir, logging_interval):
     """ Test that learning rates are extracted and logged for multi lr schedulers. """
     tutils.reset_seed()
 
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
-    lr_logger = LearningRateLogger()
+    lr_logger = LearningRateLogger(interval=logging_interval)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -73,8 +74,12 @@ def test_lr_logger_multi_lrs(tmpdir):
         'Number of learning rates logged does not match number of lr schedulers'
     assert all([k in ['lr-Adam', 'lr-Adam-1'] for k in lr_logger.lrs.keys()]), \
         'Names of learning rates not set correctly'
-    assert all(len(lr) == trainer.global_step for k, lr in lr_logger.lrs.items()), \
-        'Length of logged learning rates exceeds the number of epochs'
+    if logging_interval=='step':
+        expected_number_logged = trainer.global_step
+    else:
+        expected_number_logged = trainer.max_epochs
+    assert all(len(lr) == expected_number_logged for k, lr in lr_logger.lrs.items()), \
+        'Length of logged learning rates do not match the expected number'
 
 
 def test_lr_logger_param_groups(tmpdir):
