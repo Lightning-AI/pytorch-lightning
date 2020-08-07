@@ -26,6 +26,9 @@ def load_requirements(path_dir=PATH_ROOT, file_name='base.txt', comment_char='#'
         # filer all comments
         if comment_char in ln:
             ln = ln[:ln.index(comment_char)].strip()
+        # skip directly installed dependencies
+        if ln.startswith('http'):
+            continue
         if ln:  # if requirement is not empty
             reqs.append(ln)
     return reqs
