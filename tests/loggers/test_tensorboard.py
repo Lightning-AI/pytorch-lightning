@@ -4,18 +4,12 @@ from argparse import Namespace
 import pytest
 import torch
 import yaml
+from omegaconf import OmegaConf
 from packaging import version
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 from tests.base import EvalModelTemplate
-
-
-try:
-    from omegaconf import OmegaConf
-except ImportError:
-    OmegaConf = None
 
 
 @pytest.mark.skipif(
@@ -159,8 +153,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "layer": torch.nn.BatchNorm1d,
     }
 
-    if OmegaConf is not None:
-        hparams = OmegaConf.create(hparams)
+    hparams = OmegaConf.create(hparams)
 
     metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)

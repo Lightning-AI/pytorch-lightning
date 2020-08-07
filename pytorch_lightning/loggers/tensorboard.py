@@ -20,8 +20,9 @@ from pytorch_lightning.utilities import rank_zero_only
 try:
     from omegaconf import Container, OmegaConf
 except ImportError:
-    Container = None
-    OmegaConf = None
+    OMEGACONF_AVAILABLE = False
+else:
+    OMEGACONF_AVAILABLE = True
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -118,7 +119,7 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
 
         # store params to output
-        if Container is not None and isinstance(params, Container):
+        if OMEGACONF_AVAILABLE and isinstance(params, Container):
             self.hparams = OmegaConf.merge(self.hparams, params)
         else:
             self.hparams.update(params)
