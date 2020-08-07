@@ -176,7 +176,7 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.auto_mix_precision import AMPType
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -255,6 +255,7 @@ class TrainerTrainLoopMixin(ABC):
     tpu_id: int
     interactive_ddp_procs: ...
     amp_type: AMPType
+    on_tpu: bool
 
     # Callback system
     callbacks: List[Callback]
@@ -739,7 +740,8 @@ class TrainerTrainLoopMixin(ABC):
                     batch_idx,
                     opt_idx,
                     optimizer,
-                    self.hiddens
+                    self.hiddens,
+                    self.amp_type,
                 )
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
@@ -857,7 +859,8 @@ class TrainerTrainLoopMixin(ABC):
                 batch_idx,
                 opt_idx,
                 optimizer,
-                self.hiddens
+                self.hiddens,
+                self.amp_type,
             ).loss
 
             # apply TPU optimizer
@@ -892,7 +895,7 @@ class TrainerTrainLoopMixin(ABC):
             # clear gradients
             model.optimizer_zero_grad(self.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
+    def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens, amp_type: AMPType):
         """
         wrap the forward step in a closure so second order methods work
         """
@@ -957,8 +960,7 @@ class TrainerTrainLoopMixin(ABC):
                 closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
 
                 # enter amp context
-                # todo: need to pass Trainer AMP type
-                if not NATIVE_AMP_AVALAIBLE:
+                if amp_type == AMPType.APEX:
                     context = closure_loss
                     closure_loss = closure_loss.__enter__()
 
@@ -966,7 +968,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE and not self.on_tpu:
+            if self.precision == 16 and amp_type == AMPType.APEX and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:

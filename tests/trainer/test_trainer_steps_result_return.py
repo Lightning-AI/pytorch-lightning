@@ -81,7 +81,8 @@ def test_training_step_result_log_step_only(tmpdir):
     assert f'step_log_acc2_b{batch_idx}' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
+                                                   trainer.hiddens, trainer.amp_type)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
@@ -153,7 +154,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert f'epoch_log_acc2_e{trainer.current_epoch}' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
+                                                   trainer.hiddens, trainer.amp_type)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
@@ -286,7 +288,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert 'epoch_step_epoch_log_acc2' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
+                                                   trainer.hiddens, trainer.amp_type)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
@@ -363,7 +366,8 @@ def test_training_step_epoch_end_result(tmpdir):
     assert 'epoch_step_epoch_log_acc2' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
+                                                   trainer.hiddens, trainer.amp_type)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
