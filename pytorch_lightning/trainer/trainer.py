@@ -199,6 +199,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
+        use_amp: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -308,6 +309,7 @@ class Trainer(
                     Defaults to `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
+                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -362,6 +364,9 @@ class Trainer(
         # this way we only show it on rank 0
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
+
+        assert use_amp in ('native', 'apex'), f'Unsupported amp source {use_amp}'
+        self.use_amp_type = use_amp
 
         # training bookeeping
         self.total_batch_idx = 0
