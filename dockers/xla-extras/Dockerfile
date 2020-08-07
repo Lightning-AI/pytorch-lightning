@@ -1,11 +1,15 @@
 FROM google/cloud-sdk:slim
 
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
-ARG PYTHON_VERSION=3.7
+ARG PYTHON_VERSION=3.6
 
 SHELL ["/bin/bash", "-c"]
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
         python${PYTHON_VERSION} \
         python${PYTHON_VERSION}-dev \
         $( [ ${PYTHON_VERSION%%.*} -ge 3 ] && echo "python${PYTHON_VERSION%%.*}-distutils" ) \

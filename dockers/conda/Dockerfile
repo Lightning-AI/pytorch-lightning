@@ -6,7 +6,8 @@ ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.4
 ARG LIGHTNING_VERSION=master
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
          build-essential \
          cmake \
          git \
