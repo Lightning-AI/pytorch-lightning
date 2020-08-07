@@ -11,9 +11,9 @@ on:
 
 jobs:
   build-Conda:
-    fail-fast: false
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         python_version: [3.6, 3.7, 3.8]
         pytorch_version: [1.3, 1.4, 1.5, 1.6]
@@ -60,9 +60,9 @@ jobs:
         timeout-minutes: 40
 
   build-XLA:
-    fail-fast: false
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         python_version: [3.7]  # TODO: add 3.6, for now the Google docker image has missing 3.6
     steps:
@@ -86,9 +86,9 @@ jobs:
         timeout-minutes: 25
 
   build-cuda:
-    fail-fast: false
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         python_version: [3.7]
         pytorch_version: [1.3, 1.4, 1.5, 1.6.0]
