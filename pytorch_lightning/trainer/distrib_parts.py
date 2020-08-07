@@ -473,7 +473,7 @@ def pick_single_gpu(exclude_gpus: list):
 
 
 def pick_single_gpu_realist_workload(exclude_gpus: list, model: LightningModule) -> int:
-    batch = next(iter(model.train_dataloader))
+    batch = next(iter(model.train_dataloader()))
     for i in range(torch.cuda.device_count()):
         if i in exclude_gpus:
             continue
@@ -482,9 +482,9 @@ def pick_single_gpu_realist_workload(exclude_gpus: list, model: LightningModule)
         try:
             with torch.set_grad_enabled(True):
                 model_device = model.to(device)
-                batch_device = batch.to(device)
+                batch_device = tuple(itup.to(device) for itup in batch)
                 model_device.train()  # record grads
-                model_device(batch_device)
+                model_device.training_step(batch_device, 0)
         except RuntimeError as exception:
             if is_oom_error(exception):  # clean after the failed attempt
                 garbage_collection_cuda()
@@ -492,7 +492,7 @@ def pick_single_gpu_realist_workload(exclude_gpus: list, model: LightningModule)
                 raise
             continue
         return i
-    return -1
+    raise RuntimeError("None of the GPUs could accept the given workload.")
 
 
 def pick_multiple_gpus(nb: int, model: Optional[LightningModule] = None) -> list:
@@ -513,13 +513,5 @@ def pick_multiple_gpus(nb: int, model: Optional[LightningModule] = None) -> list
             picked.append(pick_single_gpu(exclude_gpus=picked))
         else:
             assert hasattr(model, 'train_dataloader')
-            pick = pick_single_gpu_realist_workload(exclude_gpus=picked, model=model)
-            if pick != -1:
-                picked.append(pick)
-            else:
-                print(f'There were less than {nb} GPUs capable for this workload')
-                break
-
-    if len(picked) < 1:
-        raise RuntimeError("None of the GPUs could accept the given workload.")
+            picked.append(pick_single_gpu_realist_workload(exclude_gpus=picked, model=model))
     return picked

@@ -769,7 +769,7 @@ def test_gpu_choice_workload(tmpdir):
     class CurrentModel(EvalModelTemplate):
         def train_dataloader(self):
             # Aim to overload the VRAM with the whole MNIST
-            from tests.base.dataloaders import MNIST
+            from tests.base.datasets import MNIST
             return torch.utils.data.DataLoader(MNIST(root=self.data_root, train=True, download=True), batch_size=60000)
 
     model = CurrentModel()
