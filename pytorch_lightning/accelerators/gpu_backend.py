@@ -41,7 +41,7 @@ class GPUBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        if self.amp_type == AMPType.APEX:
+        if self.trainer.amp_type == AMPType.APEX:
             model = self._setup_nvidia_apex(model)
         return model
 
