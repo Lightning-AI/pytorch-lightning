@@ -73,7 +73,7 @@ def test_lr_logger_multi_lrs(tmpdir):
         'Number of learning rates logged does not match number of lr schedulers'
     assert all([k in ['lr-Adam', 'lr-Adam-1'] for k in lr_logger.lrs.keys()]), \
         'Names of learning rates not set correctly'
-    assert all(len(lr) == trainer.max_epochs for k, lr in lr_logger.lrs.items()), \
+    assert all(len(lr) == trainer.global_step for k, lr in lr_logger.lrs.items()), \
         'Length of logged learning rates exceeds the number of epochs'
 
 
