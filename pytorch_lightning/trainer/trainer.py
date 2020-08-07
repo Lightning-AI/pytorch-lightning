@@ -1156,9 +1156,9 @@ class Trainer(
         self.register_slurm_signal_handlers()
 
         # on pretrain routine start
-        self.on_pretrain_routine_start()
+        self.on_pretrain_routine_start(ref_model)
         if self.is_function_implemented('on_pretrain_routine_start'):
-            model.on_pretrain_routine_start()
+            ref_model.on_pretrain_routine_start()
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
@@ -1203,9 +1203,9 @@ class Trainer(
                 torch.cuda.empty_cache()
 
         # on pretrain routine end
-        self.on_pretrain_routine_end()
+        self.on_pretrain_routine_end(ref_model)
         if self.is_function_implemented('on_pretrain_routine_end'):
-            model.on_pretrain_routine_end()
+            ref_model.on_pretrain_routine_end()
 
         # CORE TRAINING LOOP
         self.train()
