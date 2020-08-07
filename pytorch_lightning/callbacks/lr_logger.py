@@ -18,14 +18,13 @@ class LearningRateLogger(Callback):
     Automatically logs learning rate for learning rate schedulers during training.
     
     Args:
-        global_step_flag (bool): record `global_step` value if `global_step_flag` 
-            is True else record `current_epoch` value. Default: ``True``
+        interval (str): either `epoch` or `step`. Defaults to ``step``.
         
     Example::
 
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import LearningRateLogger
-        >>> lr_logger = LearningRateLogger(global_step_flag=True)
+        >>> lr_logger = LearningRateLogger(interval='step')
         >>> trainer = Trainer(callbacks=[lr_logger])
 
     Logging names are automatically determined based on optimizer class name.
@@ -42,10 +41,10 @@ class LearningRateLogger(Callback):
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
     """
-    def __init__(self, global_step_flag: bool = True):
+    def __init__(self, interval: str = 'step'):
         self.lrs = None
         self.lr_sch_names = []
-        self._global_step_flag = global_step_flag
+        self._interval = interval
 
     def on_train_start(self, trainer, pl_module):
         """ Called before training, determines unique names for all lr
@@ -63,39 +62,46 @@ class LearningRateLogger(Callback):
                 ' for `configure_optimizers` method.', RuntimeWarning
             )
 
+        if not self._interval in ['step', 'epoch']:
+            raise MisconfigurationException(
+                'interval (str): either `epoch` or `step`. Defaults to ``step``')
+
         # Find names for schedulers
         names = self._find_names(trainer.lr_schedulers)
 
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
 
-    def on_train_batch_start(self, trainer, pl_module):
-        latest_stat = self._extract_lr(trainer, 'step')
-        if trainer.logger and latest_stat:
-            _step = trainer.global_step if self._global_step_flag else trainer.current_epoch
-            trainer.logger.log_metrics(latest_stat, step=_step)
-
+    def on_batch_start(self, trainer, pl_module):
+        if self._interval == 'step':
+            latest_stat = self._extract_lr(trainer)
+            if trainer.logger and latest_stat:
+                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
+        else:
+            pass
+    
     def on_epoch_start(self, trainer, pl_module):
-        latest_stat = self._extract_lr(trainer, 'epoch')
-        if trainer.logger and latest_stat:
-            _step = trainer.global_step if self._global_step_flag else trainer.current_epoch
-            trainer.logger.log_metrics(latest_stat, step=_step)
+        if self._interval == 'epoch':
+            latest_stat = self._extract_lr(trainer)
+            if trainer.logger and latest_stat:
+                trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
+        else:
+            pass
             
-    def _extract_lr(self, trainer, interval):
+    def _extract_lr(self, trainer):
         """ Extracts learning rates for lr schedulers and saves information
             into dict structure. """
         latest_stat = {}
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
-            if scheduler['interval'] == interval:
-                param_groups = scheduler['scheduler'].optimizer.param_groups
-                if len(param_groups) != 1:
-                    for i, pg in enumerate(param_groups):
-                        lr, key = pg['lr'], f'{name}/pg{i + 1}'
-                        self.lrs[key].append(lr)
-                        latest_stat[key] = lr
-                else:
-                    self.lrs[name].append(param_groups[0]['lr'])
-                    latest_stat[name] = param_groups[0]['lr']
+            param_groups = scheduler['scheduler'].optimizer.param_groups
+            if len(param_groups) != 1:
+                for i, pg in enumerate(param_groups):
+                    lr, key = pg['lr'], f'{name}/pg{i + 1}'
+                    self.lrs[key].append(lr)
+                    latest_stat[key] = lr
+            else:
+                self.lrs[name].append(param_groups[0]['lr'])
+                latest_stat[name] = param_groups[0]['lr']
         return latest_stat
 
     def _find_names(self, lr_schedulers):
