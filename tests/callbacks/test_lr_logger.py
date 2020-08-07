@@ -58,7 +58,7 @@ def test_lr_logger_multi_lrs(tmpdir, logging_interval):
     model = EvalModelTemplate()
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
-    lr_logger = LearningRateLogger(interval=logging_interval)
+    lr_logger = LearningRateLogger(logging_interval=logging_interval)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -76,7 +76,7 @@ def test_lr_logger_multi_lrs(tmpdir, logging_interval):
         'Names of learning rates not set correctly'
     if logging_interval=='step':
         expected_number_logged = trainer.global_step
-    else:
+    if logging_interval == 'epoch':
         expected_number_logged = trainer.max_epochs
     assert all(len(lr) == expected_number_logged for k, lr in lr_logger.lrs.items()), \
         'Length of logged learning rates do not match the expected number'
