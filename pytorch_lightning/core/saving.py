@@ -17,7 +17,9 @@ ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 try:
     from omegaconf import Container
 except ImportError:
-    Container = None
+    OMEGACONF_AVAILABLE = False
+else:
+    OMEGACONF_AVAILABLE = True
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -327,7 +329,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not os.path.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
 
-    if Container is not None and isinstance(hparams, Container):
+    if OMEGACONF_AVAILABLE and isinstance(hparams, Container):
         from omegaconf import OmegaConf
         OmegaConf.save(hparams, config_yaml, resolve=True)
         return

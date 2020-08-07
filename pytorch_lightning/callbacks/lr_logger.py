@@ -72,6 +72,7 @@ class LearningRateLogger(Callback):
         # Initialize for storing values
         self.lrs = {name: [] for name in names}
 
+
     def on_batch_start(self, trainer, pl_module):
         if self._interval == 'step':
             latest_stat = self._extract_lr(trainer)
@@ -80,6 +81,7 @@ class LearningRateLogger(Callback):
         else:
             pass
     
+
     def on_epoch_start(self, trainer, pl_module):
         if self._interval == 'epoch':
             latest_stat = self._extract_lr(trainer)

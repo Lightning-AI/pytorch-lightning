@@ -534,7 +534,6 @@ class Trainer(
         # logging
         self.configure_logger(logger)
         self.log_save_interval = log_save_interval
-        self.val_check_interval = val_check_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -546,9 +545,6 @@ class Trainer(
                 DeprecationWarning,
             )
             overfit_batches = overfit_pct
-
-        # convert floats to ints
-        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -577,9 +573,11 @@ class Trainer(
             )
             limit_train_batches = train_percent_check
 
-        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
-        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
-        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
+        self.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
+        self.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
         self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
@@ -958,7 +956,7 @@ class Trainer(
         self.config_validator.verify_loop_configurations(model)
 
         # callbacks
-        self.on_fit_start()
+        self.on_fit_start(model)
         if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
 
@@ -1055,13 +1053,12 @@ class Trainer(
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
-        # callbacks
+        # on fit end callback
         self.on_fit_end()
-
-        # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
 
+        # teardown callback
         self.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
@@ -1156,6 +1153,11 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
+        # on pretrain routine start
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_start'):
+            ref_model.on_pretrain_routine_start()
+
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ModelSummary.MODES:
@@ -1197,6 +1199,11 @@ class Trainer(
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
 
         # CORE TRAINING LOOP
         self.train()
@@ -1430,12 +1437,12 @@ class _PatchDataLoader(object):
         return self.dataloader
 
 
-def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
     if 0 <= batches <= 1:
         return batches
     elif batches > 1 and batches % 1.0 == 0:
         return int(batches)
     else:
         raise MisconfigurationException(
-            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+            f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
         )
