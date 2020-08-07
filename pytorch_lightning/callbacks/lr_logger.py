@@ -62,7 +62,7 @@ class LearningRateLogger(Callback):
                 ' for `configure_optimizers` method.', RuntimeWarning
             )
 
-        if not self._interval in ['step', 'epoch']:
+        if self._interval not in ['step', 'epoch']:
             raise MisconfigurationException(
                 'interval (str): either `epoch` or `step`. Defaults to ``step``')
 
@@ -74,7 +74,7 @@ class LearningRateLogger(Callback):
 
     def on_batch_start(self, trainer, pl_module):
         if self._interval == 'step':
-            latest_stat = self._extract_lr(trainer)
+            latest_stat = self._extract_lr(trainer, self._interval)
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
         else:
@@ -82,26 +82,27 @@ class LearningRateLogger(Callback):
     
     def on_epoch_start(self, trainer, pl_module):
         if self._interval == 'epoch':
-            latest_stat = self._extract_lr(trainer)
+            latest_stat = self._extract_lr(trainer, self._interval)
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
         else:
             pass
             
-    def _extract_lr(self, trainer):
+    def _extract_lr(self, trainer, interval):
         """ Extracts learning rates for lr schedulers and saves information
             into dict structure. """
         latest_stat = {}
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):
-            param_groups = scheduler['scheduler'].optimizer.param_groups
-            if len(param_groups) != 1:
-                for i, pg in enumerate(param_groups):
-                    lr, key = pg['lr'], f'{name}/pg{i + 1}'
-                    self.lrs[key].append(lr)
-                    latest_stat[key] = lr
-            else:
-                self.lrs[name].append(param_groups[0]['lr'])
-                latest_stat[name] = param_groups[0]['lr']
+            if interval in ['step', 'epoch']:
+                param_groups = scheduler['scheduler'].optimizer.param_groups
+                if len(param_groups) != 1:
+                    for i, pg in enumerate(param_groups):
+                        lr, key = pg['lr'], f'{name}/pg{i + 1}'
+                        self.lrs[key].append(lr)
+                        latest_stat[key] = lr
+                else:
+                    self.lrs[name].append(param_groups[0]['lr'])
+                    latest_stat[name] = param_groups[0]['lr']
         return latest_stat
 
     def _find_names(self, lr_schedulers):
