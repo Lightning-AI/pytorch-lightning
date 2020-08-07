@@ -12,7 +12,7 @@ class TrainerAMPMixin(ABC):
 
     def _setup_amp_type(self, amp_type: str):
         self.amp_type = None
-        if self.precision == 16:
+        if self.precision != 16:
             # no AMP requested, so we can leave now
             return
         amp_type = amp_type.lower()
