@@ -18,7 +18,7 @@ class LearningRateLogger(Callback):
     Automatically logs learning rate for learning rate schedulers during training.
     
     Args:
-        log_interval (str): set to `epoch` or `step` to log `lr` of all optimizers
+        logging_interval (str): set to `epoch` or `step` to log `lr` of all optimizers
             at the same interval, set to `None` to log at individual interval
             accroding to the `interval` key of each scheduler. Defaults to ``None``.
         
@@ -26,7 +26,7 @@ class LearningRateLogger(Callback):
 
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import LearningRateLogger
-        >>> lr_logger = LearningRateLogger(log_interval='step')
+        >>> lr_logger = LearningRateLogger(logging_interval='step')
         >>> trainer = Trainer(callbacks=[lr_logger])
 
     Logging names are automatically determined based on optimizer class name.
@@ -43,10 +43,10 @@ class LearningRateLogger(Callback):
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
     """
-    def __init__(self, log_interval: Optional[str] = None):
+    def __init__(self, logging_interval: Optional[str] = None):
         self.lrs = None
         self.lr_sch_names = []
-        self.log_interval = log_interval
+        self.logging_interval = logging_interval
 
     def on_train_start(self, trainer, pl_module):
         """ Called before training, determines unique names for all lr
@@ -71,11 +71,11 @@ class LearningRateLogger(Callback):
         self.lrs = {name: [] for name in names}
 
     def on_batch_start(self, trainer, pl_module):
-        if self.log_interval is None:
+        if self.logging_interval is None:
             latest_stat = self._extract_lr(trainer, 'step')
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
-        elif self.log_interval == 'step':
+        elif self.logging_interval == 'step':
             latest_stat = self._extract_lr(trainer, 'any')
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
@@ -83,11 +83,11 @@ class LearningRateLogger(Callback):
             pass
     
     def on_epoch_start(self, trainer, pl_module):
-        if self.log_interval is None:
+        if self.logging_interval is None:
             latest_stat = self._extract_lr(trainer, 'epoch')
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
-        elif self.log_interval == 'epoch':
+        elif self.logging_interval == 'epoch':
             latest_stat = self._extract_lr(trainer, 'any')
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
