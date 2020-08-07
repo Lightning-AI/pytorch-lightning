@@ -5,8 +5,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.trainer.auto_mix_precision import AMPType
-from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities import move_data_to_device, AMPType
 
 try:
     from apex import amp

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.trainer.auto_mix_precision import AMPType
+from pytorch_lightning.utilities import AMPType
 
 try:
     from apex import amp

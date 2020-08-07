@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import torch
-
-from pytorch_lightning.trainer.auto_mix_precision import AMPType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from torch import optim
+
+from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp

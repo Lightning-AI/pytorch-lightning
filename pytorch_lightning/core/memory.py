@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-from pytorch_lightning.trainer.auto_mix_precision import AMPType
+from pytorch_lightning.utilities import AMPType
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"

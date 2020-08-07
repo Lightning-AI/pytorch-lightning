@@ -131,10 +131,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
 from pytorch_lightning.core.step_result import Result, EvalResult
-from pytorch_lightning.trainer.auto_mix_precision import AMPType
-from pytorch_lightning.utilities import rank_zero_warn, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
