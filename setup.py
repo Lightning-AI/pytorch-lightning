@@ -26,9 +26,6 @@ def load_requirements(path_dir=PATH_ROOT, file_name='base.txt', comment_char='#'
         # filer all comments
         if comment_char in ln:
             ln = ln[:ln.index(comment_char)].strip()
-        # Make slight syntax alteration to git dependency for PL's sphinx theme
-        if ln.startswith('git') and file_name == 'docs.txt':
-            ln = f'pt_lightning_sphinx_theme @ {ln}#egg=pt-lightning-sphinx-theme'
         if ln:  # if requirement is not empty
             reqs.append(ln)
     return reqs
