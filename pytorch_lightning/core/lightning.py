@@ -168,7 +168,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         """
 
-    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Tensor]]]]:
+    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Union[float, Tensor]]]]]:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -186,8 +186,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             When implementing :meth:`training_step`, return whatever you need in that step:
 
             - loss -> tensor scalar **REQUIRED**
-            - progress_bar -> Dict for progress bar display. Must have only tensors
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars
+            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc)
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -202,14 +202,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     out = self(x)
                     loss = self.loss(out, x)
 
-                    logger_logs = {'training_loss': loss} # optional (MUST ALL BE TENSORS)
+                    logger_logs = {'training_loss': loss} # optional
 
                     # if using TestTubeLogger or TensorBoardLogger you can nest scalars
-                    logger_logs = {'losses': logger_logs} # optional (MUST ALL BE TENSORS)
+                    logger_logs = {'losses': logger_logs} # optional
 
                     output = {
                         'loss': loss, # required
-                        'progress_bar': {'training_loss': loss}, # optional (MUST ALL BE TENSORS)
+                        'progress_bar': {'training_loss': loss}, # optional
                         'log': logger_logs
                     }
 
@@ -259,8 +259,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def training_epoch_end(
-        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
-    ) -> Dict[str, Dict[str, Tensor]]:
+        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Union[float, Tensor]]]]]
+    ) -> Dict[str, Dict[str, Union[float, Tensor]]]:
         """Called at the end of the training epoch with the outputs of all training steps.
 
         .. code-block:: python
@@ -334,7 +334,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def training_step_end(self, *args, **kwargs) -> Dict[str, Union[Tensor, Dict[str, Tensor]]]:
+    def training_step_end(self, *args, **kwargs) -> Dict[str, Union[Tensor, Dict[str, Union[float, Tensor]]]]:
         """
         Use this when training with dp or ddp2 because :meth:`training_step`
         will operate on only part of the batch. However, this is still optional
@@ -358,8 +358,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Dict with loss key and optional log or progress bar keys.
 
             - loss -> tensor scalar **REQUIRED**
-            - progress_bar -> Dict for progress bar display. Must have only tensors
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc)
+            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars
+            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc)
 
         Examples:
             .. code-block:: python
@@ -396,7 +396,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             See the :ref:`multi-gpu-training` guide for more details.
         """
 
-    def validation_step(self, *args, **kwargs) -> Dict[str, Tensor]:
+    def validation_step(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -486,7 +486,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, *args, **kwargs) -> Dict[str, Tensor]:
+    def validation_step_end(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
         """
         Use this when validating with dp or ddp2 because :meth:`validation_step`
         will operate on only part of the batch. However, this is still optional
@@ -553,8 +553,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def validation_epoch_end(
-        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
-    ) -> Dict[str, Dict[str, Tensor]]:
+        self, outputs: Union[List[Dict[str, Union[float, Tensor]]], List[List[Dict[str, Union[float, Tensor]]]]]
+    ) -> Dict[str, Dict[str, Union[float, Tensor]]]:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -575,8 +575,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Dict or OrderedDict.
             May have the following optional keys:
 
-            - progress_bar (dict for progress bar display; only tensors)
-            - log (dict of metrics to add to logger; only tensors).
+            - progress_bar (dict for progress bar display; either scalar tensors or Python scalars)
+            - log (dict of metrics to add to logger; either scalar tensors or Python scalars).
 
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
@@ -630,7 +630,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def test_step(self, *args, **kwargs) -> Dict[str, Tensor]:
+    def test_step(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -713,7 +713,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, *args, **kwargs) -> Dict[str, Tensor]:
+    def test_step_end(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
         """
         Use this when testing with dp or ddp2 because :meth:`test_step` will operate
         on only part of the batch. However, this is still optional
@@ -779,8 +779,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def test_epoch_end(
-        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Tensor]]]]
-    ) -> Dict[str, Dict[str, Tensor]]:
+        self, outputs: Union[List[Dict[str, Union[float, Tensor]]], List[List[Dict[str, Union[float, Tensor]]]]]
+    ) -> Dict[str, Dict[str, Union[float, Tensor]]]:
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -800,8 +800,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Return:
             Dict or OrderedDict: Dict has the following optional keys:
 
-            - progress_bar -> Dict for progress bar display. Must have only tensors.
-            - log -> Dict of metrics to add to logger. Must have only tensors (no images, etc).
+            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars.
+            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc).
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
