@@ -13,18 +13,17 @@
 # limitations under the License
 
 import os
+import torch
 import subprocess
 import sys
-from os.path import abspath
 from time import sleep
-from typing import Optional
-
 import numpy as np
-import torch
+from os.path import abspath
 
-from pytorch_lightning import _logger as log
-from pytorch_lightning.trainer.auto_mix_precision import AmpType
+from pytorch_lightning.trainer.auto_mix_precision import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning import _logger as log
+from typing import Optional
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -203,7 +202,7 @@ class DDPBackend(object):
         self.trainer.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
-        if self.trainer.amp_type == AmpType.APEX:
+        if self.trainer.amp_type == AMPType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

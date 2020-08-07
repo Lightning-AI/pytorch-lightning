@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import torch
-from torch import optim
 
-from pytorch_lightning.overrides.data_parallel import LightningDataParallel
-from pytorch_lightning.trainer.auto_mix_precision import AmpType
+from pytorch_lightning.trainer.auto_mix_precision import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from torch import optim
 
 try:
     from apex import amp
@@ -71,7 +71,7 @@ class DataParallelBackend(object):
         return model
 
     def __init_half_precision(self, model):
-        if self.trainer.amp_type == AmpType.NATIVE:
+        if self.trainer.amp_type == AMPType.NATIVE:
             self.__init_native_amp(model)
         else:
             model = self.__init_nvidia_apex(model)

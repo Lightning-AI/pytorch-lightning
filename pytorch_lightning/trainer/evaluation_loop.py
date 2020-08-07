@@ -131,9 +131,13 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import Result, EvalResult
+from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
+from pytorch_lightning.trainer.auto_mix_precision import AMPType
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE, flatten_dict
+from torch import distributed as dist
+from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -179,6 +183,7 @@ class TrainerEvaluationLoopMixin(ABC):
     tpu_id: int
     verbose_test: bool
     running_sanity_check: bool
+    amp_type: AMPType
 
     # Callback system
     on_validation_batch_start: Callable
@@ -316,7 +321,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+                if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:

@@ -174,6 +174,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.trainer.auto_mix_precision import AMPType
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -255,6 +256,7 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
+    amp_type: AMPType
 
     # Callback system
     callbacks: List[Callback]
@@ -835,7 +837,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+        if self.amp_type == AMPType.NATIVE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients(optimizer)
 
@@ -869,7 +871,7 @@ class TrainerTrainLoopMixin(ABC):
             elif isinstance(optimizer, torch.optim.LBFGS):
 
                 # native amp + lbfgs is a no go right now
-                if self.use_amp and NATIVE_AMP_AVALAIBLE:
+                if self.amp_type == AMPType.NATIVE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -878,12 +880,12 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
+                native_amp = self.amp_type == AMPType.NATIVE
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -900,7 +902,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)

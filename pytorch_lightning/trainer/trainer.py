@@ -31,7 +31,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin, AmpType
+from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -365,8 +365,6 @@ class Trainer(
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
-        self.__setup_amp_type(amp_type)
-
         # training bookeeping
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
@@ -591,7 +589,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp()
+        self.init_amp(amp_type)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -602,32 +600,6 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
-
-    def __setup_amp_type(self, use_amp):
-        self.amp_type = None
-        if self.precision == 16:
-            # no AMP requested, so we can leave now
-            return
-        use_amp = use_amp.lower()
-        assert use_amp in ('native', 'apex'), f'Unsupported amp source {use_amp}'
-        if use_amp == 'native':
-            if not NATIVE_AMP_AVALAIBLE:
-                rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
-                               ' Consider upgrading `pip install torch>=1.6`.'
-                               ' Lets try to use NVIDIA Apex for this session.')
-                use_amp = 'apex'
-            else:
-                self.amp_type = AmpType.NATIVE
-        if use_amp == 'apex':
-            if not APEX_AVAILABLE:
-                rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.')
-            else:
-                self.amp_type = AmpType.APEX
-        if not self.amp_type:
-            raise MisconfigurationException(
-                f'You have asked for AMP support {use_amp} there is no support on your side yet.'
-                f' Consider install Trorch>=1.6 or NVIDIA Apex.'
-            )
 
     @property
     def is_global_zero(self) -> bool:

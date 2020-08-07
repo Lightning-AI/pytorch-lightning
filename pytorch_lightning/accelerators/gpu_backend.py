@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.trainer.auto_mix_precision import AmpType
+from pytorch_lightning.trainer.auto_mix_precision import AMPType
 
 try:
     from apex import amp
@@ -24,7 +24,7 @@ else:
 
 
 class GPUBackend(object):
-    amp_type: AmpType
+    amp_type: AMPType
 
     def __init__(self, trainer):
         self.trainer = trainer
@@ -43,7 +43,7 @@ class GPUBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        if self.amp_type == AmpType.APEX:
+        if self.amp_type == AMPType.APEX:
             model = self._setup_nvidia_apex(model)
         return model
 
