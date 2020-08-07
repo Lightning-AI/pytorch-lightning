@@ -149,10 +149,9 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
         "bool": True,
         "dict": {"a": {"b": "c"}},
         "list": [1, 2, 3],
-        "namespace": Namespace(foo=Namespace(bar="buzz")),
-        "layer": torch.nn.BatchNorm1d,
+        # "namespace": Namespace(foo=Namespace(bar="buzz")),
+        # "layer": torch.nn.BatchNorm1d,
     }
-
     hparams = OmegaConf.create(hparams)
 
     metrics = {"abc": torch.tensor([0.54])}
