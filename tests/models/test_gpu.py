@@ -108,16 +108,17 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--default_root_dir', str(tmpdir)]
     command = [sys.executable, file, '--variation', variation] + cli_args
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    std, err = p.communicate(timeout=60)
-    std = std.decode('utf-8').strip()
-    err = err.decode('utf-8').strip()
+    exitcode = subprocess.call(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    raise SystemExit(exitcode)
+    # std, err = p.communicate(timeout=60)
+    # std = std.decode('utf-8').strip()
+    # err = err.decode('utf-8').strip()
     # assert std and not err
-    if p.returncode:
-        print(std)
-        print(err)
-        print(command)
-        pytest.fail(err)
+    # if p.returncode:
+    #     print(std)
+    #     print(err)
+    #     print(command)
+    #     pytest.fail(err)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
