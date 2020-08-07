@@ -184,6 +184,7 @@ class Trainer(
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
+        sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
         weights_save_path: Optional[str] = None,
@@ -295,6 +296,8 @@ class Trainer(
             row_log_interval: How often to add logging rows (does not write to disk)
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
+
+            sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
@@ -427,6 +430,9 @@ class Trainer(
         self.num_nodes = num_nodes
         self.log_gpu_memory = log_gpu_memory
 
+        # sync-bn backend
+        self.sync_batchnorm = sync_batchnorm
+
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
@@ -528,7 +534,6 @@ class Trainer(
         # logging
         self.configure_logger(logger)
         self.log_save_interval = log_save_interval
-        self.val_check_interval = val_check_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -540,9 +545,6 @@ class Trainer(
                 DeprecationWarning,
             )
             overfit_batches = overfit_pct
-
-        # convert floats to ints
-        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -571,9 +573,11 @@ class Trainer(
             )
             limit_train_batches = train_percent_check
 
-        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
-        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
-        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
+        self.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
+        self.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
         self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
@@ -1424,12 +1428,12 @@ class _PatchDataLoader(object):
         return self.dataloader
 
 
-def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
     if 0 <= batches <= 1:
         return batches
     elif batches > 1 and batches % 1.0 == 0:
         return int(batches)
     else:
         raise MisconfigurationException(
-            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+            f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
         )

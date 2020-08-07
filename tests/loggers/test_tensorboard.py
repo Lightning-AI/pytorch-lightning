@@ -5,7 +5,6 @@ import pytest
 import torch
 import yaml
 from packaging import version
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger

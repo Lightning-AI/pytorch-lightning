@@ -2,8 +2,8 @@ import pickle
 
 import cloudpickle
 import pytest
-
 import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate

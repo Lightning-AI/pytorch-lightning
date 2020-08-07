@@ -28,6 +28,8 @@ def test_trainer_callback_system(tmpdir):
             self.on_epoch_end_called = False
             self.on_batch_start_called = False
             self.on_batch_end_called = False
+            self.on_train_batch_start_called = False
+            self.on_train_batch_end_called = False
             self.on_validation_batch_start_called = False
             self.on_validation_batch_end_called = False
             self.on_test_batch_start_called = False
@@ -86,6 +88,14 @@ def test_trainer_callback_system(tmpdir):
         def on_batch_end(self, trainer, pl_module):
             _check_args(trainer, pl_module)
             self.on_batch_end_called = True
+
+        def on_train_batch_start(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_train_batch_start_called = True
+
+        def on_train_batch_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_train_batch_end_called = True
 
         def on_validation_batch_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
@@ -150,6 +160,8 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_batch_start_called
     assert not test_callback.on_batch_end_called
+    assert not test_callback.on_train_batch_start_called
+    assert not test_callback.on_train_batch_end_called
     assert not test_callback.on_validation_batch_start_called
     assert not test_callback.on_validation_batch_end_called
     assert not test_callback.on_test_batch_start_called
@@ -177,6 +189,8 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_epoch_start_called
     assert not test_callback.on_batch_start_called
     assert not test_callback.on_batch_end_called
+    assert not test_callback.on_train_batch_start_called
+    assert not test_callback.on_train_batch_end_called
     assert not test_callback.on_validation_batch_start_called
     assert not test_callback.on_validation_batch_end_called
     assert not test_callback.on_test_batch_start_called
@@ -202,6 +216,8 @@ def test_trainer_callback_system(tmpdir):
     assert test_callback.on_epoch_start_called
     assert test_callback.on_batch_start_called
     assert test_callback.on_batch_end_called
+    assert test_callback.on_train_batch_start_called
+    assert test_callback.on_train_batch_end_called
     assert test_callback.on_validation_batch_start_called
     assert test_callback.on_validation_batch_end_called
     assert test_callback.on_train_start_called

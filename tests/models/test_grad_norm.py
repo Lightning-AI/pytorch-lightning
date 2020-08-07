@@ -1,6 +1,7 @@
+import os
+
 import numpy as np
 import pytest
-import os
 
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate

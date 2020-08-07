@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added SyncBN for DDP ([#2801](https://github.com/PyTorchLightning/pytorch-lightning/pull/2801))
+
+- Added basic `CSVLogger` ([#2721](https://github.com/PyTorchLightning/pytorch-lightning/pull/2721))
+
 - Added SSIM metrics ([#2671](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671))
 
 - Added BLEU metrics ([#2535](https://github.com/PyTorchLightning/pytorch-lightning/pull/2535))
@@ -31,17 +35,23 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added remaining `sklearn` metrics: `AveragePrecision`, `BalancedAccuracy`, `CohenKappaScore`, `DCG`, `Hamming`, `Hinge`, `Jaccard`, `MeanAbsoluteError`, `MeanSquaredError`, `MeanSquaredLogError`, `MedianAbsoluteError`, `R2Score`, `MeanPoissonDeviance`, `MeanGammaDeviance`, `MeanTweedieDeviance`, `ExplainedVariance` ([#2562](https://github.com/PyTorchLightning/pytorch-lightning/pull/2562))
 
+- Added support for `limit_{mode}_batches (int)` to work with infinite dataloader (IterableDataset) ([#2840](https://github.com/PyTorchLightning/pytorch-lightning/pull/2840))
+
+- Added support returning python scalars in DP ([#1935](https://github.com/PyTorchLightning/pytorch-lightning/pull/1935))
+
 - Added hooks to metric module interface ([#2528](https://github.com/PyTorchLightning/pytorch-lightning/pull/2528/))
 
 ### Changed
 
 - Truncated long version numbers in progress bar ([#2594](https://github.com/PyTorchLightning/pytorch-lightning/pull/2594))
 
-- Enable val/test loop disabling ([#2692](https://github.com/PyTorchLightning/pytorch-lightning/pull/2692))
+- Enabling val/test loop disabling ([#2692](https://github.com/PyTorchLightning/pytorch-lightning/pull/2692))
 
-- Refactor into `accelerator` module:
+- Refactored into `accelerator` module:
     * GPU training ([#2704](https://github.com/PyTorchLightning/pytorch-lightning/pull/2704))
     * TPU training ([#2708](https://github.com/PyTorchLightning/pytorch-lightning/pull/2708))
+
+- Using .comet.config file for CometLogger ([#1913](https://github.com/PyTorchLightning/pytorch-lightning/pull/1913))
 
 ### Deprecated
 
@@ -93,6 +103,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed false `num_classes` warning in metrics ([#2781](https://github.com/PyTorchLightning/pytorch-lightning/pull/2781))
 
 - Fixed shell injection vulnerability in subprocess call ([#2786](https://github.com/PyTorchLightning/pytorch-lightning/pull/2786))
+
+- Fixed LR finder and `hparams` compatibility ([#2821](https://github.com/PyTorchLightning/pytorch-lightning/pull/2821))
 
 ## [0.8.5] - 2020-07-09
 

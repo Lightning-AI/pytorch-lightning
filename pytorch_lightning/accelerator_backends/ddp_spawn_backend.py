@@ -49,7 +49,8 @@ class DDPSpawnBackend(object):
         last_path = self.mp_queue.get()
 
         # transfer back the best path to the trainer
-        self.trainer.checkpoint_callback.best_model_path = best_path
+        if self.trainer.checkpoint_callback:
+            self.trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also bets score
 
         # load last weights
@@ -116,6 +117,10 @@ class DDPSpawnBackend(object):
         self.trainer.optimizers = optimizers
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
+
+        # call sync_bn before .cuda(), configure_apex and configure_ddp
+        if self.trainer.sync_batchnorm:
+            model = model.configure_sync_batchnorm(model)
 
         # MODEL
         # copy model to each gpu

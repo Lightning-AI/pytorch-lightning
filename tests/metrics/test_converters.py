@@ -1,6 +1,7 @@
+import sys
+
 import numpy as np
 import pytest
-import sys
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
