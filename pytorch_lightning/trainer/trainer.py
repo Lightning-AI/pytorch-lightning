@@ -365,8 +365,7 @@ class Trainer(
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
-        assert use_amp in ('native', 'apex'), f'Unsupported amp source {use_amp}'
-        self.use_amp_type = use_amp
+        self.__setup_amp_type(use_amp)
 
         # training bookeeping
         self.total_batch_idx = 0
@@ -603,6 +602,32 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    def __setup_amp_type(self, use_amp):
+        self.use_amp_type = None
+        if self.precision == 16:
+            # no AMP requested, so we can leave now
+            return
+        use_amp = use_amp.lower()
+        assert use_amp in ('native', 'apex'), f'Unsupported amp source {use_amp}'
+        if use_amp == 'native':
+            if not NATIVE_AMP_AVALAIBLE:
+                rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
+                               ' Consider upgrading `pip install torch>=1.6`.'
+                               ' Lets try to use NVIDIA Apex for this session.')
+                use_amp = 'apex'
+            else:
+                self.use_amp_type = use_amp
+        if use_amp == 'apex':
+            if not APEX_AVAILABLE:
+                rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.')
+            else:
+                self.use_amp_type = use_amp
+        if not self.use_amp_type:
+            raise MisconfigurationException(
+                f'You have asked for AMP support {use_amp} there is no support on your side yet.'
+                f' Consider install Trorch>=1.6 or NVIDIA Apex.'
+            )
 
     @property
     def is_global_zero(self) -> bool:
