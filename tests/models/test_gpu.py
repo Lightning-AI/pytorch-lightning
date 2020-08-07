@@ -111,16 +111,16 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     command = [sys.executable, file, '--variation', variation] + cli_args
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.communicate()
-    assert p.returncode == 0
-    # std, err = p.communicate(timeout=60)
-    # std = std.decode('utf-8').strip()
-    # err = err.decode('utf-8').strip()
+    # assert p.returncode == 0
+    std, err = p.communicate(timeout=60)
+    std = std.decode('utf-8').strip()
+    err = err.decode('utf-8').strip()
     # assert std and not err
-    # if p.returncode:
-    #     print(std)
-    #     print(err)
-    #     print(command)
-    #     pytest.fail(err)
+    if p.returncode:
+        print(std)
+        print(err)
+        print(command)
+        pytest.fail(err)
 
     # cli_args += ['--variation', variation]
     # from tests.models.data.ddp.train_test_variations import main
