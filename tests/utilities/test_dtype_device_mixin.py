@@ -27,7 +27,7 @@ class TopModule(EvalModelTemplate):
 
 class DeviceAssertCallback(Callback):
 
-    def on_batch_start(self, trainer, model):
+    def on_train_batch_start(self, trainer, model):
         rank = trainer.local_rank
         assert isinstance(model, TopModule)
         # index = None also means first device

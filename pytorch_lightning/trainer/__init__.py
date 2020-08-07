@@ -855,6 +855,14 @@ How often to add logging rows (does not write to disk)
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
 
+sync_batchnorm
+^^^^^^^^^^^^^^
+
+Enable synchronization between batchnorm layers across all GPUs.
+
+.. testcode::
+
+    trainer = Trainer(sync_batchnorm=True)
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^

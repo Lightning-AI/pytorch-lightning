@@ -36,8 +36,8 @@ class ProgressBarBase(Callback):
             def disable(self):
                 self.enable = False
 
-            def on_batch_end(self, trainer, pl_module):
-                super().on_batch_end(trainer, pl_module)  # don't forget this :)
+            def on_train_batch_end(self, trainer, pl_module):
+                super().on_train_batch_end(trainer, pl_module)  # don't forget this :)
                 percent = (self.train_batch_idx / self.total_train_batches) * 100
                 sys.stdout.flush()
                 sys.stdout.write(f'{percent:.01f} percent complete \r')
@@ -138,7 +138,7 @@ class ProgressBarBase(Callback):
     def on_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
-    def on_batch_end(self, trainer, pl_module):
+    def on_train_batch_end(self, trainer, pl_module):
         self._train_batch_idx += 1
 
     def on_validation_start(self, trainer, pl_module):
@@ -318,8 +318,8 @@ class ProgressBar(ProgressBarBase):
             self.main_progress_bar.reset(convert_inf(total_batches))
         self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch + 1}')
 
-    def on_batch_end(self, trainer, pl_module):
-        super().on_batch_end(trainer, pl_module)
+    def on_train_batch_end(self, trainer, pl_module):
+        super().on_train_batch_end(trainer, pl_module)
         if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
             self.main_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)

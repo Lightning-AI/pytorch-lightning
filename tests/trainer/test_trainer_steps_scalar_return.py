@@ -1,9 +1,10 @@
 """
 Tests to ensure that the training loop works with a scalar
 """
+import torch
+
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
-import torch
 
 
 def test_training_step_scalar(tmpdir):
