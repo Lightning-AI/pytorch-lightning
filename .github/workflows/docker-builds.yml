@@ -11,6 +11,7 @@ on:
 
 jobs:
   build-Conda:
+    fail-fast: false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -59,6 +60,7 @@ jobs:
         timeout-minutes: 40
 
   build-XLA:
+    fail-fast: false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -84,6 +86,7 @@ jobs:
         timeout-minutes: 25
 
   build-cuda:
+    fail-fast: false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
