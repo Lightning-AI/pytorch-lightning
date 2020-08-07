@@ -1,7 +1,13 @@
 from abc import ABC
+from enum import Enum
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
+
+
+class AmpType(Enum):
+    APEX = 'apex'
+    NATIVE = 'native'
 
 
 class TrainerAMPMixin(ABC):

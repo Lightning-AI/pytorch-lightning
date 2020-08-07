@@ -31,7 +31,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin
+from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin, AmpType
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -617,12 +617,12 @@ class Trainer(
                                ' Lets try to use NVIDIA Apex for this session.')
                 use_amp = 'apex'
             else:
-                self.use_amp_type = use_amp
+                self.use_amp_type = AmpType.NATIVE
         if use_amp == 'apex':
             if not APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.')
             else:
-                self.use_amp_type = use_amp
+                self.use_amp_type = AmpType.APEX
         if not self.use_amp_type:
             raise MisconfigurationException(
                 f'You have asked for AMP support {use_amp} there is no support on your side yet.'
