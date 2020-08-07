@@ -155,7 +155,7 @@ formatting errors. In certain cases, a missing blank line or a wrong indent can 
 Run these commands
 
 ```bash
-pip install ".[docs]"
+pip install -r requirements/docs.txt
 cd docs
 make html
 ```
