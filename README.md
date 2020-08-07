@@ -90,7 +90,7 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
 
 ---
 ### [Tune in for our PyTorch Lightning 101 class with William Falcon and Alfredo Canziani! New episodes every week!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
-[![IMAGE ALT TEXT HERE](docs/source/_images/general/PTL_Part2_Thumbnail.png)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+[![IMAGE ALT TEXT HERE](docs/source/_images/general/PTL101_youtube_thumbnail.jpg)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
 ---
 
 ## Refactoring your PyTorch code + benefits + full walk-through
