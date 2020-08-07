@@ -41,6 +41,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support to Tensorboard logger for OmegaConf `hparams` ([#2846](https://github.com/PyTorchLightning/pytorch-lightning/pull/2846))
 
+- Added tracking of basic states in `Trainer` ([#2541](https://github.com/PyTorchLightning/pytorch-lightning/pull/2541))
+
+- Tracks all outputs including TBPTT and multiple optimizers ([#2890](https://github.com/PyTorchLightning/pytorch-lightning/pull/2890))
+
 ### Changed
 
 - Truncated long version numbers in progress bar ([#2594](https://github.com/PyTorchLightning/pytorch-lightning/pull/2594))
@@ -52,7 +56,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * TPU training ([#2708](https://github.com/PyTorchLightning/pytorch-lightning/pull/2708))
     * DDP(2) backend ([#2796](https://github.com/PyTorchLightning/pytorch-lightning/pull/2796))
 
-- Using .comet.config file for CometLogger ([#1913](https://github.com/PyTorchLightning/pytorch-lightning/pull/1913))
+- Using `.comet.config` file for `CometLogger` ([#1913](https://github.com/PyTorchLightning/pytorch-lightning/pull/1913))
+
+- Updated hooks arguments - breaking for `setup` and `teardown` ([#2850](https://github.com/PyTorchLightning/pytorch-lightning/pull/2850))
+
+- Using `gfile` to support remote directories ([#2164](https://github.com/PyTorchLightning/pytorch-lightning/pull/2164))
 
 ### Deprecated
 
