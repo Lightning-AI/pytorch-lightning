@@ -25,6 +25,26 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
+def test_single_gpu_test(tmpdir):
+    """
+    Test that trainer auto-sets the max steps automatically
+    """
+    model = EvalModelTemplate()
+
+    max_epochs = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        limit_val_batches=10,
+    )
+
+    assert trainer.max_steps is None
+    trainer.fit(model)
+
+    num_train_examples = len(model.train_dataloader())
+    assert trainer.max_steps == max_epochs * num_train_examples
+
+
 @pytest.mark.parametrize('url_ckpt', [True, False])
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
