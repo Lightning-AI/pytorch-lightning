@@ -5,7 +5,8 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.trainer.auto_mix_precision import AMPType
+from pytorch_lightning.utilities import move_data_to_device
 
 try:
     from apex import amp
@@ -267,8 +268,8 @@ class ModelHooks(Module):
         """
         loss.backward()
 
-    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
-        if NATIVE_AMP_AVALAIBLE:
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx, amp_type: AMPType):
+        if amp_type == AMPType.NATIVE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)

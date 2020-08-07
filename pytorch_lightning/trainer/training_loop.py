@@ -956,9 +956,10 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_backward'):
             # scale loss for 16 bit
             if self.precision == 16 and not self.on_tpu:
-                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
+                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
 
                 # enter amp context
+                # todo: need to pass Trainer AMP type
                 if not NATIVE_AMP_AVALAIBLE:
                     context = closure_loss
                     closure_loss = closure_loss.__enter__()

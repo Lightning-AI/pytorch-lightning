@@ -18,23 +18,24 @@ Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 
 """
 
-import random
-import time
-from abc import ABC, abstractmethod
 from contextlib import ExitStack
-from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
-
+import os
+from abc import ABC, abstractmethod
+import time
+import random
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
+from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning import _logger as log
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
 from pytorch_lightning.utilities import move_data_to_device
-from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 try:
     from apex import amp

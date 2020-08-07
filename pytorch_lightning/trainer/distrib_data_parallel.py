@@ -131,17 +131,22 @@ import os
 import re
 from abc import ABC, abstractmethod
 from distutils.version import LooseVersion
-from typing import Union, List, Optional, Tuple
-
+from typing import Union, List, Optional, Callable, Tuple
+import subprocess
+import sys
+from time import sleep
 import numpy as np
-import torch
+from os.path import abspath
+from pkg_resources import parse_version
 
+import torch
 from pytorch_lightning import _logger as log
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
 
 try:
     from apex import amp
