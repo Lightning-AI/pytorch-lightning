@@ -604,7 +604,7 @@ class Trainer(
         self.on_init_end()
 
     def __setup_amp_type(self, use_amp):
-        self.use_amp_type = None
+        self.amp_type = None
         if self.precision == 16:
             # no AMP requested, so we can leave now
             return
@@ -617,13 +617,13 @@ class Trainer(
                                ' Lets try to use NVIDIA Apex for this session.')
                 use_amp = 'apex'
             else:
-                self.use_amp_type = AmpType.NATIVE
+                self.amp_type = AmpType.NATIVE
         if use_amp == 'apex':
             if not APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.')
             else:
-                self.use_amp_type = AmpType.APEX
-        if not self.use_amp_type:
+                self.amp_type = AmpType.APEX
+        if not self.amp_type:
             raise MisconfigurationException(
                 f'You have asked for AMP support {use_amp} there is no support on your side yet.'
                 f' Consider install Trorch>=1.6 or NVIDIA Apex.'

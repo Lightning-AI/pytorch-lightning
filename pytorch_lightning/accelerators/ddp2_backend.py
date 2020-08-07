@@ -17,7 +17,7 @@ import os
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.trainer.auto_mix_precision import AmpType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -138,7 +138,7 @@ class DDP2Backend(object):
         # AMP
         # run through amp wrapper before going to distributed DP
         # TODO: remove with dropping NVIDIA AMP support
-        if self.trainer.use_amp and not NATIVE_AMP_AVALAIBLE:
+        if self.trainer.amp_type == AmpType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

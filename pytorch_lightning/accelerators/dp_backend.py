@@ -16,6 +16,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from pytorch_lightning.trainer.auto_mix_precision import AmpType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
@@ -70,9 +71,7 @@ class DataParallelBackend(object):
         return model
 
     def __init_half_precision(self, model):
-        native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
-
-        if native_amp_available:
+        if self.trainer.amp_type == AmpType.NATIVE:
             self.__init_native_amp(model)
         else:
             model = self.__init_nvidia_apex(model)
