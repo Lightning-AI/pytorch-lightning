@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `overfit_batches` when using with multiple `val_dataloaders` and `test_dataloaders` ([#2791](https://github.com/PyTorchLightning/pytorch-lightning/pull/2792))
+- Fixed `overfit_batches` when using with multiple `val_dataloaders` and `test_dataloaders` ([#2792](https://github.com/PyTorchLightning/pytorch-lightning/pull/2792))
 
 - Fixed setup call while testing ([#2624](https://github.com/PyTorchLightning/pytorch-lightning/pull/2624))
 
