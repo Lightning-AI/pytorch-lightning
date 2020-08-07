@@ -112,7 +112,7 @@ class ModelCheckpoint(Callback):
         if filepath is None:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, filename
         else:
-            if filename is not None:
+            if filename:
                 self.dirpath, self.filename = filepath, filename
             elif os.path.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
