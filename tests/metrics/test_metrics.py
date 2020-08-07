@@ -2,6 +2,9 @@ import numpy as np
 import pytest
 import torch
 
+import tests.base.develop_utils as tutils
+import tests.base.develop_pipelines as tpipes
+from tests.base import EvalModelTemplate
 from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric, TensorCollectionMetric
 
 
@@ -139,3 +142,29 @@ def test_metric(metric: Metric):
         metric.half()
         assert metric.dtype == torch.float16
         assert metric(input1, input2).dtype == torch.float16
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize("metric", [
+    DummyTensorMetric(),
+    DummyNumpyMetric(),
+])
+def test_pickable(tmpdir, metric: Metric):
+    """Make sure that metrics are pickable by including into a model and running in multi-gpu mode"""
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=10,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
+    )
+
+    class ModelwithMetrics(EvalModelTemplate):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.metric = metric
+
+    model = ModelwithMetrics()
+    tpipes.run_model_test(trainer_options, model)

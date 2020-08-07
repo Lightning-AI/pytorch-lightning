@@ -3,7 +3,7 @@ from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, An
 from torch import Tensor
 import torch
 from copy import copy
-from pytorch_lightning.metrics.converters import _sync_ddp_if_available
+from pytorch_lightning.metrics.converters import sync_ddp_if_available
 
 
 class Result(Dict):
@@ -101,7 +101,7 @@ class Result(Dict):
 
         # sync across ddp
         if sync_ddp and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = _sync_ddp_if_available(value, group=sync_ddp_group, reduce_op=sync_ddp_op)
+            value = sync_ddp_if_available(value, group=sync_ddp_group, reduce_op=sync_ddp_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
