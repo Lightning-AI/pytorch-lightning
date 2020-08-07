@@ -1,4 +1,6 @@
 import inspect
+import pickle
+import warnings
 from argparse import Namespace
 from typing import Dict
 
@@ -31,7 +33,10 @@ def clean_namespace(hparams):
     if isinstance(hparams, Namespace):
         del_attrs = []
         for k in hparams.__dict__:
-            if callable(getattr(hparams, k)):
+            try:
+                pickle.dumps(getattr(hparams, k))
+            except:
+                warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
                 del_attrs.append(k)
 
         for k in del_attrs:
@@ -40,7 +45,10 @@ def clean_namespace(hparams):
     elif isinstance(hparams, dict):
         del_attrs = []
         for k, v in hparams.items():
-            if callable(v):
+            try:
+                pickle.dumps(v)
+            except:
+                warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
                 del_attrs.append(k)
 
         for k in del_attrs:
