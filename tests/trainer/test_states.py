@@ -18,7 +18,7 @@ class StateSnapshotCallback(Callback):
         if self.snapshot_method == 'on_batch_start':
             self.trainer_state = trainer.state
 
-    def on_test_batch_start(self, trainer, pl_module):
+    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self.snapshot_method == 'on_test_batch_start':
             self.trainer_state = trainer.state
 
