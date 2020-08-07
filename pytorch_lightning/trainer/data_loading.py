@@ -97,6 +97,8 @@ class TrainerDataLoadingMixin(ABC):
     replace_sampler_ddp: bool
     num_nodes: int
     num_processes: int
+    max_steps: int
+    max_epochs: int
     distributed_backend: Optional[str]
 
     @abstractmethod
@@ -209,6 +211,10 @@ class TrainerDataLoadingMixin(ABC):
                 'When using an IterableDataset for `limit_train_batches`,'
                 ' `Trainer(limit_train_batches)` must be `0.0`, `1.0` or an int. An int k specifies'
                 ' `num_training_batches` to use.')
+
+        # set the max steps based on the new train DL length
+        if self.max_steps is None:
+            self.max_steps = self.num_training_batches * self.max_epochs
 
         # determine when to check validation
         # if int passed in, val checks that often
