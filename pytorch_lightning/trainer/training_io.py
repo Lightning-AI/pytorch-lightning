@@ -104,6 +104,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs
 
 try:
     import torch_xla
@@ -407,9 +408,9 @@ class TrainerIOMixin(ABC):
         did_restore = False
 
         # look for hpc weights
-        folderpath = self.weights_save_path
-        if os.path.exists(folderpath):
-            files = os.listdir(folderpath)
+        folderpath = str(self.weights_save_path)
+        if gfile.exists(folderpath):
+            files = gfile.listdir(folderpath)
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
             # if hpc weights exist restore model
@@ -488,15 +489,17 @@ class TrainerIOMixin(ABC):
     # ----------------------------------
     def hpc_save(self, folderpath: str, logger):
         # make sure the checkpoint folder exists
-        os.makedirs(folderpath, exist_ok=True)
+        folderpath = str(folderpath)  # because the tests pass a path object
+        if not gfile.exists(folderpath):
+            makedirs(folderpath)
 
         # save logger to make sure we get all the metrics
         logger.save()
 
         ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
 
-        if not os.path.exists(folderpath):
-            os.makedirs(folderpath, exist_ok=True)
+        if not gfile.exists(folderpath):
+            makedirs(folderpath)
         filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
@@ -549,7 +552,7 @@ class TrainerIOMixin(ABC):
         log.info(f'restored hpc model from: {filepath}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
-        files = os.listdir(path)
+        files = gfile.listdir(str(path))
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return 0
