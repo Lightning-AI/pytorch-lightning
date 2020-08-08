@@ -17,10 +17,6 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
-CHECKPOINT_NAME_LAST = "last.ckpt"
-CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
-CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
-
 
 class ModelCheckpoint(Callback):
     r"""
@@ -99,6 +95,10 @@ class ModelCheckpoint(Callback):
         checkpoint_callback.best_model_path
 
     """
+
+    CHECKPOINT_NAME_LAST = "last.ckpt"
+    CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
+    CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
 
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
@@ -341,7 +341,7 @@ class ModelCheckpoint(Callback):
             self._save_model(filepath, trainer, pl_module)
 
         if self.save_last:
-            filepath = os.path.join(self.dirpath, self.prefix + CHECKPOINT_NAME_LAST)
+            filepath = os.path.join(self.dirpath, self.prefix + ModelCheckpoint.CHECKPOINT_NAME_LAST)
             self._save_model(filepath, trainer, pl_module)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
