@@ -46,7 +46,7 @@ Example: Imagenet (computer Vision)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+    :skipif: not is_torchvision_available()
 
     import torchvision.models as models
 

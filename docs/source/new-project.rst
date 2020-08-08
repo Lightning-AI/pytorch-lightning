@@ -32,7 +32,7 @@ A lightningModule defines
 - Optimizer
 
 .. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+    :skipif: not is_torchvision_available()
 
 
     import pytorch_lightning as pl

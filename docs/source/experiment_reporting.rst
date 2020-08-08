@@ -77,7 +77,7 @@ To plot metrics into whatever logger you passed in (tensorboard, comet, neptune,
 For instance, here we log images using tensorboard.
 
 .. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+    :skipif: not is_torchvision_available()
 
     def training_step(self, batch, batch_idx):
         self.generated_imgs = self.decoder.generate()
