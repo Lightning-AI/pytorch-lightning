@@ -2,6 +2,7 @@ import torch
 
 
 def is_apex_available():
+    # TODO: use importlib
     try:
         from apex import amp
     except ImportError:
@@ -11,6 +12,7 @@ def is_apex_available():
 
 
 def is_hydra_available():
+    # TODO: use importlib
     try:
         from hydra.utils import to_absolute_path, get_original_cwd
         from hydra.core.hydra_config import HydraConfig
@@ -25,6 +27,7 @@ def is_native_amp_available():
 
 
 def is_xla_available():
+    # TODO: use importlib
     try:
         import torch_xla
         import torch_xla.core.xla_model as xm
