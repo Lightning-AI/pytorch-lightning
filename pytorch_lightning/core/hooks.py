@@ -5,7 +5,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, AMPType
+from pytorch_lightning.utilities import move_data_to_device, AMPType, is_apex_available
 
 if is_apex_available():
     from apex import amp

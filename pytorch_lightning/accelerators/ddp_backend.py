@@ -25,7 +25,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities.imports import is_apex_available, is_hydra_available, is_native_amp_available
+from pytorch_lightning.utilities.imports import is_apex_available, is_hydra_available
 
 if is_hydra_available():
     from hydra.utils import to_absolute_path, get_original_cwd

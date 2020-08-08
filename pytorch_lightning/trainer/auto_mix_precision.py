@@ -1,7 +1,7 @@
 from abc import ABC
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, rank_zero_warn, AMPType
+from pytorch_lightning.utilities import is_apex_available, is_native_amp_available, rank_zero_warn, AMPType
 
 
 class TrainerAMPMixin(ABC):
@@ -18,7 +18,7 @@ class TrainerAMPMixin(ABC):
         amp_type = amp_type.lower()
         assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
         if amp_type == 'native':
-            if not NATIVE_AMP_AVALAIBLE:
+            if not is_apex_available():
                 rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
                                ' Consider upgrading with `pip install torch>=1.6`.'
                                ' We will attempt to use NVIDIA Apex for this session.')
@@ -27,7 +27,7 @@ class TrainerAMPMixin(ABC):
                 log.info('Using native 16bit precision.')
                 self.amp_type = AMPType.NATIVE
         if amp_type == 'apex':
-            if not APEX_AVAILABLE:
+            if not is_native_amp_available():
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
             else:

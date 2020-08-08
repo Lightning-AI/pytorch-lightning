@@ -20,7 +20,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import is_apex_available, is_native_amp_available
+from pytorch_lightning.utilities.imports import is_apex_available
 
 if is_apex_available():
     from apex import amp

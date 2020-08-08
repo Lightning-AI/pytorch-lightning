@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, is_apex_available
 
 if is_apex_available():
     from apex import amp

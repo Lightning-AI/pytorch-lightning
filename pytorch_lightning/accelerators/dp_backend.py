@@ -18,7 +18,7 @@ from torch import optim
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import is_native_amp_available, is_apex_available
+from pytorch_lightning.utilities.imports import is_apex_available
 
 if is_apex_available():
     from apex import amp
