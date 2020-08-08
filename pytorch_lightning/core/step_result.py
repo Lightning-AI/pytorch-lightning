@@ -460,7 +460,12 @@ class TrainResult(Result):
             on_step: if True logs the output of validation_step or test_step
             on_epoch: if True, logs the output of the training loop aggregated
             reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group
         """
         super().log(name=name,
                     value=value,
@@ -500,13 +505,18 @@ class TrainResult(Result):
             result.log_dict(values)
 
         Args:
-            dictionary:
-            prog_bar:
-            logger:
-            on_step:
-            on_epoch:
-            reduce_fx:
-            enable_graph:
+            dictionary: key value pairs (str, tensors)
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the training loop aggregated
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group:
         """
         for k, v in dictionary.items():
             self.log(name=k,
@@ -599,9 +609,14 @@ class EvalResult(Result):
             prog_bar: if True logs to the progress base
             logger: if True logs to the logger
             on_step: if True logs the output of validation_step or test_step
-            on_epoch: if True, logs the output of the validation loop or test loop aggregated
+            on_epoch: if True, logs the output of the training loop aggregated
             reduce_fx: Torch.mean by default
-            enable_graph: if True, will not auto detach the graph :
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group
         """
         super().log(name=name,
                     value=value,
@@ -641,13 +656,18 @@ class EvalResult(Result):
             result.log_dict(values)
 
         Args:
-            dictionary:
-            prog_bar:
-            logger:
-            on_step:
-            on_epoch:
-            reduce_fx:
-            enable_graph:
+            dictionary: key value pairs (str, tensors)
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the training loop aggregated
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group
         """
         for k, v in dictionary.items():
             self.log(name=k,
