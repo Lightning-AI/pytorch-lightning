@@ -35,7 +35,7 @@ def clean_namespace(hparams):
         for k in hparams.__dict__:
             try:
                 pickle.dumps(getattr(hparams, k))
-            except:
+            except pickle.PicklingError:
                 warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
                 del_attrs.append(k)
 
@@ -47,7 +47,7 @@ def clean_namespace(hparams):
         for k, v in hparams.items():
             try:
                 pickle.dumps(v)
-            except:
+            except pickle.PicklingError:
                 warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
                 del_attrs.append(k)
 
