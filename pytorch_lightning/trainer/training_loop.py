@@ -655,21 +655,7 @@ class TrainerTrainLoopMixin(ABC):
         # Structured Result (auto epoch end)
         # --------------------------
         elif is_result_obj:
-            epoch_log_metrics = {}
-            epoch_progress_bar_metrics = {}
-            for opt_outputs in epoch_output:
-                # reduce across time first
-                time_reduced_outputs = []
-                for train_step_idx in range(len(opt_outputs)):
-                    tbptt_outs = opt_outputs[train_step_idx]
-                    tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
-                    time_reduced_outputs.append(tbptt_outs)
-
-                # reduce across training steps
-                opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
-                opt_outputs.minimize = opt_outputs.minimize.mean()
-                epoch_log_metrics.update(opt_outputs.epoch_log_metrics)
-                epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
+            epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
 
         # --------------------------
         # track results
@@ -684,6 +670,25 @@ class TrainerTrainLoopMixin(ABC):
         # add metrics to progress_bar
         if len(epoch_progress_bar_metrics) > 0:
             self.add_progress_bar_metrics(epoch_progress_bar_metrics)
+
+    def __auto_reduce_results_on_epoch_end(self, epoch_output):
+        epoch_log_metrics = {}
+        epoch_progress_bar_metrics = {}
+        for opt_outputs in epoch_output:
+            # reduce across time first
+            time_reduced_outputs = []
+            for train_step_idx in range(len(opt_outputs)):
+                tbptt_outs = opt_outputs[train_step_idx]
+                tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
+                time_reduced_outputs.append(tbptt_outs)
+
+            # reduce across training steps
+            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
+            opt_outputs.minimize = opt_outputs.minimize.mean()
+            epoch_log_metrics.update(opt_outputs.epoch_log_metrics)
+            epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
+
+        return epoch_log_metrics, epoch_progress_bar_metrics
 
     def __gather_result_across_time_and_optimizers(self, epoch_output):
         """
