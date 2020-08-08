@@ -10,6 +10,8 @@ from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
+
+# TODO: move this import check to the utilities function is_xla_available()
 try:
     import torch_xla
     import torch_xla.distributed.xla_multiprocessing as xmp
@@ -226,7 +228,7 @@ def test_tpu_misconfiguration():
         )
 
 
-# @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
+# @patch('pytorch_lightning.trainer.trainer.is_xla_available()', False)
 @pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""

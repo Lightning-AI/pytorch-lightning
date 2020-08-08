@@ -10,12 +10,11 @@ import os
 import re
 from typing import Optional
 
-import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only, TORCH_INF
 
 
 class ModelCheckpoint(Callback):
@@ -131,12 +130,11 @@ class ModelCheckpoint(Callback):
         self.best_model_path = ''
         self.save_function = None
 
-        torch_inf = torch.tensor(np.Inf)
         mode_dict = {
-            'min': (torch_inf, 'min'),
-            'max': (-torch_inf, 'max'),
-            'auto': (-torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
-            else (torch_inf, 'min'),
+            'min': (TORCH_INF, 'min'),
+            'max': (-TORCH_INF, 'max'),
+            'auto': (-TORCH_INF, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            else (TORCH_INF, 'min'),
         }
 
         if mode not in mode_dict:

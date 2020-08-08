@@ -10,13 +10,15 @@ from pytorch_lightning.utilities.parsing import AttributeDict, flatten_dict
 
 
 # backward compatible
-# TODO: remove in v1.0
+# TODO: remove in v1.0 and use is_*_available() directly
 APEX_AVAILABLE = is_apex_available()
 NATIVE_AMP_AVALAIBLE = is_native_amp_available()
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
+
+TORCH_INF = torch.tensor(numpy.Inf)
 
 
 class AMPType(Enum):

@@ -15,14 +15,11 @@ from torch.utils.tensorboard import SummaryWriter
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, is_omegaconf_available
 
-try:
+
+if is_omegaconf_available():
     from omegaconf import Container, OmegaConf
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
 
 
 class TensorBoardLogger(LightningLoggerBase):
@@ -119,7 +116,7 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
 
         # store params to output
-        if OMEGACONF_AVAILABLE and isinstance(params, Container):
+        if is_omegaconf_available() and isinstance(params, Container):
             self.hparams = OmegaConf.merge(self.hparams, params)
         else:
             self.hparams.update(params)

@@ -9,17 +9,15 @@ import torch
 import yaml
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
+from pytorch_lightning.utilities import rank_zero_warn, AttributeDict, is_omegaconf_available
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+
+if is_omegaconf_available():
+    from omegaconf import Container
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
-try:
-    from omegaconf import Container
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
+
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -29,6 +27,7 @@ CHECKPOINT_PAST_HPARAMS_KEYS = (
 
 
 class ModelIO(object):
+
     CHECKPOINT_HYPER_PARAMS_KEY = 'hyper_parameters'
     CHECKPOINT_HYPER_PARAMS_NAME = 'hparams_name'
     CHECKPOINT_HYPER_PARAMS_TYPE = 'hparams_type'
@@ -329,7 +328,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not os.path.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
 
-    if OMEGACONF_AVAILABLE and isinstance(hparams, Container):
+    if is_omegaconf_available() and isinstance(hparams, Container):
         from omegaconf import OmegaConf
         OmegaConf.save(hparams, config_yaml, resolve=True)
         return

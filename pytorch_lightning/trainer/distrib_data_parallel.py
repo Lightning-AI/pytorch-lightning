@@ -131,37 +131,21 @@ import os
 import re
 from abc import ABC, abstractmethod
 from distutils.version import LooseVersion
-from typing import Union, List, Optional, Callable, Tuple
-import subprocess
-import sys
-from time import sleep
+from typing import Union, List, Optional, Tuple
 import numpy as np
-from os.path import abspath
-from pkg_resources import parse_version
 
 import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities import is_horovod_available, is_xla_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 
 
-try:
+if is_horovod_available():
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
-
-try:
-    import torch_xla
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 PID = os.getpid()
 RNG1 = np.random.RandomState(PID)
@@ -311,7 +295,7 @@ class TrainerDDPMixin(ABC):
 
         rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
         num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
+        rank_zero_info(f'TPU available: {is_xla_available()}, using: {num_cores} TPU cores')
 
         if torch.cuda.is_available() and not self.on_gpu:
             rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
@@ -494,7 +478,7 @@ class TrainerDDPMixin(ABC):
 
     def check_horovod(self):
         """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
-        if not HOROVOD_AVAILABLE:
+        if not is_horovod_available():
             raise MisconfigurationException(
                 'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
                 'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'

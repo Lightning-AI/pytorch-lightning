@@ -78,7 +78,7 @@ TPU 16-bit
 16-bit on TPus is much simpler. To use 16-bit with TPUs set precision to 16 when using the tpu flag
 
 .. testcode::
-    :skipif: not XLA_AVAILABLE
+    :skipif: not is_xla_available()
 
     # DEFAULT
     trainer = Trainer(tpu_cores=8, precision=32)

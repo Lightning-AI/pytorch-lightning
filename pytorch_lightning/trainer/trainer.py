@@ -49,7 +49,8 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
+from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType, \
+    is_xla_available, is_horovod_available
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -58,21 +59,11 @@ warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
 
-try:
+if is_xla_available():
     import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
-try:
+if is_horovod_available():
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 class Trainer(
@@ -1136,7 +1127,7 @@ class Trainer(
             torch_distrib.barrier()
 
         # wait for all models to restore weights
-        if self.on_tpu and XLA_AVAILABLE:
+        if self.on_tpu and is_xla_available():
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
 
@@ -1394,7 +1385,7 @@ class Trainer(
             pass
             # torch_distrib.barrier()
 
-        if self.on_tpu and XLA_AVAILABLE:
+        if self.on_tpu and is_xla_available():
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
 

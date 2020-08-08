@@ -175,26 +175,19 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
+from pytorch_lightning.utilities import rank_zero_warn, AMPType, is_xla_available, is_horovod_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
 
 
-try:
+if is_horovod_available():
+    import horovod.torch as hvd
+
+if is_xla_available():
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 # constant which signals should be catched for graceful trainer shutdown
 SIGNAL_TERMINATE = ('SIGTERM', 'SIGSEGV', 'SIGINT')
@@ -857,7 +850,7 @@ class TrainerTrainLoopMixin(ABC):
             ).loss
 
             # apply TPU optimizer
-            if self.use_tpu and XLA_AVAILABLE:
+            if self.use_tpu and is_xla_available():
                 model.optimizer_step(self.current_epoch, batch_idx,
                                      optimizer, opt_idx, lambda_closure, on_tpu=True)
 

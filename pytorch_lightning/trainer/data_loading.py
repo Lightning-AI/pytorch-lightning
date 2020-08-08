@@ -6,39 +6,24 @@ from typing import Union, List, Tuple, Callable, Optional
 
 import torch
 import torch.distributed as torch_distrib
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, is_xla_available, is_horovod_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
-    from torch.utils.data import IterableDataset
-    ITERABLE_DATASET_EXISTS = True
-except ImportError:
-    ITERABLE_DATASET_EXISTS = False
 
-try:
+if is_xla_available():
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
-try:
+if is_horovod_available():
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 def _has_iterable_dataset(dataloader: DataLoader):
-    return ITERABLE_DATASET_EXISTS and hasattr(dataloader, 'dataset') \
-        and isinstance(dataloader.dataset, IterableDataset)
+    return hasattr(dataloader, 'dataset') and isinstance(dataloader.dataset, IterableDataset)
 
 
 def _has_len(dataloader: DataLoader) -> bool:
@@ -346,7 +331,7 @@ class TrainerDataLoadingMixin(ABC):
             torch_distrib.barrier()
 
         # data download/load on TPU
-        elif self.use_tpu and XLA_AVAILABLE:
+        elif self.use_tpu and is_xla_available():
             # all processes wait until data download has happened
             torch_xla.core.xla_model.rendezvous('pl.TrainerDataLoadingMixin.get_dataloaders')
 

@@ -7,6 +7,8 @@ from pytorch_lightning import _logger as lightning_logger
 from pytorch_lightning.metrics.metric import NumpyMetric
 from pytorch_lightning.utilities import rank_zero_warn
 
+
+# TODO: check here how to handle import properly
 try:
     from torch.distributed import ReduceOp, group
 except ImportError:

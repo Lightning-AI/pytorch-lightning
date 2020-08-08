@@ -102,34 +102,21 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import rank_zero_warn, AMPType, is_apex_available
+from pytorch_lightning.utilities import rank_zero_warn, AMPType, is_apex_available, is_xla_available, \
+    is_omegaconf_available, is_horovod_available
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 if is_apex_available():
     from apex import amp
 
-try:
+if is_horovod_available():
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
-try:
+if is_omegaconf_available():
     from omegaconf import Container
-except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
+
+if is_xla_available():
+    import torch_xla
 
 
 class TrainerIOMixin(ABC):
@@ -193,7 +180,7 @@ class TrainerIOMixin(ABC):
             torch_distrib.barrier()
 
         # wait for all models to restore weights
-        if self.on_tpu and XLA_AVAILABLE:
+        if self.on_tpu and is_xla_available():
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous("pl.TrainerIOMixin.restore_weights")
 
@@ -388,7 +375,7 @@ class TrainerIOMixin(ABC):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # add arguments to the checkpoint
             checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-            if OMEGACONF_AVAILABLE:
+            if is_omegaconf_available():
                 if isinstance(model.hparams, Container):
                     checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
 

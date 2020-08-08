@@ -31,7 +31,8 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device, AMPType, is_apex_available
+from pytorch_lightning.utilities import move_data_to_device, AMPType, is_apex_available, is_xla_available, \
+    is_horovod_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -39,19 +40,12 @@ if is_apex_available():
     from apex import amp
 
 
-try:
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
+if is_horovod_available():
     import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
+
+
+if is_xla_available():
+    import torch_xla.core.xla_model as xm
 
 
 class TrainerDPMixin(ABC):
@@ -141,7 +135,7 @@ class TrainerDPMixin(ABC):
         See Also:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
         """
-        if not XLA_AVAILABLE:
+        if not is_xla_available():
             raise MisconfigurationException(
                 'Requested to transfer batch to TPU but XLA is not available.'
                 ' Are you sure this machine has TPUs?'

@@ -6,15 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from tests.base.datasets import TrialMNIST, AverageDataset, MNIST
-
-try:
-    from test_tube import HyperOptArgumentParser
-except ImportError:
-    # TODO: this should be discussed and moved out of this package
-    raise ImportError('Missing test-tube package.')
-
 from pytorch_lightning.core.lightning import LightningModule
+from tests.base.datasets import TrialMNIST, AverageDataset, MNIST
 
 
 class Generator(nn.Module):

@@ -14,6 +14,8 @@ from torch.utils.data._utils.collate import np_str_obj_array_pattern
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
+
+# TODO: check here how to handle import properly
 try:
     from torch.distributed import ReduceOp
 except ImportError:

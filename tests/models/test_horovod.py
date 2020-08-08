@@ -12,15 +12,13 @@ import torch
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities import is_horovod_available
 from tests.base import EvalModelTemplate
 from tests.base.models import TestGAN
 
-try:
+
+if is_horovod_available():
     from horovod.common.util import nccl_built
-except ImportError:
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 
 # This script will run the actual test model training in parallel
@@ -28,7 +26,7 @@ TEST_SCRIPT = os.path.join(os.path.dirname(__file__), 'data', 'horovod', 'train_
 
 
 def _nccl_available():
-    if not HOROVOD_AVAILABLE:
+    if not is_horovod_available():
         return False
 
     try:
