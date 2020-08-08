@@ -17,13 +17,10 @@ from torch import optim
 
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import is_native_amp_available, is_apex_available
 
-try:
+if is_apex_available():
     from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
 
 class DataParallelBackend(object):
@@ -70,9 +67,7 @@ class DataParallelBackend(object):
         return model
 
     def __init_half_precision(self, model):
-        native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
-
-        if native_amp_available:
+        if is_native_amp_available():
             self.__init_native_amp(model)
         else:
             model = self.__init_nvidia_apex(model)

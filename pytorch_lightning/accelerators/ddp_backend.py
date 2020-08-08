@@ -23,23 +23,15 @@ import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.imports import is_apex_available, is_hydra_available, is_native_amp_available
 
-try:
+if is_hydra_available():
     from hydra.utils import to_absolute_path, get_original_cwd
     from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
 
-try:
+if is_apex_available():
     from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
 
 class DDPBackend(object):
@@ -75,7 +67,7 @@ class DDPBackend(object):
         os.environ['LOCAL_RANK'] = '0'
 
         # when user is using hydra find the absolute path
-        path_lib = abspath if not HYDRA_AVAILABLE else to_absolute_path
+        path_lib = abspath if not is_hydra_available() else to_absolute_path
 
         # pull out the commands used to run the script and resolve the abs file path
         command = sys.argv
@@ -105,7 +97,7 @@ class DDPBackend(object):
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
             cwd: Optional[str] = None
-            if HYDRA_AVAILABLE:
+            if is_hydra_available():
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
@@ -205,7 +197,7 @@ class DDPBackend(object):
         # AMP
         # run through amp wrapper before going to distributed DP
         # TODO: remove with dropping NVIDIA AMP support
-        if self.trainer.use_amp and not NATIVE_AMP_AVALAIBLE:
+        if self.trainer.use_amp and not is_native_amp_available():
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

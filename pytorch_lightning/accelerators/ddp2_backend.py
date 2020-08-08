@@ -17,24 +17,12 @@ import os
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import is_apex_available, is_native_amp_available
 
-try:
-    from hydra.utils import to_absolute_path, get_original_cwd
-    from hydra.core.hydra_config import HydraConfig
-except ImportError:
-    HYDRA_AVAILABLE = False
-else:
-    HYDRA_AVAILABLE = True
-
-try:
+if is_apex_available():
     from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
 
 class DDP2Backend(object):
@@ -138,7 +126,7 @@ class DDP2Backend(object):
         # AMP
         # run through amp wrapper before going to distributed DP
         # TODO: remove with dropping NVIDIA AMP support
-        if self.trainer.use_amp and not NATIVE_AMP_AVALAIBLE:
+        if self.trainer.use_amp and not is_native_amp_available():
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

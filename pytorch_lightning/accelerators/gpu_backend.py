@@ -15,13 +15,10 @@
 import torch
 
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.utilities.imports import is_apex_available
 
-try:
+if is_apex_available():
     from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
 
 class GPUBackend(object):
@@ -45,7 +42,7 @@ class GPUBackend(object):
 
         # TODO: remove with dropping NVIDIA AMP support
         native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
-        if APEX_AVAILABLE and self.trainer.use_amp and not native_amp_available:
+        if is_apex_available() and self.trainer.use_amp and not native_amp_available:
             model = self._setup_nvidia_apex(model)
         return model
 
