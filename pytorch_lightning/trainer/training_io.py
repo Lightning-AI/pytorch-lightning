@@ -420,8 +420,20 @@ class TrainerIOMixin(ABC):
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
-        # TODO check for outdated checkpoint files and request user run an upgrade script
-        # TODO write an upgrade script that changes checkpoint files to new format
+        deprecated_keys = (
+            'checkpoint_callback_best_model_score',
+            'checkpoint_callback_best_model_path',
+            'checkpoint_callback_best',
+            'early_stop_callback_wait',
+            'early_stop_callback_patience'
+        )
+        if any([key in checkpoint for key in deprecated_keys]):
+            raise ValueError(
+                "The checkpoint you're attempting to load follows an"
+                " outdated schema. You can upgrade to the current schema by running"
+                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
+                "where `model.ckpt` is your checkpoint file."
+            )
 
         # load callback states
         self.on_load_checkpoint(checkpoint)
