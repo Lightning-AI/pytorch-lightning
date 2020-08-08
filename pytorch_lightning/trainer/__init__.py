@@ -414,14 +414,17 @@ Under the hood the pseudocode looks like this:
 gpus
 ^^^^
 
-- Number of GPUs to train on
-- or Which GPUs to train on
+- Number of GPUs to train on (int)
+- or which GPUs to train on (list)
 - can handle strings
 
 .. testcode::
 
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
+
+    # equivalent
+    trainer = Trainer(gpus=0)
 
 Example::
 
