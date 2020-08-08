@@ -76,7 +76,7 @@ class RMSE(Metric):
     ):
         """
         Args:
-            reduction: a method for reducing mse over labels (default: takes the mean)
+            reduction: a method for reducing metric scores over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
