@@ -68,7 +68,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed setup call while testing ([#2624](https://github.com/PyTorchLightning/pytorch-lightning/pull/2624))
+- Fixed imagenet example: lr_scheduler, loader workers, batch size when DDP ([#2432](https://github.com/PyTorchLightning/pytorch-lightning/pull/2432))
 
 - Fixed local rank zero casting ([#2640](https://github.com/PyTorchLightning/pytorch-lightning/pull/2640))
 

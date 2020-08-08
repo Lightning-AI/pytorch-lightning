@@ -1,3 +1,4 @@
+from copy import deepcopy
 import pytest
 import torch
 
@@ -33,7 +34,7 @@ def test_model_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    before_state_dict = model.state_dict()
+    before_state_dict = deepcopy(model.state_dict())
 
     _ = trainer.lr_find(model, num_training=5)
 
