@@ -21,14 +21,15 @@ import torchvision.transforms as transforms
 import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 
-# pull out resnet names from torchvision models
-MODEL_NAMES = sorted(
-    name for name in models.__dict__
-    if name.islower() and not name.startswith("__") and callable(models.__dict__[name])
-)
-
 
 class ImageNetLightningModel(LightningModule):
+
+    # pull out resnet names from torchvision models
+    MODEL_NAMES = sorted(
+        name for name in models.__dict__
+        if name.islower() and not name.startswith("__") and callable(models.__dict__[name])
+    )
+
     def __init__(
         self,
         arch,
@@ -86,28 +87,15 @@ class ImageNetLightningModel(LightningModule):
         return output
 
     def validation_epoch_end(self, outputs):
-
         tqdm_dict = {}
-
         for metric_name in ["val_loss", "val_acc1", "val_acc5"]:
-            metric_total = 0
-
-            for output in outputs:
-                metric_value = output[metric_name]
-
-                # reduce manually when using dp
-                if self.trainer.use_dp or self.trainer.use_ddp2:
-                    metric_value = torch.mean(metric_value)
-
-                metric_total += metric_value
-
-            tqdm_dict[metric_name] = metric_total / len(outputs)
+            tqdm_dict[metric_name] = torch.stack([output[metric_name] for output in outputs]).mean()
 
         result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': tqdm_dict["val_loss"]}
         return result
 
-    @classmethod
-    def __accuracy(cls, output, target, topk=(1,)):
+    @staticmethod
+    def __accuracy(output, target, topk=(1,)):
         """Computes the accuracy over the k top predictions for the specified values of k"""
         with torch.no_grad():
             maxk = max(topk)
@@ -201,9 +189,10 @@ class ImageNetLightningModel(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = ArgumentParser(parents=[parent_parser])
-        parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18', choices=MODEL_NAMES,
+        parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+                            choices=ImageNetLightningModel.MODEL_NAMES,
                             help='model architecture: ' +
-                                 ' | '.join(MODEL_NAMES) +
+                                 ' | '.join(ImageNetLightningModel.MODEL_NAMES) +
                                  ' (default: resnet18)')
         parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                             help='number of data loading workers (default: 4)')
