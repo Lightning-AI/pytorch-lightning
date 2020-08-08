@@ -24,16 +24,14 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 EPSILON = 1e-6
 EPSILON_FP16 = 1e-5
@@ -48,6 +46,7 @@ class TrainerTrainingTricksMixin(ABC):
     default_root_dir: str
     progress_bar_callback: ...
     on_gpu: bool
+    amp_type: AMPType
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -72,7 +71,7 @@ class TrainerTrainingTricksMixin(ABC):
         if self.gradient_clip_val <= 0:
             return
         model = self.get_model()
-        if self.use_amp and not NATIVE_AMP_AVALAIBLE:
+        if self.amp_type == AMPType.APEX:
             parameters = amp.master_params(optimizer)
         else:
             parameters = model.parameters()
