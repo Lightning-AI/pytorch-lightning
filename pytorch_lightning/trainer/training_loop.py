@@ -175,7 +175,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -183,9 +183,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -255,6 +253,8 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
+    amp_type: AMPType
+    on_tpu: bool
 
     # Callback system
     callbacks: List[Callback]
@@ -841,7 +841,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+        if self.amp_type == AMPType.NATIVE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients(optimizer)
 
@@ -863,7 +863,7 @@ class TrainerTrainLoopMixin(ABC):
                 batch_idx,
                 opt_idx,
                 optimizer,
-                self.hiddens
+                self.hiddens,
             ).loss
 
             # apply TPU optimizer
@@ -875,7 +875,7 @@ class TrainerTrainLoopMixin(ABC):
             elif isinstance(optimizer, torch.optim.LBFGS):
 
                 # native amp + lbfgs is a no go right now
-                if self.use_amp and NATIVE_AMP_AVALAIBLE:
+                if self.amp_type == AMPType.NATIVE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -884,12 +884,12 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
+                native_amp = self.amp_type == AMPType.NATIVE
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -906,7 +906,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -960,10 +960,10 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_backward'):
             # scale loss for 16 bit
             if self.precision == 16 and not self.on_tpu:
-                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
+                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
 
                 # enter amp context
-                if not NATIVE_AMP_AVALAIBLE:
+                if self.amp_type == AMPType.APEX:
                     context = closure_loss
                     closure_loss = closure_loss.__enter__()
 
@@ -971,7 +971,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE and not self.on_tpu:
+            if self.precision == 16 and self.amp_type == AMPType.APEX and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:
