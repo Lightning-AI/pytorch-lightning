@@ -818,7 +818,7 @@ replace_sampler_ddp
 ^^^^^^^^^^^^^^^^^^^
 Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
 for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
-it, you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
+it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
 .. testcode::
 
@@ -863,6 +863,19 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
+
+amp_type
+^^^^^^^^
+
+Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch built-in ("native") AMP which is supported from v1.6.
+
+.. testcode::
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_type='apex')
+    
+    # using PyTorch built-in AMP
+    trainer = Trainer(amp_type='native')
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^

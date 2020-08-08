@@ -49,8 +49,7 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, \
-    is_native_amp_available
+from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -193,6 +192,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
+        amp_type: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -302,6 +302,7 @@ class Trainer(
                     Defaults to `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
+                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -324,7 +325,7 @@ class Trainer(
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
-                you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
+                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
             benchmark: If true enables cudnn.benchmark.
 
@@ -581,7 +582,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp()
+        self.init_amp(amp_type)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -1122,7 +1123,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if is_native_amp_available() and self.precision == 16 and not self.use_tpu:
+        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters

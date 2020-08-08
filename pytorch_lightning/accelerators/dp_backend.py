@@ -16,6 +16,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import is_native_amp_available, is_apex_available
 
@@ -47,7 +48,7 @@ class DataParallelBackend(object):
         self.model_autocast_original_forward = model.forward
 
         # init half precision
-        if self.trainer.use_amp:
+        if self.trainer.amp_type:
             model = self.__init_half_precision(model)
 
         # init torch data parallel
@@ -67,7 +68,7 @@ class DataParallelBackend(object):
         return model
 
     def __init_half_precision(self, model):
-        if is_native_amp_available():
+        if self.trainer.amp_type == AMPType.NATIVE:
             self.__init_native_amp(model)
         else:
             model = self.__init_nvidia_apex(model)

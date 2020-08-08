@@ -16,6 +16,7 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.imports import is_apex_available, is_native_amp_available
 
@@ -130,10 +131,9 @@ class DDPSpawnBackend(object):
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
 
-        # AMP
+        # AMP -
         # run through amp wrapper before going to distributed DP
-        # TODO: remove with dropping NVIDIA AMP support
-        if self.trainer.use_amp and not is_native_amp_available():
+        if self.trainer.amp_type == AMPType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

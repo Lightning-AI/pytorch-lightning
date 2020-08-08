@@ -5,7 +5,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, is_native_amp_available, is_apex_available
+from pytorch_lightning.utilities import move_data_to_device, AMPType
 
 if is_apex_available():
     from apex import amp
@@ -214,7 +214,7 @@ class ModelHooks(Module):
             for optimizer in optimizers:
                 optimizer.step()
                 model.on_before_zero_grad(optimizer) # < ---- called here
-                optimizer.zero_grad
+                optimizer.zero_grad()
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
@@ -263,8 +263,8 @@ class ModelHooks(Module):
         """
         loss.backward()
 
-    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
-        if is_native_amp_available():
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx, amp_type: AMPType):
+        if amp_type == AMPType.NATIVE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)

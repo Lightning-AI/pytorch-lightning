@@ -1,4 +1,5 @@
 """General utilities"""
+from enum import Enum
 
 import numpy
 
@@ -16,3 +17,8 @@ NATIVE_AMP_AVALAIBLE = is_native_amp_available()
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps
 FLOAT64_EPSILON = numpy.finfo(numpy.float64).eps
+
+
+class AMPType(Enum):
+    APEX = 'apex'
+    NATIVE = 'native'
