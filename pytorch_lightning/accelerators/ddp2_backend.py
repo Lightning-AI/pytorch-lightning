@@ -133,9 +133,7 @@ class DDP2Backend(object):
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
 
-        # AMP
-        # run through amp wrapper before going to distributed DP
-        # TODO: remove with dropping NVIDIA AMP support
+        # AMP - run through amp wrapper before going to distributed DP
         if self.trainer.amp_type == AMPType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
