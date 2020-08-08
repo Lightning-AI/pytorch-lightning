@@ -1,5 +1,21 @@
 """
 This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
+
+Before you can run this example, you will need to download the ImageNet dataset manually from the
+`official website <http://image-net.org/download>`_ and place it into a folder `path/to/imagenet`.
+
+Train on ImageNet with default parameters:
+
+.. code-block: bash
+
+    python imagenet.py --data_root /path/to/imagenet
+
+or show all options you can change:
+
+.. code-block: bash
+
+    python imagenet.py --help
+
 """
 import os
 from argparse import ArgumentParser, Namespace
