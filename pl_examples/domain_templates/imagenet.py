@@ -238,7 +238,7 @@ def main(args: Namespace) -> None:
         args.workers = int(args.workers / max(1, args.gpus))
 
     model = ImageNetLightningModel(**vars(args))
-    trainer = pl.Trainer.from_argparse_args(args, default_root_dir=args.save_path)
+    trainer = pl.Trainer.from_argparse_args(args)
 
     if args.evaluate:
         trainer.test(model)
@@ -251,8 +251,6 @@ def run_cli():
     parent_parser = pl.Trainer.add_argparse_args(parent_parser)
     parent_parser.add_argument('--data-path', metavar='DIR', type=str,
                                help='path to dataset')
-    parent_parser.add_argument('--save-path', metavar='DIR', default=".", type=str,
-                               help='path to save output')
     parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                                help='evaluate model on validation set')
     parent_parser.add_argument('--seed', type=int, default=42,
