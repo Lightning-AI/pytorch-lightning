@@ -6,12 +6,13 @@ name: torch-GPU
 
 steps:
 - name: testing
-  image: pytorchlightning/pytorch_lightning:devel-pt_1_4
+  image: pytorchlightning/pytorch_lightning:cuda-extras-py3.7-torch1.5
 
   environment:
     SLURM_LOCALID: 0
     CODECOV_TOKEN:
       from_secret: codecov_token
+    MKL_THREADING_LAYER: GNU
     HOROVOD_GPU_ALLREDUCE: NCCL
     HOROVOD_GPU_BROADCAST: NCCL
     HOROVOD_WITH_PYTORCH: 1
@@ -33,17 +34,20 @@ steps:
     - nvidia-smi
     #- bash ./tests/install_AMP.sh
     - apt-get update && apt-get install -y cmake
-    - pip install -r ./requirements/base.txt --user -q
-    - pip install -r ./requirements/devel.txt --user -q
+    - pip install -r ./requirements/base.txt --user -q --upgrade-strategy only-if-needed
+    - pip install -r ./requirements/devel.txt --user -q --upgrade-strategy only-if-needed
     #- pip install -r ./requirements/docs.txt --user -q
-    - pip install -r ./requirements/examples.txt --user -q
+    - pip install -r ./requirements/examples.txt --user -q --upgrade-strategy only-if-needed
     - pip list
     - python -c "import torch ; print(' & '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]) if torch.cuda.is_available() else 'only CPU')"
     - coverage run --source pytorch_lightning -m py.test pytorch_lightning tests -v --durations=25 # --flake8
     - python -m py.test benchmarks pl_examples -v --maxfail=2  --durations=0 # --flake8
     #- cd docs; make doctest; make coverage
     - coverage report
-    - codecov --token $CODECOV_TOKEN  # --pr $DRONE_PULL_REQUEST --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG
+    # see: https://docs.codecov.io/docs/merging-reports
+    - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --name="GPU-coverage" --env=linux --build $DRONE_BUILD_NUMBER --commit $DRONE_COMMIT
+    # --build $DRONE_BUILD_NUMBER --branch $DRONE_BRANCH --commit $DRONE_COMMIT --tag $DRONE_TAG --pr $DRONE_PULL_REQUEST
+    # - codecov --token $CODECOV_TOKEN --flags=gpu,pytest --build $DRONE_BUILD_NUMBER
     - python tests/collect_env_details.py
 
 trigger:

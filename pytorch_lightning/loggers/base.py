@@ -3,10 +3,13 @@ import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from functools import wraps
 from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple, MutableMapping
 
 import numpy as np
 import torch
+
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningLoggerBase(ABC):
@@ -32,7 +35,6 @@ class LightningLoggerBase(ABC):
             agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
             agg_default_func: Callable[[Sequence[float]], float] = np.mean
     ):
-        self._rank = 0
         self._prev_step: int = -1
         self._metrics_to_agg: List[Dict[str, float]] = []
         self._agg_key_funcs = agg_key_funcs if agg_key_funcs else {}
@@ -236,6 +238,14 @@ class LightningLoggerBase(ABC):
         self.save()
 
     @property
+    def save_dir(self) -> Optional[str]:
+        """
+        Return the root directory where experiment logs get saved, or `None` if the logger does not
+        save data locally.
+        """
+        return None
+
+    @property
     @abstractmethod
     def name(self) -> str:
         """Return the experiment name."""
@@ -262,24 +272,46 @@ class LoggerCollection(LightningLoggerBase):
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return [logger for logger in self._logger_iterable][index]
 
+    def update_agg_funcs(
+            self,
+            agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+            agg_default_func: Callable[[Sequence[float]], float] = np.mean
+    ):
+        for logger in self._logger_iterable:
+            logger.update_agg_funcs(agg_key_funcs, agg_default_func)
+
     @property
     def experiment(self) -> List[Any]:
         return [logger.experiment for logger in self._logger_iterable]
 
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+        for logger in self._logger_iterable:
+            logger.agg_and_log_metrics(metrics, step)
+
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        [logger.log_metrics(metrics, step) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.log_metrics(metrics, step)
 
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        [logger.log_hyperparams(params) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.log_hyperparams(params)
 
     def save(self) -> None:
-        [logger.save() for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.save()
 
     def finalize(self, status: str) -> None:
-        [logger.finalize(status) for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.finalize(status)
 
     def close(self) -> None:
-        [logger.close() for logger in self._logger_iterable]
+        for logger in self._logger_iterable:
+            logger.close()
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        # Checkpoints should be saved to default / chosen location when using multiple loggers
+        return None
 
     @property
     def name(self) -> str:
@@ -377,3 +409,14 @@ def merge_dicts(
             d_out[k] = (fn or default_func)(values_to_agg)
 
     return d_out
+
+
+def rank_zero_experiment(fn: Callable) -> Callable:
+    """ Returns the real experiment on rank 0 and otherwise the DummyExperiment. """
+    @wraps(fn)
+    def experiment(self):
+        @rank_zero_only
+        def get_experiment():
+            return fn(self)
+        return get_experiment() or DummyExperiment()
+    return experiment

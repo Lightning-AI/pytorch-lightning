@@ -7,5 +7,9 @@ flake8
 flake8-black
 check-manifest
 twine==1.13.0
+scikit-image
 black==19.10b0
 pre-commit>=1.0
+
+cloudpickle>=1.2
+nltk>=3.3

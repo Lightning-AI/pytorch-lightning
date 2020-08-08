@@ -1,7 +1,8 @@
-from functools import wraps
-import warnings
-from pytorch_lightning import _logger as log
 import os
+import warnings
+from functools import wraps
+
+from pytorch_lightning import _logger as log
 
 
 def rank_zero_only(fn):
@@ -14,11 +15,8 @@ def rank_zero_only(fn):
     return wrapped_fn
 
 
-try:
-    # add the attribute to the function but don't overwrite in case Trainer has already set it
-    getattr(rank_zero_only, 'rank')
-except AttributeError:
-    rank_zero_only.rank = os.environ.get('LOCAL_RANK', 0)
+# add the attribute to the function but don't overwrite in case Trainer has already set it
+rank_zero_only.rank = getattr(rank_zero_only, 'rank', int(os.environ.get('LOCAL_RANK', 0)))
 
 
 def _warn(*args, **kwargs):

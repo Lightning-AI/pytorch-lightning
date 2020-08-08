@@ -10,11 +10,11 @@ Metrics
 This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.
 Metrics are used to monitor model performance.
 
-In this package we provide two major pieces of functionality.
+In this package, we provide two major pieces of functionality.
 
 1. A Metric class you can use to implement metrics with built-in distributed (ddp) support which are device agnostic.
-2. A collection of ready to use pupular metrics. There are two types of metrics: Class metrics and Functional metrics.
-3. A interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
+2. A collection of ready to use popular metrics. There are two types of metrics: Class metrics and Functional metrics.
+3. An interface to call `sklearns metrics <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
 
 Example::
 
@@ -28,14 +28,13 @@ Example::
 
 .. warning::
     The metrics package is still in development! If we're missing a metric or you find a mistake, please send a PR!
-    to a few metrics. Please feel free to create an issue/PR if you have a proposed 
-    metric or have found a bug.
+    to a few metrics. Please feel free to create an issue/PR if you have a proposed metric or have found a bug.
 
 ----------------
 
 Implement a metric
 ------------------
-You can implement metrics as either a PyTorch metric or a Numpy metric (It is recommend to use PyTorch metrics when possible,
+You can implement metrics as either a PyTorch metric or a Numpy metric (It is recommended to use PyTorch metrics when possible,
 since Numpy metrics slow down training).
 
 Use :class:`TensorMetric` to implement native PyTorch metrics. This class
@@ -74,7 +73,7 @@ Here's an example showing how to implement a NumpyMetric
     class RMSE(NumpyMetric):
         def forward(self, x, y):
             return np.sqrt(np.mean(np.power(x-y, 2.0)))
-        
+
 
 .. autoclass:: pytorch_lightning.metrics.metric.NumpyMetric
     :noindex:
@@ -137,6 +136,12 @@ AUROC
 ^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.classification.AUROC
+    :noindex:
+
+BLEUScore
+^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.nlp.BLEUScore
     :noindex:
 
 ConfusionMatrix
@@ -229,6 +234,12 @@ RMSLE
 .. autoclass:: pytorch_lightning.metrics.regression.RMSLE
     :noindex:
 
+SSIM
+^^^^
+
+.. autoclass:: pytorch_lightning.metrics.regression.SSIM
+    :noindex:
+
 ----------------
 
 Functional Metrics
@@ -282,6 +293,12 @@ average_precision (F)
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.average_precision
+    :noindex:
+
+bleu_score (F)
+^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.bleu_score
     :noindex:
 
 confusion_matrix (F)
@@ -362,6 +379,42 @@ iou (F)
 .. autofunction:: pytorch_lightning.metrics.functional.iou
     :noindex:
 
+mse (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.mse
+    :noindex:
+
+rmse (F)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.rmse
+    :noindex:
+
+mae (F)
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.mae
+    :noindex:
+
+rmsle (F)
+^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.rmsle
+    :noindex:
+
+psnr (F)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.psnr
+    :noindex:
+
+ssim (F)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.ssim
+    :noindex:
+
 stat_scores_multiple_classes (F)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -389,22 +442,22 @@ to_onehot (F)
 
 Sklearn interface
 -----------------
-    
-Lightning supports `sklearns metrics module <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_ 
-as a backend for calculating metrics. Sklearns metrics are well tested and robust, 
+
+Lightning supports `sklearns metrics module <https://scikit-learn.org/stable/modules/classes.html#module-sklearn.metrics>`_
+as a backend for calculating metrics. Sklearns metrics are well tested and robust,
 but requires conversion between pytorch and numpy thus may slow down your computations.
 
 To use the sklearn backend of metrics simply import as
 
 .. code-block:: python
-    
+
     import pytorch_lightning.metrics.sklearns import plm
     metric = plm.Accuracy(normalize=True)
     val = metric(pred, target)
-    
-Each converted sklearn metric comes has the same interface as its 
-originally counterpart (e.g. accuracy takes the additional `normalize` keyword). 
-Like the native Lightning metrics these converted sklearn metrics also come 
+
+Each converted sklearn metric comes has the same interface as its
+original counterpart (e.g. accuracy takes the additional `normalize` keyword).
+Like the native Lightning metrics, these converted sklearn metrics also come
 with built-in distributed (ddp) support.
 
 SklearnMetric (sk)
@@ -431,11 +484,28 @@ AveragePrecision (sk)
 .. autofunction:: pytorch_lightning.metrics.sklearns.AveragePrecision
     :noindex:
 
-    
+BalancedAccuracy (sk)
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.BalancedAccuracy
+    :noindex:
+
+CohenKappaScore (sk)
+^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.CohenKappaScore
+    :noindex:
+
 ConfusionMatrix (sk)
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.ConfusionMatrix
+    :noindex:
+
+DCG (sk)
+^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.DCG
     :noindex:
 
 F1 (sk)
@@ -448,6 +518,24 @@ FBeta (sk)
 ^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.FBeta
+    :noindex:
+
+Hamming (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Hamming
+    :noindex:
+
+Hinge (sk)
+^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Hinge
+    :noindex:
+
+Jaccard (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.Jaccard
     :noindex:
 
 Precision (sk)
@@ -479,3 +567,58 @@ AUROC (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.AUROC
     :noindex:
+
+ExplainedVariance (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.ExplainedVariance
+    :noindex:
+
+MeanAbsoluteError (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanAbsoluteError
+    :noindex:
+    
+MeanSquaredError (sk)
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredError
+    :noindex:
+    
+MeanSquaredLogError (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredLogError
+    :noindex:
+    
+MedianAbsoluteError (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MedianAbsoluteError
+    :noindex:
+    
+R2Score (sk)
+^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.R2Score
+    :noindex:
+    
+MeanPoissonDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanPoissonDeviance
+    :noindex:
+
+MeanGammaDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanGammaDeviance
+    :noindex:
+    
+MeanTweedieDeviance (sk)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.sklearns.MeanTweedieDeviance
+    :noindex:
+    

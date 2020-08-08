@@ -47,63 +47,29 @@ def test_against_sklearn(sklearn_metric, torch_metric):
     """Compare PL metrics to sklearn version."""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    pred = torch.randint(10, (500,), device=device)
-    target = torch.randint(10, (500,), device=device)
+    # iterate over different label counts in predictions and target
+    for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]:
+        pred = torch.randint(n_cls_pred, (300,), device=device)
+        target = torch.randint(n_cls_target, (300,), device=device)
 
-    assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(),
-                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
-        torch_metric(pred, target))
-
-    pred = torch.randint(10, (200,), device=device)
-    target = torch.randint(5, (200,), device=device)
-
-    assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(),
-                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
-        torch_metric(pred, target))
-
-    pred = torch.randint(5, (200,), device=device)
-    target = torch.randint(10, (200,), device=device)
-
-    assert torch.allclose(
-        torch.tensor(sklearn_metric(target.cpu().detach().numpy(),
-                                    pred.cpu().detach().numpy()), dtype=torch.float, device=device),
-        torch_metric(pred, target))
+        sk_score = sklearn_metric(target.cpu().detach().numpy(),
+                                  pred.cpu().detach().numpy())
+        sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+        pl_score = torch_metric(pred, target)
+        assert torch.allclose(sk_score, pl_score)
 
 
 def test_onehot():
     test_tensor = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
-    expected = torch.tensor([
-        [
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
-        ], [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1]
-        ]
+    expected = torch.stack([
+        torch.cat([torch.eye(5, dtype=int), torch.zeros((5, 5), dtype=int)]),
+        torch.cat([torch.zeros((5, 5), dtype=int), torch.eye(5, dtype=int)])
     ])
 
     assert test_tensor.shape == (2, 5)
     assert expected.shape == (2, 10, 5)
 
-    onehot_classes = to_onehot(test_tensor, n_classes=10)
+    onehot_classes = to_onehot(test_tensor, num_classes=10)
     onehot_no_classes = to_onehot(test_tensor)
 
     assert torch.allclose(onehot_classes, onehot_no_classes)
@@ -116,30 +82,9 @@ def test_onehot():
 
 
 def test_to_categorical():
-    test_tensor = torch.tensor([
-        [
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
-        ], [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [1, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 1]
-        ]
+    test_tensor = torch.stack([
+        torch.cat([torch.eye(5, dtype=int), torch.zeros((5, 5), dtype=int)]),
+        torch.cat([torch.zeros((5, 5), dtype=int), torch.eye(5, dtype=int)])
     ]).to(torch.float)
 
     expected = torch.tensor([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]])
@@ -176,15 +121,19 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
     assert sup.item() == expected_support
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp',
+@pytest.mark.parametrize(['pred', 'target', 'reduction', 'expected_tp', 'expected_fp',
                           'expected_tn', 'expected_fn', 'expected_support'], [
-    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]),
+    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), 'none',
                  [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1], [1, 0, 0, 1, 2]),
-    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]),
-                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1], [1, 0, 0, 1, 2])
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'none',
+                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1], [1, 0, 0, 1, 2]),
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'sum',
+                 torch.tensor(2), torch.tensor(2), torch.tensor(14), torch.tensor(2), torch.tensor(4)),
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'elementwise_mean',
+                 torch.tensor(0.4), torch.tensor(0.4), torch.tensor(2.8), torch.tensor(0.4), torch.tensor(0.8))
 ])
-def test_stat_scores_multiclass(pred, target, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
-    tp, fp, tn, fn, sup = stat_scores_multiple_classes(pred, target)
+def test_stat_scores_multiclass(pred, target, reduction, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
+    tp, fp, tn, fn, sup = stat_scores_multiple_classes(pred, target, reduction=reduction)
 
     assert torch.allclose(torch.tensor(expected_tp).to(tp), tp)
     assert torch.allclose(torch.tensor(expected_fp).to(fp), fp)
@@ -260,7 +209,9 @@ def test_fbeta_score(pred, target, beta, exp_score):
 
 
 @pytest.mark.parametrize(['pred', 'target', 'exp_score'], [
+    pytest.param([0., 0., 0., 0.], [1., 1., 1., 1.], [0.0, 0.0]),
     pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], [0.5, 0.5]),
+    pytest.param([1., 0., 1., 0.], [1., 0., 1., 0.], [1.0, 1.0]),
 ])
 def test_f1_score(pred, target, exp_score):
     score = f1_score(torch.tensor(pred), torch.tensor(target), reduction='none')
@@ -324,7 +275,7 @@ def test_roc_curve(pred, target, expected_tpr, expected_fpr):
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
-    pytest.param([0, 0, 1, 1], [0, 0, 1, 1], 1.),
+    pytest.param([0, 1, 0, 1], [0, 1, 0, 1], 1.),
     pytest.param([1, 1, 0, 0], [0, 0, 1, 1], 0.),
     pytest.param([1, 1, 1, 1], [1, 1, 0, 0], 0.5),
     pytest.param([1, 1, 0, 0], [1, 1, 0, 0], 1.),
@@ -355,7 +306,7 @@ def test_auc(x, y, expected):
     # The precision is then the fraction of positive whatever the recall
     # is, as there is only one threshold:
     pytest.param(torch.tensor([1, 1, 1, 1]), torch.tensor([0, 0, 0, 1]), .25),
-    # With treshold .8 : 1 TP and 2 TN and one FN
+    # With threshold 0.8 : 1 TP and 2 TN and one FN
     pytest.param(torch.tensor([.6, .7, .8, 9]), torch.tensor([1, 0, 0, 1]), .75),
 ])
 def test_average_precision(scores, target, expected_score):

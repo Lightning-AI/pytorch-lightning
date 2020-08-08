@@ -1,4 +1,5 @@
 import pickle
+from typing import Optional
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -20,6 +21,16 @@ def test_logger_collection():
 
     assert logger.experiment[0] == mock1.experiment
     assert logger.experiment[1] == mock2.experiment
+
+    assert logger.save_dir is None
+
+    logger.update_agg_funcs({'test': np.mean}, np.sum)
+    mock1.update_agg_funcs.assert_called_once_with({'test': np.mean}, np.sum)
+    mock2.update_agg_funcs.assert_called_once_with({'test': np.mean}, np.sum)
+
+    logger.agg_and_log_metrics({'test': 2.0}, 4)
+    mock1.agg_and_log_metrics.assert_called_once_with({'test': 2.0}, 4)
+    mock2.agg_and_log_metrics.assert_called_once_with({'test': 2.0}, 4)
 
     logger.close()
     mock1.close.assert_called_once()
@@ -48,6 +59,14 @@ class CustomLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status):
         self.finalized_status = status
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        """
+        Return the root directory where experiment logs get saved, or `None` if the logger does not
+        save data locally.
+        """
+        return None
 
     @property
     def name(self):

@@ -1,9 +1,9 @@
 """
 This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
 """
-from argparse import ArgumentParser, Namespace
 import os
 import random
+from argparse import ArgumentParser, Namespace
 from collections import OrderedDict
 
 import torch
@@ -245,7 +245,7 @@ def main(args: Namespace) -> None:
     )
 
     if args.evaluate:
-        trainer.run_evaluation()
+        trainer.test()
     else:
         trainer.fit(model)
 

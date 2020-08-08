@@ -20,6 +20,8 @@ Hooks lifecycle
 Training set-up
 ^^^^^^^^^^^^^^^
 
+- :meth:`~pytorch_lightning.core.lightning.LightningModule.prepare_data`
+- :meth:`~pytorch_lightning.core.lightning.LightningModule.setup`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.init_ddp_connection`
 - :meth:`~pytorch_lightning.trainer.optimizers.TrainerOptimizersMixin.init_optimizers`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_apex`
@@ -29,6 +31,8 @@ Training set-up
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.val_dataloader`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.summarize`
 - :meth:`~pytorch_lightning.trainer.training_io.TrainerIOMixin.restore_weights`
+
+.. warning:: `prepare_data` is only called from global_rank=0. Don't assign state (self.something), use `setup` for that
 
 ----------
 

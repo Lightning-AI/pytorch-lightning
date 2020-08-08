@@ -17,7 +17,7 @@ except ImportError:  # pragma: no-cover
     Run = None
     _WANDB_AVAILABLE = False
 
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
 
@@ -95,6 +95,7 @@ class WandbLogger(LightningLoggerBase):
         return state
 
     @property
+    @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
 
@@ -115,7 +116,7 @@ class WandbLogger(LightningLoggerBase):
                 group=self._group)
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
-                self.save_dir = self._experiment.dir
+                self._save_dir = self._experiment.dir
         return self._experiment
 
     def watch(self, model: nn.Module, log: str = 'gradients', log_freq: int = 100):
@@ -124,19 +125,25 @@ class WandbLogger(LightningLoggerBase):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = self._convert_params(params)
+        params = self._flatten_dict(params)
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
+
         self.experiment.log({'global_step': step, **metrics} if step is not None else metrics)
+
+    @property
+    def save_dir(self) -> Optional[str]:
+        return self._save_dir
 
     @property
     def name(self) -> Optional[str]:
         # don't create an experiment if we don't have one
-        name = self._experiment.project_name() if self._experiment else None
-        return name
+        return self._experiment.project_name() if self._experiment else self._name
 
     @property
     def version(self) -> Optional[str]:
         # don't create an experiment if we don't have one
-        return self._experiment.id if self._experiment else None
+        return self._experiment.id if self._experiment else self._id

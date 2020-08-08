@@ -42,18 +42,18 @@ jobs:
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+          key: ${{ runner.os }}-pip-extras-${{ hashFiles('requirements/base.txt') }}-${{ hashFiles('requirements/extra.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-extras-
 
       - name: Install dependencies
         run: |
           # python -m pip install --upgrade --user pip
-          pip install -r requirements/base.txt -U -f https://download.pytorch.org/whl/torch_stable.html -q
-          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install -r ./requirements/devel.txt -q
+          pip install --requirement requirements/base.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+          HOROVOD_BUILD_ARCH_FLAGS="-mfma" pip install --requirement ./requirements/devel.txt --quiet
           # pip install tox coverage
           python --version ; pip --version ; pip list
         shell: bash

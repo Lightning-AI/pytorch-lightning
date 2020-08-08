@@ -1,90 +1,128 @@
-# Python CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-python/ for more details
-#
-version: 2.0
+# Python CircleCI 2.1 configuration file.
+version: 2.1
+orbs:
+  gcp-gke: circleci/gcp-gke@1.0.4
+  go: circleci/go@1.3.0
+  codecov: codecov/codecov@1.1.0
 
 references:
 
-  install_deps: &install_deps
-    run:
-      name: Install Dependences
-      command: |
-        sudo apt-get update && sudo apt-get install -y cmake
-        pip install "$TORCH_VERSION"
-        pip install -r requirements/base.txt -q
-        sudo pip install pytest -q
-        pip install -r requirements/devel.txt -q
-
-  tests: &tests
-   run:
-     name: Testing
-     command: |
-       python --version ; pip --version ; pip list
-       py.test pytorch_lightning tests -v --junitxml=test-reports/pytest_junit.xml
-     no_output_timeout: 15m
-
-  examples: &examples
-   run:
-     name: PL Examples
-     command: |
-       pip install -r ./requirements/examples.txt --user
-       python --version ; pip --version ; pip list
-       py.test pl_examples -v --junitxml=test-reports/pytest_junit.xml
-     no_output_timeout: 20m
-
-  install_pkg: &install_pkg
-    run:
-      name: Install package
-      command: |
-        virtualenv vEnv ; source vEnv/bin/activate
-        pip install --editable . ; cd .. & python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
-        deactivate ; rm -rf vEnv
-
-  create_pkg: &create_pkg
-    run:
-      name: Create package
-      command: |
-        sudo pip install twine==1.13.0
-        python setup.py sdist
-        twine check dist/*
-        python setup.py clean
-
-  format: &format
-   run:
-     name: Formatting
-     command: |
-       python --version ; pip --version
-       sudo pip install flake8 -q
-       pip list
-       flake8 .
-
   make_docs: &make_docs
-   run:
-     name: Make Documentation
-     command: |
-       # First run the same pipeline as Read-The-Docs
-       # apt-get update && apt-get install -y cmake
-       # using: https://hub.docker.com/r/readthedocs/build
-       # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
-       pyenv global 3.7.3
-       python --version
-       pip install -r requirements/docs.txt
-       cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
+    run:
+      name: Make Documentation
+      command: |
+        # First run the same pipeline as Read-The-Docs
+        # apt-get update && apt-get install -y cmake
+        # using: https://hub.docker.com/r/readthedocs/build
+        # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
+        pyenv global 3.7.3
+        python --version
+        pip install -r requirements/docs.txt
+        cd docs; make clean; make html --debug --jobs 2 SPHINXOPTS="-W"
 
-  test_docs: &test_docs
+  checkout_ml_testing: &checkout_ml_testing
    run:
-     name: Testing Documentation
+     name: Checkout ml-testing-accelerators
      command: |
-       # Second run examples in docs
-       bash tests/install_AMP.sh
-       sudo apt-get update && sudo apt-get install -y cmake
-       sudo pip install -r requirements/docs.txt
-       cd docs; make doctest; make coverage
+       git clone https://github.com/GoogleCloudPlatform/ml-testing-accelerators.git
+       cd ml-testing-accelerators
+       git fetch origin 5e88ac24f631c27045e62f0e8d5dfcf34e425e25:stable
+       git checkout stable
+       cd ..
+
+  build_push_docker: &build_push_docker
+    run:
+      name: Build and push Docker image
+      command: |
+        gcloud --quiet auth configure-docker
+        cd dockers/tpu-tests
+        # TODO: How to find the GITHUB_REF in CircleCI?
+        # $CI_PULL_REQUEST seems to be of form: https://github.com/org/repo-name/pull/11.
+        # Grab the last bit, e.g. pull/11, convert to pull/11/head, and use it
+        # for the GITHUB_REF so Docker can pull the latest pending code in PR.
+        if [ -z "$CI_PULL_REQUEST" ]; then docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1"; else git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head && docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" .; fi
+        docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
+
+  deploy_cluster: &deploy_cluster
+   run:
+     name: Deploy the job on the kubernetes cluster
+     command: |
+       go get github.com/google/go-jsonnet/cmd/jsonnet
+       export PATH=$PATH:$HOME/go/bin
+       job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet --ext-str image=$GCR_IMAGE_PATH --ext-str image-tag=$CIRCLE_WORKFLOW_JOB_ID | kubectl create -f -)
+       job_name=${job_name#job.batch/}
+       job_name=${job_name% created}
+       echo "Waiting on kubernetes job: $job_name"
+       i=0 && \
+       # N checks spaced 30s apart = 900s total.
+       status_code=2 && \
+       # Check on the job periodically. Set the status code depending on what
+       # happened to the job in Kubernetes. If we try MAX_CHECKS times and
+       # still the job hasn't finished, give up and return the starting
+       # non-zero status code.
+       printf "Waiting for job to finish: " && \
+       while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
+       echo "Done waiting. Job status code: $status_code" && \
+       # Allow time for logs to flush.
+       sleep 30 && \
+       echo "JOB_NAME: $job_name" && \
+       gcloud logging read "resource.type=k8s_container resource.labels.project_id=$GOOGLE_PROJECT_ID resource.labels.location=$GOOGLE_COMPUTE_ZONE resource.labels.cluster_name=$GKE_CLUSTER resource.labels.namespace_name=default resource.labels.pod_name:$job_name" --limit 10000000 --order asc --format 'value(textPayload)' --project=$GOOGLE_PROJECT_ID > /tmp/full_output.txt && \
+       if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
+       # First portion is the test logs. Print these to Github Action stdout.
+       cat xx00 && \
+       echo "Done with log retrieval attempt." && \
+       gcloud container images delete "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" --force-delete-tags && \
+       exit $status_code
+
+  stats: &stats
+   run:
+     name: Statistics
+     command: |
+       mv ./xx01 coverage.xml
+       # TODO: add human readable report
+       cat coverage.xml
+       sudo pip install pycobertura
+       pycobertura show coverage.xml
+
+  delete_gke_jobs: &delete_gke_jobs
+   run:
+     name: Delete GKE Jobs
+     command: |
+       # Match jobs whose age matches patterns like '1h' or '1d', i.e. any job
+       # that has been around longer than 1hr. First print all columns for
+       # matches, then execute the delete.
+       kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $0}'
+       kubectl delete job $(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $1}')
 
 jobs:
 
-  Build-Docs:
+  TPU-tests:
+    docker:
+      - image: circleci/python:3.7
+    environment:
+      - MAX_CHECKS: 240
+      - CHECK_SPEEP: 5
+    steps:
+      - checkout
+      - go/install
+      - *checkout_ml_testing
+      - gcp-gke/install
+      - gcp-gke/update-kubeconfig-with-credentials:
+          cluster: $GKE_CLUSTER
+          perform-login: true
+      - setup_remote_docker
+      - *build_push_docker
+      - *deploy_cluster
+      - *stats
+      - codecov/upload:
+          file: coverage.xml
+          flags: tpu,pytest
+          upload_name: TPU-coverage
+
+      - store_artifacts:
+          path: coverage.xml
+
+  build-Docs:
     docker:
       - image: readthedocs/build:latest
     steps:
@@ -95,93 +133,41 @@ jobs:
           path: docs/build/html/
           destination: html
 
-  Formatting:
-    docker:
-      - image: circleci/python:3.7
-    environment:
-        - TORCH_VERSION: "torch"
-    steps:
-      - checkout
-      - *format
-
-  PyTorch:
-    docker:
-      - image: circleci/python:3.6
-    environment:
-      - TORCH_VERSION: "torch"
-    steps: &steps
-      - checkout
-      #- restore_cache:
-      #    keys:
-      #      # when lock file changes, use increasingly general patterns to restore cache
-      #      - pip-packages--{{ .Environment.CIRCLE_JOB }}
-      #      - pip-packages--
-      - *install_deps
-      #- save_cache:
-      #    key: pip-packages--{{ .Environment.CIRCLE_JOB }}
-      #    paths:
-      #      # this path depends on where pipenv creates a virtualenv
-      #      - "~/.cache/pip"
-      #      - "/usr/local/lib/python3.6/site-packages"
-      #      - "/usr/local/lib/site-python"
-      - *tests
-      - store_test_results:
-          path: test-reports
-      - store_artifacts:
-          path: test-reports
-
-  PyTorch-v1_3:
-    docker:
-      - image: circleci/python:3.6
-    environment:
-      - TORCH_VERSION: "torch>=1.3, <1.4"
-    steps: *steps
-
-  PyTorch-v1_4:
-    docker:
-      - image: circleci/python:3.6
-    environment:
-      - TORCH_VERSION: "torch>=1.4, <1.5"
-    steps: *steps
-
-  PyTorch-v1_5:
-    docker:
-      - image: circleci/python:3.6
-    environment:
-      - TORCH_VERSION: "torch>=1.5, <1.6"
-    steps: *steps
-
-  Examples:
-    docker:
-      - image: circleci/python:3.7
-    environment:
-        - TORCH_VERSION: "torch"
-        - SPHINX_MOCK_REQUIREMENTS: 0
-    steps:
-      - checkout
-      - *install_deps
-      - *test_docs
-      - *examples
-
-  Install-pkg:
+  cleanup-gke-jobs:
     docker:
       - image: circleci/python:3.7
     steps:
-      - checkout
-      - *create_pkg
-      - *install_pkg
+      - gcp-gke/install
+      - gcp-gke/update-kubeconfig-with-credentials:
+          cluster: $GKE_CLUSTER
+          perform-login: true
+      - *delete_gke_jobs
 
-#orbs:
-#  python: circleci/python@0.2.1
 
 workflows:
   version: 2
   build:
     jobs:
-      #- Formatting
-      #- Build-Docs
-      - PyTorch-v1_3
-      - PyTorch-v1_4
-      - PyTorch-v1_5
-      #- Install-pkg
-      - Examples
+      - build-Docs
+      - TPU-tests:
+          filters:
+            branches:
+              # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
+              #only:
+              #  # only from forks
+              #  - /^pull\/.\d+$/
+              ignore:
+                - master
+  cleanup:
+    triggers:
+      - schedule:
+          # The cron format is:
+          # min (0-59) hour (0-23) monthday (1-31) month (1-12) weekday (0-6, 0=Sun)
+          # Set to run at the first minute of every hour.
+          cron: "0 * * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - cleanup-gke-jobs

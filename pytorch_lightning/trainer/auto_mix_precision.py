@@ -1,8 +1,7 @@
 from abc import ABC
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_warn, APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
-from pytorch_lightning.utilities.distributed import rank_zero_debug
+from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, rank_zero_warn, AMPType
 
 
 class TrainerAMPMixin(ABC):
@@ -11,26 +10,39 @@ class TrainerAMPMixin(ABC):
     #  the proper values/initialisation should be done in child class
     precision: int
 
-    def init_amp(self):
-        if NATIVE_AMP_AVALAIBLE:
-            log.debug("`amp_level` has been deprecated since v0.7.4 (native amp does not require it)")
-
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
-            log.info('Using native 16bit precision.')
+    def _setup_amp_type(self, amp_type: str):
+        self.amp_type = None
+        if self.precision != 16:
+            # no AMP requested, so we can leave now
             return
-
-        # TODO: replace `use_amp` by `precision` all below for v0.9.0
-        if self.use_amp and not APEX_AVAILABLE:  # pragma: no-cover
+        amp_type = amp_type.lower()
+        assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
+        if amp_type == 'native':
+            if not NATIVE_AMP_AVALAIBLE:
+                rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
+                               ' Consider upgrading with `pip install torch>=1.6`.'
+                               ' We will attempt to use NVIDIA Apex for this session.')
+                amp_type = 'apex'
+            else:
+                log.info('Using native 16bit precision.')
+                self.amp_type = AMPType.NATIVE
+        if amp_type == 'apex':
+            if not APEX_AVAILABLE:
+                rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
+                               ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
+            else:
+                log.info('Using APEX 16bit precision.')
+                self.amp_type = AMPType.APEX
+        if not self.amp_type:
             raise ModuleNotFoundError(
-                "You set `use_amp=True` but do not have apex installed."
-                "Install apex first using this guide and rerun with use_amp=True:"
-                "https://github.com/NVIDIA/apex#linux his run will NOT use 16 bit precision"
+                f'You have asked for AMP support {amp_type}, but there is no support on your side yet.'
+                f' Consider installing torch >= 1.6 or NVIDIA Apex.'
             )
 
-        if self.use_amp:
-            log.info('Using APEX 16bit precision.')
+    def init_amp(self, amp_type: str):
+        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
+
+        self._setup_amp_type(amp_type)
 
     @property
     def use_amp(self) -> bool:

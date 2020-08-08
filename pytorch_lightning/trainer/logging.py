@@ -73,12 +73,16 @@ class TrainerLoggingMixin(ABC):
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
+            self.dev_debugger.track_logged_metrics_history(scalar_metrics)
+
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
                 v = v.item()
 
             self.progress_bar_metrics[k] = v
+
+        self.dev_debugger.track_pbar_metrics_history(metrics)
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
@@ -98,6 +102,17 @@ class TrainerLoggingMixin(ABC):
 
         Separates loss from logging and progress bar metrics
         """
+        # --------------------------
+        # handle single scalar only
+        # --------------------------
+        # single scalar returned from a xx_step
+        if isinstance(output, torch.Tensor):
+            progress_bar_metrics = {}
+            log_metrics = {}
+            callback_metrics = {}
+            hiddens = None
+            return output, progress_bar_metrics, log_metrics, callback_metrics, hiddens
+
         # ---------------
         # EXTRACT CALLBACK KEYS
         # ---------------
@@ -191,6 +206,10 @@ class TrainerLoggingMixin(ABC):
             # recurse on nested dics
             if isinstance(output[k], dict):
                 output[k] = self.reduce_distributed_output(output[k], num_gpus)
+
+            # compute the average of scalars
+            elif isinstance(output[k], list):
+                output[k] = sum(output[k]) / len(output[k])
 
             # do nothing when there's a scalar
             elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:

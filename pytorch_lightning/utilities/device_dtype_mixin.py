@@ -5,8 +5,11 @@ from torch.nn import Module
 
 
 class DeviceDtypeModuleMixin(Module):
-    _device: ...
-    _dtype: Union[str, torch.dtype]
+
+    def __init__(self):
+        super().__init__()
+        self._dtype = torch.get_default_dtype()
+        self._device = torch.device('cpu')
 
     @property
     def dtype(self) -> Union[str, torch.dtype]:
@@ -79,17 +82,14 @@ class DeviceDtypeModuleMixin(Module):
             ExampleModule()
             >>> module.weight #doctest: +ELLIPSIS
             tensor([[...]], dtype=torch.float16)
+            >>> module.device
+            device(type='cpu')
+            >>> module.dtype
+            torch.float16
         """
         # there is diff nb vars in PT 1.5
         out = torch._C._nn._parse_to(*args, **kwargs)
-        device = out[0]
-        dtype = out[1]
-        if device is not None:
-            self._device = device
-
-        if dtype is not None:
-            self._dtype = dtype
-
+        self.__update_properties(device=out[0], dtype=out[1])
         return super().to(*args, **kwargs)
 
     def cuda(self, device: Optional[int] = None) -> Module:
@@ -105,8 +105,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-
-        self._device = torch.device('cuda', index=device)
+        self.__update_properties(device=torch.device('cuda', index=device))
         return super().cuda(device=device)
 
     def cpu(self) -> Module:
@@ -114,7 +113,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._device = torch.device('cpu')
+        self.__update_properties(device=torch.device('cpu'))
         return super().cpu()
 
     def type(self, dst_type: Union[str, torch.dtype]) -> Module:
@@ -126,7 +125,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = dst_type
+        self.__update_properties(dtype=dst_type)
         return super().type(dst_type=dst_type)
 
     def float(self) -> Module:
@@ -135,7 +134,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = torch.float
+        self.__update_properties(dtype=torch.float)
         return super().float()
 
     def double(self) -> Module:
@@ -144,7 +143,7 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = torch.double
+        self.__update_properties(dtype=torch.double)
         return super().double()
 
     def half(self) -> Module:
@@ -153,5 +152,17 @@ class DeviceDtypeModuleMixin(Module):
         Returns:
             Module: self
         """
-        self._dtype = torch.half
+        self.__update_properties(dtype=torch.half)
         return super().half()
+
+    def __update_properties(self, device: Optional[torch.device] = None, dtype: Optional[torch.dtype] = None):
+
+        def apply_fn(module):
+            if not isinstance(module, DeviceDtypeModuleMixin):
+                return
+            if device is not None:
+                module._device = device
+            if dtype is not None:
+                module._dtype = dtype
+
+        self.apply(apply_fn)

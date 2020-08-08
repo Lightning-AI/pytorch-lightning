@@ -138,10 +138,9 @@ language = None
 exclude_patterns = [
     'api/pytorch_lightning.rst',
     'api/pl_examples.*',
+    'api/pytorch_lightning.accelerators.*',
     'api/modules.rst',
-
-    # deprecated/renamed:
-    'api/pytorch_lightning.logging.*',  # TODO: remove in v0.9.0
+    'PULL_REQUEST_TEMPLATE.md',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.

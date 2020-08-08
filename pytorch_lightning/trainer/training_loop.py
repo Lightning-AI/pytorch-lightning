@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 The lightning training loop handles everything except the actual computations of your model.
  To decide what will happen in your training loop, define the `training_step` function.
@@ -143,34 +157,33 @@ in your model.
     trainer = Trainer(terminate_on_nan=True)
 
 """
-
 import subprocess
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import Callable
 from typing import Union, List
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 import torch.distributed as torch_distrib
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -201,7 +214,7 @@ class TrainerTrainLoopMixin(ABC):
     use_dp: bool
     use_ddp2: bool
     use_horovod: bool
-    single_gpu: bool
+    use_single_gpu: bool
     use_tpu: bool
     data_parallel_device_ids: ...
     check_val_every_n_epoch: ...
@@ -240,6 +253,8 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
+    amp_type: AMPType
+    on_tpu: bool
 
     # Callback system
     callbacks: List[Callback]
@@ -247,10 +262,14 @@ class TrainerTrainLoopMixin(ABC):
     on_train_end: Callable
     on_batch_start: Callable
     on_batch_end: Callable
+    on_train_batch_start: Callable
+    on_train_batch_end: Callable
     on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
     on_keyboard_interrupt: Callable
+    on_train_epoch_start: Callable
+    on_train_epoch_end: Callable
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -273,7 +292,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def clip_gradients(self):
+    def clip_gradients(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -331,7 +350,9 @@ class TrainerTrainLoopMixin(ABC):
         # if reload_dataloaders_every_epoch, this is moved to the epoch loop
         if not self.reload_dataloaders_every_epoch:
             self.reset_train_dataloader(model)
-        self.reset_val_dataloader(model)
+
+        if model.val_dataloader is not None:
+            self.reset_val_dataloader(model)
 
         # Train start events
         with self.profiler.profile('on_train_start'):
@@ -347,7 +368,7 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_horovod) \
+                if (self.use_ddp or self.use_horovod or self.on_tpu) \
                         and hasattr(self.train_dataloader, 'sampler') \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
@@ -381,7 +402,7 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if (met_min_epochs and met_min_steps) or self.fast_dev_run:
+                    if (met_min_epochs and met_min_steps):
                         self.run_training_teardown()
                         return
                     else:
@@ -420,6 +441,15 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_epoch_start'):
                 model.on_epoch_start()
 
+        # Epoch start events
+        with self.profiler.profile('on_train_epoch_start'):
+            # callbacks
+            self.on_train_epoch_start()
+
+            # model hooks
+            if self.is_function_implemented('on_train_epoch_start'):
+                model.on_train_epoch_start()
+
     def run_training_epoch(self):
 
         # get model
@@ -434,6 +464,10 @@ class TrainerTrainLoopMixin(ABC):
         # bookkeeping
         epoch_output = []
         should_check_val = False
+
+        # structured result accumulators for callbacks
+        early_stopping_accumulator = Accumulator()
+        checkpoint_accumulator = Accumulator()
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -453,7 +487,15 @@ class TrainerTrainLoopMixin(ABC):
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
-            if self.is_overridden('training_epoch_end', model=self.get_model()):
+            step_out = batch_output.training_step_output_for_epoch_end
+            should_auto_reduce_train_result = isinstance(step_out, Result) and step_out.should_reduce_on_epoch_end
+            if isinstance(step_out, dict) and 'early_stop_on' in step_out:
+                early_stopping_accumulator.accumulate(step_out['early_stop_on'])
+
+            if isinstance(step_out, dict) and 'checkpoint_on' in step_out:
+                checkpoint_accumulator.accumulate(step_out['checkpoint_on'])
+
+            if self.is_overridden('training_epoch_end', model=self.get_model()) or should_auto_reduce_train_result:
                 epoch_output.append(batch_output.training_step_output_for_epoch_end)
 
             # update LR schedulers
@@ -466,7 +508,7 @@ class TrainerTrainLoopMixin(ABC):
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
             should_check_val = self.should_check_val(batch_idx, is_last_batch)
-            if self.fast_dev_run or should_check_val:
+            if should_check_val:
                 self.run_evaluation(test_mode=False)
 
             # -----------------------------------------
@@ -489,14 +531,14 @@ class TrainerTrainLoopMixin(ABC):
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
-            if self.fast_dev_run or self.should_stop:
+            if self.should_stop:
                 break
 
         # let ddp devices catch up when using horovod
         self.sync_horovod()
 
         # process epoch outputs
-        self.run_training_epoch_end(epoch_output)
+        self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator)
 
         # checkpoint callback
         self.check_checkpoint_callback(should_check_val)
@@ -507,7 +549,8 @@ class TrainerTrainLoopMixin(ABC):
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
-        if not self.is_overridden('validation_step') and not (self.fast_dev_run or should_check_val):
+        should_activate = not self.is_overridden('validation_step') and not should_check_val
+        if should_activate:
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
@@ -524,22 +567,75 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_epoch_end'):
                 model.on_epoch_end()
 
-    def run_training_epoch_end(self, epoch_output):
+        with self.profiler.profile('on_train_epoch_end'):
+            # callbacks
+            self.on_train_epoch_end()
+
+            # model hooks
+            if self.is_function_implemented('on_train_epoch_end'):
+                model.on_train_epoch_end()
+
+    def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator):
         model = self.get_model()
+        is_result_obj = len(epoch_output) > 0 and isinstance(epoch_output[0], Result)
+
+        epoch_log_metrics = {}
+        epoch_callback_metrics = {}
+        epoch_progress_bar_metrics = {}
+
+        # -----------------------
+        # Calculate epoch callback values if given
+        # -----------------------
+        if checkpoint_accumulator.num_values > 0:
+            epoch_callback_metrics['checkpoint_on'] = checkpoint_accumulator.mean()
+
+        if early_stopping_accumulator.num_values > 0:
+            epoch_callback_metrics['early_stop_on'] = early_stopping_accumulator.mean()
+
+        # --------------------------
+        # EPOCH END STEP IF DEFINED
+        # --------------------------
         if self.is_overridden('training_epoch_end', model=model):
+            self.global_step += 1
+
+            # remove the protected keys so the user doesn't have to deal with them
+            if is_result_obj:
+                epoch_output = epoch_output[0].__class__.gather(epoch_output)
+
+            # run training_epoch_end
             epoch_output = model.training_epoch_end(epoch_output)
-            _processed_outputs = self.process_output(epoch_output)
-            log_epoch_metrics = _processed_outputs[2]
-            callback_epoch_metrics = _processed_outputs[3]
 
-            # add the metrics to the loggers
-            self.log_metrics(log_epoch_metrics, {})
+            if isinstance(epoch_output, Result):
+                epoch_log_metrics = epoch_output.epoch_log_metrics
+                epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
+            else:
+                _processed_outputs = self.process_output(epoch_output)
+                epoch_progress_bar_metrics = _processed_outputs[1]
+                epoch_log_metrics = _processed_outputs[2]
+                epoch_callback_metrics = _processed_outputs[3]
 
-            # add metrics to callbacks
-            self.callback_metrics.update(callback_epoch_metrics)
+        # --------------------------
+        # Structured Result (auto epoch end)
+        # --------------------------
+        elif is_result_obj:
+            epoch_output = epoch_output[0].__class__.reduce_on_epoch_end(epoch_output)
+            epoch_output.minimize = epoch_output.minimize.mean()
+            epoch_log_metrics = epoch_output.epoch_log_metrics
+            epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
 
-            # add metrics to progress_bar
-            self.add_progress_bar_metrics(_processed_outputs[1])
+        # --------------------------
+        # track results
+        # --------------------------
+        # add the metrics to the loggers
+        if epoch_log_metrics and len(epoch_log_metrics) > 0:
+            self.log_metrics(epoch_log_metrics, {})
+
+        # add metrics to callbacks
+        self.callback_metrics.update(epoch_callback_metrics)
+
+        # add metrics to progress_bar
+        if len(epoch_progress_bar_metrics) > 0:
+            self.add_progress_bar_metrics(epoch_progress_bar_metrics)
 
     def sync_horovod(self):
         if self.use_horovod:
@@ -553,10 +649,13 @@ class TrainerTrainLoopMixin(ABC):
 
     def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
-        should_log_metrics = batch_idx % self.row_log_interval == 0 or self.should_stop
+        should_log_metrics = (batch_idx + 1) % self.row_log_interval == 0 or self.should_stop
         if should_log_metrics or self.fast_dev_run:
             # logs user requested information to logger
-            self.log_metrics(batch_output.batch_log_metrics, batch_output.grad_norm_dic)
+            metrics = batch_output.batch_log_metrics
+            grad_norm_dic = batch_output.grad_norm_dic
+            if len(metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(metrics, grad_norm_dic)
 
     def save_loggers_in_training_loop(self, batch_idx):
         # when loggers should save to disk
@@ -569,7 +668,7 @@ class TrainerTrainLoopMixin(ABC):
         # decide if we should run validation
         is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
         can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-        can_check_val = not self.disable_validation and can_check_epoch
+        can_check_val = self.enable_validation and can_check_epoch
         should_check_val = is_val_check_batch or self.should_stop
         is_last_batch_for_infinite_dataset = (is_last_batch and self.val_check_batch == float('inf'))
         should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
@@ -586,16 +685,29 @@ class TrainerTrainLoopMixin(ABC):
         # track metrics to log
         batch_log_metrics = []
 
+        using_results_obj = False
+
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
         # Batch start events
+        # TODO: deprecate 1.0
         with self.profiler.profile('on_batch_start'):
             # callbacks
             self.on_batch_start()
             # hooks
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
+                if response == -1:
+                    return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+
+        with self.profiler.profile('on_train_batch_start'):
+            # forward support for multiple loaders
+            dataloader_idx = 0
+            self.on_train_batch_start(batch, batch_idx, dataloader_idx)
+            # hooks
+            if self.is_function_implemented('on_train_batch_start'):
+                response = self.get_model().on_train_batch_start(batch, batch_idx, dataloader_idx)
                 if response == -1:
                     return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
@@ -620,22 +732,37 @@ class TrainerTrainLoopMixin(ABC):
                             param.requires_grad = True
 
                 # -------------------
-                # calculate loss
+                # calculate loss (train step + train step end)
                 # -------------------
                 opt_closure_result = self.optimizer_closure(
                     split_batch,
                     batch_idx,
                     opt_idx,
                     optimizer,
-                    self.hiddens
+                    self.hiddens,
                 )
+                using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
                 # ------------------------------
                 # POST forward bookkeeping
                 # ------------------------------
                 batch_callback_metrics.append(opt_closure_result.training_step_output.callback_metrics)
-                batch_log_metrics.append(opt_closure_result.training_step_output.log_metrics)
-                self.add_progress_bar_metrics(opt_closure_result.training_step_output.pbar_on_batch_end)
+
+                # add metrics to loggers
+                if using_results_obj:
+                    metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
+                else:
+                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
+                batch_log_metrics.append(metrics_to_log)
+
+                # add metrics to progress bar
+                if using_results_obj:
+                    step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
+                else:
+                    step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
+
+                if len(step_pbar_metrics) > 0:
+                    self.add_progress_bar_metrics(step_pbar_metrics)
 
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens
@@ -657,7 +784,7 @@ class TrainerTrainLoopMixin(ABC):
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
 
                     # calculate running loss for display
-                    self.running_loss.append(self.batch_loss_value.mean())
+                    self.running_loss.append(self.batch_loss_value.mean() * self.accumulate_grad_batches)
 
                     # reset for next set of accumulated grads
                     self.batch_loss_value.reset()
@@ -670,11 +797,20 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_end'):
                 self.get_model().on_batch_end()
 
+        with self.profiler.profile('on_train_batch_end'):
+            # forward support for multiple loaders
+            dataloader_idx = 0
+            self.on_train_batch_end(batch, batch_idx, dataloader_idx)
+            # model hooks
+            if self.is_function_implemented('on_train_batch_end'):
+                self.get_model().on_train_batch_end(batch, batch_idx, dataloader_idx)
+
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
         # track all metrics for callbacks
-        self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
+        if not using_results_obj:
+            self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
         result = AttributeDict(
             signal=0,
@@ -699,9 +835,9 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
+        if self.amp_type == AMPType.NATIVE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
-        self.clip_gradients()
+        self.clip_gradients(optimizer)
 
         # ------------------
         # .STEP + ZERO_GRAD
@@ -721,7 +857,7 @@ class TrainerTrainLoopMixin(ABC):
                 batch_idx,
                 opt_idx,
                 optimizer,
-                self.hiddens
+                self.hiddens,
             ).loss
 
             # apply TPU optimizer
@@ -733,7 +869,7 @@ class TrainerTrainLoopMixin(ABC):
             elif isinstance(optimizer, torch.optim.LBFGS):
 
                 # native amp + lbfgs is a no go right now
-                if self.use_amp and NATIVE_AMP_AVALAIBLE:
+                if self.amp_type == AMPType.NATIVE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -742,12 +878,12 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
+                native_amp = self.amp_type == AMPType.NATIVE
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -761,10 +897,10 @@ class TrainerTrainLoopMixin(ABC):
         wrap the forward step in a closure so second order methods work
         """
         # ---------------------------
-        # FORWARD
+        # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.use_amp and NATIVE_AMP_AVALAIBLE:
+            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -776,37 +912,73 @@ class TrainerTrainLoopMixin(ABC):
             # PROCESS THE RESULT
             # ----------------------------
             # format and reduce outputs accordingly
-            training_step_output = self.process_output(training_step_output, train=True)
+            training_step_output_for_epoch_end = training_step_output
+            is_result_obj = isinstance(training_step_output, Result)
 
-            # TODO: temporary part of structured results PR
-            training_step_output = AttributeDict(
-                batch_loss=training_step_output[0],
-                pbar_on_batch_end=training_step_output[1],
-                log_metrics=training_step_output[2],
-                callback_metrics=training_step_output[3],
-                hiddens=training_step_output[4],
-            )
+            # don't allow EvalResult in the training_step
+            if isinstance(training_step_output, EvalResult):
+                raise MisconfigurationException('training_step cannot return EvalResult, '
+                                                'use a dict or TrainResult instead')
+
+            # handle regular dicts
+            if not is_result_obj:
+                training_step_output = self.process_output(training_step_output, train=True)
+
+                training_step_output = AttributeDict(
+                    batch_loss=training_step_output[0],
+                    pbar_on_batch_end=training_step_output[1],
+                    log_metrics=training_step_output[2],
+                    callback_metrics=training_step_output[3],
+                    hiddens=training_step_output[4],
+                )
 
             # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-            training_step_output_for_epoch_end = recursive_detach(training_step_output)
+            if isinstance(training_step_output_for_epoch_end, torch.Tensor):
+                training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
+            elif is_result_obj:
+                training_step_output_for_epoch_end = copy(training_step_output)
+                training_step_output_for_epoch_end.detach()
+            else:
+                training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
 
         # accumulate loss
         # (if accumulate_grad_batches = 1 no effect)
-        closure_loss = training_step_output.batch_loss / self.accumulate_grad_batches
+        closure_loss = training_step_output.minimize if is_result_obj else training_step_output.batch_loss
+        closure_loss = closure_loss / self.accumulate_grad_batches
+
+        # the loss will get scaled for amp. avoid any modifications to it
+        untouched_loss = closure_loss.detach().clone()
 
         # backward pass
         model_ref = self.get_model()
         with self.profiler.profile('model_backward'):
             # scale loss for 16 bit
             if self.precision == 16 and not self.on_tpu:
-                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
+                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
+
+                # enter amp context
+                if self.amp_type == AMPType.APEX:
+                    context = closure_loss
+                    closure_loss = closure_loss.__enter__()
 
             # do backward pass
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
+            # exit amp context
+            if self.precision == 16 and self.amp_type == AMPType.APEX and not self.on_tpu:
+                a, b, c = None, None, None
+                error = context.__exit__(a, b, c)
+                if error:
+                    rank_zero_warn(a, b, c)
+                    raise Exception('apex unscale error')
+
             # once backward has been applied, release graph
             closure_loss = closure_loss.detach()
-            training_step_output.batch_loss = training_step_output.batch_loss.detach()
+
+            if is_result_obj:
+                training_step_output.detach()
+            else:
+                training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
         if self.use_horovod:
             # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
@@ -818,8 +990,11 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('on_after_backward'):
                 model_ref.on_after_backward()
 
+        # when in dev debugging track the losses
+        self.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
+
         result = AttributeDict(
-            loss=closure_loss,
+            loss=untouched_loss,
             training_step_output=training_step_output,
             training_step_output_for_epoch_end=training_step_output_for_epoch_end,
             hiddens=training_step_output.hiddens,
@@ -869,6 +1044,12 @@ class TrainerTrainLoopMixin(ABC):
         if self.use_ddp or self.use_ddp2:
             torch_distrib.destroy_process_group()
 
+        # clear mem
+        if self.on_gpu:
+            model = self.get_model()
+            model.cpu()
+            torch.cuda.empty_cache()
+
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
@@ -907,7 +1088,7 @@ class TrainerTrainLoopMixin(ABC):
             output = self.model.training_step(*args)
 
         # single GPU forward
-        elif self.single_gpu:
+        elif self.use_single_gpu:
             gpu_id = 0
             if isinstance(self.data_parallel_device_ids, list):
                 gpu_id = self.data_parallel_device_ids[0]
@@ -934,6 +1115,7 @@ class TrainerTrainLoopMixin(ABC):
         if self.is_overridden('training_step_end'):
             model_ref = self.get_model()
             with self.profiler.profile('training_step_end'):
+                # TODO: modify when using result obj
                 output = model_ref.training_step_end(output)
 
         # allow any mode to define training_end

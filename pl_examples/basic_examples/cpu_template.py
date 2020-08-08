@@ -4,17 +4,14 @@ Runs a model on the CPU on a single node.
 import os
 from argparse import ArgumentParser
 
-from pytorch_lightning import Trainer, seed_everything
 from pl_examples.models.lightning_template import LightningTemplateModel
+from pytorch_lightning import Trainer, seed_everything
 
 seed_everything(234)
 
 
 def main(args):
-    """
-    Main training routine specific for this project
-    :param args:
-    """
+    """ Main training routine specific for this project. """
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------

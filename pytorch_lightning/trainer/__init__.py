@@ -118,7 +118,7 @@ Reproducibility
 ---------------
 
 To ensure full reproducibility from run to run you need to set seeds for pseudo-random generators,
-and set ``deterministic``` flag in ``Trainer``.
+and set ``deterministic`` flag in ``Trainer``.
 
 Example::
 
@@ -162,7 +162,7 @@ Check `NVIDIA apex docs <https://nvidia.github.io/apex/amp.html#opt-levels>`_ fo
 Example::
 
     # default used by the Trainer
-    trainer = Trainer(amp_level='O1')
+    trainer = Trainer(amp_level='O2')
 
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
@@ -176,6 +176,21 @@ before any training.
 
     # run batch size scaling, result overrides hparams.batch_size
     trainer = Trainer(auto_scale_batch_size='binsearch')
+
+auto_select_gpus
+^^^^^^^^^^^^^^^^
+
+If enabled and `gpus` is an integer, pick available gpus automatically.
+This is especially useful when GPUs are configured to be in "exclusive mode",
+such that only one process at a time can access them.
+
+Example::
+
+    # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
+    trainer = Trainer(gpus=2, auto_select_gpus=False)
+
+    # enable auto selection (will find two available gpus on system)
+    trainer = Trainer(gpus=2, auto_select_gpus=True)
 
 auto_lr_find
 ^^^^^^^^^^^^
@@ -291,12 +306,12 @@ Example::
     )
 
 default_root_dir
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 Default path for logs and weights when no logger
 or :class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.
 On certain clusters you might want to separate where logs and checkpoints
-are stored. If you don't then use this method for convenience.
+are stored. If you don't then use this argument for convenience.
 
 Example::
 
@@ -393,20 +408,23 @@ Under the hood the pseudocode looks like this:
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
 
-    # runs 1 train, val, test  batch and program ends
+    # runs 1 train, val, test batch and program ends
     trainer = Trainer(fast_dev_run=True)
 
 gpus
 ^^^^
 
-- Number of GPUs to train on
-- or Which GPUs to train on
+- Number of GPUs to train on (int)
+- or which GPUs to train on (list)
 - can handle strings
 
 .. testcode::
 
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
+
+    # equivalent
+    trainer = Trainer(gpus=0)
 
 Example::
 
@@ -424,6 +442,9 @@ Example::
     # combine with num_nodes to train on multiple GPUs across nodes
     # uses 8 gpus in total
     trainer = Trainer(gpus=2, num_nodes=4)
+
+    # train only on GPUs 1 and 4 across nodes
+    trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
     - `Multi-GPU training guide <multi_gpu.rst>`_
@@ -603,21 +624,18 @@ num_sanity_val_steps
 
 Sanity check runs n batches of val before starting the training routine.
 This catches any bugs in your validation without having to wait for the first validation check.
-The Trainer uses 5 steps by default. Turn it off or modify it here.
+The Trainer uses 2 steps by default. Turn it off or modify it here.
 
 .. testcode::
 
     # default used by the Trainer
-    trainer = Trainer(num_sanity_val_steps=5)
+    trainer = Trainer(num_sanity_val_steps=2)
 
     # turn it off
     trainer = Trainer(num_sanity_val_steps=0)
 
-num_tpu_cores
-^^^^^^^^^^^^^
-.. warning:: .. deprecated:: 0.7.6
-
-    Use `tpu_cores` instead. Will remove 0.9.0.
+    # check all validation data
+    trainer = Trainer(num_sanity_val_steps=-1)
 
 Example::
 
@@ -734,15 +752,6 @@ Example::
     # one day
     trainer = Trainer(precision=8|4|2)
 
-print_nan_grads
-^^^^^^^^^^^^^^^
-
-.. warning:: .. deprecated:: 0.7.2.
-
-    Has no effect. When detected, NaN grads will be printed automatically.
-    Will remove 0.9.0.
-
-
 process_position
 ^^^^^^^^^^^^^^^^
 Orders the progress bar. Useful when running multiple trainers on the same node.
@@ -813,7 +822,9 @@ Set to True to reload dataloaders every epoch.
 
 replace_sampler_ddp
 ^^^^^^^^^^^^^^^^^^^
-Enables auto adding of distributed sampler.
+Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
+for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
+it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
 .. testcode::
 
@@ -850,18 +861,27 @@ How often to add logging rows (does not write to disk)
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
 
-use_amp:
+sync_batchnorm
+^^^^^^^^^^^^^^
 
-.. warning:: .. deprecated:: 0.7.0
+Enable synchronization between batchnorm layers across all GPUs.
 
-    Use `precision` instead. Will remove 0.9.0.
+.. testcode::
 
-show_progress_bar
-^^^^^^^^^^^^^^^^^
+    trainer = Trainer(sync_batchnorm=True)
 
-.. warning:: .. deprecated:: 0.7.2
+amp_type
+^^^^^^^^
 
-    Set `progress_bar_refresh_rate` to 0 instead. Will remove 0.9.0.
+Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch built-in ("native") AMP which is supported from v1.6.
+
+.. testcode::
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_type='apex')
+    
+    # using PyTorch built-in AMP
+    trainer = Trainer(amp_type='native')
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^

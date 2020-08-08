@@ -27,8 +27,6 @@ class Metric(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
         """
         super().__init__()
         self.name = name
-        self._dtype = torch.get_default_dtype()
-        self._device = torch.device('cpu')
 
     @abstractmethod
     def forward(self, *args, **kwargs) -> torch.Tensor:

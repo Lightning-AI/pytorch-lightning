@@ -1,3 +1,4 @@
+from copy import deepcopy
 import pytest
 import torch
 from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
@@ -6,6 +7,33 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+
+
+def test_num_training_batches(tmpdir):
+    """
+    Tests that the correct number of batches are allocated
+    """
+    # when we have fewer batches in the dataloader we should use those instead of the limit
+    model = EvalModelTemplate()
+    trainer = Trainer(limit_val_batches=100, limit_train_batches=100, max_epochs=1)
+    trainer.fit(model)
+
+    assert len(model.train_dataloader()) == 10
+    assert len(model.val_dataloader()) == 10
+    assert isinstance(trainer.num_val_batches, list)
+    assert trainer.num_val_batches[0] == 10
+    assert trainer.num_training_batches == 10
+
+    # when we have more batches in the dataloader we should limit them
+    model = EvalModelTemplate()
+    trainer = Trainer(limit_val_batches=7, limit_train_batches=7, max_epochs=1)
+    trainer.fit(model)
+
+    assert len(model.train_dataloader()) == 10
+    assert len(model.val_dataloader()) == 10
+    assert isinstance(trainer.num_val_batches, list)
+    assert trainer.num_val_batches[0] == 7
+    assert trainer.num_training_batches == 7
 
 
 def test_overfit_batch_limits(tmpdir):
@@ -121,7 +149,7 @@ def test_model_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    before_state_dict = model.state_dict()
+    before_state_dict = deepcopy(model.state_dict())
 
     trainer.scale_batch_size(model, max_trials=5)
 

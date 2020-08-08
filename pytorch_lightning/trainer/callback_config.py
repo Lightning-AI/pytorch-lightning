@@ -1,7 +1,5 @@
-import os
 from abc import ABC, abstractmethod
-from typing import List, Callable, Optional
-
+from typing import List, Optional
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.loggers import LightningLoggerBase
@@ -33,12 +31,6 @@ class TrainerCallbackConfigMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def configure_checkpoint_callback(self, checkpoint_callback):
-        """
-        Weight path set in this priority:
-        Checkpoint_callback's path (if passed in).
-        User provided weights_saved_path
-        Otherwise use os.getcwd()
-        """
         if checkpoint_callback is True:
             # when no val step is defined, use 'loss' otherwise 'val_loss'
             train_step_only = not self.is_overridden('validation_step')
@@ -52,10 +44,6 @@ class TrainerCallbackConfigMixin(ABC):
 
         if checkpoint_callback:
             checkpoint_callback.save_function = self.save_checkpoint
-
-        # if weights_save_path is still none here, set to current working dir
-        if self.weights_save_path is None:
-            self.weights_save_path = self.default_root_dir
 
         return checkpoint_callback
 
