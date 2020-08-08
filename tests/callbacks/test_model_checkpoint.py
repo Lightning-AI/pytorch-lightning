@@ -10,11 +10,6 @@ import torch
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks.model_checkpoint import (
-    CHECKPOINT_NAME_LAST,
-    CHECKPOINT_STATE_BEST_SCORE,
-    CHECKPOINT_STATE_BEST_PATH,
-)
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
 
@@ -115,9 +110,13 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     )
     trainer.fit(model)
     path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})
-    path_last = tmpdir / CHECKPOINT_NAME_LAST
+    path_last = tmpdir / ModelCheckpoint.CHECKPOINT_NAME_LAST
     assert path_last_epoch != path_last
     ckpt_last_epoch = torch.load(str(path_last_epoch))
     ckpt_last = torch.load(str(path_last))
-    assert ckpt_last_epoch[CHECKPOINT_STATE_BEST_SCORE] == ckpt_last[CHECKPOINT_STATE_BEST_SCORE]
-    assert ckpt_last_epoch[CHECKPOINT_STATE_BEST_PATH] == ckpt_last[CHECKPOINT_STATE_BEST_PATH]
+    matching_keys = (
+        ModelCheckpoint.CHECKPOINT_STATE_BEST_SCORE,
+        ModelCheckpoint.CHECKPOINT_STATE_BEST_PATH
+    )
+    for key in matching_keys:
+        assert ckpt_last_epoch[key] == ckpt_last[key]
