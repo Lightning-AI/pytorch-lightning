@@ -221,8 +221,8 @@ def main(args: Namespace) -> None:
         # When using a single GPU per process and per
         # DistributedDataParallel, we need to divide the batch size
         # ourselves based on the total number of GPUs we have
-        args.batch_size = int(args.batch_size / args.gpus)
-        args.workers = int((args.workers + args.gpus - 1) / args.gpus)
+        args.batch_size = int(args.batch_size / max(1, args.gpus))
+        args.workers = int(args.workers / max(1, args.gpus))
 
     model = ImageNetLightningModel(**vars(args))
     trainer = pl.Trainer.from_argparse_args(args, default_root_dir=args.save_path)
