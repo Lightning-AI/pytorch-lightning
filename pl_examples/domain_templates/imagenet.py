@@ -30,8 +30,8 @@ class ImageNetLightningModel(LightningModule):
 
     def __init__(
         self,
-        arch,
-        pretrained,
+        arch: str,
+        pretrained: bool,
         lr: float,
         momentum: float,
         weight_decay: int,
