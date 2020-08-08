@@ -8,7 +8,7 @@ import pytest
 import torch
 
 import tests.base.develop_utils as tutils
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.model_checkpoint import CHECKPOINT_NAME_LAST, CHECKPOINT_STATE_BEST_SCORE, \
     CHECKPOINT_STATE_BEST_PATH
@@ -99,6 +99,8 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
+    """ Tests that the checkpoint saved as 'last.ckpt' contains the latest information. """
+    seed_everything(100)
     model = EvalModelTemplate()
     num_epochs = 3
     model_checkpoint = ModelCheckpoint(filepath=tmpdir, save_top_k=num_epochs, save_last=True)
@@ -109,7 +111,6 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         max_epochs=num_epochs,
     )
     trainer.fit(model)
-    print(tmpdir)
     path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})
     path_last = tmpdir / CHECKPOINT_NAME_LAST
     ckpt_last_epoch = torch.load(str(path_last_epoch))
