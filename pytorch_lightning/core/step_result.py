@@ -509,10 +509,14 @@ class TrainResult(Result):
             enable_graph:
         """
         for k, v in dictionary.items():
-            self.log(k, v,
-                     prog_bar, logger,
-                     on_step, on_epoch,
-                     reduce_fx, enable_graph,
+            self.log(name=k,
+                     value=v,
+                     prog_bar=prog_bar,
+                     logger=logger,
+                     on_step=on_step,
+                     on_epoch=on_epoch,
+                     reduce_fx=reduce_fx,
+                     enable_graph=enable_graph,
                      sync_ddp=sync_ddp,
                      sync_ddp_group=sync_ddp_group,
                      sync_ddp_op=sync_ddp_op,
@@ -646,10 +650,14 @@ class EvalResult(Result):
             enable_graph:
         """
         for k, v in dictionary.items():
-            self.log(k, v,
-                     prog_bar, logger,
-                     on_step, on_epoch,
-                     reduce_fx, enable_graph,
+            self.log(name=k,
+                     value=v,
+                     prog_bar=prog_bar,
+                     logger=logger,
+                     on_step=on_step,
+                     on_epoch=on_epoch,
+                     reduce_fx=reduce_fx,
+                     enable_graph=enable_graph,
                      sync_ddp=sync_ddp,
                      sync_ddp_group=sync_ddp_group,
                      sync_ddp_op=sync_ddp_op,
@@ -661,4 +669,5 @@ class EvalResult(Result):
             'val_early_stop_on': self.early_stop_on,
             'val_checkpoint_on': self.checkpoint_on
         }
+
         return result
