@@ -46,7 +46,7 @@ def test_imagenet(tmpdir, cli_args):
             os.makedirs(os.path.join(tmpdir, split, class_id))
             # Generate 5 black images
             for image_id in range(5):
-                _make_image(os.path.join(tmpdir, split, class_id, str(image_id)+'.JPEG'))
+                _make_image(os.path.join(tmpdir, split, class_id, str(image_id) + '.JPEG'))
 
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--data-path', str(tmpdir)]

@@ -191,8 +191,7 @@ class ImageNetLightningModel(LightningModule):
         parser = ArgumentParser(parents=[parent_parser])
         parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                             choices=ImageNetLightningModel.MODEL_NAMES,
-                            help='model architecture: ' +
-                                 ' | '.join(ImageNetLightningModel.MODEL_NAMES) +
+                            help='model architecture: ' + ' | '.join(ImageNetLightningModel.MODEL_NAMES) +
                                  ' (default: resnet18)')
         parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                             help='number of data loading workers (default: 4)')
