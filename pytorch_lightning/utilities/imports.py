@@ -3,9 +3,6 @@ import importlib.util
 import torch
 
 
-# XLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
-# TORCHVISION_AVAILABLE = importlib.util.find_spec("torchvision") is not None
-
 def is_apex_available():
     # TODO: use importlib
     try:
@@ -53,6 +50,10 @@ def is_omegaconf_available():
 
 def is_torchtext_available():
     return importlib.util.find_spec("torchtext") is not None
+
+
+def is_torchvision_available():
+    return importlib.util.find_spec("torchvision") is not None
 
 
 def is_xla_available():
