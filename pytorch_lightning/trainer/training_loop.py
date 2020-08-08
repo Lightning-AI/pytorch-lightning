@@ -965,7 +965,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and amp_type == AMPType.APEX and not self.on_tpu:
+            if self.precision == 16 and self.amp_type == AMPType.APEX and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:
