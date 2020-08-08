@@ -23,7 +23,6 @@ from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if is_xla_available():
-    import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -38,7 +37,7 @@ class TPUBackend(object):
     def setup(self):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
 
-        if not XLA_AVAILABLE:
+        if not is_xla_available():
             raise MisconfigurationException('PyTorch XLA not installed.')
 
         # see: https://discuss.pytorch.org/t/segfault-with-multiprocessing-queue/81292/2
