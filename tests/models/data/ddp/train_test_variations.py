@@ -17,6 +17,11 @@ def variation_test_fit(trainer, model):
     trainer.fit(model)
 
 
+def variation_fit_fit(trainer, model):
+    trainer.fit(model)
+    trainer.fit(model)
+
+
 def variation_test_test(trainer, model):
     trainer.test(model)
     trainer.test(model)
@@ -29,7 +34,13 @@ def variation_test_fit_test(trainer, model):
 
 
 def get_variations():
-    variations = [v for v in globals() if v.startswith("variation")]
+    variations = [
+        "variation_fit_test",
+        "variation_test_fit",
+        "variation_fit_fit",
+        "variation_test_test",
+        "variation_test_fit_test",
+    ]
     return variations
 
 
