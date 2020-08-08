@@ -867,13 +867,14 @@ Enable synchronization between batchnorm layers across all GPUs.
 amp_type
 ^^^^^^^^
 
-Define of preferable mixed precion - NVIDIA Apex ("apex") or PyTorch build-in ("native") supported from v1.6.
+Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch built-in ("native") AMP which is supported from v1.6.
 
 .. testcode::
 
     # using NVIDIA Apex
     trainer = Trainer(amp_type='apex')
-    # using PyTorch build-in
+    
+    # using PyTorch built-in AMP
     trainer = Trainer(amp_type='native')
 
 val_percent_check
