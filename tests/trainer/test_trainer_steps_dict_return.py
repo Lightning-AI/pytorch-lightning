@@ -43,8 +43,7 @@ def test_training_step_dict(tmpdir):
     assert pbar_metrics['pbar_acc2'] == 19.0
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
-                                                   trainer.hiddens, trainer.amp_type)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 

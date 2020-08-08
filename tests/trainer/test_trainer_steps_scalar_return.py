@@ -41,8 +41,7 @@ def test_training_step_scalar(tmpdir):
     assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
-                                                   trainer.hiddens, trainer.amp_type)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'].item() == 171
 
 
@@ -77,8 +76,7 @@ def training_step_scalar_with_step_end(tmpdir):
     assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
-                                                   trainer.hiddens, trainer.amp_type)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'].item() == 171
 
 
@@ -123,8 +121,7 @@ def test_full_training_loop_scalar(tmpdir):
     assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
-                                                   trainer.hiddens, trainer.amp_type)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'].item() == 171
 
 
@@ -165,6 +162,5 @@ def test_train_step_epoch_end_scalar(tmpdir):
     assert train_step_out.item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0],
-                                                   trainer.hiddens, trainer.amp_type)
+    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'].item() == 171

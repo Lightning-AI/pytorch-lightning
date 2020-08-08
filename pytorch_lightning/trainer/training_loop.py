@@ -740,7 +740,6 @@ class TrainerTrainLoopMixin(ABC):
                     opt_idx,
                     optimizer,
                     self.hiddens,
-
                 )
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
@@ -859,7 +858,6 @@ class TrainerTrainLoopMixin(ABC):
                 opt_idx,
                 optimizer,
                 self.hiddens,
-                self.amp_type,
             ).loss
 
             # apply TPU optimizer
