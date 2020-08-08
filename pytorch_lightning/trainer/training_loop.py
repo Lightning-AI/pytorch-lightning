@@ -175,7 +175,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
+from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -183,7 +183,9 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 try:
     from apex import amp
 except ImportError:
-    amp = None
+    APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -253,8 +255,6 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
-    amp_type: AMPType
-    on_tpu: bool
 
     # Callback system
     callbacks: List[Callback]
@@ -687,6 +687,9 @@ class TrainerTrainLoopMixin(ABC):
 
         using_results_obj = False
 
+        # track all outputs across time and num of optimizers
+        batch_outputs = [[] for i in range(len(self._get_optimizers_iterable()))]
+
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
@@ -739,7 +742,7 @@ class TrainerTrainLoopMixin(ABC):
                     batch_idx,
                     opt_idx,
                     optimizer,
-                    self.hiddens,
+                    self.hiddens
                 )
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
@@ -773,6 +776,9 @@ class TrainerTrainLoopMixin(ABC):
 
                 # track total loss for logging (avoid mem leaks)
                 self.batch_loss_value.append(opt_closure_result.loss)
+
+                # track all the outputs across all steps
+                batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -816,7 +822,7 @@ class TrainerTrainLoopMixin(ABC):
             signal=0,
             grad_norm_dic=grad_norm_dic,
             batch_log_metrics=batch_log_metrics,
-            training_step_output_for_epoch_end=opt_closure_result.training_step_output_for_epoch_end
+            training_step_output_for_epoch_end=batch_outputs
         )
         return result
 
@@ -835,7 +841,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+        if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients(optimizer)
 
@@ -857,7 +863,7 @@ class TrainerTrainLoopMixin(ABC):
                 batch_idx,
                 opt_idx,
                 optimizer,
-                self.hiddens,
+                self.hiddens
             ).loss
 
             # apply TPU optimizer
@@ -869,7 +875,7 @@ class TrainerTrainLoopMixin(ABC):
             elif isinstance(optimizer, torch.optim.LBFGS):
 
                 # native amp + lbfgs is a no go right now
-                if self.amp_type == AMPType.NATIVE:
+                if self.use_amp and NATIVE_AMP_AVALAIBLE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -878,12 +884,12 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                native_amp = self.amp_type == AMPType.NATIVE
+                native_amp = self.use_amp and NATIVE_AMP_AVALAIBLE
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -900,7 +906,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -954,10 +960,10 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_backward'):
             # scale loss for 16 bit
             if self.precision == 16 and not self.on_tpu:
-                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
+                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx)
 
                 # enter amp context
-                if self.amp_type == AMPType.APEX:
+                if not NATIVE_AMP_AVALAIBLE:
                     context = closure_loss
                     closure_loss = closure_loss.__enter__()
 
@@ -965,7 +971,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and self.amp_type == AMPType.APEX and not self.on_tpu:
+            if self.precision == 16 and not NATIVE_AMP_AVALAIBLE and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:
