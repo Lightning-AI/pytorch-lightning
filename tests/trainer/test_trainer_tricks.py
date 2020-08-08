@@ -1,3 +1,4 @@
+from copy import deepcopy
 import pytest
 import torch
 from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
@@ -148,7 +149,7 @@ def test_model_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    before_state_dict = model.state_dict()
+    before_state_dict = deepcopy(model.state_dict())
 
     trainer.scale_batch_size(model, max_trials=5)
 
