@@ -14,7 +14,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+@pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
     tutils.reset_seed()
@@ -24,11 +24,11 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
 
     trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
-    assert checkpoint.dirpath == tmpdir / trainer.logger.name / 'version_0' / 'checkpoints'
+    assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
 
 
 @pytest.mark.parametrize(
-    'logger_version,expected', [(None, 'version_0'), (1, 'version_1'), ('awesome', 'awesome')],
+    "logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")],
 )
 def test_model_checkpoint_path(tmpdir, logger_version, expected):
     """Test that "version_" prefix is only added when logger's version is an integer"""
@@ -85,7 +85,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     num_epochs = 4
     model_checkpoint = ModelCheckpointTestInvocations(expected_count=num_epochs, save_top_k=-1)
     trainer = Trainer(
-        distributed_backend='ddp_cpu',
+        distributed_backend="ddp_cpu",
         num_processes=2,
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -103,10 +103,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     num_epochs = 3
     model_checkpoint = ModelCheckpoint(filepath=tmpdir, save_top_k=num_epochs, save_last=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=False,
-        checkpoint_callback=model_checkpoint,
-        max_epochs=num_epochs,
+        default_root_dir=tmpdir, early_stop_callback=False, checkpoint_callback=model_checkpoint, max_epochs=num_epochs,
     )
     trainer.fit(model)
     path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})  # epoch=3.ckpt
@@ -114,14 +111,23 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     assert path_last_epoch != path_last
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
-    matching_keys = (
+
+    trainer_keys = (
         "epoch",
         "global_step",
-        ModelCheckpoint.CHECKPOINT_STATE_BEST_SCORE,
-        ModelCheckpoint.CHECKPOINT_STATE_BEST_PATH,
     )
-    for key in matching_keys:
+    for key in trainer_keys:
         assert ckpt_last_epoch[key] == ckpt_last[key]
+
+    checkpoint_callback_keys = (
+        "best_model_score",
+        "best_model_path",
+    )
+    for key in checkpoint_callback_keys:
+        assert (
+            ckpt_last_epoch["callbacks"][type(model_checkpoint)][key]
+            == ckpt_last_epoch["callbacks"][type(model_checkpoint)][key]
+        )
 
     # it is easier to load the model objects than to iterate over the raw dict of tensors
     model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)

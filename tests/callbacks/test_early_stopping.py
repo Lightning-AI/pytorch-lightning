@@ -34,24 +34,6 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
 
-    class EarlyStoppingTestStore(EarlyStopping):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            # cache the state for each epoch
-            self.saved_states = []
-
-        def on_validation_end(self, trainer, pl_module):
-            super().on_validation_end(trainer, pl_module)
-            self.saved_states.append(deepcopy(self.state_dict()))
-
-    class EarlyStoppingTestRestore(EarlyStopping):
-        def __init__(self, expected_state):
-            super().__init__()
-            self.expected_state = expected_state
-
-        def on_train_start(self, trainer, pl_module):
-            assert self.state_dict() == self.expected_state
-
     model = EvalModelTemplate()
     checkpoint_callback = ModelCheckpoint(save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore()
