@@ -31,7 +31,7 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin
+from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -49,7 +49,7 @@ from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -61,9 +61,7 @@ warnings.filterwarnings(
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla
@@ -199,6 +197,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
+        amp_type: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -308,6 +307,7 @@ class Trainer(
                     Defaults to `default_root_dir`.
 
             amp_level: The optimization level to use (O1, O2, etc...).
+                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -587,7 +587,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp()
+        self.init_amp(amp_type)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -1128,7 +1128,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if NATIVE_AMP_AVALAIBLE and self.precision == 16 and not self.use_tpu:
+        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
