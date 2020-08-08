@@ -5,10 +5,13 @@ from pathlib import Path
 
 import cloudpickle
 import pytest
+import torch
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.model_checkpoint import CHECKPOINT_NAME_LAST, CHECKPOINT_STATE_BEST_SCORE, \
+    CHECKPOINT_STATE_BEST_PATH
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
 
@@ -93,3 +96,23 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     )
     result = trainer.fit(model)
     assert 1 == result
+
+
+def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
+    model = EvalModelTemplate()
+    num_epochs = 3
+    model_checkpoint = ModelCheckpoint(filepath=tmpdir, save_top_k=num_epochs, save_last=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=False,
+        checkpoint_callback=model_checkpoint,
+        max_epochs=num_epochs,
+    )
+    trainer.fit(model)
+    print(tmpdir)
+    path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})
+    path_last = tmpdir / CHECKPOINT_NAME_LAST
+    ckpt_last_epoch = torch.load(str(path_last_epoch))
+    ckpt_last = torch.load(str(path_last))
+    assert ckpt_last[CHECKPOINT_STATE_BEST_SCORE] == ckpt_last_epoch[CHECKPOINT_STATE_BEST_SCORE]
+    assert ckpt_last[CHECKPOINT_STATE_BEST_PATH] == ckpt_last_epoch[CHECKPOINT_STATE_BEST_PATH]

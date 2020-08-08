@@ -96,6 +96,7 @@ import torch.distributed as torch_distrib
 import pytorch_lightning
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks.model_checkpoint import CHECKPOINT_STATE_BEST_SCORE, CHECKPOINT_STATE_BEST_PATH
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
@@ -355,8 +356,8 @@ class TrainerIOMixin(ABC):
             if checkpoint_callbacks:
                 # we add the official checkpoint callback to the end of the list
                 # extra user provided callbacks will not be persisted yet
-                checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
-                checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
+                checkpoint[CHECKPOINT_STATE_BEST_SCORE] = self.checkpoint_callback.best_model_score
+                checkpoint[CHECKPOINT_STATE_BEST_PATH] = self.checkpoint_callback.best_model_path
 
             if early_stopping_callbacks and checkpoint_callbacks:
                 # we add the official early stopping callback to the end of the list
@@ -437,8 +438,8 @@ class TrainerIOMixin(ABC):
         early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
         if checkpoint_callbacks:
-            if 'checkpoint_callback_best_model_score' in checkpoint:
-                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best_model_score']
+            if CHECKPOINT_STATE_BEST_SCORE in checkpoint:
+                checkpoint_callbacks[-1].best_model_score = checkpoint[CHECKPOINT_STATE_BEST_SCORE]
             else:
                 # Old naming until version 0.7.6
                 rank_zero_warn(
@@ -446,7 +447,7 @@ class TrainerIOMixin(ABC):
                     'this will not be supported in the future.'
                 )
                 checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best']
-            checkpoint_callbacks[-1].best_model_path = checkpoint['checkpoint_callback_best_model_path']
+            checkpoint_callbacks[-1].best_model_path = checkpoint[CHECKPOINT_STATE_BEST_PATH]
 
         if early_stopping_callbacks:
             state = checkpoint['early_stop_callback_state_dict']

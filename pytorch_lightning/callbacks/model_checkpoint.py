@@ -17,6 +17,10 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
+CHECKPOINT_NAME_LAST = "last.ckpt"
+CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
+CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
+
 
 class ModelCheckpoint(Callback):
     r"""
@@ -302,10 +306,6 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
-        if self.save_last:
-            filepath = os.path.join(self.dirpath, self.prefix + 'last.ckpt')
-            self._save_model(filepath, trainer, pl_module)
-
         filepath = self.format_checkpoint_name(epoch, metrics)
         version_cnt = 0
         while os.path.isfile(filepath):
@@ -338,6 +338,10 @@ class ModelCheckpoint(Callback):
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
 
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
+            self._save_model(filepath, trainer, pl_module)
+
+        if self.save_last:
+            filepath = os.path.join(self.dirpath, self.prefix + CHECKPOINT_NAME_LAST)
             self._save_model(filepath, trainer, pl_module)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
