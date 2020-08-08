@@ -740,7 +740,7 @@ class TrainerTrainLoopMixin(ABC):
                     opt_idx,
                     optimizer,
                     self.hiddens,
-                    self.amp_type,
+
                 )
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
@@ -894,7 +894,7 @@ class TrainerTrainLoopMixin(ABC):
             # clear gradients
             model.optimizer_zero_grad(self.current_epoch, batch_idx, optimizer, opt_idx)
 
-    def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens, amp_type: AMPType):
+    def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
         """
@@ -959,7 +959,7 @@ class TrainerTrainLoopMixin(ABC):
                 closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
 
                 # enter amp context
-                if amp_type == AMPType.APEX:
+                if self.amp_type == AMPType.APEX:
                     context = closure_loss
                     closure_loss = closure_loss.__enter__()
 
