@@ -35,6 +35,7 @@ def test_gpu_template(cli_args):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_imagenet(tmpdir, cli_args):
     """Test running CLI for the ImageNet example with default params."""
+
     from pl_examples.domain_templates.imagenet import run_cli
 
     # https://github.com/pytorch/vision/blob/master/test/fakedata_generation.py#L105

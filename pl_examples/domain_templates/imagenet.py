@@ -225,7 +225,6 @@ class ImageNetLightningModel(LightningModule):
                             help='use pre-trained model')
         return parser
 
-
 def main(args: Namespace) -> None:
     if args.seed is not None:
         pl.seed_everything(args.seed)
