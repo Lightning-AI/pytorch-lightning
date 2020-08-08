@@ -611,6 +611,10 @@ class TrainerTrainLoopMixin(ABC):
 
         model = self.get_model()
 
+        # make sure we have something to reduce
+        if len(epoch_output) > 0 and len(epoch_output[0]) == 0:
+            return
+
         # [optimizer_idx][training_step_idx][tbptt_index]
         sample_obj = epoch_output[0][0][0]
         is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
