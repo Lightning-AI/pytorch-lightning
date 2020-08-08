@@ -109,11 +109,11 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         max_epochs=num_epochs,
     )
     trainer.fit(model)
-    path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})
-    path_last = tmpdir / ModelCheckpoint.CHECKPOINT_NAME_LAST
+    path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})  # epoch=3.ckpt
+    path_last = str(tmpdir / ModelCheckpoint.CHECKPOINT_NAME_LAST)  # last.ckpt
     assert path_last_epoch != path_last
-    ckpt_last_epoch = torch.load(str(path_last_epoch))
-    ckpt_last = torch.load(str(path_last))
+    ckpt_last_epoch = torch.load(path_last_epoch)
+    ckpt_last = torch.load(path_last)
     matching_keys = (
         "epoch",
         "global_step",
@@ -122,3 +122,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     )
     for key in matching_keys:
         assert ckpt_last_epoch[key] == ckpt_last[key]
+
+    # it is easier to load the model objects than to iterate over the raw dict of tensors
+    model_last_epoch = EvalModelTemplate.load_from_checkpoint(path_last_epoch)
+    model_last = EvalModelTemplate.load_from_checkpoint(path_last)
+    for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
+        assert w0.eq(w1).all()
