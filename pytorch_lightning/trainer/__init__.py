@@ -414,14 +414,17 @@ Under the hood the pseudocode looks like this:
 gpus
 ^^^^
 
-- Number of GPUs to train on
-- or Which GPUs to train on
+- Number of GPUs to train on (int)
+- or which GPUs to train on (list)
 - can handle strings
 
 .. testcode::
 
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
+
+    # equivalent
+    trainer = Trainer(gpus=0)
 
 Example::
 
@@ -439,6 +442,9 @@ Example::
     # combine with num_nodes to train on multiple GPUs across nodes
     # uses 8 gpus in total
     trainer = Trainer(gpus=2, num_nodes=4)
+
+    # train only on GPUs 1 and 4 across nodes
+    trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
     - `Multi-GPU training guide <multi_gpu.rst>`_
