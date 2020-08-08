@@ -193,9 +193,9 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 
 
 @pytest.mark.parametrize('schedule', [
-        pytest.param({1: 20, 3: 40}),
-        pytest.param(30),
-        pytest.param(40),
+    pytest.param({1: 20, 3: 40}),
+    pytest.param(30),
+    pytest.param(40),
 ])
 def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule):
     """
@@ -207,6 +207,12 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule):
     trainer = Trainer(
         accumulate_grad_batches=schedule,
         max_epochs=4,
+        default_root_dir=tmpdir,
+    )
+    trainer1 = Trainer(
+        accumulate_grad_batches=schedule,
+        max_epochs=4,
+        limit_train_batches=0.8,
         default_root_dir=tmpdir,
     )
 
@@ -226,7 +232,16 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule):
         for i, (loss_param, opt_param) in enumerate(zip(loss_backward, opt_step)):
             if trainer.current_epoch == 0:  # for accumulate_grad_batches={0: 1}
                 assert torch.equal(loss_param, opt_param) is False
-            if len(trainer.train_dataloader) == trainer.batch_idx + 1:
+            if trainer.num_training_batches == trainer.batch_idx:
+                # model.parameters() got updated
+                assert torch.equal(loss_param, opt_param) is False
+
+    def on_train_batch_end_1(batch, batch_idx, dataloader_idx):
+        # to check optimizer.step() called or not
+        for i, (loss_param, opt_param) in enumerate(zip(loss_backward, opt_step)):
+            if trainer1.current_epoch == 0:  # for accumulate_grad_batches={0: 1}
+                assert torch.equal(loss_param, opt_param) is False
+            if trainer1.num_training_batches == trainer1.batch_idx:
                 # model.parameters() got updated
                 assert torch.equal(loss_param, opt_param) is False
 
@@ -236,6 +251,9 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule):
     model.on_train_batch_end = on_train_batch_end_
 
     trainer.fit(model)
+
+    model.on_train_batch_end = on_train_batch_end_1
+    trainer1.fit(model)
 
 
 def test_loading_meta_tags(tmpdir):
