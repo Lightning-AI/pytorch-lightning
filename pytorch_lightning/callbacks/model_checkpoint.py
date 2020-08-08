@@ -8,11 +8,11 @@ Automatically save model checkpoints during training.
 
 import os
 import re
-
-import numpy as np
 from typing import Optional
 
+import numpy as np
 import torch
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
@@ -50,7 +50,7 @@ class ModelCheckpoint(Callback):
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
         save_last: always saves the model at the end of the epoch. Default: ``False``.
-        save_top_k: if `save_top_k == k`,
+        save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.

@@ -4,8 +4,8 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 
+from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 
 try:
     from apex import amp
@@ -77,6 +77,54 @@ class ModelHooks(Module):
         """
         # do something at the end of training
 
+    def on_pretrain_routine_start(self) -> None:
+        """
+        Called at the beginning of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the start of the pretrain routine
+
+    def on_pretrain_routine_end(self) -> None:
+        """
+        Called at the end of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the end of the pretrain routine
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+
+        If you return -1 here, you will skip training for the rest of the current epoch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch starts
+
+    def on_train_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop after the batch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch end
+
     def on_batch_start(self, batch: Any) -> None:
         """
         Called in the training loop before anything happens for that batch.
@@ -85,12 +133,16 @@ class ModelHooks(Module):
 
         Args:
             batch: The batched data as it is returned by the training DataLoader.
+
+        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_start` instead)
         """
         # do something when the batch starts
 
     def on_batch_end(self) -> None:
         """
         Called in the training loop after the batch.
+
+        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_end` instead)
         """
         # do something when the batch ends
 

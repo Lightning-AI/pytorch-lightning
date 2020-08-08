@@ -13,16 +13,18 @@
 # limitations under the License
 
 import os
-import torch
 import subprocess
 import sys
-from time import sleep
-import numpy as np
 from os.path import abspath
+from time import sleep
+from typing import Optional
+
+import numpy as np
+import torch
+
+from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning import _logger as log
-from typing import Optional
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -175,6 +177,10 @@ class DDPBackend(object):
         self.trainer.optimizers = optimizers
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
+
+        # call sync_bn before .cuda(), configure_apex and configure_ddp
+        if self.trainer.sync_batchnorm:
+            model = model.configure_sync_batchnorm(model)
 
         # MODEL
         # copy model to each gpu

@@ -10,8 +10,9 @@ from typing import Union, Any, Callable, Optional
 import numpy as np
 import torch
 from torch.utils.data._utils.collate import np_str_obj_array_pattern
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 try:
     from torch.distributed import ReduceOp
@@ -234,22 +235,31 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
         reduce_op: the reduction operation. Defaults to sum.
+            Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
     Return:
         reduced value
     """
 
     if torch.distributed.is_available() and torch.distributed.is_initialized():
+        divide_by_world_size = False
+
         if group is None:
             group = torch.distributed.group.WORLD
 
         if reduce_op is None:
             reduce_op = torch.distributed.ReduceOp.SUM
+        elif isinstance(reduce_op, str) and reduce_op in ('avg', 'mean'):
+            reduce_op = torch.distributed.ReduceOp.SUM
+            divide_by_world_size = True
 
         # sync all processes before reduction
         torch.distributed.barrier(group=group)
         torch.distributed.all_reduce(result, op=reduce_op, group=group,
                                      async_op=False)
+
+        if divide_by_world_size:
+            result = result / torch.distributed.get_world_size(group)
 
     return result
 

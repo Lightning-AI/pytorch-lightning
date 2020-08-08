@@ -89,15 +89,14 @@ import signal
 from abc import ABC
 from distutils.version import LooseVersion
 from subprocess import call
-from pkg_resources import parse_version
 
 import torch
 import torch.distributed as torch_distrib
 
 import pytorch_lightning
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
@@ -116,6 +115,13 @@ else:
     XLA_AVAILABLE = True
 
 try:
+    from apex import amp
+except ImportError:
+    APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
+
+try:
     import horovod.torch as hvd
 except (ModuleNotFoundError, ImportError):
     HOROVOD_AVAILABLE = False
@@ -125,7 +131,9 @@ else:
 try:
     from omegaconf import Container
 except ImportError:
-    Container = None
+    OMEGACONF_AVAILABLE = False
+else:
+    OMEGACONF_AVAILABLE = True
 
 
 class TrainerIOMixin(ABC):
@@ -317,6 +325,8 @@ class TrainerIOMixin(ABC):
         # restore amp scaling
         if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        elif self.use_amp and not NATIVE_AMP_AVALAIBLE and 'amp_scaling_state' in checkpoint:
+            amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         # load training state (affects trainer only)
         self.restore_training_state(checkpoint)
@@ -368,6 +378,8 @@ class TrainerIOMixin(ABC):
             # save native amp scaling
             if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
+            elif self.use_amp and not NATIVE_AMP_AVALAIBLE:
+                checkpoint['amp_scaling_state'] = amp.state_dict()
 
         # add the module_arguments and state_dict from the model
         model = self.get_model()
@@ -379,7 +391,7 @@ class TrainerIOMixin(ABC):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # add arguments to the checkpoint
             checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-            if Container is not None:
+            if OMEGACONF_AVAILABLE:
                 if isinstance(model.hparams, Container):
                     checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
 
@@ -523,6 +535,8 @@ class TrainerIOMixin(ABC):
         # restore amp scaling
         if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
+        elif self.use_amp and not NATIVE_AMP_AVALAIBLE and 'amp_scaling_state' in checkpoint:
+            amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         if self.root_gpu is not None:
             model.cuda(self.root_gpu)

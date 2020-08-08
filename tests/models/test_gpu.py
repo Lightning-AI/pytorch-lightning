@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import pytest
 import torch
+from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
@@ -10,7 +11,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-from torchtext.data import Batch, Dataset, Example, Field, LabelField
+
 PRETEND_N_OF_GPUS = 16
 
 

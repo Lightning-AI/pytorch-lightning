@@ -1,11 +1,14 @@
 import itertools
 import threading
+from collections import Mapping, Iterable
 from itertools import chain
 
 import torch
 from torch.cuda._utils import _get_device_index
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel._functions import Gather
+
 from pytorch_lightning.core.step_result import Result
 
 
@@ -68,7 +71,7 @@ class LightningDataParallel(DataParallel):
         if isinstance(outputs[0], Result):
             outputs = self.__gather_structured_result(outputs)
         else:
-            outputs = self.gather(outputs, self.output_device)
+            outputs = self.gather(outputs)
         return outputs
 
     def __gather_structured_result(self, outputs):
@@ -81,7 +84,7 @@ class LightningDataParallel(DataParallel):
         for i, output in enumerate(outputs):
             del output['meta']
 
-        outputs = self.gather(outputs, self.output_device)
+        outputs = self.gather(outputs)
 
         # pass minimize to constructor for TrainResult
         if 'minimize' in outputs:
@@ -92,6 +95,39 @@ class LightningDataParallel(DataParallel):
         result.update(outputs)
         result['meta'] = meta
         return result
+
+    def gather(self, outputs):
+        r"""
+        Override the gather method to support python scalars as well.
+        """
+        def gather_map(outputs):
+            elem = outputs[0]
+            elem_type = type(elem)
+
+            if isinstance(elem, torch.Tensor):
+                return Gather.apply(self.output_device, self.dim, *outputs)
+
+            if elem is None:
+                return None
+
+            if isinstance(elem, Mapping):
+                if not all((len(elem) == len(d) for d in outputs)):
+                    raise ValueError('All dicts must have the same number of keys')
+                return elem_type(((k, gather_map([d[k] for d in outputs]))
+                                  for k in elem))
+
+            if isinstance(elem, Iterable) and not isinstance(elem, str):
+                return elem_type(map(gather_map, zip(*outputs)))
+
+            return outputs
+
+        # Recursive function calls like this create reference cycles.
+        # Setting the function to None clears the refcycle.
+        try:
+            res = gather_map(outputs)
+        finally:
+            gather_map = None
+        return res
 
     def parallel_apply(self, replicas, inputs, kwargs):
         return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
@@ -126,9 +162,8 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
                 output = self.gather(outputs, self.output_device)
         else:
-            # normal
             # output = self.module(*inputs, **kwargs)
-            # lightning (ddp_cpu)
+            # normal lightning (ddp_cpu)
             if self.module.training:
                 output = self.module.training_step(*inputs, **kwargs)
             elif self.module.testing:

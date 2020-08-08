@@ -13,10 +13,21 @@
 # limitations under the License
 
 import os
+
 import torch
-import torch.multiprocessing as mp
-from pytorch_lightning.utilities.distributed import rank_zero_only
+
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+try:
+    from hydra.utils import to_absolute_path, get_original_cwd
+    from hydra.core.hydra_config import HydraConfig
+except ImportError:
+    HYDRA_AVAILABLE = False
+else:
+    HYDRA_AVAILABLE = True
 
 try:
     from apex import amp
@@ -26,41 +37,30 @@ else:
     APEX_AVAILABLE = True
 
 
-class DDPSpawnBackend(object):
+class DDP2Backend(object):
 
     def __init__(self, trainer):
         self.trainer = trainer
-        self.mp_queue = None
+        self.task_idx = None
 
     def setup(self):
-        self.trainer.set_random_port()
+        self._resolve_task_idx()
 
-        # pass in a state q
-        smp = mp.get_context('spawn')
-        self.mp_queue = smp.SimpleQueue()
+    def _resolve_task_idx(self):
+        if self.trainer.is_slurm_managing_tasks:
+            self.task_idx = int(os.environ['SLURM_LOCALID'])
+        else:
+            # torchelastic or general non_slurm ddp2
+            try:
+                self.task_idx = int(os.environ['LOCAL_RANK'])
+            except Exception as e:
+                m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
+                raise MisconfigurationException(m)
 
-    def train(self, model, nprocs):
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.mp_queue, model,))
+    def train(self, model):
+        self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
-    def teardown(self, model):
-        # restore main state with best weights
-        best_path = self.mp_queue.get()
-        results = self.mp_queue.get()
-        last_path = self.mp_queue.get()
-
-        # transfer back the best path to the trainer
-        self.trainer.checkpoint_callback.best_model_path = best_path
-        # todo, pass also bets score
-
-        # load last weights
-        if last_path is not None and not self.trainer.testing:
-            ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
-
-        self.trainer.model = model
-        return results
-
-    def ddp_train(self, process_idx, mp_queue, model):
+    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
@@ -68,24 +68,22 @@ class DDPSpawnBackend(object):
             process_idx:
             mp_queue: multiprocessing queue
             model:
+            is_master:
+            proc_offset:
 
         Returns:
 
         """
+        # offset the process id if requested
+        process_idx = process_idx + proc_offset
+
         # show progressbar only on progress_rank 0
         if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
             self.trainer.progress_bar_callback.disable()
 
-        # determine which process we are and world size
-        if self.trainer.use_ddp:
-            self.trainer.local_rank = process_idx
-            self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-            self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
-
-        elif self.trainer.use_ddp2:
-            self.trainer.local_rank = self.trainer.node_rank
-            self.trainer.global_rank = self.trainer.node_rank
-            self.trainer.world_size = self.trainer.num_nodes
+        self.trainer.local_rank = self.trainer.node_rank
+        self.trainer.global_rank = self.trainer.node_rank
+        self.trainer.world_size = self.trainer.num_nodes
 
         # set warning rank
         rank_zero_only.rank = self.trainer.global_rank
@@ -121,6 +119,15 @@ class DDPSpawnBackend(object):
         # copy model to each gpu
         if self.trainer.on_gpu:
             gpu_idx = process_idx
+
+            # when using ddp, the master process (proc 0) continues running as the main one
+            # this means that the local rank will always be 0
+            # (even if cuda visible devices has other visible gpus)
+            # this means that the master process needs to pull the 0th visible index as the device number
+            if is_master:
+                available_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
+                gpu_idx = int(available_gpus[self.trainer.local_rank])
+
             self.trainer.root_gpu = gpu_idx
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
@@ -131,19 +138,13 @@ class DDPSpawnBackend(object):
         # AMP
         # run through amp wrapper before going to distributed DP
         # TODO: remove with dropping NVIDIA AMP support
-        native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
-        if self.trainer.use_amp and not native_amp_available:
+        if self.trainer.use_amp and not NATIVE_AMP_AVALAIBLE:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
 
         # DDP2 uses all GPUs on the machine
-        if self.trainer.distributed_backend == 'ddp' or self.trainer.distributed_backend == 'ddp_spawn':
-            device_ids = [self.trainer.root_gpu]
-        elif self.trainer.use_ddp2:
-            device_ids = self.trainer.data_parallel_device_ids
-        else:  # includes ddp_cpu
-            device_ids = None
+        device_ids = self.trainer.data_parallel_device_ids
 
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)

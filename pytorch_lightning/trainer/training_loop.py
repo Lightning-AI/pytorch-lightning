@@ -157,29 +157,28 @@ in your model.
     trainer = Trainer(terminate_on_nan=True)
 
 """
-import os
 import subprocess
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import Callable
 from typing import Union, List
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 import torch.distributed as torch_distrib
-from copy import copy
+from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.core.step_result import EvalResult, TrainResult, Result
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 try:
     from apex import amp
@@ -263,6 +262,8 @@ class TrainerTrainLoopMixin(ABC):
     on_train_end: Callable
     on_batch_start: Callable
     on_batch_end: Callable
+    on_train_batch_start: Callable
+    on_train_batch_end: Callable
     on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
@@ -291,7 +292,7 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def clip_gradients(self):
+    def clip_gradients(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -367,7 +368,7 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_horovod) \
+                if (self.use_ddp or self.use_horovod or self.on_tpu) \
                         and hasattr(self.train_dataloader, 'sampler') \
                         and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
@@ -690,12 +691,23 @@ class TrainerTrainLoopMixin(ABC):
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
         # Batch start events
+        # TODO: deprecate 1.0
         with self.profiler.profile('on_batch_start'):
             # callbacks
             self.on_batch_start()
             # hooks
             if self.is_function_implemented('on_batch_start'):
                 response = self.get_model().on_batch_start(batch)
+                if response == -1:
+                    return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
+
+        with self.profiler.profile('on_train_batch_start'):
+            # forward support for multiple loaders
+            dataloader_idx = 0
+            self.on_train_batch_start(batch, batch_idx, dataloader_idx)
+            # hooks
+            if self.is_function_implemented('on_train_batch_start'):
+                response = self.get_model().on_train_batch_start(batch, batch_idx, dataloader_idx)
                 if response == -1:
                     return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
@@ -785,6 +797,14 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_batch_end'):
                 self.get_model().on_batch_end()
 
+        with self.profiler.profile('on_train_batch_end'):
+            # forward support for multiple loaders
+            dataloader_idx = 0
+            self.on_train_batch_end(batch, batch_idx, dataloader_idx)
+            # model hooks
+            if self.is_function_implemented('on_train_batch_end'):
+                self.get_model().on_train_batch_end(batch, batch_idx, dataloader_idx)
+
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
 
@@ -817,7 +837,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
-        self.clip_gradients()
+        self.clip_gradients(optimizer)
 
         # ------------------
         # .STEP + ZERO_GRAD

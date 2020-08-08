@@ -94,7 +94,7 @@ Which you can train by doing:
     trainer = pl.Trainer()
     model = LitModel()
 
-   trainer.fit(model, train_loader)
+    trainer.fit(model, train_loader)
 
 ----------
 

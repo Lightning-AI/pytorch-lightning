@@ -1,10 +1,10 @@
 import pickle
 from argparse import ArgumentParser
 
-import torch
 import pytest
+import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
@@ -50,17 +50,17 @@ def test_can_prepare_data(tmpdir):
 
     # is_overridden prepare data = True
     # has been called
-        # False
+    # False
     dm._has_prepared_data = True
     assert not trainer.can_prepare_data()
 
     # has not been called
-        # True
+    # True
     dm._has_prepared_data = False
     assert trainer.can_prepare_data()
 
     # is_overridden prepare data = False
-            # True
+    # True
     dm.prepare_data = None
     assert trainer.can_prepare_data()
 
@@ -291,7 +291,7 @@ def test_full_loop_ddp_spawn(tmpdir):
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
-    reset_seed()
+    seed_everything(1234)
 
     dm = TrialMNISTDataModule(tmpdir)
 
@@ -299,7 +299,7 @@ def test_full_loop_ddp_spawn(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=3,
+        max_epochs=5,
         weights_summary=None,
         distributed_backend='ddp_spawn',
         gpus=[0, 1]

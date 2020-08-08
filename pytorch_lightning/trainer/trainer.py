@@ -20,9 +20,10 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as torch_distrib
-import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.accelerators import (
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -33,6 +34,7 @@ from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, Simple
 from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
+from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
@@ -50,9 +52,6 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerator_backends import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -184,6 +183,7 @@ class Trainer(
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
+        sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
         weights_save_path: Optional[str] = None,
@@ -287,7 +287,8 @@ class Trainer(
 
                     Use `limit_test_batches` instead. Will remove v0.10.0.
 
-            val_check_interval: How often within one training epoch to check the validation set
+            val_check_interval: How often to check the validation set. Use float to check within a training epoch,
+                use int to check every n steps (batches).
 
             log_save_interval: Writes logs to disk this often
 
@@ -295,7 +296,9 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            precision: Full precision (32), half precision (16).
+            sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+
+            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
             weights_summary: Prints a summary of the weights when training begins.
 
@@ -309,26 +312,29 @@ class Trainer(
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
-            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
+            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
+                sequence.
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
 
-            profiler:  To profile individual steps during training and assist in
+            profiler:  To profile individual steps during training and assist in identifying bottlenecks.
 
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence. Sets learning
                 rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement.
-                If not specified this will toggled automatically ddp is used
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
+                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
+                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
+                you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
 
             benchmark: If true enables cudnn.benchmark.
 
-            deterministic: If true enables cudnn.deterministic
+            deterministic: If true enables cudnn.deterministic.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
@@ -422,6 +428,9 @@ class Trainer(
         # Transfer params
         self.num_nodes = num_nodes
         self.log_gpu_memory = log_gpu_memory
+
+        # sync-bn backend
+        self.sync_batchnorm = sync_batchnorm
 
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -524,7 +533,6 @@ class Trainer(
         # logging
         self.configure_logger(logger)
         self.log_save_interval = log_save_interval
-        self.val_check_interval = val_check_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -536,9 +544,6 @@ class Trainer(
                 DeprecationWarning,
             )
             overfit_batches = overfit_pct
-
-        # convert floats to ints
-        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -567,9 +572,11 @@ class Trainer(
             )
             limit_train_batches = train_percent_check
 
-        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
-        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
-        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
+        self.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
+        self.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
         self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
@@ -948,15 +955,15 @@ class Trainer(
         self.config_validator.verify_loop_configurations(model)
 
         # callbacks
-        self.on_fit_start()
+        self.on_fit_start(model)
         if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
 
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
-            if datamodule is not None:
-                datamodule.prepare_data()
+            if self.datamodule is not None:
+                self.datamodule.prepare_data()
             model.prepare_data()
             self._is_data_prepared = True
 
@@ -1045,13 +1052,12 @@ class Trainer(
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
-        # callbacks
+        # on fit end callback
         self.on_fit_end()
-
-        # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
 
+        # teardown callback
         self.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
@@ -1146,6 +1152,11 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
+        # on pretrain routine start
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_start'):
+            ref_model.on_pretrain_routine_start()
+
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
             if self.weights_summary in ModelSummary.MODES:
@@ -1187,6 +1198,11 @@ class Trainer(
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
 
         # CORE TRAINING LOOP
         self.train()
@@ -1420,12 +1436,12 @@ class _PatchDataLoader(object):
         return self.dataloader
 
 
-def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
     if 0 <= batches <= 1:
         return batches
     elif batches > 1 and batches % 1.0 == 0:
         return int(batches)
     else:
         raise MisconfigurationException(
-            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+            f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
         )

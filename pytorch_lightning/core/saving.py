@@ -2,11 +2,11 @@ import ast
 import csv
 import inspect
 import os
+from argparse import Namespace
+from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
 import torch
 import yaml
-from argparse import Namespace
-from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
@@ -17,7 +17,9 @@ ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 try:
     from omegaconf import Container
 except ImportError:
-    Container = None
+    OMEGACONF_AVAILABLE = False
+else:
+    OMEGACONF_AVAILABLE = True
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -313,7 +315,7 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
         return {}
 
     with open(config_yaml) as fp:
-        tags = yaml.load(fp, Loader=yaml.SafeLoader)
+        tags = yaml.load(fp)
 
     return tags
 
@@ -327,7 +329,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not os.path.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f'Missing folder: {os.path.dirname(config_yaml)}.')
 
-    if Container is not None and isinstance(hparams, Container):
+    if OMEGACONF_AVAILABLE and isinstance(hparams, Container):
         from omegaconf import OmegaConf
         OmegaConf.save(hparams, config_yaml, resolve=True)
         return

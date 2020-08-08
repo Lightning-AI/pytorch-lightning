@@ -1,11 +1,10 @@
+import importlib
 from abc import ABC
 from collections.abc import Mapping, Sequence
 from copy import copy
 from typing import Any, Callable, Union
 
 import torch
-
-import importlib
 
 TORCHTEXT_AVAILABLE = importlib.util.find_spec("torchtext") is not None
 if TORCHTEXT_AVAILABLE:

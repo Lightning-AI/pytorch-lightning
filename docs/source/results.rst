@@ -40,8 +40,8 @@ using the equivalent syntax via the `TrainResult` object:
 
 --------------------
 
-Validation loop example
------------------------
+Validation/Test loop example
+-----------------------------
 We can replace the following validation/test loop:
 
 .. code-block:: python

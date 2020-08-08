@@ -17,10 +17,10 @@ import os
 import torch
 import torch.multiprocessing as mp
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import _logger as log
 
 try:
     import torch_xla

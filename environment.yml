@@ -44,7 +44,7 @@ dependencies:
     - pip:
         - test-tube>=0.7.5
         - mlflow>=1.0.0
-        - comet_ml>=1.0.56
+        - comet_ml>=3.1.12
         - wandb>=0.8.21
         - neptune-client>=0.4.109
         - horovod>=0.19.1

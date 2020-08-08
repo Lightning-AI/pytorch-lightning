@@ -70,3 +70,7 @@ class ConfigureOptimizersPool(ABC):
         optimizer = optim.Adam(param_groups)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)
         return [optimizer], [lr_scheduler]
+
+    def configure_optimizers__lr_from_hparams(self):
+        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        return optimizer

@@ -1,8 +1,8 @@
 import logging
 import os
 import random
-import urllib.request
 import time
+import urllib.request
 from typing import Tuple, Optional, Sequence
 
 import torch

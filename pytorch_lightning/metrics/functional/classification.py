@@ -1,4 +1,3 @@
-import sys
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple
 

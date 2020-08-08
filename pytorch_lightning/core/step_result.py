@@ -1,7 +1,11 @@
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
-from torch import Tensor
-import torch
+import numbers
 from copy import copy
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
+
+import torch
+from torch import Tensor
+
+from pytorch_lightning.metrics.converters import _sync_ddp_if_available
 
 
 class Result(Dict):
@@ -89,10 +93,17 @@ class Result(Dict):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
+
+        # sync across ddp
+        if sync_ddp and isinstance(value, (torch.Tensor, numbers.Number)):
+            value = _sync_ddp_if_available(value, group=sync_ddp_group, reduce_op=sync_ddp_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
@@ -338,6 +349,9 @@ class TrainResult(Result):
             on_epoch: bool = False,
             reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
         """
         Log a key, value
@@ -369,7 +383,8 @@ class TrainResult(Result):
             reduce_fx: Torch.mean by default
             enable_graph: if True, will not auto detach the graph
         """
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
+                    sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
 
     def log_dict(
             self,
@@ -380,6 +395,9 @@ class TrainResult(Result):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
         """
         Log a dictonary of values at once
@@ -399,7 +417,8 @@ class TrainResult(Result):
             enable_graph:
         """
         for k, v in dictionary.items():
-            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
+                     sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
 
 
 class EvalResult(Result):
@@ -446,6 +465,9 @@ class EvalResult(Result):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
         """
         Log a key, value
@@ -476,7 +498,8 @@ class EvalResult(Result):
             reduce_fx: Torch.mean by default
             enable_graph: if True, will not auto detach the graph :
         """
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
+                    sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
 
     def log_dict(
             self,
@@ -487,6 +510,9 @@ class EvalResult(Result):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
         """
         Log a dictonary of values at once
@@ -506,7 +532,8 @@ class EvalResult(Result):
             enable_graph:
         """
         for k, v in dictionary.items():
-            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
+                     sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
 
     def get_callback_metrics(self) -> dict:
         result = {
