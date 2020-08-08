@@ -10,8 +10,11 @@ import torch
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks.model_checkpoint import CHECKPOINT_NAME_LAST, CHECKPOINT_STATE_BEST_SCORE, \
-    CHECKPOINT_STATE_BEST_PATH
+from pytorch_lightning.callbacks.model_checkpoint import (
+    CHECKPOINT_NAME_LAST,
+    CHECKPOINT_STATE_BEST_SCORE,
+    CHECKPOINT_STATE_BEST_PATH,
+)
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests.base import EvalModelTemplate
 
