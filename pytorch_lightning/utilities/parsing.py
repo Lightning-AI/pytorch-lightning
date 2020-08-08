@@ -27,32 +27,28 @@ def str_to_bool(val):
         raise ValueError(f'invalid truth value {val}')
 
 
+def is_picklable(obj: object) -> bool:
+    """Tests if an object can be pickled"""
+
+    try:
+        pickle.dumps(obj)
+        return True
+    except pickle.PicklingError:
+        return False
+
+
 def clean_namespace(hparams):
-    """Removes all functions from hparams so we can pickle."""
+    """Removes all unpicklable entries from hparams"""
 
+    hparams_dict = hparams
     if isinstance(hparams, Namespace):
-        del_attrs = []
-        for k in hparams.__dict__:
-            try:
-                pickle.dumps(getattr(hparams, k))
-            except pickle.PicklingError:
-                warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
-                del_attrs.append(k)
+        hparams_dict = hparams.__dict__
 
-        for k in del_attrs:
-            delattr(hparams, k)
+    del_attrs = [k for k,v in hparams_dict.items() if not is_picklable(v)]
 
-    elif isinstance(hparams, dict):
-        del_attrs = []
-        for k, v in hparams.items():
-            try:
-                pickle.dumps(v)
-            except pickle.PicklingError:
-                warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
-                del_attrs.append(k)
-
-        for k in del_attrs:
-            del hparams[k]
+    for k in del_attrs:
+        warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
+        del hparams_dict[k]
 
 
 def get_init_args(frame) -> dict:
