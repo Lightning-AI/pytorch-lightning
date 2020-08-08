@@ -218,7 +218,7 @@ class ModelHooks(Module):
             for optimizer in optimizers:
                 optimizer.step()
                 model.on_before_zero_grad(optimizer) # < ---- called here
-                optimizer.zero_grad
+                optimizer.zero_grad()
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
