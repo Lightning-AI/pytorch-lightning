@@ -188,7 +188,7 @@ class TrainerCallbackHookMixin(ABC):
         return callback_states
 
     def on_load_checkpoint(self, checkpoint):
-        """Called when the training is interrupted by KeyboardInterrupt."""
+        """Called when loading a model checkpoint."""
         callback_states = checkpoint.get('callbacks')
         for callback in self.callbacks:
             state = callback_states.get(type(callback))
