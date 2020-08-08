@@ -63,7 +63,11 @@ class LearningRateLogger(Callback):
                 ' have no learning rate schedulers. Please see documentation'
                 ' for `configure_optimizers` method.', RuntimeWarning
             )
-
+        
+        if self.logging_interval not in [None, 'step', 'epoch']:
+            raise MisconfigurationException(
+                'logging_interval should be `step` or `epoch` or `None`.')
+        
         # Find names for schedulers
         names = self._find_names(trainer.lr_schedulers)
 
@@ -80,8 +84,7 @@ class LearningRateLogger(Callback):
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
         else:
-            raise MisconfigurationException(
-                'logging_interval should be `step` or `epoch` or None.')
+            pass
     
     def on_epoch_start(self, trainer, pl_module):
         if self.logging_interval is None:
@@ -93,8 +96,7 @@ class LearningRateLogger(Callback):
             if trainer.logger and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
         else:
-            raise MisconfigurationException(
-                'logging_interval should be `step` or `epoch` or None.')
+            pass
             
     def _extract_lr(self, trainer, interval):
         """ Extracts learning rates for lr schedulers and saves information
