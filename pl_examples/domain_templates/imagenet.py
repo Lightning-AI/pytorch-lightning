@@ -2,12 +2,10 @@
 This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
 """
 import os
-import random
 from argparse import ArgumentParser, Namespace
 from collections import OrderedDict
 
 import torch
-import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 import torch.nn.parallel
 import torch.optim as optim
