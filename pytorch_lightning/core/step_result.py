@@ -92,6 +92,7 @@ class Result(Dict):
             on_step: bool = False,
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -113,12 +114,15 @@ class Result(Dict):
         if on_step and on_epoch:
             # set step version
             step_name = f'step_{name}'
-            self.__set_meta(step_name, value, prog_bar, logger, on_step=True, on_epoch=False, reduce_fx=reduce_fx)
+            self.__set_meta(step_name, value, prog_bar, logger,
+                            on_step=True, on_epoch=False,
+                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx)
             self.__setitem__(step_name, value)
 
             # set epoch version
             epoch_name = f'epoch_{name}'
-            self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True, reduce_fx=reduce_fx)
+            self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True,
+                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx)
             self.__setitem__(epoch_name, value)
         else:
             self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
@@ -135,6 +139,7 @@ class Result(Dict):
             on_step: bool,
             on_epoch: bool,
             reduce_fx: Callable,
+            tbptt_reduce_fx: Callable
     ):
         # set the meta for the item
         meta_value = value
@@ -144,7 +149,8 @@ class Result(Dict):
             on_step=on_step,
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
-            value=meta_value
+            value=meta_value,
+            tbptt_reduce_fx=tbptt_reduce_fx
         )
 
         self['meta'][name] = meta
@@ -271,6 +277,28 @@ class Result(Dict):
         result['meta'] = meta
         return result
 
+    @classmethod
+    def reduce_across_time(cls, time_outputs):
+        # auto-reduce across time for tbptt
+        meta = time_outputs[0]['meta']
+        result = cls()
+        result = recursive_gather(time_outputs, result)
+        recursive_stack(result)
+
+        for k, value in result.items():
+            if k == 'meta':
+                continue
+
+            # pick the reduce fx
+            if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
+                tbptt_reduce_fx = torch.mean
+            else:
+                tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
+            result[k] = tbptt_reduce_fx(value)
+
+        result['meta'] = meta
+        return result
+
     @property
     def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
@@ -348,6 +376,7 @@ class TrainResult(Result):
             on_step: bool = True,
             on_epoch: bool = False,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -383,8 +412,18 @@ class TrainResult(Result):
             reduce_fx: Torch.mean by default
             enable_graph: if True, will not auto detach the graph
         """
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
-                    sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
+        super().log(name=name,
+                    value=value,
+                    prog_bar=prog_bar,
+                    logger=logger,
+                    on_step=on_step,
+                    on_epoch=on_epoch,
+                    reduce_fx=reduce_fx,
+                    enable_graph=enable_graph,
+                    sync_ddp=sync_ddp,
+                    sync_ddp_group=sync_ddp_group,
+                    sync_ddp_op=sync_ddp_op,
+                    tbptt_reduce_fx=tbptt_reduce_fx)
 
     def log_dict(
             self,
@@ -394,6 +433,7 @@ class TrainResult(Result):
             on_step: bool = False,
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -417,8 +457,14 @@ class TrainResult(Result):
             enable_graph:
         """
         for k, v in dictionary.items():
-            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
-                     sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
+            self.log(k, v,
+                     prog_bar, logger,
+                     on_step, on_epoch,
+                     reduce_fx, enable_graph,
+                     sync_ddp=sync_ddp,
+                     sync_ddp_group=sync_ddp_group,
+                     sync_ddp_op=sync_ddp_op,
+                     tbptt_reduce_fx=tbptt_reduce_fx)
 
 
 class EvalResult(Result):
@@ -464,6 +510,7 @@ class EvalResult(Result):
             on_step: bool = False,
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -498,8 +545,18 @@ class EvalResult(Result):
             reduce_fx: Torch.mean by default
             enable_graph: if True, will not auto detach the graph :
         """
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
-                    sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
+        super().log(name=name,
+                    value=value,
+                    prog_bar=prog_bar,
+                    logger=logger,
+                    on_step=on_step,
+                    on_epoch=on_epoch,
+                    reduce_fx=reduce_fx,
+                    enable_graph=enable_graph,
+                    sync_ddp=sync_ddp,
+                    sync_ddp_group=sync_ddp_group,
+                    sync_ddp_op=sync_ddp_op,
+                    tbptt_reduce_fx=tbptt_reduce_fx)
 
     def log_dict(
             self,
@@ -509,6 +566,7 @@ class EvalResult(Result):
             on_step: bool = False,
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -532,8 +590,14 @@ class EvalResult(Result):
             enable_graph:
         """
         for k, v in dictionary.items():
-            self.log(k, v, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph,
-                     sync_ddp=sync_ddp, sync_ddp_group=sync_ddp_group, sync_ddp_op=sync_ddp_op)
+            self.log(k, v,
+                     prog_bar, logger,
+                     on_step, on_epoch,
+                     reduce_fx, enable_graph,
+                     sync_ddp=sync_ddp,
+                     sync_ddp_group=sync_ddp_group,
+                     sync_ddp_op=sync_ddp_op,
+                     tbptt_reduce_fx=tbptt_reduce_fx)
 
     def get_callback_metrics(self) -> dict:
         result = {

@@ -462,7 +462,8 @@ class TrainerTrainLoopMixin(ABC):
         train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
 
         # bookkeeping
-        epoch_output = []
+        num_optimizers = len(self._get_optimizers_iterable())
+        epoch_output = [[] for _ in range(num_optimizers)]
         should_check_val = False
 
         # structured result accumulators for callbacks
@@ -487,16 +488,15 @@ class TrainerTrainLoopMixin(ABC):
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
-            step_out = batch_output.training_step_output_for_epoch_end
-            should_auto_reduce_train_result = isinstance(step_out, Result) and step_out.should_reduce_on_epoch_end
-            if isinstance(step_out, dict) and 'early_stop_on' in step_out:
-                early_stopping_accumulator.accumulate(step_out['early_stop_on'])
+            epoch_end_outputs = self.process_train_step_outputs(
+                batch_output.training_step_output_for_epoch_end,
+                early_stopping_accumulator,
+                checkpoint_accumulator
+            )
 
-            if isinstance(step_out, dict) and 'checkpoint_on' in step_out:
-                checkpoint_accumulator.accumulate(step_out['checkpoint_on'])
-
-            if self.is_overridden('training_epoch_end', model=self.get_model()) or should_auto_reduce_train_result:
-                epoch_output.append(batch_output.training_step_output_for_epoch_end)
+            # track the outputs to reduce at the end of the epoch
+            for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
+                epoch_output[opt_idx].append(opt_outputs)
 
             # update LR schedulers
             self.update_train_loop_lr_schedulers()
@@ -546,6 +546,35 @@ class TrainerTrainLoopMixin(ABC):
         # epoch end hook
         self.run_on_epoch_end_hook(model)
 
+    def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
+        """
+        Figure out what needs to be tracked/logged at the end of the epoch
+        """
+
+        # the training step outputs a list per optimizer. The list contains the outputs at each time step
+        # when no TBPTT is used, then the list has 1 item per batch
+        # when TBPTT IS used, then the list has n items (1 per time step)
+        epoch_end_outputs = []
+        for optimizer_idx_outputs in all_train_step_outputs:
+            # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
+            sample_output = optimizer_idx_outputs[-1]
+
+            # pull out callback info if available (ie: Results object)
+            if isinstance(sample_output, dict) and 'early_stop_on' in sample_output:
+                early_stopping_accumulator.accumulate(sample_output['early_stop_on'])
+
+            if isinstance(sample_output, dict) and 'checkpoint_on' in sample_output:
+                checkpoint_accumulator.accumulate(sample_output['checkpoint_on'])
+
+            # decide if we need to reduce at the end of the epoch automatically
+            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
+
+            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
+            if self.is_overridden('training_epoch_end', model=self.get_model()) or auto_reduce_tng_result:
+                epoch_end_outputs.append(optimizer_idx_outputs)
+
+        return epoch_end_outputs
+
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
@@ -576,8 +605,15 @@ class TrainerTrainLoopMixin(ABC):
                 model.on_train_epoch_end()
 
     def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator):
+        # epoch output is a list. Each item in that list has all the outputs per optimizer
+        # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
+        # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
+
         model = self.get_model()
-        is_result_obj = len(epoch_output) > 0 and isinstance(epoch_output[0], Result)
+
+        # [optimizer_idx][training_step_idx][tbptt_index]
+        sample_obj = epoch_output[0][0][0]
+        is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
 
         epoch_log_metrics = {}
         epoch_callback_metrics = {}
@@ -618,10 +654,21 @@ class TrainerTrainLoopMixin(ABC):
         # Structured Result (auto epoch end)
         # --------------------------
         elif is_result_obj:
-            epoch_output = epoch_output[0].__class__.reduce_on_epoch_end(epoch_output)
-            epoch_output.minimize = epoch_output.minimize.mean()
-            epoch_log_metrics = epoch_output.epoch_log_metrics
-            epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
+            epoch_log_metrics = {}
+            epoch_progress_bar_metrics = {}
+            for opt_outputs in epoch_output:
+                # reduce across time first
+                time_reduced_outputs = []
+                for train_step_idx in range(len(opt_outputs)):
+                    tbptt_outs = opt_outputs[train_step_idx]
+                    tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
+                    time_reduced_outputs.append(tbptt_outs)
+
+                # reduce across training steps
+                opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
+                opt_outputs.minimize = opt_outputs.minimize.mean()
+                epoch_log_metrics.update(opt_outputs.epoch_log_metrics)
+                epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
 
         # --------------------------
         # track results
