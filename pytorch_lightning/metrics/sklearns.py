@@ -1,7 +1,6 @@
-from typing import Any, Optional, Union, Sequence, List
+from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
-import torch
 
 from pytorch_lightning import _logger as lightning_logger
 from pytorch_lightning.metrics.metric import NumpyMetric
