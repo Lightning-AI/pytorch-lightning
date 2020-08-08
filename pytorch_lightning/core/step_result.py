@@ -380,6 +380,7 @@ def recursive_padded_stack(result: MutableMapping):
             v = torch.stack(v)
             result[k] = v
 
+
 class TrainResult(Result):
 
     def __init__(
