@@ -371,6 +371,7 @@ def recursive_stack(result: MutableMapping):
             v = torch.stack(v)
             result[k] = v
 
+
 def recursive_padded_stack(result: MutableMapping):
     for k, v in result.items():
         if isinstance(v, dict):
