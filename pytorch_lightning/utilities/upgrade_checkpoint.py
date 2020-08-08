@@ -1,15 +1,32 @@
 import argparse
-import torch
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from shutil import copyfile
 
-keys_mapping = {
-    "checkpoint_callback_best_model_score": (type(ModelCheckpoint), "best_model_score"),
-    "checkpoint_callback_best_model_path": (type(ModelCheckpoint), "best_model_path"),
-    "checkpoint_callback_best": (type(ModelCheckpoint), "wait_count"),
-    "early_stop_callback_wait": (type(EarlyStopping), "best_model_score"),
-    "early_stop_callback_patience": (type(EarlyStopping), "patience"),
+import torch
+
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+
+KEYS_MAPPING = {
+    "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
+    "checkpoint_callback_best_model_path": (ModelCheckpoint, "best_model_path"),
+    "checkpoint_callback_best": (ModelCheckpoint, "best_model_score"),
+    "early_stop_callback_wait": (EarlyStopping, "wait_count"),
+    "early_stop_callback_patience": (EarlyStopping, "patience"),
 }
+
+
+def upgrade_checkpoint(filepath):
+    checkpoint = torch.load(filepath)
+    checkpoint['callbacks'] = checkpoint.get('callbacks') or {}
+
+    for key, new_path in KEYS_MAPPING.items():
+        if key in checkpoint:
+            value = checkpoint[key]
+            callback_type, callback_key = new_path
+            checkpoint["callbacks"][callback_type] = checkpoint["callbacks"].get(callback_type) or {}
+            checkpoint["callbacks"][callback_type][callback_key] = value
+            del checkpoint[key]
+
+    torch.save(checkpoint, filepath)
 
 
 if __name__ == "__main__":
@@ -18,13 +35,5 @@ if __name__ == "__main__":
     parser.add_argument("--file", help="filepath for a checkpoint to upgrade")
     args = parser.parse_args()
 
-    checkpoint = torch.load(args.file)
     copyfile(args.file, args.file + ".bak")
-
-    for key, new_path in keys_mapping.items():
-        value = checkpoint[key]
-        del checkpoint[key]
-        callback_type, callback_key = new_path
-        checkpoint["callbacks"][callback_type][callback_key] = value
-
-    torch.save(checkpoint, args.file)
+    upgrade_checkpoint(args.file)
