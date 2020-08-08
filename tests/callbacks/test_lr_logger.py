@@ -74,10 +74,12 @@ def test_lr_logger_multi_lrs(tmpdir, logging_interval):
         'Number of learning rates logged does not match number of lr schedulers'
     assert all([k in ['lr-Adam', 'lr-Adam-1'] for k in lr_logger.lrs.keys()]), \
         'Names of learning rates not set correctly'
-    if logging_interval=='step':
+
+    if logging_interval == 'step':
         expected_number_logged = trainer.global_step
     if logging_interval == 'epoch':
         expected_number_logged = trainer.max_epochs
+
     assert all(len(lr) == expected_number_logged for k, lr in lr_logger.lrs.items()), \
         'Length of logged learning rates do not match the expected number'
 
