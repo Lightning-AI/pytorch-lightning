@@ -4,13 +4,7 @@ import torch
 
 
 def is_apex_available():
-    # TODO: use importlib
-    try:
-        from apex import amp
-    except ImportError:
-        return False
-    else:
-        return True
+    return importlib.util.find_spec("apex") is not None
 
 
 def is_horovod_available():
@@ -40,7 +34,6 @@ def is_torchvision_available():
 
 
 def is_xla_available():
-    # TODO: use importlib
     try:
         import torch_xla
         import torch_xla.core.xla_model as xm
