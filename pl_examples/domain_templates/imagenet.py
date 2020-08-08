@@ -188,7 +188,7 @@ class ImageNetLightningModel(LightningModule):
 
     def test_epoch_end(self, *args, **kwargs):
         outputs = self.validation_epoch_end(*args, **kwargs)
-        replace_val = lambda x: {k.replace('val', 'test'):v for k,v in x.items()}
+        replace_val = lambda x: {k.replace('val', 'test'): v for k, v in x.items()}
         outputs = {
             'test_loss': outputs['val_loss'],
             'progress_bar': replace_val(outputs['progress_bar']),
@@ -241,7 +241,7 @@ def run_cli():
     parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                                help='evaluate model on validation set')
     parent_parser.add_argument('--resume', default=None, type=str, metavar='PATH',
-                               help='path to latest checkpoint (default: none)')
+                               help='path to a checkpoint to resume from (default: None)')
     parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
     args = parser.parse_args()
     main(args)
