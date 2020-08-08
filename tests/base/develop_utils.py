@@ -1,3 +1,4 @@
+import functools
 import os
 
 import numpy as np
@@ -8,7 +9,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
-import functools
 
 
 def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
@@ -60,7 +60,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate, path_expt=None):
+def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelTemplate):
     trained_model = module_class.load_from_checkpoint(root_weights_dir)
     assert trained_model is not None, 'loading model failed'
     return trained_model
@@ -89,6 +89,7 @@ def init_checkpoint_callback(logger):
 
 
 def pl_multi_process_test(func):
+    """Wrapper for running multi-processing tests."""
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -100,15 +101,16 @@ def pl_multi_process_test(func):
             try:
                 func(**kwargs)
                 queue.put(1)
-            except Exception as e:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 queue.put(-1)
 
-        p = Process(target=inner_f, args=(queue,), kwargs=kwargs)
-        p.start()
-        p.join()
+        proc = Process(target=inner_f, args=(queue,), kwargs=kwargs)
+        proc.start()
+        proc.join()
+
         result = queue.get()
-        assert result == 1
+        assert result == 1, 'expected 1, but returned %s' % result
 
     return wrapper

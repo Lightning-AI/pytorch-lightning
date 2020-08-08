@@ -1,5 +1,6 @@
 import inspect
 from argparse import Namespace
+from typing import Dict
 
 
 def str_to_bool(val):
@@ -93,7 +94,20 @@ def collect_init_args(frame, path_args: list, inside: bool = False) -> list:
         return path_args
 
 
-class AttributeDict(dict):
+def flatten_dict(source, result=None):
+    if result is None:
+        result = {}
+
+    for k, v in source.items():
+        if isinstance(v, dict):
+            _ = flatten_dict(v, result)
+        else:
+            result[k] = v
+
+    return result
+
+
+class AttributeDict(Dict):
     """Extended dictionary accesisable with dot notation.
 
     >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
@@ -126,3 +140,56 @@ class AttributeDict(dict):
         rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
         out = '\n'.join(rows)
         return out
+
+
+def lightning_hasattr(model, attribute):
+    """ Special hasattr for lightning. Checks for attribute in model namespace
+        and the old hparams namespace/dict """
+    # Check if attribute in model
+    if hasattr(model, attribute):
+        attr = True
+    # Check if attribute in model.hparams, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            attr = attribute in model.hparams
+        else:
+            attr = hasattr(model.hparams, attribute)
+    else:
+        attr = False
+
+    return attr
+
+
+def lightning_getattr(model, attribute):
+    """ Special getattr for lightning. Checks for attribute in model namespace
+        and the old hparams namespace/dict """
+    # Check if attribute in model
+    if hasattr(model, attribute):
+        attr = getattr(model, attribute)
+    # Check if attribute in model.hparams, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            attr = model.hparams[attribute]
+        else:
+            attr = getattr(model.hparams, attribute)
+    else:
+        raise ValueError(f'{attribute} is not stored in the model namespace'
+                         ' or the `hparams` namespace/dict.')
+    return attr
+
+
+def lightning_setattr(model, attribute, value):
+    """ Special setattr for lightning. Checks for attribute in model namespace
+        and the old hparams namespace/dict """
+    # Check if attribute in model
+    if hasattr(model, attribute):
+        setattr(model, attribute, value)
+    # Check if attribute in model.hparams, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            model.hparams[attribute] = value
+        else:
+            setattr(model.hparams, attribute, value)
+    else:
+        raise ValueError(f'{attribute} is not stored in the model namespace'
+                         ' or the `hparams` namespace/dict.')

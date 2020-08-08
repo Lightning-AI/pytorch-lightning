@@ -6,6 +6,7 @@ import sys
 import types
 from argparse import Namespace
 from pathlib import Path
+from unittest.mock import patch
 
 import cloudpickle
 import pytest
@@ -60,7 +61,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=ckpt_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 
@@ -98,7 +99,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=ckpt_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 
@@ -133,11 +134,13 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(accumulate_grad_batches=schedule,
-                      limit_train_batches=0.8,
-                      limit_val_batches=0.8,
-                      max_epochs=4,
-                      default_root_dir=tmpdir)
+    trainer = Trainer(
+        accumulate_grad_batches=schedule,
+        limit_train_batches=0.8,
+        limit_val_batches=0.8,
+        max_epochs=4,
+        default_root_dir=tmpdir,
+    )
 
     # test optimizer call freq matches scheduler
     def _optimizer_step(epoch, batch_idx, optimizer, optimizer_idx,
@@ -365,7 +368,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         def increment_epoch(self):
             self.num_epochs_seen += 1
 
-        def increment_batch(self, _):
+        def increment_batch(self, batch, batch_idx, dataloader_idx):
             self.num_batches_seen += 1
 
         def increment_on_load_checkpoint(self, _):
@@ -374,7 +377,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         # Bind methods to keep track of epoch numbers, batch numbers it has seen
         # as well as number of times it has called on_load_checkpoint()
         model.on_epoch_end = types.MethodType(increment_epoch, model)
-        model.on_batch_start = types.MethodType(increment_batch, model)
+        model.on_train_batch_start = types.MethodType(increment_batch, model)
         model.on_load_checkpoint = types.MethodType(increment_on_load_checkpoint, model)
         return model
 
@@ -443,7 +446,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     trainer_options.update(
         default_root_dir=tmpdir,
         max_epochs=3,
-        max_steps=num_train_samples + 10
+        max_steps=num_train_samples + 10,
     )
 
     # fit model
@@ -457,7 +460,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     # define less train epochs than steps
     trainer_options.update(
         max_epochs=2,
-        max_steps=trainer_options['max_epochs'] * 2 * num_train_samples
+        max_steps=trainer_options['max_epochs'] * 2 * num_train_samples,
     )
 
     # fit model
@@ -480,7 +483,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
-        max_epochs=7
+        max_epochs=7,
     )
 
     # define less min steps than 1 epoch
@@ -532,31 +535,6 @@ def test_benchmark_option(tmpdir):
     assert torch.backends.cudnn.benchmark
 
 
-def test_testpass_overrides(tmpdir):
-    # todo: check duplicated tests against trainer_checks
-    hparams = EvalModelTemplate.get_default_hparams()
-
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException, match='.*not implement `test_dataloader`.*'):
-        model = EvalModelTemplate(**hparams)
-        model.test_dataloader = LightningModule.test_dataloader
-        Trainer().test(model)
-
-    # Misconfig when neither test_step or test_end is implemented
-    with pytest.raises(MisconfigurationException):
-        model = EvalModelTemplate(**hparams)
-        model.test_step = LightningModule.test_step
-        Trainer().test(model)
-
-    # No exceptions when one or both of test_step or test_end are implemented
-    model = EvalModelTemplate(**hparams)
-    model.test_step_end = LightningModule.test_step_end
-    Trainer().test(model)
-
-    model = EvalModelTemplate(**hparams)
-    Trainer().test(model)
-
-
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])
 @pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
 def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
@@ -589,7 +567,7 @@ def test_test_checkpoint_path(tmpdir, ckpt_path, save_top_k):
             with pytest.raises(FileNotFoundError):
                 trainer.test(ckpt_path='random.ckpt')
         else:
-            ckpt_path = str(list((Path(tmpdir) / 'lightning_logs/version_0/checkpoints').iterdir())[0].absolute())
+            ckpt_path = str(list((Path(tmpdir) / f'lightning_logs/version_{trainer.logger.version}/checkpoints').iterdir())[0].absolute())
             trainer.test(ckpt_path=ckpt_path)
             assert trainer.tested_ckpt_path == ckpt_path
 
@@ -713,7 +691,7 @@ def test_trainer_interrupted_flag(tmpdir):
         def __init__(self):
             super().__init__()
 
-        def on_batch_start(self, trainer, pl_module):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
             raise KeyboardInterrupt
 
     class HandleInterruptCallback(Callback):
@@ -807,82 +785,110 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
         assert trainer.tpu_id == expected_tpu_id
 
 
+@pytest.mark.parametrize(['limit_val_batches'], [
+    pytest.param(0.0),  # this should run no sanity checks
+    pytest.param(1),
+    pytest.param(1.0),
+    pytest.param(0.3),
+])
+def test_num_sanity_val_steps(tmpdir, limit_val_batches):
+    """
+    Test that num_sanity_val_steps=-1 runs through all validation data once.
+    Makes sure this setting is independent of limit_val_batches.
+    """
+    model = EvalModelTemplate()
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=-1,
+        limit_val_batches=limit_val_batches,  # should have no influence
+        max_steps=1,
+    )
+    assert trainer.num_sanity_val_steps == float('inf')
+    val_dataloaders = model.val_dataloader__multiple()
+
+    with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+        assert mocked.call_count == sum(len(dl) * (limit_val_batches > 0) for dl in val_dataloaders)
+
+
 @pytest.mark.parametrize("trainer_kwargs,expected", [
     pytest.param(
         dict(distributed_backend=None, gpus=None),
-        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=1)
     ),
     pytest.param(
         dict(distributed_backend="dp", gpus=None),
-        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=1)
     ),
     pytest.param(
         dict(distributed_backend="dp", gpus=None),
-        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=1)
     ),
     pytest.param(
         dict(distributed_backend="ddp", gpus=None),
-        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=1)
     ),
     pytest.param(
         dict(distributed_backend="ddp", num_processes=2, gpus=None),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=2)
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=2)
     ),
     pytest.param(
         dict(distributed_backend="ddp", num_nodes=2, gpus=None),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=1)
     ),
     pytest.param(
         dict(distributed_backend="ddp_cpu", num_processes=2, gpus=None),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=2)
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=2)
     ),
     pytest.param(
         dict(distributed_backend="ddp2", gpus=None),
-        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=1)
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=1)
     ),
     pytest.param(
         dict(distributed_backend=None, gpus=1),
-        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=1, on_gpu=True, single_gpu=True, num_processes=1),
+        dict(use_dp=False, use_ddp=False, use_ddp2=False, num_gpus=1, on_gpu=True, use_single_gpu=True, num_processes=1),
         marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
     ),
     pytest.param(
         dict(distributed_backend="dp", gpus=1),
-        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=1, on_gpu=True, single_gpu=True, num_processes=1),
+        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=1, on_gpu=True, use_single_gpu=True, num_processes=1),
         marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
     ),
     pytest.param(
         dict(distributed_backend="ddp", gpus=1),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=1, on_gpu=True, single_gpu=True, num_processes=1),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=1, on_gpu=True, use_single_gpu=True, num_processes=1),
         marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
     ),
     pytest.param(
         dict(distributed_backend="ddp_cpu", num_processes=2, gpus=1),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, single_gpu=False, num_processes=2),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=0, on_gpu=False, use_single_gpu=False, num_processes=2),
         marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
     ),
     pytest.param(
         dict(distributed_backend="ddp2", gpus=1),
-        dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=1, on_gpu=True, single_gpu=False, num_processes=1),
+        dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=1, on_gpu=True, use_single_gpu=False, num_processes=1),
         marks=[pytest.mark.skipif(torch.cuda.device_count() == 0, reason="GPU needed")]
     ),
     pytest.param(
         dict(distributed_backend=None, gpus=2),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=2),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, use_single_gpu=False, num_processes=2),
         marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
     ),
     pytest.param(
         dict(distributed_backend="dp", gpus=2),
-        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
+        dict(use_dp=True, use_ddp=False, use_ddp2=False, num_gpus=2, on_gpu=True, use_single_gpu=False, num_processes=1),
         marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
     ),
     pytest.param(
         dict(distributed_backend="ddp", gpus=2),
-        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=2),
+        dict(use_dp=False, use_ddp=True, use_ddp2=False, num_gpus=2, on_gpu=True, use_single_gpu=False, num_processes=2),
         marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
     ),
     pytest.param(
         dict(distributed_backend="ddp2", gpus=2),
-        dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=2, on_gpu=True, single_gpu=False, num_processes=1),
+        dict(use_dp=False, use_ddp=False, use_ddp2=True, num_gpus=2, on_gpu=True, use_single_gpu=False, num_processes=1),
         marks=[pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Multiple GPUs needed")]
     ),
 ])
@@ -893,7 +899,7 @@ def test_trainer_config(trainer_kwargs, expected):
     assert trainer.use_ddp2 is expected["use_ddp2"]
     assert trainer.num_gpus == expected["num_gpus"]
     assert trainer.on_gpu is expected["on_gpu"]
-    assert trainer.single_gpu is expected["single_gpu"]
+    assert trainer.use_single_gpu is expected["use_single_gpu"]
     assert trainer.num_processes == expected["num_processes"]
 
 
@@ -951,3 +957,34 @@ def test_trainer_pickle(tmpdir):
     )
     pickle.dumps(trainer)
     cloudpickle.dumps(trainer)
+
+
+def test_trainer_setup_call(tmpdir):
+    """Test setup call with fit and test call."""
+
+    class CurrentModel(EvalModelTemplate):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    class TrainerSubclass(Trainer):
+
+        def setup(self, stage):
+            self.stage = stage
+
+    model = CurrentModel()
+
+    # fit model
+    trainer = TrainerSubclass(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        checkpoint_callback=False
+    )
+
+    trainer.fit(model)
+    assert trainer.stage == 'fit'
+    assert trainer.get_model().stage == 'fit'
+
+    trainer.test(ckpt_path=None)
+    assert trainer.stage == 'test'
+    assert trainer.get_model().stage == 'test'

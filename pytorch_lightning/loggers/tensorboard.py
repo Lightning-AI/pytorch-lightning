@@ -17,6 +17,13 @@ from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
 
+try:
+    from omegaconf import Container, OmegaConf
+except ImportError:
+    OMEGACONF_AVAILABLE = False
+else:
+    OMEGACONF_AVAILABLE = True
+
 
 class TensorBoardLogger(LightningLoggerBase):
     r"""
@@ -112,7 +119,10 @@ class TensorBoardLogger(LightningLoggerBase):
         params = self._convert_params(params)
 
         # store params to output
-        self.hparams.update(params)
+        if OMEGACONF_AVAILABLE and isinstance(params, Container):
+            self.hparams = OmegaConf.merge(self.hparams, params)
+        else:
+            self.hparams.update(params)
 
         # format params into the suitable for tensorboard
         params = self._flatten_dict(params)

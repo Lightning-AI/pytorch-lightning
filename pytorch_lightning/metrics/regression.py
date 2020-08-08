@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import torch
 
 from pytorch_lightning.metrics.functional.regression import (
@@ -5,7 +7,8 @@ from pytorch_lightning.metrics.functional.regression import (
     mse,
     psnr,
     rmse,
-    rmsle
+    rmsle,
+    ssim
 )
 from pytorch_lightning.metrics.metric import Metric
 
@@ -98,7 +101,7 @@ class RMSE(Metric):
 
 class MAE(Metric):
     """
-    Computes the root mean absolute loss or L1-loss.
+    Computes the mean absolute loss or L1-loss.
 
     Example:
 
@@ -229,3 +232,62 @@ class PSNR(Metric):
             A Tensor with psnr score.
         """
         return psnr(pred, target, self.data_range, self.base, self.reduction)
+
+
+class SSIM(Metric):
+    """
+    Computes Structual Similarity Index Measure
+
+    Example:
+
+        >>> pred = torch.rand([16, 1, 16, 16])
+        >>> target = pred * 0.75
+        >>> metric = SSIM()
+        >>> metric(pred, target)
+        tensor(0.9219)
+    """
+
+    def __init__(
+        self,
+        kernel_size: Sequence[int] = (11, 11),
+        sigma: Sequence[float] = (1.5, 1.5),
+        reduction: str = "elementwise_mean",
+        data_range: float = None,
+        k1: float = 0.01,
+        k2: float = 0.03
+    ):
+        """
+        Args:
+            kernel_size: Size of the gaussian kernel. Default: (11, 11)
+            sigma: Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
+            reduction: A method for reducing ssim. Default: ``elementwise_mean``
+
+                Available reduction methods:
+                - elementwise_mean: takes the mean
+                - none: pass away
+                - sum: add elements
+
+            data_range: Range of the image. If ``None``, it is determined from the image (max - min)
+            k1: Parameter of SSIM. Default: 0.01
+            k2: Parameter of SSIM. Default: 0.03
+        """
+        super().__init__(name="ssim")
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+        self.reduction = reduction
+        self.data_range = data_range
+        self.k1 = k1
+        self.k2 = k2
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Actual metric computation
+
+        Args:
+            pred: Estimated image
+            target: Ground truth image
+
+        Return:
+            torch.Tensor: SSIM Score
+        """
+        return ssim(pred, target, self.kernel_size, self.sigma, self.reduction, self.data_range, self.k1, self.k2)

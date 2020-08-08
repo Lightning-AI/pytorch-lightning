@@ -4,15 +4,13 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 
+from pytorch_lightning.utilities import move_data_to_device, AMPType
 
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 
 class ModelHooks(Module):
@@ -65,15 +63,6 @@ class ModelHooks(Module):
         If on DDP it is called on every process
         """
 
-    # TODO: remove in v0.9.0
-    def on_sanity_check_start(self):
-        """
-        Called before starting evaluation.
-
-        Warning:
-            Deprecated. Will be removed in v0.9.0.
-        """
-
     def on_train_start(self) -> None:
         """
         Called at the beginning of training before sanity check.
@@ -86,6 +75,54 @@ class ModelHooks(Module):
         """
         # do something at the end of training
 
+    def on_pretrain_routine_start(self) -> None:
+        """
+        Called at the beginning of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the start of the pretrain routine
+
+    def on_pretrain_routine_end(self) -> None:
+        """
+        Called at the end of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the end of the pretrain routine
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop before anything happens for that batch.
+
+        If you return -1 here, you will skip training for the rest of the current epoch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch starts
+
+    def on_train_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the training loop after the batch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch end
+
     def on_batch_start(self, batch: Any) -> None:
         """
         Called in the training loop before anything happens for that batch.
@@ -94,12 +131,16 @@ class ModelHooks(Module):
 
         Args:
             batch: The batched data as it is returned by the training DataLoader.
+
+        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_start` instead)
         """
         # do something when the batch starts
 
     def on_batch_end(self) -> None:
         """
         Called in the training loop after the batch.
+
+        .. warning:: Deprecated in 0.9.0 will remove 1.0.0 (use `on_train_batch_end` instead)
         """
         # do something when the batch ends
 
@@ -112,6 +153,42 @@ class ModelHooks(Module):
     def on_epoch_end(self) -> None:
         """
         Called in the training loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_train_epoch_start(self) -> None:
+        """
+        Called in the training loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_train_epoch_end(self) -> None:
+        """
+        Called in the training loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_validation_epoch_start(self) -> None:
+        """
+        Called in the validation loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_validation_epoch_end(self) -> None:
+        """
+        Called in the validation loop at the very end of the epoch.
+        """
+        # do something when the epoch ends
+
+    def on_test_epoch_start(self) -> None:
+        """
+        Called in the test loop at the very beginning of the epoch.
+        """
+        # do something when the epoch starts
+
+    def on_test_epoch_end(self) -> None:
+        """
+        Called in the test loop at the very end of the epoch.
         """
         # do something when the epoch ends
 
@@ -139,7 +216,7 @@ class ModelHooks(Module):
             for optimizer in optimizers:
                 optimizer.step()
                 model.on_before_zero_grad(optimizer) # < ---- called here
-                optimizer.zero_grad
+                optimizer.zero_grad()
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
@@ -188,8 +265,8 @@ class ModelHooks(Module):
         """
         loss.backward()
 
-    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
-        if NATIVE_AMP_AVALAIBLE:
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx, amp_type: AMPType):
+        if amp_type == AMPType.NATIVE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)

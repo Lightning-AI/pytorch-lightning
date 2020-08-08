@@ -13,6 +13,7 @@ ARG TEST_IMAGE=0
 # Install pytorch-lightning at the current PR, plus dependencies.
 RUN git clone https://github.com/PyTorchLightning/pytorch-lightning.git && \
     cd pytorch-lightning && \
+    echo $GITHUB_REF && \
     git fetch origin $GITHUB_REF:CI && \
     git checkout CI && \
     pip install --requirement ./requirements/base.txt --no-cache-dir

@@ -1,15 +1,15 @@
 import os
+from unittest.mock import MagicMock
 
 import pytest
 import torch
+import wandb
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
-import wandb
-from unittest.mock import MagicMock
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -101,7 +101,7 @@ def test_amp_multi_gpu_dp(tmpdir):
     assert result == 1
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_amp_multi_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()

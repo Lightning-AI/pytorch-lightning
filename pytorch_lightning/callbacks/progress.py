@@ -36,8 +36,8 @@ class ProgressBarBase(Callback):
             def disable(self):
                 self.enable = False
 
-            def on_batch_end(self, trainer, pl_module):
-                super().on_batch_end(trainer, pl_module)  # don't forget this :)
+            def on_train_batch_end(self, trainer, pl_module):
+                super().on_train_batch_end(trainer, pl_module)  # don't forget this :)
                 percent = (self.train_batch_idx / self.total_train_batches) * 100
                 sys.stdout.flush()
                 sys.stdout.write(f'{percent:.01f} percent complete \r')
@@ -88,8 +88,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         training dataloader is of infinite size.
         """
-        total_train_batches = 1 if self.trainer.fast_dev_run else self.trainer.num_training_batches
-        return total_train_batches
+        return self.trainer.num_training_batches
 
     @property
     def total_val_batches(self) -> int:
@@ -98,13 +97,10 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         validation dataloader is of infinite size.
         """
-        trainer = self.trainer
         total_val_batches = 0
-        if trainer.fast_dev_run and trainer.val_dataloaders is not None:
-            total_val_batches = len(trainer.val_dataloaders)
-        elif not self.trainer.disable_validation:
-            is_val_epoch = (trainer.current_epoch + 1) % trainer.check_val_every_n_epoch == 0
-            total_val_batches = sum(trainer.num_val_batches) if is_val_epoch else 0
+        if not self.trainer.disable_validation:
+            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
         return total_val_batches
 
     @property
@@ -114,12 +110,7 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the
         test dataloader is of infinite size.
         """
-        if self.trainer.fast_dev_run:
-            total_test_batches = len(self.trainer.test_dataloaders)
-        else:
-            total_test_batches = self.trainer.num_test_batches
-            total_test_batches = sum(total_test_batches)
-        return total_test_batches
+        return sum(self.trainer.num_test_batches)
 
     def disable(self):
         """
@@ -147,19 +138,19 @@ class ProgressBarBase(Callback):
     def on_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
-    def on_batch_end(self, trainer, pl_module):
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._train_batch_idx += 1
 
     def on_validation_start(self, trainer, pl_module):
         self._val_batch_idx = 0
 
-    def on_validation_batch_end(self, trainer, pl_module):
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._val_batch_idx += 1
 
     def on_test_start(self, trainer, pl_module):
         self._test_batch_idx = 0
 
-    def on_test_batch_end(self, trainer, pl_module):
+    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._test_batch_idx += 1
 
 
@@ -302,7 +293,7 @@ class ProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
-        self.val_progress_bar.total = trainer.num_sanity_val_steps * len(trainer.val_dataloaders)
+        self.val_progress_bar.total = convert_inf(trainer.num_sanity_val_steps * len(trainer.val_dataloaders))
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):
@@ -327,8 +318,8 @@ class ProgressBar(ProgressBarBase):
             self.main_progress_bar.reset(convert_inf(total_batches))
         self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch + 1}')
 
-    def on_batch_end(self, trainer, pl_module):
-        super().on_batch_end(trainer, pl_module)
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_train_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
             self.main_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
@@ -338,8 +329,8 @@ class ProgressBar(ProgressBarBase):
         self.val_progress_bar = self.init_validation_tqdm()
         self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
-    def on_validation_batch_end(self, trainer, pl_module):
-        super().on_validation_batch_end(trainer, pl_module)
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
             self.val_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.update(self.refresh_rate)
@@ -358,8 +349,8 @@ class ProgressBar(ProgressBarBase):
         self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
-    def on_test_batch_end(self, trainer, pl_module):
-        super().on_test_batch_end(trainer, pl_module)
+    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.test_batch_idx % self.refresh_rate == 0:
             self.test_progress_bar.update(self.refresh_rate)
 

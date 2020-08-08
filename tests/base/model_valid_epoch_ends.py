@@ -21,8 +21,14 @@ class ValidationEpochEndVariations(ABC):
             # recursive mean for multilevel dicts
             return torch.stack([x[key] if isinstance(x, dict) else _mean(x, key) for x in res]).mean()
 
+        print('in validation epoch end')
         val_loss_mean = _mean(outputs, 'val_loss')
         val_acc_mean = _mean(outputs, 'val_acc')
+
+        # alternate between tensor and scalar
+        if self.current_epoch % 2 == 0:
+            val_loss_mean = val_loss_mean.item()
+            val_acc_mean = val_acc_mean.item()
 
         metrics_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
@@ -35,7 +41,6 @@ class ValidationEpochEndVariations(ABC):
         Args:
             outputs: list of individual outputs of each validation step
         """
-
         # if returned a scalar from validation_step, outputs is a list of tensor scalars
         # we return just the average in this case (if we want)
         def _mean(res, key):
@@ -54,6 +59,6 @@ class ValidationEpochEndVariations(ABC):
         results = {
             'val_loss': torch.stack([v for k, v in pbar.items() if k.startswith('val_loss')]).mean(),
             'progress_bar': pbar,
-            'log': logs
+            'log': logs,
         }
         return results

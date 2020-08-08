@@ -36,6 +36,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         logger=logger,
         gpus=[0, 1],
         distributed_backend='dp',
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -52,7 +53,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
     pretrained_model.cpu()
 
     # test we have good test accuracy
-    acc = results['test_acc']
+    acc = results[0]['test_acc']
     assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = model.test_dataloader()
@@ -85,6 +86,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         logger=logger,
         gpus=[0, 1],
         distributed_backend='ddp_spawn',
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -102,7 +104,7 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     results = new_trainer.test(pretrained_model)
     pretrained_model.cpu()
 
-    acc = results['test_acc']
+    acc = results[0]['test_acc']
     assert acc > 0.5, f"Model failed to get expected {0.5} accuracy. test_acc = {acc}"
 
     dataloaders = model.test_dataloader()
@@ -130,6 +132,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
         limit_val_batches=0.2,
         checkpoint_callback=checkpoint,
         logger=logger,
+        default_root_dir=tmpdir,
     )
 
     # fit model
@@ -269,14 +272,13 @@ def test_model_saving_loading(tmpdir):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer_options = dict(
+    # fit model
+    trainer = Trainer(
         max_epochs=1,
         logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir)
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir,
     )
-
-    # fit model
-    trainer = Trainer(**trainer_options)
     result = trainer.fit(model)
 
     # traning complete
@@ -307,7 +309,7 @@ def test_model_saving_loading(tmpdir):
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=new_weights_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 

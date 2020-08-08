@@ -1,8 +1,8 @@
 """
 Trainer Learning Rate Finder
 """
-import os
 import importlib
+import os
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence, Tuple, List, Union
 
@@ -24,7 +24,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 
 
 class TrainerLRFinderMixin(ABC):
@@ -57,36 +57,39 @@ class TrainerLRFinderMixin(ABC):
         """ Call lr finder internally during Trainer.fit() """
         lr_finder = self.lr_find(model)
         lr = lr_finder.suggestion()
+
         # TODO: log lr.results to self.logger
         if isinstance(self.auto_lr_find, str):
             # Try to find requested field, may be nested
-            if _nested_hasattr(model, self.auto_lr_find):
-                _nested_setattr(model, self.auto_lr_find, lr)
+            if lightning_hasattr(model, self.auto_lr_find):
+                lightning_setattr(model, self.auto_lr_find, lr)
             else:
                 raise MisconfigurationException(
                     f'`auto_lr_find` was set to {self.auto_lr_find}, however'
-                    ' could not find this as a field in `model.hparams`.')
+                    ' could not find this as a field in `model` or `model.hparams`.')
         else:
-            if hasattr(model, 'lr'):
-                model.lr = lr
-            elif hasattr(model, 'learning_rate'):
-                model.learning_rate = lr
+            if lightning_hasattr(model, 'lr'):
+                lightning_setattr(model, 'lr', lr)
+            elif lightning_hasattr(model, 'learning_rate'):
+                lightning_setattr(model, 'learning_rate', lr)
             else:
                 raise MisconfigurationException(
-                    'When auto_lr_find is set to True, expects that hparams'
-                    ' either has field `lr` or `learning_rate` that can overridden')
+                    'When auto_lr_find is set to True, expects that `model` or'
+                    ' `model.hparams` either has field `lr` or `learning_rate`'
+                    ' that can overridden')
         log.info(f'Learning rate set to {lr}')
 
-    def lr_find(self,
-                model: LightningModule,
-                train_dataloader: Optional[DataLoader] = None,
-                val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-                min_lr: float = 1e-8,
-                max_lr: float = 1,
-                num_training: int = 100,
-                mode: str = 'exponential',
-                early_stop_threshold: float = 4.0,
-                num_accumulation_steps=None):
+    def lr_find(
+            self,
+            model: LightningModule,
+            train_dataloader: Optional[DataLoader] = None,
+            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            min_lr: float = 1e-8,
+            max_lr: float = 1,
+            num_training: int = 100,
+            mode: str = 'exponential',
+            early_stop_threshold: float = 4.0,
+    ):
         r"""
         lr_find enables the user to do a range test of good initial learning rates,
         to reduce the amount of guesswork in picking a good starting learning rate.
@@ -113,9 +116,6 @@ class TrainerLRFinderMixin(ABC):
                 loss at any point is larger than early_stop_threshold*best_loss
                 then the search is stopped. To disable, set to None.
 
-            num_accumulation_steps: deprepecated, number of batches to calculate loss over.
-                Set trainer argument ``accumulate_grad_batches`` instead.
-
         Example::
 
             # Setup model and trainer
@@ -137,12 +137,6 @@ class TrainerLRFinderMixin(ABC):
             trainer.fit(model)
 
         """
-        if num_accumulation_steps is not None:
-            rank_zero_warn("Argument `num_accumulation_steps` has been deprepecated"
-                           " since v0.7.6 and will be removed in 0.9. Please"
-                           " set trainer argument `accumulate_grad_batches` instead.",
-                           DeprecationWarning)
-
         save_path = os.path.join(self.default_root_dir, 'lr_find_temp.ckpt')
 
         self.__lr_finder_dump_params(model)
@@ -390,7 +384,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
-    def on_batch_end(self, trainer, pl_module):
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """ Called when the training batch ends, logs the calculated loss """
         if (trainer.batch_idx + 1) % trainer.accumulate_grad_batches != 0:
             return
@@ -500,22 +494,3 @@ class _ExponentialLR(_LRScheduler):
     @property
     def lr(self):
         return self._lr
-
-
-def _nested_hasattr(obj, path):
-    parts = path.split(".")
-    for part in parts:
-        if hasattr(obj, part):
-            obj = getattr(obj, part)
-        else:
-            return False
-    else:
-        return True
-
-
-def _nested_setattr(obj, path, val):
-    parts = path.split(".")
-    for part in parts[:-1]:
-        if hasattr(obj, part):
-            obj = getattr(obj, part)
-    setattr(obj, parts[-1], val)
