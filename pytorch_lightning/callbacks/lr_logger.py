@@ -19,9 +19,9 @@ class LearningRateLogger(Callback):
     Automatically logs learning rate for learning rate schedulers during training.
 
     Args:
-        logging_interval (str): set to `epoch` or `step` to log `lr` of all optimizers
+        logging_interval: set to `epoch` or `step` to log `lr` of all optimizers
             at the same interval, set to `None` to log at individual interval
-            accroding to the `interval` key of each scheduler. Defaults to ``None``.
+            according to the `interval` key of each scheduler. Defaults to ``None``.
 
     Example::
 
