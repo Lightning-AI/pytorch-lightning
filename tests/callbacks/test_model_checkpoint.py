@@ -115,8 +115,10 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     ckpt_last_epoch = torch.load(str(path_last_epoch))
     ckpt_last = torch.load(str(path_last))
     matching_keys = (
+        "epoch",
+        "global_step",
         ModelCheckpoint.CHECKPOINT_STATE_BEST_SCORE,
-        ModelCheckpoint.CHECKPOINT_STATE_BEST_PATH
+        ModelCheckpoint.CHECKPOINT_STATE_BEST_PATH,
     )
     for key in matching_keys:
         assert ckpt_last_epoch[key] == ckpt_last[key]
