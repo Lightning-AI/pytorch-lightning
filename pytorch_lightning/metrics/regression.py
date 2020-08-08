@@ -101,7 +101,7 @@ class RMSE(Metric):
 
 class MAE(Metric):
     """
-    Computes the root mean absolute loss or L1-loss.
+    Computes the mean absolute loss or L1-loss.
 
     Example:
 
