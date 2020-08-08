@@ -13,19 +13,16 @@
 # limitations under the License.
 
 import math
-import sys
-from abc import ABC, abstractmethod
-import gc
 import os
+from abc import ABC, abstractmethod
 from typing import Optional
 
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

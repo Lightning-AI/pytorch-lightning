@@ -89,15 +89,14 @@ import signal
 from abc import ABC
 from distutils.version import LooseVersion
 from subprocess import call
-from pkg_resources import parse_version
 
 import torch
 import torch.distributed as torch_distrib
 
 import pytorch_lightning
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
