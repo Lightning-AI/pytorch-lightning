@@ -818,7 +818,7 @@ replace_sampler_ddp
 ^^^^^^^^^^^^^^^^^^^
 Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
 for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
-it, you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
+it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
 .. testcode::
 
