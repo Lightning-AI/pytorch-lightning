@@ -143,12 +143,6 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
-    from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
 try:
     import horovod.torch as hvd

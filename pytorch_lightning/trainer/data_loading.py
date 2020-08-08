@@ -20,13 +20,6 @@ except ImportError:
     ITERABLE_DATASET_EXISTS = False
 
 try:
-    from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
-
-try:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp

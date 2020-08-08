@@ -5,14 +5,10 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import move_data_to_device, is_native_amp_available, is_apex_available
 
-try:
+if is_apex_available():
     from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
 
 
 class ModelHooks(Module):
@@ -268,7 +264,7 @@ class ModelHooks(Module):
         loss.backward()
 
     def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
-        if NATIVE_AMP_AVALAIBLE:
+        if is_native_amp_available():
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)

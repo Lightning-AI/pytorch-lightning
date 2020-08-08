@@ -1,7 +1,7 @@
 from abc import ABC
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import is_apex_available, is_native_amp_available
 
 
 class TrainerAMPMixin(ABC):
@@ -11,16 +11,16 @@ class TrainerAMPMixin(ABC):
     precision: int
 
     def init_amp(self):
-        if NATIVE_AMP_AVALAIBLE:
+        if is_native_amp_available():
             log.debug("`amp_level` has been deprecated since v0.7.4 (native amp does not require it)")
 
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
 
-        if self.use_amp and NATIVE_AMP_AVALAIBLE:
+        if self.use_amp and is_native_amp_available():
             log.info('Using native 16bit precision.')
             return
 
-        if self.use_amp and not APEX_AVAILABLE:  # pragma: no-cover
+        if self.use_amp and not is_apex_available():  # pragma: no-cover
             raise ModuleNotFoundError(
                 "You set `use_amp=True` but do not have apex installed."
                 " Install apex first using this guide: https://github.com/NVIDIA/apex#linux"

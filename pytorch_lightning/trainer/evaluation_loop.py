@@ -132,7 +132,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result, EvalResult
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE, flatten_dict
+from pytorch_lightning.utilities import rank_zero_warn, is_native_amp_available, flatten_dict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
@@ -316,7 +316,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+                if self.use_amp and is_native_amp_available() and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:

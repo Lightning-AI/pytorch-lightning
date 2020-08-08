@@ -32,16 +32,13 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities import move_data_to_device, is_apex_available
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-try:
+if is_apex_available():
     from apex import amp
-except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+
 
 try:
     import torch_xla.core.xla_model as xm
