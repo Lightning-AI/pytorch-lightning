@@ -443,6 +443,9 @@ Example::
     # uses 8 gpus in total
     trainer = Trainer(gpus=2, num_nodes=4)
 
+    # train only on GPUs 1 and 4 across nodes
+    trainer = Trainer(gpus=[1, 4], num_nodes=4)
+
 See Also:
     - `Multi-GPU training guide <multi_gpu.rst>`_
 
