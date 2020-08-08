@@ -228,7 +228,7 @@ def test_tpu_misconfiguration():
         )
 
 
-# @patch('pytorch_lightning.trainer.trainer.is_xla_available()', False)
+# @patch('pytorch_lightning.utilities.is_xla_available()', False)
 @pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
