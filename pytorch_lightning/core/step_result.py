@@ -93,6 +93,7 @@ class Result(Dict):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -116,16 +117,20 @@ class Result(Dict):
             step_name = f'step_{name}'
             self.__set_meta(step_name, value, prog_bar, logger,
                             on_step=True, on_epoch=False,
-                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx)
+                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
             self.__setitem__(step_name, value)
 
             # set epoch version
             epoch_name = f'epoch_{name}'
             self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True,
-                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx)
+                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
             self.__setitem__(epoch_name, value)
         else:
-            self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+            self.__set_meta(name, value,
+                            prog_bar, logger,
+                            on_step, on_epoch,
+                            reduce_fx,
+                            tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
 
             # set the value
             self.__setitem__(name, value)
@@ -139,6 +144,7 @@ class Result(Dict):
             on_step: bool,
             on_epoch: bool,
             reduce_fx: Callable,
+            tbptt_pad_token: int,
             tbptt_reduce_fx: Callable
     ):
         # set the meta for the item
@@ -150,7 +156,8 @@ class Result(Dict):
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
             value=meta_value,
-            tbptt_reduce_fx=tbptt_reduce_fx
+            tbptt_reduce_fx=tbptt_reduce_fx,
+            tbptt_pad_token=tbptt_pad_token
         )
 
         self['meta'][name] = meta
@@ -260,6 +267,40 @@ class Result(Dict):
         return result
 
     @classmethod
+    def padded_gather(cls, outputs):
+        meta = outputs[0].get('meta')
+        result = cls()
+        result = recursive_gather(outputs, result)
+
+        # find the padding used for other values
+        default_padding_idx = 0
+        for name, value in result.items():
+            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
+                if name not in {'checkpoint_on', 'early_stop_on', 'minimize'}:
+                    default_padding_idx = meta[name]['tbptt_pad_token']
+                    break
+
+        # pad across each key individually
+        for name, value in result.items():
+            is_reserved = name in {'checkpoint_on', 'early_stop_on', 'minimize'}
+            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
+                max_length = max([len(v) for k, v in result.items() if isinstance(v, list)])
+
+                if is_reserved:
+                    padding_key = default_padding_idx
+                else:
+                    padding_key = meta[name]['tbptt_pad_token']
+                padded = torch.nn.utils.rnn.pad_sequence(value, batch_first=True, padding_value=padding_key)
+                result[name] = padded
+
+                # also update the result
+                if meta and not is_reserved:
+                    meta[name]['value'] = padded
+        if meta:
+            result['meta'] = meta
+        return result
+
+    @classmethod
     def reduce_on_epoch_end(cls, outputs):
         meta = outputs[0]['meta']
         result = cls()
@@ -330,6 +371,14 @@ def recursive_stack(result: MutableMapping):
             v = torch.stack(v)
             result[k] = v
 
+def recursive_padded_stack(result: MutableMapping):
+    for k, v in result.items():
+        if isinstance(v, dict):
+            recursive_stack(v)
+
+        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
+            v = torch.stack(v)
+            result[k] = v
 
 class TrainResult(Result):
 
@@ -377,6 +426,7 @@ class TrainResult(Result):
             on_epoch: bool = False,
             reduce_fx: Callable = torch.mean,
             tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -423,6 +473,7 @@ class TrainResult(Result):
                     sync_ddp=sync_ddp,
                     sync_ddp_group=sync_ddp_group,
                     sync_ddp_op=sync_ddp_op,
+                    tbptt_pad_token=tbptt_pad_token,
                     tbptt_reduce_fx=tbptt_reduce_fx)
 
     def log_dict(
@@ -434,6 +485,7 @@ class TrainResult(Result):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -464,6 +516,7 @@ class TrainResult(Result):
                      sync_ddp=sync_ddp,
                      sync_ddp_group=sync_ddp_group,
                      sync_ddp_op=sync_ddp_op,
+                     tbptt_pad_token=tbptt_pad_token,
                      tbptt_reduce_fx=tbptt_reduce_fx)
 
 
@@ -511,6 +564,7 @@ class EvalResult(Result):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -556,6 +610,7 @@ class EvalResult(Result):
                     sync_ddp=sync_ddp,
                     sync_ddp_group=sync_ddp_group,
                     sync_ddp_op=sync_ddp_op,
+                    tbptt_pad_token=tbptt_pad_token,
                     tbptt_reduce_fx=tbptt_reduce_fx)
 
     def log_dict(
@@ -567,6 +622,7 @@ class EvalResult(Result):
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
             tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
             sync_ddp: bool = False,
             sync_ddp_op: Union[Any, str] = 'mean',
@@ -597,6 +653,7 @@ class EvalResult(Result):
                      sync_ddp=sync_ddp,
                      sync_ddp_group=sync_ddp_group,
                      sync_ddp_op=sync_ddp_op,
+                     tbptt_pad_token=tbptt_pad_token,
                      tbptt_reduce_fx=tbptt_reduce_fx)
 
     def get_callback_metrics(self) -> dict:
@@ -604,5 +661,4 @@ class EvalResult(Result):
             'val_early_stop_on': self.early_stop_on,
             'val_checkpoint_on': self.checkpoint_on
         }
-
         return result

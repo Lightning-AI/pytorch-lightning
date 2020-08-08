@@ -634,11 +634,12 @@ class TrainerTrainLoopMixin(ABC):
         if self.is_overridden('training_epoch_end', model=model):
             self.global_step += 1
 
-            # remove the protected keys so the user doesn't have to deal with them
             if is_result_obj:
-                epoch_output = epoch_output[0].__class__.gather(epoch_output)
+                # with result object gather across time and training steps so each opt idx has a single result obj
+                epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
 
             # run training_epoch_end
+            # a list with a result per optimizer index
             epoch_output = model.training_epoch_end(epoch_output)
 
             if isinstance(epoch_output, Result):
@@ -683,6 +684,30 @@ class TrainerTrainLoopMixin(ABC):
         # add metrics to progress_bar
         if len(epoch_progress_bar_metrics) > 0:
             self.add_progress_bar_metrics(epoch_progress_bar_metrics)
+
+    def __gather_result_across_time_and_optimizers(self, epoch_output):
+        """
+        Gather results into a single padded tensor per metric where each tensor is gathered across
+        time and across time steps.
+
+        Returns:
+            a list where each element is a Result with the tensors gathered
+        """
+        gathered_epoch_outputs = []
+        for opt_outputs in epoch_output:
+            # gather across time first
+            time_gathered_outputs = []
+            for train_step_idx in range(len(opt_outputs)):
+                tbptt_outs = opt_outputs[train_step_idx]
+                tbptt_outs = tbptt_outs[0].__class__.gather(tbptt_outs)
+                time_gathered_outputs.append(tbptt_outs)
+
+            # gather across training steps
+            # each metric has dimensions (training_steps, seq_len) (seq_len=1 when no tbptt is used)
+            gathered_opt_output = time_gathered_outputs[0].__class__.padded_gather(time_gathered_outputs)
+            gathered_epoch_outputs.append(gathered_opt_output)
+
+        return gathered_epoch_outputs
 
     def sync_horovod(self):
         if self.use_horovod:
