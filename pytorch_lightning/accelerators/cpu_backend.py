@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning import LightningModule
 from pytorch_lightning.accelerators.base import LightningBackend
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CPUBackend(LightningBackend):
 
-    def setup(self, model):
+    def setup(self, model: LightningModule):
         super().setup(model)
         # run through amp wrapper
         if self._trainer.amp_backend:

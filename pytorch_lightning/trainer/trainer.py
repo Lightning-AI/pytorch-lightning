@@ -1038,12 +1038,12 @@ class Trainer(
 
         elif use_slurm_ddp:
             self.accelerator_backend = DDPBackend(self)
-            self.accelerator_backend.setup_slurm(model)
+            self.accelerator_backend.setup(model, 'slurm')
             self.accelerator_backend.train()
 
         elif use_torchelastic_ddp:
             self.accelerator_backend = DDPBackend(self)
-            self.accelerator_backend.setup_torchelastic(model)
+            self.accelerator_backend.setup(model, 'torchelastic')
             self.accelerator_backend.train()
 
         # regular ddp using .spawn

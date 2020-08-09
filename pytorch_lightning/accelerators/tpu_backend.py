@@ -75,16 +75,14 @@ class TPUBackend(LightningBackend):
         self.__load_weights_on_main_process()
         return results
 
-    def train(self, model: LightningModule):
-        self._trainer.model = model
-
+    def train(self):
         # train
         if self._trainer.tpu_id is not None:
-            self.tpu_train_in_process(self._trainer.tpu_id, model, self._trainer, self.mp_queue)
+            self.tpu_train_in_process(self._trainer.tpu_id, self._model, self._trainer, self.mp_queue)
         else:
             xmp.spawn(
                 self.tpu_train_in_process,
-                args=(model, self._trainer, self.mp_queue),
+                args=(self._model, self._trainer, self.mp_queue),
                 nprocs=self._trainer.tpu_cores,
                 start_method=self.start_method
             )

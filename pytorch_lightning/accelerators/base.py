@@ -7,8 +7,7 @@ class LightningBackend(ABC):
     def __init__(self, trainer):
         self._trainer = trainer
 
-    @abstractmethod
-    def setup(self, model):
+    def setup(self, model, *args):
         """Setting-up all needed attributes."""
         self._model = model
         # call setup after the ddp process has connected
@@ -18,5 +17,5 @@ class LightningBackend(ABC):
     def train(self, *args):
         """Perform the training."""
 
-    def teardown(self):
-        """Optional clenaing after process ends."""
+    def teardown(self, *args):
+        """Optional cleaning after process ends."""

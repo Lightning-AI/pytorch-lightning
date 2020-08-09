@@ -48,14 +48,14 @@ class DDPBackend(LightningBackend):
         self.task_idx = None
         self._has_spawned_children = False
 
-    def setup_slurm(self):
-        self.task_idx = int(os.environ['SLURM_LOCALID'])
-
-    def setup_torchelastic(self):
-        self.task_idx = int(os.environ['LOCAL_RANK'])
+    def setup(self, model, task_type: str = None):
+        if task_type.lower() == 'slurm':
+            self.task_idx = int(os.environ['SLURM_LOCALID'])
+        elif task_type.lower() == 'torchelastic':
+            self.task_idx = int(os.environ['LOCAL_RANK'])
 
     def train(self):
-        self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=self._model)
+        self._ddp_training(process_idx=self.task_idx, mp_queue=None, model=self._model)
 
     def spawn_ddp_children(self, model):
         port = os.environ['MASTER_PORT']
@@ -119,12 +119,12 @@ class DDPBackend(LightningBackend):
             sleep(delay)
 
         local_rank = 0
-        results = self.ddp_train(local_rank, mp_queue=None, model=model, is_master=True)
+        results = self._ddp_training(local_rank, mp_queue=None, model=model, is_master=True)
         del os.environ['WORLD_SIZE']
 
         return results
 
-    def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
+    def _ddp_training(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
         Entry point for ddp
 
