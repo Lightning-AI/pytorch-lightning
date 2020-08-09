@@ -532,3 +532,14 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'epoch_train_epoch_end_metric' in seen_keys
+
+
+def test_result_map(tmpdir):
+    result = TrainResult()
+    result.log_dict({'x1': torch.tensor(1), 'x2': torch.tensor(2)})
+    result.map_keys({'x1': 'y1', 'x2': 'y2'})
+
+    assert 'x1' not in result
+    assert 'x2' not in result
+    assert 'y1' in result
+    assert 'y2' in result

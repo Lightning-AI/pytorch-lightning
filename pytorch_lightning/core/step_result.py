@@ -347,6 +347,23 @@ class Result(Dict):
         if 'hiddens' in self:
             del self['hiddens']
 
+    def map_keys(self, map_dict: dict):
+        """
+        Maps key values to the target values. Useful when renaming variables in mass.
+
+        Args:
+            map_dict:
+        """
+        meta = self.meta
+        for source, dest in map_dict.items():
+            # map the main keys
+            self[dest] = self[source]
+            del self[source]
+
+            # map meta
+            meta[dest] = meta[source]
+            del meta[source]
+
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
     for out in outputs:
