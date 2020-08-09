@@ -413,6 +413,23 @@ def test_hparams_pickle(tmpdir):
     assert ad == pickle.loads(pkl)
 
 
+class UnpickleableArgsEvalModel(EvalModelTemplate):
+    """ A model that has an attribute that cannot be pickled. """
+
+    def __init__(self, foo='bar', pickle_me=(lambda x: x + 1), **kwargs):
+        super().__init__(**kwargs)
+        assert not is_picklable(pickle_me)
+        self.save_hyperparameters()
+
+
+def test_hparams_pickle_warning(tmpdir):
+    model = UnpickleableArgsEvalModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    with pytest.warns(UserWarning, match="attribute 'pickle_me' removed from hparams because it cannot be pickled"):
+        trainer.fit(model)
+    assert 'pickle_me' not in model.hparams
+
+
 def test_hparams_save_yaml(tmpdir):
     hparams = dict(batch_size=32, learning_rate=0.001, data_root='./any/path/here',
                    nasted=dict(any_num=123, anystr='abcd'))

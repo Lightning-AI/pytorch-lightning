@@ -1,8 +1,9 @@
 import inspect
 import pickle
-import warnings
 from argparse import Namespace
 from typing import Dict
+
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def str_to_bool(val):
@@ -47,7 +48,7 @@ def clean_namespace(hparams):
     del_attrs = [k for k, v in hparams_dict.items() if not is_picklable(v)]
 
     for k in del_attrs:
-        warnings.warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
+        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
         del hparams_dict[k]
 
 
