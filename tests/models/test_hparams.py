@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
-from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities import AttributeDict, is_picklable
 from tests.base import EvalModelTemplate, TrialMNIST
 
 
