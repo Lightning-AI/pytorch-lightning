@@ -61,7 +61,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' if url_ckpt else new_weights_path
     model_2 = EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=ckpt_path,
-        hparams_file=hparams_path
+        hparams_file=hparams_path,
     )
     model_2.eval()
 
@@ -110,7 +110,7 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
         pytest.param({1: 2, 3: 4}, [1, 2, 4]),
         pytest.param(3, [3, 3, 3]),
         pytest.param(4, [4, 4, 4])
-    ],
+    ]
 )
 def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     """
@@ -128,7 +128,7 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches=[[2, 3], [4, 6]])
     with pytest.raises(TypeError):
-        assert Trainer(accumulate_grad_batches={1: 2, 3.0: 4})
+        assert Trainer(accumulate_grad_batches={1: 2, 3.: 4})
     with pytest.raises(TypeError):
         assert Trainer(accumulate_grad_batches={1: 2.5, 3: 5})
 
@@ -160,7 +160,7 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                 if expected[0] == 1 and trainer.num_training_batches == batch_idx + 1:
                     assert batch_idx == model.prev_called_batch_idx
                 elif trainer.num_training_batches == batch_idx + 1:
-                    # prev_called_batch_idx - schedule + modulus output
+                    # prev_called_batch_idx - schedule + modulus remainder
                     assert batch_idx == (model.prev_called_batch_idx - expected[0] + (batch_idx + 1) % expected[0])
                 else:
                     assert batch_idx == model.prev_called_batch_idx
@@ -175,7 +175,7 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     assert trainer.accumulate_grad_batches == expected[1]
 
                 if trainer.num_training_batches == batch_idx + 1:
-                    # prev_called_batch_idx - schedule + modulus output
+                    # prev_called_batch_idx - schedule + modulus remainder
                     assert batch_idx == (model.prev_called_batch_idx - expected[1] + (batch_idx + 1) % expected[1])
                 else:
                     assert batch_idx == model.prev_called_batch_idx
@@ -189,7 +189,7 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     assert trainer.accumulate_grad_batches == expected[2]
 
                 if trainer.num_training_batches == batch_idx + 1:
-                    # prev_called_batch_idx - schedule + modulus output
+                    # prev_called_batch_idx - schedule + modulus remainder
                     assert batch_idx == (model.prev_called_batch_idx - expected[2] + (batch_idx + 1) % expected[2])
                 else:
                     assert batch_idx == model.prev_called_batch_idx
@@ -347,7 +347,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
 
-    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, save_last=save_last, 
+    checkpoint_callback = ModelCheckpoint(tmpdir, save_top_k=save_top_k, save_last=save_last,
                                           prefix=file_prefix, verbose=1)
     checkpoint_callback.save_function = mock_save_function
     trainer = Trainer()
@@ -509,7 +509,9 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     # define less train steps than epochs
     trainer_options.update(
-        default_root_dir=tmpdir, max_epochs=3, max_steps=num_train_samples + 10,
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        max_steps=num_train_samples + 10,
     )
 
     # fit model
