@@ -414,9 +414,9 @@ def test_load_past_checkpoint(tmpdir, past_key):
 def test_hparams_pickle(tmpdir):
     ad = AttributeDict({'key1': 1, 'key2': 'abc'})
     pkl = pickle.dumps(ad)
-    assert ad == pickle.loads(pkl)
+    assert ad == pickle.loads(pkl)  # nosec
     pkl = cloudpickle.dumps(ad)
-    assert ad == pickle.loads(pkl)
+    assert ad == pickle.loads(pkl)  # nosec
 
 
 def test_hparams_save_yaml(tmpdir):

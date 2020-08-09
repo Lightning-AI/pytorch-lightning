@@ -10,7 +10,7 @@ def _get_torchtext_data_iterator(include_lengths=False):
     text_field = torchtext.data.Field(
         sequential=True,
         pad_first=False,  # nosec
-        init_token="<s>",
+        init_token="<s>",  # nosec
         eos_token="</s>",  # nosec
         include_lengths=include_lengths,
     )  # nosec
