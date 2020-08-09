@@ -2,6 +2,7 @@ import glob
 import logging as log
 import os
 import pickle
+import functools
 
 import cloudpickle
 import pytest
@@ -320,7 +321,7 @@ def test_model_saving_loading(tmpdir):
 
 
 @pytest.mark.parametrize('url_ckpt', [True, False])
-def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Tests use case where trainer saves the model, and user loads it from tags independently."""
     # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
     monkeypatch.setenv('TORCH_HOME', tmpdir)
@@ -362,6 +363,60 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
     
     with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
+        EvalModelTemplate.load_from_checkpoint(
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+            strict=True,
+        )
+
+
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
+
+    model = EvalModelTemplate()
+
+    # logger file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+    )
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1
+
+    # save model
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load new model
+    hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
+    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = hparams_url if url_ckpt else new_weights_path
+
+    def __build_model(_cls):
+        _cls.c_d1 = model.c_d1
+        _cls.c_d1_bn = model.c_d1_bn
+        _cls.c_d1_drop = model.c_d1_drop
+
+    # Remove c_d2 at class-level
+    EvalModelTemplate.__build_model = functools.partial(__build_model, EvalModelTemplate)
+    
+    EvalModelTemplate.load_from_checkpoint(
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
+        strict=False,
+    )
+    
+    with pytest.raises(RuntimeError, match=r'Missing key\(s\) in state_dict: "c_d2.weight", "c_d2.bias"'):
         EvalModelTemplate.load_from_checkpoint(
             checkpoint_path=ckpt_path,
             hparams_file=hparams_path,
