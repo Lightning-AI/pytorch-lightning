@@ -877,6 +877,9 @@ class Trainer(
         The default location to save artifacts of loggers, checkpoints etc.
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
         """
+        if "://" in str(self._default_root_dir):
+            # it is a remote uri, use as is
+            return self._default_root_dir
         return os.path.normpath(self._default_root_dir)
 
     @property
@@ -885,6 +888,9 @@ class Trainer(
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
+        if "://" in str(self._weights_save_path):
+            # it is a remote uri, use as is
+            return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
 
     # -----------------------------
