@@ -648,7 +648,8 @@ class TrainerTrainLoopMixin(ABC):
             if is_result_obj:
                 # with result object gather across time and training steps so each opt idx has a single result obj
                 epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
-            elif num_optimizers == 1:
+
+            if num_optimizers == 1:
                 epoch_output = epoch_output[0]
 
             # run training_epoch_end
