@@ -1,0 +1,6 @@
+# git blame ignore list
+
+# List of commits to ignore when running git blame.
+
+# Blacken code base
+705ac95cb05db2d230d3286159450304402a15af

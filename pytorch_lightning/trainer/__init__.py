@@ -879,7 +879,7 @@ Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch buil
 
     # using NVIDIA Apex
     trainer = Trainer(amp_type='apex')
-    
+
     # using PyTorch built-in AMP
     trainer = Trainer(amp_type='native')
 
