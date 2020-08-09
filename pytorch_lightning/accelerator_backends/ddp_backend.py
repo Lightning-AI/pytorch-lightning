@@ -19,6 +19,8 @@ import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
+
+from pytorch_lightning.trainer.supporters import DistributedConnection
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning import _logger as log
@@ -45,6 +47,7 @@ class DDPBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.task_idx = None
+        self.distributed_connection = DistributedConnection()
 
     def slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
@@ -58,7 +61,7 @@ class DDPBackend(object):
     def spawn_ddp_children(self, model):
         #
         assert self.trainer.global_rank == 0
-        self.trainer.set_random_port(force=True)
+        # self.trainer.set_random_port(force=True)
         port = os.environ['MASTER_PORT']
 
         master_address = os.environ.get('MASTER_ADDR', '127.0.0.1')
@@ -158,11 +161,13 @@ class DDPBackend(object):
         # if not is_master or not is_initialized():
         #     assert not (is_master and self.trainer.global_rank > 0)
         #     # on rank > 0, we always need to initialize, because these are new processes
-        model.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
-        )
+
+        self.distributed_connection.init_connection(self.trainer, model)
+        # model.init_ddp_connection(
+        #     self.trainer.global_rank,
+        #     self.trainer.world_size,
+        #     self.trainer.is_slurm_managing_tasks
+        # )
         # else:
         #     print('already initialized', os.environ['MASTER_PORT'], os.getpid(), is_master)
 
