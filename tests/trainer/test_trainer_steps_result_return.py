@@ -74,6 +74,8 @@ def test_training_step_result_log_step_only(tmpdir):
     assert out.batch_log_metrics[f'step_log_acc2_b{batch_idx}'] == 12.0
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
@@ -146,6 +148,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert len(out.batch_log_metrics) == 0
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
@@ -277,6 +281,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert len(out.batch_log_metrics) == 2
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
@@ -354,6 +360,8 @@ def test_training_step_epoch_end_result(tmpdir):
     assert len(out.batch_log_metrics) == 2
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
