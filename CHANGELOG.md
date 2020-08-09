@@ -68,8 +68,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed imagenet example: lr_scheduler, loader workers, batch size when DDP ([#2432](https://github.com/PyTorchLightning/pytorch-lightning/pull/2432))
-
 - Fixed local rank zero casting ([#2640](https://github.com/PyTorchLightning/pytorch-lightning/pull/2640))
 
 - Fixed single scalar return from training ([#2587](https://github.com/PyTorchLightning/pytorch-lightning/pull/2587))
@@ -108,7 +106,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `ModelCheckpoint` not saving the latest information when `save_last=True` ([#2881](https://github.com/PyTorchLightning/pytorch-lightning/pull/2881))
 
-- Fixed ImageNet example: learning rate scheduler, number of workers and batch size when using DDP ([#2432](https://github.com/PyTorchLightning/pytorch-lightning/pull/2432))
+- Fixed ImageNet example: learning rate scheduler, number of workers and batch size when using DDP ([#2889](https://github.com/PyTorchLightning/pytorch-lightning/pull/2889))
 
 ## [0.8.5] - 2020-07-09
 
