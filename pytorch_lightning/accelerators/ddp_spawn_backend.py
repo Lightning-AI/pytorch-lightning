@@ -17,6 +17,7 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.base import LightningBackend
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 
@@ -26,39 +27,40 @@ except ImportError:
     amp = None
 
 
-class DDPSpawnBackend(object):
+class DDPSpawnBackend(LightningBackend):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.mp_queue = None
 
-    def setup(self):
+    def setup(self, model):
+        super().setup(model)
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
 
         # pass in a state q
         smp = mp.get_context('spawn')
         self.mp_queue = smp.SimpleQueue()
 
-    def train(self, model, nprocs):
-        mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.mp_queue, model,))
+    def train(self, nprocs):
+        mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.mp_queue, self._model,))
 
-    def teardown(self, model):
+    def teardown(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()
         last_path = self.mp_queue.get()
 
         # transfer back the best path to the trainer
-        if self.trainer.checkpoint_callback:
-            self.trainer.checkpoint_callback.best_model_path = best_path
+        if self._trainer.checkpoint_callback:
+            self._trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also bets score
 
         # load last weights
-        if last_path is not None and not self.trainer.testing:
+        if last_path is not None and not self._trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
+            self._model.load_state_dict(ckpt)
 
-        self.trainer.model = model
+        self._trainer.model = self._model
         return results
 
     def ddp_train(self, process_idx, mp_queue, model):
@@ -74,77 +76,77 @@ class DDPSpawnBackend(object):
 
         """
         # show progressbar only on progress_rank 0
-        if (self.trainer.node_rank != 0 or process_idx != 0) and self.trainer.progress_bar_callback is not None:
-            self.trainer.progress_bar_callback.disable()
+        if (self._trainer.node_rank != 0 or process_idx != 0) and self._trainer.progress_bar_callback is not None:
+            self._trainer.progress_bar_callback.disable()
 
         # determine which process we are and world size
-        if self.trainer.use_ddp:
-            self.trainer.local_rank = process_idx
-            self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-            self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
+        if self._trainer.use_ddp:
+            self._trainer.local_rank = process_idx
+            self._trainer.global_rank = self._trainer.node_rank * self._trainer.num_processes + process_idx
+            self._trainer.world_size = self._trainer.num_nodes * self._trainer.num_processes
 
-        elif self.trainer.use_ddp2:
-            self.trainer.local_rank = self.trainer.node_rank
-            self.trainer.global_rank = self.trainer.node_rank
-            self.trainer.world_size = self.trainer.num_nodes
+        elif self._trainer.use_ddp2:
+            self._trainer.local_rank = self._trainer.node_rank
+            self._trainer.global_rank = self._trainer.node_rank
+            self._trainer.world_size = self._trainer.num_nodes
 
         # set warning rank
-        rank_zero_only.rank = self.trainer.global_rank
+        rank_zero_only.rank = self._trainer.global_rank
 
         # set up server using proc 0's ip address
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
-        model.trainer = self.trainer
+        model.trainer = self._trainer
         model.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self._trainer.global_rank,
+            self._trainer.world_size,
+            self._trainer.is_slurm_managing_tasks
         )
 
         # call setup after the ddp process has connected
-        self.trainer.call_setup_hook(model)
+        self._trainer.call_setup_hook(model)
 
         # on world_size=0 let everyone know training is starting
-        if self.trainer.is_global_zero:
+        if self._trainer.is_global_zero:
             log.info('-' * 100)
-            log.info(f'distributed_backend={self.trainer.distributed_backend}')
-            log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
+            log.info(f'distributed_backend={self._trainer.distributed_backend}')
+            log.info(f'All DDP processes registered. Starting ddp with {self._trainer.world_size} processes')
             log.info('-' * 100)
 
         # call sync_bn before .cuda(), configure_apex and configure_ddp
-        if self.trainer.sync_batchnorm:
+        if self._trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
 
         # MODEL
         # copy model to each gpu
-        if self.trainer.on_gpu:
+        if self._trainer.on_gpu:
             gpu_idx = process_idx
-            self.trainer.root_gpu = gpu_idx
-            torch.cuda.set_device(self.trainer.root_gpu)
-            model.cuda(self.trainer.root_gpu)
+            self._trainer.root_gpu = gpu_idx
+            torch.cuda.set_device(self._trainer.root_gpu)
+            model.cuda(self._trainer.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        optimizers, lr_schedulers, optimizer_frequencies = self._trainer.init_optimizers(model)
+        self._trainer.optimizers = optimizers
+        self._trainer.lr_schedulers = lr_schedulers
+        self._trainer.optimizer_frequencies = optimizer_frequencies
 
         # set model properties before going into wrapper
-        self.trainer.copy_trainer_model_properties(model)
+        self._trainer.copy_trainer_model_properties(model)
 
         # AMP -
         # run through amp wrapper before going to distributed DP
-        if self.trainer.amp_backend == AMPType.APEX:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.trainer.optimizers = optimizers
-            self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
+        if self._trainer.amp_backend == AMPType.APEX:
+            model, optimizers = model.configure_apex(amp, model, self._trainer.optimizers, self._trainer.amp_level)
+            self._trainer.optimizers = optimizers
+            self._trainer.reinit_scheduler_properties(self._trainer.optimizers, self._trainer.lr_schedulers)
 
         # DDP2 uses all GPUs on the machine
-        if self.trainer.distributed_backend == 'ddp' or self.trainer.distributed_backend == 'ddp_spawn':
-            device_ids = [self.trainer.root_gpu]
-        elif self.trainer.use_ddp2:
-            device_ids = self.trainer.data_parallel_device_ids
+        if self._trainer.distributed_backend == 'ddp' or self._trainer.distributed_backend == 'ddp_spawn':
+            device_ids = [self._trainer.root_gpu]
+        elif self._trainer.use_ddp2:
+            device_ids = self._trainer.data_parallel_device_ids
         else:  # includes ddp_cpu
             device_ids = None
 
@@ -152,13 +154,13 @@ class DDPSpawnBackend(object):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        results = self.trainer.run_pretrain_routine(model)
+        results = self._trainer.run_pretrain_routine(model)
 
         # get original model
-        model = self.trainer.get_model()
+        model = self._trainer.get_model()
 
         # persist info in ddp_spawn
-        self.trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
+        self._trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()

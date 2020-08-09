@@ -18,10 +18,10 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.accelerators.base import LightningBackend
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     import torch_xla
@@ -33,15 +33,16 @@ else:
     XLA_AVAILABLE = True
 
 
-class TPUBackend(Accelerator):
+class TPUBackend(LightningBackend):
 
     def __init__(self, trainer):
         super().__init__(trainer)
         self.start_method = None
         self.mp_queue = None
 
-    def setup(self):
-        rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
+    def setup(self, model):
+        super().setup(model)
+        rank_zero_info(f'training on {self._trainer.tpu_cores} TPU cores')
 
         if not XLA_AVAILABLE:
             raise MisconfigurationException('PyTorch XLA not installed.')
@@ -53,56 +54,56 @@ class TPUBackend(Accelerator):
         smp = mp.get_context(self.start_method)
         self.mp_queue = smp.SimpleQueue()
 
-    def teardown(self, model):
+    def teardown(self):
         # restore main state with best weights
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()
         last_path = self.mp_queue.get()
 
         # transfer back the best path to the trainer
-        self.trainer.checkpoint_callback.best_model_path = best_path
+        self._trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also bets score
 
         # load last weights
-        if last_path and not self.trainer.testing:
+        if last_path and not self._trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt)
+            self._model.load_state_dict(ckpt)
 
-        self.trainer.model = model
+        self._trainer.model = self._model
 
         # when training completes, load the weights back in main process
         self.__load_weights_on_main_process()
         return results
 
     def train(self, model: LightningModule):
-        self.trainer.model = model
+        self._trainer.model = model
 
         # train
-        if self.trainer.tpu_id is not None:
-            self.tpu_train_in_process(self.trainer.tpu_id, model, self.trainer, self.mp_queue)
+        if self._trainer.tpu_id is not None:
+            self.tpu_train_in_process(self._trainer.tpu_id, model, self._trainer, self.mp_queue)
         else:
             xmp.spawn(
                 self.tpu_train_in_process,
-                args=(model, self.trainer, self.mp_queue),
-                nprocs=self.trainer.tpu_cores,
+                args=(model, self._trainer, self.mp_queue),
+                nprocs=self._trainer.tpu_cores,
                 start_method=self.start_method
             )
 
     def __load_weights_on_main_process(self):
-        model = self.trainer.model
+        model = self._trainer.model
 
         # load weights if not interrupted
-        if self.trainer.on_colab_kaggle and not self.trainer.testing:
-            self.trainer.load_spawn_weights(model)
+        if self._trainer.on_colab_kaggle and not self._trainer.testing:
+            self._trainer.load_spawn_weights(model)
 
-        self.trainer.model = model
+        self._trainer.model = model
 
     def tpu_train_in_process(self, tpu_core_idx: int, model: LightningModule, trainer=None, mp_queue=None):
         """
         Here we are inside each individual process
         """
         if not trainer:
-            trainer = self.trainer
+            trainer = self._trainer
 
         trainer.call_setup_hook(model)
 

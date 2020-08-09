@@ -15,6 +15,7 @@
 import torch
 from torch import optim
 
+from pytorch_lightning.accelerators.base import LightningBackend
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -25,51 +26,50 @@ except ImportError:
     amp = None
 
 
-class DataParallelBackend(object):
+class DataParallelBackend(LightningBackend):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.model_autocast_original_forward = None
 
     def setup(self, model):
-        # call setup after the ddp process has connected
-        self.trainer.call_setup_hook(model)
+        super().setup(model)
 
         # put model on correct device
-        model.cuda(self.trainer.root_gpu)
+        model.cuda(self._trainer.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        optimizers, lr_schedulers, optimizer_frequencies = self._trainer.init_optimizers(model)
+        self._trainer.optimizers = optimizers
+        self._trainer.lr_schedulers = lr_schedulers
+        self._trainer.optimizer_frequencies = optimizer_frequencies
 
         # hack forward to do autocast for the user
         self.model_autocast_original_forward = model.forward
 
         # init half precision
-        if self.trainer.amp_backend:
+        if self._trainer.amp_backend:
             model = self.__init_half_precision(model)
 
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
 
-        self.trainer.model = model
+        self._trainer.model = model
 
     def __init_torch_data_parallel(self, model):
         # create list of device ids
-        device_ids = self.trainer.data_parallel_device_ids
+        device_ids = self._trainer.data_parallel_device_ids
         if isinstance(device_ids, int):
             device_ids = list(range(device_ids))
 
         # set dp device
-        torch.cuda.set_device(self.trainer.root_gpu)
+        torch.cuda.set_device(self._trainer.root_gpu)
         model = LightningDataParallel(model, device_ids=device_ids)
         return model
 
     def __init_half_precision(self, model):
-        if self.trainer.amp_backend == AMPType.NATIVE:
+        if self._trainer.amp_backend == AMPType.NATIVE:
             self.__init_native_amp(model)
         else:
             model = self.__init_nvidia_apex(model)
@@ -81,26 +81,25 @@ class DataParallelBackend(object):
     def __init_nvidia_apex(self, model):
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
-        if self.trainer.amp_level == 'O2':
+        if self._trainer.amp_level == 'O2':
             raise MisconfigurationException(
-                f'Amp level {self.trainer.amp_level} with DataParallel is not supported.'
+                f'Amp level {self._trainer.amp_level} with DataParallel is not supported.'
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
                 f' We recommend you switch to ddp if you want to use amp')
         else:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
+            model, optimizers = model.configure_apex(amp, model, self._trainer.optimizers, self._trainer.amp_level)
+            self.reinit_scheduler_properties(optimizers, self._trainer.lr_schedulers)
 
         return model
 
     def train(self):
-        model = self.trainer.model
-        results = self.trainer.run_pretrain_routine(model)
+        model = self._trainer.model
+        results = self._trainer.run_pretrain_routine(model)
         return results
 
     def teardown(self):
-
         # replace the original fwd function
-        self.trainer.model.forward = self.model_autocast_original_forward
+        self._trainer.model.forward = self.model_autocast_original_forward
 
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
         """
@@ -110,6 +109,7 @@ class DataParallelBackend(object):
             scheduler = scheduler['scheduler']
 
             for optimizer in optimizers:
+                state, idx = None, -1
                 # check that we dont mix users optimizers and schedulers
                 if scheduler.optimizer == optimizer:
                     # Find the mro belonging to the base lr scheduler class

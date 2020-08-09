@@ -11,30 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from pytorch_lightning.accelerators.base import LightningBackend
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class CPUBackend(object):
-
-    def __init__(self, trainer):
-        self.trainer = trainer
+class CPUBackend(LightningBackend):
 
     def setup(self, model):
+        super().setup(model)
         # run through amp wrapper
-        if self.trainer.amp_backend:
+        if self._trainer.amp_backend:
             raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
-
-        # call setup after the ddp process has connected
-        self.trainer.call_setup_hook(model)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        optimizers, lr_schedulers, optimizer_frequencies = self._trainer.init_optimizers(model)
+        self._trainer.optimizers = optimizers
+        self._trainer.lr_schedulers = lr_schedulers
+        self._trainer.optimizer_frequencies = optimizer_frequencies
 
-    def train(self, model):
-        results = self.trainer.run_pretrain_routine(model)
+    def train(self):
+        results = self._trainer.run_pretrain_routine(self._model)
         return results
