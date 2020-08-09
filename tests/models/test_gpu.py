@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 from collections import namedtuple
@@ -110,7 +111,7 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     cli_args += ['--default_root_dir', str(tmpdir)]
     # command = [sys.executable, file, '--variation', variation] + cli_args
     command = ['python', file, '--variation', variation] + cli_args
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ.copy())
     p.communicate()
     # assert p.returncode == 0
     std, err = p.communicate(timeout=60)
