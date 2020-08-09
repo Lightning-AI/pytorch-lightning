@@ -313,7 +313,7 @@ Default path for logs and weights when no logger or
 certain clusters you might want to separate where logs and checkpoints are
 stored. If you don't then use this argument for convenience. Paths can be local
 paths or remote paths such as `s3://bucket/path` or 'hdfs://path/'. Credentials
-will need to be set up use remote filepaths.
+will need to be set up to use remote filepaths.
 
 Example::
 
