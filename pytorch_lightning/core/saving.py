@@ -72,6 +72,8 @@ class ModelIO(object):
                 If your model's `hparams` argument is :class:`~argparse.Namespace`
                 and .yaml file has hierarchical structure, you need to refactor your model to treat
                 `hparams` as :class:`~dict`.
+            strict: whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
+                returned by this module's state dict. Default: ``True`
             hparam_overrides: A dictionary with keys to override in the hparams
             kwargs: Any keyword args needed to init the model.
 
