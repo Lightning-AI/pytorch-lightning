@@ -248,5 +248,7 @@ class DDPBackend(object):
 
         # torch.distributed.destroy_process_group()
 
+        self.distributed_connection.teardown()
+
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results

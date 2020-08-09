@@ -118,7 +118,12 @@ class DistributedConnection:
 
         def exit_handler():
             if torch.distributed.is_initialized():
-                torch.distributed.barrier()
+                # torch.distributed.barrier()
                 torch.distributed.destroy_process_group()
 
         atexit.register(exit_handler)
+
+    def teardown(self):
+        if torch.distributed.is_initialized():
+            # torch.distributed.barrier()
+            torch.distributed.destroy_process_group()
