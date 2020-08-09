@@ -214,11 +214,11 @@ def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps,
     batch_size = len(tmp_model.dataloader(train=False, num_samples=1).dataset)
     model = EvalModelTemplate(batch_size=batch_size)
 
+    num_dataloaders = len(num_val_dataloaders_batches)
     trainer = Trainer(
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=1,
-        limit_val_batches=(len(model.dataloader(train=False)) *
-                           len(num_val_dataloaders_batches)),
+        limit_val_batches=len(model.dataloader(train=False)) * num_dataloaders,
         max_epochs=0,
         num_sanity_val_steps=num_sanity_val_steps,
     )
