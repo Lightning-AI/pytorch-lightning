@@ -9,9 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities import AMPType
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -209,8 +207,7 @@ class ModelSummary(object):
         input_ = model.example_input_array
         input_ = model.transfer_batch_to_device(input_, model.device)
 
-        if trainer is not None and trainer.use_amp and not trainer.use_tpu:
-            if NATIVE_AMP_AVALAIBLE:
+        if trainer is not None and trainer.amp_type == AMPType.NATIVE and not trainer.use_tpu:
                 model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training

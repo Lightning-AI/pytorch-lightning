@@ -37,6 +37,8 @@ def test_training_step_scalar(tmpdir):
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, torch.Tensor)
     assert train_step_out.item() == 171
 
@@ -72,6 +74,8 @@ def training_step_scalar_with_step_end(tmpdir):
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, torch.Tensor)
     assert train_step_out.item() == 171
 
@@ -117,6 +121,8 @@ def test_full_training_loop_scalar(tmpdir):
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, torch.Tensor)
     assert train_step_out.item() == 171
 
@@ -158,6 +164,8 @@ def test_train_step_epoch_end_scalar(tmpdir):
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, torch.Tensor)
     assert train_step_out.item() == 171
 

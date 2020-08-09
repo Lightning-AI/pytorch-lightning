@@ -299,7 +299,7 @@ def test_full_loop_ddp_spawn(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=3,
+        max_epochs=5,
         weights_summary=None,
         distributed_backend='ddp_spawn',
         gpus=[0, 1]

@@ -1,10 +1,10 @@
 """Helper functions to help with reproducibility of models. """
 
 import os
-from typing import Optional, Type
+import random
+from typing import Optional
 
 import numpy as np
-import random
 import torch
 
 from pytorch_lightning import _logger as log

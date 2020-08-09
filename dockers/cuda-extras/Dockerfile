@@ -39,7 +39,6 @@ RUN apt-get update && \
     && \
 
 # Install AMP
-    # TODO: skip this instrall for PT >= 1.6
     bash install_AMP.sh && \
 # Install all requirements
     pip install -r requirements.txt && \

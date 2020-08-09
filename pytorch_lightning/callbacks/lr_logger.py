@@ -8,9 +8,8 @@ Log learning rate for lr schedulers during training
 """
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LearningRateLogger(Callback):
