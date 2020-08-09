@@ -496,6 +496,9 @@ class TrainerTrainLoopMixin(ABC):
 
             # track the outputs to reduce at the end of the epoch
             for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
+                # with 1 step (no tbptt) don't use a sequence at epoch end
+                if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
+                    opt_outputs = opt_outputs[0]
                 epoch_output[opt_idx].append(opt_outputs)
 
             # update LR schedulers
@@ -616,7 +619,8 @@ class TrainerTrainLoopMixin(ABC):
             return
 
         # [optimizer_idx][training_step_idx][tbptt_index]
-        sample_obj = epoch_output[0][0][0]
+        opt_idx_outputs = epoch_output[0]
+        sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
         is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
 
         epoch_log_metrics = {}
@@ -641,6 +645,10 @@ class TrainerTrainLoopMixin(ABC):
             if is_result_obj:
                 # with result object gather across time and training steps so each opt idx has a single result obj
                 epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
+            else:
+                # with 1 optimizer and no tbptt pass only a list of dicts from each training step
+                if len(epoch_output) == 1 and isinstance(epoch_output[0], list):
+                    epoch_output = epoch_output[0]
 
             # run training_epoch_end
             # a list with a result per optimizer index
