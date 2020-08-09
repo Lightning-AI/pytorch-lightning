@@ -125,5 +125,5 @@ class DistributedConnection:
 
     def teardown(self):
         if torch.distributed.is_initialized():
-            # torch.distributed.barrier()
+            torch.distributed.barrier()
             torch.distributed.destroy_process_group()
