@@ -1,9 +1,10 @@
 import os
 
+import numpy as np
 import onnxruntime
 import pytest
 import torch
-import numpy as np
+
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer

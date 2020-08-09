@@ -1,8 +1,8 @@
 import pickle
 from argparse import ArgumentParser
 
-import torch
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
@@ -50,17 +50,17 @@ def test_can_prepare_data(tmpdir):
 
     # is_overridden prepare data = True
     # has been called
-        # False
+    # False
     dm._has_prepared_data = True
     assert not trainer.can_prepare_data()
 
     # has not been called
-        # True
+    # True
     dm._has_prepared_data = False
     assert trainer.can_prepare_data()
 
     # is_overridden prepare data = False
-            # True
+    # True
     dm.prepare_data = None
     assert trainer.can_prepare_data()
 

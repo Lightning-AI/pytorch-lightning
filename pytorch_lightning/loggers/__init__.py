@@ -2,11 +2,14 @@ from os import environ
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loggers.csv_logs import CSVLogger
+
 
 __all__ = [
     'LightningLoggerBase',
     'LoggerCollection',
     'TensorBoardLogger',
+    'CSVLogger',
 ]
 
 try:

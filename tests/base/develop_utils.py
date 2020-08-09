@@ -1,3 +1,4 @@
+import functools
 import os
 
 import numpy as np
@@ -8,7 +9,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
 from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
 from tests.base.model_template import EvalModelTemplate
-import functools
 
 
 def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):

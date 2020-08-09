@@ -184,6 +184,7 @@ class Trainer(
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
+        sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
         weights_save_path: Optional[str] = None,
@@ -295,6 +296,8 @@ class Trainer(
             row_log_interval: How often to add logging rows (does not write to disk)
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
+
+            sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
 
             precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
@@ -426,6 +429,9 @@ class Trainer(
         # Transfer params
         self.num_nodes = num_nodes
         self.log_gpu_memory = log_gpu_memory
+
+        # sync-bn backend
+        self.sync_batchnorm = sync_batchnorm
 
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -959,8 +965,8 @@ class Trainer(
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
-            if datamodule is not None:
-                datamodule.prepare_data()
+            if self.datamodule is not None:
+                self.datamodule.prepare_data()
             model.prepare_data()
             self._is_data_prepared = True
 

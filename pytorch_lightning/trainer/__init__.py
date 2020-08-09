@@ -177,6 +177,21 @@ before any training.
     # run batch size scaling, result overrides hparams.batch_size
     trainer = Trainer(auto_scale_batch_size='binsearch')
 
+auto_select_gpus
+^^^^^^^^^^^^^^^^
+
+If enabled and `gpus` is an integer, pick available gpus automatically.
+This is especially useful when GPUs are configured to be in "exclusive mode",
+such that only one process at a time can access them.
+
+Example::
+
+    # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
+    trainer = Trainer(gpus=2, auto_select_gpus=False)
+
+    # enable auto selection (will find two available gpus on system)
+    trainer = Trainer(gpus=2, auto_select_gpus=True)
+
 auto_lr_find
 ^^^^^^^^^^^^
 Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
@@ -840,6 +855,14 @@ How often to add logging rows (does not write to disk)
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
 
+sync_batchnorm
+^^^^^^^^^^^^^^
+
+Enable synchronization between batchnorm layers across all GPUs.
+
+.. testcode::
+
+    trainer = Trainer(sync_batchnorm=True)
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^

@@ -241,10 +241,10 @@ class SSIM(Metric):
     Example:
 
         >>> pred = torch.rand([16, 1, 16, 16])
-        >>> target = pred * 1.25
+        >>> target = pred * 0.75
         >>> metric = SSIM()
         >>> metric(pred, target)
-        tensor(0.9520)
+        tensor(0.9219)
     """
 
     def __init__(
