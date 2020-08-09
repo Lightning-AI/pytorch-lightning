@@ -9,7 +9,6 @@ from tests.base import EvalModelTemplate
 
 @pytest.mark.parametrize('max_steps', [1, 2, 3])
 def test_on_before_zero_grad_called(tmpdir, max_steps):
-
     class CurrentTestModel(EvalModelTemplate):
         on_before_zero_grad_called = 0
 
@@ -18,12 +17,7 @@ def test_on_before_zero_grad_called(tmpdir, max_steps):
 
     model = CurrentTestModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=max_steps,
-        max_epochs=2,
-        num_sanity_val_steps=5,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=max_steps, max_epochs=2, num_sanity_val_steps=5,)
     assert 0 == model.on_before_zero_grad_called
     trainer.fit(model)
     assert max_steps == model.on_before_zero_grad_called
@@ -38,7 +32,6 @@ def test_training_epoch_end_metrics_collection(tmpdir):
     num_epochs = 3
 
     class CurrentModel(EvalModelTemplate):
-
         def training_step(self, *args, **kwargs):
             output = super().training_step(*args, **kwargs)
             output['progress_bar'].update({'step_metric': torch.tensor(-1)})
@@ -56,11 +49,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
             }
 
     model = CurrentModel()
-    trainer = Trainer(
-        max_epochs=num_epochs,
-        default_root_dir=tmpdir,
-        overfit_batches=2,
-    )
+    trainer = Trainer(max_epochs=num_epochs, default_root_dir=tmpdir, overfit_batches=2,)
     result = trainer.fit(model)
     assert result == 1
     metrics = trainer.progress_bar_dict
@@ -76,9 +65,7 @@ def test_training_epoch_end_metrics_collection(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_transfer_batch_hook():
-
     class CustomBatch:
-
         def __init__(self, data):
             self.samples = data[0]
             self.targets = data[1]

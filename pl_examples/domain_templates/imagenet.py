@@ -40,7 +40,8 @@ class ImageNetLightningModel(LightningModule):
 
     # pull out resnet names from torchvision models
     MODEL_NAMES = sorted(
-        name for name in models.__dict__
+        name
+        for name in models.__dict__
         if name.islower() and not name.startswith("__") and callable(models.__dict__[name])
     )
 
@@ -78,13 +79,9 @@ class ImageNetLightningModel(LightningModule):
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
         tqdm_dict = {'train_loss': loss_val}
-        output = OrderedDict({
-            'loss': loss_val,
-            'acc1': acc1,
-            'acc5': acc5,
-            'progress_bar': tqdm_dict,
-            'log': tqdm_dict
-        })
+        output = OrderedDict(
+            {'loss': loss_val, 'acc1': acc1, 'acc5': acc5, 'progress_bar': tqdm_dict, 'log': tqdm_dict}
+        )
         return output
 
     def validation_step(self, batch, batch_idx):
@@ -93,11 +90,7 @@ class ImageNetLightningModel(LightningModule):
         loss_val = F.cross_entropy(output, target)
         acc1, acc5 = self.__accuracy(output, target, topk=(1, 5))
 
-        output = OrderedDict({
-            'val_loss': loss_val,
-            'val_acc1': acc1,
-            'val_acc5': acc5,
-        })
+        output = OrderedDict({'val_loss': loss_val, 'val_acc1': acc1, 'val_acc5': acc5,})
         return output
 
     def validation_epoch_end(self, outputs):
@@ -126,55 +119,41 @@ class ImageNetLightningModel(LightningModule):
             return res
 
     def configure_optimizers(self):
-        optimizer = optim.SGD(
-            self.parameters(),
-            lr=self.lr,
-            momentum=self.momentum,
-            weight_decay=self.weight_decay
-        )
-        scheduler = lr_scheduler.LambdaLR(
-            optimizer,
-            lambda epoch: 0.1 ** (epoch // 30)
-        )
+        optimizer = optim.SGD(self.parameters(), lr=self.lr, momentum=self.momentum, weight_decay=self.weight_decay)
+        scheduler = lr_scheduler.LambdaLR(optimizer, lambda epoch: 0.1 ** (epoch // 30))
         return [optimizer], [scheduler]
 
     def train_dataloader(self):
-        normalize = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        )
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225],)
 
         train_dir = os.path.join(self.data_path, 'train')
         train_dataset = datasets.ImageFolder(
             train_dir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize,
-            ]))
+            transforms.Compose(
+                [
+                    transforms.RandomResizedCrop(224),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    normalize,
+                ]
+            ),
+        )
 
         train_loader = torch.utils.data.DataLoader(
-            dataset=train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.workers,
+            dataset=train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers,
         )
         return train_loader
 
     def val_dataloader(self):
-        normalize = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        )
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225],)
         val_dir = os.path.join(self.data_path, 'val')
         val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(val_dir, transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
+            datasets.ImageFolder(
+                val_dir,
+                transforms.Compose(
+                    [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize,]
+                ),
+            ),
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.workers,
@@ -203,26 +182,41 @@ class ImageNetLightningModel(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = ArgumentParser(parents=[parent_parser])
-        parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-                            choices=ImageNetLightningModel.MODEL_NAMES,
-                            help=('model architecture: ' + ' | '.join(ImageNetLightningModel.MODEL_NAMES)
-                                  + ' (default: resnet18)'))
-        parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-                            help='number of data loading workers (default: 4)')
-        parser.add_argument('-b', '--batch-size', default=256, type=int,
-                            metavar='N',
-                            help='mini-batch size (default: 256), this is the total '
-                                 'batch size of all GPUs on the current node when '
-                                 'using Data Parallel or Distributed Data Parallel')
-        parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
-                            metavar='LR', help='initial learning rate', dest='lr')
-        parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                            help='momentum')
-        parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
-                            metavar='W', help='weight decay (default: 1e-4)',
-                            dest='weight_decay')
-        parser.add_argument('--pretrained', dest='pretrained', action='store_true',
-                            help='use pre-trained model')
+        parser.add_argument(
+            '-a',
+            '--arch',
+            metavar='ARCH',
+            default='resnet18',
+            choices=ImageNetLightningModel.MODEL_NAMES,
+            help=('model architecture: ' + ' | '.join(ImageNetLightningModel.MODEL_NAMES) + ' (default: resnet18)'),
+        )
+        parser.add_argument(
+            '-j', '--workers', default=4, type=int, metavar='N', help='number of data loading workers (default: 4)'
+        )
+        parser.add_argument(
+            '-b',
+            '--batch-size',
+            default=256,
+            type=int,
+            metavar='N',
+            help='mini-batch size (default: 256), this is the total '
+            'batch size of all GPUs on the current node when '
+            'using Data Parallel or Distributed Data Parallel',
+        )
+        parser.add_argument(
+            '--lr', '--learning-rate', default=0.1, type=float, metavar='LR', help='initial learning rate', dest='lr'
+        )
+        parser.add_argument('--momentum', default=0.9, type=float, metavar='M', help='momentum')
+        parser.add_argument(
+            '--wd',
+            '--weight-decay',
+            default=1e-4,
+            type=float,
+            metavar='W',
+            help='weight decay (default: 1e-4)',
+            dest='weight_decay',
+        )
+        parser.add_argument('--pretrained', dest='pretrained', action='store_true', help='use pre-trained model')
         return parser
 
 
@@ -249,17 +243,14 @@ def main(args: Namespace) -> None:
 def run_cli():
     parent_parser = ArgumentParser(add_help=False)
     parent_parser = pl.Trainer.add_argparse_args(parent_parser)
-    parent_parser.add_argument('--data-path', metavar='DIR', type=str,
-                               help='path to dataset')
-    parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-                               help='evaluate model on validation set')
-    parent_parser.add_argument('--seed', type=int, default=42,
-                               help='seed for initializing training.')
+    parent_parser.add_argument('--data-path', metavar='DIR', type=str, help='path to dataset')
+    parent_parser.add_argument(
+        '-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set'
+    )
+    parent_parser.add_argument('--seed', type=int, default=42, help='seed for initializing training.')
     parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
     parser.set_defaults(
-        profiler=True,
-        deterministic=True,
-        max_epochs=90,
+        profiler=True, deterministic=True, max_epochs=90,
     )
     args = parser.parse_args()
     main(args)

@@ -36,8 +36,7 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
 
     # Recursively apply to collection items
     elif isinstance(data, Mapping):
-        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs)
-                          for k, v in data.items()})
+        return elem_type({k: apply_to_collection(v, dtype, function, *args, **kwargs) for k, v in data.items()})
     elif isinstance(data, tuple) and hasattr(data, '_fields'):  # named tuple
         return elem_type(*(apply_to_collection(d, dtype, function, *args, **kwargs) for d in data))
     elif isinstance(data, Sequence) and not isinstance(data, str):

@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any, Union
 try:
     import mlflow
     from mlflow.tracking import MlflowClient
+
     _MLFLOW_AVAILABLE = True
 except ModuleNotFoundError:  # pragma: no-cover
     mlflow = None
@@ -63,15 +64,18 @@ class MLFlowLogger(LightningLoggerBase):
 
     """
 
-    def __init__(self,
-                 experiment_name: str = 'default',
-                 tracking_uri: Optional[str] = None,
-                 tags: Optional[Dict[str, Any]] = None,
-                 save_dir: Optional[str] = './mlruns'):
+    def __init__(
+        self,
+        experiment_name: str = 'default',
+        tracking_uri: Optional[str] = None,
+        tags: Optional[Dict[str, Any]] = None,
+        save_dir: Optional[str] = './mlruns',
+    ):
 
         if not _MLFLOW_AVAILABLE:
-            raise ImportError('You want to use `mlflow` logger which is not installed yet,'
-                              ' install it with `pip install mlflow`.')
+            raise ImportError(
+                'You want to use `mlflow` logger which is not installed yet,' ' install it with `pip install mlflow`.'
+            )
         super().__init__()
         if not tracking_uri:
             tracking_uri = f'{LOCAL_FILE_URI_PREFIX}{save_dir}'

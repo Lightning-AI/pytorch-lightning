@@ -196,13 +196,10 @@ htmlhelp_basename = project + '-doc'
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     # 'preamble': '',
-
     # Latex figure (float) alignment
     'figure_align': 'htbp',
 }
@@ -218,9 +215,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, project, project + ' Documentation', [author], 1)
-]
+man_pages = [(master_doc, project, project + ' Documentation', [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -228,8 +223,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, project, project + ' Documentation', author, project,
-     'One line description of project.', 'Miscellaneous'),
+    (
+        master_doc,
+        project,
+        project + ' Documentation',
+        author,
+        project,
+        'One line description of project.',
+        'Miscellaneous',
+    ),
 ]
 
 # -- Options for Epub output -------------------------------------------------
@@ -283,13 +285,16 @@ def run_apidoc(_):
         shutil.rmtree(apidoc_output_folder)
 
     for pkg in PACKAGES:
-        argv = ['-e',
-                '-o', apidoc_output_folder,
-                os.path.join(PATH_ROOT, pkg),
-                '**/test_*',
-                '--force',
-                '--private',
-                '--module-first']
+        argv = [
+            '-e',
+            '-o',
+            apidoc_output_folder,
+            os.path.join(PATH_ROOT, pkg),
+            '**/test_*',
+            '--force',
+            '--private',
+            '--module-first',
+        ]
 
         apidoc.main(argv)
 
@@ -317,7 +322,7 @@ def package_list_from_file(file):
     with open(file, 'r') as fp:
         for ln in fp.readlines():
             found = [ln.index(ch) for ch in list(',=<>#') if ch in ln]
-            pkg = ln[:min(found)] if found else ln
+            pkg = ln[: min(found)] if found else ln
             if pkg.rstrip():
                 mocked_packages.append(pkg.rstrip())
     return mocked_packages
@@ -375,8 +380,7 @@ def linkcode_resolve(domain, info):
     # do mapping from latest tags to master
     branch = {'latest': 'master', 'stable': 'master'}.get(branch, branch)
     filename = '/'.join([branch] + filename.split('/')[1:])
-    return "https://github.com/%s/%s/blob/%s" \
-           % (github_user, github_repo, filename)
+    return "https://github.com/%s/%s/blob/%s" % (github_user, github_repo, filename)
 
 
 autodoc_member_order = 'groupwise'

@@ -6,11 +6,7 @@ from torch.nn import functional as F
 from pytorch_lightning.metrics.functional.reduction import reduce
 
 
-def mse(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
-) -> torch.Tensor:
+def mse(pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean') -> torch.Tensor:
     """
     Computes mean squared error
 
@@ -40,11 +36,7 @@ def mse(
     return mse
 
 
-def rmse(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
-) -> torch.Tensor:
+def rmse(pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean') -> torch.Tensor:
     """
     Computes root mean squared error
 
@@ -72,11 +64,7 @@ def rmse(
     return rmse
 
 
-def mae(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
-) -> torch.Tensor:
+def mae(pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean') -> torch.Tensor:
     """
     Computes mean absolute error
 
@@ -106,11 +94,7 @@ def mae(
     return mae
 
 
-def rmsle(
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
-) -> torch.Tensor:
+def rmsle(pred: torch.Tensor, target: torch.Tensor, reduction: str = 'elementwise_mean') -> torch.Tensor:
     """
     Computes root mean squared log error
 
@@ -144,7 +128,7 @@ def psnr(
     target: torch.Tensor,
     data_range: float = None,
     base: float = 10.0,
-    reduction: str = 'elementwise_mean'
+    reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
     Computes the peak signal-to-noise ratio
@@ -209,7 +193,7 @@ def ssim(
     reduction: str = "elementwise_mean",
     data_range: float = None,
     k1: float = 0.01,
-    k2: float = 0.03
+    k2: float = 0.03,
 ) -> torch.Tensor:
     """
     Computes Structual Similarity Index Measure
@@ -256,8 +240,7 @@ def ssim(
 
     if len(pred.shape) != 4 or len(target.shape) != 4:
         raise ValueError(
-            "Expected `pred` and `target` to have BxCxHxW shape."
-            f" Got pred: {pred.shape} and target: {target.shape}."
+            "Expected `pred` and `target` to have BxCxHxW shape." f" Got pred: {pred.shape} and target: {target.shape}."
         )
 
     if len(kernel_size) != 2 or len(sigma) != 2:
@@ -290,7 +273,7 @@ def ssim(
     # pred * target for sigma_pred_target
     input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])  # (5 * B, C, H, W)
     outputs = F.conv2d(input_list, kernel, groups=channel)
-    output_list = [outputs[x * pred.size(0): (x + 1) * pred.size(0)] for x in range(len(outputs))]
+    output_list = [outputs[x * pred.size(0) : (x + 1) * pred.size(0)] for x in range(len(outputs))]
 
     mu_pred_sq = output_list[0].pow(2)
     mu_target_sq = output_list[1].pow(2)

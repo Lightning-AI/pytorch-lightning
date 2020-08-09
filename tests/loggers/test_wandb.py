@@ -22,8 +22,7 @@ def test_wandb_logger(wandb):
 
     logger.log_hyperparams({'test': None, 'nested': {'a': 1}, 'b': [2, 3, 4]})
     wandb.init().config.update.assert_called_once_with(
-        {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]},
-        allow_val_change=True,
+        {'test': 'None', 'nested/a': 1, 'b': [2, 3, 4]}, allow_val_change=True,
     )
 
     logger.watch('model', 'log', 10)
@@ -39,8 +38,10 @@ def test_wandb_pickle(wandb, tmpdir):
     Verify that pickling trainer with wandb logger works.
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
+
     class Experiment:
         """ """
+
         id = 'the_id'
 
         def project_name(self):
@@ -49,11 +50,7 @@ def test_wandb_pickle(wandb, tmpdir):
     wandb.init.return_value = Experiment()
     logger = WandbLogger(id='the_id', offline=True)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=logger,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger,)
     # Access the experiment to ensure it's created
     assert trainer.logger.experiment, 'missing experiment'
     pkl_bytes = pickle.dumps(trainer)

@@ -197,12 +197,7 @@ def test_dp_resume(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    trainer_options = dict(
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='dp',
-        default_root_dir=tmpdir,
-    )
+    trainer_options = dict(max_epochs=1, gpus=2, distributed_backend='dp', default_root_dir=tmpdir,)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)
@@ -274,10 +269,7 @@ def test_model_saving_loading(tmpdir):
 
     # fit model
     trainer = Trainer(
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
-        default_root_dir=tmpdir,
+        max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir), default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
 
@@ -307,10 +299,7 @@ def test_model_saving_loading(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
-        hparams_file=hparams_path,
-    )
+    model_2 = EvalModelTemplate.load_from_checkpoint(checkpoint_path=new_weights_path, hparams_file=hparams_path,)
     model_2.eval()
 
     # make prediction

@@ -21,7 +21,7 @@ def test_model_saves_with_input_sample(tmpdir):
     input_sample = torch.randn((1, 28 * 28))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 3e06
 
 
 def test_model_saves_with_example_output(tmpdir):
@@ -44,7 +44,7 @@ def test_model_saves_with_example_input_array(tmpdir):
     file_path = os.path.join(tmpdir, "model.onxx")
     model.to_onnx(file_path)
     assert os.path.exists(file_path) is True
-    assert os.path.getsize(file_path) > 3e+06
+    assert os.path.getsize(file_path) > 3e06
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -59,7 +59,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
         limit_val_batches=10,
         gpus=[0, 1],
         distributed_backend='ddp_spawn',
-        progress_bar_refresh_rate=0
+        progress_bar_refresh_rate=0,
     )
 
     model = EvalModelTemplate()

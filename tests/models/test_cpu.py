@@ -63,10 +63,7 @@ def test_cpu_slurm_save_load(tmpdir):
     logger = tutils.get_default_logger(tmpdir, version=version)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir, max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     model = EvalModelTemplate(**hparams)
 
@@ -108,11 +105,11 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@pytest.mark.skipif(platform.system() == "Windows",
-                    reason="Distributed training is not supported on Windows")
-@pytest.mark.skipif((platform.system() == "Darwin" and
-                     version_parse(torch.__version__) < version_parse("1.3.0")),
-                    reason="Distributed training is not supported on MacOS before Torch 1.3.0")
+@pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
+@pytest.mark.skipif(
+    (platform.system() == "Darwin" and version_parse(torch.__version__) < version_parse("1.3.0")),
+    reason="Distributed training is not supported on MacOS before Torch 1.3.0",
+)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_master_port()
@@ -144,8 +141,7 @@ def test_lbfgs_cpu_model(tmpdir):
     )
 
     hparams = EvalModelTemplate.get_default_hparams()
-    hparams.update(optimizer_name='lbfgs',
-                   learning_rate=0.004)
+    hparams.update(optimizer_name='lbfgs', learning_rate=0.004)
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__lbfgs
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.25)
@@ -239,12 +235,7 @@ def test_simple_cpu(tmpdir):
     model = EvalModelTemplate()
 
     # fit model
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=20,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=20,)
     result = trainer.fit(model)
 
     # traning complete
@@ -258,7 +249,7 @@ def test_cpu_model(tmpdir):
         progress_bar_refresh_rate=0,
         max_epochs=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -277,7 +268,7 @@ def test_all_features_cpu_model(tmpdir):
         accumulate_grad_batches=2,
         max_epochs=1,
         limit_train_batches=0.4,
-        limit_val_batches=0.4
+        limit_val_batches=0.4,
     )
 
     model = EvalModelTemplate()
@@ -316,8 +307,7 @@ def test_tbptt_cpu_model(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
             return {
                 'loss': loss_val,
                 'hiddens': self.test_hidden,
@@ -331,10 +321,7 @@ def test_tbptt_cpu_model(tmpdir):
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(),
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=None,
+                dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None,
             )
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -342,7 +329,7 @@ def test_tbptt_cpu_model(tmpdir):
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
         hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
+        out_features=truncated_bptt_steps,
     )
 
     model = BpttTestModel(**hparams)
@@ -393,8 +380,7 @@ def test_tbptt_cpu_model_result(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
             result = TrainResult(loss_val, hiddens=self.test_hidden)
             return result
@@ -409,10 +395,7 @@ def test_tbptt_cpu_model_result(tmpdir):
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(),
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=None,
+                dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None,
             )
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -420,7 +403,7 @@ def test_tbptt_cpu_model_result(tmpdir):
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
         hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
+        out_features=truncated_bptt_steps,
     )
 
     model = BpttTestModel(**hparams)
@@ -471,18 +454,14 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
             assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
 
             pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
-            loss_val = torch.nn.functional.mse_loss(
-                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(pred, y_tensor.view(batch_size, truncated_bptt_steps))
 
             result = TrainResult(loss_val, hiddens=self.test_hidden)
             return result
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
-                dataset=MockSeq2SeqDataset(),
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=None,
+                dataset=MockSeq2SeqDataset(), batch_size=batch_size, shuffle=False, sampler=None,
             )
 
     hparams = EvalModelTemplate.get_default_hparams()
@@ -490,7 +469,7 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
         batch_size=batch_size,
         in_features=truncated_bptt_steps,
         hidden_dim=truncated_bptt_steps,
-        out_features=truncated_bptt_steps
+        out_features=truncated_bptt_steps,
     )
 
     model = BpttTestModel(**hparams)

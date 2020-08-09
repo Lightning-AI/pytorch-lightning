@@ -11,13 +11,7 @@ def test_single_gpu_test(tmpdir):
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=10,
-        limit_val_batches=10,
-        gpus=[0],
-    )
+    trainer = pl.Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, gpus=[0],)
     trainer.fit(model)
     assert 'ckpt' in trainer.checkpoint_callback.best_model_path
     results = trainer.test()
@@ -39,6 +33,7 @@ def test_dp_test(tmpdir):
     tutils.set_random_master_port()
 
     import os
+
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
     model = EvalModelTemplate()

@@ -29,7 +29,7 @@ class SyncBNModule(LightningModule):
                 bn_target = self.bn_targets[batch_idx]
 
                 # executes on both GPUs
-                bn_target = bn_target[self.trainer.local_rank::self.gpu_count]
+                bn_target = bn_target[self.trainer.local_rank :: self.gpu_count]
                 bn_target = bn_target.to(out_bn.device)
                 assert torch.sum(torch.abs(bn_target - out_bn)) < FLOAT16_EPSILON
 

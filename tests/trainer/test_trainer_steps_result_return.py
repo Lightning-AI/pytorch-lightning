@@ -15,6 +15,7 @@ from tests.base.deterministic_model import DeterministicModel
 # test with train_step_end
 # add logging + row interval tests
 
+
 def test_training_step_result_log_step_only(tmpdir):
     """
     Tests that only training_step can be used with TrainResult
@@ -200,11 +201,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     epoch_idx = -1
     for i_start in range(0, len(epoch_metrics), batches + 1):
         epoch_idx += 1
-        epoch_outputs = epoch_metrics[i_start: i_start + batches + 1]
-        mean_vals = {
-            'epoch_step_epoch_log_and_pbar_acc1': [],
-            'epoch_step_epoch_log_acc2': []
-        }
+        epoch_outputs = epoch_metrics[i_start : i_start + batches + 1]
+        mean_vals = {'epoch_step_epoch_log_and_pbar_acc1': [], 'epoch_step_epoch_log_acc2': []}
 
         # make sure each batch logged the expected value
         for batch_idx in range(len(epoch_outputs) - 1):
@@ -242,11 +240,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     epoch_idx = -1
     for i_start in range(0, len(all_pbar_metrics), batches + 1):
         epoch_idx += 1
-        epoch_outputs = all_pbar_metrics[i_start: i_start + batches + 1]
-        mean_vals = {
-            'epoch_step_epoch_log_and_pbar_acc1': [],
-            'epoch_step_epoch_pbar_acc3': []
-        }
+        epoch_outputs = all_pbar_metrics[i_start : i_start + batches + 1]
+        mean_vals = {'epoch_step_epoch_log_and_pbar_acc1': [], 'epoch_step_epoch_pbar_acc3': []}
 
         # make sure each batch logged the expected value
         for batch_idx in range(len(epoch_outputs) - 1):
@@ -480,6 +475,7 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
     all_losses = trainer.dev_debugger.saved_losses
 
     from collections import Counter
+
     batch_idxs = Counter([x['batch_idx'] for x in all_losses])
     for i, val in batch_idxs.items():
         assert val == num_expected_epochs

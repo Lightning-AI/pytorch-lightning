@@ -28,10 +28,7 @@ def test_gpu_template(cli_args):
         run_cli()
 
 
-@pytest.mark.parametrize('cli_args', [
-    '--max_epochs 1 --gpus 1',
-    '--max_epochs 1 --gpus 1 --evaluate',
-])
+@pytest.mark.parametrize('cli_args', ['--max_epochs 1 --gpus 1', '--max_epochs 1 --gpus 1 --evaluate',])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_imagenet(tmpdir, cli_args):
     """Test running CLI for the ImageNet example with default params."""

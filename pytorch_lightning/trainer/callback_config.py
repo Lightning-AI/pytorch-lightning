@@ -35,10 +35,7 @@ class TrainerCallbackConfigMixin(ABC):
             # when no val step is defined, use 'loss' otherwise 'val_loss'
             train_step_only = not self.is_overridden('validation_step')
             monitor_key = 'loss' if train_step_only else 'val_loss'
-            checkpoint_callback = ModelCheckpoint(
-                filepath=None,
-                monitor=monitor_key
-            )
+            checkpoint_callback = ModelCheckpoint(filepath=None, monitor=monitor_key)
         elif checkpoint_callback is False:
             checkpoint_callback = None
 
@@ -49,13 +46,7 @@ class TrainerCallbackConfigMixin(ABC):
 
     def configure_early_stopping(self, early_stop_callback):
         if early_stop_callback is True or None:
-            early_stop_callback = EarlyStopping(
-                monitor='val_loss',
-                patience=3,
-                strict=True,
-                verbose=True,
-                mode='min'
-            )
+            early_stop_callback = EarlyStopping(monitor='val_loss', patience=3, strict=True, verbose=True, mode='min')
         elif not early_stop_callback:
             early_stop_callback = None
         else:
@@ -72,10 +63,7 @@ class TrainerCallbackConfigMixin(ABC):
         elif len(progress_bars) == 1:
             progress_bar_callback = progress_bars[0]
         elif refresh_rate > 0:
-            progress_bar_callback = ProgressBar(
-                refresh_rate=refresh_rate,
-                process_position=process_position,
-            )
+            progress_bar_callback = ProgressBar(refresh_rate=refresh_rate, process_position=process_position,)
             self.callbacks.append(progress_bar_callback)
         else:
             progress_bar_callback = None

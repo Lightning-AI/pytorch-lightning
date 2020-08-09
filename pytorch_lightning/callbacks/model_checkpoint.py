@@ -101,11 +101,20 @@ class ModelCheckpoint(Callback):
     CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
     CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
 
-    def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
-                 save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
-                 mode: str = 'auto', period: int = 1, prefix: str = ''):
+    def __init__(
+        self,
+        filepath: Optional[str] = None,
+        monitor: str = 'val_loss',
+        verbose: bool = False,
+        save_last: bool = False,
+        save_top_k: int = 1,
+        save_weights_only: bool = False,
+        mode: str = 'auto',
+        period: int = 1,
+        prefix: str = '',
+    ):
         super().__init__()
-        if(filepath):
+        if filepath:
             filepath = str(filepath)  # the tests pass in a py.path.local but we want a str
         if save_top_k > 0 and filepath is not None and gfile.isdir(filepath) and len(gfile.listdir(filepath)) > 0:
             rank_zero_warn(
@@ -143,27 +152,32 @@ class ModelCheckpoint(Callback):
         mode_dict = {
             'min': (torch_inf, 'min'),
             'max': (-torch_inf, 'max'),
-            'auto': (-torch_inf, 'max') if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
+            'auto': (-torch_inf, 'max')
+            if 'acc' in self.monitor or self.monitor.startswith('fmeasure')
             else (torch_inf, 'min'),
         }
 
         if mode not in mode_dict:
-            rank_zero_warn(f'ModelCheckpoint mode {mode} is unknown, '
-                           f'fallback to auto mode.', RuntimeWarning)
+            rank_zero_warn(f'ModelCheckpoint mode {mode} is unknown, ' f'fallback to auto mode.', RuntimeWarning)
             mode = 'auto'
 
         self.kth_value, self.mode = mode_dict[mode]
 
     @property
     def best(self):
-        rank_zero_warn("Attribute `best` has been renamed to `best_model_score` since v0.8.0"
-                       " and will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `best` has been renamed to `best_model_score` since v0.8.0" " and will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.best_model_score
 
     @property
     def kth_best_model(self):
-        rank_zero_warn("Attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
-                       " and will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
+            " and will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.kth_best_model_path
 
     def _del_model(self, filepath):
@@ -199,14 +213,12 @@ class ModelCheckpoint(Callback):
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
                 f'{current} is supposed to be a `torch.Tensor`. Saving checkpoint may not work correctly.'
-                f' HINT: check the value of {self.monitor} in your validation loop', RuntimeWarning
+                f' HINT: check the value of {self.monitor} in your validation loop',
+                RuntimeWarning,
             )
             current = torch.tensor(current)
 
-        monitor_op = {
-            "min": torch.lt,
-            "max": torch.gt,
-        }[self.mode]
+        monitor_op = {"min": torch.lt, "max": torch.gt,}[self.mode]
 
         return monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
@@ -275,14 +287,12 @@ class ModelCheckpoint(Callback):
             else:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
 
-            version = trainer.logger.version if isinstance(
-                trainer.logger.version, str) else f'version_{trainer.logger.version}'
-            ckpt_path = os.path.join(
-                save_dir,
-                trainer.logger.name,
-                version,
-                "checkpoints"
+            version = (
+                trainer.logger.version
+                if isinstance(trainer.logger.version, str)
+                else f'version_{trainer.logger.version}'
             )
+            ckpt_path = os.path.join(save_dir, trainer.logger.name, version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
@@ -330,15 +340,14 @@ class ModelCheckpoint(Callback):
             if not isinstance(current, torch.Tensor):
                 rank_zero_warn(
                     f'The metric you returned {current} must be a `torch.Tensor` instance, checkpoint not saved'
-                    f' HINT: what is the value of {self.monitor} in validation_epoch_end()?', RuntimeWarning
+                    f' HINT: what is the value of {self.monitor} in validation_epoch_end()?',
+                    RuntimeWarning,
                 )
                 if current is not None:
                     current = torch.tensor(current)
 
             if current is None:
-                rank_zero_warn(
-                    f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
-                )
+                rank_zero_warn(f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning)
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose > 0:
@@ -368,8 +377,7 @@ class ModelCheckpoint(Callback):
         if len(self.best_k_models) == self.save_top_k:
             # monitor dict has reached k elements
             _op = max if self.mode == 'min' else min
-            self.kth_best_model_path = _op(self.best_k_models,
-                                           key=self.best_k_models.get)
+            self.kth_best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == 'min' else max
@@ -380,7 +388,8 @@ class ModelCheckpoint(Callback):
             log.info(
                 f'\nEpoch {epoch:05d}: {self.monitor} reached'
                 f' {current:0.5f} (best {self.best_model_score:0.5f}), saving model to'
-                f' {filepath} as top {self.save_top_k}')
+                f' {filepath} as top {self.save_top_k}'
+            )
         self._save_model(filepath, trainer, pl_module)
 
         for cur_path in del_list:

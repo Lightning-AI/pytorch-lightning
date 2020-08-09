@@ -16,6 +16,7 @@ from tests.base import EvalModelTemplate
 def test_multi_gpu_wandb_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     from pytorch_lightning.loggers import WandbLogger
+
     tutils.set_random_master_port()
 
     model = EvalModelTemplate()
@@ -25,13 +26,7 @@ def test_multi_gpu_wandb_ddp_spawn(tmpdir):
 
     logger = WandbLogger(name='name', offline=True)
     trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='ddp_spawn',
-        precision=16,
-        logger=logger,
-
+        default_root_dir=tmpdir, max_epochs=1, gpus=2, distributed_backend='ddp_spawn', precision=16, logger=logger,
     )
     # tutils.run_model_test(trainer_options, model)
     trainer = Trainer(**trainer_options)
@@ -46,13 +41,7 @@ def test_amp_single_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=1,
-        distributed_backend='dp',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, distributed_backend='dp', precision=16,)
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
@@ -65,13 +54,7 @@ def test_amp_single_gpu_dp(tmpdir):
 def test_amp_single_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=1,
-        distributed_backend='ddp_spawn',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=1, distributed_backend='ddp_spawn', precision=16,)
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
@@ -86,13 +69,7 @@ def test_amp_multi_gpu_dp(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='dp',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, distributed_backend='dp', precision=16,)
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
@@ -105,13 +82,7 @@ def test_amp_multi_gpu_dp(tmpdir):
 def test_amp_multi_gpu_ddp_spawn(tmpdir):
     """Make sure DP/DDP + AMP work."""
     tutils.reset_seed()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='ddp_spawn',
-        precision=16,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, gpus=2, distributed_backend='ddp_spawn', precision=16,)
 
     model = EvalModelTemplate()
     # tutils.run_model_test(trainer_options, model)
@@ -166,7 +137,7 @@ def test_cpu_model_with_amp(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
-        precision=16
+        precision=16,
     )
 
     model = EvalModelTemplate()

@@ -47,9 +47,12 @@ def _run_horovod(trainer_options, on_gpu=False):
     tutils.reset_seed()
     cmdline = [
         'horovodrun',
-        '-np', str(num_processes),
-        sys.executable, TEST_SCRIPT,
-        '--trainer-options', shlex.quote(json.dumps(trainer_options))
+        '-np',
+        str(num_processes),
+        sys.executable,
+        TEST_SCRIPT,
+        '--trainer-options',
+        shlex.quote(json.dumps(trainer_options)),
     ]
     if on_gpu:
         cmdline += ['--on-gpu']
@@ -105,7 +108,7 @@ def test_horovod_multi_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=2,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
     _run_horovod(trainer_options, on_gpu=True)
 
@@ -138,7 +141,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         limit_val_batches=0.2,
         gpus=1,
         deterministic=True,
-        distributed_backend='horovod'
+        distributed_backend='horovod',
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)
 
@@ -193,7 +196,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
             max_epochs=1,
             limit_val_batches=0.5,
             limit_train_batches=0.2,
-            distributed_backend='horovod'
+            distributed_backend='horovod',
         )
         results = trainer.fit(model)
         assert results == 1

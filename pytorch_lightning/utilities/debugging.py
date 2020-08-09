@@ -3,7 +3,6 @@ from collections import Counter
 
 
 class InternalDebugger(object):
-
     def __init__(self, trainer):
 
         self.enabled = 'PL_DEV_DEBUG' in os.environ
@@ -33,7 +32,7 @@ class InternalDebugger(object):
                 'dataloader_idx': dataloader_idx,
                 'batch_idx': batch_idx,
                 'epoch': self.trainer.current_epoch,
-                'output': output
+                'output': output,
             }
 
             if test_mode:
@@ -55,7 +54,7 @@ class InternalDebugger(object):
                 'rank': self.trainer.global_rank,
                 'current': current,
                 'best': es.best_score,
-                'patience': es.wait_count
+                'patience': es.wait_count,
             }
             self.early_stopping_history.append(debug_dict)
 
@@ -67,7 +66,7 @@ class InternalDebugger(object):
                 'global_step': self.trainer.global_step,
                 'monitor': cb.monitor,
                 'rank': self.trainer.global_rank,
-                'filepath': filepath
+                'filepath': filepath,
             }
             self.checkpoint_callback_history.append(debug_dict)
 

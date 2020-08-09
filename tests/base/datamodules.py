@@ -7,7 +7,6 @@ from torch.utils.data.distributed import DistributedSampler
 
 
 class TrialMNISTDataModule(LightningDataModule):
-
     def __init__(self, data_dir: str = './'):
         super().__init__()
         self.data_dir = data_dir
@@ -28,7 +27,7 @@ class TrialMNISTDataModule(LightningDataModule):
             self.mnist_test = TrialMNIST(root=self.data_dir, train=False, num_samples=32, download=True)
             self.dims = getattr(self, 'dims', self.mnist_test[0][0].shape)
 
-        self.non_picklable = lambda x: x**2
+        self.non_picklable = lambda x: x ** 2
 
     def train_dataloader(self):
         return DataLoader(self.mnist_train, batch_size=32)
@@ -41,9 +40,7 @@ class TrialMNISTDataModule(LightningDataModule):
 
 
 class MNISTDataModule(LightningDataModule):
-    def __init__(
-        self, data_dir: str = './', batch_size: int = 32, dist_sampler: bool = False
-    ) -> None:
+    def __init__(self, data_dir: str = './', batch_size: int = 32, dist_sampler: bool = False) -> None:
         super().__init__()
 
         self.dist_sampler = dist_sampler
@@ -76,9 +73,7 @@ class MNISTDataModule(LightningDataModule):
         if self.dist_sampler:
             dist_sampler = DistributedSampler(self.mnist_train, shuffle=False)
 
-        return DataLoader(
-            self.mnist_train, batch_size=self.batch_size, sampler=dist_sampler, shuffle=False
-        )
+        return DataLoader(self.mnist_train, batch_size=self.batch_size, sampler=dist_sampler, shuffle=False)
 
     def test_dataloader(self):
         return DataLoader(self.mnist_test, batch_size=self.batch_size, shuffle=False)

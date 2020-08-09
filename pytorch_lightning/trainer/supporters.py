@@ -75,7 +75,7 @@ class TensorRunningAccum(object):
             if self.rotated:
                 return getattr(self.memory, how)()
             else:
-                return getattr(self.memory[:self.current_idx], how)()
+                return getattr(self.memory[: self.current_idx], how)()
 
 
 class Accumulator(object):

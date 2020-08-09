@@ -33,7 +33,6 @@ else:
 
 
 class TPUBackend(object):
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.start_method = None
@@ -84,7 +83,7 @@ class TPUBackend(object):
                 self.tpu_train_in_process,
                 args=(model, self.trainer, self.mp_queue),
                 nprocs=self.trainer.tpu_cores,
-                start_method=self.start_method
+                start_method=self.start_method,
             )
 
     def __load_weights_on_main_process(self):
@@ -158,6 +157,8 @@ class TPUBackend(object):
         if trainer.precision == 16:
             os.environ['XLA_USE_BF16'] = str(1)
 
-        log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
-                 f' global rank: {trainer.tpu_global_core_rank}'
-                 f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
+        log.info(
+            f'INIT TPU local core: {trainer.tpu_local_core_rank},'
+            f' global rank: {trainer.tpu_global_core_rank}'
+            f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}'
+        )

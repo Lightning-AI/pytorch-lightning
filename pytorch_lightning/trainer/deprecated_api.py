@@ -21,83 +21,119 @@ class TrainerDeprecatedAPITillVer0_10(ABC):
     @property
     def val_percent_check(self) -> Union[int, float]:
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.limit_val_batches
 
     @val_percent_check.setter
     def val_percent_check(self, pct):
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         self.limit_val_batches = pct
 
     @property
     def test_percent_check(self) -> Union[int, float]:
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.limit_test_batches
 
     @test_percent_check.setter
     def test_percent_check(self, pct):
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         self.limit_test_batches = pct
 
     @property
     def train_percent_check(self) -> Union[int, float]:
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.limit_train_batches
 
     @train_percent_check.setter
     def train_percent_check(self, pct):
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         self.limit_train_batches = pct
 
     @property
     def overfit_pct(self) -> Union[int, float]:
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `train_percent_check` is now set by `overfit_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `train_percent_check` is now set by `overfit_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.overfit_batches
 
     @overfit_pct.setter
     def overfit_pct(self, pct):
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `train_percent_check` is now set by `overfit_batches` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `train_percent_check` is now set by `overfit_batches` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         self.overfit_batches = pct
 
     @property
     def proc_rank(self) -> int:
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `proc_rank` is now set by `global_rank` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `proc_rank` is now set by `global_rank` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.global_rank
 
     @proc_rank.setter
     def proc_rank(self, rank):
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `proc_rank` is now set by `global_rank` since v0.8.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `proc_rank` is now set by `global_rank` since v0.8.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         self.global_rank = rank
 
     @property
     def ckpt_path(self) -> str:
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `ckpt_path` is now set by `weights_save_path` since v0.9.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `ckpt_path` is now set by `weights_save_path` since v0.9.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         return self.weights_save_path if self.is_global_zero else None
 
     @ckpt_path.setter
     def ckpt_path(self, path: str):
         """Back compatibility, will be removed in v0.10.0"""
-        rank_zero_warn("Attribute `ckpt_path` is now set by `weights_save_path` since v0.9.0"
-                       " and this method will be removed in v0.10.0", DeprecationWarning)
+        rank_zero_warn(
+            "Attribute `ckpt_path` is now set by `weights_save_path` since v0.9.0"
+            " and this method will be removed in v0.10.0",
+            DeprecationWarning,
+        )
         self._weights_save_path = path

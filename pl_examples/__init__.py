@@ -142,6 +142,4 @@ Hyperparameter search on a SLURM HPC cluster
 
 from pl_examples.models.lightning_template import LightningTemplateModel
 
-__all__ = [
-    'LightningTemplateModel'
-]
+__all__ = ['LightningTemplateModel']

@@ -26,7 +26,6 @@ except ImportError:
 
 
 class DataParallelBackend(object):
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.model_autocast_original_forward = None
@@ -85,7 +84,8 @@ class DataParallelBackend(object):
             raise MisconfigurationException(
                 f'Amp level {self.trainer.amp_level} with DataParallel is not supported.'
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
-                f' We recommend you switch to ddp if you want to use amp')
+                f' We recommend you switch to ddp if you want to use amp'
+            )
         else:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)

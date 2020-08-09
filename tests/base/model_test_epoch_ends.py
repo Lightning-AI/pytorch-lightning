@@ -4,7 +4,6 @@ import torch
 
 
 class TestEpochEndVariations(ABC):
-
     def test_epoch_end(self, outputs):
         """
         Called at the end of test epoch to aggregate outputs

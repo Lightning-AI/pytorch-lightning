@@ -120,17 +120,13 @@ class SimpleProfiler(BaseProfiler):
 
     def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
-            raise ValueError(
-                f"Attempted to start {action_name} which has already started."
-            )
+            raise ValueError(f"Attempted to start {action_name} which has already started.")
         self.current_actions[action_name] = time.monotonic()
 
     def stop(self, action_name: str) -> None:
         end_time = time.monotonic()
         if action_name not in self.current_actions:
-            raise ValueError(
-                f"Attempting to stop recording an action ({action_name}) which was never started."
-            )
+            raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         start_time = self.current_actions.pop(action_name)
         duration = end_time - start_time
         self.recorded_durations[action_name].append(duration)
@@ -144,9 +140,7 @@ class SimpleProfiler(BaseProfiler):
         output_string += log_row("Action", "Mean duration (s)", "Total time (s)")
         output_string += f"{os.linesep}{'-' * 65}"
         for action, durations in self.recorded_durations.items():
-            output_string += log_row(
-                action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",
-            )
+            output_string += log_row(action, f"{np.mean(durations):.5}", f"{np.sum(durations):.5}",)
         output_string += os.linesep
         return output_string
 

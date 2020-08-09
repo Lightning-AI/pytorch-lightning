@@ -44,11 +44,10 @@ class LearningRateLogger(Callback):
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
     """
+
     def __init__(self, logging_interval: Optional[str] = None):
         if logging_interval not in (None, 'step', 'epoch'):
-            raise MisconfigurationException(
-                'logging_interval should be `step` or `epoch` or `None`.'
-            )
+            raise MisconfigurationException('logging_interval should be `step` or `epoch` or `None`.')
 
         self.logging_interval = logging_interval
         self.lrs = None
@@ -60,15 +59,14 @@ class LearningRateLogger(Callback):
             the case of multiple parameter groups
         """
         if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use LearningRateLogger callback with Trainer that has no logger.'
-            )
+            raise MisconfigurationException('Cannot use LearningRateLogger callback with Trainer that has no logger.')
 
         if not trainer.lr_schedulers:
             rank_zero_warn(
                 'You are using LearningRateLogger callback with models that'
                 ' have no learning rate schedulers. Please see documentation'
-                ' for `configure_optimizers` method.', RuntimeWarning
+                ' for `configure_optimizers` method.',
+                RuntimeWarning,
             )
 
         # Find names for schedulers

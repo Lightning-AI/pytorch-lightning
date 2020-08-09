@@ -61,12 +61,7 @@ def test_file_logger_no_name(tmpdir, name):
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_file_logger_log_metrics(tmpdir, step_idx):
     logger = CSVLogger(tmpdir)
-    metrics = {
-        "float": 0.3,
-        "int": 1,
-        "FloatTensor": torch.tensor(0.1),
-        "IntTensor": torch.tensor(1)
-    }
+    metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
     logger.save()
 
@@ -87,7 +82,7 @@ def test_file_logger_log_hyperparams(tmpdir):
         "dict": {'a': {'b': 'c'}},
         "list": [1, 2, 3],
         "namespace": Namespace(foo=Namespace(bar='buzz')),
-        "layer": torch.nn.BatchNorm1d
+        "layer": torch.nn.BatchNorm1d,
     }
     logger.log_hyperparams(hparams)
     logger.save()

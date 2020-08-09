@@ -7,7 +7,6 @@ from pytorch_lightning.core.lightning import LightningModule
 
 
 class DeterministicModel(LightningModule):
-
     def __init__(self, weights=None):
         super().__init__()
 
@@ -23,10 +22,7 @@ class DeterministicModel(LightningModule):
 
         self.l1 = nn.Linear(2, 3, bias=False)
         if weights is None:
-            weights = torch.tensor([
-                [4, 3, 5],
-                [10, 11, 13]
-            ]).float()
+            weights = torch.tensor([[4, 3, 5], [10, 11, 13]]).float()
             p = torch.nn.Parameter(weights, requires_grad=True)
             self.l1.weight = p
 
@@ -149,12 +145,22 @@ class DeterministicModel(LightningModule):
         acc = self.step(batch, batch_idx)
         result = TrainResult(minimize=acc)
 
-        result.log(f'epoch_log_and_pbar_acc1_e{self.current_epoch}', torch.tensor(14).type_as(acc),
-                   on_epoch=True, prog_bar=True, on_step=False)
-        result.log(f'epoch_log_acc2_e{self.current_epoch}', torch.tensor(15).type_as(acc),
-                   on_epoch=True, on_step=False)
-        result.log(f'epoch_pbar_acc3_e{self.current_epoch}', torch.tensor(16).type_as(acc),
-                   on_epoch=True, logger=False, prog_bar=True, on_step=False)
+        result.log(
+            f'epoch_log_and_pbar_acc1_e{self.current_epoch}',
+            torch.tensor(14).type_as(acc),
+            on_epoch=True,
+            prog_bar=True,
+            on_step=False,
+        )
+        result.log(f'epoch_log_acc2_e{self.current_epoch}', torch.tensor(15).type_as(acc), on_epoch=True, on_step=False)
+        result.log(
+            f'epoch_pbar_acc3_e{self.current_epoch}',
+            torch.tensor(16).type_as(acc),
+            on_epoch=True,
+            logger=False,
+            prog_bar=True,
+            on_step=False,
+        )
 
         self.training_step_called = True
         return result
@@ -166,12 +172,9 @@ class DeterministicModel(LightningModule):
         val_1 = (5 + batch_idx) * (self.current_epoch + 1)
         val_2 = (6 + batch_idx) * (self.current_epoch + 1)
         val_3 = (7 + batch_idx) * (self.current_epoch + 1)
-        result.log('step_epoch_log_and_pbar_acc1', torch.tensor(val_1).type_as(acc),
-                   on_epoch=True, prog_bar=True)
-        result.log('step_epoch_log_acc2', torch.tensor(val_2).type_as(acc),
-                   on_epoch=True)
-        result.log('step_epoch_pbar_acc3', torch.tensor(val_3).type_as(acc),
-                   on_epoch=True, logger=False, prog_bar=True)
+        result.log('step_epoch_log_and_pbar_acc1', torch.tensor(val_1).type_as(acc), on_epoch=True, prog_bar=True)
+        result.log('step_epoch_log_acc2', torch.tensor(val_2).type_as(acc), on_epoch=True)
+        result.log('step_epoch_pbar_acc3', torch.tensor(val_3).type_as(acc), on_epoch=True, logger=False, prog_bar=True)
 
         self.training_step_called = True
         return result
@@ -194,12 +197,26 @@ class DeterministicModel(LightningModule):
         result.epoch_step_epoch_log_acc2 = result.epoch_step_epoch_log_acc2.prod()
         result.step_step_epoch_pbar_acc3 = result.step_step_epoch_pbar_acc3.prod()
         result.epoch_step_epoch_pbar_acc3 = result.epoch_step_epoch_pbar_acc3.prod()
-        result.log('epoch_end_log_acc', torch.tensor(1212).type_as(result.epoch_step_epoch_log_acc2),
-                   logger=True, on_epoch=True)
-        result.log('epoch_end_pbar_acc', torch.tensor(1213).type_as(result.epoch_step_epoch_log_acc2),
-                   logger=False, prog_bar=True, on_epoch=True)
-        result.log('epoch_end_log_pbar_acc', torch.tensor(1214).type_as(result.epoch_step_epoch_log_acc2),
-                   logger=True, prog_bar=True, on_epoch=True)
+        result.log(
+            'epoch_end_log_acc',
+            torch.tensor(1212).type_as(result.epoch_step_epoch_log_acc2),
+            logger=True,
+            on_epoch=True,
+        )
+        result.log(
+            'epoch_end_pbar_acc',
+            torch.tensor(1213).type_as(result.epoch_step_epoch_log_acc2),
+            logger=False,
+            prog_bar=True,
+            on_epoch=True,
+        )
+        result.log(
+            'epoch_end_log_pbar_acc',
+            torch.tensor(1214).type_as(result.epoch_step_epoch_log_acc2),
+            logger=True,
+            prog_bar=True,
+            on_epoch=True,
+        )
         return result
 
     # --------------------------
@@ -254,16 +271,46 @@ class DeterministicModel(LightningModule):
         result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
 
         # step only metrics
-        result.log('no_val_no_pbar', torch.tensor(11 + batch_idx).type_as(acc),
-                   prog_bar=False, logger=False, on_epoch=False, on_step=True)
-        result.log('val_step_log_acc', torch.tensor(11 + batch_idx).type_as(acc),
-                   prog_bar=False, logger=True, on_epoch=False, on_step=True)
-        result.log('val_step_log_pbar_acc', torch.tensor(12 + batch_idx).type_as(acc),
-                   prog_bar=True, logger=True, on_epoch=False, on_step=True)
-        result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc),
-                   prog_bar=True, logger=False, on_epoch=False, on_step=True)
-        result.log('val_step_batch_idx', torch.tensor(batch_idx).type_as(acc),
-                   prog_bar=True, logger=True, on_epoch=False, on_step=True)
+        result.log(
+            'no_val_no_pbar',
+            torch.tensor(11 + batch_idx).type_as(acc),
+            prog_bar=False,
+            logger=False,
+            on_epoch=False,
+            on_step=True,
+        )
+        result.log(
+            'val_step_log_acc',
+            torch.tensor(11 + batch_idx).type_as(acc),
+            prog_bar=False,
+            logger=True,
+            on_epoch=False,
+            on_step=True,
+        )
+        result.log(
+            'val_step_log_pbar_acc',
+            torch.tensor(12 + batch_idx).type_as(acc),
+            prog_bar=True,
+            logger=True,
+            on_epoch=False,
+            on_step=True,
+        )
+        result.log(
+            'val_step_pbar_acc',
+            torch.tensor(13 + batch_idx).type_as(acc),
+            prog_bar=True,
+            logger=False,
+            on_epoch=False,
+            on_step=True,
+        )
+        result.log(
+            'val_step_batch_idx',
+            torch.tensor(batch_idx).type_as(acc),
+            prog_bar=True,
+            logger=True,
+            on_epoch=False,
+            on_step=True,
+        )
 
         self.validation_step_called = True
         return result
@@ -276,16 +323,46 @@ class DeterministicModel(LightningModule):
         result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
 
         # step only metrics
-        result.log('no_val_no_pbar', torch.tensor(11 + batch_idx).type_as(acc),
-                   prog_bar=False, logger=False, on_epoch=True, on_step=True)
-        result.log('val_step_log_acc', torch.tensor(11 + batch_idx).type_as(acc),
-                   prog_bar=False, logger=True, on_epoch=True, on_step=True)
-        result.log('val_step_log_pbar_acc', torch.tensor(12 + batch_idx).type_as(acc),
-                   prog_bar=True, logger=True, on_epoch=True, on_step=True)
-        result.log('val_step_pbar_acc', torch.tensor(13 + batch_idx).type_as(acc),
-                   prog_bar=True, logger=False, on_epoch=True, on_step=True)
-        result.log('val_step_batch_idx', torch.tensor(batch_idx).type_as(acc),
-                   prog_bar=True, logger=True, on_epoch=True, on_step=True)
+        result.log(
+            'no_val_no_pbar',
+            torch.tensor(11 + batch_idx).type_as(acc),
+            prog_bar=False,
+            logger=False,
+            on_epoch=True,
+            on_step=True,
+        )
+        result.log(
+            'val_step_log_acc',
+            torch.tensor(11 + batch_idx).type_as(acc),
+            prog_bar=False,
+            logger=True,
+            on_epoch=True,
+            on_step=True,
+        )
+        result.log(
+            'val_step_log_pbar_acc',
+            torch.tensor(12 + batch_idx).type_as(acc),
+            prog_bar=True,
+            logger=True,
+            on_epoch=True,
+            on_step=True,
+        )
+        result.log(
+            'val_step_pbar_acc',
+            torch.tensor(13 + batch_idx).type_as(acc),
+            prog_bar=True,
+            logger=False,
+            on_epoch=True,
+            on_step=True,
+        )
+        result.log(
+            'val_step_batch_idx',
+            torch.tensor(batch_idx).type_as(acc),
+            prog_bar=True,
+            logger=True,
+            on_epoch=True,
+            on_step=True,
+        )
 
         self.validation_step_called = True
         return result
@@ -298,10 +375,17 @@ class DeterministicModel(LightningModule):
         result = EvalResult(checkpoint_on=acc, early_stop_on=acc)
 
         # step only metrics
-        result.log('val_step_metric', torch.tensor(batch_idx).type_as(acc),
-                   prog_bar=True, logger=True, on_epoch=True, on_step=False)
-        result.log('batch_idx', torch.tensor(batch_idx).type_as(acc),
-                   prog_bar=True, logger=True, on_epoch=True, on_step=False)
+        result.log(
+            'val_step_metric',
+            torch.tensor(batch_idx).type_as(acc),
+            prog_bar=True,
+            logger=True,
+            on_epoch=True,
+            on_step=False,
+        )
+        result.log(
+            'batch_idx', torch.tensor(batch_idx).type_as(acc), prog_bar=True, logger=True, on_epoch=True, on_step=False
+        )
 
         self.validation_step_called = True
         return result
@@ -467,7 +551,6 @@ class DeterministicModel(LightningModule):
 
 
 class DummyDataset(Dataset):
-
     def __len__(self):
         return 12
 

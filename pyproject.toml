@@ -12,4 +12,5 @@ ignore = ["W504", "W504", "E402", "E731", "C40", "E741", "F40", "F841"]
 # https://github.com/psf/black
 line-length = 120
 target-version = ["py38"]
+skip-string-normalization = true
 exclude = "(.eggs|.git|.hg|.mypy_cache|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"

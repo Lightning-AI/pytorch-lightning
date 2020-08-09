@@ -41,7 +41,7 @@ class Generator(nn.Module):
             *block(256, 512),
             *block(512, 1024),
             nn.Linear(1024, int(np.prod(img_shape))),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, z):
@@ -71,13 +71,15 @@ class Discriminator(nn.Module):
 
 
 class GAN(LightningModule):
-
-    def __init__(self,
-                 latent_dim: int = 100,
-                 lr: float = 0.0002,
-                 b1: float = 0.5,
-                 b2: float = 0.999,
-                 batch_size: int = 64, **kwargs):
+    def __init__(
+        self,
+        latent_dim: int = 100,
+        lr: float = 0.0002,
+        b1: float = 0.5,
+        b2: float = 0.999,
+        batch_size: int = 64,
+        **kwargs,
+    ):
         super().__init__()
 
         self.latent_dim = latent_dim
@@ -127,11 +129,7 @@ class GAN(LightningModule):
             # adversarial loss is binary cross-entropy
             g_loss = self.adversarial_loss(self.discriminator(self(z)), valid)
             tqdm_dict = {'g_loss': g_loss}
-            output = OrderedDict({
-                'loss': g_loss,
-                'progress_bar': tqdm_dict,
-                'log': tqdm_dict
-            })
+            output = OrderedDict({'loss': g_loss, 'progress_bar': tqdm_dict, 'log': tqdm_dict})
             return output
 
         # train discriminator
@@ -148,17 +146,12 @@ class GAN(LightningModule):
             fake = torch.zeros(imgs.size(0), 1)
             fake = fake.type_as(imgs)
 
-            fake_loss = self.adversarial_loss(
-                self.discriminator(self(z).detach()), fake)
+            fake_loss = self.adversarial_loss(self.discriminator(self(z).detach()), fake)
 
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
             tqdm_dict = {'d_loss': d_loss}
-            output = OrderedDict({
-                'loss': d_loss,
-                'progress_bar': tqdm_dict,
-                'log': tqdm_dict
-            })
+            output = OrderedDict({'loss': d_loss, 'progress_bar': tqdm_dict, 'log': tqdm_dict})
             return output
 
     def configure_optimizers(self):
@@ -171,8 +164,7 @@ class GAN(LightningModule):
         return [opt_g, opt_d], []
 
     def train_dataloader(self):
-        transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Normalize([0.5], [0.5])])
+        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.5], [0.5])])
         dataset = MNIST(os.getcwd(), train=True, download=True, transform=transform)
         return DataLoader(dataset, batch_size=self.batch_size)
 
@@ -208,12 +200,9 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
     parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
-    parser.add_argument("--b1", type=float, default=0.5,
-                        help="adam: decay of first order momentum of gradient")
-    parser.add_argument("--b2", type=float, default=0.999,
-                        help="adam: decay of first order momentum of gradient")
-    parser.add_argument("--latent_dim", type=int, default=100,
-                        help="dimensionality of the latent space")
+    parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
 
     hparams = parser.parse_args()
 

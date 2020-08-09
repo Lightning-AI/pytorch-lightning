@@ -67,6 +67,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
+
     class EarlyStoppingTestInvocations(EarlyStopping):
         def __init__(self, expected_count):
             super().__init__()
@@ -91,11 +92,10 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize('loss_values, patience, expected_stop_epoch', [
-    ([6, 5, 5, 5, 5, 5], 3, 4),
-    ([6, 5, 4, 4, 3, 3], 1, 3),
-    ([6, 5, 6, 5, 5, 5], 3, 4),
-])
+@pytest.mark.parametrize(
+    'loss_values, patience, expected_stop_epoch',
+    [([6, 5, 5, 5, 5, 5], 3, 4), ([6, 5, 4, 4, 3, 3], 1, 3), ([6, 5, 6, 5, 5, 5], 3, 4),],
+)
 def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_epoch):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 
@@ -147,12 +147,7 @@ def test_early_stopping_no_val_step(tmpdir):
     model.val_dataloader = None
 
     stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=stopping,
-        overfit_batches=0.20,
-        max_epochs=2,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, early_stop_callback=stopping, overfit_batches=0.20, max_epochs=2,)
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
@@ -160,7 +155,6 @@ def test_early_stopping_no_val_step(tmpdir):
 
 
 def test_early_stopping_functionality(tmpdir):
-
     class CurrentModel(EvalModelTemplate):
         def validation_epoch_end(self, outputs):
             losses = [8, 4, 2, 3, 4, 5, 8, 10]
@@ -169,11 +163,6 @@ def test_early_stopping_functionality(tmpdir):
 
     model = CurrentModel()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        overfit_batches=0.20,
-        max_epochs=20,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, early_stop_callback=True, overfit_batches=0.20, max_epochs=20,)
     trainer.fit(model)
     assert trainer.current_epoch == 5, 'early_stopping failed'

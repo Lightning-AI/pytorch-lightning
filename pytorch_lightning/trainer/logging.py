@@ -29,9 +29,7 @@ class TrainerLoggingMixin(ABC):
         if logger is True:
             # default logger
             self.logger = TensorBoardLogger(
-                save_dir=self.default_root_dir,
-                version=self.slurm_job_id,
-                name='lightning_logs'
+                save_dir=self.default_root_dir, version=self.slurm_job_id, name='lightning_logs'
             )
         elif logger is False:
             self.logger = None
@@ -170,9 +168,7 @@ class TrainerLoggingMixin(ABC):
                 if isinstance(output, torch.Tensor):
                     loss = output
                 else:
-                    raise RuntimeError(
-                        'No `loss` value in the dictionary returned from `model.training_step()`.'
-                    )
+                    raise RuntimeError('No `loss` value in the dictionary returned from `model.training_step()`.')
 
             # when using dp need to reduce the loss
             if self.use_dp or self.use_ddp2:

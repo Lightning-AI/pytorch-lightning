@@ -12,7 +12,7 @@ class DummyTensorMetric(TensorMetric):
     def forward(self, input1, input2):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
-        return 1.
+        return 1.0
 
 
 class DummyNumpyMetric(NumpyMetric):
@@ -22,7 +22,7 @@ class DummyNumpyMetric(NumpyMetric):
     def forward(self, input1, input2):
         assert isinstance(input1, np.ndarray)
         assert isinstance(input2, np.ndarray)
-        return 1.
+        return 1.0
 
 
 class DummyTensorCollectionMetric(TensorCollectionMetric):
@@ -32,13 +32,13 @@ class DummyTensorCollectionMetric(TensorCollectionMetric):
     def forward(self, input1, input2):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
-        return 1., 2., 3., 4.
+        return 1.0, 2.0, 3.0, 4.0
 
 
 @pytest.mark.parametrize('metric', [DummyTensorCollectionMetric()])
 def test_collection_metric(metric: Metric):
     """ Test that metric.device, metric.dtype works for metric collection """
-    input1, input2 = torch.tensor([1.]), torch.tensor([2.])
+    input1, input2 = torch.tensor([1.0]), torch.tensor([2.0])
 
     def change_and_check_device_dtype(device, dtype):
         metric.to(device=device, dtype=dtype)
@@ -83,13 +83,10 @@ def test_collection_metric(metric: Metric):
         assert metric.dtype == torch.float16
 
 
-@pytest.mark.parametrize('metric', [
-    DummyTensorMetric(),
-    DummyNumpyMetric(),
-])
+@pytest.mark.parametrize('metric', [DummyTensorMetric(), DummyNumpyMetric(),])
 def test_metric(metric: Metric):
     """ Test that metric.device, metric.dtype works for single metric"""
-    input1, input2 = torch.tensor([1.]), torch.tensor([2.])
+    input1, input2 = torch.tensor([1.0]), torch.tensor([2.0])
 
     def change_and_check_device_dtype(device, dtype):
         metric.to(device=device, dtype=dtype)

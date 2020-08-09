@@ -11,6 +11,7 @@ def _get_test_cases():
 
     class TestModel1:  # test for namespace
         learning_rate = 0
+
     model1 = TestModel1()
 
     class TestModel2:  # test for hparams namespace
@@ -34,14 +35,10 @@ def _get_test_cases():
 def test_lightning_hasattr(tmpdir):
     """ Test that the lightning_hasattr works in all cases"""
     model1, model2, model3, model4 = _get_test_cases()
-    assert lightning_hasattr(model1, 'learning_rate'), \
-        'lightning_hasattr failed to find namespace variable'
-    assert lightning_hasattr(model2, 'learning_rate'), \
-        'lightning_hasattr failed to find hparams namespace variable'
-    assert lightning_hasattr(model3, 'learning_rate'), \
-        'lightning_hasattr failed to find hparams dict variable'
-    assert not lightning_hasattr(model4, 'learning_rate'), \
-        'lightning_hasattr found variable when it should not'
+    assert lightning_hasattr(model1, 'learning_rate'), 'lightning_hasattr failed to find namespace variable'
+    assert lightning_hasattr(model2, 'learning_rate'), 'lightning_hasattr failed to find hparams namespace variable'
+    assert lightning_hasattr(model3, 'learning_rate'), 'lightning_hasattr failed to find hparams dict variable'
+    assert not lightning_hasattr(model4, 'learning_rate'), 'lightning_hasattr found variable when it should not'
 
 
 def test_lightning_getattr(tmpdir):
@@ -57,5 +54,4 @@ def test_lightning_setattr(tmpdir):
     models = _get_test_cases()
     for m in models[:3]:
         lightning_setattr(m, 'learning_rate', 10)
-        assert lightning_getattr(m, 'learning_rate') == 10, \
-            'attribute not correctly set'
+        assert lightning_getattr(m, 'learning_rate') == 10, 'attribute not correctly set'

@@ -16,8 +16,7 @@ def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
     diffs = np.asarray(pl_times) - np.asarray(pt_times)
     # norm by vanila time
     diffs = diffs / np.asarray(pt_times)
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff})"
+    assert np.alltrue(diffs < max_diff), f"lightning {diffs} was slower than PT (threshold {max_diff})"
 
 
 def assert_speed_parity_absolute(pl_times, pt_times, nb_epochs, max_diff: float = 0.6):
@@ -25,8 +24,7 @@ def assert_speed_parity_absolute(pl_times, pt_times, nb_epochs, max_diff: float 
     diffs = np.asarray(pl_times) - np.asarray(pt_times)
     # norm by vanila time
     diffs = diffs / nb_epochs
-    assert np.alltrue(diffs < max_diff), \
-        f"lightning {diffs} was slower than PT (threshold {max_diff})"
+    assert np.alltrue(diffs < max_diff), f"lightning {diffs} was slower than PT (threshold {max_diff})"
 
 
 def get_default_logger(save_dir, version=None):
@@ -95,6 +93,7 @@ def pl_multi_process_test(func):
     def wrapper(*args, **kwargs):
 
         from multiprocessing import Process, Queue
+
         queue = Queue()
 
         def inner_f(queue, **kwargs):
@@ -103,6 +102,7 @@ def pl_multi_process_test(func):
                 queue.put(1)
             except Exception:
                 import traceback
+
                 traceback.print_exc()
                 queue.put(-1)
 

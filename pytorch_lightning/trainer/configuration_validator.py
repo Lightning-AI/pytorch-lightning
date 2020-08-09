@@ -4,7 +4,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class ConfigValidator(object):
-
     def __init__(self, trainer):
         self.trainer = trainer
 
@@ -73,10 +72,6 @@ class ConfigValidator(object):
         has_step = self.trainer.is_overridden(step_name, model)
 
         if has_loader and not has_step:
-            rank_zero_warn(
-                f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop'
-            )
+            rank_zero_warn(f'you passed in a {loader_name} but have no {step_name}. Skipping {eval_loop_name} loop')
         if has_step and not has_loader:
-            rank_zero_warn(
-                f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop'
-            )
+            rank_zero_warn(f'you defined a {step_name} but have no {loader_name}. Skipping {eval_loop_name} loop')

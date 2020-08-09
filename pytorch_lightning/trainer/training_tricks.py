@@ -106,9 +106,7 @@ class TrainerTrainingTricksMixin(ABC):
 
         # check if loss is nan
         if not torch.isfinite(loss).all():
-            raise ValueError(
-                'The loss returned in `training_step` is nan or inf.'
-            )
+            raise ValueError('The loss returned in `training_step` is nan or inf.')
         # check if a network weight is nan
         for name, param in model.named_parameters():
             if not torch.isfinite(param).all():
@@ -127,13 +125,15 @@ class TrainerTrainingTricksMixin(ABC):
         else:
             raise TypeError("Gradient accumulation supports only int and dict types")
 
-    def scale_batch_size(self,
-                         model: LightningModule,
-                         mode: str = 'power',
-                         steps_per_trial: int = 3,
-                         init_val: int = 2,
-                         max_trials: int = 25,
-                         batch_arg_name: str = 'batch_size'):
+    def scale_batch_size(
+        self,
+        model: LightningModule,
+        mode: str = 'power',
+        steps_per_trial: int = 3,
+        init_val: int = 2,
+        max_trials: int = 25,
+        batch_arg_name: str = 'batch_size',
+    ):
         r"""
         Will iteratively try to find the largest batch size for a given model
         that does not give an out of memory (OOM) error.
@@ -160,14 +160,14 @@ class TrainerTrainingTricksMixin(ABC):
         """
         if not hasattr(model, batch_arg_name):
             if not hasattr(model.hparams, batch_arg_name):
-                raise MisconfigurationException(
-                    'Neither of `model.batch_size` and `model.hparams.batch_size` found.'
-                )
+                raise MisconfigurationException('Neither of `model.batch_size` and `model.hparams.batch_size` found.')
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
-            raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
-                                            ' passed directly to `.fit()`. Please disable the feature or'
-                                            ' incorporate the dataloader into the model.')
+            raise MisconfigurationException(
+                'The batch scaling feature cannot be used with dataloaders'
+                ' passed directly to `.fit()`. Please disable the feature or'
+                ' incorporate the dataloader into the model.'
+            )
 
         # Arguments we adjust during the batch size finder, save for restoring
         self.__scale_batch_dump_params()
@@ -244,11 +244,9 @@ class TrainerTrainingTricksMixin(ABC):
         del self.__dumped_params
 
 
-def _adjust_batch_size(trainer,
-                       batch_arg_name: str = 'batch_size',
-                       factor: float = 1.0,
-                       value: Optional[int] = None,
-                       desc: str = None):
+def _adjust_batch_size(
+    trainer, batch_arg_name: str = 'batch_size', factor: float = 1.0, value: Optional[int] = None, desc: str = None
+):
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist.

@@ -2,6 +2,7 @@
 
 import os
 from io import open
+
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 
@@ -25,7 +26,7 @@ def load_requirements(path_dir=PATH_ROOT, file_name='base.txt', comment_char='#'
     for ln in lines:
         # filer all comments
         if comment_char in ln:
-            ln = ln[:ln.index(comment_char)].strip()
+            ln = ln[: ln.index(comment_char)].strip()
         # skip directly installed dependencies
         if ln.startswith('http'):
             continue
@@ -53,7 +54,7 @@ extras = {
     'docs': load_requirements(file_name='docs.txt'),
     'examples': load_requirements(file_name='examples.txt'),
     'extra': load_requirements(file_name='extra.txt'),
-    'test': load_requirements(file_name='test.txt')
+    'test': load_requirements(file_name='test.txt'),
 }
 extras['dev'] = extras['extra'] + extras['test']
 extras['all'] = extras['dev'] + extras['examples'] + extras['docs']
@@ -73,24 +74,20 @@ setup(
     download_url='https://github.com/PyTorchLightning/pytorch-lightning',
     license=pytorch_lightning.__license__,
     packages=find_packages(exclude=['tests', 'tests/*', 'benchmarks']),
-
     long_description=load_long_description(),
     long_description_content_type='text/markdown',
     include_package_data=True,
     zip_safe=False,
-
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
     install_requires=load_requirements(),
     extras_require=extras,
-
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
         "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
         "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
     },
-
     classifiers=[
         'Environment :: Console',
         'Natural Language :: English',

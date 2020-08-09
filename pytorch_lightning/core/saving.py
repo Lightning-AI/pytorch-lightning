@@ -36,12 +36,12 @@ class ModelIO(object):
 
     @classmethod
     def load_from_checkpoint(
-            cls,
-            checkpoint_path: str,
-            *args,
-            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-            hparams_file: Optional[str] = None,
-            **kwargs
+        cls,
+        checkpoint_path: str,
+        *args,
+        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        hparams_file: Optional[str] = None,
+        **kwargs,
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint

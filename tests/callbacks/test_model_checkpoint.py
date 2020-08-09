@@ -103,10 +103,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     num_epochs = 3
     model_checkpoint = ModelCheckpoint(filepath=tmpdir, save_top_k=num_epochs, save_last=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=False,
-        checkpoint_callback=model_checkpoint,
-        max_epochs=num_epochs,
+        default_root_dir=tmpdir, early_stop_callback=False, checkpoint_callback=model_checkpoint, max_epochs=num_epochs,
     )
     trainer.fit(model)
     path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})  # epoch=3.ckpt

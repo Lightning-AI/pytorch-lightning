@@ -14,6 +14,7 @@ from tests.base.deterministic_model import DeterministicModel
 # test with train_step_end
 # add logging + row interval tests
 
+
 def test_val_step_result_callbacks(tmpdir):
     """
     Tests that val step can be used:
@@ -286,7 +287,7 @@ def test_val_step_epoch_step_metrics(tmpdir):
 
     # make sure we logged the correct epoch metrics
     for metric_idx in range(0, len(trainer.dev_debugger.logged_metrics), batches + 1):
-        batch_metrics = trainer.dev_debugger.logged_metrics[metric_idx: metric_idx + batches]
+        batch_metrics = trainer.dev_debugger.logged_metrics[metric_idx : metric_idx + batches]
         epoch_metric = trainer.dev_debugger.logged_metrics[metric_idx + batches]
 
         # make sure the metric was split
@@ -300,7 +301,7 @@ def test_val_step_epoch_step_metrics(tmpdir):
 
     # make sure we logged the correct pbar metrics
     for metric_idx in range(0, len(trainer.dev_debugger.pbar_added_metrics), batches + 1):
-        batch_metrics = trainer.dev_debugger.pbar_added_metrics[metric_idx: metric_idx + batches]
+        batch_metrics = trainer.dev_debugger.pbar_added_metrics[metric_idx : metric_idx + batches]
         epoch_metric = trainer.dev_debugger.pbar_added_metrics[metric_idx + batches]
 
         # make sure the metric was split

@@ -43,7 +43,7 @@ class ModelWithManualGradTracker(EvalModelTemplate):
         self.stored_grad_norms.append(out)
 
 
-@pytest.mark.parametrize("norm_type", [1., 1.25, 2, 3, 5, 10, 'inf'])
+@pytest.mark.parametrize("norm_type", [1.0, 1.25, 2, 3, 5, 10, 'inf'])
 def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
     os.environ['PL_DEV_DEBUG'] = '1'
 

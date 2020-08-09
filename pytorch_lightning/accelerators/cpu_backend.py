@@ -16,7 +16,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CPUBackend(object):
-
     def __init__(self, trainer):
         self.trainer = trainer
 

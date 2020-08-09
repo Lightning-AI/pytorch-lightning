@@ -7,25 +7,33 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 
 
 def _get_torchtext_data_iterator(include_lengths=False):
-    text_field = torchtext.data.Field(sequential=True, pad_first=False,  # nosec
-                                      init_token="<s>", eos_token="</s>",  # nosec
-                                      include_lengths=include_lengths)  # nosec
+    text_field = torchtext.data.Field(
+        sequential=True,
+        pad_first=False,  # nosec
+        init_token="<s>",
+        eos_token="</s>",  # nosec
+        include_lengths=include_lengths,
+    )  # nosec
 
     example1 = Example.fromdict({"text": "a b c a c"}, {"text": ("text", text_field)})
     example2 = Example.fromdict({"text": "b c a a"}, {"text": ("text", text_field)})
     example3 = Example.fromdict({"text": "c b a"}, {"text": ("text", text_field)})
 
-    dataset = torchtext.data.Dataset(
-        [example1, example2, example3],
-        {"text": text_field},
-    )
+    dataset = torchtext.data.Dataset([example1, example2, example3], {"text": text_field},)
     text_field.build_vocab(dataset)
 
-    iterator = torchtext.data.Iterator(dataset, batch_size=3,
-                                       sort_key=None, device=None,
-                                       batch_size_fn=None,
-                                       train=True, repeat=False, shuffle=None,
-                                       sort=None, sort_within_batch=None)
+    iterator = torchtext.data.Iterator(
+        dataset,
+        batch_size=3,
+        sort_key=None,
+        device=None,
+        batch_size_fn=None,
+        train=True,
+        repeat=False,
+        shuffle=None,
+        sort=None,
+        sort_within_batch=None,
+    )
     return iterator, text_field
 
 
@@ -40,11 +48,11 @@ def test_batch_move_data_to_device_torchtext_include_lengths(include_lengths, de
 
     if include_lengths:
         # tensor with data
-        assert (batch_on_device.text[0].device == device)
+        assert batch_on_device.text[0].device == device
         # tensor with length of data
-        assert (batch_on_device.text[1].device == device)
+        assert batch_on_device.text[1].device == device
     else:
-        assert (batch_on_device.text.device == device)
+        assert batch_on_device.text.device == device
 
 
 @pytest.mark.parametrize('include_lengths', [False, True])

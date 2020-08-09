@@ -5,7 +5,6 @@ from tests.base.dataloaders import CustomNotImplementedErrorDataloader
 
 
 class TestDataloaderVariations(ABC):
-
     @abstractmethod
     def dataloader(self, *args, **kwargs):
         """placeholder"""

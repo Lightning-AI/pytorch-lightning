@@ -2,14 +2,7 @@ from typing import Sequence
 
 import torch
 
-from pytorch_lightning.metrics.functional.regression import (
-    mae,
-    mse,
-    psnr,
-    rmse,
-    rmsle,
-    ssim
-)
+from pytorch_lightning.metrics.functional.regression import mae, mse, psnr, rmse, rmsle, ssim
 from pytorch_lightning.metrics.metric import Metric
 
 
@@ -28,8 +21,7 @@ class MSE(Metric):
     """
 
     def __init__(
-            self,
-            reduction: str = 'elementwise_mean',
+        self, reduction: str = 'elementwise_mean',
     ):
         """
         Args:
@@ -71,8 +63,7 @@ class RMSE(Metric):
     """
 
     def __init__(
-            self,
-            reduction: str = 'elementwise_mean',
+        self, reduction: str = 'elementwise_mean',
     ):
         """
         Args:
@@ -114,8 +105,7 @@ class MAE(Metric):
     """
 
     def __init__(
-            self,
-            reduction: str = 'elementwise_mean',
+        self, reduction: str = 'elementwise_mean',
     ):
         """
         Args:
@@ -157,8 +147,7 @@ class RMSLE(Metric):
     """
 
     def __init__(
-            self,
-            reduction: str = 'elementwise_mean',
+        self, reduction: str = 'elementwise_mean',
     ):
         """
         Args:
@@ -199,12 +188,7 @@ class PSNR(Metric):
 
     """
 
-    def __init__(
-            self,
-            data_range: float = None,
-            base: int = 10,
-            reduction: str = 'elementwise_mean'
-    ):
+    def __init__(self, data_range: float = None, base: int = 10, reduction: str = 'elementwise_mean'):
         """
         Args:
             data_range: the range of the data. If None, it is determined from the data (max - min)
@@ -249,13 +233,13 @@ class SSIM(Metric):
     """
 
     def __init__(
-            self,
-            kernel_size: Sequence[int] = (11, 11),
-            sigma: Sequence[float] = (1.5, 1.5),
-            reduction: str = "elementwise_mean",
-            data_range: float = None,
-            k1: float = 0.01,
-            k2: float = 0.03
+        self,
+        kernel_size: Sequence[int] = (11, 11),
+        sigma: Sequence[float] = (1.5, 1.5),
+        reduction: str = "elementwise_mean",
+        data_range: float = None,
+        k1: float = 0.01,
+        k2: float = 0.03,
     ):
         """
         Args:

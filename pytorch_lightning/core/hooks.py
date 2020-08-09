@@ -14,7 +14,6 @@ except ImportError:
 
 
 class ModelHooks(Module):
-
     def setup(self, stage: str):
         """
         Called at the beginning of fit and test.

@@ -163,11 +163,7 @@ def test_train_loop_only(tmpdir):
     model.test_step_end = None
     model.test_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, weights_summary=None,)
 
     # fit model
     result = trainer.fit(model, dm)
@@ -185,11 +181,7 @@ def test_train_val_loop_only(tmpdir):
     model.validation_step_end = None
     model.validation_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, weights_summary=None,)
 
     # fit model
     result = trainer.fit(model, dm)
@@ -204,11 +196,7 @@ def test_test_loop_only(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, weights_summary=None,)
     trainer.test(model, datamodule=dm)
 
 
@@ -219,11 +207,7 @@ def test_full_loop(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, weights_summary=None,)
 
     # fit model
     result = trainer.fit(model, dm)
@@ -243,12 +227,7 @@ def test_full_loop_single_gpu(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-        gpus=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, weights_summary=None, gpus=1)
 
     # fit model
     result = trainer.fit(model, dm)
@@ -268,13 +247,7 @@ def test_full_loop_dp(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-        distributed_backend='dp',
-        gpus=2
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, weights_summary=None, distributed_backend='dp', gpus=2)
 
     # fit model
     result = trainer.fit(model, dm)
@@ -289,6 +262,7 @@ def test_full_loop_dp(tmpdir):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_full_loop_ddp_spawn(tmpdir):
     import os
+
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
     seed_everything(1234)
@@ -298,11 +272,7 @@ def test_full_loop_ddp_spawn(tmpdir):
     model = EvalModelTemplate()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=5,
-        weights_summary=None,
-        distributed_backend='ddp_spawn',
-        gpus=[0, 1]
+        default_root_dir=tmpdir, max_epochs=5, weights_summary=None, distributed_backend='ddp_spawn', gpus=[0, 1]
     )
 
     # fit model

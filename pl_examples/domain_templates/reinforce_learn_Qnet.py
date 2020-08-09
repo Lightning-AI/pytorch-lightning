@@ -44,20 +44,14 @@ class DQN(nn.Module):
 
     def __init__(self, obs_size: int, n_actions: int, hidden_size: int = 128):
         super(DQN, self).__init__()
-        self.net = nn.Sequential(
-            nn.Linear(obs_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, n_actions)
-        )
+        self.net = nn.Sequential(nn.Linear(obs_size, hidden_size), nn.ReLU(), nn.Linear(hidden_size, n_actions))
 
     def forward(self, x):
         return self.net(x.float())
 
 
 # Named tuple for storing experience steps gathered in training
-Experience = namedtuple(
-    'Experience', field_names=['state', 'action', 'reward',
-                               'done', 'new_state'])
+Experience = namedtuple('Experience', field_names=['state', 'action', 'reward', 'done', 'new_state'])
 
 
 class ReplayBuffer:
@@ -87,8 +81,13 @@ class ReplayBuffer:
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
 
-        return (np.array(states), np.array(actions), np.array(rewards, dtype=np.float32),
-                np.array(dones, dtype=np.bool), np.array(next_states))
+        return (
+            np.array(states),
+            np.array(actions),
+            np.array(rewards, dtype=np.float32),
+            np.array(dones, dtype=np.bool),
+            np.array(next_states),
+        )
 
 
 class RLDataset(IterableDataset):
@@ -189,17 +188,20 @@ class Agent:
 class DQNLightning(pl.LightningModule):
     """ Basic DQN Model """
 
-    def __init__(self,
-                 replay_size,
-                 warm_start_steps: int,
-                 gamma: float,
-                 eps_start: int,
-                 eps_end: int,
-                 eps_last_frame: int,
-                 sync_rate,
-                 lr: float,
-                 episode_length,
-                 batch_size, **kwargs) -> None:
+    def __init__(
+        self,
+        replay_size,
+        warm_start_steps: int,
+        gamma: float,
+        eps_start: int,
+        eps_end: int,
+        eps_last_frame: int,
+        sync_rate,
+        lr: float,
+        episode_length,
+        batch_size,
+        **kwargs,
+    ) -> None:
         super().__init__()
         self.replay_size = replay_size
         self.warm_start_steps = warm_start_steps
@@ -285,8 +287,7 @@ class DQNLightning(pl.LightningModule):
             Training loss and log metrics
         """
         device = self.get_device(batch)
-        epsilon = max(self.eps_end, self.eps_start -
-                      self.global_step + 1 / self.eps_last_frame)
+        epsilon = max(self.eps_end, self.eps_start - self.global_step + 1 / self.eps_last_frame)
 
         # step through environment with agent
         reward, done = self.agent.play_step(self.net, epsilon, device)
@@ -303,9 +304,11 @@ class DQNLightning(pl.LightningModule):
         if self.global_step % self.sync_rate == 0:
             self.target_net.load_state_dict(self.net.state_dict())
 
-        log = {'total_reward': torch.tensor(self.total_reward).to(device),
-               'reward': torch.tensor(reward).to(device),
-               'steps': torch.tensor(self.global_step).to(device)}
+        log = {
+            'total_reward': torch.tensor(self.total_reward).to(device),
+            'reward': torch.tensor(reward).to(device),
+            'steps': torch.tensor(self.global_step).to(device),
+        }
 
         return OrderedDict({'loss': loss, 'log': log, 'progress_bar': log})
 
@@ -317,11 +320,7 @@ class DQNLightning(pl.LightningModule):
     def __dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences"""
         dataset = RLDataset(self.buffer, self.episode_length)
-        dataloader = DataLoader(
-            dataset=dataset,
-            batch_size=self.batch_size,
-            sampler=None,
-        )
+        dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size, sampler=None,)
         return dataloader
 
     def train_dataloader(self) -> DataLoader:
@@ -336,12 +335,7 @@ class DQNLightning(pl.LightningModule):
 def main(args) -> None:
     model = DQNLightning(**vars(args))
 
-    trainer = pl.Trainer(
-        gpus=1,
-        distributed_backend='dp',
-        early_stop_callback=False,
-        val_check_interval=100
-    )
+    trainer = pl.Trainer(gpus=1, distributed_backend='dp', early_stop_callback=False, val_check_interval=100)
 
     trainer.fit(model)
 
@@ -355,21 +349,20 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
     parser.add_argument("--env", type=str, default="CartPole-v0", help="gym environment tag")
     parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-    parser.add_argument("--sync_rate", type=int, default=10,
-                        help="how many frames do we update the target network")
-    parser.add_argument("--replay_size", type=int, default=1000,
-                        help="capacity of the replay buffer")
-    parser.add_argument("--warm_start_size", type=int, default=1000,
-                        help="how many samples do we use to fill our buffer at the start of training")
-    parser.add_argument("--eps_last_frame", type=int, default=1000,
-                        help="what frame should epsilon stop decaying")
+    parser.add_argument("--sync_rate", type=int, default=10, help="how many frames do we update the target network")
+    parser.add_argument("--replay_size", type=int, default=1000, help="capacity of the replay buffer")
+    parser.add_argument(
+        "--warm_start_size",
+        type=int,
+        default=1000,
+        help="how many samples do we use to fill our buffer at the start of training",
+    )
+    parser.add_argument("--eps_last_frame", type=int, default=1000, help="what frame should epsilon stop decaying")
     parser.add_argument("--eps_start", type=float, default=1.0, help="starting value of epsilon")
     parser.add_argument("--eps_end", type=float, default=0.01, help="final value of epsilon")
     parser.add_argument("--episode_length", type=int, default=200, help="max length of an episode")
-    parser.add_argument("--max_episode_reward", type=int, default=200,
-                        help="max episode reward in the environment")
-    parser.add_argument("--warm_start_steps", type=int, default=1000,
-                        help="max episode reward in the environment")
+    parser.add_argument("--max_episode_reward", type=int, default=200, help="max episode reward in the environment")
+    parser.add_argument("--warm_start_steps", type=int, default=1000, help="max episode reward in the environment")
 
     args = parser.parse_args()
 

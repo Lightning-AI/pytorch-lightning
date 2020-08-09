@@ -57,9 +57,7 @@ def get_init_args(frame) -> dict:
     self_identifier = spec.args[0]  # "self" unless user renames it (always first arg)
     varargs_identifier = spec.varargs  # by convention this is named "*args"
     kwargs_identifier = spec.varkw  # by convention this is named "**kwargs"
-    exclude_argnames = (
-        varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args'
-    )
+    exclude_argnames = (varargs_identifier, kwargs_identifier, self_identifier, '__class__', 'frame', 'frame_args')
 
     # only collect variables that appear in the signature
     local_args = {k: local_vars[k] for k in init_parameters.keys()}
@@ -173,8 +171,7 @@ def lightning_getattr(model, attribute):
         else:
             attr = getattr(model.hparams, attribute)
     else:
-        raise ValueError(f'{attribute} is not stored in the model namespace'
-                         ' or the `hparams` namespace/dict.')
+        raise ValueError(f'{attribute} is not stored in the model namespace' ' or the `hparams` namespace/dict.')
     return attr
 
 
@@ -191,5 +188,4 @@ def lightning_setattr(model, attribute, value):
         else:
             setattr(model.hparams, attribute, value)
     else:
-        raise ValueError(f'{attribute} is not stored in the model namespace'
-                         ' or the `hparams` namespace/dict.')
+        raise ValueError(f'{attribute} is not stored in the model namespace' ' or the `hparams` namespace/dict.')

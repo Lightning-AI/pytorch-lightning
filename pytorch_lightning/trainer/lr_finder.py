@@ -66,7 +66,8 @@ class TrainerLRFinderMixin(ABC):
             else:
                 raise MisconfigurationException(
                     f'`auto_lr_find` was set to {self.auto_lr_find}, however'
-                    ' could not find this as a field in `model` or `model.hparams`.')
+                    ' could not find this as a field in `model` or `model.hparams`.'
+                )
         else:
             if lightning_hasattr(model, 'lr'):
                 lightning_setattr(model, 'lr', lr)
@@ -76,19 +77,20 @@ class TrainerLRFinderMixin(ABC):
                 raise MisconfigurationException(
                     'When auto_lr_find is set to True, expects that `model` or'
                     ' `model.hparams` either has field `lr` or `learning_rate`'
-                    ' that can overridden')
+                    ' that can overridden'
+                )
         log.info(f'Learning rate set to {lr}')
 
     def lr_find(
-            self,
-            model: LightningModule,
-            train_dataloader: Optional[DataLoader] = None,
-            val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            min_lr: float = 1e-8,
-            max_lr: float = 1,
-            num_training: int = 100,
-            mode: str = 'exponential',
-            early_stop_threshold: float = 4.0,
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        min_lr: float = 1e-8,
+        max_lr: float = 1,
+        num_training: int = 100,
+        mode: str = 'exponential',
+        early_stop_threshold: float = 4.0,
     ):
         r"""
         lr_find enables the user to do a range test of good initial learning rates,
@@ -148,9 +150,7 @@ class TrainerLRFinderMixin(ABC):
         lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
         # Use special lr logger callback
-        self.callbacks = [_LRCallback(num_training,
-                                      early_stop_threshold,
-                                      progress_bar_refresh_rate=1)]
+        self.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
 
         # No logging
         self.logger = DummyLogger()
@@ -167,7 +167,10 @@ class TrainerLRFinderMixin(ABC):
         self.early_stop_callback = None
 
         # Required for saving the model
-        self.optimizers, self.schedulers = [], [],
+        self.optimizers, self.schedulers = (
+            [],
+            [],
+        )
         self.model = model
 
         # Dump model checkpoint
@@ -179,21 +182,19 @@ class TrainerLRFinderMixin(ABC):
         if len(optimizers) != 1:
             raise MisconfigurationException(
                 f'`model.configure_optimizers()` returned {len(optimizers)}, but'
-                ' learning rate finder only works with single optimizer')
+                ' learning rate finder only works with single optimizer'
+            )
         model.configure_optimizers = lr_finder._get_new_optimizer(optimizers[0])
 
         # Fit, lr & loss logged in callback
-        self.fit(model,
-                 train_dataloader=train_dataloader,
-                 val_dataloaders=val_dataloaders)
+        self.fit(model, train_dataloader=train_dataloader, val_dataloaders=val_dataloaders)
 
         # Prompt if we stopped early
         if self.global_step != num_training:
             log.info('LR finder stopped early due to diverging loss.')
 
         # Transfer results from callback to lr finder object
-        lr_finder.results.update({'lr': self.callbacks[0].lrs,
-                                  'loss': self.callbacks[0].losses})
+        lr_finder.results.update({'lr': self.callbacks[0].lrs, 'loss': self.callbacks[0].losses})
         lr_finder._total_batch_idx = self.total_batch_idx  # for debug purpose
 
         # Reset model state
@@ -255,9 +256,9 @@ class _LRFinder(object):
         # Get suggestion
         lr = lr_finder.suggestion()
     """
+
     def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
-        assert mode in ('linear', 'exponential'), \
-            'mode should be either `linear` or `exponential`'
+        assert mode in ('linear', 'exponential'), 'mode should be either `linear` or `exponential`'
 
         self.mode = mode
         self.lr_min = lr_min
@@ -285,8 +286,7 @@ class _LRFinder(object):
         scheduler = _LinearLR(*args) if self.mode == 'linear' else _ExponentialLR(*args)
 
         def configure_optimizers():
-            return [optimizer], [{'scheduler': scheduler,
-                                  'interval': 'step'}]
+            return [optimizer], [{'scheduler': scheduler, 'interval': 'step'}]
 
         return configure_optimizers
 
@@ -314,8 +314,7 @@ class _LRFinder(object):
         if suggest:
             _ = self.suggestion()
             if self._optimal_idx:
-                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx],
-                        markersize=10, marker='o', color='red')
+                ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx], markersize=10, marker='o', color='red')
 
         if show:
             plt.show()
@@ -360,10 +359,14 @@ class _LRCallback(Callback):
             if ``beta=0`` all past information is ignored.
 
     """
-    def __init__(self, num_training: int,
-                 early_stop_threshold: float = 4.0,
-                 progress_bar_refresh_rate: int = 0,
-                 beta: float = 0.98):
+
+    def __init__(
+        self,
+        num_training: int,
+        early_stop_threshold: float = 4.0,
+        progress_bar_refresh_rate: int = 0,
+        beta: float = 0.98,
+    ):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
@@ -397,7 +400,7 @@ class _LRCallback(Callback):
 
         # Avg loss (loss with momentum) + smoothing
         self.avg_loss = self.beta * self.avg_loss + (1 - self.beta) * current_loss
-        smoothed_loss = self.avg_loss / (1 - self.beta**current_step)
+        smoothed_loss = self.avg_loss / (1 - self.beta ** current_step)
 
         # Check if we diverging
         if self.early_stop_threshold is not None:
@@ -426,14 +429,11 @@ class _LinearLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
+
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self,
-                 optimizer: torch.optim.Optimizer,
-                 end_lr: float,
-                 num_iter: int,
-                 last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_LinearLR, self).__init__(optimizer, last_epoch)
@@ -468,14 +468,11 @@ class _ExponentialLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
+
     last_epoch: int
     base_lrs: Sequence
 
-    def __init__(self,
-                 optimizer: torch.optim.Optimizer,
-                 end_lr: float,
-                 num_iter: int,
-                 last_epoch: int = -1):
+    def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)

@@ -16,7 +16,7 @@ from pytorch_lightning.metrics.converters import (
     _tensor_metric_conversion,
     _sync_ddp_if_available,
     tensor_metric,
-    numpy_metric
+    numpy_metric,
 )
 
 
@@ -29,12 +29,12 @@ def test_apply_to_inputs():
         elif isinstance(inputs, (tuple, list)):
             return [apply_fn(x, factor) for x in inputs]
 
-    @_apply_to_inputs(apply_fn, factor=2.)
+    @_apply_to_inputs(apply_fn, factor=2.0)
     def test_fn(*args, **kwargs):
         return args, kwargs
 
-    for args in [[], [1., 2.]]:
-        for kwargs in [{}, {'a': 1., 'b': 2.}]:
+    for args in [[], [1.0, 2.0]]:
+        for kwargs in [{}, {'a': 1.0, 'b': 2.0}]:
             result_args, result_kwargs = test_fn(*args, **kwargs)
             assert isinstance(result_args, (list, tuple))
             assert isinstance(result_kwargs, dict)
@@ -42,12 +42,12 @@ def test_apply_to_inputs():
             assert len(result_kwargs) == len(kwargs)
             assert all([k in result_kwargs for k in kwargs.keys()])
             for arg, result_arg in zip(args, result_args):
-                assert arg * 2. == result_arg
+                assert arg * 2.0 == result_arg
 
             for key in kwargs.keys():
                 arg = kwargs[key]
                 result_arg = result_kwargs[key]
-                assert arg * 2. == result_arg
+                assert arg * 2.0 == result_arg
 
 
 def test_apply_to_outputs():
@@ -62,17 +62,17 @@ def test_apply_to_outputs():
 
 
 def test_convert_to_tensor():
-    for test_item in [1., np.array([1.])]:
+    for test_item in [1.0, np.array([1.0])]:
         result_tensor = _convert_to_tensor(test_item)
         assert isinstance(result_tensor, torch.Tensor)
-        assert result_tensor.item() == 1.
+        assert result_tensor.item() == 1.0
 
 
 def test_convert_to_numpy():
-    for test_item in [1., torch.tensor([1.])]:
+    for test_item in [1.0, torch.tensor([1.0])]:
         result = _convert_to_numpy(test_item)
         assert isinstance(result, np.ndarray)
-        assert result.item() == 1.
+        assert result.item() == 1.0
 
 
 def test_numpy_metric_conversion():
@@ -84,11 +84,11 @@ def test_numpy_metric_conversion():
         for v in kwargs.values():
             assert isinstance(v, np.ndarray)
 
-        return 5.
+        return 5.0
 
-    result = numpy_test_metric(torch.tensor([1.]), dummy_kwarg=2.)
+    result = numpy_test_metric(torch.tensor([1.0]), dummy_kwarg=2.0)
     assert isinstance(result, torch.Tensor)
-    assert result.item() == 5.
+    assert result.item() == 5.0
 
 
 def test_tensor_metric_conversion():
@@ -100,11 +100,11 @@ def test_tensor_metric_conversion():
         for v in kwargs.values():
             assert isinstance(v, torch.Tensor)
 
-        return 5.
+        return 5.0
 
-    result = tensor_test_metric(np.array([1.]), dummy_kwarg=2.)
+    result = tensor_test_metric(np.array([1.0]), dummy_kwarg=2.0)
     assert isinstance(result, torch.Tensor)
-    assert result.item() == 5.
+    assert result.item() == 5.0
 
 
 def _setup_ddp(rank, worldsize):
@@ -121,7 +121,7 @@ def _ddp_test_fn(rank, worldsize, add_offset: bool, reduction_mean=False):
     if add_offset:
         tensor = torch.tensor([float(rank)])
     else:
-        tensor = torch.tensor([1.], )
+        tensor = torch.tensor([1.0],)
     if reduction_mean:
         reduced_tensor = _sync_ddp_if_available(tensor, reduce_op='avg')
 
@@ -130,11 +130,10 @@ def _ddp_test_fn(rank, worldsize, add_offset: bool, reduction_mean=False):
     else:
         reduced_tensor = _sync_ddp_if_available(tensor)
 
-        assert reduced_tensor.item() == dist.get_world_size(), \
-            'Sync-Reduce does not work properly with DDP and Tensors'
+        assert reduced_tensor.item() == dist.get_world_size(), 'Sync-Reduce does not work properly with DDP and Tensors'
 
 
-@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_sync_reduce_ddp():
     """Make sure sync-reduce works with DDP"""
     tutils.reset_seed()
@@ -144,7 +143,7 @@ def test_sync_reduce_ddp():
     mp.spawn(_ddp_test_fn, args=(worldsize, False), nprocs=worldsize)
 
 
-@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_sync_reduce_ddp_mean():
     """Make sure sync-reduce works with DDP"""
     tutils.reset_seed()
@@ -156,12 +155,11 @@ def test_sync_reduce_ddp_mean():
 
 def test_sync_reduce_simple():
     """Make sure sync-reduce works without DDP"""
-    tensor = torch.tensor([1.], device='cpu')
+    tensor = torch.tensor([1.0], device='cpu')
 
     reduced_tensor = _sync_ddp_if_available(tensor)
 
-    assert torch.allclose(tensor, reduced_tensor), \
-        'Sync-Reduce does not work properly without DDP and Tensors'
+    assert torch.allclose(tensor, reduced_tensor), 'Sync-Reduce does not work properly without DDP and Tensors'
 
 
 def _test_tensor_metric(is_ddp: bool):
@@ -173,16 +171,16 @@ def _test_tensor_metric(is_ddp: bool):
         for v in kwargs.values():
             assert isinstance(v, torch.Tensor)
 
-        return 5.
+        return 5.0
 
     if is_ddp:
         factor = dist.get_world_size()
     else:
-        factor = 1.
+        factor = 1.0
 
-    result = tensor_test_metric(np.array([1.]), dummy_kwarg=2.)
+    result = tensor_test_metric(np.array([1.0]), dummy_kwarg=2.0)
     assert isinstance(result, torch.Tensor)
-    assert result.item() == 5. * factor
+    assert result.item() == 5.0 * factor
 
 
 def _ddp_test_tensor_metric(rank, worldsize):
@@ -190,7 +188,7 @@ def _ddp_test_tensor_metric(rank, worldsize):
     _test_tensor_metric(True)
 
 
-@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_tensor_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -213,16 +211,16 @@ def _test_numpy_metric(is_ddp: bool):
         for v in kwargs.values():
             assert isinstance(v, np.ndarray)
 
-        return 5.
+        return 5.0
 
     if is_ddp:
         factor = dist.get_world_size()
     else:
-        factor = 1.
+        factor = 1.0
 
-    result = numpy_test_metric(torch.tensor([1.]), dummy_kwarg=2.)
+    result = numpy_test_metric(torch.tensor([1.0]), dummy_kwarg=2.0)
     assert isinstance(result, torch.Tensor)
-    assert result.item() == 5. * factor
+    assert result.item() == 5.0 * factor
 
 
 def _ddp_test_numpy_metric(rank, worldsize):
@@ -230,7 +228,7 @@ def _ddp_test_numpy_metric(rank, worldsize):
     _test_numpy_metric(True)
 
 
-@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 def test_numpy_metric_ddp():
     tutils.reset_seed()
     tutils.set_random_master_port()

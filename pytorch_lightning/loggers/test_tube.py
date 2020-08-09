@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, Union
 
 try:
     from test_tube import Experiment
+
     _TEST_TUBE_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     Experiment = None
@@ -56,17 +57,21 @@ class TestTubeLogger(LightningLoggerBase):
 
     __test__ = False
 
-    def __init__(self,
-                 save_dir: str,
-                 name: str = "default",
-                 description: Optional[str] = None,
-                 debug: bool = False,
-                 version: Optional[int] = None,
-                 create_git_tag: bool = False):
+    def __init__(
+        self,
+        save_dir: str,
+        name: str = "default",
+        description: Optional[str] = None,
+        debug: bool = False,
+        version: Optional[int] = None,
+        create_git_tag: bool = False,
+    ):
 
         if not _TEST_TUBE_AVAILABLE:
-            raise ImportError('You want to use `test_tube` logger which is not installed yet,'
-                              ' install it with `pip install test-tube`.')
+            raise ImportError(
+                'You want to use `test_tube` logger which is not installed yet,'
+                ' install it with `pip install test-tube`.'
+            )
         super().__init__()
         self._save_dir = save_dir
         self._name = name

@@ -12,21 +12,18 @@ class SubSubModule(DeviceDtypeModuleMixin):
 
 
 class SubModule(nn.Module):
-
     def __init__(self):
         super().__init__()
         self.module = SubSubModule()
 
 
 class TopModule(EvalModelTemplate):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.module = SubModule()
 
 
 class DeviceAssertCallback(Callback):
-
     def on_train_batch_start(self, trainer, model, batch, batch_idx, dataloader_idx):
         rank = trainer.local_rank
         assert isinstance(model, TopModule)
@@ -35,16 +32,13 @@ class DeviceAssertCallback(Callback):
         assert model.device == model.module.module.device
 
 
-@pytest.mark.parametrize(['dst_dtype'], [
-    pytest.param(torch.float),
-    pytest.param(torch.double),
-    pytest.param(torch.half),
-])
-@pytest.mark.parametrize(['dst_device'], [
-    pytest.param(torch.device('cpu')),
-    pytest.param(torch.device('cuda')),
-    pytest.param(torch.device('cuda', 0)),
-])
+@pytest.mark.parametrize(
+    ['dst_dtype'], [pytest.param(torch.float), pytest.param(torch.double), pytest.param(torch.half),]
+)
+@pytest.mark.parametrize(
+    ['dst_device'],
+    [pytest.param(torch.device('cpu')), pytest.param(torch.device('cuda')), pytest.param(torch.device('cuda', 0)),],
+)
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_submodules_device_and_dtype(dst_device, dst_dtype):
     """
@@ -67,11 +61,7 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
 def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        distributed_backend='dp',
-        gpus=2,
-        callbacks=[DeviceAssertCallback()],
-        max_steps=1,
+        default_root_dir=tmpdir, distributed_backend='dp', gpus=2, callbacks=[DeviceAssertCallback()], max_steps=1,
     )
     trainer.fit(model)
 

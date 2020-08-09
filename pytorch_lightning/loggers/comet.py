@@ -11,6 +11,7 @@ try:
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml import BaseExperiment as CometBaseExperiment
+
     try:
         from comet_ml.api import API
     except ImportError:  # pragma: no-cover
@@ -98,20 +99,24 @@ class CometLogger(LightningLoggerBase):
             file but still want to run offline experiments.
     """
 
-    def __init__(self,
-                 api_key: Optional[str] = None,
-                 save_dir: Optional[str] = None,
-                 workspace: Optional[str] = None,
-                 project_name: Optional[str] = None,
-                 rest_api_key: Optional[str] = None,
-                 experiment_name: Optional[str] = None,
-                 experiment_key: Optional[str] = None,
-                 offline: bool = False,
-                 **kwargs):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        workspace: Optional[str] = None,
+        project_name: Optional[str] = None,
+        rest_api_key: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        offline: bool = False,
+        **kwargs,
+    ):
 
         if not _COMET_AVAILABLE:
-            raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
-                              ' install it with `pip install comet-ml`.')
+            raise ImportError(
+                'You want to use `comet_ml` logger which is not installed yet,'
+                ' install it with `pip install comet-ml`.'
+            )
         super().__init__()
         self._experiment = None
 
@@ -130,9 +135,7 @@ class CometLogger(LightningLoggerBase):
             self._save_dir = save_dir
         else:
             # If neither api_key nor save_dir are passed as arguments, raise an exception
-            raise MisconfigurationException(
-                "CometLogger requires either api_key or save_dir during initialization."
-            )
+            raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
@@ -171,10 +174,7 @@ class CometLogger(LightningLoggerBase):
         if self.mode == "online":
             if self.experiment_key is None:
                 self._experiment = CometExperiment(
-                    api_key=self.api_key,
-                    workspace=self.workspace,
-                    project_name=self.project_name,
-                    **self._kwargs
+                    api_key=self.api_key, workspace=self.workspace, project_name=self.project_name, **self._kwargs
                 )
                 self.experiment_key = self._experiment.get_key()
             else:
@@ -183,14 +183,14 @@ class CometLogger(LightningLoggerBase):
                     workspace=self.workspace,
                     project_name=self.project_name,
                     previous_experiment=self.experiment_key,
-                    **self._kwargs
+                    **self._kwargs,
                 )
         else:
             self._experiment = CometOfflineExperiment(
                 offline_directory=self.save_dir,
                 workspace=self.workspace,
                 project_name=self.project_name,
-                **self._kwargs
+                **self._kwargs,
             )
 
         return self._experiment
@@ -202,11 +202,7 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_parameters(params)
 
     @rank_zero_only
-    def log_metrics(
-            self,
-            metrics: Dict[str, Union[torch.Tensor, float]],
-            step: Optional[int] = None
-    ) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
 
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU

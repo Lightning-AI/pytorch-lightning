@@ -50,8 +50,9 @@ class MNIST(Dataset):
     TEST_FILE_NAME = 'test.pt'
     cache_folder_name = 'complete'
 
-    def __init__(self, root: str = PATH_DATASETS, train: bool = True,
-                 normalize: tuple = (0.5, 1.0), download: bool = True):
+    def __init__(
+        self, root: str = PATH_DATASETS, train: bool = True, normalize: tuple = (0.5, 1.0), download: bool = True
+    ):
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -105,7 +106,7 @@ class MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)
 
 
-def _try_load(path_data, trials: int = 30, delta: float = 1.):
+def _try_load(path_data, trials: int = 30, delta: float = 1.0):
     """Resolving loading from the same time from multiple concurrentprocesses."""
     res, exp = None, None
     assert trials, "at least some trial has to be set"
@@ -159,13 +160,13 @@ class TrialMNIST(MNIST):
     """
 
     def __init__(
-            self,
-            root: str = PATH_DATASETS,
-            train: bool = True,
-            normalize: tuple = (0.5, 1.0),
-            download: bool = False,
-            num_samples: int = 100,
-            digits: Optional[Sequence] = (0, 1, 2),
+        self,
+        root: str = PATH_DATASETS,
+        train: bool = True,
+        normalize: tuple = (0.5, 1.0),
+        download: bool = False,
+        num_samples: int = 100,
+        digits: Optional[Sequence] = (0, 1, 2),
     ):
 
         # number of examples per class
@@ -173,19 +174,12 @@ class TrialMNIST(MNIST):
         # take just a subset of MNIST dataset
         self.digits = digits if digits else list(range(10))
 
-        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) \
-                                 + f'_nb-{self.num_samples}'
+        self.cache_folder_name = 'digits-' + '-'.join(str(d) for d in sorted(self.digits)) + f'_nb-{self.num_samples}'
 
-        super().__init__(
-            root,
-            train=train,
-            normalize=normalize,
-            download=download
-        )
+        super().__init__(root, train=train, normalize=normalize, download=download)
 
     @staticmethod
-    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor,
-                        num_samples: int, digits: Sequence):
+    def _prepare_subset(full_data: torch.Tensor, full_targets: torch.Tensor, num_samples: int, digits: Sequence):
         classes = {d: 0 for d in digits}
         indexes = []
         for idx, target in enumerate(full_targets):
@@ -215,7 +209,6 @@ class TrialMNIST(MNIST):
 
 
 class AverageDataset(Dataset):
-
     def __init__(self, dataset_len=300, sequence_len=100):
         self.dataset_len = dataset_len
         self.sequence_len = sequence_len

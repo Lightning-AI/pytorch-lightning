@@ -23,7 +23,14 @@ import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
+    GPUBackend,
+    TPUBackend,
+    CPUBackend,
+    DDPSpawnBackend,
+    DataParallelBackend,
+    DDPBackend,
+    DDP2Backend,
+)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -38,8 +45,13 @@ from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import (TrainerDPMixin, _parse_gpu_ids, _parse_tpu_cores,
-                                                     determine_root_gpu_device, pick_multiple_gpus)
+from pytorch_lightning.trainer.distrib_parts import (
+    TrainerDPMixin,
+    _parse_gpu_ids,
+    _parse_tpu_cores,
+    determine_root_gpu_device,
+    pick_multiple_gpus,
+)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin

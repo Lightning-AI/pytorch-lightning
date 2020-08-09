@@ -19,17 +19,21 @@ class TrainerAMPMixin(ABC):
         assert amp_type in ('native', 'apex'), f'Unsupported amp type {amp_type}'
         if amp_type == 'native':
             if not NATIVE_AMP_AVALAIBLE:
-                rank_zero_warn('You have asked for native AMP but your PyTorch version does not support it.'
-                               ' Consider upgrading with `pip install torch>=1.6`.'
-                               ' We will attempt to use NVIDIA Apex for this session.')
+                rank_zero_warn(
+                    'You have asked for native AMP but your PyTorch version does not support it.'
+                    ' Consider upgrading with `pip install torch>=1.6`.'
+                    ' We will attempt to use NVIDIA Apex for this session.'
+                )
                 amp_type = 'apex'
             else:
                 log.info('Using native 16bit precision.')
                 self.amp_type = AMPType.NATIVE
         if amp_type == 'apex':
             if not APEX_AVAILABLE:
-                rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
-                               ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
+                rank_zero_warn(
+                    'You have asked for Apex AMP but you have not installed it yet.'
+                    ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux'
+                )
             else:
                 log.info('Using APEX 16bit precision.')
                 self.amp_type = AMPType.APEX

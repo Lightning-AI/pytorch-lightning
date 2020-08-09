@@ -33,8 +33,7 @@ def test_accuracy(num_classes):
     acc = Accuracy(num_classes=num_classes)
     assert acc.name == 'accuracy'
 
-    result = acc(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]),
-                 target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
+    result = acc(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]), target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
     assert isinstance(result, torch.Tensor)
 
 
@@ -50,7 +49,7 @@ def test_confusion_matrix(normalize):
     assert isinstance(cm, torch.Tensor)
 
 
-@pytest.mark.parametrize('pos_label', [1, 2.])
+@pytest.mark.parametrize('pos_label', [1, 2.0])
 def test_precision_recall(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
 
@@ -105,22 +104,24 @@ def test_auroc(pos_label):
     assert isinstance(area, torch.Tensor)
 
 
-@pytest.mark.parametrize(['beta', 'num_classes'], [
-    pytest.param(0., 1),
-    pytest.param(0.5, 1),
-    pytest.param(1., 1),
-    pytest.param(2., 1),
-    pytest.param(0., None),
-    pytest.param(0.5, None),
-    pytest.param(1., None),
-    pytest.param(2., None)
-])
+@pytest.mark.parametrize(
+    ['beta', 'num_classes'],
+    [
+        pytest.param(0.0, 1),
+        pytest.param(0.5, 1),
+        pytest.param(1.0, 1),
+        pytest.param(2.0, 1),
+        pytest.param(0.0, None),
+        pytest.param(0.5, None),
+        pytest.param(1.0, None),
+        pytest.param(2.0, None),
+    ],
+)
 def test_fbeta(beta, num_classes):
     fbeta = FBeta(beta=beta, num_classes=num_classes)
     assert fbeta.name == 'fbeta'
 
-    score = fbeta(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]),
-                  target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
+    score = fbeta(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]), target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
     assert isinstance(score, torch.Tensor)
 
 
@@ -129,8 +130,7 @@ def test_f1(num_classes):
     f1 = F1(num_classes=num_classes)
     assert f1.name == 'f1'
 
-    score = f1(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]),
-               target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
+    score = f1(pred=torch.tensor([[0, 1, 1], [1, 0, 1]]), target=torch.tensor([[0, 0, 1], [1, 0, 1]]))
     assert isinstance(score, torch.Tensor)
 
 
@@ -150,10 +150,9 @@ def test_roc(pos_label):
 
 @pytest.mark.parametrize('num_classes', [4, None])
 def test_multiclass_roc(num_classes):
-    pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-                         [0.05, 0.85, 0.05, 0.05],
-                         [0.05, 0.05, 0.85, 0.05],
-                         [0.05, 0.05, 0.05, 0.85]])
+    pred = torch.tensor(
+        [[0.85, 0.05, 0.05, 0.05], [0.05, 0.85, 0.05, 0.05], [0.05, 0.05, 0.85, 0.05], [0.05, 0.05, 0.05, 0.85]]
+    )
     target = torch.tensor([0, 1, 3, 2])
 
     multi_roc = MulticlassROC(num_classes=num_classes)
@@ -175,10 +174,9 @@ def test_multiclass_roc(num_classes):
 
 @pytest.mark.parametrize('num_classes', [4, None])
 def test_multiclass_pr(num_classes):
-    pred = torch.tensor([[0.85, 0.05, 0.05, 0.05],
-                         [0.05, 0.85, 0.05, 0.05],
-                         [0.05, 0.05, 0.85, 0.05],
-                         [0.05, 0.05, 0.05, 0.85]])
+    pred = torch.tensor(
+        [[0.85, 0.05, 0.05, 0.05], [0.05, 0.85, 0.05, 0.05], [0.05, 0.05, 0.85, 0.05], [0.05, 0.05, 0.05, 0.85]]
+    )
     target = torch.tensor([0, 1, 3, 2])
 
     multi_pr = MulticlassPrecisionRecall(num_classes=num_classes)
@@ -203,8 +201,7 @@ def test_dice_coefficient(include_background):
     dice_coeff = DiceCoefficient(include_background=include_background)
     assert dice_coeff.name == 'dice'
 
-    dice = dice_coeff(torch.randint(0, 1, (10, 25, 25)),
-                      torch.randint(0, 1, (10, 25, 25)))
+    dice = dice_coeff(torch.randint(0, 1, (10, 25, 25)), torch.randint(0, 1, (10, 25, 25)))
     assert isinstance(dice, torch.Tensor)
 
 
@@ -213,7 +210,6 @@ def test_iou(remove_bg):
     iou = IoU(remove_bg=remove_bg)
     assert iou.name == 'iou'
 
-    score = iou(torch.randint(0, 1, (10, 25, 25)),
-                torch.randint(0, 1, (10, 25, 25)))
+    score = iou(torch.randint(0, 1, (10, 25, 25)), torch.randint(0, 1, (10, 25, 25)))
 
     assert isinstance(score, torch.Tensor)

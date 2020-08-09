@@ -38,7 +38,7 @@ def modern_gfile():
     modern_gfile = tb_version >= version.parse('2.0')
 
 
-def cloud_open(path: pathlike, mode: str, newline:str = None):
+def cloud_open(path: pathlike, mode: str, newline: str = None):
     if sys.platform == "win32":
         log.debug(
             "gfile does not handle newlines correctly on windows so remote files are not"

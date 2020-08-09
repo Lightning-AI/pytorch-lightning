@@ -79,12 +79,7 @@ def test_neptune_leave_open_experiment_after_fit(tmpdir):
 
     def _run_training(logger):
         logger._experiment = MagicMock()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            limit_train_batches=0.05,
-            logger=logger,
-        )
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger,)
         trainer.fit(model)
         return logger
 

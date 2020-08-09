@@ -13,8 +13,7 @@ from tests.base import EvalModelTemplate
 
 
 @pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"),
-    reason="Minimal PT version is set to 1.5",
+    version.parse(torch.__version__) < version.parse("1.5.0"), reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
     model = EvalModelTemplate()

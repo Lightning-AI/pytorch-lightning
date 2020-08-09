@@ -9,10 +9,7 @@ from pytorch_lightning import Trainer, seed_everything
 from tests.base.models import ParityModuleRNN, ParityModuleMNIST
 
 
-@pytest.mark.parametrize('cls_model,max_diff', [
-    (ParityModuleRNN, 0.05),
-    (ParityModuleMNIST, 0.5)
-])
+@pytest.mark.parametrize('cls_model,max_diff', [(ParityModuleRNN, 0.05), (ParityModuleMNIST, 0.5)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(tmpdir, cls_model, max_diff):
     """
@@ -28,8 +25,7 @@ def test_pytorch_parity(tmpdir, cls_model, max_diff):
         np.testing.assert_almost_equal(pl_out, pt_out, 5)
 
     # the fist run initialize dataset (download & filter)
-    tutils.assert_speed_parity_absolute(pl_times[1:], pt_times[1:],
-                                        nb_epochs=num_epochs, max_diff=max_diff)
+    tutils.assert_speed_parity_absolute(pl_times[1:], pt_times[1:], nb_epochs=num_epochs, max_diff=max_diff)
 
 
 def vanilla_loop(cls_model, num_runs=10, num_epochs=10):

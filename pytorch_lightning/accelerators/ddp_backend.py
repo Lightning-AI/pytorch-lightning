@@ -41,7 +41,6 @@ except ImportError:
 
 
 class DDPBackend(object):
-
     def __init__(self, trainer):
         self.trainer = trainer
         self.task_idx = None
@@ -154,9 +153,7 @@ class DDPBackend(object):
         # where to store ip_table
         model.trainer = self.trainer
         model.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
+            self.trainer.global_rank, self.trainer.world_size, self.trainer.is_slurm_managing_tasks
         )
 
         # call setup after the ddp process has connected

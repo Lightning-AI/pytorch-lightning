@@ -8,6 +8,7 @@ import pytorch_lightning
 class TrainerState(Enum):
     """ State which is set in the :class:`~pytorch_lightning.trainer.trainer.Trainer`
     to indicate what is currently or was executed. """
+
     INITIALIZING = 'INITIALIZING'
     RUNNING = 'RUNNING'
     FINISHED = 'FINISHED'

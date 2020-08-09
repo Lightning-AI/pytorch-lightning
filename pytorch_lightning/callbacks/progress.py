@@ -46,6 +46,7 @@ class ProgressBarBase(Callback):
         trainer = Trainer(callbacks=[bar])
 
     """
+
     def __init__(self):
 
         self._trainer = None
@@ -201,6 +202,7 @@ class ProgressBar(ProgressBarBase):
             :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
     """
+
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
         self._refresh_rate = refresh_rate
@@ -274,7 +276,7 @@ class ProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
-            file=sys.stdout
+            file=sys.stdout,
         )
         return bar
 
@@ -286,7 +288,7 @@ class ProgressBar(ProgressBarBase):
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
-            file=sys.stdout
+            file=sys.stdout,
         )
         return bar
 

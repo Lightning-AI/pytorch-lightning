@@ -35,7 +35,7 @@ class Generator(nn.Module):
             *block(256, 512),
             *block(512, 1024),
             nn.Linear(1024, int(np.prod(img_shape))),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, z):
@@ -112,11 +112,7 @@ class TestGAN(LightningModule):
             # adversarial loss is binary cross-entropy
             g_loss = self.adversarial_loss(self.discriminator(self.generated_imgs), valid)
             tqdm_dict = {'g_loss': g_loss}
-            output = OrderedDict({
-                'loss': g_loss,
-                'progress_bar': tqdm_dict,
-                'log': tqdm_dict
-            })
+            output = OrderedDict({'loss': g_loss, 'progress_bar': tqdm_dict, 'log': tqdm_dict})
             return output
 
         # train discriminator
@@ -138,11 +134,7 @@ class TestGAN(LightningModule):
             # discriminator loss is the average of these
             d_loss = (real_loss + fake_loss) / 2
             tqdm_dict = {'d_loss': d_loss}
-            output = OrderedDict({
-                'loss': d_loss,
-                'progress_bar': tqdm_dict,
-                'log': tqdm_dict
-            })
+            output = OrderedDict({'loss': d_loss, 'progress_bar': tqdm_dict, 'log': tqdm_dict})
             return output
 
     def configure_optimizers(self):
@@ -182,7 +174,6 @@ class ParityModuleRNN(LightningModule):
 
 
 class ParityModuleMNIST(LightningModule):
-
     def __init__(self):
         super().__init__()
         self.c_d1 = nn.Linear(in_features=28 * 28, out_features=128)
@@ -209,5 +200,4 @@ class ParityModuleMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(train=True, download=True,),
-                          batch_size=128)
+        return DataLoader(MNIST(train=True, download=True,), batch_size=128)

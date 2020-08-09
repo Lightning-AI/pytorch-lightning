@@ -60,8 +60,7 @@ def _make_trainable(module: Module) -> None:
     module.train()
 
 
-def _recursive_freeze(module: Module,
-                      train_bn: bool = True) -> None:
+def _recursive_freeze(module: Module, train_bn: bool = True) -> None:
     """Freezes the layers of a given module.
 
     Args:
@@ -82,9 +81,7 @@ def _recursive_freeze(module: Module,
             _recursive_freeze(module=child, train_bn=train_bn)
 
 
-def freeze(module: Module,
-           n: Optional[int] = None,
-           train_bn: bool = True) -> None:
+def freeze(module: Module, n: Optional[int] = None, train_bn: bool = True) -> None:
     """Freezes the layers up to index n (if n is not None).
 
     Args:
@@ -103,8 +100,7 @@ def freeze(module: Module,
         _make_trainable(module=child)
 
 
-def filter_params(module: Module,
-                  train_bn: bool = True) -> Generator:
+def filter_params(module: Module, train_bn: bool = True) -> Generator:
     """Yields the trainable parameters of a given module.
 
     Args:
@@ -126,17 +122,15 @@ def filter_params(module: Module,
                 yield param
 
 
-def _unfreeze_and_add_param_group(module: Module,
-                                  optimizer: Optimizer,
-                                  lr: Optional[float] = None,
-                                  train_bn: bool = True):
+def _unfreeze_and_add_param_group(
+    module: Module, optimizer: Optimizer, lr: Optional[float] = None, train_bn: bool = True
+):
     """Unfreezes a module and adds its parameters to an optimizer."""
     _make_trainable(module)
     params_lr = optimizer.param_groups[0]['lr'] if lr is None else float(lr)
     optimizer.add_param_group(
-        {'params': filter_params(module=module, train_bn=train_bn),
-         'lr': params_lr / 10.,
-         })
+        {'params': filter_params(module=module, train_bn=train_bn), 'lr': params_lr / 10.0,}
+    )
 
 
 #  --- Pytorch-lightning module ---
@@ -149,15 +143,19 @@ class TransferLearningModel(pl.LightningModule):
         hparams: Model hyperparameters
         dl_path: Path where the data will be downloaded
     """
-    def __init__(self,
-                 dl_path: Union[str, Path],
-                 backbone: str = 'resnet50',
-                 train_bn: bool = True,
-                 milestones: tuple = (5, 10),
-                 batch_size: int = 8,
-                 lr: float = 1e-2,
-                 lr_scheduler_gamma: float = 1e-1,
-                 num_workers: int = 6, **kwargs) -> None:
+
+    def __init__(
+        self,
+        dl_path: Union[str, Path],
+        backbone: str = 'resnet50',
+        train_bn: bool = True,
+        milestones: tuple = (5, 10),
+        batch_size: int = 8,
+        lr: float = 1e-2,
+        lr_scheduler_gamma: float = 1e-1,
+        num_workers: int = 6,
+        **kwargs,
+    ) -> None:
         super().__init__()
         self.dl_path = dl_path
         self.backbone = backbone
@@ -183,9 +181,7 @@ class TransferLearningModel(pl.LightningModule):
         freeze(module=self.feature_extractor, train_bn=self.train_bn)
 
         # 2. Classifier:
-        _fc_layers = [torch.nn.Linear(2048, 256),
-                      torch.nn.Linear(256, 32),
-                      torch.nn.Linear(32, 1)]
+        _fc_layers = [torch.nn.Linear(2048, 256), torch.nn.Linear(256, 32), torch.nn.Linear(32, 1)]
         self.fc = torch.nn.Sequential(*_fc_layers)
 
         # 3. Loss:
@@ -212,27 +208,24 @@ class TransferLearningModel(pl.LightningModule):
         epoch = self.current_epoch
         if epoch < self.milestones[0] and mode:
             # feature extractor is frozen (except for BatchNorm layers)
-            freeze(module=self.feature_extractor,
-                   train_bn=self.train_bn)
+            freeze(module=self.feature_extractor, train_bn=self.train_bn)
 
         elif self.milestones[0] <= epoch < self.milestones[1] and mode:
             # Unfreeze last two layers of the feature extractor
-            freeze(module=self.feature_extractor,
-                   n=-2,
-                   train_bn=self.train_bn)
+            freeze(module=self.feature_extractor, n=-2, train_bn=self.train_bn)
 
     def on_epoch_start(self):
         """Use `on_epoch_start` to unfreeze layers progressively."""
         optimizer = self.trainer.optimizers[0]
         if self.current_epoch == self.milestones[0]:
-            _unfreeze_and_add_param_group(module=self.feature_extractor[-2:],
-                                          optimizer=optimizer,
-                                          train_bn=self.train_bn)
+            _unfreeze_and_add_param_group(
+                module=self.feature_extractor[-2:], optimizer=optimizer, train_bn=self.train_bn
+            )
 
         elif self.current_epoch == self.milestones[1]:
-            _unfreeze_and_add_param_group(module=self.feature_extractor[:-2],
-                                          optimizer=optimizer,
-                                          train_bn=self.train_bn)
+            _unfreeze_and_add_param_group(
+                module=self.feature_extractor[:-2], optimizer=optimizer, train_bn=self.train_bn
+            )
 
     def training_step(self, batch, batch_idx):
 
@@ -248,24 +241,19 @@ class TransferLearningModel(pl.LightningModule):
 
         # 3. Outputs:
         tqdm_dict = {'train_loss': train_loss}
-        output = OrderedDict({'loss': train_loss,
-                              'num_correct': num_correct,
-                              'log': tqdm_dict,
-                              'progress_bar': tqdm_dict})
+        output = OrderedDict(
+            {'loss': train_loss, 'num_correct': num_correct, 'log': tqdm_dict, 'progress_bar': tqdm_dict}
+        )
 
         return output
 
     def training_epoch_end(self, outputs):
         """Compute and log training loss and accuracy at the epoch level."""
 
-        train_loss_mean = torch.stack([output['loss']
-                                       for output in outputs]).mean()
-        train_acc_mean = torch.stack([output['num_correct']
-                                      for output in outputs]).sum().float()
-        train_acc_mean /= (len(outputs) * self.batch_size)
-        return {'log': {'train_loss': train_loss_mean,
-                        'train_acc': train_acc_mean,
-                        'step': self.current_epoch}}
+        train_loss_mean = torch.stack([output['loss'] for output in outputs]).mean()
+        train_acc_mean = torch.stack([output['num_correct'] for output in outputs]).sum().float()
+        train_acc_mean /= len(outputs) * self.batch_size
+        return {'log': {'train_loss': train_loss_mean, 'train_acc': train_acc_mean, 'step': self.current_epoch}}
 
     def validation_step(self, batch, batch_idx):
 
@@ -279,59 +267,44 @@ class TransferLearningModel(pl.LightningModule):
         val_loss = self.loss(y_logits, y_true)
         num_correct = torch.eq(y_bin.view(-1), y_true.view(-1)).sum()
 
-        return {'val_loss': val_loss,
-                'num_correct': num_correct}
+        return {'val_loss': val_loss, 'num_correct': num_correct}
 
     def validation_epoch_end(self, outputs):
         """Compute and log validation loss and accuracy at the epoch level."""
 
-        val_loss_mean = torch.stack([output['val_loss']
-                                     for output in outputs]).mean()
-        val_acc_mean = torch.stack([output['num_correct']
-                                    for output in outputs]).sum().float()
-        val_acc_mean /= (len(outputs) * self.batch_size)
-        return {'log': {'val_loss': val_loss_mean,
-                        'val_acc': val_acc_mean,
-                        'step': self.current_epoch}}
+        val_loss_mean = torch.stack([output['val_loss'] for output in outputs]).mean()
+        val_acc_mean = torch.stack([output['num_correct'] for output in outputs]).sum().float()
+        val_acc_mean /= len(outputs) * self.batch_size
+        return {'log': {'val_loss': val_loss_mean, 'val_acc': val_acc_mean, 'step': self.current_epoch}}
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(filter(lambda p: p.requires_grad,
-                                      self.parameters()),
-                               lr=self.lr)
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), lr=self.lr)
 
-        scheduler = MultiStepLR(optimizer,
-                                milestones=self.milestones,
-                                gamma=self.lr_scheduler_gamma)
+        scheduler = MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_scheduler_gamma)
 
         return [optimizer], [scheduler]
 
     def prepare_data(self):
         """Download images and prepare images datasets."""
-        download_and_extract_archive(url=DATA_URL,
-                                     download_root=self.dl_path,
-                                     remove_finished=True)
+        download_and_extract_archive(url=DATA_URL, download_root=self.dl_path, remove_finished=True)
 
     def setup(self, stage: str):
         data_path = Path(self.dl_path).joinpath('cats_and_dogs_filtered')
 
         # 2. Load the data + preprocessing & data augmentation
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-        train_dataset = ImageFolder(root=data_path.joinpath('train'),
-                                    transform=transforms.Compose([
-                                        transforms.Resize((224, 224)),
-                                        transforms.RandomHorizontalFlip(),
-                                        transforms.ToTensor(),
-                                        normalize,
-                                    ]))
+        train_dataset = ImageFolder(
+            root=data_path.joinpath('train'),
+            transform=transforms.Compose(
+                [transforms.Resize((224, 224)), transforms.RandomHorizontalFlip(), transforms.ToTensor(), normalize,]
+            ),
+        )
 
-        valid_dataset = ImageFolder(root=data_path.joinpath('validation'),
-                                    transform=transforms.Compose([
-                                        transforms.Resize((224, 224)),
-                                        transforms.ToTensor(),
-                                        normalize,
-                                    ]))
+        valid_dataset = ImageFolder(
+            root=data_path.joinpath('validation'),
+            transform=transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize,]),
+        )
 
         self.train_dataset = train_dataset
         self.valid_dataset = valid_dataset
@@ -340,10 +313,9 @@ class TransferLearningModel(pl.LightningModule):
         """Train/validation loaders."""
 
         _dataset = self.train_dataset if train else self.valid_dataset
-        loader = DataLoader(dataset=_dataset,
-                            batch_size=self.batch_size,
-                            num_workers=self.num_workers,
-                            shuffle=True if train else False)
+        loader = DataLoader(
+            dataset=_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True if train else False
+        )
 
         return loader
 
@@ -358,57 +330,43 @@ class TransferLearningModel(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser])
-        parser.add_argument('--backbone',
-                            default='resnet50',
-                            type=str,
-                            metavar='BK',
-                            help='Name (as in ``torchvision.models``) of the feature extractor')
-        parser.add_argument('--epochs',
-                            default=15,
-                            type=int,
-                            metavar='N',
-                            help='total number of epochs',
-                            dest='nb_epochs')
-        parser.add_argument('--batch-size',
-                            default=8,
-                            type=int,
-                            metavar='B',
-                            help='batch size',
-                            dest='batch_size')
-        parser.add_argument('--gpus',
-                            type=int,
-                            default=1,
-                            help='number of gpus to use')
-        parser.add_argument('--lr',
-                            '--learning-rate',
-                            default=1e-2,
-                            type=float,
-                            metavar='LR',
-                            help='initial learning rate',
-                            dest='lr')
-        parser.add_argument('--lr-scheduler-gamma',
-                            default=1e-1,
-                            type=float,
-                            metavar='LRG',
-                            help='Factor by which the learning rate is reduced at each milestone',
-                            dest='lr_scheduler_gamma')
-        parser.add_argument('--num-workers',
-                            default=6,
-                            type=int,
-                            metavar='W',
-                            help='number of CPU workers',
-                            dest='num_workers')
-        parser.add_argument('--train-bn',
-                            default=True,
-                            type=bool,
-                            metavar='TB',
-                            help='Whether the BatchNorm layers should be trainable',
-                            dest='train_bn')
-        parser.add_argument('--milestones',
-                            default=[5, 10],
-                            type=list,
-                            metavar='M',
-                            help='List of two epochs milestones')
+        parser.add_argument(
+            '--backbone',
+            default='resnet50',
+            type=str,
+            metavar='BK',
+            help='Name (as in ``torchvision.models``) of the feature extractor',
+        )
+        parser.add_argument(
+            '--epochs', default=15, type=int, metavar='N', help='total number of epochs', dest='nb_epochs'
+        )
+        parser.add_argument('--batch-size', default=8, type=int, metavar='B', help='batch size', dest='batch_size')
+        parser.add_argument('--gpus', type=int, default=1, help='number of gpus to use')
+        parser.add_argument(
+            '--lr', '--learning-rate', default=1e-2, type=float, metavar='LR', help='initial learning rate', dest='lr'
+        )
+        parser.add_argument(
+            '--lr-scheduler-gamma',
+            default=1e-1,
+            type=float,
+            metavar='LRG',
+            help='Factor by which the learning rate is reduced at each milestone',
+            dest='lr_scheduler_gamma',
+        )
+        parser.add_argument(
+            '--num-workers', default=6, type=int, metavar='W', help='number of CPU workers', dest='num_workers'
+        )
+        parser.add_argument(
+            '--train-bn',
+            default=True,
+            type=bool,
+            metavar='TB',
+            help='Whether the BatchNorm layers should be trainable',
+            dest='train_bn',
+        )
+        parser.add_argument(
+            '--milestones', default=[5, 10], type=list, metavar='M', help='List of two epochs milestones'
+        )
         return parser
 
 
@@ -433,19 +391,22 @@ def main(args: argparse.Namespace) -> None:
             num_sanity_val_steps=0,
             gpus=args.gpus,
             min_epochs=args.nb_epochs,
-            max_epochs=args.nb_epochs)
+            max_epochs=args.nb_epochs,
+        )
 
         trainer.fit(model)
 
 
 def get_args() -> argparse.Namespace:
     parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument('--root-data-path',
-                               metavar='DIR',
-                               type=str,
-                               default=Path.cwd().as_posix(),
-                               help='Root directory where to download the data',
-                               dest='root_data_path')
+    parent_parser.add_argument(
+        '--root-data-path',
+        metavar='DIR',
+        type=str,
+        default=Path.cwd().as_posix(),
+        help='Root directory where to download the data',
+        dest='root_data_path',
+    )
     parser = TransferLearningModel.add_model_specific_args(parent_parser)
     return parser.parse_args()
 

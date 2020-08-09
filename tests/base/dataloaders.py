@@ -2,7 +2,6 @@
 
 
 class CustomInfDataloader:
-
     def __init__(self, dataloader):
         self.dataloader = dataloader
         self.iter = iter(dataloader)
@@ -25,7 +24,6 @@ class CustomInfDataloader:
 
 
 class CustomNotImplementedErrorDataloader(CustomInfDataloader):
-
     def __len__(self):
         """raise NotImplementedError"""
         raise NotImplementedError

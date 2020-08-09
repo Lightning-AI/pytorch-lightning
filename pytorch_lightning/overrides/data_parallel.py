@@ -51,9 +51,11 @@ class LightningDataParallel(DataParallel):
 
         for t in chain(self.module.parameters(), self.module.buffers()):
             if t.device != self.src_device_obj:
-                raise RuntimeError("module must have its parameters and buffers "
-                                   "on device {} (device_ids[0]) but found one of "
-                                   "them on device: {}".format(self.src_device_obj, t.device))
+                raise RuntimeError(
+                    "module must have its parameters and buffers "
+                    "on device {} (device_ids[0]) but found one of "
+                    "them on device: {}".format(self.src_device_obj, t.device)
+                )
 
         inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
         if len(self.device_ids) == 1:
@@ -65,7 +67,7 @@ class LightningDataParallel(DataParallel):
 
             return self.module.validation_step(*inputs[0], **kwargs[0])
 
-        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        replicas = self.replicate(self.module, self.device_ids[: len(inputs)])
         outputs = self.parallel_apply(replicas, inputs, kwargs)
 
         if isinstance(outputs[0], Result):
@@ -100,6 +102,7 @@ class LightningDataParallel(DataParallel):
         r"""
         Override the gather method to support python scalars as well.
         """
+
         def gather_map(outputs):
             elem = outputs[0]
             elem_type = type(elem)
@@ -113,8 +116,7 @@ class LightningDataParallel(DataParallel):
             if isinstance(elem, Mapping):
                 if not all((len(elem) == len(d) for d in outputs)):
                     raise ValueError('All dicts must have the same number of keys')
-                return elem_type(((k, gather_map([d[k] for d in outputs]))
-                                  for k in elem))
+                return elem_type(((k, gather_map([d[k] for d in outputs])) for k in elem))
 
             if isinstance(elem, Iterable) and not isinstance(elem, str):
                 return elem_type(map(gather_map, zip(*outputs)))
@@ -130,7 +132,7 @@ class LightningDataParallel(DataParallel):
         return res
 
     def parallel_apply(self, replicas, inputs, kwargs):
-        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+        return parallel_apply(replicas, inputs, kwargs, self.device_ids[: len(replicas)])
 
 
 class LightningDistributedDataParallel(DistributedDataParallel):
@@ -139,7 +141,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
     """
 
     def parallel_apply(self, replicas, inputs, kwargs):
-        return parallel_apply(replicas, inputs, kwargs, self.device_ids[:len(replicas)])
+        return parallel_apply(replicas, inputs, kwargs, self.device_ids[: len(replicas)])
 
     def forward(self, *inputs, **kwargs):  # pragma: no-cover
         self._sync_params()
@@ -159,7 +161,7 @@ class LightningDistributedDataParallel(DistributedDataParallel):
                 else:
                     output = self.module.validation_step(*inputs[0], **kwargs[0])
             else:
-                outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
+                outputs = self.parallel_apply(self._module_copies[: len(inputs)], inputs, kwargs)
                 output = self.gather(outputs, self.output_device)
         else:
             # output = self.module(*inputs, **kwargs)
@@ -255,10 +257,10 @@ def parallel_apply(modules, inputs, kwargs_tup=None, devices=None):  # pragma: n
         m.testing = root_m.testing
 
     if len(modules) > 1:
-        threads = [threading.Thread(target=_worker,
-                                    args=(i, module, input, kwargs, device))
-                   for i, (module, input, kwargs, device) in
-                   enumerate(zip(modules, inputs, kwargs_tup, devices))]
+        threads = [
+            threading.Thread(target=_worker, args=(i, module, input, kwargs, device))
+            for i, (module, input, kwargs, device) in enumerate(zip(modules, inputs, kwargs_tup, devices))
+        ]
 
         for thread in threads:
             thread.start()

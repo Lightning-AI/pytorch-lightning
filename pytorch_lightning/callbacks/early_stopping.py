@@ -60,8 +60,15 @@ class EarlyStopping(Callback):
         'max': torch.gt,
     }
 
-    def __init__(self, monitor: str = 'val_loss', min_delta: float = 0.0, patience: int = 3,
-                 verbose: bool = False, mode: str = 'auto', strict: bool = True):
+    def __init__(
+        self,
+        monitor: str = 'val_loss',
+        min_delta: float = 0.0,
+        patience: int = 3,
+        verbose: bool = False,
+        mode: str = 'auto',
+        strict: bool = True,
+    ):
         super().__init__()
         self.monitor = monitor
         self.patience = patience
@@ -99,10 +106,12 @@ class EarlyStopping(Callback):
              True if specified metric is available
         """
         monitor_val = logs.get(self.monitor)
-        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Either add `{self.monitor}` to the return of '
-                     f' validation_epoch end or modify your EarlyStopping callback to use any of the '
-                     f'following: `{"`, `".join(list(logs.keys()))}`')
+        error_msg = (
+            f'Early stopping conditioned on metric `{self.monitor}`'
+            f' which is not available. Either add `{self.monitor}` to the return of '
+            f' validation_epoch end or modify your EarlyStopping callback to use any of the '
+            f'following: `{"`, `".join(list(logs.keys()))}`'
+        )
 
         if monitor_val is None:
             if self.strict:
@@ -123,7 +132,7 @@ class EarlyStopping(Callback):
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
             'best_score': self.best_score,
-            'patience': self.patience
+            'patience': self.patience,
         }
 
     def load_state_dict(self, state_dict):
@@ -210,6 +219,9 @@ class EarlyStopping(Callback):
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:
-            rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
-                           ' but will start from "0" in v0.8.0.', DeprecationWarning)
+            rank_zero_warn(
+                'Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
+                ' but will start from "0" in v0.8.0.',
+                DeprecationWarning,
+            )
             log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping triggered.')

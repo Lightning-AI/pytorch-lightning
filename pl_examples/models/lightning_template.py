@@ -35,30 +35,28 @@ class LightningTemplateModel(LightningModule):
         >>> model = LightningTemplateModel(**params)
     """
 
-    def __init__(self,
-                 in_features: int = 28 * 28,
-                 hidden_dim: int = 1000,
-                 out_features: int = 10,
-                 drop_prob: float = 0.2,
-                 learning_rate: float = 0.001 * 8,
-                 batch_size: int = 2,
-                 data_root: str = './datasets',
-                 num_workers: int = 4,
-                 **kwargs
-                 ):
+    def __init__(
+        self,
+        in_features: int = 28 * 28,
+        hidden_dim: int = 1000,
+        out_features: int = 10,
+        drop_prob: float = 0.2,
+        learning_rate: float = 0.001 * 8,
+        batch_size: int = 2,
+        data_root: str = './datasets',
+        num_workers: int = 4,
+        **kwargs,
+    ):
         # init superclass
         super().__init__()
         # save all variables in __init__ signature to self.hparams
         self.save_hyperparameters()
 
-        self.c_d1 = nn.Linear(in_features=self.hparams.in_features,
-                              out_features=self.hparams.hidden_dim)
+        self.c_d1 = nn.Linear(in_features=self.hparams.in_features, out_features=self.hparams.hidden_dim)
         self.c_d1_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
         self.c_d1_drop = nn.Dropout(self.hparams.drop_prob)
 
-        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim,
-
-                              out_features=self.hparams.out_features)
+        self.c_d2 = nn.Linear(in_features=self.hparams.hidden_dim, out_features=self.hparams.out_features)
 
         self.example_input_array = torch.zeros(2, 1, 28, 28)
 

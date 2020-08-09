@@ -11,6 +11,7 @@ import torch.nn as nn
 try:
     import wandb
     from wandb.wandb_run import Run
+
     _WANDB_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     wandb = None
@@ -56,22 +57,26 @@ class WandbLogger(LightningLoggerBase):
 
     """
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 save_dir: Optional[str] = None,
-                 offline: bool = False,
-                 id: Optional[str] = None,
-                 anonymous: bool = False,
-                 version: Optional[str] = None,
-                 project: Optional[str] = None,
-                 tags: Optional[List[str]] = None,
-                 log_model: bool = False,
-                 experiment=None,
-                 entity=None,
-                 group: Optional[str] = None):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        offline: bool = False,
+        id: Optional[str] = None,
+        anonymous: bool = False,
+        version: Optional[str] = None,
+        project: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        log_model: bool = False,
+        experiment=None,
+        entity=None,
+        group: Optional[str] = None,
+    ):
         if not _WANDB_AVAILABLE:
-            raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
-                              ' install it with `pip install wandb`.')
+            raise ImportError(
+                'You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
+                ' install it with `pip install wandb`.'
+            )
         super().__init__()
         self._name = name
         self._save_dir = save_dir
@@ -111,9 +116,17 @@ class WandbLogger(LightningLoggerBase):
             if self._offline:
                 os.environ['WANDB_MODE'] = 'dryrun'
             self._experiment = wandb.init(
-                name=self._name, dir=self._save_dir, project=self._project, anonymous=self._anonymous,
-                reinit=True, id=self._id, resume='allow', tags=self._tags, entity=self._entity,
-                group=self._group)
+                name=self._name,
+                dir=self._save_dir,
+                project=self._project,
+                anonymous=self._anonymous,
+                reinit=True,
+                id=self._id,
+                resume='allow',
+                tags=self._tags,
+                entity=self._entity,
+                group=self._group,
+            )
             # save checkpoints in wandb dir to upload on W&B servers
             if self._log_model:
                 self._save_dir = self._experiment.dir

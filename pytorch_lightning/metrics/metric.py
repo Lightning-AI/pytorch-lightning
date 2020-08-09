@@ -4,8 +4,7 @@ from typing import Any, Optional
 import torch
 import torch.distributed
 
-from pytorch_lightning.metrics.converters import (
-    tensor_metric, numpy_metric, tensor_collection_metric)
+from pytorch_lightning.metrics.converters import tensor_metric, numpy_metric, tensor_collection_metric
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
@@ -47,9 +46,7 @@ class TensorMetric(Metric):
     Already handles DDP sync and input/output conversions.
     """
 
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -60,15 +57,13 @@ class TensorMetric(Metric):
                 Defaults to sum.
         """
         super().__init__(name)
-        self._orig_call = tensor_metric(group=reduce_group,
-                                        reduce_op=reduce_op)(super().__call__)
+        self._orig_call = tensor_metric(group=reduce_group, reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
             return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
 
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor, _to_device_dtype)
 
 
 class TensorCollectionMetric(Metric):
@@ -88,9 +83,7 @@ class TensorCollectionMetric(Metric):
 
     """
 
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -101,15 +94,13 @@ class TensorCollectionMetric(Metric):
                 Defaults to sum.
         """
         super().__init__(name)
-        self._orig_call = tensor_collection_metric(group=reduce_group,
-                                                   reduce_op=reduce_op)(super().__call__)
+        self._orig_call = tensor_collection_metric(group=reduce_group, reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
             return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
 
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor, _to_device_dtype)
 
 
 class NumpyMetric(Metric):
@@ -120,9 +111,7 @@ class NumpyMetric(Metric):
     Already handles DDP sync and input/output conversions.
     """
 
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -133,12 +122,10 @@ class NumpyMetric(Metric):
                 Defaults to sum.
         """
         super().__init__(name)
-        self._orig_call = numpy_metric(group=reduce_group,
-                                       reduce_op=reduce_op)(super().__call__)
+        self._orig_call = numpy_metric(group=reduce_group, reduce_op=reduce_op)(super().__call__)
 
     def __call__(self, *args, **kwargs) -> torch.Tensor:
         def _to_device_dtype(x: torch.Tensor) -> torch.Tensor:
             return x.to(device=self.device, dtype=self.dtype, non_blocking=True)
 
-        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor,
-                                   _to_device_dtype)
+        return apply_to_collection(self._orig_call(*args, **kwargs), torch.Tensor, _to_device_dtype)

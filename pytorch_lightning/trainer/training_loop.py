@@ -370,9 +370,11 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_horovod or self.on_tpu) \
-                        and hasattr(self.train_dataloader, 'sampler') \
-                        and hasattr(self.train_dataloader.sampler, 'set_epoch'):
+                if (
+                    (self.use_ddp or self.use_horovod or self.on_tpu)
+                    and hasattr(self.train_dataloader, 'sampler')
+                    and hasattr(self.train_dataloader.sampler, 'set_epoch')
+                ):
                     self.train_dataloader.sampler.set_epoch(epoch)
 
                 # update training progress in trainer and model
@@ -383,9 +385,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
                 # stores accumulated grad fractions per batch
-                self.batch_loss_value = TensorRunningAccum(
-                    window_length=self.accumulate_grad_batches
-                )
+                self.batch_loss_value = TensorRunningAccum(window_length=self.accumulate_grad_batches)
 
                 # -----------------
                 # RUN TNG EPOCH
@@ -404,13 +404,15 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if (met_min_epochs and met_min_steps):
+                    if met_min_epochs and met_min_steps:
                         self.run_training_teardown()
                         return
                     else:
-                        log.info('Trainer was signaled to stop but required minimum epochs'
-                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                                 ' not been met. Training will continue...')
+                        log.info(
+                            'Trainer was signaled to stop but required minimum epochs'
+                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                            ' not been met. Training will continue...'
+                        )
 
             self.run_training_teardown()
 
@@ -475,7 +477,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
-                enumerate(_with_is_last(train_dataloader)), "get_train_batch"
+            enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
@@ -492,9 +494,7 @@ class TrainerTrainLoopMixin(ABC):
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
             epoch_end_outputs = self.process_train_step_outputs(
-                batch_output.training_step_output_for_epoch_end,
-                early_stopping_accumulator,
-                checkpoint_accumulator
+                batch_output.training_step_output_for_epoch_end, early_stopping_accumulator, checkpoint_accumulator
             )
 
             # track the outputs to reduce at the end of the epoch
@@ -764,7 +764,7 @@ class TrainerTrainLoopMixin(ABC):
         can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
         can_check_val = self.enable_validation and can_check_epoch
         should_check_val = is_val_check_batch or self.should_stop
-        is_last_batch_for_infinite_dataset = (is_last_batch and self.val_check_batch == float('inf'))
+        is_last_batch_for_infinite_dataset = is_last_batch and self.val_check_batch == float('inf')
         should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
 
         return should_check_val
@@ -831,13 +831,7 @@ class TrainerTrainLoopMixin(ABC):
                 # -------------------
                 # calculate loss (train step + train step end)
                 # -------------------
-                opt_closure_result = self.optimizer_closure(
-                    split_batch,
-                    batch_idx,
-                    opt_idx,
-                    optimizer,
-                    self.hiddens
-                )
+                opt_closure_result = self.optimizer_closure(split_batch, batch_idx, opt_idx, optimizer, self.hiddens)
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
                 # ------------------------------
@@ -919,7 +913,7 @@ class TrainerTrainLoopMixin(ABC):
             signal=0,
             grad_norm_dic=grad_norm_dic,
             batch_log_metrics=batch_log_metrics,
-            training_step_output_for_epoch_end=batch_outputs
+            training_step_output_for_epoch_end=batch_outputs,
         )
         return result
 
@@ -932,8 +926,7 @@ class TrainerTrainLoopMixin(ABC):
         if batch_idx % self.row_log_interval == 0:
             if float(self.track_grad_norm) > 0:
                 model = self.get_model()
-                grad_norm_dic = model.grad_norm(
-                    self.track_grad_norm)
+                grad_norm_dic = model.grad_norm(self.track_grad_norm)
 
         # ------------------
         # CLIP GRADS
@@ -956,17 +949,12 @@ class TrainerTrainLoopMixin(ABC):
 
         with self.profiler.profile('optimizer_step'):
             lambda_closure = lambda: self.optimizer_closure(
-                split_batch,
-                batch_idx,
-                opt_idx,
-                optimizer,
-                self.hiddens,
+                split_batch, batch_idx, opt_idx, optimizer, self.hiddens,
             ).loss
 
             # apply TPU optimizer
             if self.use_tpu and XLA_AVAILABLE:
-                model.optimizer_step(self.current_epoch, batch_idx,
-                                     optimizer, opt_idx, lambda_closure, on_tpu=True)
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure, on_tpu=True)
 
             # for LBFGS do something a bit different
             elif isinstance(optimizer, torch.optim.LBFGS):
@@ -975,15 +963,18 @@ class TrainerTrainLoopMixin(ABC):
                 if self.amp_type == AMPType.NATIVE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
-                        ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
-                                     using_lbfgs=True)
+                        ' To request, please file a Github issue in PyTorch and tag @mcarilli'
+                    )
+                model.optimizer_step(
+                    self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure, using_lbfgs=True
+                )
 
             # when using 16-bit
             else:
                 native_amp = self.amp_type == AMPType.NATIVE
-                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
-                                     using_native_amp=native_amp)
+                model.optimizer_step(
+                    self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure, using_native_amp=native_amp
+                )
 
             # in native 16-bit we need to update scaler after optimizer step
             if self.amp_type == AMPType.NATIVE and not self.use_tpu:
@@ -1005,11 +996,9 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_forward'):
             if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
-                    training_step_output = self.training_forward(split_batch, batch_idx,
-                                                                 opt_idx, hiddens)
+                    training_step_output = self.training_forward(split_batch, batch_idx, opt_idx, hiddens)
             else:
-                training_step_output = self.training_forward(split_batch, batch_idx, opt_idx,
-                                                             hiddens)
+                training_step_output = self.training_forward(split_batch, batch_idx, opt_idx, hiddens)
 
             # ----------------------------
             # PROCESS THE RESULT
@@ -1020,8 +1009,9 @@ class TrainerTrainLoopMixin(ABC):
 
             # don't allow EvalResult in the training_step
             if isinstance(training_step_output, EvalResult):
-                raise MisconfigurationException('training_step cannot return EvalResult, '
-                                                'use a dict or TrainResult instead')
+                raise MisconfigurationException(
+                    'training_step cannot return EvalResult, ' 'use a dict or TrainResult instead'
+                )
 
             # handle regular dicts
             if not is_result_obj:
@@ -1228,8 +1218,10 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)
 
-            rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                           ' Use training_epoch_end instead', DeprecationWarning)
+            rank_zero_warn(
+                '`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.' ' Use training_epoch_end instead',
+                DeprecationWarning,
+            )
 
         return output
 
