@@ -18,30 +18,29 @@ Currently supports training on CPU, GPU (dp, ddp, ddp2, horovod) and TPU.
 
 """
 
-import random
-import time
-from abc import ABC, abstractmethod
 from contextlib import ExitStack
-from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
-
+import os
+from abc import ABC, abstractmethod
+import time
+import random
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
+from typing import Union, Callable, Any, List, Optional, Tuple, MutableSequence
 
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning import _logger as log
 from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities import move_data_to_device, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla.core.xla_model as xm
@@ -80,11 +79,7 @@ class TrainerDPMixin(ABC):
     on_colab_kaggle: str
     save_spawn_weights: Callable
     logger: ...
-
-    @property
-    @abstractmethod
-    def use_amp(self) -> bool:
-        """Warning: this is just empty shell for code implemented in other class."""
+    amp_type: AMPType
 
     @abstractmethod
     def call_setup_hook(self, *args):
@@ -128,7 +123,7 @@ class TrainerDPMixin(ABC):
             m.use_dp = self.use_dp
             m.use_ddp2 = self.use_ddp2
             m.use_ddp = self.use_ddp
-            m.use_amp = self.use_amp
+            m.use_amp = self.amp_type is not None
             m.testing = self.testing
             m.use_single_gpu = self.use_single_gpu
             m.use_tpu = self.use_tpu
@@ -210,7 +205,7 @@ class TrainerDPMixin(ABC):
             if isinstance(scheduler, _LRScheduler):
                 scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
 
-        if self.use_amp:
+        if self.amp_type:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)

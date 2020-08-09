@@ -47,11 +47,11 @@ class Callback(abc.ABC):
         pass
 
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        """Called when the validation batch begins."""
+        """Called when the train batch begins."""
         pass
 
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        """Called when the validation batch ends."""
+        """Called when the train batch ends."""
         pass
 
     def on_train_epoch_start(self, trainer, pl_module):

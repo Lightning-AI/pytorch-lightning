@@ -5,7 +5,7 @@ import torch
 from torch.nn import functional as F
 
 from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.utilities import rank_zero_warn, FLOAT16_EPSILON
+from pytorch_lightning.utilities import FLOAT16_EPSILON, rank_zero_warn
 
 
 def to_onehot(
@@ -149,7 +149,7 @@ def stat_scores_multiple_classes(
         num_classes: number of classes if known
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
-        reduction: method for reducing result values (default: none)
+        reduction: a method to reduce metric score over labels (default: none)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -174,6 +174,7 @@ def stat_scores_multiple_classes(
         tensor([1., 0., 0., 0.])
         >>> sups
         tensor([1., 0., 1., 1.])
+
     """
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
@@ -181,9 +182,9 @@ def stat_scores_multiple_classes(
     num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
     if pred.dtype != torch.bool:
-        pred.clamp_max_(max=num_classes)
+        pred = pred.clamp_max(max=num_classes)
     if target.dtype != torch.bool:
-        target.clamp_max_(max=num_classes)
+        target = target.clamp_max(max=num_classes)
 
     possible_reductions = ('none', 'sum', 'elementwise_mean')
     if reduction not in possible_reductions:
@@ -247,7 +248,7 @@ def accuracy(
         pred: predicted labels
         target: ground truth labels
         num_classes: number of classes
-        reduction: a method for reducing accuracies over labels (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -327,7 +328,7 @@ def precision_recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing precision-recall values (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -376,7 +377,7 @@ def precision(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing precision values (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -411,7 +412,7 @@ def recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing recall values (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -452,7 +453,7 @@ def fbeta_score(
             beta = 0: only precision
             beta -> inf: only recall
         num_classes: number of classes
-        reduction: method for reducing F-score (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -497,7 +498,7 @@ def f1_score(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing F1-score (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -920,7 +921,7 @@ def dice_score(
         bg: whether to also compute dice for the background
         nan_score: score to return, if a NaN occurs during computation
         no_fg_score: score to return, if no foreground pixel was found in target
-        reduction: a method for reducing accuracies over labels (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -977,7 +978,7 @@ def iou(
             within input parameters. If true, will remove background class. If
             false, return IoU over all classes
             Assumes that background is '0' class in input tensor
-        reduction: a method for reducing IoU over labels (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean

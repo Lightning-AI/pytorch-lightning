@@ -102,8 +102,9 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs
 
 try:
     import torch_xla
@@ -117,9 +118,7 @@ else:
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import horovod.torch as hvd
@@ -157,8 +156,9 @@ class TrainerIOMixin(ABC):
     on_tpu: bool
     num_training_batches: int
     accumulate_grad_batches: int
-    use_amp: bool
     scaler: ...
+    use_tpu: bool
+    amp_type: AMPType
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel, LightningDataParallel))
@@ -323,9 +323,9 @@ class TrainerIOMixin(ABC):
             model.cuda(self.root_gpu)
 
         # restore amp scaling
-        if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
+        if self.amp_type == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.use_amp and not NATIVE_AMP_AVALAIBLE and 'amp_scaling_state' in checkpoint:
+        elif self.amp_type == AMPType.APEX and 'amp_scaling_state' in checkpoint:
             amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         # load training state (affects trainer only)
@@ -355,8 +355,8 @@ class TrainerIOMixin(ABC):
             if checkpoint_callbacks:
                 # we add the official checkpoint callback to the end of the list
                 # extra user provided callbacks will not be persisted yet
-                checkpoint['checkpoint_callback_best_model_score'] = self.checkpoint_callback.best_model_score
-                checkpoint['checkpoint_callback_best_model_path'] = self.checkpoint_callback.best_model_path
+                checkpoint[ModelCheckpoint.CHECKPOINT_STATE_BEST_SCORE] = self.checkpoint_callback.best_model_score
+                checkpoint[ModelCheckpoint.CHECKPOINT_STATE_BEST_PATH] = self.checkpoint_callback.best_model_path
 
             if early_stopping_callbacks and checkpoint_callbacks:
                 # we add the official early stopping callback to the end of the list
@@ -376,9 +376,9 @@ class TrainerIOMixin(ABC):
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
-            if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
-            elif self.use_amp and not NATIVE_AMP_AVALAIBLE:
+            elif self.amp_type == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
         # add the module_arguments and state_dict from the model
@@ -408,9 +408,9 @@ class TrainerIOMixin(ABC):
         did_restore = False
 
         # look for hpc weights
-        folderpath = self.weights_save_path
-        if os.path.exists(folderpath):
-            files = os.listdir(folderpath)
+        folderpath = str(self.weights_save_path)
+        if gfile.exists(folderpath):
+            files = gfile.listdir(folderpath)
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
             # if hpc weights exist restore model
@@ -437,8 +437,8 @@ class TrainerIOMixin(ABC):
         early_stopping_callbacks = [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
         if checkpoint_callbacks:
-            if 'checkpoint_callback_best_model_score' in checkpoint:
-                checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best_model_score']
+            if ModelCheckpoint.CHECKPOINT_STATE_BEST_SCORE in checkpoint:
+                checkpoint_callbacks[-1].best_model_score = checkpoint[ModelCheckpoint.CHECKPOINT_STATE_BEST_SCORE]
             else:
                 # Old naming until version 0.7.6
                 rank_zero_warn(
@@ -446,7 +446,7 @@ class TrainerIOMixin(ABC):
                     'this will not be supported in the future.'
                 )
                 checkpoint_callbacks[-1].best_model_score = checkpoint['checkpoint_callback_best']
-            checkpoint_callbacks[-1].best_model_path = checkpoint['checkpoint_callback_best_model_path']
+            checkpoint_callbacks[-1].best_model_path = checkpoint[ModelCheckpoint.CHECKPOINT_STATE_BEST_PATH]
 
         if early_stopping_callbacks:
             state = checkpoint['early_stop_callback_state_dict']
@@ -489,15 +489,17 @@ class TrainerIOMixin(ABC):
     # ----------------------------------
     def hpc_save(self, folderpath: str, logger):
         # make sure the checkpoint folder exists
-        os.makedirs(folderpath, exist_ok=True)
+        folderpath = str(folderpath)  # because the tests pass a path object
+        if not gfile.exists(folderpath):
+            makedirs(folderpath)
 
         # save logger to make sure we get all the metrics
         logger.save()
 
         ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
 
-        if not os.path.exists(folderpath):
-            os.makedirs(folderpath, exist_ok=True)
+        if not gfile.exists(folderpath):
+            makedirs(folderpath)
         filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
@@ -533,9 +535,9 @@ class TrainerIOMixin(ABC):
         model.load_state_dict(checkpoint['state_dict'])
 
         # restore amp scaling
-        if self.use_amp and NATIVE_AMP_AVALAIBLE and 'native_amp_scaling_state' in checkpoint:
+        if self.amp_type == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.use_amp and not NATIVE_AMP_AVALAIBLE and 'amp_scaling_state' in checkpoint:
+        elif self.amp_type == AMPType.APEX and 'amp_scaling_state' in checkpoint:
             amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         if self.root_gpu is not None:
@@ -550,7 +552,7 @@ class TrainerIOMixin(ABC):
         log.info(f'restored hpc model from: {filepath}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
-        files = os.listdir(path)
+        files = gfile.listdir(str(path))
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return 0

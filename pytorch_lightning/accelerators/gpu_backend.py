@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
-
 from pytorch_lightning.core import LightningModule
+from pytorch_lightning.utilities import AMPType
 
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 
 class GPUBackend(object):
+    amp_type: AMPType
 
     def __init__(self, trainer):
         self.trainer = trainer
@@ -43,9 +41,7 @@ class GPUBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        # TODO: remove with dropping NVIDIA AMP support
-        native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
-        if APEX_AVAILABLE and self.trainer.use_amp and not native_amp_available:
+        if self.trainer.amp_type == AMPType.APEX:
             model = self._setup_nvidia_apex(model)
         return model
 

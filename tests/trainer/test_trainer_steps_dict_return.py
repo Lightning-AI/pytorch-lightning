@@ -35,6 +35,9 @@ def test_training_step_dict(tmpdir):
     assert out.batch_log_metrics['log_acc2'] == 7.0
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+
+    train_step_out = train_step_out[0][0]
     pbar_metrics = train_step_out['progress_bar']
     assert 'log' in train_step_out
     assert 'progress_bar' in train_step_out
@@ -118,7 +121,10 @@ def test_full_training_loop_dict(tmpdir):
     assert out.batch_log_metrics['log_acc1'] == 14.0
     assert out.batch_log_metrics['log_acc2'] == 9.0
 
+    # get the output of the first optimizer
     train_step_end_out = out.training_step_output_for_epoch_end
+    assert len(train_step_end_out) == 1
+    train_step_end_out = train_step_end_out[0][0]
     pbar_metrics = train_step_end_out['progress_bar']
     assert pbar_metrics['pbar_acc1'] == 19.0
     assert pbar_metrics['pbar_acc2'] == 21.0
@@ -158,7 +164,11 @@ def test_train_step_epoch_end(tmpdir):
     assert out.batch_log_metrics['log_acc1'] == 12.0
     assert out.batch_log_metrics['log_acc2'] == 7.0
 
+    # outputs are for 1 optimizer and no tbptt
     train_step_end_out = out.training_step_output_for_epoch_end
+    assert len(train_step_end_out) == 1
+    train_step_end_out = train_step_end_out[0][0]
+
     pbar_metrics = train_step_end_out['progress_bar']
     assert pbar_metrics['pbar_acc1'] == 17.0
     assert pbar_metrics['pbar_acc2'] == 19.0
