@@ -72,8 +72,8 @@ def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def reset_seed():
-    seed_everything(3141)
+def reset_seed(seed=0):
+    seed_everything(seed)
 
 
 def set_random_master_port():
