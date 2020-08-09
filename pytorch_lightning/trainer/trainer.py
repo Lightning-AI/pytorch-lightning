@@ -1030,6 +1030,7 @@ class Trainer(
         # -------------------
         # route training mode
         # -------------------
+        # todo: simplify this splitting
         # DDP2 (cluster only)
         if self.use_ddp2:
             self.accelerator_backend = DDP2Backend(self)
@@ -1056,7 +1057,8 @@ class Trainer(
         # ddp
         elif self.distributed_backend == 'ddp':
             self.accelerator_backend = DDPBackend(self)
-            results = self.accelerator_backend.spawn_ddp_children(model)
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.spawn_ddp_children()
 
         # dp
         elif self.use_dp:
@@ -1071,18 +1073,18 @@ class Trainer(
         elif self.use_single_gpu:
             self.accelerator_backend = GPUBackend(self)
             model = self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
 
         elif self.use_tpu:
             self.accelerator_backend = TPUBackend(self)
-            self.accelerator_backend.setup()
-            self.accelerator_backend.train(model)
-            self.accelerator_backend.teardown(model)
+            self.accelerator_backend.setup(model)
+            self.accelerator_backend.train()
+            self.accelerator_backend.teardown()
 
         else:
             self.accelerator_backend = CPUBackend(self)
             self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
 
         # on fit end callback
         self.on_fit_end()
