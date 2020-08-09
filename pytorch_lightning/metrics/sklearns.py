@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union, Sequence, List
+from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
