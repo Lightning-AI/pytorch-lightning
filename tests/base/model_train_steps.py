@@ -78,6 +78,8 @@ class TrainingStepVariations(ABC):
         result = result[0]
         result.log('train_epoch_end_metric', 1, on_epoch=True)
         self.training_epoch_end_called = True
+
+        import pdb; pdb.set_trace()
         return result
 
     def eval_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
