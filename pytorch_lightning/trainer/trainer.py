@@ -220,6 +220,7 @@ class Trainer(
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             gradient_clip_val: 0 means don't clip.
 
@@ -305,7 +306,9 @@ class Trainer(
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                     for checkpoints only. Use this if for whatever reason you need the checkpoints
                     stored in a different place than the logs written in `default_root_dir`.
+                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
+
 
             amp_level: The optimization level to use (O1, O2, etc...).
                 .. warning:: .. deprecated:: v0.7.4
