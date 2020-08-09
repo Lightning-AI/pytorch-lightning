@@ -43,7 +43,7 @@ def cloud_open(path: pathlike, mode: str, newline: str = None):
     if platform.system() == "Windows":
         log.debug(
             "gfile does not handle newlines correctly on windows so remote files are not"
-            "supported falling back to normal local file open."
+            " supported falling back to normal local file open."
         )
         return open(path, mode, newline=newline)
     if not modern_gfile():
