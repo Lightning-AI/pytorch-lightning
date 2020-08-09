@@ -347,7 +347,7 @@ class Result(Dict):
         if 'hiddens' in self:
             del self['hiddens']
 
-    def map_keys(self, map_dict: dict):
+    def rename_keys(self, map_dict: dict):
         """
         Maps key values to the target values. Useful when renaming variables in mass.
 

@@ -537,7 +537,7 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
 def test_result_map(tmpdir):
     result = TrainResult()
     result.log_dict({'x1': torch.tensor(1), 'x2': torch.tensor(2)})
-    result.map_keys({'x1': 'y1', 'x2': 'y2'})
+    result.rename_keys({'x1': 'y1', 'x2': 'y2'})
 
     assert 'x1' not in result
     assert 'x2' not in result
