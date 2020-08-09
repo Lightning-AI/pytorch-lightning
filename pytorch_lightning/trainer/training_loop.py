@@ -541,7 +541,7 @@ class TrainerTrainLoopMixin(ABC):
         self.sync_horovod()
 
         # process epoch outputs
-        self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator)
+        self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers)
 
         # checkpoint callback
         self.check_checkpoint_callback(should_check_val)
@@ -607,7 +607,7 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_train_epoch_end'):
                 model.on_train_epoch_end()
 
-    def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator):
+    def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
         # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
         # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
@@ -645,10 +645,8 @@ class TrainerTrainLoopMixin(ABC):
             if is_result_obj:
                 # with result object gather across time and training steps so each opt idx has a single result obj
                 epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
-            else:
-                # with 1 optimizer and no tbptt pass only a list of dicts from each training step
-                if len(epoch_output) == 1 and isinstance(epoch_output[0], list):
-                    epoch_output = epoch_output[0]
+            elif num_optimizers == 1:
+                epoch_output = epoch_output[0]
 
             # run training_epoch_end
             # a list with a result per optimizer index
@@ -858,6 +856,9 @@ class TrainerTrainLoopMixin(ABC):
 
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens
+
+                if using_results_obj:
+                    opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
 
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:

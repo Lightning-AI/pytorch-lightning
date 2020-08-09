@@ -284,7 +284,6 @@ class Result(Dict):
         for name, value in result.items():
             is_reserved = name in {'checkpoint_on', 'early_stop_on', 'minimize'}
             if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
-                max_length = max([len(v) for k, v in result.items() if isinstance(v, list)])
 
                 if is_reserved:
                     padding_key = default_padding_idx
@@ -343,6 +342,10 @@ class Result(Dict):
     @property
     def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
+
+    def drop_hiddens(self):
+        if 'hiddens' in self:
+            del self['hiddens']
 
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:

@@ -10,6 +10,7 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.core.step_result import TrainResult
 from tests.base import EvalModelTemplate
 
 
@@ -321,6 +322,160 @@ def test_tbptt_cpu_model(tmpdir):
                 'loss': loss_val,
                 'hiddens': self.test_hidden,
             }
+
+        def training_epoch_end(self, training_step_outputs):
+            training_step_outputs = training_step_outputs[0]
+            assert len(training_step_outputs) == (sequence_size / truncated_bptt_steps)
+            loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
+            return {'log': {'train_loss': loss}}
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(
+                dataset=MockSeq2SeqDataset(),
+                batch_size=batch_size,
+                shuffle=False,
+                sampler=None,
+            )
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    hparams.update(
+        batch_size=batch_size,
+        in_features=truncated_bptt_steps,
+        hidden_dim=truncated_bptt_steps,
+        out_features=truncated_bptt_steps
+    )
+
+    model = BpttTestModel(**hparams)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        truncated_bptt_steps=truncated_bptt_steps,
+        limit_val_batches=0,
+        weights_summary=None,
+        early_stop_callback=False,
+    )
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+
+def test_tbptt_cpu_model_result(tmpdir):
+    """Test truncated back propagation through time works."""
+    truncated_bptt_steps = 2
+    sequence_size = 30
+    batch_size = 30
+
+    x_seq = torch.rand(batch_size, sequence_size, 1)
+    y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
+
+    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+        def __getitem__(self, i):
+            return x_seq, y_seq_list
+
+        def __len__(self):
+            return 1
+
+    class BpttTestModel(EvalModelTemplate):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.test_hidden = None
+
+        def training_step(self, batch, batch_idx, hiddens):
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
+            self.test_hidden = torch.rand(1)
+
+            x_tensor, y_list = batch
+            assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
+
+            y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
+            assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
+
+            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(
+                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+
+            result = TrainResult(loss_val, hiddens=self.test_hidden)
+            return result
+
+        def training_epoch_end(self, training_step_outputs):
+            result = training_step_outputs[0]
+            assert isinstance(result, TrainResult)
+            assert result.minimize.size(1) == (sequence_size / truncated_bptt_steps)
+
+            result.minimize = result.minimize.mean()
+            return result
+
+        def train_dataloader(self):
+            return torch.utils.data.DataLoader(
+                dataset=MockSeq2SeqDataset(),
+                batch_size=batch_size,
+                shuffle=False,
+                sampler=None,
+            )
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    hparams.update(
+        batch_size=batch_size,
+        in_features=truncated_bptt_steps,
+        hidden_dim=truncated_bptt_steps,
+        out_features=truncated_bptt_steps
+    )
+
+    model = BpttTestModel(**hparams)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        truncated_bptt_steps=truncated_bptt_steps,
+        limit_val_batches=0,
+        weights_summary=None,
+        early_stop_callback=False,
+    )
+    result = trainer.fit(model)
+
+    assert result == 1, 'training failed to complete'
+
+
+def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
+    """Test truncated back propagation through time works."""
+    truncated_bptt_steps = 2
+    sequence_size = 30
+    batch_size = 30
+
+    x_seq = torch.rand(batch_size, sequence_size, 1)
+    y_seq_list = torch.rand(batch_size, sequence_size, 1).tolist()
+
+    class MockSeq2SeqDataset(torch.utils.data.Dataset):
+        def __getitem__(self, i):
+            return x_seq, y_seq_list
+
+        def __len__(self):
+            return 1
+
+    class BpttTestModel(EvalModelTemplate):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.test_hidden = None
+
+        def training_step(self, batch, batch_idx, hiddens):
+            assert hiddens == self.test_hidden, "Hidden state not persistent between tbptt steps"
+            self.test_hidden = torch.rand(1)
+
+            x_tensor, y_list = batch
+            assert x_tensor.shape[1] == truncated_bptt_steps, "tbptt split Tensor failed"
+
+            y_tensor = torch.tensor(y_list, dtype=x_tensor.dtype)
+            assert y_tensor.shape[1] == truncated_bptt_steps, "tbptt split list failed"
+
+            pred = self(x_tensor.view(batch_size, truncated_bptt_steps))
+            loss_val = torch.nn.functional.mse_loss(
+                pred, y_tensor.view(batch_size, truncated_bptt_steps))
+
+            result = TrainResult(loss_val, hiddens=self.test_hidden)
+            return result
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(
