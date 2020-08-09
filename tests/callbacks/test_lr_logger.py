@@ -80,7 +80,7 @@ def test_lr_logger_multi_lrs(tmpdir, logging_interval):
     if logging_interval == 'epoch':
         expected_number_logged = trainer.max_epochs
 
-    assert all(len(lr) == expected_number_logged for k, lr in lr_logger.lrs.items()), \
+    assert all(len(lr) == expected_number_logged for lr in lr_logger.lrs.values()), \
         'Length of logged learning rates do not match the expected number'
 
 

@@ -45,14 +45,14 @@ class LearningRateLogger(Callback):
             return [optimizer], [lr_scheduler]
     """
     def __init__(self, logging_interval: Optional[str] = None):
-        self.lrs = None
-        self.lr_sch_names = []
-        self.logging_interval = logging_interval
-
-        if self.logging_interval not in [None, 'step', 'epoch']:
+        if logging_interval not in (None, 'step', 'epoch'):
             raise MisconfigurationException(
                 'logging_interval should be `step` or `epoch` or `None`.'
             )
+
+        self.logging_interval = logging_interval
+        self.lrs = None
+        self.lr_sch_names = []
 
     def on_train_start(self, trainer, pl_module):
         """ Called before training, determines unique names for all lr
@@ -78,23 +78,19 @@ class LearningRateLogger(Callback):
         self.lrs = {name: [] for name in names}
 
     def on_batch_start(self, trainer, pl_module):
-        if self.logging_interval is None:
-            latest_stat = self._extract_lr(trainer, 'step')
-            if trainer.logger and latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
-        elif self.logging_interval == 'step':
-            latest_stat = self._extract_lr(trainer, 'any')
-            if trainer.logger and latest_stat:
+        if self.logging_interval != 'epoch':
+            interval = 'step' if self.logging_interval is None else 'any'
+            latest_stat = self._extract_lr(trainer, interval)
+
+            if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_epoch_start(self, trainer, pl_module):
-        if self.logging_interval is None:
-            latest_stat = self._extract_lr(trainer, 'epoch')
-            if trainer.logger and latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
-        elif self.logging_interval == 'epoch':
-            latest_stat = self._extract_lr(trainer, 'any')
-            if trainer.logger and latest_stat:
+        if self.logging_interval != 'step':
+            interval = 'epoch' if self.logging_interval is None else 'any'
+            latest_stat = self._extract_lr(trainer, interval)
+
+            if trainer.logger is not None and latest_stat:
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
 
     def _extract_lr(self, trainer, interval):
