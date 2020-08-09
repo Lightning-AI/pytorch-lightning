@@ -20,6 +20,8 @@ pull_request_rules:
       - -conflict
       # was not closed yet
       - -closed
+      # filter-out GH draft PRs
+      - -draft
     actions:
       delete_head_branch: {}
       merge:
@@ -36,12 +38,16 @@ pull_request_rules:
   - name: warn on conflicts
     conditions:
       - conflict
+      # filter-out GH draft PRs
+      - -draft
     actions:
       comment:
         message: This pull request is now in conflict... :(
 
   - name: add core reviewer
     conditions:
+      # filter-out GH draft PRs
+      - -draft
       # number of review approvals
       - "#approved-reviews-by<3"
     actions:
