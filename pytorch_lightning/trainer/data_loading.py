@@ -46,7 +46,7 @@ def _has_iterable_dataset(dataloader: DataLoader):
         and isinstance(dataloader.dataset, IterableDataset)
 
 
-def _has_len(dataloader: DataLoader) -> bool:
+def has_len(dataloader: DataLoader) -> bool:
     """ Checks if a given Dataloader has __len__ method implemented i.e. if
     it is a finite dataloader or infinite dataloader. """
 
@@ -195,7 +195,7 @@ class TrainerDataLoadingMixin(ABC):
         # automatically add samplers
         self.train_dataloader = self.auto_add_sampler(self.train_dataloader, train=True)
 
-        self.num_training_batches = len(self.train_dataloader) if _has_len(self.train_dataloader) else float('inf')
+        self.num_training_batches = len(self.train_dataloader) if has_len(self.train_dataloader) else float('inf')
         self._worker_check(self.train_dataloader, 'train dataloader')
 
         if isinstance(self.limit_train_batches, int) or self.limit_train_batches == 0.0:
@@ -219,7 +219,7 @@ class TrainerDataLoadingMixin(ABC):
                     f'to the number of the training batches ({self.num_training_batches}). '
                     'If you want to disable validation set `limit_val_batches` to 0.0 instead.')
         else:
-            if not _has_len(self.train_dataloader):
+            if not has_len(self.train_dataloader):
                 if self.val_check_interval == 1.0:
                     self.val_check_batch = float('inf')
                 else:
@@ -282,7 +282,7 @@ class TrainerDataLoadingMixin(ABC):
         # datasets could be none, 1 or 2+
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
-                num_batches = len(dataloader) if _has_len(dataloader) else float('inf')
+                num_batches = len(dataloader) if has_len(dataloader) else float('inf')
                 self._worker_check(dataloader, f'{mode} dataloader {i}')
 
                 # percent or num_steps

@@ -11,7 +11,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, Callback
-from pytorch_lightning.trainer.data_loading import _has_iterable_dataset, _has_len
+from pytorch_lightning.trainer.data_loading import _has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -637,7 +637,7 @@ def test_warning_with_iterable_dataset_and_len(tmpdir):
             return len(original_dataset)
 
     dataloader = DataLoader(IterableWithLen(), batch_size=16)
-    assert _has_len(dataloader)
+    assert has_len(dataloader)
     assert _has_iterable_dataset(dataloader)
     trainer = Trainer(
         default_root_dir=tmpdir,

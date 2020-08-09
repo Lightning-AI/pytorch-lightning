@@ -193,3 +193,50 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
 
     trainer.test(model)
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
+
+
+@pytest.mark.parametrize('num_sanity_val_steps,num_val_dataloaders_batches', [
+    (-1, [10]),
+    (0, [10]),
+    (2, [10]),
+    (10, [2]),
+    (10, [2, 3]),
+    (10, [20, 3]),
+    (10, [20, 30]),
+    (10, [float('inf')]),
+    (10, [1, float('inf')]),
+])
+def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps,
+                                         num_val_dataloaders_batches):
+    """Test that the sanity_check progress finishes with the correct total steps processed."""
+
+    tmp_model = EvalModelTemplate(batch_size=1)
+    batch_size = len(tmp_model.dataloader(train=False, num_samples=1).dataset)
+    model = EvalModelTemplate(batch_size=batch_size)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        progress_bar_refresh_rate=1,
+        limit_val_batches=(len(model.dataloader(train=False)) *
+                           len(num_val_dataloaders_batches)),
+        max_epochs=0,
+        num_sanity_val_steps=num_sanity_val_steps,
+    )
+
+    val_dataloaders = []
+    for num_samples in num_val_dataloaders_batches:
+        if num_samples == float('inf'):
+            val_dataloaders.append(model.val_dataloader__infinite())
+        else:
+            val_dataloaders.append(
+                model.dataloader(train=False, num_samples=num_samples))
+    trainer.fit(model, val_dataloaders=val_dataloaders)
+
+    # check val progress bar total is the number of steps sanity check runs
+    max_sanity_val_steps = (float('inf') if num_sanity_val_steps == -1 else
+                            num_sanity_val_steps)
+    num_sanity_check_run_steps = sum(
+        min(max_sanity_val_steps, num_val_dataloader_batches)
+        for num_val_dataloader_batches in num_val_dataloaders_batches)
+    val_progress_bar = trainer.progress_bar_callback.val_progress_bar
+    assert getattr(val_progress_bar, 'total', 0) == num_sanity_check_run_steps
