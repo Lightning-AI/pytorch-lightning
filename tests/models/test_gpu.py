@@ -11,6 +11,7 @@ from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
+import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
@@ -112,13 +113,17 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     command = ['python', file, '--variation', variation] + cli_args
 
     # debugging WHY SUBPROCESS PYTHON CANNOT IMPORT PL
+
     p = subprocess.Popen(['pip', 'freeze'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.communicate()
     std, err = p.communicate()
     std = std.decode('utf-8')
     print(std)
 
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ.copy())
+    env = os.environ.copy()
+    env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env['PYTHONPATH']
+
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     p.communicate()
     # assert p.returncode == 0
     std, err = p.communicate(timeout=60)
