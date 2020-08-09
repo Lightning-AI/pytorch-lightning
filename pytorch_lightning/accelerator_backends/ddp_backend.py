@@ -47,7 +47,7 @@ class DDPBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.task_idx = None
-        self.distributed_connection = DistributedConnection()
+        self.distributed_connection = DistributedConnection(trainer)
 
     def slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])

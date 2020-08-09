@@ -98,11 +98,13 @@ class Accumulator(object):
 
 class DistributedConnection:
 
-    def __init__(self):
+    def __init__(self, trainer):
         super().__init__()
         # self.world_size = world_size
         # self.is_slurm_managing_tasks = is_slurm_managing_tasks
+        self.trainer = trainer
         self._is_initialized = False
+        self.trainer.set_random_port()
 
     def init_connection(self, trainer, model):
         if self._is_initialized:
@@ -110,6 +112,7 @@ class DistributedConnection:
             return
 
         trainer.set_random_port()
+
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
         self._is_initialized = True
 
