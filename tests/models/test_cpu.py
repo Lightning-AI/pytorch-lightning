@@ -400,7 +400,6 @@ def test_tbptt_cpu_model_result(tmpdir):
             return result
 
         def training_epoch_end(self, training_step_outputs):
-            result = training_step_outputs[0]
             assert isinstance(result, TrainResult)
             assert result.minimize.size(1) == (sequence_size / truncated_bptt_steps)
 
