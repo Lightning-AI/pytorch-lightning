@@ -110,6 +110,14 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     cli_args += ['--default_root_dir', str(tmpdir)]
     # command = [sys.executable, file, '--variation', variation] + cli_args
     command = ['python', file, '--variation', variation] + cli_args
+
+    # debugging WHY SUBPROCESS PYTHON CANNOT IMPORT PL
+    p = subprocess.Popen(['pip', 'freeze'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p.communicate()
+    std, err = p.communicate()
+    std = std.decode('utf-8')
+    print(std)
+
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ.copy())
     p.communicate()
     # assert p.returncode == 0
