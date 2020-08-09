@@ -20,20 +20,11 @@ def main(args):
     # ------------------------
     # 2 INIT TRAINER
     # ------------------------
-    trainer = Trainer.from_argparse_args(
-        args,
-        distributed_backend='ddp',
-        limit_train_batches=10,
-        limit_val_batches=10,
-        max_epochs=1,
-    )
+    trainer = Trainer.from_argparse_args(args)
 
     # ------------------------
     # 3 START TRAINING
     # ------------------------
-    trainer.test(model)
-    trainer.fit(model)
-    trainer.test(model)
     trainer.fit(model)
 
 
