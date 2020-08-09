@@ -174,6 +174,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -253,6 +254,7 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
+    state: TrainerState
     amp_type: AMPType
     on_tpu: bool
 
@@ -368,11 +370,9 @@ class TrainerTrainLoopMixin(ABC):
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
                 # set seed for distributed sampler (enables shuffling for each epoch)
-                if (
-                    (self.use_ddp or self.use_horovod or self.on_tpu)
-                    and hasattr(self.train_dataloader, 'sampler')
-                    and hasattr(self.train_dataloader.sampler, 'set_epoch')
-                ):
+                if (self.use_ddp or self.use_horovod or self.on_tpu) \
+                        and hasattr(self.train_dataloader, 'sampler') \
+                        and hasattr(self.train_dataloader.sampler, 'set_epoch'):
                     self.train_dataloader.sampler.set_epoch(epoch)
 
                 # update training progress in trainer and model
@@ -383,7 +383,9 @@ class TrainerTrainLoopMixin(ABC):
                 self.accumulation_scheduler.on_epoch_start(self, self.get_model())
 
                 # stores accumulated grad fractions per batch
-                self.batch_loss_value = TensorRunningAccum(window_length=self.accumulate_grad_batches)
+                self.batch_loss_value = TensorRunningAccum(
+                    window_length=self.accumulate_grad_batches
+                )
 
                 # -----------------
                 # RUN TNG EPOCH
@@ -402,15 +404,13 @@ class TrainerTrainLoopMixin(ABC):
                 met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
 
                 if self.should_stop:
-                    if met_min_epochs and met_min_steps:
+                    if (met_min_epochs and met_min_steps):
                         self.run_training_teardown()
                         return
                     else:
-                        log.info(
-                            'Trainer was signaled to stop but required minimum epochs'
-                            f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                            ' not been met. Training will continue...'
-                        )
+                        log.info('Trainer was signaled to stop but required minimum epochs'
+                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                                 ' not been met. Training will continue...')
 
             self.run_training_teardown()
 
@@ -420,6 +420,7 @@ class TrainerTrainLoopMixin(ABC):
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
+                self.state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
 
                 self.run_training_teardown()
@@ -464,7 +465,8 @@ class TrainerTrainLoopMixin(ABC):
         train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
 
         # bookkeeping
-        epoch_output = []
+        num_optimizers = len(self._get_optimizers_iterable())
+        epoch_output = [[] for _ in range(num_optimizers)]
         should_check_val = False
 
         # structured result accumulators for callbacks
@@ -473,14 +475,13 @@ class TrainerTrainLoopMixin(ABC):
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
-            enumerate(_with_is_last(train_dataloader)), "get_train_batch"
+                enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
                 break
 
             self.batch_idx = batch_idx
-            self.is_last_batch = is_last_batch
             model.global_step = self.global_step
 
             # ------------------------------------
@@ -490,16 +491,18 @@ class TrainerTrainLoopMixin(ABC):
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
-            step_out = batch_output.training_step_output_for_epoch_end
-            should_auto_reduce_train_result = isinstance(step_out, Result) and step_out.should_reduce_on_epoch_end
-            if isinstance(step_out, dict) and 'early_stop_on' in step_out:
-                early_stopping_accumulator.accumulate(step_out['early_stop_on'])
+            epoch_end_outputs = self.process_train_step_outputs(
+                batch_output.training_step_output_for_epoch_end,
+                early_stopping_accumulator,
+                checkpoint_accumulator
+            )
 
-            if isinstance(step_out, dict) and 'checkpoint_on' in step_out:
-                checkpoint_accumulator.accumulate(step_out['checkpoint_on'])
-
-            if self.is_overridden('training_epoch_end', model=self.get_model()) or should_auto_reduce_train_result:
-                epoch_output.append(batch_output.training_step_output_for_epoch_end)
+            # track the outputs to reduce at the end of the epoch
+            for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
+                # with 1 step (no tbptt) don't use a sequence at epoch end
+                if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
+                    opt_outputs = opt_outputs[0]
+                epoch_output[opt_idx].append(opt_outputs)
 
             # update LR schedulers
             self.update_train_loop_lr_schedulers()
@@ -541,13 +544,42 @@ class TrainerTrainLoopMixin(ABC):
         self.sync_horovod()
 
         # process epoch outputs
-        self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator)
+        self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers)
 
         # checkpoint callback
         self.check_checkpoint_callback(should_check_val)
 
         # epoch end hook
         self.run_on_epoch_end_hook(model)
+
+    def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
+        """
+        Figure out what needs to be tracked/logged at the end of the epoch
+        """
+
+        # the training step outputs a list per optimizer. The list contains the outputs at each time step
+        # when no TBPTT is used, then the list has 1 item per batch
+        # when TBPTT IS used, then the list has n items (1 per time step)
+        epoch_end_outputs = []
+        for optimizer_idx_outputs in all_train_step_outputs:
+            # extract one representative sample from each time step (1 if no tbptt) and 0th optimizer
+            sample_output = optimizer_idx_outputs[-1]
+
+            # pull out callback info if available (ie: Results object)
+            if isinstance(sample_output, dict) and 'early_stop_on' in sample_output:
+                early_stopping_accumulator.accumulate(sample_output['early_stop_on'])
+
+            if isinstance(sample_output, dict) and 'checkpoint_on' in sample_output:
+                checkpoint_accumulator.accumulate(sample_output['checkpoint_on'])
+
+            # decide if we need to reduce at the end of the epoch automatically
+            auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
+
+            # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
+            if self.is_overridden('training_epoch_end', model=self.get_model()) or auto_reduce_tng_result:
+                epoch_end_outputs.append(optimizer_idx_outputs)
+
+        return epoch_end_outputs
 
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
@@ -558,7 +590,8 @@ class TrainerTrainLoopMixin(ABC):
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
     def update_train_loop_lr_schedulers(self):
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or self.is_last_batch:
+        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0 or
+                self.num_training_batches == self.batch_idx + 1):
             # update lr
             self.update_learning_rates(interval='step')
 
@@ -578,9 +611,12 @@ class TrainerTrainLoopMixin(ABC):
             if self.is_function_implemented('on_train_epoch_end'):
                 model.on_train_epoch_end()
 
-    def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator):
+    def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
+        # epoch output is a list. Each item in that list has all the outputs per optimizer
+        # epoch_output[optimizer_idx][training_step_idx][tbptt_index]
+        # remember that not using truncated backprop is equivalent with truncated back prop of len(1)
+
         model = self.get_model()
-        is_result_obj = len(epoch_output) > 0 and isinstance(epoch_output[0], Result)
 
         epoch_log_metrics = {}
         epoch_callback_metrics = {}
@@ -595,17 +631,33 @@ class TrainerTrainLoopMixin(ABC):
         if early_stopping_accumulator.num_values > 0:
             epoch_callback_metrics['early_stop_on'] = early_stopping_accumulator.mean()
 
+        # ------------------------
+        # determine if using a result obj
+        # ------------------------
+        # [optimizer_idx][training_step_idx][tbptt_index]
+        opt_idx_outputs = epoch_output[0]
+
+        try:
+            sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
+            is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
+        except IndexError as e:
+            is_result_obj = False
+
         # --------------------------
         # EPOCH END STEP IF DEFINED
         # --------------------------
         if self.is_overridden('training_epoch_end', model=model):
             self.global_step += 1
 
-            # remove the protected keys so the user doesn't have to deal with them
             if is_result_obj:
-                epoch_output = epoch_output[0].__class__.gather(epoch_output)
+                # with result object gather across time and training steps so each opt idx has a single result obj
+                epoch_output = self.__gather_result_across_time_and_optimizers(epoch_output)
+
+            if num_optimizers == 1:
+                epoch_output = epoch_output[0]
 
             # run training_epoch_end
+            # a list with a result per optimizer index
             epoch_output = model.training_epoch_end(epoch_output)
 
             if isinstance(epoch_output, Result):
@@ -621,10 +673,7 @@ class TrainerTrainLoopMixin(ABC):
         # Structured Result (auto epoch end)
         # --------------------------
         elif is_result_obj:
-            epoch_output = epoch_output[0].__class__.reduce_on_epoch_end(epoch_output)
-            epoch_output.minimize = epoch_output.minimize.mean()
-            epoch_log_metrics = epoch_output.epoch_log_metrics
-            epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
+            epoch_log_metrics, epoch_progress_bar_metrics = self.__auto_reduce_results_on_epoch_end(epoch_output)
 
         # --------------------------
         # track results
@@ -640,13 +689,57 @@ class TrainerTrainLoopMixin(ABC):
         if len(epoch_progress_bar_metrics) > 0:
             self.add_progress_bar_metrics(epoch_progress_bar_metrics)
 
+    def __auto_reduce_results_on_epoch_end(self, epoch_output):
+        epoch_log_metrics = {}
+        epoch_progress_bar_metrics = {}
+        for opt_outputs in epoch_output:
+            # reduce across time first
+            time_reduced_outputs = []
+            for train_step_idx in range(len(opt_outputs)):
+                tbptt_outs = opt_outputs[train_step_idx]
+                tbptt_outs = tbptt_outs[0].__class__.reduce_across_time(tbptt_outs)
+                time_reduced_outputs.append(tbptt_outs)
+
+            # reduce across training steps
+            opt_outputs = time_reduced_outputs[0].__class__.reduce_on_epoch_end(time_reduced_outputs)
+            opt_outputs.minimize = opt_outputs.minimize.mean()
+            epoch_log_metrics.update(opt_outputs.epoch_log_metrics)
+            epoch_progress_bar_metrics.update(opt_outputs.epoch_pbar_metrics)
+
+        return epoch_log_metrics, epoch_progress_bar_metrics
+
+    def __gather_result_across_time_and_optimizers(self, epoch_output):
+        """
+        Gather results into a single padded tensor per metric where each tensor is gathered across
+        time and across time steps.
+
+        Returns:
+            a list where each element is a Result with the tensors gathered
+        """
+        gathered_epoch_outputs = []
+        for opt_outputs in epoch_output:
+            # gather across time first
+            time_gathered_outputs = []
+            for train_step_idx in range(len(opt_outputs)):
+                tbptt_outs = opt_outputs[train_step_idx]
+                tbptt_outs = tbptt_outs[0].__class__.gather(tbptt_outs)
+                time_gathered_outputs.append(tbptt_outs)
+
+            # gather across training steps
+            # each metric has dimensions (training_steps, seq_len) (seq_len=1 when no tbptt is used)
+            gathered_opt_output = time_gathered_outputs[0].__class__.padded_gather(time_gathered_outputs)
+            gathered_epoch_outputs.append(gathered_opt_output)
+
+        return gathered_epoch_outputs
+
     def sync_horovod(self):
         if self.use_horovod:
             hvd.join(hvd.local_rank() if self.on_gpu else -1)
 
     def increment_accumulated_grad_global_step(self):
         # progress global step according to grads progress
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or self.is_last_batch:
+        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0 or
+                self.num_training_batches == self.batch_idx + 1):
             self.global_step += 1
         self.total_batch_idx += 1
 
@@ -673,7 +766,7 @@ class TrainerTrainLoopMixin(ABC):
         can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
         can_check_val = self.enable_validation and can_check_epoch
         should_check_val = is_val_check_batch or self.should_stop
-        is_last_batch_for_infinite_dataset = is_last_batch and self.val_check_batch == float('inf')
+        is_last_batch_for_infinite_dataset = (is_last_batch and self.val_check_batch == float('inf'))
         should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
 
         return should_check_val
@@ -689,6 +782,9 @@ class TrainerTrainLoopMixin(ABC):
         batch_log_metrics = []
 
         using_results_obj = False
+
+        # track all outputs across time and num of optimizers
+        batch_outputs = [[] for i in range(len(self._get_optimizers_iterable()))]
 
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
@@ -742,7 +838,7 @@ class TrainerTrainLoopMixin(ABC):
                     batch_idx,
                     opt_idx,
                     optimizer,
-                    self.hiddens,
+                    self.hiddens
                 )
                 using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
 
@@ -770,6 +866,9 @@ class TrainerTrainLoopMixin(ABC):
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens
 
+                if using_results_obj:
+                    opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
+
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:
                     self.detect_nan_tensors(opt_closure_result.loss)
@@ -777,11 +876,15 @@ class TrainerTrainLoopMixin(ABC):
                 # track total loss for logging (avoid mem leaks)
                 self.batch_loss_value.append(opt_closure_result.loss)
 
+                # track all the outputs across all steps
+                batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+
                 # ------------------------------
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-                if (self.batch_idx + 1) % self.accumulate_grad_batches == 0 or self.is_last_batch:
+                if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0 or
+                        self.num_training_batches == self.batch_idx + 1):
 
                     # backward
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
@@ -819,7 +922,7 @@ class TrainerTrainLoopMixin(ABC):
             signal=0,
             grad_norm_dic=grad_norm_dic,
             batch_log_metrics=batch_log_metrics,
-            training_step_output_for_epoch_end=opt_closure_result.training_step_output_for_epoch_end,
+            training_step_output_for_epoch_end=batch_outputs
         )
         return result
 
@@ -832,7 +935,8 @@ class TrainerTrainLoopMixin(ABC):
         if batch_idx % self.row_log_interval == 0:
             if float(self.track_grad_norm) > 0:
                 model = self.get_model()
-                grad_norm_dic = model.grad_norm(self.track_grad_norm)
+                grad_norm_dic = model.grad_norm(
+                    self.track_grad_norm)
 
         # ------------------
         # CLIP GRADS
@@ -864,7 +968,8 @@ class TrainerTrainLoopMixin(ABC):
 
             # apply TPU optimizer
             if self.use_tpu and XLA_AVAILABLE:
-                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure, on_tpu=True)
+                model.optimizer_step(self.current_epoch, batch_idx,
+                                     optimizer, opt_idx, lambda_closure, on_tpu=True)
 
             # for LBFGS do something a bit different
             elif isinstance(optimizer, torch.optim.LBFGS):
@@ -873,11 +978,9 @@ class TrainerTrainLoopMixin(ABC):
                 if self.amp_type == AMPType.NATIVE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
-                        ' To request, please file a Github issue in PyTorch and tag @mcarilli'
-                    )
-                model.optimizer_step(
-                    self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure, using_lbfgs=True
-                )
+                        ' To request, please file a Github issue in PyTorch and tag @mcarilli')
+                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
+                                     using_lbfgs=True)
 
             # when using 16-bit
             else:
@@ -905,9 +1008,11 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_forward'):
             if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
-                    training_step_output = self.training_forward(split_batch, batch_idx, opt_idx, hiddens)
+                    training_step_output = self.training_forward(split_batch, batch_idx,
+                                                                 opt_idx, hiddens)
             else:
-                training_step_output = self.training_forward(split_batch, batch_idx, opt_idx, hiddens)
+                training_step_output = self.training_forward(split_batch, batch_idx, opt_idx,
+                                                             hiddens)
 
             # ----------------------------
             # PROCESS THE RESULT
@@ -918,9 +1023,8 @@ class TrainerTrainLoopMixin(ABC):
 
             # don't allow EvalResult in the training_step
             if isinstance(training_step_output, EvalResult):
-                raise MisconfigurationException(
-                    'training_step cannot return EvalResult, ' 'use a dict or TrainResult instead'
-                )
+                raise MisconfigurationException('training_step cannot return EvalResult, '
+                                                'use a dict or TrainResult instead')
 
             # handle regular dicts
             if not is_result_obj:
@@ -1127,10 +1231,8 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_end'):
                 output = model_ref.training_end(output)
 
-            rank_zero_warn(
-                '`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.' ' Use training_epoch_end instead',
-                DeprecationWarning,
-            )
+            rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
+                           ' Use training_epoch_end instead', DeprecationWarning)
 
         return output
 
