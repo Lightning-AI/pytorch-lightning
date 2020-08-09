@@ -1670,7 +1670,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         >>> class ManuallyArgsModel(LightningModule):
         ...     def __init__(self, arg1, arg2, arg3):
         ...         super().__init__()
-        ...         # manually assine arguments
+        ...         # manually assign arguments
         ...         self.save_hyperparameters('arg1', 'arg3')
         ...     def forward(self, *args, **kwargs):
         ...         ...
