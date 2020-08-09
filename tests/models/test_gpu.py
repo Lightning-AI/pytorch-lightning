@@ -110,35 +110,19 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     cli_args = cli_args.split(' ') if cli_args else []
     cli_args += ['--default_root_dir', str(tmpdir)]
     command = [sys.executable, str(file), '--variation', variation] + cli_args
-
-    # debugging WHY SUBPROCESS PYTHON CANNOT IMPORT PL
-
-    p = subprocess.Popen(['pip', 'freeze'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p.communicate()
-    std, err = p.communicate()
-    std = std.decode('utf-8')
-    print(std)
-
     env = os.environ.copy()
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
-    print('python path', env['PYTHONPATH'])
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     p.communicate()
-    # assert p.returncode == 0
     std, err = p.communicate(timeout=60)
     std = std.decode('utf-8').strip()
     err = err.decode('utf-8').strip()
-    # assert std and not err
+    assert std
     if p.returncode:
         print(std)
         print(err)
         print(command)
         pytest.fail(err)
-
-    # cli_args += ['--variation', variation]
-    # from tests.models.data.ddp.train_test_variations import main
-    # with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
-    #     main()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
