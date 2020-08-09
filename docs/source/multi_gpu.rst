@@ -67,7 +67,7 @@ register the tensor as a buffer in your modules's `__init__` method with :meth:`
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training in PyTorch. The
+In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training. The
 sampler makes sure each GPU sees the appropriate part of your data.
 
 .. testcode::
