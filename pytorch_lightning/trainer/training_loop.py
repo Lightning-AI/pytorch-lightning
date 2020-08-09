@@ -614,15 +614,6 @@ class TrainerTrainLoopMixin(ABC):
 
         model = self.get_model()
 
-        # make sure we have something to reduce
-        if len(epoch_output) > 0 and len(epoch_output[0]) == 0:
-            return
-
-        # [optimizer_idx][training_step_idx][tbptt_index]
-        opt_idx_outputs = epoch_output[0]
-        sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
-        is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
-
         epoch_log_metrics = {}
         epoch_callback_metrics = {}
         epoch_progress_bar_metrics = {}
@@ -635,6 +626,18 @@ class TrainerTrainLoopMixin(ABC):
 
         if early_stopping_accumulator.num_values > 0:
             epoch_callback_metrics['early_stop_on'] = early_stopping_accumulator.mean()
+
+        # ------------------------
+        # determine if using a result obj
+        # ------------------------
+        # [optimizer_idx][training_step_idx][tbptt_index]
+        opt_idx_outputs = epoch_output[0]
+
+        try:
+            sample_obj = opt_idx_outputs[0][0] if isinstance(opt_idx_outputs[0], list) else opt_idx_outputs[0]
+            is_result_obj = len(epoch_output) > 0 and isinstance(sample_obj, Result)
+        except IndexError as e:
+            is_result_obj = False
 
         # --------------------------
         # EPOCH END STEP IF DEFINED

@@ -186,6 +186,8 @@ class DeterministicModel(LightningModule):
             pass
         else:
             # only saw 4 batches
+            assert isinstance(result, list) and len(result) == 1
+            result = result[0]
             assert isinstance(result, TrainResult)
 
         result.step_step_epoch_log_and_pbar_acc1 = result.step_step_epoch_log_and_pbar_acc1.prod()
