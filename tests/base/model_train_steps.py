@@ -75,7 +75,7 @@ class TrainingStepVariations(ABC):
         """
         Full loop flow train step (result obj + dp)
         """
-        import pdb; pdb.set_trace()
+        result = result[0]
         result.log('train_epoch_end_metric', 1, on_epoch=True)
         self.training_epoch_end_called = True
         return result
