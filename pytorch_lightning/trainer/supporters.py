@@ -125,7 +125,8 @@ class DistributedConnection:
                 new_port = torch.empty(1).cuda(0)
                 print(new_port)
 
-            torch.distributed.broadcast(new_port, src=0)
+            torch.distributed.broadcast_multigpu([new_port], src=0, src_tensor=0)
+            #torch.distributed.broadcast(new_port, src=0)
             new_port = int(new_port.item())
             print('receiving new port on rank=', trainer.global_rank, 'port', new_port)
             torch.distributed.destroy_process_group()
