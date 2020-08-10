@@ -534,6 +534,12 @@ The MAIN teakeaway points are:
 
 - Lightning is for professional AI researchers/production teams.
 - Lightning is organized PyTorch. It is not an abstraction.
+- You STILL keep pure PyTorch.
+- You DON't lose any flexibility.
+- You can get rid of all of your boilerplate.
+- You make your code generalizable to any hardware.
+- Your code is now readable and easier to reproduce (ie: you help with the reproducibility crisis).
+- Your LightningModule is still just a pure PyTorch module.
 
 Lightning is for you if
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -608,13 +614,12 @@ would normally do.
 
 ---------------
 
-Summary
--------
-In short, by refactoring your PyTorch code:
+Masterclass
+-----------
+You can learn Lightning in-depth by watching our Masterclass.
 
-1.  You STILL keep pure PyTorch.
-2.  You DON't lose any flexibility.
-3.  You can get rid of all of your boilerplate.
-4.  You make your code generalizable to any hardware.
-5.  Your code is now readable and easier to reproduce (ie: you help with the reproducibility crisis).
-6.  Your LightningModule is still just a pure PyTorch module.
+.. image:: _images/general/PTL101_youtube_thumbnail.jpg
+    :width: 500
+    :align: center
+    :alt: Masterclass
+    :target: https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2
