@@ -241,7 +241,8 @@ class DistributedConnection:
     def reset_connection(self, trainer, model):
         if torch.distributed.is_initialized():
             print("DDP connection already initialized. Reinitializing on new port...")
-
+            
+            torch.distributed.barrier()
             new_port = torch.empty(1, dtype=torch.int, device='cuda')
 
             if trainer.global_rank == 0:
