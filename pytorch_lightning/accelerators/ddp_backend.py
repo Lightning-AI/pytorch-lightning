@@ -253,8 +253,8 @@ class DistributedConnection:
             torch.distributed.destroy_process_group()  # destroy connections on old port
             self._set_master_port(port=new_port)
 
-            torch.distributed.barrier()
-            #sleep(2)
+
+        sleep(2)
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
         def exit_handler():
