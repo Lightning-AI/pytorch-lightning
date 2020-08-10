@@ -242,13 +242,12 @@ class DistributedConnection:
             print(trainer.global_rank, "ddp connection already initialized, moving to new port")
 
             torch.distributed.barrier()
+            new_port = torch.empty(1, dtype=torch.int, device='cuda')
 
             if trainer.global_rank == 0:
                 new_port = find_open_network_port()
-                new_port = torch.tensor([new_port], dtype=torch.int, device='cuda')
-            else:
-                new_port = torch.empty(1, dtype=torch.int, device='cuda')
-
+                new_port[0] = new_port
+               
             torch.distributed.broadcast(new_port, src=0)
             new_port = int(new_port.item())
             torch.distributed.destroy_process_group()  # destroy connections on old port
