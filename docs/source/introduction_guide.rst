@@ -600,17 +600,20 @@ First, change the runtime to TPU (and reinstall lightning).
 
 .. figure:: /_images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
-    :width: 500
+    :width: 400
 
 .. figure:: /_images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
-    :width: 500
+    :width: 400
 
 |
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
+.. code-block:: shell
+
     !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
+
     !python pytorch-xla-env-setup.py --version nightly --apt-packages libomp5 libopenblas-dev
 
 In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU core will run a copy
