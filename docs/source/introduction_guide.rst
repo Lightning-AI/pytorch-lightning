@@ -441,7 +441,7 @@ Whenever you'd like to log, or sync values across GPUs use `TrainResult`.
         result = pl.TrainResult(loss)
         result.log('train_loss', loss)
 
-        # sync across GPUs
+        # sync across GPUs / TPUs, etc...
         result.log('train_loss', loss, sync_dist=True)
 
         # equivalent
