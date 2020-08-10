@@ -13,8 +13,6 @@
 # limitations under the License
 import atexit
 import os
-import signal
-
 import torch
 import torch.distributed
 import subprocess
@@ -242,34 +240,31 @@ class DistributedConnection:
 
     def reset_connection(self, trainer, model):
         if torch.distributed.is_initialized():
-            assert trainer.global_rank == 0
-            rank_zero_debug("DDP connection already initialized. Reinitializing on new port...")
+            print("DDP connection already initialized. Reinitializing on new port...")
 
-        else:
-            # assert trainer.global_rank == 0
-            # new_port = torch.empty(1, dtype=torch.int, device='cuda')
-            #
-            # if trainer.global_rank == 0:
-            #     port = find_open_network_port()
-            #     new_port[0] = port
-            #
-            # torch.distributed.broadcast(new_port, src=0)
-            # new_port = int(new_port.item())
-            # torch.distributed.destroy_process_group()  # destroy connections on old port
-            # self._set_master_port(port=new_port)
+            new_port = torch.empty(1, dtype=torch.int, device='cuda')
 
+            if trainer.global_rank == 0:
+                port = find_open_network_port()
+                new_port[0] = port
 
-        #sleep(2)
-            print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
-            model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+            torch.distributed.broadcast(new_port, src=0)
+            new_port = int(new_port.item())
+            print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
+            torch.distributed.destroy_process_group()  # destroy connections on old port
+            print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
+            print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
+            self._set_master_port(port=new_port)
+
+        print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
+        model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
         def exit_handler():
-            if torch.distributed.is_initialized() and trainer.global_rank > 0:
+            if torch.distributed.is_initialized():
+                print('destroying on ', trainer.global_rank)
                 torch.distributed.destroy_process_group()
 
         atexit.register(exit_handler)
-        signal.signal(signal.SIGINT, exit_handler)
-        signal.signal(signal.SIGTERM, exit_handler)
 
     def _get_master_port(self):
         return os.environ.get('MASTER_PORT')
