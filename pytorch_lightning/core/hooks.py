@@ -4,15 +4,13 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
 
+from pytorch_lightning.utilities import move_data_to_device, AMPType
 
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 
 class ModelHooks(Module):
@@ -77,7 +75,31 @@ class ModelHooks(Module):
         """
         # do something at the end of training
 
-    def on_train_batch_start(self, batch: Any) -> None:
+    def on_pretrain_routine_start(self) -> None:
+        """
+        Called at the beginning of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the start of the pretrain routine
+
+    def on_pretrain_routine_end(self) -> None:
+        """
+        Called at the end of the pretrain routine (between fit and train start).
+
+        - fit
+        - pretrain_routine start
+        - pretrain_routine end
+        - training_start
+
+        """
+        # do something at the end of the pretrain routine
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
 
@@ -85,12 +107,19 @@ class ModelHooks(Module):
 
         Args:
             batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
         """
         # do something when the batch starts
 
-    def on_train_batch_end(self) -> None:
+    def on_train_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop after the batch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
         """
         # do something when the batch end
 
@@ -187,7 +216,7 @@ class ModelHooks(Module):
             for optimizer in optimizers:
                 optimizer.step()
                 model.on_before_zero_grad(optimizer) # < ---- called here
-                optimizer.zero_grad
+                optimizer.zero_grad()
 
         Args:
             optimizer: The optimizer for which grads should be zeroed.
@@ -236,8 +265,8 @@ class ModelHooks(Module):
         """
         loss.backward()
 
-    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx):
-        if NATIVE_AMP_AVALAIBLE:
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx, amp_type: AMPType):
+        if amp_type == AMPType.NATIVE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)

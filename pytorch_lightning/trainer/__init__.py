@@ -308,10 +308,12 @@ Example::
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
-Default path for logs and weights when no logger
-or :class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.
-On certain clusters you might want to separate where logs and checkpoints
-are stored. If you don't then use this argument for convenience.
+Default path for logs and weights when no logger or
+:class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.  On
+certain clusters you might want to separate where logs and checkpoints are
+stored. If you don't then use this argument for convenience. Paths can be local
+paths or remote paths such as `s3://bucket/path` or 'hdfs://path/'. Credentials
+will need to be set up to use remote filepaths.
 
 Example::
 
@@ -414,14 +416,17 @@ Under the hood the pseudocode looks like this:
 gpus
 ^^^^
 
-- Number of GPUs to train on
-- or Which GPUs to train on
+- Number of GPUs to train on (int)
+- or which GPUs to train on (list)
 - can handle strings
 
 .. testcode::
 
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
+
+    # equivalent
+    trainer = Trainer(gpus=0)
 
 Example::
 
@@ -439,6 +444,9 @@ Example::
     # combine with num_nodes to train on multiple GPUs across nodes
     # uses 8 gpus in total
     trainer = Trainer(gpus=2, num_nodes=4)
+
+    # train only on GPUs 1 and 4 across nodes
+    trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
     - `Multi-GPU training guide <multi_gpu.rst>`_
@@ -818,7 +826,7 @@ replace_sampler_ddp
 ^^^^^^^^^^^^^^^^^^^
 Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
 for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
-it, you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
+it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
 .. testcode::
 
@@ -863,6 +871,19 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
+
+amp_type
+^^^^^^^^
+
+Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch built-in ("native") AMP which is supported from v1.6.
+
+.. testcode::
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_type='apex')
+    
+    # using PyTorch built-in AMP
+    trainer = Trainer(amp_type='native')
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^

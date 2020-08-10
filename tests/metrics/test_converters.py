@@ -126,8 +126,6 @@ def _ddp_test_fn(rank, worldsize, add_offset: bool, reduction_mean=False):
         reduced_tensor = sync_ddp_if_available(tensor, reduce_op='avg')
 
         manual_reduction = sum([i for i in range(dist.get_world_size())]) / dist.get_world_size()
-        print(reduced_tensor)
-        print(manual_reduction)
         assert reduced_tensor.item() == manual_reduction
     else:
         reduced_tensor = sync_ddp_if_available(tensor)
