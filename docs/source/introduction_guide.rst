@@ -629,6 +629,10 @@ In this method we do all the preparation we need to do once (instead of on every
 .. code-block:: python
 
     class MNISTDataModule(LightningDataModule):
+        def __init__(self, batch_size=64):
+            super().__init__()
+            self.batch_size = batch_size
+
         def prepare_data(self):
             # download only
             MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
@@ -636,7 +640,7 @@ In this method we do all the preparation we need to do once (instead of on every
 
         def setup(self, stage):
             # transform
-            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+            transform=transforms.Compose([transforms.ToTensor()])
             MNIST(os.getcwd(), train=True, download=False, transform=transform)
             MNIST(os.getcwd(), train=False, download=False, transform=transform)
 
@@ -649,13 +653,13 @@ In this method we do all the preparation we need to do once (instead of on every
             self.test_dataset = mnist_test
 
         def train_dataloader(self):
-            return DataLoader(self.train_dataset, batch_size=64)
+            return DataLoader(self.train_dataset, batch_size=self.batch_size)
 
         def val_dataloader(self):
-            return DataLoader(self.val_dataset, batch_size=64)
+            return DataLoader(self.val_dataset, batch_size=self.batch_size)
 
         def test_dataloader(self):
-            return DataLoader(self.test_dataset, batch_size=64)
+            return DataLoader(self.test_dataset, batch_size=self.batch_size)
 
 The `prepare_data` method is also a good place to do any data processing that needs to be done only
 once (ie: download or tokenize, etc...).
@@ -675,11 +679,13 @@ You'll now see the TPU cores booting up.
 
 .. figure:: /_images/mnist_imgs/tpu_start.png
     :alt: TPU start
+    :width: 400
 
 Notice the epoch is MUCH faster!
 
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
+    :width: 400
 
 ----------------
 
