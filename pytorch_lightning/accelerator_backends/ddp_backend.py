@@ -234,8 +234,8 @@ class DistributedConnection:
     def __init__(self, trainer):
         super().__init__()
         self.trainer = trainer
-        # initial random port, before ddp connection is initialized
-        self.trainer.set_random_port()
+        # select or set an initial port before ddp connection is initialized
+        self._set_master_port(port=self._get_master_port())
 
     def reset_connection(self, trainer, model):
         if torch.distributed.is_initialized():
@@ -244,7 +244,7 @@ class DistributedConnection:
             torch.distributed.barrier()
 
             if trainer.global_rank == 0:
-                new_port = trainer.set_random_port(force=True, overwrite=False)
+                new_port = find_open_network_port()
                 #print('sending new port on rank=', trainer.global_rank, 'port', new_port)
                 new_port = torch.tensor([new_port], dtype=torch.int, device='cuda')
                 #print(new_port.shape, new_port.dtype)
@@ -256,7 +256,8 @@ class DistributedConnection:
             new_port = int(new_port.item())
             #print('receiving new port on rank=', trainer.global_rank, 'port', new_port)
             torch.distributed.destroy_process_group()  # destroy connections on old port
-            os.environ['MASTER_PORT'] = str(new_port)
+            self._set_master_port(port=new_port)
+            #os.environ['MASTER_PORT'] = str(new_port)
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
@@ -269,9 +270,31 @@ class DistributedConnection:
 
         # atexit.register(exit_handler)
 
+    def _get_master_port(self):
+        return os.environ.get('MASTER_PORT')
+
+    # TODO: document
+    def _set_master_port(self, port: int = None):
+        """
+        When running DDP NOT managed by SLURM, the ports might collide
+        """
+        # assert self.trainer.num_nodes == 1, 'random port can only be called from single node training'
+        os.environ['MASTER_PORT'] = str(port or find_open_network_port())
+        return port
+
     def teardown(self):
         return
         if torch.distributed.is_initialized():
             torch.cuda.empty_cache()
             torch.distributed.barrier()
             torch.distributed.destroy_process_group()
+
+
+def find_open_network_port():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port

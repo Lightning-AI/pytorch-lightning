@@ -394,23 +394,6 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def set_random_port(self, force=False, overwrite=True):
-        """
-        When running DDP NOT managed by SLURM, the ports might collide
-        """
-        # pick a random port first
-        assert self.num_nodes == 1, 'random port can only be called from single node training'
-
-        default_port = os.environ.get('MASTER_PORT')
-
-        # when not forced, use the user port
-        if force or not default_port:
-            default_port = find_open_network_port()
-
-        if overwrite:
-            os.environ['MASTER_PORT'] = str(default_port)
-        return default_port
-
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         if self.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
             return
@@ -513,13 +496,3 @@ class TrainerDDPMixin(ABC):
     def has_horovodrun():
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
         return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ
-
-
-def find_open_network_port():
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
