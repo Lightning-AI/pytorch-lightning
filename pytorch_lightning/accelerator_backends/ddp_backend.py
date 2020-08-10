@@ -234,8 +234,9 @@ class DistributedConnection:
     def __init__(self, trainer):
         super().__init__()
         self.trainer = trainer
-        # select or set an initial port before ddp connection is initialized
-        self._set_master_port(port=self._get_master_port())
+        if trainer.num_nodes == 1:
+            # select or forcibly set an initial port before ddp connection is initialized
+            self._set_master_port(port=self._get_master_port())
 
     def reset_connection(self, trainer, model):
         if torch.distributed.is_initialized():
@@ -263,21 +264,13 @@ class DistributedConnection:
     def _get_master_port(self):
         return os.environ.get('MASTER_PORT')
 
-    # TODO: document
     def _set_master_port(self, port: int = None):
         """
         When running DDP NOT managed by SLURM, the ports might collide
         """
-        # assert self.trainer.num_nodes == 1, 'random port can only be called from single node training'
+        assert self.trainer.num_nodes == 1, 'random port can only be called from single node training'
         os.environ['MASTER_PORT'] = str(port or find_open_network_port())
         return port
-
-    def teardown(self):
-        return
-        if torch.distributed.is_initialized():
-            torch.cuda.empty_cache()
-            torch.distributed.barrier()
-            torch.distributed.destroy_process_group()
 
 
 def find_open_network_port():
