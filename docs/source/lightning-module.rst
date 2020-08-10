@@ -128,7 +128,7 @@ LightningModules are super flexible and can be structured for many use case:
 
 As a system (research use)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-A model (coloquially) refers to something like a resnet or RNN. A system, may be a collection of models. Here
+A model (colloquially) refers to something like a resnet or RNN. A system, may be a collection of models. Here
 are examples of systems:
 
 - GAN (generator, discriminator)
@@ -187,6 +187,11 @@ Which can be trained like this:
     trainer = pl.Trainer(gpus=1)
     trainer.fit(autoencoder, train_dataloader, val_dataloader)
 
+This simple model generates examples that look like this (the encoders and decoders are too weak)
+
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/ae_docs.png
+    :width: 300
+
 The methods above are part of the lightning interface:
 
 - training_step
@@ -231,6 +236,36 @@ Note that in this case, the train loop and val loop are exactly the same. We can
             return torch.optim.Adam(self.parameters(), lr=0.0002)
 
 We create a new method called `shared_step` that all 3 loops can use. This method name is arbitrary and NOT reserved.
+
+In the case where we want to perform inference with the system we can pull out the decoder:
+
+.. code-block:: python
+
+    decoder = autoencoder.decoder
+    y = decoder(x)
+
+or we can add a `forward` method to the LightningModule
+
+.. code-block:: python
+
+    class Autoencoder(pl.LightningModule):
+        def forward(self, x):
+            return self.decoder(x)
+
+The advantage of adding a forward is that in complex systems, you can do a much more involved inference procedure,
+such as text generation:
+
+.. code-block:: python
+
+    class Seq2Seq(pl.LightningModule):
+
+        def forward(self, x):
+            embeddings = self(x)
+            hidden_states = self.encoder(embeddings)
+            for h in hidden_states:
+                # decode
+                ...
+            return decoded
 
 As a task (production use)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
