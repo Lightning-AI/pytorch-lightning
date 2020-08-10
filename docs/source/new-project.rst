@@ -540,6 +540,7 @@ Lightning is for you if
 
 - You're a professional researcher/ml engineer working on non-trivial deep learning.
 - You already know PyTorch and are not a beginner.
+- You want to iterate through research much faster.
 - You want to put models into production much faster.
 - You need full control of all the details but don't need the boilerplate.
 - You want to leverage code written by hundreds of AI researchers, research engs and PhDs from the world's top AI labs.
