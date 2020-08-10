@@ -245,9 +245,9 @@ class DistributedConnection:
             new_port = torch.empty(1, dtype=torch.int, device='cuda')
 
             if trainer.global_rank == 0:
-                new_port = find_open_network_port()
-                new_port[0] = new_port
-               
+                port = find_open_network_port()
+                new_port[0] = port
+
             torch.distributed.broadcast(new_port, src=0)
             new_port = int(new_port.item())
             torch.distributed.destroy_process_group()  # destroy connections on old port
