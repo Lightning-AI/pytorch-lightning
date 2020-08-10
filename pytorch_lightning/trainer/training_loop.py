@@ -1040,8 +1040,7 @@ class TrainerTrainLoopMixin(ABC):
                 subprocess.Popen.kill(proc)
 
         # clean up dist group
-        if (self.use_ddp or self.use_ddp2):
-            print('destroy on rank ', self.global_rank, os.getpid())
+        if self.use_ddp or self.use_ddp2:
             torch_distrib.destroy_process_group()
 
         # clear mem
