@@ -15,7 +15,7 @@
 import torch
 import torch.multiprocessing as mp
 
-from pytorch_lightning.accelerator_backends.ddp_backend import DistributedConnection
+from pytorch_lightning.accelerators.ddp_backend import DistributedConnection
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning import _logger as log
 
