@@ -15,14 +15,16 @@
 import torch
 import torch.multiprocessing as mp
 
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.accelerator_backends.ddp_backend import DistributedConnection
 from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning import _logger as log
 
 try:
     from apex import amp
 except ImportError:
-    amp = None
+    APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 
 class DDPSpawnBackend(object):
@@ -30,10 +32,9 @@ class DDPSpawnBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.mp_queue = None
+        self.distributed_connection = DistributedConnection(trainer)
 
     def setup(self):
-        self.trainer.set_random_port()
-
         # pass in a state q
         smp = mp.get_context('spawn')
         self.mp_queue = smp.SimpleQueue()
@@ -94,11 +95,8 @@ class DDPSpawnBackend(object):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        model.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
-        )
+
+        self.distributed_connection.reset_connection(self.trainer, model)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
@@ -132,9 +130,11 @@ class DDPSpawnBackend(object):
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
 
-        # AMP -
+        # AMP
         # run through amp wrapper before going to distributed DP
-        if self.trainer.amp_type == AMPType.APEX:
+        # TODO: remove with dropping NVIDIA AMP support
+        native_amp_available = hasattr(torch.cuda, "amp") and hasattr(torch.cuda.amp, "autocast")
+        if self.trainer.use_amp and not native_amp_available:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

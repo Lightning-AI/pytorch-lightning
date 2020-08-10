@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
+import atexit
 import os
+import torch
+import torch.distributed
 import subprocess
 import sys
-from os.path import abspath
 from time import sleep
-from typing import Optional
-
 import numpy as np
-import torch
+from os.path import abspath
 
+from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_debug
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from typing import Optional
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -37,7 +37,9 @@ else:
 try:
     from apex import amp
 except ImportError:
-    amp = None
+    APEX_AVAILABLE = False
+else:
+    APEX_AVAILABLE = True
 
 
 class DDPBackend(object):
@@ -45,6 +47,7 @@ class DDPBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.task_idx = None
+        self.distributed_connection = DistributedConnection(trainer)
 
     def slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
@@ -56,19 +59,15 @@ class DDPBackend(object):
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def spawn_ddp_children(self, model):
-        port = os.environ['MASTER_PORT']
+        assert self.trainer.global_rank == 0
 
-        master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
-        os.environ['MASTER_PORT'] = f'{port}'
+        master_address = os.environ.get('MASTER_ADDR', '127.0.0.1')
         os.environ['MASTER_ADDR'] = f'{master_address}'
 
         # allow the user to pass the node rank
         node_rank = '0'
-        if 'NODE_RANK' in os.environ:
-            node_rank = os.environ['NODE_RANK']
-        if 'GROUP_RANK' in os.environ:
-            node_rank = os.environ['GROUP_RANK']
-
+        node_rank = os.environ.get('NODE_RANK', node_rank)
+        node_rank = os.environ.get('GROUP_RANK', node_rank)
         os.environ['NODE_RANK'] = node_rank
         os.environ['LOCAL_RANK'] = '0'
 
@@ -153,11 +152,8 @@ class DDPBackend(object):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
-        model.init_ddp_connection(
-            self.trainer.global_rank,
-            self.trainer.world_size,
-            self.trainer.is_slurm_managing_tasks
-        )
+
+        self.distributed_connection.reset_connection(self.trainer, model)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
@@ -200,8 +196,10 @@ class DDPBackend(object):
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
 
-        # AMP - run through amp wrapper before going to distributed DP
-        if self.trainer.amp_type == AMPType.APEX:
+        # AMP
+        # run through amp wrapper before going to distributed DP
+        # TODO: remove with dropping NVIDIA AMP support
+        if self.trainer.use_amp and not NATIVE_AMP_AVALAIBLE:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
@@ -229,3 +227,64 @@ class DDPBackend(object):
 
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
+
+
+class DistributedConnection:
+
+    def __init__(self, trainer):
+        super().__init__()
+        self.trainer = trainer
+        if trainer.num_nodes == 1:
+            # select or forcibly set an initial port before ddp connection is initialized
+            self._set_master_port(port=self._get_master_port())
+
+    def reset_connection(self, trainer, model):
+        if torch.distributed.is_initialized():
+            rank_zero_debug("DDP connection already initialized. Reinitializing on new port...")
+
+            new_port = torch.empty(1, dtype=torch.int, device='cuda')
+
+            if trainer.global_rank == 0:
+                port = find_open_network_port()
+                new_port[0] = port
+
+            torch.distributed.broadcast(new_port, src=0)
+            new_port = int(new_port.item())
+            torch.distributed.destroy_process_group()  # destroy connections on old port
+            self._set_master_port(port=new_port)
+
+        model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+
+        def exit_handler():
+            if torch.distributed.is_initialized():
+                torch.distributed.destroy_process_group()
+
+        atexit.register(exit_handler)
+
+    def _get_master_port(self):
+        return os.environ.get('MASTER_PORT')
+
+    def _set_master_port(self, port: int = None):
+        """
+        Sets the `MASTER_PORT` environment variable in single-node DDP training.
+
+        Args:
+            port: If provided, sets the environment variable MASTER_PORT, and otherwhise
+                an attempt is made to find an unused open port.
+
+        Return:
+            The port that was set.
+        """
+        assert self.trainer.num_nodes == 1, 'random port can only be called from single node training'
+        os.environ['MASTER_PORT'] = str(port or find_open_network_port())
+        return port
+
+
+def find_open_network_port():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
