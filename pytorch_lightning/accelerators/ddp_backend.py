@@ -264,7 +264,7 @@ class DistributedConnection:
             model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
         def exit_handler():
-            if torch.distributed.is_initialized():
+            if torch.distributed.is_initialized() and trainer.global_rank > 0:
                 torch.distributed.destroy_process_group()
 
         atexit.register(exit_handler)
