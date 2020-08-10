@@ -43,7 +43,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
-from pytorch_lightning.trainer.supporters import TensorRunningAccum, DistributedConnection
+from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
@@ -1025,7 +1025,6 @@ class Trainer(
 
         # ddp
         elif self.distributed_backend == 'ddp':
-            # self.set_random_port()
             self.accelerator_backend = DDPBackend(self)
             results = self.accelerator_backend.spawn_ddp_children(model)
 
@@ -1321,10 +1320,6 @@ class Trainer(
 
         self.teardown('test')
 
-        # if torch.distributed.is_initialized():
-        #     print('destroy in test', self.global_rank, os.getpid())
-        #     torch.distributed.destroy_process_group()
-
         return results
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
@@ -1358,7 +1353,6 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        #self.set_random_port()
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
@@ -1381,7 +1375,6 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        #self.set_random_port()
         self.testing = True
         self.model = model
         results = self.fit(model)

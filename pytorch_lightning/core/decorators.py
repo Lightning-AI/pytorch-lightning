@@ -40,7 +40,6 @@ def auto_move_data(fn: Callable) -> Callable:
     """
     @wraps(fn)
     def auto_transfer_args(self, *args, **kwargs):
-
         if not isinstance(self, LightningModule):
             return fn(self, *args, **kwargs)
 

@@ -131,20 +131,13 @@ import os
 import re
 from abc import ABC, abstractmethod
 from distutils.version import LooseVersion
-from typing import Union, List, Optional, Callable, Tuple
-import subprocess
-import sys
-from time import sleep
-import numpy as np
-from os.path import abspath
-from pkg_resources import parse_version
+from typing import Union, List, Optional, Tuple
 
 import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn, rank_zero_info
+from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 
@@ -170,12 +163,6 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
-
-
-#PID = os.getpid()
-#RNG1 = np.random.RandomState(PID)
-#RANDOM_PORTS = RNG1.randint(10000, 19999, 1000)
-RANDOM_PORTS = list(range(10000, 20000))
 
 
 class TrainerDDPMixin(ABC):
@@ -418,10 +405,6 @@ class TrainerDDPMixin(ABC):
 
         # when not forced, use the user port
         if force or not default_port:
-            # global RANDOM_PORTS
-            # default_port = RANDOM_PORTS[-1]
-            # RANDOM_PORTS = RANDOM_PORTS[:-1]
-            # def get_open_port():
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.bind(("", 0))
