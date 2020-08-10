@@ -245,28 +245,20 @@ class DistributedConnection:
 
             if trainer.global_rank == 0:
                 new_port = find_open_network_port()
-                #print('sending new port on rank=', trainer.global_rank, 'port', new_port)
                 new_port = torch.tensor([new_port], dtype=torch.int, device='cuda')
-                #print(new_port.shape, new_port.dtype)
             else:
                 new_port = torch.empty(1, dtype=torch.int, device='cuda')
-                #print(new_port.shape, new_port.dtype)
 
             torch.distributed.broadcast(new_port, src=0)
             new_port = int(new_port.item())
-            #print('receiving new port on rank=', trainer.global_rank, 'port', new_port)
             torch.distributed.destroy_process_group()  # destroy connections on old port
             self._set_master_port(port=new_port)
-            #os.environ['MASTER_PORT'] = str(new_port)
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
         def exit_handler():
             if torch.distributed.is_initialized():
-                # torch.distributed.barrier()
                 torch.distributed.destroy_process_group()
-
-            #print('group destroyed on ', trainer.global_rank)
 
         atexit.register(exit_handler)
 
