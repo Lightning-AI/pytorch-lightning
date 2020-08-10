@@ -3,11 +3,20 @@
 
 LightningModule
 ===============
-A :class:`~LightningModule` organizes your PyTorch code into the following sections:
+A :class:`~LightningModule` organizes your PyTorch code into 5 sections
 
-.. figure:: /_images/lightning_module/pt_to_pl.png
+- Computations
+- Train loop
+- Validation loop
+- Test loop
+- Optimizers
+
+|
+
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_mod_small.gif
    :alt: Convert from PyTorch to Lightning
 
+|
 
 Notice a few things.
 
