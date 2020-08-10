@@ -115,7 +115,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if self.trainer.is_global_zero:
             print(*args, **kwargs)
 
-    @abstractmethod
     def forward(self, *args, **kwargs):
         r"""
         Same as :meth:`torch.nn.Module.forward()`, however in Lightning you want this to define

@@ -111,7 +111,7 @@ Which you can train by doing:
 
 .. code-block:: python
 
-    train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()))
+    train_loader = DataLoader(MNIST(os.getcwd(), download=True, transform=transforms.ToTensor()))
     trainer = pl.Trainer()
     model = LitModel()
 
@@ -121,11 +121,73 @@ Which you can train by doing:
 
 Structuring a LightningModule
 -----------------------------
-Depending on your use case, you can structure a LightningModule in a few ways.
+LightningModules are super flexible and can be structured for many use case:
 
-As a task
-^^^^^^^^^
-If you wish you de-couple the model/s from the LightningModule, you can use it as a task
+- As a task for production (ie: classification, sequence modeling).
+- As a system for research (ie: GAN, contrastive learning, RL, etc...).
+
+As a system (research use)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+A model (coloquially) refers to something like a resnet or RNN. A system, may be a collection of models. Here
+are examples of systems:
+
+- GAN (generator, discriminator)
+- RL (policy, actor, critic)
+- Autoencoders (encoder, decoder)
+- Seq2Seq (encoder, attention, decoder)
+- etc...
+
+A LightningModule is best used to define a complex system:
+
+.. code-block:: python
+
+
+    import pytorch_lightning as pl
+    from torch import nn
+
+    class VariationalAutoencoder(pl.LightningModule):
+
+         def __init__(self):
+             super().__init__()
+             self.encoder = nn.Sequential([nn.Linear(28 * 28, 128), nn.Relu(), nn.Linear(128, 32)])
+             self.decoder = nn.Sequential([nn.Linear(32, 128), nn.Relu(), nn.Linear(128, 28 * 28)])
+
+         def training_step(self, batch, batch_idx):
+             x, _ = batch
+
+             z_mu, z_log_var = self.encoder(x)
+             z_std = torch.exp(z_log_var / 2)
+             Q = distributions.normal.Normal(loc=z_mu, scale=z_std)
+
+             # get z and decode
+             z = Q.rsample()
+             recons = self.decoder(z)
+
+             # reconstruction loss, kl_divergence loss
+             reconstruction_loss = F.mse_loss(recons, x)
+             kl_div_loss = torch.mean(-0.5 * torch.sum(1 + z_log_var - mu ** 2 - z_log_var.exp(), dim = 1), dim = 0)
+             elbo_loss = reconstruction_loss + kl_div_loss
+             return pl.TrainResult(elbo_loss)
+
+         def validation_step(self, batch, batch_idx):
+            train_result = self.training_step(batch, batch_idx)
+            result = pl.EvalResult(checkpoint_on=train_result.loss)
+            result.log_dict({'val_elbo_loss': train_result.loss})
+            return result
+
+         def test_step(self, batch, batch_idx):
+            result = self.validation_step(batch, batch_idx)
+            result.rename_keys({'val_elbo_loss': 'test_elbo_loss'})
+            return result
+
+         def configure_optimizers(self):
+             return torch.optim.Adam(self.model.parameters(), lr=0.002)
+
+
+
+As a task (production use)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+For cases like production, you might want to iterate different models inside a LightningModule.
 
 .. code-block:: python
 
@@ -165,11 +227,11 @@ Then pass in any arbitrary model to be fit with this task
 
 .. code-block:: python
 
-    model = resnet50()
-    task = ClassificationTask(model)
+    for model in [resnet50(), vgg16(), BidirectionalRNN()]:
+        task = ClassificationTask(model)
 
-    trainer = Trainer(gpus=2)
-    trainer.fit(task, train_dataloader, val_dataloader)
+        trainer = Trainer(gpus=2)
+        trainer.fit(task, train_dataloader, val_dataloader)
 
 Tasks can be arbitrarily complex such as implementing GAN training, self-supervised or even RL.
 
@@ -182,6 +244,9 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
              self.generator = generator
              self.discriminator = discriminator
          ...
+
+
+
 
 Training loop structure
 -----------------------
