@@ -7,6 +7,7 @@ import types
 from argparse import Namespace
 from pathlib import Path
 from unittest.mock import patch
+from copy import deepcopy
 
 import cloudpickle
 import pytest
@@ -223,7 +224,23 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule, limit):
     Verify optimizer.step() applied to last batch while grad accumulation
     """
 
-    model = EvalModelTemplate()
+    class CurrentModel(EvalModelTemplate):
+
+        def on_after_backward(self):
+            self.loss_backward = deepcopy(self.state_dict())
+
+        def on_before_zero_grad(self, optimizer):
+            self.opt_step = self.state_dict()
+
+        def on_train_batch_end(self, batch, batch_idx, dataloader_idx):
+            # to check optimizer.step() get called or not
+            if self.trainer.num_training_batches == batch_idx + 1:
+                for key in self.loss_backward.keys():
+                    # need to exclude some batch norm parameters explicitly
+                    if key not in ["c_d1_bn.num_batches_tracked", "c_d1_bn.running_var", "c_d1_bn.running_mean"]:
+                        assert torch.equal(self.loss_backward[key], self.opt_step[key]) is False
+
+    model = CurrentModel()
 
     trainer = Trainer(
         accumulate_grad_batches=schedule,
@@ -232,28 +249,6 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, schedule, limit):
         default_root_dir=tmpdir
     )
 
-    loss_backward = [0] * len(list(model.parameters()))
-    opt_step = [torch.tensor([0.0])] * len(list(model.parameters()))
-
-    def on_after_backward_():
-        for i, param in enumerate(model.parameters()):
-            loss_backward[i] = param.clone().data
-
-    def on_before_zero_grad_(optimizer):
-        for i, param in enumerate(model.parameters()):
-            opt_step[i] = param.clone().data
-
-    def on_train_batch_end_(batch, batch_idx, dataloader_idx):
-        # to check optimizer.step() get called or not
-        for i, (loss_param, opt_param) in enumerate(zip(loss_backward, opt_step)):
-            if trainer.num_training_batches == batch_idx + 1:
-                # model.parameters() get updated
-                assert torch.equal(loss_param, opt_param) is False
-
-    # for the test
-    model.on_after_backward = on_after_backward_
-    model.on_before_zero_grad = on_before_zero_grad_
-    model.on_train_batch_end = on_train_batch_end_
     trainer.fit(model)
 
 

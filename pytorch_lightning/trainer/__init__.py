@@ -138,6 +138,7 @@ Trainer flags
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 Accumulates grads every k batches or as set up in the dict.
+This argument also calls ``optimizer.step()`` for the last indivisible batch.
 
 .. testcode::
 
