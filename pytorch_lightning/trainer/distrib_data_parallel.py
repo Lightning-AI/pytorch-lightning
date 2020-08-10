@@ -407,13 +407,12 @@ class TrainerDDPMixin(ABC):
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
 
-    def set_random_port(self, force=False):
+    def set_random_port(self, force=False, overwrite=True):
         """
         When running DDP NOT managed by SLURM, the ports might collide
         """
         # pick a random port first
         assert self.num_nodes == 1, 'random port can only be called from single node training'
-
 
         default_port = os.environ.get('MASTER_PORT')
 
@@ -432,7 +431,8 @@ class TrainerDDPMixin(ABC):
             default_port = port
 
         print('setting port on rank', self.global_rank, default_port)
-        os.environ['MASTER_PORT'] = str(default_port)
+        if overwrite:
+            os.environ['MASTER_PORT'] = str(default_port)
         return default_port
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):

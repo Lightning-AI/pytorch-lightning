@@ -118,13 +118,16 @@ class DistributedConnection:
 
             if trainer.global_rank == 0:
                 print('sending new port to others')
-                new_port = trainer.set_random_port(force=True)
+                new_port = trainer.set_random_port(force=True, overwrite=False)
                 torch.distributed.broadcast(torch.tensor(new_port, device=model.device), src=0)
             else:
                 print('receiving new port on rank=', trainer.global_rank)
                 new_port = torch.empty(1, device=model.device)
                 torch.distributed.broadcast(new_port, trainer.global_rank)
-                os.environ['MASTER_PORT'] = str(int(new_port.item()))
+                new_port = int(new_port.item())
+
+            torch.distributed.destroy_process_group()
+            os.environ['MASTER_PORT'] = str(new_port)
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
