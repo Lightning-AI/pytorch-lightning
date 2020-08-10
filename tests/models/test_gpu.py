@@ -113,7 +113,7 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     env = os.environ.copy()
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    p.communicate()
+    # p.communicate()
 
     std, err = p.communicate(timeout=60)
     std = std.decode('utf-8').strip()
