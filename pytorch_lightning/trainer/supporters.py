@@ -104,14 +104,14 @@ class DistributedConnection:
         # self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.trainer = trainer
         self._is_initialized = False
-        self.trainer.set_random_port()
+        # self.trainer.set_random_port()
 
     def init_connection(self, trainer, model):
         if self._is_initialized:
             rank_zero_info("ddp connection already initialized")
             return
 
-        trainer.set_random_port()
+        trainer.set_random_port(force=True)
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
         self._is_initialized = True

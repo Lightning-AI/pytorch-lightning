@@ -419,9 +419,17 @@ class TrainerDDPMixin(ABC):
 
         # when not forced, use the user port
         if force or not default_port:
-            global RANDOM_PORTS
-            default_port = RANDOM_PORTS[-1]
-            RANDOM_PORTS = RANDOM_PORTS[:-1]
+            # global RANDOM_PORTS
+            # default_port = RANDOM_PORTS[-1]
+            # RANDOM_PORTS = RANDOM_PORTS[:-1]
+            # def get_open_port():
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind(("", 0))
+            s.listen(1)
+            port = s.getsockname()[1]
+            s.close()
+            default_port = port
 
         os.environ['MASTER_PORT'] = str(default_port)
 

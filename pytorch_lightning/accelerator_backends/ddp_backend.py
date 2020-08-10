@@ -62,10 +62,10 @@ class DDPBackend(object):
         #
         assert self.trainer.global_rank == 0
         # self.trainer.set_random_port(force=True)
-        port = os.environ['MASTER_PORT']
+        #port = os.environ['MASTER_PORT']
 
         master_address = os.environ.get('MASTER_ADDR', '127.0.0.1')
-        os.environ['MASTER_PORT'] = f'{port}'
+        #os.environ['MASTER_PORT'] = f'{port}'
         os.environ['MASTER_ADDR'] = f'{master_address}'
 
         # allow the user to pass the node rank
