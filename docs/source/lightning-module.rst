@@ -276,13 +276,13 @@ For cases like production, you might want to iterate different models inside a L
 
          def training_step(self, batch, batch_idx):
              x, y = batch
-             y_hat = model(x)
+             y_hat = self.model(x)
              loss = F.cross_entropy(y_hat, y)
              return pl.TrainResult(loss)
 
          def validation_step(self, batch, batch_idx):
             x, y = batch
-            y_hat = model(x)
+            y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
             acc = FM.accuracy(y_hat, y)
             result = pl.EvalResult(checkpoint_on=loss)
@@ -340,61 +340,168 @@ a `LightningModule`.
         y_hat = model(x)
 
 
-Training loop structure
------------------------
-
-The general pattern is that each loop has a single method to worry about
-
-- ``___step``
-
-If you need more control, there are two optional methods.
-
-- ``___step_end``
-- ``___epoch_end``
-
-To show how Lightning calls these, let's use the validation loop as an example:
+Training loop
+-------------
+To add a training loop use the `training_step` method
 
 .. code-block:: python
 
-    # put model in prediction mode
-    model.eval()
-    torch.set_grad_enabled(False)
+    class LitClassifier(pl.LightningModule):
 
-    val_outs = []
-    for val_batch in val_data:
-        # do something with each batch
-        out = validation_step(val_batch)
-        val_outs.append(out)
+         def __init__(self, model):
+             super().__init__()
+             self.model = model
 
-    # do something with the outputs for all batches
-    # like calculate validation set accuracy or loss
-    validation_epoch_end(val_outs)
+         def training_step(self, batch, batch_idx):
+             x, y = batch
+             y_hat = self.model(x)
+             loss = F.cross_entropy(y_hat, y)
+             return pl.TrainResult(loss)
 
-    # put model back in train mode
+Under the hood, Lightning does the following (pseudocode):
+
+.. code-block:: python
+
+    # put model in train mode
     model.train()
     torch.set_grad_enabled(True)
 
-If we use dp or ddp2 mode, we can also define the ``XXX_step_end`` method to operate
-on all parts of the batch::
+    outs = []
+    for batch in train_dataloader:
+        # forward
+        out = training_step(val_batch)
 
-    val_outs = []
-    for val_batch in val_data:
-        batches = split_batch(val_batch)
+        # backward
+        loss.backward()
+
+        # apply and clear grads
+        optimizer.step()
+        optimizer.zero_grad()
+
+Training epoch-level metrics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you want to calculate epoch-level metrics and log them, use the `TrainResult.log` method
+
+.. code-block:: python
+
+     def training_step(self, batch, batch_idx):
+         x, y = batch
+         y_hat = self.model(x)
+         loss = F.cross_entropy(y_hat, y)
+         result = pl.TrainResult(loss)
+
+         # logs metrics for each training_step, and the average across the epoch, to the progress bar and logger
+         result.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+         return result
+
+The `TrainResult.log` object automatically reduces the requested metrics across the full epoch.
+Here's the pseudocode of what it does under the hood:
+
+.. code-block:: python
+
+    outs = []
+    for batch in train_dataloader:
+        # forward
+        out = training_step(val_batch)
+
+        # backward
+        loss.backward()
+
+        # apply and clear grads
+        optimizer.step()
+        optimizer.zero_grad()
+
+    epoch_metric = torch.mean(torch.stack([x['train_loss'] for x in outs]))
+
+Train epoch-level operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you need to do something with all the outputs of each `training_step`, implement `training_epoch_end` yourself.
+
+.. code-block:: python
+
+     def training_step(self, batch, batch_idx):
+         x, y = batch
+         y_hat = self.model(x)
+         loss = F.cross_entropy(y_hat, y)
+         result = pl.TrainResult(loss)
+         result.prediction = some_prediction
+
+     def training_epoch_end(self, training_step_outputs):
+        all_predictions = training_step_outputs.prediction
+        ...
+        return result
+
+The matching pseudocode is:
+
+.. code-block:: python
+
+    outs = []
+    for batch in train_dataloader:
+        # forward
+        out = training_step(val_batch)
+
+        # backward
+        loss.backward()
+
+        # apply and clear grads
+        optimizer.step()
+        optimizer.zero_grad()
+
+    epoch_out = training_epoch_end(outs)
+
+Training with DataParallel
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+When training using a `distributed_backend` that splits data from each batch across GPUs, sometimes you might
+need to aggregate them on the master GPU for processing (dp, or ddp2).
+
+In this case, implement the `training_batch_end` method
+
+.. code-block:: python
+
+     def training_step(self, batch, batch_idx):
+         x, y = batch
+         y_hat = self.model(x)
+         loss = F.cross_entropy(y_hat, y)
+         result = pl.TrainResult(loss)
+         result.prediction = some_prediction
+
+     def training_batch_end(self, batch_parts):
+         gpu_0_prediction = batch_parts.prediction[0]
+         gpu_1_prediction = batch_parts.prediction[1]
+
+         # do something with both outputs
+         return result
+
+     def training_epoch_end(self, training_step_outputs):
+        all_predictions = training_step_outputs.prediction
+        ...
+        return result
+
+The full pseudocode that lighting does under the hood is:
+
+.. code-block:: python
+
+    outs = []
+    for train_batch in train_dataloader:
+        batches = split_batch(train_batch)
         dp_outs = []
         for sub_batch in batches:
-            dp_out = validation_step(sub_batch)
+            # 1
+            dp_out = training_step(sub_batch)
             dp_outs.append(dp_out)
 
-        out = validation_step_end(dp_outs)
-        val_outs.append(out)
+        # 2
+        out = training_step_end(dp_outs)
+        outs.append(out)
 
     # do something with the outputs for all batches
-    # like calculate validation set accuracy or loss
-    validation_epoch_end(val_outs)
+    # 3
+    training_epoch_end(outs)
 
+------------------
 
-Add validation loop
-^^^^^^^^^^^^^^^^^^^
+Validation loop
+^^^^^^^^^^^^^^^
 
 Thus, if we wanted to add a validation loop you would add this to your
 :class:`~LightningModule`:
