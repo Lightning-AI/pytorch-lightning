@@ -441,11 +441,15 @@ Whenever you'd like to log, or sync values across GPUs use `TrainResult`.
         result = pl.TrainResult(loss)
         result.log('train_loss', loss)
 
-        # sync across GPUs / TPUs, etc...
-        result.log('train_loss', loss, sync_dist=True)
-
         # equivalent
         result.log('train_loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, reduce_fx=torch.mean)
+
+When training across accelerators (GPUs/TPUs) you can sync a metric if needed.
+
+.. code-block:: python
+
+        # sync across GPUs / TPUs, etc...
+        result.log('train_loss', loss, sync_dist=True)
 
 If you are only using a training_loop (`training_step`) without a
 validation or test loop (`validation_step`, `test_step`), you can still use EarlyStopping or automatic checkpointing
