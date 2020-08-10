@@ -169,13 +169,6 @@ class DDPBackend(object):
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
-
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
@@ -196,6 +189,13 @@ class DDPBackend(object):
             self.trainer.root_gpu = gpu_idx
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
+
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
