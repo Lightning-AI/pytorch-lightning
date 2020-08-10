@@ -60,6 +60,10 @@ def main():
     run_variation = globals()[args.variation]
     run_variation(trainer, model)
 
+    # TODO
+    for p in trainer.interactive_ddp_procs:
+        p.kill()
+
 
 if __name__ == '__main__':
     main()
