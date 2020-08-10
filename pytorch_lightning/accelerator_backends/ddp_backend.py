@@ -14,13 +14,13 @@
 
 import os
 import torch
+import torch.distributed
 import subprocess
 import sys
 from time import sleep
 import numpy as np
 from os.path import abspath
 
-from pytorch_lightning.trainer.supporters import DistributedConnection
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning import _logger as log
@@ -227,3 +227,51 @@ class DDPBackend(object):
 
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
+
+
+class DistributedConnection:
+
+    def __init__(self, trainer):
+        super().__init__()
+        self.trainer = trainer
+        # initial random port, before ddp connection is initialized
+        self.trainer.set_random_port()
+
+    def reset_connection(self, trainer, model):
+        if torch.distributed.is_initialized():
+            print(trainer.global_rank, "ddp connection already initialized, moving to new port")
+
+            torch.distributed.barrier()
+
+            if trainer.global_rank == 0:
+                new_port = trainer.set_random_port(force=True, overwrite=False)
+                #print('sending new port on rank=', trainer.global_rank, 'port', new_port)
+                new_port = torch.tensor([new_port], dtype=torch.int, device='cuda')
+                #print(new_port.shape, new_port.dtype)
+            else:
+                new_port = torch.empty(1, dtype=torch.int, device='cuda')
+                #print(new_port.shape, new_port.dtype)
+
+            torch.distributed.broadcast(new_port, src=0)
+            new_port = int(new_port.item())
+            #print('receiving new port on rank=', trainer.global_rank, 'port', new_port)
+            torch.distributed.destroy_process_group()  # destroy connections on old port
+            os.environ['MASTER_PORT'] = str(new_port)
+
+        model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+
+        def exit_handler():
+            if torch.distributed.is_initialized():
+                # torch.distributed.barrier()
+                torch.distributed.destroy_process_group()
+
+            #print('group destroyed on ', trainer.global_rank)
+
+        # atexit.register(exit_handler)
+
+    def teardown(self):
+        return
+        if torch.distributed.is_initialized():
+            torch.cuda.empty_cache()
+            torch.distributed.barrier()
+            torch.distributed.destroy_process_group()
