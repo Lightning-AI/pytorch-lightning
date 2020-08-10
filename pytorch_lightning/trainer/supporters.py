@@ -133,7 +133,7 @@ class DistributedConnection:
 
             print('group destroyed on ', trainer.global_rank)
 
-        atexit.register(exit_handler)
+        # atexit.register(exit_handler)
 
     def teardown(self):
         return
