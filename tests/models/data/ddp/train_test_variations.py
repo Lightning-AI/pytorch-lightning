@@ -61,6 +61,9 @@ def main():
     run_variation(trainer, model)
 
     # TODO
+    # remove this in https://github.com/PyTorchLightning/pytorch-lightning/pull/2165
+    # when we have proper signal handling working
+    # otherwise we will see zombie processes in CI, causing tests to hang
     for p in trainer.interactive_ddp_procs:
         p.kill()
 
