@@ -1,11 +1,7 @@
-import atexit
-import os
 from typing import Optional
 
 import torch
 import torch.distributed
-
-from pytorch_lightning.utilities import rank_zero_info
 
 
 class TensorRunningAccum(object):
