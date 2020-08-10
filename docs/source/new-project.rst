@@ -12,6 +12,7 @@ Quick Start
 ===========
 
 PyTorch Lightning is nothing more than organized PyTorch code.
+
 Once you've organized it into a LightningModule, it automates most of the training for you.
 
 To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
@@ -107,7 +108,7 @@ All of it 100% rigorously tested and benchmarked
 
 Training loop under the hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Under the hood, lightning does (in high-level pseudocode):
+Under the hood, lightning does the following (in high-level pseudocode):
 
 .. code-block:: python
 
@@ -156,7 +157,12 @@ To add an (optional) validation loop add the following function
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            return {'val_loss': loss, 'log': {'val_loss': loss}}
+
+            result = pl.EvalResult(checkpoint_on=loss)
+            result.log('val_loss', loss)
+            return result
+
+.. note:: EvalResult is a plain Dict, with convenience functions for logging
 
 And now the trainer will call the validation loop automatically
 
@@ -216,7 +222,10 @@ You might also need an optional test loop
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            return {'test_loss': loss, 'log': {'test_loss': loss}}
+
+            result = pl.EvalResult()
+            result.log('test_loss', loss)
+            return result
 
 
 However, this time you need to specifically call test (this is done so you don't use the test set by mistake)
