@@ -405,15 +405,8 @@ class TrainerDDPMixin(ABC):
 
         # when not forced, use the user port
         if force or not default_port:
-            import socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind(("", 0))
-            s.listen(1)
-            port = s.getsockname()[1]
-            s.close()
-            default_port = port
+            default_port = find_open_network_port()
 
-        print('setting port on rank', self.global_rank, default_port)
         if overwrite:
             os.environ['MASTER_PORT'] = str(default_port)
         return default_port
@@ -520,3 +513,13 @@ class TrainerDDPMixin(ABC):
     def has_horovodrun():
         """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
         return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ
+
+
+def find_open_network_port():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
