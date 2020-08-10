@@ -268,7 +268,7 @@ class DistributedConnection:
 
             #print('group destroyed on ', trainer.global_rank)
 
-        # atexit.register(exit_handler)
+        atexit.register(exit_handler)
 
     def _get_master_port(self):
         return os.environ.get('MASTER_PORT')
