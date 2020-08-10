@@ -16,7 +16,6 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.core.decorators import run_once
 from pytorch_lightning.core.grads import GradInformation
 from pytorch_lightning.core.hooks import ModelHooks
 from pytorch_lightning.core.memory import ModelSummary
@@ -922,7 +921,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         root_node = self.trainer.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
-    #@run_once
     def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
         """
         Override to define your custom way of setting up a distributed environment.
@@ -954,7 +952,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 f"WORLD_SIZE environment variable ({os.environ['WORLD_SIZE']}) "
                 f"is not equal to the computed world size ({world_size}). Ignored."
             )
-        print('master port init', os.environ['MASTER_PORT'], os.getpid())
+
         torch_backend = "nccl" if self.trainer.on_gpu else "gloo"
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)

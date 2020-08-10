@@ -1,6 +1,8 @@
 from functools import wraps
 from typing import Callable
 
+from pytorch_lightning.core.lightning import LightningModule
+
 
 def auto_move_data(fn: Callable) -> Callable:
     """
@@ -38,8 +40,6 @@ def auto_move_data(fn: Callable) -> Callable:
     """
     @wraps(fn)
     def auto_transfer_args(self, *args, **kwargs):
-        # local import to prevent circular import issue
-        from pytorch_lightning.core.lightning import LightningModule
 
         if not isinstance(self, LightningModule):
             return fn(self, *args, **kwargs)
@@ -49,20 +49,3 @@ def auto_move_data(fn: Callable) -> Callable:
         return fn(self, *args, **kwargs)
 
     return auto_transfer_args
-
-
-def run_once(fn):
-    """
-    Decorate a function or method to make it run only once.
-    Subsequent calls will result in a no-operation.
-    """
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not wrapper.has_run:
-            wrapper.has_run = True
-            fn(*args, **kwargs)
-
-    wrapper.has_run = False
-    return wrapper
-
-

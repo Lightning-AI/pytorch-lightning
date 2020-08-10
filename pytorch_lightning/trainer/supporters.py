@@ -101,16 +101,11 @@ class DistributedConnection:
 
     def __init__(self, trainer):
         super().__init__()
-        # self.world_size = world_size
-        # self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.trainer = trainer
-        # self._is_initialized = False
-        #if self.trainer.gl
-
         # initial random port, before ddp connection is initialized
         self.trainer.set_random_port()
 
-    def init_connection(self, trainer, model):
+    def reset_connection(self, trainer, model):
         if torch.distributed.is_initialized():
             print(trainer.global_rank, "ddp connection already initialized, moving to new port")
 
@@ -118,16 +113,16 @@ class DistributedConnection:
 
             if trainer.global_rank == 0:
                 new_port = trainer.set_random_port(force=True, overwrite=False)
-                print('sending new port on rank=', trainer.global_rank, 'port', new_port)
+                #print('sending new port on rank=', trainer.global_rank, 'port', new_port)
                 new_port = torch.tensor([new_port], dtype=torch.int, device='cuda')
-                print(new_port.shape, new_port.dtype)
+                #print(new_port.shape, new_port.dtype)
             else:
                 new_port = torch.empty(1, dtype=torch.int, device='cuda')
-                print(new_port.shape, new_port.dtype)
+                #print(new_port.shape, new_port.dtype)
 
             torch.distributed.broadcast(new_port, src=0)
             new_port = int(new_port.item())
-            print('receiving new port on rank=', trainer.global_rank, 'port', new_port)
+            #print('receiving new port on rank=', trainer.global_rank, 'port', new_port)
             torch.distributed.destroy_process_group()  # destroy connections on old port
             os.environ['MASTER_PORT'] = str(new_port)
 
@@ -138,7 +133,7 @@ class DistributedConnection:
                 # torch.distributed.barrier()
                 torch.distributed.destroy_process_group()
 
-            print('group destroyed on ', trainer.global_rank)
+            #print('group destroyed on ', trainer.global_rank)
 
         # atexit.register(exit_handler)
 

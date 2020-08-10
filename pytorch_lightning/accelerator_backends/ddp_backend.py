@@ -59,13 +59,9 @@ class DDPBackend(object):
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def spawn_ddp_children(self, model):
-        #
         assert self.trainer.global_rank == 0
-        # self.trainer.set_random_port(force=True)
-        #port = os.environ['MASTER_PORT']
 
         master_address = os.environ.get('MASTER_ADDR', '127.0.0.1')
-        #os.environ['MASTER_PORT'] = f'{port}'
         os.environ['MASTER_ADDR'] = f'{master_address}'
 
         # allow the user to pass the node rank
@@ -157,19 +153,7 @@ class DDPBackend(object):
         # where to store ip_table
         model.trainer = self.trainer
 
-        # from torch.distributed import is_initialized
-        # if not is_master or not is_initialized():
-        #     assert not (is_master and self.trainer.global_rank > 0)
-        #     # on rank > 0, we always need to initialize, because these are new processes
-
-        self.distributed_connection.init_connection(self.trainer, model)
-        # model.init_ddp_connection(
-        #     self.trainer.global_rank,
-        #     self.trainer.world_size,
-        #     self.trainer.is_slurm_managing_tasks
-        # )
-        # else:
-        #     print('already initialized', os.environ['MASTER_PORT'], os.getpid(), is_master)
+        self.distributed_connection.reset_connection(self.trainer, model)
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
@@ -240,15 +224,6 @@ class DDPBackend(object):
 
         # clean up memory
         torch.cuda.empty_cache()
-
-        # clean up dist group
-        #if self.use_ddp or self.use_ddp2:
-        # import torch.distributed as torch_distrib
-        # torch_distrib.destroy_process_group()
-
-        # torch.distributed.destroy_process_group()
-
-        self.distributed_connection.teardown()
 
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
