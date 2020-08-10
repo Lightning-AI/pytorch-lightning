@@ -685,7 +685,7 @@ Notice the epoch is MUCH faster!
 
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
-    :width: 400
+    :width: 600
 
 ----------------
 
