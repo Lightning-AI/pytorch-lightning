@@ -25,6 +25,8 @@ Notice a few things.
 3.  All the other code that's not in the :class:`~LightningModule`
     has been automated for you by the trainer.
 
+|
+
     .. code-block:: python
 
         net = Net()
@@ -32,6 +34,8 @@ Notice a few things.
         trainer.fit(net)
 
 4.  There are no .cuda() or .to() calls... Lightning does these for you.
+
+|
 
     .. code-block:: python
 
@@ -48,6 +52,8 @@ Notice a few things.
         new_x = new_x.type_as(x.type())
 
 5.  There are no samplers for distributed, Lightning also does this for you.
+
+|
 
     .. code-block:: python
 
