@@ -120,7 +120,7 @@ class DistributedConnection:
                 print('receiving new port')
                 new_port = torch.empty(1, device=model.device)
                 torch.distributed.broadcast(new_port, trainer.global_rank)
-                os.environ['MASTER_PORT'] = str(new_port.item())
+                os.environ['MASTER_PORT'] = str(int(new_port.item()))
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
         #self._is_initialized = True
