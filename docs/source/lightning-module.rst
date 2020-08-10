@@ -5,11 +5,11 @@ LightningModule
 ===============
 A :class:`~LightningModule` organizes your PyTorch code into 5 sections
 
-- Computations
-- Train loop
-- Validation loop
-- Test loop
-- Optimizers
+- Computations (init).
+- Train loop (training_step)
+- Validation loop (validation_step)
+- Test loop (test_step)
+- Optimizers (configure_optimizers)
 
 |
 
