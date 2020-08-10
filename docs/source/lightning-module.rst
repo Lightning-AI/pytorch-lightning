@@ -260,7 +260,7 @@ such as text generation:
 ---------------------
 
 LightningModule for production
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------
 For cases like production, you might want to iterate different models inside a LightningModule.
 
 .. code-block:: python
