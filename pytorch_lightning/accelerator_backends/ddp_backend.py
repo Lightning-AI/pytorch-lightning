@@ -241,7 +241,7 @@ class DistributedConnection:
         if torch.distributed.is_initialized():
             print(trainer.global_rank, "ddp connection already initialized, moving to new port")
 
-            torch.distributed.barrier()
+            # torch.distributed.barrier()
             new_port = torch.empty(1, dtype=torch.int, device='cuda')
 
             if trainer.global_rank == 0:
