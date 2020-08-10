@@ -470,6 +470,8 @@ So far we defined 4 key ingredients in pure PyTorch but organized the code with 
 3. Optimizer.
 4. What happens in the training loop.
 
+|
+
 For clarity, we'll recall that the full LightningModule now looks like this.
 
 .. code-block:: python
@@ -543,6 +545,8 @@ Which will generate automatic tensorboard logs.
 
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
+
+|
 
 But you can also use any of the `number of other loggers <loggers.rst>`_ we support.
 
