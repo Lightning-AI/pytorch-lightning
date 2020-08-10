@@ -1,4 +1,5 @@
 import os
+import random
 from argparse import ArgumentParser, Namespace
 
 import numpy as np
@@ -7,7 +8,6 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
-import random
 
 import pytorch_lightning as pl
 from pl_examples.models.unet import UNet

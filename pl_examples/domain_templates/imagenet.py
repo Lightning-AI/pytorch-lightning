@@ -1,13 +1,27 @@
 """
 This example is largely adapted from https://github.com/pytorch/examples/blob/master/imagenet/main.py
+
+Before you can run this example, you will need to download the ImageNet dataset manually from the
+`official website <http://image-net.org/download>`_ and place it into a folder `path/to/imagenet`.
+
+Train on ImageNet with default parameters:
+
+.. code-block: bash
+
+    python imagenet.py --data_root /path/to/imagenet
+
+or show all options you can change:
+
+.. code-block: bash
+
+    python imagenet.py --help
+
 """
-from argparse import ArgumentParser, Namespace
 import os
-import random
+from argparse import ArgumentParser, Namespace
 from collections import OrderedDict
 
 import torch
-import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 import torch.nn.parallel
 import torch.optim as optim
@@ -21,26 +35,29 @@ import torchvision.transforms as transforms
 import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 
-# pull out resnet names from torchvision models
-MODEL_NAMES = sorted(
-    name for name in models.__dict__
-    if name.islower() and not name.startswith("__") and callable(models.__dict__[name])
-)
-
 
 class ImageNetLightningModel(LightningModule):
-    def __init__(self,
-                 arch,
-                 pretrained,
-                 lr: float,
-                 momentum: float,
-                 weight_decay: int,
-                 data_path: str,
-                 batch_size: int, **kwargs):
-        """
-        TODO: add docstring here
-        """
+
+    # pull out resnet names from torchvision models
+    MODEL_NAMES = sorted(
+        name for name in models.__dict__
+        if name.islower() and not name.startswith("__") and callable(models.__dict__[name])
+    )
+
+    def __init__(
+        self,
+        arch: str,
+        pretrained: bool,
+        lr: float,
+        momentum: float,
+        weight_decay: int,
+        data_path: str,
+        batch_size: int,
+        workers: int,
+        **kwargs,
+    ):
         super().__init__()
+        self.save_hyperparameters()
         self.arch = arch
         self.pretrained = pretrained
         self.lr = lr
@@ -48,6 +65,7 @@ class ImageNetLightningModel(LightningModule):
         self.weight_decay = weight_decay
         self.data_path = data_path
         self.batch_size = batch_size
+        self.workers = workers
         self.model = models.__dict__[self.arch](pretrained=self.pretrained)
 
     def forward(self, x):
@@ -67,7 +85,6 @@ class ImageNetLightningModel(LightningModule):
             'progress_bar': tqdm_dict,
             'log': tqdm_dict
         })
-
         return output
 
     def validation_step(self, batch, batch_idx):
@@ -81,32 +98,18 @@ class ImageNetLightningModel(LightningModule):
             'val_acc1': acc1,
             'val_acc5': acc5,
         })
-
         return output
 
     def validation_epoch_end(self, outputs):
-
         tqdm_dict = {}
-
         for metric_name in ["val_loss", "val_acc1", "val_acc5"]:
-            metric_total = 0
-
-            for output in outputs:
-                metric_value = output[metric_name]
-
-                # reduce manually when using dp
-                if self.trainer.use_dp or self.trainer.use_ddp2:
-                    metric_value = torch.mean(metric_value)
-
-                metric_total += metric_value
-
-            tqdm_dict[metric_name] = metric_total / len(outputs)
+            tqdm_dict[metric_name] = torch.stack([output[metric_name] for output in outputs]).mean()
 
         result = {'progress_bar': tqdm_dict, 'log': tqdm_dict, 'val_loss': tqdm_dict["val_loss"]}
         return result
 
-    @classmethod
-    def __accuracy(cls, output, target, topk=(1,)):
+    @staticmethod
+    def __accuracy(output, target, topk=(1,)):
         """Computes the accuracy over the k top predictions for the specified values of k"""
         with torch.no_grad():
             maxk = max(topk)
@@ -129,7 +132,10 @@ class ImageNetLightningModel(LightningModule):
             momentum=self.momentum,
             weight_decay=self.weight_decay
         )
-        scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.1)
+        scheduler = lr_scheduler.LambdaLR(
+            optimizer,
+            lambda epoch: 0.1 ** (epoch // 30)
+        )
         return [optimizer], [scheduler]
 
     def train_dataloader(self):
@@ -148,17 +154,11 @@ class ImageNetLightningModel(LightningModule):
                 normalize,
             ]))
 
-        if self.use_ddp:
-            train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        else:
-            train_sampler = None
-
         train_loader = torch.utils.data.DataLoader(
             dataset=train_dataset,
             batch_size=self.batch_size,
-            shuffle=(train_sampler is None),
-            num_workers=0,
-            sampler=train_sampler
+            shuffle=True,
+            num_workers=self.workers,
         )
         return train_loader
 
@@ -177,21 +177,38 @@ class ImageNetLightningModel(LightningModule):
             ])),
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=0,
+            num_workers=self.workers,
         )
         return val_loader
+
+    def test_dataloader(self):
+        return self.val_dataloader()
+
+    def test_step(self, *args, **kwargs):
+        return self.validation_step(*args, **kwargs)
+
+    def test_epoch_end(self, *args, **kwargs):
+        outputs = self.validation_epoch_end(*args, **kwargs)
+
+        def substitute_val_keys(out):
+            return {k.replace('val', 'test'): v for k, v in out.items()}
+
+        outputs = {
+            'test_loss': outputs['val_loss'],
+            'progress_bar': substitute_val_keys(outputs['progress_bar']),
+            'log': substitute_val_keys(outputs['log']),
+        }
+        return outputs
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no-cover
         parser = ArgumentParser(parents=[parent_parser])
-        parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18', choices=MODEL_NAMES,
-                            help='model architecture: ' +
-                                 ' | '.join(MODEL_NAMES) +
-                                 ' (default: resnet18)')
-        parser.add_argument('--epochs', default=90, type=int, metavar='N',
-                            help='number of total epochs to run')
-        parser.add_argument('--seed', type=int, default=42,
-                            help='seed for initializing training. ')
+        parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+                            choices=ImageNetLightningModel.MODEL_NAMES,
+                            help=('model architecture: ' + ' | '.join(ImageNetLightningModel.MODEL_NAMES)
+                                  + ' (default: resnet18)'))
+        parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                            help='number of data loading workers (default: 4)')
         parser.add_argument('-b', '--batch-size', default=256, type=int,
                             metavar='N',
                             help='mini-batch size (default: 256), this is the total '
@@ -209,46 +226,44 @@ class ImageNetLightningModel(LightningModule):
         return parser
 
 
-def get_args():
-    parent_parser = ArgumentParser(add_help=False)
-    parent_parser.add_argument('--data-path', metavar='DIR', type=str,
-                               help='path to dataset')
-    parent_parser.add_argument('--save-path', metavar='DIR', default=".", type=str,
-                               help='path to save output')
-    parent_parser.add_argument('--gpus', type=int, default=1,
-                               help='how many gpus')
-    parent_parser.add_argument('--distributed-backend', type=str, default='dp', choices=('dp', 'ddp', 'ddp2'),
-                               help='supports three options dp, ddp, ddp2')
-    parent_parser.add_argument('--use-16bit', dest='use_16bit', action='store_true',
-                               help='if true uses 16 bit precision')
-    parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-                               help='evaluate model on validation set')
-
-    parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
-    return parser.parse_args()
-
-
 def main(args: Namespace) -> None:
-    model = ImageNetLightningModel(**vars(args))
-
     if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        cudnn.deterministic = True
+        pl.seed_everything(args.seed)
 
-    trainer = pl.Trainer(
-        default_root_dir=args.save_path,
-        gpus=args.gpus,
-        max_epochs=args.epochs,
-        distributed_backend=args.distributed_backend,
-        precision=16 if args.use_16bit else 32,
-    )
+    if args.distributed_backend == 'ddp':
+        # When using a single GPU per process and per
+        # DistributedDataParallel, we need to divide the batch size
+        # ourselves based on the total number of GPUs we have
+        args.batch_size = int(args.batch_size / max(1, args.gpus))
+        args.workers = int(args.workers / max(1, args.gpus))
+
+    model = ImageNetLightningModel(**vars(args))
+    trainer = pl.Trainer.from_argparse_args(args)
 
     if args.evaluate:
-        trainer.test()
+        trainer.test(model)
     else:
         trainer.fit(model)
 
 
+def run_cli():
+    parent_parser = ArgumentParser(add_help=False)
+    parent_parser = pl.Trainer.add_argparse_args(parent_parser)
+    parent_parser.add_argument('--data-path', metavar='DIR', type=str,
+                               help='path to dataset')
+    parent_parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
+                               help='evaluate model on validation set')
+    parent_parser.add_argument('--seed', type=int, default=42,
+                               help='seed for initializing training.')
+    parser = ImageNetLightningModel.add_model_specific_args(parent_parser)
+    parser.set_defaults(
+        profiler=True,
+        deterministic=True,
+        max_epochs=90,
+    )
+    args = parser.parse_args()
+    main(args)
+
+
 if __name__ == '__main__':
-    main(get_args())
+    run_cli()

@@ -20,9 +20,10 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as torch_distrib
-import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.accelerators import (
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -30,9 +31,10 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin
+from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
+from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
@@ -43,16 +45,14 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerator_backends import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -62,9 +62,7 @@ warnings.filterwarnings(
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla
@@ -200,6 +198,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
+        amp_type: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -221,6 +220,7 @@ class Trainer(
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             gradient_clip_val: 0 means don't clip.
 
@@ -306,9 +306,12 @@ class Trainer(
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                     for checkpoints only. Use this if for whatever reason you need the checkpoints
                     stored in a different place than the logs written in `default_root_dir`.
+                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
 
+
             amp_level: The optimization level to use (O1, O2, etc...).
+                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -331,7 +334,7 @@ class Trainer(
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
-                you can set ``replace_ddp_sampler=False`` and add your own distributed sampler.
+                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
             benchmark: If true enables cudnn.benchmark.
 
@@ -396,6 +399,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
+        self.state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
@@ -534,7 +538,6 @@ class Trainer(
         # logging
         self.configure_logger(logger)
         self.log_save_interval = log_save_interval
-        self.val_check_interval = val_check_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -546,9 +549,6 @@ class Trainer(
                 DeprecationWarning,
             )
             overfit_batches = overfit_pct
-
-        # convert floats to ints
-        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -577,9 +577,11 @@ class Trainer(
             )
             limit_train_batches = train_percent_check
 
-        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
-        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
-        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
+        self.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
+        self.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
         self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
@@ -590,7 +592,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp()
+        self.init_amp(amp_type)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -878,6 +880,9 @@ class Trainer(
         The default location to save artifacts of loggers, checkpoints etc.
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
         """
+        if "://" in str(self._default_root_dir):
+            # it is a remote uri, use as is
+            return self._default_root_dir
         return os.path.normpath(self._default_root_dir)
 
     @property
@@ -886,11 +891,15 @@ class Trainer(
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
+        if "://" in str(self._weights_save_path):
+            # it is a remote uri, use as is
+            return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
 
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -958,7 +967,7 @@ class Trainer(
         self.config_validator.verify_loop_configurations(model)
 
         # callbacks
-        self.on_fit_start()
+        self.on_fit_start(model)
         if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
 
@@ -1054,13 +1063,12 @@ class Trainer(
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
-        # callbacks
+        # on fit end callback
         self.on_fit_end()
-
-        # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
 
+        # teardown callback
         self.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
@@ -1131,7 +1139,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if NATIVE_AMP_AVALAIBLE and self.precision == 16 and not self.use_tpu:
+        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1154,6 +1162,11 @@ class Trainer(
 
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
+
+        # on pretrain routine start
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_start'):
+            ref_model.on_pretrain_routine_start()
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
@@ -1197,6 +1210,11 @@ class Trainer(
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
 
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
+
         # CORE TRAINING LOOP
         self.train()
 
@@ -1233,6 +1251,7 @@ class Trainer(
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -1428,12 +1447,12 @@ class _PatchDataLoader(object):
         return self.dataloader
 
 
-def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
     if 0 <= batches <= 1:
         return batches
     elif batches > 1 and batches % 1.0 == 0:
         return int(batches)
     else:
         raise MisconfigurationException(
-            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+            f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
         )

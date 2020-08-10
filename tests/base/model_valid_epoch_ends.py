@@ -24,6 +24,11 @@ class ValidationEpochEndVariations(ABC):
         val_loss_mean = _mean(outputs, 'val_loss')
         val_acc_mean = _mean(outputs, 'val_acc')
 
+        # alternate between tensor and scalar
+        if self.current_epoch % 2 == 0:
+            val_loss_mean = val_loss_mean.item()
+            val_acc_mean = val_acc_mean.item()
+
         metrics_dict = {'val_loss': val_loss_mean, 'val_acc': val_acc_mean}
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
@@ -53,6 +58,6 @@ class ValidationEpochEndVariations(ABC):
         results = {
             'val_loss': torch.stack([v for k, v in pbar.items() if k.startswith('val_loss')]).mean(),
             'progress_bar': pbar,
-            'log': logs
+            'log': logs,
         }
         return results

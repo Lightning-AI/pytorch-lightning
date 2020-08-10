@@ -145,9 +145,7 @@ from pytorch_lightning.core.lightning import LightningModule
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import horovod.torch as hvd
@@ -200,11 +198,6 @@ class TrainerDDPMixin(ABC):
     @property
     @abstractmethod
     def num_gpus(self) -> int:
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @property
-    @abstractmethod
-    def use_amp(self) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod

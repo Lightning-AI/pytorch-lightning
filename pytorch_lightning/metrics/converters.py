@@ -5,13 +5,14 @@ sync tensors between different processes in a DDP scenario, when needed.
 """
 
 import numbers
-from typing import Union, Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 import torch
 from torch.utils.data._utils.collate import np_str_obj_array_pattern
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 try:
     from torch.distributed import ReduceOp

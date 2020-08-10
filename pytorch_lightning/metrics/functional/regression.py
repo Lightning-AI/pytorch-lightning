@@ -17,7 +17,7 @@ def mse(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing mse (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -51,7 +51,7 @@ def rmse(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing rmse (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -83,7 +83,7 @@ def mae(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing mae (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -117,7 +117,7 @@ def rmsle(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing rmsle (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -154,7 +154,7 @@ def psnr(
         target: groun truth signal
         data_range: the range of the data. If None, it is determined from the data (max - min)
         base: a base of a logarithm to use (default: 10)
-        reduction: method for reducing psnr (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -215,13 +215,13 @@ def ssim(
     Computes Structual Similarity Index Measure
 
     Args:
-        pred: Estimated image
-        target: Ground truth image
-        kernel_size: Size of the gaussian kernel. Default: (11, 11)
-        sigma: Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
-        reduction: A method for reducing ssim over all elements in the ``pred`` tensor. Default: ``elementwise_mean``
-
+        pred: estimated image
+        target: ground truth image
+        kernel_size: size of the gaussian kernel (default: (11, 11))
+        sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
+
             - elementwise_mean: takes the mean
             - none: pass away
             - sum: add elements
@@ -230,8 +230,8 @@ def ssim(
         k1: Parameter of SSIM. Default: 0.01
         k2: Parameter of SSIM. Default: 0.03
 
-    Returns:
-        A Tensor with SSIM
+    Return:
+        Tensor with SSIM score
 
     Example:
 
@@ -239,6 +239,7 @@ def ssim(
         >>> target = pred * 0.75
         >>> ssim(pred, target)
         tensor(0.9219)
+
     """
 
     if pred.dtype != target.dtype:

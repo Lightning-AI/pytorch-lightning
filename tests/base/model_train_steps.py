@@ -11,6 +11,7 @@ class TrainingStepVariations(ABC):
     """
     Houses all variations of training steps
     """
+
     test_step_inf_loss = float('inf')
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
@@ -18,18 +19,23 @@ class TrainingStepVariations(ABC):
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
-
         y_hat = self(x)
 
         # calculate loss
         loss_val = self.loss(y, y_hat)
+        log_val = loss_val
 
-        # alternate possible outputs to test
-        output = OrderedDict({
-            'loss': loss_val,
-            'progress_bar': {'some_val': loss_val * loss_val},
-            'log': {'train_some_val': loss_val * loss_val},
-        })
+        # alternate between tensors and scalars for "log" and "progress_bar"
+        if batch_idx % 2 == 0:
+            log_val = log_val.item()
+
+        output = OrderedDict(
+            {
+                'loss': loss_val,
+                'progress_bar': {'some_val': log_val * log_val},
+                'log': {'train_some_val': log_val * log_val},
+            }
+        )
         return output
 
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
@@ -71,6 +77,7 @@ class TrainingStepVariations(ABC):
         """
         result.log('train_epoch_end_metric', 1, on_epoch=True)
         self.training_epoch_end_called = True
+
         return result
 
     def eval_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):

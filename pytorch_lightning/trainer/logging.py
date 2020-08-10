@@ -1,4 +1,3 @@
-import os
 from abc import ABC
 from typing import Union, Iterable
 
@@ -207,6 +206,10 @@ class TrainerLoggingMixin(ABC):
             # recurse on nested dics
             if isinstance(output[k], dict):
                 output[k] = self.reduce_distributed_output(output[k], num_gpus)
+
+            # compute the average of scalars
+            elif isinstance(output[k], list):
+                output[k] = sum(output[k]) / len(output[k])
 
             # do nothing when there's a scalar
             elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:

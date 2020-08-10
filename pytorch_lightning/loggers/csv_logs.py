@@ -5,12 +5,13 @@ CSV logger
 CSV logger for basic experiment logging that does not require opening ports
 
 """
+import csv
 import io
 import os
-import csv
-import torch
 from argparse import Namespace
 from typing import Optional, Dict, Any, Union
+
+import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
