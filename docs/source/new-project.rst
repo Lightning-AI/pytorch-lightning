@@ -435,33 +435,18 @@ Lightning has built-in logging to any of the supported loggers or progress bar.
 
 Log in train loop
 ^^^^^^^^^^^^^^^^^
-To log from the training loop use the `log` reserved key.
+To log from the training loop use the `log` method in the `TrainResult`.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         loss = ...
-        return {'loss': loss, 'log': {'train_loss': loss}}
-
-
-However, for more fine-grain control use the `TrainResult` object.
-These are equivalent:
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        loss = ...
-        return {'loss': loss, 'log': {'train_loss': loss}}
-
-    # equivalent
-    def training_step(self, batch, batch_idx):
-        loss = ...
-
         result = pl.TrainResult(minimize=loss)
         result.log('train_loss', loss)
         return result
 
-But the TrainResult gives you error-checking and greater flexibility:
+The `TrainResult` gives you options for logging on every step and/or at the end of the epoch.
+It also allows logging to the progress bar.
 
 .. code-block:: python
 
@@ -480,41 +465,15 @@ Then boot up your logger or tensorboard instance to view training logs
 
 Log in Val/Test loop
 ^^^^^^^^^^^^^^^^^^^^
-To log from the validation or test loop use a similar approach
+To log from the validation or test loop use the `EvalResult`.
 
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
         loss = ...
-        acc = ...
-        val_output = {'loss': loss, 'acc': acc}
-        return val_output
-
-    def validation_epoch_end(self, validation_step_outputs):
-        # this step allows you to aggregate whatever you passed in from every val step
-        val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
-        val_epoch_acc = torch.stack([x['acc'] for x in val_output]).mean()
-        return {
-            'val_loss': val_epoch_loss,
-            'log': {'avg_val_loss': val_epoch_loss, 'avg_val_acc': val_epoch_acc}
-        }
-
-The recommended equivalent version in case you don't need to do anything special
-with all the outputs of the validation step:
-
-.. code-block:: python
-
-    def validation_step(self, batch, batch_idx):
-        loss = ...
-        acc = ...
-
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log('val_loss', loss)
-        result.log('val_acc', acc)
+        result = pl.EvalResult()
+        result.log_dict({'val_loss': loss, 'val_acc': acc})
         return result
-
-.. note:: Only use `validation_epoch_end` if you need fine-grain control over aggreating all step outputs
-
 
 Log to the progress bar
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -527,23 +486,14 @@ Log to the progress bar
 
 |
 
-In addition to visual logging, you can log to the progress bar by using the keyword `progress_bar`:
+In addition to visual logging, you can log to the progress bar by setting `prog_bar` to True
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         loss = ...
-        return {'loss': loss, 'progress_bar': {'train_loss': loss}}
-
-Or simply set `prog_bar=True` in either of the `EvalResult` or `TrainResult`
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        result = TrainResult(loss)
+        result = pl.TrainResult(loss)
         result.log('train_loss', loss, prog_bar=True)
-        return result
-
 
 -----------------
 
