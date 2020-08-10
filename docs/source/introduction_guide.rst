@@ -545,6 +545,7 @@ Which will generate automatic tensorboard logs.
 
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
+   :width: 500
 
 |
 
@@ -599,9 +600,13 @@ First, change the runtime to TPU (and reinstall lightning).
 
 .. figure:: /_images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
+    :width: 500
 
 .. figure:: /_images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
+    :width: 500
+
+|
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
