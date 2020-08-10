@@ -149,8 +149,8 @@ A LightningModule is best used to define a complex system:
 
          def __init__(self, latent_dim=2):
             super().__init__()
-            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, latent_dim))
-            self.decoder = nn.Sequential(nn.Linear(latent_dim, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
+            self.encoder = nn.Sequential(nn.Linear(28 * 28, 256), nn.ReLU(), nn.Linear(256, latent_dim))
+            self.decoder = nn.Sequential(nn.Linear(latent_dim, 256), nn.ReLU(), nn.Linear(256, 28 * 28))
 
          def training_step(self, batch, batch_idx):
             x, _ = batch
@@ -174,7 +174,6 @@ A LightningModule is best used to define a complex system:
             reconstruction_loss = nn.functional.mse_loss(recons, x)
 
             result = pl.EvalResult(checkpoint_on=reconstruction_loss)
-            result.log_dict({'val_recons_loss': reconstruction_loss})
             return result
 
          def configure_optimizers(self):
@@ -184,11 +183,54 @@ Which can be trained like this:
 
 .. code-block:: python
 
-    dm = MNISTDataModule('.')
-    model = Autoencoder()
-
+    autoencoder = Autoencoder()
     trainer = pl.Trainer(gpus=1)
-    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.fit(autoencoder, train_dataloader, val_dataloader)
+
+The methods above are part of the lightning interface:
+
+- training_step
+- validation_step
+- test_step
+- configure_optimizers
+
+Note that in this case, the train loop and val loop are exactly the same. We can of course reuse this code.
+
+.. code-block:: python
+
+    class Autoencoder(pl.LightningModule):
+
+         def __init__(self, latent_dim=2):
+            super().__init__()
+            self.encoder = nn.Sequential(nn.Linear(28 * 28, 256), nn.ReLU(), nn.Linear(256, latent_dim))
+            self.decoder = nn.Sequential(nn.Linear(latent_dim, 256), nn.ReLU(), nn.Linear(256, 28 * 28))
+
+         def training_step(self, batch, batch_idx):
+            loss = self.shared_step(batch)
+            return pl.TrainResult(loss)
+
+         def validation_step(self, batch, batch_idx):
+            loss = self.shared_step(batch)
+            result = pl.EvalResult(checkpoint_on=loss)
+            return result
+
+         def shared_step(self, batch):
+            x, _ = batch
+
+            # encode
+            x = x.view(x.size(0), -1)
+            z = self.encoder(x)
+
+            # decode
+            recons = self.decoder(z)
+
+            # loss
+            return nn.functional.mse_loss(recons, x)
+
+         def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.0002)
+
+We create a new method called `shared_step` that all 3 loops can use. This method name is arbitrary and NOT reserved.
 
 As a task (production use)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
