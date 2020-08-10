@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import os
 import torch
 import torch.multiprocessing as mp
 
-from pytorch_lightning.accelerator_backends.ddp_backend import find_open_network_port, DistributedConnection
+from pytorch_lightning.accelerator_backends.ddp_backend import DistributedConnection
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning import _logger as log
 
@@ -36,9 +35,6 @@ class DDPSpawnBackend(object):
         self.distributed_connection = DistributedConnection(trainer)
 
     def setup(self):
-        # TODO: check
-        # self.trainer.set_random_port()
-
         # pass in a state q
         smp = mp.get_context('spawn')
         self.mp_queue = smp.SimpleQueue()
@@ -99,12 +95,8 @@ class DDPSpawnBackend(object):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         model.trainer = self.trainer
+
         self.distributed_connection.reset_connection(self.trainer, model)
-        # model.init_ddp_connection(
-        #     self.trainer.global_rank,
-        #     self.trainer.world_size,
-        #     self.trainer.is_slurm_managing_tasks
-        # )
 
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)

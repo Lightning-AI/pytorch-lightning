@@ -266,7 +266,14 @@ class DistributedConnection:
 
     def _set_master_port(self, port: int = None):
         """
-        When running DDP NOT managed by SLURM, the ports might collide
+        Sets the `MASTER_PORT` environment variable in single-node DDP training.
+
+        Args:
+            port: If provided, sets the environment variable MASTER_PORT, and otherwhise
+                an attempt is made to find an unused open port.
+
+        Return:
+            The port that was set.
         """
         assert self.trainer.num_nodes == 1, 'random port can only be called from single node training'
         os.environ['MASTER_PORT'] = str(port or find_open_network_port())
