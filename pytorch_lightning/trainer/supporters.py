@@ -109,18 +109,18 @@ class DistributedConnection:
         #self.trainer.set_random_port()
 
     def init_connection(self, trainer, model):
-        if torch.distributed.is_initialized():
-            print("ddp connection already initialized, moving to new port")
+        # if torch.distributed.is_initialized():
+        #     print("ddp connection already initialized, moving to new port")
 
-            if trainer.global_rank == 0:
-                print('sending new port to others')
-                new_port = trainer.set_random_port(force=True)
-                torch.distributed.broadcast(torch.tensor(new_port, device=model.device), src=0)
-            else:
-                print('receiving new port')
-                new_port = torch.empty(1, device=model.device)
-                torch.distributed.broadcast(new_port, trainer.global_rank)
-                os.environ['MASTER_PORT'] = str(int(new_port.item()))
+        if trainer.global_rank == 0:
+            print('sending new port to others')
+            new_port = trainer.set_random_port(force=True)
+            torch.distributed.broadcast(torch.tensor(new_port, device=model.device), src=0)
+        else:
+            print('receiving new port on rank=', trainer.global_rank)
+            new_port = torch.empty(1, device=model.device)
+            torch.distributed.broadcast(new_port, trainer.global_rank)
+            os.environ['MASTER_PORT'] = str(int(new_port.item()))
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
         #self._is_initialized = True
