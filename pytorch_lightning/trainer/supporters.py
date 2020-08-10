@@ -121,12 +121,14 @@ class DistributedConnection:
                 print('sending new port on rank=', trainer.global_rank, 'port', new_port)
                 new_port = torch.tensor([new_port]).cuda(0)
                 print(new_port)
-                for i in range(1, trainer.world_size):
-                    torch.distributed.send(new_port, dst=i)
             else:
                 new_port = torch.empty(1).cuda(0)
-                torch.distributed.recv(new_port, src=0)
                 print(new_port)
+
+            tensor_list = [torch.empty_like(new_port)] * trainer.world_size
+            torch.distributed.all_gather(tensor_list, new_port)
+            new_port = tensor_list[0]
+
 
             #torch.distributed.broadcast_multigpu([new_port], src=0, src_tensor=0)
             #torch.distributed.broadcast(new_port, src=0)
