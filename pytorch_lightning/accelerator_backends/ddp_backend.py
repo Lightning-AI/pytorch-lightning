@@ -22,7 +22,7 @@ import numpy as np
 from os.path import abspath
 
 from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_debug
 from pytorch_lightning import _logger as log
 from typing import Optional
 
@@ -239,9 +239,8 @@ class DistributedConnection:
 
     def reset_connection(self, trainer, model):
         if torch.distributed.is_initialized():
-            print(trainer.global_rank, "ddp connection already initialized, moving to new port")
+            rank_zero_debug("DDP connection already initialized. Reinitializing on new port...")
 
-            # torch.distributed.barrier()
             new_port = torch.empty(1, dtype=torch.int, device='cuda')
 
             if trainer.global_rank == 0:
