@@ -114,6 +114,8 @@ class DistributedConnection:
         if torch.distributed.is_initialized():
             print("ddp connection already initialized, moving to new port")
 
+            torch.distributed.barrier()
+            
             if trainer.global_rank == 0:
                 print('sending new port to others')
                 new_port = trainer.set_random_port(force=True)
