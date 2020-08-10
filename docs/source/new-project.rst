@@ -497,6 +497,37 @@ In addition to visual logging, you can log to the progress bar by setting `prog_
 
 -----------------
 
+Advanced loop aggregation
+-------------------------
+For certain train/val/test loops, you may wish to do more than just logging. In this case,
+you can also implement `__epoch_end` which gives you the output for each step
+
+Here's the motivating Pytorch example:
+
+.. code-block:: python
+
+    validation_step_outputs = []
+    for batch_idx, batch in val_dataloader():
+        out = validation_step(batch, batch_idx)
+        validation_step_outputs.append(out)
+
+    validation_epoch_end(validation_step_outputs)
+
+And the lightning equivalent
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        loss = ...
+        predictions = ...
+        result = pl.EvalResult(checkpoint_on=loss)
+        result.log('val_loss', loss)
+        result.predictions = predictions
+
+     def validation_epoch_end(self, validation_step_outputs):
+        all_val_losses = validation_step_outputs.val_loss
+        all_predictions = validation_step_outputs.predictions
+
 Why do you need Lightning?
 --------------------------
 The MAIN teakeaway points are:
