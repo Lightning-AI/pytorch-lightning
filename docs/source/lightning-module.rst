@@ -119,8 +119,8 @@ Which you can train by doing:
 
 ----------
 
-Use cases
----------
+Structuring a LightningModule
+-----------------------------
 Depending on your use case, you can structure a LightningModule in a few ways.
 
 As a task
@@ -159,7 +159,7 @@ If you wish you de-couple the model/s from the LightningModule, you can use it a
             return result
 
          def configure_optimizers(self):
-             return torch.optim.Adam(self.parameters(), lr=0.02)
+             return torch.optim.Adam(self.model.parameters(), lr=0.02)
 
 Then pass in any arbitrary model to be fit with this task
 
