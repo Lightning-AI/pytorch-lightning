@@ -120,10 +120,10 @@ class DistributedConnection:
                 new_port = trainer.set_random_port(force=True, overwrite=False)
                 print('sending new port on rank=', trainer.global_rank, 'port', new_port)
                 new_port = torch.tensor([new_port]).cuda()
-                print(new_port)
+                print(new_port.shape, new_port.dtype)
             else:
                 new_port = torch.empty(1).cuda()
-                print(new_port)
+                print(new_port.shape, new_port.dtype)
 
             torch.distributed.broadcast(new_port, src=0)
             new_port = int(new_port.item())
