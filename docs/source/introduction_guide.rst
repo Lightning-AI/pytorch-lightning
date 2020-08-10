@@ -765,12 +765,13 @@ If you still need even more fine-grain control, define the other optional method
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
-        val_step_output = {'step_output': x}
-        return val_step_output
+        result = pl.EvalResult()
+        result.prediction = some_prediction
+        return result
 
     def validation_epoch_end(self, val_step_outputs):
-        for val_step_output in val_step_outputs:
-            # each object here is what you passed back at each validation_step
+        # do something with all the predictions from each validation_step
+        all_predictions = val_step_outputs.prediction
 
 ----------------
 
