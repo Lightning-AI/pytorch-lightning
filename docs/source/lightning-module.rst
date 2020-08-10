@@ -234,14 +234,7 @@ We create a new method called `shared_step` that all loops can use. This method 
 
 Inference in Research
 ^^^^^^^^^^^^^^^^^^^^^
-In the case where we want to perform inference with the system we can pull out the decoder:
-
-.. code-block:: python
-
-    decoder = autoencoder.decoder
-    y = decoder(x)
-
-or we can add a `forward` method to the LightningModule
+In the case where we want to perform inference with the system we can add a `forward` method to the LightningModule.
 
 .. code-block:: python
 
@@ -264,8 +257,10 @@ such as text generation:
                 ...
             return decoded
 
-As a task (production use)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------
+
+LightningModule for production
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For cases like production, you might want to iterate different models inside a LightningModule.
 
 .. code-block:: python
@@ -324,7 +319,25 @@ Tasks can be arbitrarily complex such as implementing GAN training, self-supervi
              self.discriminator = discriminator
          ...
 
+Inference in production
+^^^^^^^^^^^^^^^^^^^^^^^
+When used like this, the model can be separated from the Task and thus used in production without needing to keep it in
+a `LightningModule`.
 
+- You can export to onnx.
+- Or trace using Jit.
+- or run in the python runtime.
+
+.. code-block:: python
+
+        task = ClassificationTask(model)
+
+        trainer = Trainer(gpus=2)
+        trainer.fit(task, train_dataloader, val_dataloader)
+
+        # use model after training or load weights and drop into the production system
+        model.eval()
+        y_hat = model(x)
 
 
 Training loop structure
