@@ -320,6 +320,8 @@ When your models need to know about the data, it's best to process the data befo
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
 
+|
+
 .. testcode::
 
     class LitMNIST(LightningModule):
@@ -391,11 +393,11 @@ In the case of MNIST we do the following
 
     for epoch in epochs:
         for batch in data:
-            # TRAINING STEP START
+            # ------ TRAINING STEP START ------
             x, y = batch
             logits = model(x)
             loss = F.nll_loss(logits, y)
-            # TRAINING STEP END
+            # ------ TRAINING STEP END ------
 
             loss.backward()
             optimizer.step()
