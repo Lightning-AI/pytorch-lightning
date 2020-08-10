@@ -112,29 +112,23 @@ class DistributedConnection:
 
     def init_connection(self, trainer, model):
         if torch.distributed.is_initialized():
-            print("ddp connection already initialized, moving to new port")
+            print(trainer.global_rank, "ddp connection already initialized, moving to new port")
 
             torch.distributed.barrier()
 
             if trainer.global_rank == 0:
                 new_port = trainer.set_random_port(force=True, overwrite=False)
                 print('sending new port on rank=', trainer.global_rank, 'port', new_port)
-                new_port = torch.tensor([new_port]).cuda(0)
+                new_port = torch.tensor([new_port]).cuda()
                 print(new_port)
             else:
-                new_port = torch.empty(1).cuda(0)
+                new_port = torch.empty(1).cuda()
                 print(new_port)
 
-            tensor_list = [torch.empty_like(new_port)] * trainer.world_size
-            torch.distributed.all_gather(tensor_list, new_port)
-            new_port = tensor_list[0]
-
-
-            #torch.distributed.broadcast_multigpu([new_port], src=0, src_tensor=0)
-            #torch.distributed.broadcast(new_port, src=0)
+            torch.distributed.broadcast(new_port, src=0)
             new_port = int(new_port.item())
             print('receiving new port on rank=', trainer.global_rank, 'port', new_port)
-            torch.distributed.destroy_process_group()
+            torch.distributed.destroy_process_group()  # destroy connections on old port
             os.environ['MASTER_PORT'] = str(new_port)
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
