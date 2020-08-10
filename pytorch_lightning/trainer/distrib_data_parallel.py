@@ -432,6 +432,7 @@ class TrainerDDPMixin(ABC):
             default_port = port
 
         os.environ['MASTER_PORT'] = str(default_port)
+        return default_port
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         if self.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:

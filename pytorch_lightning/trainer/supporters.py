@@ -1,4 +1,5 @@
 import atexit
+import os
 from typing import Optional
 
 import torch
@@ -103,18 +104,24 @@ class DistributedConnection:
         # self.world_size = world_size
         # self.is_slurm_managing_tasks = is_slurm_managing_tasks
         self.trainer = trainer
-        self._is_initialized = False
-        # self.trainer.set_random_port()
+        # self._is_initialized = False
+        #if self.trainer.gl
+        #self.trainer.set_random_port()
 
     def init_connection(self, trainer, model):
-        if self._is_initialized:
-            rank_zero_info("ddp connection already initialized")
-            return
+        if torch.distributed.is_initialized():
+            rank_zero_info("ddp connection already initialized, moving to new port")
 
-        trainer.set_random_port(force=True)
+            if trainer.global_rank == 0:
+                new_port = trainer.set_random_port(force=True)
+                torch.distributed.broadcast(torch.tensor(new_port), src=0)
+            else:
+                new_port = torch.empty(1)
+                torch.distributed.broadcast(new_port, trainer.global_rank)
+                os.environ['MASTER_PORT'] = str(new_port.item())
 
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
-        self._is_initialized = True
+        #self._is_initialized = True
 
         def exit_handler():
             if torch.distributed.is_initialized():
