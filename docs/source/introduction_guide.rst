@@ -421,12 +421,13 @@ This code is not restricted which means it can be as complicated as a full seq-2
 
 TrainResult
 ^^^^^^^^^^^
-Whenever you'd like more control over the outputs of the `training_step` use a `TrainResult` object which can:
+Whenever you'd like to log, or sync values across GPUs use `TrainResult`.
 
 - log to Tensorboard or the other logger of your choice.
 - log to the progress-bar.
 - log on every step.
 - log aggregate epoch metrics.
+- average values across GPUs/TPU cores
 
 .. code-block:: python
 
@@ -439,6 +440,9 @@ Whenever you'd like more control over the outputs of the `training_step` use a `
         # log a metric
         result = pl.TrainResult(loss)
         result.log('train_loss', loss)
+
+        # sync across GPUs
+        result.log('train_loss', loss, sync_dist=True)
 
         # equivalent
         result.log('train_loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, reduce_fx=torch.mean)
