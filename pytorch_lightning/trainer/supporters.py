@@ -110,12 +110,14 @@ class DistributedConnection:
 
     def init_connection(self, trainer, model):
         if torch.distributed.is_initialized():
-            rank_zero_info("ddp connection already initialized, moving to new port")
+            print("ddp connection already initialized, moving to new port")
 
             if trainer.global_rank == 0:
+                print('sending new port to others')
                 new_port = trainer.set_random_port(force=True)
                 torch.distributed.broadcast(torch.tensor(new_port), src=0)
             else:
+                print('receiving new port')
                 new_port = torch.empty(1)
                 torch.distributed.broadcast(new_port, trainer.global_rank)
                 os.environ['MASTER_PORT'] = str(new_port.item())
@@ -131,6 +133,7 @@ class DistributedConnection:
         atexit.register(exit_handler)
 
     def teardown(self):
+        return 
         if torch.distributed.is_initialized():
             torch.cuda.empty_cache()
             torch.distributed.barrier()
