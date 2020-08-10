@@ -119,15 +119,10 @@ Which you can train by doing:
 
 ----------
 
-Structuring a LightningModule
------------------------------
-LightningModules are super flexible and can be structured for many use case:
+LightningModule for research
+----------------------------
+For research, LightningModules are best structured as systems.
 
-- As a task for production (ie: classification, sequence modeling).
-- As a system for research (ie: GAN, contrastive learning, RL, etc...).
-
-As a system (research use)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
 A model (colloquially) refers to something like a resnet or RNN. A system, may be a collection of models. Here
 are examples of systems:
 
@@ -235,8 +230,10 @@ Note that in this case, the train loop and val loop are exactly the same. We can
          def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=0.0002)
 
-We create a new method called `shared_step` that all 3 loops can use. This method name is arbitrary and NOT reserved.
+We create a new method called `shared_step` that all loops can use. This method name is arbitrary and NOT reserved.
 
+Inference in Research
+^^^^^^^^^^^^^^^^^^^^^
 In the case where we want to perform inference with the system we can pull out the decoder:
 
 .. code-block:: python
