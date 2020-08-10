@@ -108,8 +108,6 @@ class DDPBackend(object):
             proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
             self.trainer.interactive_ddp_procs.append(proc)
 
-            atexit.register(lambda _: proc.kill())
-
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
