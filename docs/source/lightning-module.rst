@@ -119,6 +119,70 @@ Which you can train by doing:
 
 ----------
 
+Use cases
+---------
+Depending on your use case, you can structure a LightningModule in a few ways.
+
+As a task
+^^^^^^^^^
+If you wish you de-couple the model/s from the LightningModule, you can use it as a task
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+    from pytorch_lightning.metrics import functional as FM
+
+    class ClassificationTask(pl.LightningModule):
+
+         def __init__(self, model):
+             super().__init__()
+             self.model = model
+
+         def training_step(self, batch, batch_idx):
+             x, y = batch
+             y_hat = model(x)
+             loss = F.cross_entropy(y_hat, y)
+             return pl.TrainResult(loss)
+
+         def validation_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = model(x)
+            loss = F.cross_entropy(y_hat, y)
+            acc = FM.accuracy(y_hat, y)
+            result = pl.EvalResult(checkpoint_on=loss)
+            result.log_dict({'val_acc': acc, 'val_loss': loss})
+            return result
+
+         def test_step(self, batch, batch_idx):
+            result = self.validation_step(batch, batch_idx)
+            result.rename_keys({'val_acc': 'test_acc', 'val_loss': 'test_loss'})
+            return result
+
+         def configure_optimizers(self):
+             return torch.optim.Adam(self.parameters(), lr=0.02)
+
+Then pass in any arbitrary model to be fit with this task
+
+.. code-block:: python
+
+    model = resnet50()
+    task = ClassificationTask(model)
+
+    trainer = Trainer(gpus=2)
+    trainer.fit(task, train_dataloader, val_dataloader)
+
+Tasks can be arbitrarily complex such as implementing GAN training, self-supervised or even RL.
+
+.. code-block:: python
+
+    class GANTask(pl.LightningModule):
+
+         def __init__(self, generator, discriminator):
+             super().__init__()
+             self.generator = generator
+             self.discriminator = discriminator
+         ...
+
 Training loop structure
 -----------------------
 
