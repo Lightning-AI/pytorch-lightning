@@ -237,8 +237,8 @@ Val/Test loop
 ^^^^^^^^^^^^^
 Eval result can be used in both `test_step` and `validation_step`.
 
-Sync across devices
-^^^^^^^^^^^^^^^^^^^
+Sync across devices (v)
+^^^^^^^^^^^^^^^^^^^^^^^
 When training on multiple GPUs/CPUs/TPU cores, calculate the global mean of a logged metric as follows:
 
 .. code-block:: python
