@@ -141,49 +141,54 @@ A LightningModule is best used to define a complex system:
 
 .. code-block:: python
 
-
     import pytorch_lightning as pl
+    import torch
     from torch import nn
 
-    class VariationalAutoencoder(pl.LightningModule):
+    class Autoencoder(pl.LightningModule):
 
-         def __init__(self):
-             super().__init__()
-             self.encoder = nn.Sequential([nn.Linear(28 * 28, 128), nn.Relu(), nn.Linear(128, 32)])
-             self.decoder = nn.Sequential([nn.Linear(32, 128), nn.Relu(), nn.Linear(128, 28 * 28)])
+         def __init__(self, latent_dim=2):
+            super().__init__()
+            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, latent_dim))
+            self.decoder = nn.Sequential(nn.Linear(latent_dim, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
 
          def training_step(self, batch, batch_idx):
-             x, _ = batch
+            x, _ = batch
 
-             z_mu, z_log_var = self.encoder(x)
-             z_std = torch.exp(z_log_var / 2)
-             Q = distributions.normal.Normal(loc=z_mu, scale=z_std)
+            # encode
+            x = x.view(x.size(0), -1)
+            z = self.encoder(x)
 
-             # get z and decode
-             z = Q.rsample()
-             recons = self.decoder(z)
+            # decode
+            recons = self.decoder(z)
 
-             # reconstruction loss, kl_divergence loss
-             reconstruction_loss = F.mse_loss(recons, x)
-             kl_div_loss = torch.mean(-0.5 * torch.sum(1 + z_log_var - mu ** 2 - z_log_var.exp(), dim = 1), dim = 0)
-             elbo_loss = reconstruction_loss + kl_div_loss
-             return pl.TrainResult(elbo_loss)
+            # reconstruction
+            reconstruction_loss = nn.functional.mse_loss(recons, x)
+            return pl.TrainResult(reconstruction_loss)
 
          def validation_step(self, batch, batch_idx):
-            train_result = self.training_step(batch, batch_idx)
-            result = pl.EvalResult(checkpoint_on=train_result.loss)
-            result.log_dict({'val_elbo_loss': train_result.loss})
-            return result
+            x, _ = batch
+            x = x.view(x.size(0), -1)
+            z = self.encoder(x)
+            recons = self.decoder(z)
+            reconstruction_loss = nn.functional.mse_loss(recons, x)
 
-         def test_step(self, batch, batch_idx):
-            result = self.validation_step(batch, batch_idx)
-            result.rename_keys({'val_elbo_loss': 'test_elbo_loss'})
+            result = pl.EvalResult(checkpoint_on=reconstruction_loss)
+            result.log_dict({'val_recons_loss': reconstruction_loss})
             return result
 
          def configure_optimizers(self):
-             return torch.optim.Adam(self.model.parameters(), lr=0.002)
+            return torch.optim.Adam(self.parameters(), lr=0.0002)
 
+Which can be trained like this:
 
+.. code-block:: python
+
+    dm = MNISTDataModule('.')
+    model = Autoencoder()
+
+    trainer = pl.Trainer(gpus=1)
+    trainer.fit(model, train_dataloader, val_dataloader)
 
 As a task (production use)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
