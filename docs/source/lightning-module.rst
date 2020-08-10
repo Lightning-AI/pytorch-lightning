@@ -68,6 +68,8 @@ Notice a few things.
 
 6.  A :class:`~LightningModule` is a :class:`torch.nn.Module` but with added functionality. Use it as such!
 
+|
+
     .. code-block:: python
 
         net = Net.load_from_checkpoint(PATH)
