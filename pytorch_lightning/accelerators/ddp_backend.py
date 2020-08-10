@@ -13,6 +13,8 @@
 # limitations under the License
 import atexit
 import os
+import signal
+
 import torch
 import torch.distributed
 import subprocess
@@ -266,6 +268,8 @@ class DistributedConnection:
                 torch.distributed.destroy_process_group()
 
         atexit.register(exit_handler)
+        signal.signal(signal.SIGINT, exit_handler)
+        signal.signal(signal.SIGTERM, exit_handler)
 
     def _get_master_port(self):
         return os.environ.get('MASTER_PORT')
