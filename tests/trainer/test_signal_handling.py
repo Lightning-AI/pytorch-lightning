@@ -84,7 +84,7 @@ def test_graceful_training_shutdown_gpu(tmpdir, signal_code):
         callbacks=[KillCallback(signal_code)],
     )
     model = EvalModelTemplate()
-    torch.multiprocessing.set_start_method("spawn")
+    torch.multiprocessing.set_start_method("spawn", force=True)
     p = Process(target=trainer.fit, args=(model, ))
     p.start()
     p.join(timeout=60)
