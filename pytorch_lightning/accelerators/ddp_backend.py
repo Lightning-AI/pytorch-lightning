@@ -241,13 +241,7 @@ class DistributedConnection:
             self._set_master_port(port=self._get_master_port())
 
     def reset_connection(self, trainer, model):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print('shutdown', self._get_master_address(), int(self._get_master_port()))
-        s.connect((self._get_master_address(), int(self._get_master_port())))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.shutdown(socket.SHUT_RDWR)
-        s.close()
-        sleep(10)
+
 
 
 
@@ -256,7 +250,18 @@ class DistributedConnection:
 
             torch.distributed.destroy_process_group()
 
-            model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print('shutdown', self._get_master_address(), int(self._get_master_port()))
+            s.connect((self._get_master_address(), int(self._get_master_port())))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
+            sleep(10)
+
+
+
+
+            #model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
             #
             # torch.distributed.barrier()
@@ -273,6 +278,8 @@ class DistributedConnection:
             # print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
             # print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
             # self._set_master_port(port=new_port)
+
+        torch.distributed.barrier()
 
         print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
