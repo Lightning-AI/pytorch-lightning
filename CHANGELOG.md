@@ -138,6 +138,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed checkpointing to remote file paths ([#2925](https://github.com/PyTorchLightning/pytorch-lightning/pull/2925))
 
+- Fixed the total steps of the progress bar for the validation sanity check ([#2892](https://github.com/PyTorchLightning/pytorch-lightning/pull/2892))
+
 ## [0.8.5] - 2020-07-09
 
 ### Added
