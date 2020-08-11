@@ -173,3 +173,15 @@ def test_cpu_model_with_amp(tmpdir):
 
     with pytest.raises((MisconfigurationException, ModuleNotFoundError)):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
+
+
+def test_amp_with_apex():
+    trainer = Trainer(
+        amp_type='apex',
+    )
+    assert trainer.amp_type is None
+    trainer = Trainer(
+        precision=16,
+        amp_type='apex',
+    )
+    assert str(trainer.amp_type) == "APEX"
