@@ -478,8 +478,8 @@ class TrainerTrainLoopMixin(ABC):
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
             # stop epoch if we limited the number of training batches
-            if batch_idx >= self.num_training_batches:
-                break
+            # if batch_idx >= self.num_training_batches:
+            #     break
 
             self.batch_idx = batch_idx
             model.global_step = self.global_step
