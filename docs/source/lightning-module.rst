@@ -726,6 +726,22 @@ forward
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.forward
     :noindex:
 
+Convenience methods
+^^^^^^^^^^^^^^^^^^^
+Use these methods for convenience
+
+print
+~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.print
+    :noindex:
+
+save_hyperparameters
+~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
+    :noindex:
+
 Hooks
 ^^^^^
 
@@ -777,34 +793,29 @@ optimizer_step
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
     :noindex:
 
-prepare_data
-~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.prepare_data
-    :noindex:
-
-print
-~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.print
-    :noindex:
-
-save_hyperparameters
-~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
-    :noindex:
-
 tbptt_split_batch
 ~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
     :noindex:
 
+
+Data hooks
+^^^^^^^^^^
+Use these hooks if you want to couple a LightningModule to a dataset.
+
+.. note:: The same collection of hooks is available in a DataModule class to decouple the data from the model.
+
 train_dataloader
 ~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
+    :noindex:
+
+val_dataloader
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
     :noindex:
 
 test_dataloader
@@ -813,11 +824,23 @@ test_dataloader
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
     :noindex:
 
-val_dataloader
-~~~~~~~~~~~~~~
+prepare_data
+~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.prepare_data
     :noindex:
+
+setup
+~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.setup
+    :noindex:
+
+------------
+
+Inference methods
+^^^^^^^^^^^^^^^^^
+Use these hooks for inference with a lightning module
 
 to_onnx
 ~~~~~~~
