@@ -169,8 +169,9 @@ class ModelIO(object):
             cls_kwargs = {k: v for k, v in cls_kwargs.items() if k in cls_init_args_name}
 
         # prevent passing positional arguments if class does not accept any
-        if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
+        if len(cls_spec.args) <= 1 and not cls_spec.varargs and not cls_spec.kwonlyargs:
             cls_args, cls_kwargs = [], {}
+
         model = cls(*cls_args, **cls_kwargs)
         # load the state_dict on the model automatically
         model.load_state_dict(checkpoint['state_dict'])
