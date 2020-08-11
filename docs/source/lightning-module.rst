@@ -649,8 +649,8 @@ for a live demo.
 
 -----------
 
-LightningModule methods
------------------------
+LightningModule API
+-------------------
 
 Training loop methods
 ^^^^^^^^^^^^^^^^^^^^^
