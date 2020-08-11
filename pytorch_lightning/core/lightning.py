@@ -198,6 +198,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 out = self(x)
                 loss = self.loss(out, x)
 
+                # TrainResult auto-detaches the loss after the optimization steps are complete
                 result = pl.TrainResult(minimize=loss)
 
         The return object :class:`~pytorch_lightning.core.step_result.TrainResult` controls where to log,
@@ -243,6 +244,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 out, hiddens = self.lstm(data, hiddens)
                 ...
 
+                # TrainResult auto-detaches hiddens
                 result = pl.TrainResult(minimize=loss, hiddens=hiddens)
                 return result
 
