@@ -216,14 +216,6 @@ class DDPBackend(object):
         # continue training routine
         results = self.trainer.run_pretrain_routine(model)
 
-        if self.trainer.global_rank == 0:
-            for proc in self.trainer.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
-
-        # clean up dist group
-        if self.trainer.use_ddp or self.trainer.use_ddp2:
-            torch.distributed.destroy_process_group()
-
         # get original model
         model = self.trainer.get_model()
 
