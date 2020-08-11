@@ -745,12 +745,6 @@ configure_apex
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_apex
     :noindex:
 
-init_ddp_connection
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.init_ddp_connection
-    :noindex:
-
 configure_ddp
 ~~~~~~~~~~~~~
 
@@ -767,6 +761,12 @@ get_progress_bar_dict
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
+    :noindex:
+
+init_ddp_connection
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.init_ddp_connection
     :noindex:
 
 on_load_checkpoint
@@ -787,12 +787,30 @@ optimizer_step
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
     :noindex:
 
+optimizer_zero_grad
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
+    :noindex:
+
+backward
+~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.backward
+    :noindex:
+
 tbptt_split_batch
 ~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
     :noindex:
 
+Training hooks
+^^^^^^^^^^^^^^
+These hooks are called during training
+
+.. automodule:: pytorch_lightning.core.hooks.ModelHooks
+    :noindex:
 
 Data hooks
 ^^^^^^^^^^
@@ -822,12 +840,6 @@ prepare_data
 ~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.prepare_data
-    :noindex:
-
-setup
-~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.setup
     :noindex:
 
 ------------
