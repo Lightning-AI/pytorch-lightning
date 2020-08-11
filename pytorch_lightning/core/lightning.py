@@ -360,21 +360,25 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
                 functions for logging, distributed sync and error checking.
 
-        Example::
+        When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
 
-            # WITHOUT training_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+        .. code-block: python
+
             def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
 
                 out = self(x)
+
+                # softmax uses only a portion of the batch in the denomintaor
                 loss = self.softmax(out)
                 loss = nce_loss(loss)
                 return pl.TrainResult(loss)
 
-            # --------------
-            # with training_step_end to do softmax over the full batch
+        If you wish to do something with all the parts of the batch, then use this method to do it:
+
+        .. code-block: python
+
             def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -387,9 +391,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 # this out is now the full size of the batch
                 all_outs = training_step_outputs.out
 
-                # this softmax now uses the full batch size
+                # this softmax now uses the full batch
                 loss = nce_loss(all_outs)
-
                 result = pl.TrainResult(loss)
                 return result
 
