@@ -477,8 +477,6 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
-            print("self.max_steps", self.max_steps)
-            print("self.global_step", self.global_step)
 
             self.batch_idx = batch_idx
             model.global_step = self.global_step
@@ -530,7 +528,6 @@ class TrainerTrainLoopMixin(ABC):
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step+1:
-                print("self.max_steps == self.global_step")
                 break
 
             # end epoch early
