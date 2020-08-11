@@ -265,6 +265,7 @@ class DistributedConnection:
         print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
 
         if int(self._get_master_port()) != new_port:
+            print('need to update port')
             torch.distributed.destroy_process_group()  # destroy connections on old port
             print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
             print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
@@ -272,7 +273,7 @@ class DistributedConnection:
 
             model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
-
+        print('exit')
 
         # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # #print('shutdown', self._get_master_address(), int(self._get_master_port()))
