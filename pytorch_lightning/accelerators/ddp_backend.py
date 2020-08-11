@@ -242,7 +242,12 @@ class DistributedConnection:
 
     def reset_connection(self, trainer, model):
 
-        if torch.distributed.is_initialized():
+        if not torch.distributed.is_initialized():
+            print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
+            model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+            print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port(), 'done')
+
+        if torch.distributed.is_initialized() and trainer.global_rank > 0:
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
 
             #model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
@@ -262,9 +267,9 @@ class DistributedConnection:
             print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
             self._set_master_port(port=new_port)
 
-        print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
-        model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
-        print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port(), 'done')
+            model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+
+
 
         # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # #print('shutdown', self._get_master_address(), int(self._get_master_port()))
