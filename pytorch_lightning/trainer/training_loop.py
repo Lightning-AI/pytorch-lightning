@@ -557,8 +557,7 @@ class TrainerTrainLoopMixin(ABC):
         self.run_on_epoch_end_hook(model)
 
         # increate global step by one to progress to the next epoch
-        if not self.testing:
-            self.increment_accumulated_grad_global_step()
+        self.increment_accumulated_grad_global_step()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
