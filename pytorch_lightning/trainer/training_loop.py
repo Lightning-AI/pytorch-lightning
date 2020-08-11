@@ -548,6 +548,8 @@ class TrainerTrainLoopMixin(ABC):
             if not is_last_batch:
                 self.increment_accumulated_grad_global_step()
 
+        print("LOOP END")
+
         # let ddp devices catch up when using horovod
         self.sync_horovod()
 

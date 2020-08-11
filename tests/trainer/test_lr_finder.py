@@ -159,6 +159,9 @@ def test_accumulation_and_early_stopping(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
+    print("hparams")
+    print(hparams)
+
     before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
