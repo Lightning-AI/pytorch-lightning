@@ -1231,7 +1231,6 @@ class Trainer(
             self.run_training_teardown()
             signal_handler.restore()
 
-
     def _run_sanity_check(self, ref_model, model):
 
         using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')

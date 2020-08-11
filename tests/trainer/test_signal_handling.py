@@ -1,14 +1,20 @@
 import os
 import platform
 import signal
+import subprocess
+import sys
 import time
+from pathlib import Path
 
 import pytest
 import torch
+import torch.distributed
 
+import pytorch_lightning
 from pytorch_lightning import Trainer, Callback
+from pytorch_lightning.trainer.states import TrainerState
 from tests.base import EvalModelTemplate
-
+from pl_examples.basic_examples import gpu_template
 
 from torch.multiprocessing import Process
 
@@ -29,12 +35,12 @@ class KillCallback(Callback):
 
     def on_train_end(self, trainer, pl_module):
         print('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNNNNNNNNNNNNND')
-        assert trainer._teardown_already_run
+        assert getattr(trainer, "_teardown_already_run")
 
 
     def on_keyboard_interrupt(self, trainer, pl_module):
         print('interrupted')
-        # assert trainer.global_rank == 0
+        assert trainer.state == TrainerState.INTERRUPTED
         assert trainer.interrupted
 
 
@@ -51,17 +57,40 @@ def get_available_signal_codes():
     return codes
 
 
-@pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
-def test_graceful_training_shutdown(signal_code):
+@pytest.mark.skipif(not torch.distributed.is_available())
+@pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
+def test_graceful_training_shutdown(tmpdir, signal_code):
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=100,
-        distributed_backend='ddp_cpu',
+        distributed_backend="ddp_cpu",
         callbacks=[KillCallback(signal_code)],
         num_processes=4
     )
     model = EvalModelTemplate()
     trainer.fit(model)
 
+
+from multiprocessing import Process, Queue
+
+
+@pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
+def test_graceful_training_shutdown_gpu(tmpdir, signal_code):
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=100,
+        distributed_backend="ddp",
+        gpus=2,
+        callbacks=[KillCallback(signal_code)],
+    )
+    model = EvalModelTemplate()
+
+    queue = Queue()
+    p = Process(target=trainer.fit, args=(model, ))
+    p.start()
+    p.join()
+    queue.get()  # to avoid deadlock
+    assert p.exitcode == signal_code
 
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs.')
 # @pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
