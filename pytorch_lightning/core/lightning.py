@@ -379,7 +379,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return results
         """
 
-    def validation_step(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
+    def validation_step(self, *args, **kwargs) -> EvalResult:
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -401,8 +401,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple val datasets used)
 
         Return:
-            Dict or OrderedDict - passed to :meth:`validation_epoch_end`.
-            If you defined :meth:`validation_step_end` it will go to that first.
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
         .. code-block:: python
 
@@ -469,7 +468,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
+    def validation_step_end(self, *args, **kwargs) -> EvalResult:
         """
         Use this when validating with dp or ddp2 because :meth:`validation_step`
         will operate on only part of the batch. However, this is still optional
@@ -491,7 +490,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 for each batch part.
 
         Return:
-           Dict or OrderedDict - passed to the :meth:`validation_epoch_end` method.
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
         Examples:
             .. code-block:: python
@@ -536,8 +535,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def validation_epoch_end(
-        self, outputs: Union[List[Dict[str, Union[float, Tensor]]], List[List[Dict[str, Union[float, Tensor]]]]]
-    ) -> Dict[str, Dict[str, Union[float, Tensor]]]:
+        self, outputs: Union[EvalResult, List[EvalResult]]) -> EvalResult:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -555,11 +553,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            Dict or OrderedDict.
-            May have the following optional keys:
-
-            - progress_bar (dict for progress bar display; either scalar tensors or Python scalars)
-            - log (dict of metrics to add to logger; either scalar tensors or Python scalars).
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
@@ -613,7 +607,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def test_step(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
+    def test_step(self, *args, **kwargs) -> EvalResult:
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -636,8 +630,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple test datasets used).
 
         Return:
-            Dict or OrderedDict - passed to the :meth:`test_epoch_end` method.
-            If you defined :meth:`test_step_end` it will go to that first.
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
         .. code-block:: python
 
@@ -696,7 +689,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
+    def test_step_end(self, *args, **kwargs) -> EvalResult:
         """
         Use this when testing with dp or ddp2 because :meth:`test_step` will operate
         on only part of the batch. However, this is still optional
@@ -717,7 +710,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
 
         Return:
-             Dict or OrderedDict - passed to the :meth:`test_epoch_end`.
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
         Examples:
             .. code-block:: python
@@ -762,8 +755,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def test_epoch_end(
-        self, outputs: Union[List[Dict[str, Union[float, Tensor]]], List[List[Dict[str, Union[float, Tensor]]]]]
-    ) -> Dict[str, Dict[str, Union[float, Tensor]]]:
+        self, outputs: Union[EvalResult, List[EvalResult]]) -> EvalResult:
+
         """
         Called at the end of a test epoch with the output of all test steps.
 
@@ -781,10 +774,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
-            Dict or OrderedDict: Dict has the following optional keys:
-
-            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars.
-            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc).
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
