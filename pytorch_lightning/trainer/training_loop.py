@@ -479,6 +479,13 @@ class TrainerTrainLoopMixin(ABC):
         ):
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
+                self.decrement_accumulated_grad_global_step()
+                break
+
+            # max steps reached, end training
+            if self.max_steps is not None and self.max_steps == self.global_step:
+                # Undo increment_accumulated_grad_global_step as it will accounted for in the end of this function
+                self.decrement_accumulated_grad_global_step()
                 break
 
             self.batch_idx = batch_idx
@@ -546,12 +553,6 @@ class TrainerTrainLoopMixin(ABC):
             if not is_last_batch:
                 self.increment_accumulated_grad_global_step()
 
-            # max steps reached, end training
-            if self.max_steps is not None and self.max_steps == self.global_step:
-                # Undo increment_accumulated_grad_global_step as it will accounted for in the end of this function
-                self.global_step -= 1
-                self.total_batch_idx -= 1
-                break
 
         # let ddp devices catch up when using horovod
         self.sync_horovod()
@@ -857,6 +858,12 @@ class TrainerTrainLoopMixin(ABC):
                 or (self.batch_idx + 1) == self.num_training_batches):
             self.global_step += 1
         self.total_batch_idx += 1
+
+    def decrement_accumulated_grad_global_step(self):
+        # progress global step according to grads progress
+        if (self.batch_idx) % self.accumulate_grad_batches == 0:
+            self.global_step = max(0, self.global_step-1)
+        self.total_batch_idx = max(0, self.total_batch_idx-1)
 
     def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
