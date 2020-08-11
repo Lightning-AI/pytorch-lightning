@@ -844,7 +844,7 @@ current_epoch
 ~~~~~~~~~~~~~
 The current epoch
 
-.. code_block:: python
+.. code-block:: python
 
     def training_step(...):
         if self.current_epoch == 0:
@@ -853,7 +853,7 @@ global_step
 ~~~~~~~~~~~
 The current step (does not reset each epoch)
 
-... code_block:: python
+.. code-block:: python
 
     def training_step(...):
         self.logger.experiment.log_image(..., step=self.global_step)
