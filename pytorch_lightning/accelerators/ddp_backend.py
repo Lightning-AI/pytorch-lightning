@@ -265,7 +265,7 @@ class DistributedConnection:
                 print('destroying on ', trainer.global_rank)
                 torch.distributed.destroy_process_group()
 
-        atexit.register(exit_handler)
+        # atexit.register(exit_handler)
 
     def _get_master_port(self):
         return os.environ.get('MASTER_PORT')
