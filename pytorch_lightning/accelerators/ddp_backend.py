@@ -246,8 +246,10 @@ class DistributedConnection:
             torch.distributed.destroy_process_group()
 
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print('shutdown', self._get_master_address(), int(self._get_master_port()))
             s.connect((self._get_master_address(), int(self._get_master_port())))
-            s.shutdown(socket.SHUT_RDWR)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            #s.shutdown(socket.SHUT_RDWR)
             s.close()
             sleep(10)
             model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
