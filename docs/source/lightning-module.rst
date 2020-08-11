@@ -905,7 +905,7 @@ True if using TPUs
 Hooks
 -----
 
-Hook lifecylce pseudocode
+Hook lifecycle pseudocode
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 This is the pseudocode to describe how all the hooks are called during a call to `.fit()`
 
