@@ -652,9 +652,15 @@ for a live demo.
 LightningModule Class
 ---------------------
 
+.. toctree::
+    :maxdepth: 3
+
 .. autoclass:: pytorch_lightning.core.lightning.LightningModule
-   :noindex:
-   :exclude-members:
+    :noindex:
+    :exclude-members:
         _abc_impl,
         summarize,
+        __get_hparams_assignment_variable,
+        _auto_collect_arguments,
+        _init_slurm_connection,
 

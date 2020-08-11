@@ -956,6 +956,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         log.info(f"initializing ddp: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank+1}/{world_size}")
         torch_distrib.init_process_group(torch_backend, rank=global_rank, world_size=world_size)
 
+    """
+    configure_sync_batchnorm
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+    """
     def configure_sync_batchnorm(self, model: 'LightningModule') -> 'LightningModule':
         """
         Add global batchnorm for a model spread across multiple GPUs and nodes.
