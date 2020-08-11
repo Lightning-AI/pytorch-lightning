@@ -1,7 +1,11 @@
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
-from torch import Tensor
-import torch
+import numbers
 from copy import copy
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
+
+import torch
+from torch import Tensor
+
+from pytorch_lightning.metrics.converters import _sync_ddp_if_available
 
 
 class Result(Dict):
@@ -88,11 +92,20 @@ class Result(Dict):
             on_step: bool = False,
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
+
+        # sync across ddp
+        if sync_ddp and isinstance(value, (torch.Tensor, numbers.Number)):
+            value = _sync_ddp_if_available(value, group=sync_ddp_group, reduce_op=sync_ddp_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
@@ -102,15 +115,22 @@ class Result(Dict):
         if on_step and on_epoch:
             # set step version
             step_name = f'step_{name}'
-            self.__set_meta(step_name, value, prog_bar, logger, on_step=True, on_epoch=False, reduce_fx=reduce_fx)
+            self.__set_meta(step_name, value, prog_bar, logger,
+                            on_step=True, on_epoch=False,
+                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
             self.__setitem__(step_name, value)
 
             # set epoch version
             epoch_name = f'epoch_{name}'
-            self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True, reduce_fx=reduce_fx)
+            self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True,
+                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
             self.__setitem__(epoch_name, value)
         else:
-            self.__set_meta(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx)
+            self.__set_meta(name, value,
+                            prog_bar, logger,
+                            on_step, on_epoch,
+                            reduce_fx,
+                            tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
 
             # set the value
             self.__setitem__(name, value)
@@ -124,6 +144,8 @@ class Result(Dict):
             on_step: bool,
             on_epoch: bool,
             reduce_fx: Callable,
+            tbptt_pad_token: int,
+            tbptt_reduce_fx: Callable
     ):
         # set the meta for the item
         meta_value = value
@@ -133,7 +155,9 @@ class Result(Dict):
             on_step=on_step,
             on_epoch=on_epoch,
             reduce_fx=reduce_fx,
-            value=meta_value
+            value=meta_value,
+            tbptt_reduce_fx=tbptt_reduce_fx,
+            tbptt_pad_token=tbptt_pad_token
         )
 
         self['meta'][name] = meta
@@ -243,6 +267,39 @@ class Result(Dict):
         return result
 
     @classmethod
+    def padded_gather(cls, outputs):
+        meta = outputs[0].get('meta')
+        result = cls()
+        result = recursive_gather(outputs, result)
+
+        # find the padding used for other values
+        default_padding_idx = 0
+        for name, value in result.items():
+            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
+                if name not in {'checkpoint_on', 'early_stop_on', 'minimize'}:
+                    default_padding_idx = meta[name]['tbptt_pad_token']
+                    break
+
+        # pad across each key individually
+        for name, value in result.items():
+            is_reserved = name in {'checkpoint_on', 'early_stop_on', 'minimize'}
+            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
+
+                if is_reserved:
+                    padding_key = default_padding_idx
+                else:
+                    padding_key = meta[name]['tbptt_pad_token']
+                padded = torch.nn.utils.rnn.pad_sequence(value, batch_first=True, padding_value=padding_key)
+                result[name] = padded
+
+                # also update the result
+                if meta and not is_reserved:
+                    meta[name]['value'] = padded
+        if meta:
+            result['meta'] = meta
+        return result
+
+    @classmethod
     def reduce_on_epoch_end(cls, outputs):
         meta = outputs[0]['meta']
         result = cls()
@@ -260,9 +317,52 @@ class Result(Dict):
         result['meta'] = meta
         return result
 
+    @classmethod
+    def reduce_across_time(cls, time_outputs):
+        # auto-reduce across time for tbptt
+        meta = time_outputs[0]['meta']
+        result = cls()
+        result = recursive_gather(time_outputs, result)
+        recursive_stack(result)
+
+        for k, value in result.items():
+            if k == 'meta':
+                continue
+
+            # pick the reduce fx
+            if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
+                tbptt_reduce_fx = torch.mean
+            else:
+                tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
+            result[k] = tbptt_reduce_fx(value)
+
+        result['meta'] = meta
+        return result
+
     @property
     def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
+
+    def drop_hiddens(self):
+        if 'hiddens' in self:
+            del self['hiddens']
+
+    def rename_keys(self, map_dict: dict):
+        """
+        Maps key values to the target values. Useful when renaming variables in mass.
+
+        Args:
+            map_dict:
+        """
+        meta = self.meta
+        for source, dest in map_dict.items():
+            # map the main keys
+            self[dest] = self[source]
+            del self[source]
+
+            # map meta
+            meta[dest] = meta[source]
+            del meta[source]
 
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
@@ -292,6 +392,16 @@ def recursive_stack(result: MutableMapping):
             result[k] = v
 
 
+def recursive_padded_stack(result: MutableMapping):
+    for k, v in result.items():
+        if isinstance(v, dict):
+            recursive_stack(v)
+
+        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
+            v = torch.stack(v)
+            result[k] = v
+
+
 class TrainResult(Result):
 
     def __init__(
@@ -301,6 +411,30 @@ class TrainResult(Result):
             checkpoint_on: Union[Tensor, bool] = None,
             hiddens: Optional[Tensor] = None,
     ):
+        """
+        Used in train loop to auto-log to a logger or progress bar without needing to define
+        a train_step_end or train_epoch_end method
+
+        Example::
+
+            def training_step(self, batch, batch_idx):
+                loss = ...
+                result = pl.TrainResult(loss)
+                result.log('train_loss', loss)
+                return result
+
+            # without val/test loop can model checkpoint or early stop
+            def training_step(self, batch, batch_idx):
+                loss = ...
+                result = pl.TrainResult(loss, early_stop_on=loss, checkpoint_on=loss)
+                result.log('train_loss', loss)
+                return result
+
+        Args:
+            early_stop_on:
+            checkpoint_on:
+            hiddens:
+        """
 
         super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
 
@@ -313,9 +447,113 @@ class TrainResult(Result):
             on_step: bool = True,
             on_epoch: bool = False,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+        """
+        Log a key, value
+
+        Example::
+
+            result.log('train_loss', loss)
+
+            # defaults used
+            result.log(
+                name,
+                value,
+                on_step=True,
+                on_epoch=False,
+                logger=True,
+                prog_bar=False,
+                reduce_fx=torch.mean,
+                enable_graph=False
+            )
+
+
+        Args:
+            name: key name
+            value: value name
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the training loop aggregated
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group
+        """
+        super().log(name=name,
+                    value=value,
+                    prog_bar=prog_bar,
+                    logger=logger,
+                    on_step=on_step,
+                    on_epoch=on_epoch,
+                    reduce_fx=reduce_fx,
+                    enable_graph=enable_graph,
+                    sync_ddp=sync_ddp,
+                    sync_ddp_group=sync_ddp_group,
+                    sync_ddp_op=sync_ddp_op,
+                    tbptt_pad_token=tbptt_pad_token,
+                    tbptt_reduce_fx=tbptt_reduce_fx)
+
+    def log_dict(
+            self,
+            dictionary: dict,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
+            enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
+    ):
+        """
+        Log a dictonary of values at once
+
+        Example::
+
+            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
+            result.log_dict(values)
+
+        Args:
+            dictionary: key value pairs (str, tensors)
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the training loop aggregated
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group:
+        """
+        for k, v in dictionary.items():
+            self.log(name=k,
+                     value=v,
+                     prog_bar=prog_bar,
+                     logger=logger,
+                     on_step=on_step,
+                     on_epoch=on_epoch,
+                     reduce_fx=reduce_fx,
+                     enable_graph=enable_graph,
+                     sync_ddp=sync_ddp,
+                     sync_ddp_group=sync_ddp_group,
+                     sync_ddp_op=sync_ddp_op,
+                     tbptt_pad_token=tbptt_pad_token,
+                     tbptt_reduce_fx=tbptt_reduce_fx)
 
 
 class EvalResult(Result):
@@ -326,6 +564,29 @@ class EvalResult(Result):
             checkpoint_on: Optional[Tensor] = None,
             hiddens: Optional[Tensor] = None,
     ):
+        """
+        Used in val/train loop to auto-log to a logger or progress bar without needing to define
+        a _step_end or _epoch_end method
+
+        Example::
+
+            def validation_step(self, batch, batch_idx):
+                loss = ...
+                result = EvalResult()
+                result.log('val_loss', loss)
+                return result
+
+            def test_step(self, batch, batch_idx):
+                loss = ...
+                result = EvalResult()
+                result.log('val_loss', loss)
+                return result
+
+        Args:
+            early_stop_on:
+            checkpoint_on:
+            hiddens:
+        """
 
         super().__init__(None, early_stop_on, checkpoint_on, hiddens)
 
@@ -338,9 +599,112 @@ class EvalResult(Result):
             on_step: bool = False,
             on_epoch: bool = True,
             reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
             enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
     ):
-        super().log(name, value, prog_bar, logger, on_step, on_epoch, reduce_fx, enable_graph)
+        """
+        Log a key, value
+
+        Example::
+
+            result.log('val_loss', loss)
+
+            # defaults used
+            result.log(
+                name,
+                value,
+                on_step=False,
+                on_epoch=True,
+                logger=True,
+                prog_bar=False,
+                reduce_fx=torch.mean
+            )
+
+
+        Args:
+            name: key name
+            value: value name
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the training loop aggregated
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group
+        """
+        super().log(name=name,
+                    value=value,
+                    prog_bar=prog_bar,
+                    logger=logger,
+                    on_step=on_step,
+                    on_epoch=on_epoch,
+                    reduce_fx=reduce_fx,
+                    enable_graph=enable_graph,
+                    sync_ddp=sync_ddp,
+                    sync_ddp_group=sync_ddp_group,
+                    sync_ddp_op=sync_ddp_op,
+                    tbptt_pad_token=tbptt_pad_token,
+                    tbptt_reduce_fx=tbptt_reduce_fx)
+
+    def log_dict(
+            self,
+            dictionary: dict,
+            prog_bar: bool = False,
+            logger: bool = True,
+            on_step: bool = False,
+            on_epoch: bool = True,
+            reduce_fx: Callable = torch.mean,
+            tbptt_reduce_fx: Callable = torch.mean,
+            tbptt_pad_token: int = 0,
+            enable_graph: bool = False,
+            sync_ddp: bool = False,
+            sync_ddp_op: Union[Any, str] = 'mean',
+            sync_ddp_group: Optional[Any] = None
+    ):
+        """
+        Log a dictonary of values at once
+
+        Example::
+
+            values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
+            result.log_dict(values)
+
+        Args:
+            dictionary: key value pairs (str, tensors)
+            prog_bar: if True logs to the progress base
+            logger: if True logs to the logger
+            on_step: if True logs the output of validation_step or test_step
+            on_epoch: if True, logs the output of the training loop aggregated
+            reduce_fx: Torch.mean by default
+            tbptt_reduce_fx: function to reduce on truncated back prop
+            tbptt_pad_token: token to use for padding
+            enable_graph: if True, will not auto detach the graph
+            sync_ddp: if True, reduces the metric across GPUs/TPUs
+            sync_ddp_op: the op to sync across
+            sync_ddp_group: the ddp group
+        """
+        for k, v in dictionary.items():
+            self.log(name=k,
+                     value=v,
+                     prog_bar=prog_bar,
+                     logger=logger,
+                     on_step=on_step,
+                     on_epoch=on_epoch,
+                     reduce_fx=reduce_fx,
+                     enable_graph=enable_graph,
+                     sync_ddp=sync_ddp,
+                     sync_ddp_group=sync_ddp_group,
+                     sync_ddp_op=sync_ddp_op,
+                     tbptt_pad_token=tbptt_pad_token,
+                     tbptt_reduce_fx=tbptt_reduce_fx)
 
     def get_callback_metrics(self) -> dict:
         result = {

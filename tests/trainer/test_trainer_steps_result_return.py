@@ -2,12 +2,14 @@
 Tests to ensure that the training loop works with a dict
 """
 import os
-import torch
-from pytorch_lightning import Trainer
-from tests.base.deterministic_model import DeterministicModel
-from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
-from tests.base import EvalModelTemplate
+
 import pytest
+import torch
+
+from pytorch_lightning import Trainer
+from pytorch_lightning.core.step_result import TrainResult
+from tests.base import EvalModelTemplate
+from tests.base.deterministic_model import DeterministicModel
 
 
 # test with train_step_end
@@ -72,6 +74,8 @@ def test_training_step_result_log_step_only(tmpdir):
     assert out.batch_log_metrics[f'step_log_acc2_b{batch_idx}'] == 12.0
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
@@ -144,6 +148,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert len(out.batch_log_metrics) == 0
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
@@ -275,6 +281,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert len(out.batch_log_metrics) == 2
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
@@ -352,6 +360,8 @@ def test_training_step_epoch_end_result(tmpdir):
     assert len(out.batch_log_metrics) == 2
 
     train_step_out = out.training_step_output_for_epoch_end
+    assert len(train_step_out) == 1
+    train_step_out = train_step_out[0][0]
     assert isinstance(train_step_out, TrainResult)
 
     assert 'minimize' in train_step_out
@@ -522,3 +532,14 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'epoch_train_epoch_end_metric' in seen_keys
+
+
+def test_result_map(tmpdir):
+    result = TrainResult()
+    result.log_dict({'x1': torch.tensor(1), 'x2': torch.tensor(2)})
+    result.rename_keys({'x1': 'y1', 'x2': 'y2'})
+
+    assert 'x1' not in result
+    assert 'x2' not in result
+    assert 'y1' in result
+    assert 'y2' in result

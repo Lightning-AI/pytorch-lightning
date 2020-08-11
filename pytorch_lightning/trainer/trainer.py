@@ -20,9 +20,10 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as torch_distrib
-import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.accelerators import (
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -30,9 +31,10 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.auto_mix_precision import NATIVE_AMP_AVALAIBLE, TrainerAMPMixin
+from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
+from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
@@ -44,16 +46,14 @@ from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.signal_handling import SignalHandler
+from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.configuration_validator import ConfigValidator
-from pytorch_lightning.accelerator_backends import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend)
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -63,9 +63,7 @@ warnings.filterwarnings(
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla
@@ -185,6 +183,7 @@ class Trainer(
         log_save_interval: int = 100,
         row_log_interval: int = 50,
         distributed_backend: Optional[str] = None,
+        sync_batchnorm: bool = False,
         precision: int = 32,
         weights_summary: Optional[str] = ModelSummary.MODE_DEFAULT,
         weights_save_path: Optional[str] = None,
@@ -200,6 +199,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
+        amp_type: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -221,6 +221,7 @@ class Trainer(
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             gradient_clip_val: 0 means don't clip.
 
@@ -288,7 +289,8 @@ class Trainer(
 
                     Use `limit_test_batches` instead. Will remove v0.10.0.
 
-            val_check_interval: How often within one training epoch to check the validation set
+            val_check_interval: How often to check the validation set. Use float to check within a training epoch,
+                use int to check every n steps (batches).
 
             log_save_interval: Writes logs to disk this often
 
@@ -296,40 +298,48 @@ class Trainer(
 
             distributed_backend: The distributed backend to use (dp, ddp, ddp2, ddp_spawn, ddp_cpu)
 
-            precision: Full precision (32), half precision (16).
+            sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+
+            precision: Full precision (32), half precision (16). Can be used on CPU, GPU or TPUs.
 
             weights_summary: Prints a summary of the weights when training begins.
 
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                     for checkpoints only. Use this if for whatever reason you need the checkpoints
                     stored in a different place than the logs written in `default_root_dir`.
+                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
 
+
             amp_level: The optimization level to use (O1, O2, etc...).
+                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
 
-            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of
+            truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
+                sequence.
 
             resume_from_checkpoint: To resume training from a specific checkpoint pass in the path here.
                 This can be a URL.
 
-            profiler:  To profile individual steps during training and assist in
+            profiler:  To profile individual steps during training and assist in identifying bottlenecks.
 
-            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch
+            reload_dataloaders_every_epoch: Set to True to reload dataloaders every epoch.
 
             auto_lr_find: If set to True, will `initially` run a learning rate finder,
                 trying to optimize initial learning for faster convergence. Sets learning
                 rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key, set a string instead of True with the key name.
 
-            replace_sampler_ddp: Explicitly enables or disables sampler replacement.
-                If not specified this will toggled automatically ddp is used
+            replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
+                will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
+                train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
+                you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
             benchmark: If true enables cudnn.benchmark.
 
-            deterministic: If true enables cudnn.deterministic
+            deterministic: If true enables cudnn.deterministic.
 
             terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
                 end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
@@ -379,6 +389,7 @@ class Trainer(
 
         # training state
         self.model = None
+        self.datamodule = None
         self.testing = False
         self.prepare_data_per_node = prepare_data_per_node
         self.lr_schedulers = []
@@ -389,6 +400,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
+        self.state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
@@ -422,6 +434,9 @@ class Trainer(
         # Transfer params
         self.num_nodes = num_nodes
         self.log_gpu_memory = log_gpu_memory
+
+        # sync-bn backend
+        self.sync_batchnorm = sync_batchnorm
 
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -524,7 +539,6 @@ class Trainer(
         # logging
         self.configure_logger(logger)
         self.log_save_interval = log_save_interval
-        self.val_check_interval = val_check_interval
         self.row_log_interval = row_log_interval
 
         # how much of the data to use
@@ -536,9 +550,6 @@ class Trainer(
                 DeprecationWarning,
             )
             overfit_batches = overfit_pct
-
-        # convert floats to ints
-        self.overfit_batches = _determine_limit_batches(overfit_batches)
 
         # TODO: remove in 0.10.0
         if val_percent_check is not None:
@@ -567,9 +578,11 @@ class Trainer(
             )
             limit_train_batches = train_percent_check
 
-        self.limit_test_batches = _determine_limit_batches(limit_test_batches)
-        self.limit_val_batches = _determine_limit_batches(limit_val_batches)
-        self.limit_train_batches = _determine_limit_batches(limit_train_batches)
+        self.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
+        self.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
+        self.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
+        self.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
+        self.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
         self.determine_data_use_amount(self.overfit_batches)
 
         # AMP init
@@ -580,7 +593,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp()
+        self.init_amp(amp_type)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -868,6 +881,9 @@ class Trainer(
         The default location to save artifacts of loggers, checkpoints etc.
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
         """
+        if "://" in str(self._default_root_dir):
+            # it is a remote uri, use as is
+            return self._default_root_dir
         return os.path.normpath(self._default_root_dir)
 
     @property
@@ -876,11 +892,15 @@ class Trainer(
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
+        if "://" in str(self._weights_save_path):
+            # it is a remote uri, use as is
+            return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
 
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -942,19 +962,21 @@ class Trainer(
 
         # set up the passed in dataloaders (if needed)
         self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.__attach_datamodule(model, datamodule)
+        self.__attach_datamodule(model, datamodule, 'fit')
 
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
 
         # callbacks
-        self.on_fit_start()
+        self.on_fit_start(model)
         if self.is_function_implemented('on_fit_start', model):
             model.on_fit_start()
 
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
         if self.can_prepare_data():
+            if self.datamodule is not None:
+                self.datamodule.prepare_data()
             model.prepare_data()
             self._is_data_prepared = True
 
@@ -970,48 +992,54 @@ class Trainer(
             self._run_lr_finder_internally(model)
             model.logger = self.logger  # reset logger binding
 
-        # route to appropriate start method
-        # when using multi-node or DDP within a node start each module in a separate process
+        # set testing if set in environ
+        self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+
+        # -------------------
+        # determine ddp mode
+        # -------------------
+        # SLURM ddp
+        use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
+
+        # torchelastic or general non_slurm ddp
+        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
+        use_torchelastic_ddp = self.use_ddp and te_flags_passed
+
+        use_ddp_spawn = self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']
+
+        # -------------------
+        # route training mode
+        # -------------------
+        # DDP2 (cluster only)
         if self.use_ddp2:
-            if self.is_slurm_managing_tasks:
-                task = int(os.environ['SLURM_LOCALID'])
+            self.accelerator_backend = DDP2Backend(self)
+            self.accelerator_backend.setup()
+            self.accelerator_backend.train(model)
 
-            # torchelastic or general non_slurm ddp2
-            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
-                task = int(os.environ['LOCAL_RANK'])
+        elif use_slurm_ddp:
+            self.accelerator_backend = DDPBackend(self)
+            self.accelerator_backend.slurm_setup()
+            self.accelerator_backend.train(model)
 
-            self.ddp_train(process_idx=task, mp_queue=None, model=model)
+        elif use_torchelastic_ddp:
+            self.accelerator_backend = DDPBackend(self)
+            self.accelerator_backend.torchelastic_setup()
+            self.accelerator_backend.train(model)
 
-        elif self.use_ddp:
+        # regular ddp using .spawn
+        elif use_ddp_spawn:
+            self.accelerator_backend = DDPSpawnBackend(self)
+            self.accelerator_backend.setup()
+            self.accelerator_backend.train(model, nprocs=self.num_processes)
+            results = self.accelerator_backend.teardown(model)
 
-            # set testing if set in environ
-            self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
+        # ddp
+        elif self.distributed_backend == 'ddp':
+            self.set_random_port()
+            self.accelerator_backend = DDPBackend(self)
+            results = self.accelerator_backend.spawn_ddp_children(model)
 
-            if self.is_slurm_managing_tasks:
-                task = int(os.environ['SLURM_LOCALID'])
-                self.ddp_train(process_idx=task, mp_queue=None, model=model)
-
-            # torchelastic or general non_slurm ddp
-            elif 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ):
-                task = int(os.environ['LOCAL_RANK'])
-                self.ddp_train(process_idx=task, mp_queue=None, model=model)
-
-            elif self.distributed_backend == 'ddp_cpu':
-                self.accelerator_backend = DDPSpawnBackend(self)
-                self.accelerator_backend.setup()
-                self.accelerator_backend.train(model, nprocs=self.num_processes)
-                results = self.accelerator_backend.teardown(model)
-
-            elif self.distributed_backend == 'ddp_spawn':
-                self.accelerator_backend = DDPSpawnBackend(self)
-                self.accelerator_backend.setup()
-                self.accelerator_backend.train(model, nprocs=self.num_processes)
-                results = self.accelerator_backend.teardown(model)
-
-            elif self.distributed_backend == 'ddp':
-                self.set_random_port()
-                results = self.spawn_ddp_children(model)
-
+        # dp
         elif self.use_dp:
             self.accelerator_backend = DataParallelBackend(self)
             self.accelerator_backend.setup(model)
@@ -1037,13 +1065,12 @@ class Trainer(
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
-        # callbacks
+        # on fit end callback
         self.on_fit_end()
-
-        # model hooks
         if self.is_function_implemented('on_fit_end'):
             model.on_fit_end()
 
+        # teardown callback
         self.teardown('fit')
         if self.is_function_implemented('teardown'):
             model.teardown('fit')
@@ -1053,10 +1080,14 @@ class Trainer(
         return results or 1
 
     def can_prepare_data(self):
+        should_call_dm_prepare_data = True
+        if self.datamodule is not None and self.is_overridden('prepare_data', self.datamodule):
+            should_call_dm_prepare_data = not self.datamodule.has_prepared_data
+
         if self.prepare_data_per_node:
-            return self.local_rank == 0
+            return self.local_rank == 0 and should_call_dm_prepare_data
         else:
-            return self.node_rank == 0 and self.local_rank == 0
+            return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
 
     def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
         # when dataloader is passed via fit, patch the train_dataloader
@@ -1070,19 +1101,28 @@ class Trainer(
         if test_dataloaders is not None:
             model.test_dataloader = _PatchDataLoader(test_dataloaders)
 
-    def __attach_datamodule(self, model, datamodule=None):
+    def __attach_datamodule(self, model, datamodule, stage):
 
         # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
         datamodule = datamodule or getattr(model, 'datamodule', None)
 
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
+
+            # If datamodule.setup('test') has not been called yet, call it
+            # if stage == 'test':
+            #     if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
+            #         datamodule.setup('test')
+
+            # Override loader hooks
             if self.is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
             if self.is_overridden('val_dataloader', datamodule):
                 model.val_dataloader = datamodule.val_dataloader
             if self.is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+
+            self.datamodule = datamodule
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
@@ -1101,7 +1141,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if NATIVE_AMP_AVALAIBLE and self.precision == 16 and not self.use_tpu:
+        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1125,6 +1165,11 @@ class Trainer(
         # handle POSIX signals that interrupt training
         signal_handler = SignalHandler(self)
         signal_handler.register()
+
+        # on pretrain routine start
+        self.on_pretrain_routine_start(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_start'):
+            ref_model.on_pretrain_routine_start()
 
         # print model summary
         if self.is_global_zero and self.weights_summary is not None and not self.testing:
@@ -1167,6 +1212,11 @@ class Trainer(
             # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
             with torch.cuda.device(f'cuda:{self.root_gpu}'):
                 torch.cuda.empty_cache()
+
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
 
         try:
             # CORE TRAINING LOOP
@@ -1214,6 +1264,7 @@ class Trainer(
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -1291,9 +1342,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model or self.get_model(), datamodule)
-
-        self.setup('test')
+        self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -1306,7 +1355,6 @@ class Trainer(
 
     def __test_using_best_weights(self, ckpt_path, test_dataloaders):
         model = self.get_model()
-        model.setup('test')
 
         # if user requests the best checkpoint but we don't have it, error
         if ckpt_path == 'best' and self.checkpoint_callback.save_top_k <= 0:
@@ -1352,8 +1400,6 @@ class Trainer(
         return results
 
     def __test_given_model(self, model, test_dataloaders):
-        # setup hook
-        model.setup('test')
 
         # attach data
         if test_dataloaders is not None:
@@ -1382,6 +1428,16 @@ class Trainer(
             # wait for all processes to catch up
             torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
 
+    def call_setup_hook(self, model):
+        # call setup after the ddp process has connected
+        stage_name = 'test' if self.testing else 'fit'
+        if self.datamodule is not None:
+            called = self.datamodule.has_setup_test if self.testing else self.datamodule.has_setup_fit
+            if not called:
+                self.datamodule.setup(stage_name)
+        self.setup(stage_name)
+        model.setup(stage_name)
+
 
 class _PatchDataLoader(object):
     r"""
@@ -1405,12 +1461,12 @@ class _PatchDataLoader(object):
         return self.dataloader
 
 
-def _determine_limit_batches(batches: Union[int, float]) -> Union[int, float]:
+def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
     if 0 <= batches <= 1:
         return batches
     elif batches > 1 and batches % 1.0 == 0:
         return int(batches)
     else:
         raise MisconfigurationException(
-            f'You have passed invalid value {batches}, it has to be in (0, 1) or nature number.'
+            f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
         )

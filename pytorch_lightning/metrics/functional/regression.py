@@ -17,7 +17,7 @@ def mse(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing mse (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -51,7 +51,7 @@ def rmse(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing rmse (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -83,7 +83,7 @@ def mae(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing mae (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -117,7 +117,7 @@ def rmsle(
     Args:
         pred: estimated labels
         target: ground truth labels
-        reduction: method for reducing rmsle (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -154,7 +154,7 @@ def psnr(
         target: groun truth signal
         data_range: the range of the data. If None, it is determined from the data (max - min)
         base: a base of a logarithm to use (default: 10)
-        reduction: method for reducing psnr (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -215,13 +215,13 @@ def ssim(
     Computes Structual Similarity Index Measure
 
     Args:
-        pred: Estimated image
-        target: Ground truth image
-        kernel_size: Size of the gaussian kernel. Default: (11, 11)
-        sigma: Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
-        reduction: A method for reducing ssim over all elements in the ``pred`` tensor. Default: ``elementwise_mean``
-
+        pred: estimated image
+        target: ground truth image
+        kernel_size: size of the gaussian kernel (default: (11, 11))
+        sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
+
             - elementwise_mean: takes the mean
             - none: pass away
             - sum: add elements
@@ -230,15 +230,16 @@ def ssim(
         k1: Parameter of SSIM. Default: 0.01
         k2: Parameter of SSIM. Default: 0.03
 
-    Returns:
-        A Tensor with SSIM
+    Return:
+        Tensor with SSIM score
 
     Example:
 
         >>> pred = torch.rand([16, 1, 16, 16])
-        >>> target = pred * 1.25
+        >>> target = pred * 0.75
         >>> ssim(pred, target)
-        tensor(0.9520)
+        tensor(0.9219)
+
     """
 
     if pred.dtype != target.dtype:
@@ -280,16 +281,24 @@ def ssim(
 
     channel = pred.size(1)
     kernel = _gaussian_kernel(channel, kernel_size, sigma, device)
-    mu_pred = F.conv2d(pred, kernel, groups=channel)
-    mu_target = F.conv2d(target, kernel, groups=channel)
 
-    mu_pred_sq = mu_pred.pow(2)
-    mu_target_sq = mu_target.pow(2)
-    mu_pred_target = mu_pred * mu_target
+    # Concatenate
+    # pred for mu_pred
+    # target for mu_target
+    # pred * pred for sigma_pred
+    # target * target for sigma_target
+    # pred * target for sigma_pred_target
+    input_list = torch.cat([pred, target, pred * pred, target * target, pred * target])  # (5 * B, C, H, W)
+    outputs = F.conv2d(input_list, kernel, groups=channel)
+    output_list = [outputs[x * pred.size(0): (x + 1) * pred.size(0)] for x in range(len(outputs))]
 
-    sigma_pred_sq = F.conv2d(pred * pred, kernel, groups=channel) - mu_pred_sq
-    sigma_target_sq = F.conv2d(target * target, kernel, groups=channel) - mu_target_sq
-    sigma_pred_target = F.conv2d(pred * target, kernel, groups=channel) - mu_pred_target
+    mu_pred_sq = output_list[0].pow(2)
+    mu_target_sq = output_list[1].pow(2)
+    mu_pred_target = output_list[0] * output_list[1]
+
+    sigma_pred_sq = output_list[2] - mu_pred_sq
+    sigma_target_sq = output_list[3] - mu_target_sq
+    sigma_pred_target = output_list[4] - mu_pred_target
 
     UPPER = 2 * sigma_pred_target + C2
     LOWER = sigma_pred_sq + sigma_target_sq + C2

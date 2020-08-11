@@ -12,23 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core import LightningModule
+from pytorch_lightning.utilities import AMPType
+
+try:
+    from apex import amp
+except ImportError:
+    amp = None
 
 
-class CPUBackend(object):
+class GPUBackend(object):
+    amp_type: AMPType
 
     def __init__(self, trainer):
         self.trainer = trainer
 
     def setup(self, model):
-        # run through amp wrapper
-        if self.trainer.use_amp:
-            raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
-        # call setup after the ddp process has connected
-        if not self.trainer.testing:
-            self.trainer.setup('fit')
-            model.setup('fit')
+        # call setup
+        self.trainer.call_setup_hook(model)
+
+        model.cuda(self.trainer.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -37,6 +41,16 @@ class CPUBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
+        if self.trainer.amp_type == AMPType.APEX:
+            model = self._setup_nvidia_apex(model)
+        return model
+
     def train(self, model):
         results = self.trainer.run_pretrain_routine(model)
         return results
+
+    def _setup_nvidia_apex(self, model: LightningModule):
+        model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
+        self.trainer.optimizers = optimizers
+        self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
+        return model

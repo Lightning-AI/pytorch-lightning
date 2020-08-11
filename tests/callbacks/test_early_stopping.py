@@ -1,9 +1,10 @@
+from copy import deepcopy
 import pickle
 
 import cloudpickle
 import pytest
-
 import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
@@ -24,7 +25,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 
         def on_validation_end(self, trainer, pl_module):
             super().on_validation_end(trainer, pl_module)
-            self.saved_states.append(self.state_dict().copy())
+            self.saved_states.append(deepcopy(self.state_dict()))
 
     class EarlyStoppingTestRestore(EarlyStopping):
         def __init__(self, expected_state):

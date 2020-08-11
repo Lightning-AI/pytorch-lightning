@@ -33,17 +33,14 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device, NATIVE_AMP_AVALAIBLE
+from pytorch_lightning.utilities import move_data_to_device, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
-from pytorch_lightning.utilities import rank_zero_warn
 
 try:
     from apex import amp
 except ImportError:
-    APEX_AVAILABLE = False
-else:
-    APEX_AVAILABLE = True
+    amp = None
 
 try:
     import torch_xla.core.xla_model as xm
@@ -82,10 +79,10 @@ class TrainerDPMixin(ABC):
     on_colab_kaggle: str
     save_spawn_weights: Callable
     logger: ...
+    amp_type: AMPType
 
-    @property
     @abstractmethod
-    def use_amp(self) -> bool:
+    def call_setup_hook(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -126,7 +123,7 @@ class TrainerDPMixin(ABC):
             m.use_dp = self.use_dp
             m.use_ddp2 = self.use_ddp2
             m.use_ddp = self.use_ddp
-            m.use_amp = self.use_amp
+            m.use_amp = self.amp_type is not None
             m.testing = self.testing
             m.use_single_gpu = self.use_single_gpu
             m.use_tpu = self.use_tpu
@@ -180,9 +177,7 @@ class TrainerDPMixin(ABC):
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected
-        if not self.testing:
-            self.setup('fit')
-            model.setup('fit')
+        self.call_setup_hook(model)
 
         if torch.cuda.is_available() and self.on_gpu:
             # Horovod: pin GPU to local rank
@@ -210,7 +205,7 @@ class TrainerDPMixin(ABC):
             if isinstance(scheduler, _LRScheduler):
                 scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
 
-        if self.use_amp:
+        if self.amp_type:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)

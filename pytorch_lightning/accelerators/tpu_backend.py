@@ -17,10 +17,10 @@ import os
 import torch
 import torch.multiprocessing as mp
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning import _logger as log
 
 try:
     import torch_xla
@@ -102,9 +102,8 @@ class TPUBackend(object):
         """
         if not trainer:
             trainer = self.trainer
-        if not trainer.testing:
-            trainer.setup('fit')
-            model.setup('fit')
+
+        trainer.call_setup_hook(model)
 
         # setup TPU training
         self.__setup_tpu_training(model, trainer)

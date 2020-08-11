@@ -3,7 +3,6 @@
 #   Especially reduction and reducing across processes won't be tested here!
 
 import torch
-from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
 from pytorch_lightning.metrics.regression import (
     MAE, MSE, RMSE, RMSLE, PSNR, SSIM
@@ -65,6 +64,6 @@ def test_ssim():
     assert ssim.name == 'ssim'
 
     pred = torch.rand([16, 1, 16, 16])
-    target = pred * 1.25
+    target = pred * 0.75
     score = ssim(pred, target)
     assert isinstance(score, torch.Tensor)

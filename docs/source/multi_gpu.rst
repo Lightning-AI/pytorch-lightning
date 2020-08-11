@@ -67,7 +67,7 @@ register the tensor as a buffer in your modules's `__init__` method with :meth:`
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training in PyTorch. The
+In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training. The
 sampler makes sure each GPU sees the appropriate part of your data.
 
 .. testcode::
@@ -191,6 +191,13 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 +---------------+-----------+---------------------+---------------------------------+
 | "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
 +---------------+-----------+---------------------+---------------------------------+
+
+.. note::
+
+    When specifying number of gpus as an integer `gpus=k`, setting the trainer flag
+    `auto_select_gpus=True` will automatically help you find `k` gpus that are not
+    occupied by other processes. This is especially useful when GPUs are configured
+    to be in "exclusive mode", such that only one process at a time can access them.
 
 Remove CUDA flags
 ^^^^^^^^^^^^^^^^^

@@ -291,7 +291,7 @@ Using DataModules allows easier sharing of full dataset definitions.
 
     # use an MNIST dataset
     mnist_dm = MNISTDatamodule()
-    model = LitModel(num_classes=mnist.num_classes)
+    model = LitModel(num_classes=mnist_dm.num_classes)
     trainer.fit(model, mnist_dm)
 
     # or other datasets with the same model

@@ -94,7 +94,7 @@ Which you can train by doing:
     trainer = pl.Trainer()
     model = LitModel()
 
-   trainer.fit(model, train_loader)
+    trainer.fit(model, train_loader)
 
 ----------
 
@@ -211,6 +211,63 @@ don't run your test data by accident. Instead you have to explicitly call:
     model = MyLightningModule.load_from_checkpoint(PATH)
     trainer = Trainer()
     trainer.test(model, test_dataloaders=test_dataloader)
+
+-------------
+
+TrainResult
+^^^^^^^^^^^
+When you are using the `_step_end` and `_epoch_end` only for aggregating metrics and then logging,
+consider using either a `EvalResult` or `TrainResult` instead.
+
+Here's a training loop structure
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        return {'loss': loss}
+
+    def training_epoch_end(self, training_step_outputs):
+        epoch_loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
+        return {
+            'log': {'epoch_loss': epoch_loss},
+            'progress_bar': {'epoch_loss': epoch_loss}
+        }
+
+using the equivalent syntax via the `TrainResult` object:
+
+.. code-block:: python
+
+    def training_step(self, batch_subset, batch_idx):
+        loss = ...
+        result = pl.TrainResult(minimize=loss)
+        result.log('train_loss', loss, prog_bar=True)
+        return result
+
+EvalResult
+^^^^^^^^^^
+Same for val/test loop
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        return {'some_metric': some_metric}
+
+    def validation_epoch_end(self, validation_step_outputs):
+        some_metric_mean = torch.stack([x['some_metric'] for x in validation_step_outputs]).mean()
+        return {
+            'log': {'some_metric_mean': some_metric_mean},
+            'progress_bar': {'some_metric_mean': some_metric_mean}
+        }
+
+With the equivalent using the `EvalResult` syntax
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        some_metric = ...
+        result = pl.EvalResult(checkpoint_on=some_metric)
+        result.log('some_metric', some_metric, prog_bar=True)
+        return result
 
 ----------
 

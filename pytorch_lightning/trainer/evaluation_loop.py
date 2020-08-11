@@ -131,9 +131,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel, LightningDataParallel
-from pytorch_lightning.utilities import rank_zero_warn, NATIVE_AMP_AVALAIBLE, flatten_dict
-from torch import distributed as dist
+from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -182,6 +180,7 @@ class TrainerEvaluationLoopMixin(ABC):
     tpu_id: int
     verbose_test: bool
     running_sanity_check: bool
+    amp_type: AMPType
 
     # Callback system
     on_validation_batch_start: Callable
@@ -312,14 +311,14 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # callbacks
                 if test_mode:
-                    self.on_test_batch_start()
+                    self.on_test_batch_start(batch, batch_idx, dataloader_idx)
                 else:
-                    self.on_validation_batch_start()
+                    self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
 
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.use_amp and NATIVE_AMP_AVALAIBLE and not self.use_tpu:
+                if self.amp_type == AMPType.NATIVE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:
@@ -336,13 +335,13 @@ class TrainerEvaluationLoopMixin(ABC):
                         model_ref = self.get_model()
                         with self.profiler.profile('test_step_end'):
                             output = model_ref.test_step_end(output)
-                    self.on_test_batch_end()
+                    self.on_test_batch_end(batch, batch_idx, dataloader_idx)
                 else:
                     if self.is_overridden('validation_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('validation_step_end'):
                             output = model_ref.validation_step_end(output)
-                    self.on_validation_batch_end()
+                    self.on_validation_batch_end(batch, batch_idx, dataloader_idx)
 
                 # track outputs for collation
                 if output is not None:

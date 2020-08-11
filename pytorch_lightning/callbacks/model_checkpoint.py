@@ -8,14 +8,15 @@ Automatically save model checkpoints during training.
 
 import os
 import re
-
-import numpy as np
 from typing import Optional
 
+import numpy as np
 import torch
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs
 
 
 class ModelCheckpoint(Callback):
@@ -50,7 +51,7 @@ class ModelCheckpoint(Callback):
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
         save_last: always saves the model at the end of the epoch. Default: ``False``.
-        save_top_k: if `save_top_k == k`,
+        save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
@@ -96,11 +97,17 @@ class ModelCheckpoint(Callback):
 
     """
 
+    CHECKPOINT_NAME_LAST = "last.ckpt"
+    CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
+    CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
+
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
-        if save_top_k > 0 and filepath is not None and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:
+        if(filepath):
+            filepath = str(filepath)  # the tests pass in a py.path.local but we want a str
+        if save_top_k > 0 and filepath is not None and gfile.isdir(filepath) and len(gfile.listdir(filepath)) > 0:
             rank_zero_warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
@@ -112,12 +119,13 @@ class ModelCheckpoint(Callback):
         if filepath is None:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
         else:
-            if os.path.isdir(filepath):
+            if gfile.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
             else:
                 filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
-            os.makedirs(self.dirpath, exist_ok=True)
+            if not gfile.exists(self.dirpath):
+                makedirs(self.dirpath)
         self.save_last = save_last
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
@@ -159,8 +167,14 @@ class ModelCheckpoint(Callback):
         return self.kth_best_model_path
 
     def _del_model(self, filepath):
-        if os.path.isfile(filepath):
-            os.remove(filepath)
+        if gfile.exists(filepath):
+            try:
+                # in compat mode, remove is not implemented so if running this
+                # against an actual remove file system and the correct remote
+                # dependencies exist then this will work fine.
+                gfile.remove(filepath)
+            except AttributeError:
+                os.remove(filepath)
 
     def _save_model(self, filepath, trainer, pl_module):
 
@@ -168,7 +182,8 @@ class ModelCheckpoint(Callback):
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if not gfile.exists(os.path.dirname(filepath)):
+            makedirs(os.path.dirname(filepath))
 
         # delegate the saving to the model
         if self.save_function is not None:
@@ -274,7 +289,8 @@ class ModelCheckpoint(Callback):
         self.dirpath = ckpt_path
 
         assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-        os.makedirs(self.dirpath, exist_ok=True)
+        if not gfile.exists(self.dirpath):
+            makedirs(self.dirpath)
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
@@ -302,13 +318,9 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
-        if self.save_last:
-            filepath = os.path.join(self.dirpath, self.prefix + 'last.ckpt')
-            self._save_model(filepath, trainer, pl_module)
-
         filepath = self.format_checkpoint_name(epoch, metrics)
         version_cnt = 0
-        while os.path.isfile(filepath):
+        while gfile.exists(filepath):
             filepath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1
@@ -338,6 +350,10 @@ class ModelCheckpoint(Callback):
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
 
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
+            self._save_model(filepath, trainer, pl_module)
+
+        if self.save_last:
+            filepath = os.path.join(self.dirpath, self.prefix + ModelCheckpoint.CHECKPOINT_NAME_LAST)
             self._save_model(filepath, trainer, pl_module)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):

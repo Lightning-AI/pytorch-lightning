@@ -1,0 +1,7 @@
+from pytorch_lightning.accelerators.cpu_backend import CPUBackend
+from pytorch_lightning.accelerators.ddp2_backend import DDP2Backend
+from pytorch_lightning.accelerators.ddp_backend import DDPBackend
+from pytorch_lightning.accelerators.ddp_spawn_backend import DDPSpawnBackend
+from pytorch_lightning.accelerators.dp_backend import DataParallelBackend
+from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.accelerators.tpu_backend import TPUBackend

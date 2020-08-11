@@ -1,13 +1,11 @@
-import sys
-from collections import Sequence
 from functools import wraps
-from typing import Optional, Tuple, Callable
+from typing import Callable, Optional, Sequence, Tuple
 
 import torch
 from torch.nn import functional as F
 
 from pytorch_lightning.metrics.functional.reduction import reduce
-from pytorch_lightning.utilities import rank_zero_warn, FLOAT16_EPSILON
+from pytorch_lightning.utilities import FLOAT16_EPSILON, rank_zero_warn
 
 
 def to_onehot(
@@ -139,10 +137,10 @@ def stat_scores_multiple_classes(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         argmax_dim: int = 1,
+        reduction: str = 'none',
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calls the stat_scores function iteratively for all classes, thus
-    calculating the number of true postive, false postive, true negative
+    Calculates the number of true postive, false postive, true negative
     and false negative for each class
 
     Args:
@@ -151,6 +149,12 @@ def stat_scores_multiple_classes(
         num_classes: number of classes if known
         argmax_dim: if pred is a tensor of probabilities, this indicates the
             axis the argmax transformation will be applied over
+        reduction: a method to reduce metric score over labels (default: none)
+            Available reduction methods:
+
+            - elementwise_mean: takes the mean
+            - none: pass array
+            - sum: add elements
 
     Return:
         True Positive, False Positive, True Negative, False Negative, Support
@@ -170,20 +174,63 @@ def stat_scores_multiple_classes(
         tensor([1., 0., 0., 0.])
         >>> sups
         tensor([1., 0., 1., 1.])
-    """
-    num_classes = get_num_classes(pred=pred, target=target,
-                                  num_classes=num_classes)
 
+    """
     if pred.ndim == target.ndim + 1:
         pred = to_categorical(pred, argmax_dim=argmax_dim)
 
-    tps = torch.zeros((num_classes,), device=pred.device)
-    fps = torch.zeros((num_classes,), device=pred.device)
-    tns = torch.zeros((num_classes,), device=pred.device)
-    fns = torch.zeros((num_classes,), device=pred.device)
-    sups = torch.zeros((num_classes,), device=pred.device)
-    for c in range(num_classes):
-        tps[c], fps[c], tns[c], fns[c], sups[c] = stat_scores(pred=pred, target=target, class_index=c)
+    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
+
+    if pred.dtype != torch.bool:
+        pred = pred.clamp_max(max=num_classes)
+    if target.dtype != torch.bool:
+        target = target.clamp_max(max=num_classes)
+
+    possible_reductions = ('none', 'sum', 'elementwise_mean')
+    if reduction not in possible_reductions:
+        raise ValueError("reduction type %s not supported" % reduction)
+
+    if reduction == 'none':
+        pred = pred.view((-1, )).long()
+        target = target.view((-1, )).long()
+
+        tps = torch.zeros((num_classes + 1,), device=pred.device)
+        fps = torch.zeros((num_classes + 1,), device=pred.device)
+        tns = torch.zeros((num_classes + 1,), device=pred.device)
+        fns = torch.zeros((num_classes + 1,), device=pred.device)
+        sups = torch.zeros((num_classes + 1,), device=pred.device)
+
+        match_true = (pred == target).float()
+        match_false = 1 - match_true
+
+        tps.scatter_add_(0, pred, match_true)
+        fps.scatter_add_(0, pred, match_false)
+        fns.scatter_add_(0, target, match_false)
+        tns = pred.size(0) - (tps + fps + fns)
+        sups.scatter_add_(0, target, torch.ones_like(match_true))
+
+        tps = tps[:num_classes]
+        fps = fps[:num_classes]
+        tns = tns[:num_classes]
+        fns = fns[:num_classes]
+        sups = sups[:num_classes]
+
+    elif reduction == 'sum' or reduction == 'elementwise_mean':
+        count_match_true = (pred == target).sum().float()
+        oob_tp, oob_fp, oob_tn, oob_fn, oob_sup = stat_scores(pred, target, num_classes, argmax_dim)
+
+        tps = count_match_true - oob_tp
+        fps = pred.nelement() - count_match_true - oob_fp
+        fns = pred.nelement() - count_match_true - oob_fn
+        tns = pred.nelement() * (num_classes + 1) - (tps + fps + fns + oob_tn)
+        sups = pred.nelement() - oob_sup.float()
+
+        if reduction == 'elementwise_mean':
+            tps /= num_classes
+            fps /= num_classes
+            fns /= num_classes
+            tns /= num_classes
+            sups /= num_classes
 
     return tps, fps, tns, fns, sups
 
@@ -201,7 +248,7 @@ def accuracy(
         pred: predicted labels
         target: ground truth labels
         num_classes: number of classes
-        reduction: a method for reducing accuracies over labels (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -219,16 +266,13 @@ def accuracy(
         tensor(0.7500)
 
     """
-    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
-        pred=pred, target=target, num_classes=num_classes)
-
     if not (target > 0).any() and num_classes is None:
         raise RuntimeError("cannot infer num_classes when target is all zero")
 
-    if reduction in ('elementwise_mean', 'sum'):
-        return reduce(sum(tps) / sum(sups), reduction=reduction)
-    if reduction == 'none':
-        return reduce(tps / sups, reduction=reduction)
+    tps, fps, tns, fns, sups = stat_scores_multiple_classes(
+        pred=pred, target=target, num_classes=num_classes, reduction=reduction)
+
+    return tps / sups
 
 
 def confusion_matrix(
@@ -284,7 +328,7 @@ def precision_recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing precision-recall values (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -333,7 +377,7 @@ def precision(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing precision values (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -368,7 +412,7 @@ def recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing recall values (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -409,7 +453,7 @@ def fbeta_score(
             beta = 0: only precision
             beta -> inf: only recall
         num_classes: number of classes
-        reduction: method for reducing F-score (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -454,7 +498,7 @@ def f1_score(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: method for reducing F1-score (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -877,7 +921,7 @@ def dice_score(
         bg: whether to also compute dice for the background
         nan_score: score to return, if a NaN occurs during computation
         no_fg_score: score to return, if no foreground pixel was found in target
-        reduction: a method for reducing accuracies over labels (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
@@ -934,7 +978,7 @@ def iou(
             within input parameters. If true, will remove background class. If
             false, return IoU over all classes
             Assumes that background is '0' class in input tensor
-        reduction: a method for reducing IoU over labels (default: takes the mean)
+        reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
             - elementwise_mean: takes the mean
