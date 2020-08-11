@@ -528,7 +528,7 @@ class TrainerTrainLoopMixin(ABC):
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # max steps reached, end training
-            if self.max_steps is not None and self.max_steps == self.global_step+1 and is_last_batch:
+            if self.max_steps is not None and self.max_steps == self.global_step+1:
                 print("self.max_steps", self.max_steps)
                 break
 

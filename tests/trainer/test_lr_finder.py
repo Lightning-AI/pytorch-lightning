@@ -169,8 +169,6 @@ def test_accumulation_and_early_stopping(tmpdir):
     lrfinder = trainer.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
-    print("len(lrfinder.results['lr'])", len(lrfinder.results['lr']))
-
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
     assert len(lrfinder.results['lr']) == 100, \
