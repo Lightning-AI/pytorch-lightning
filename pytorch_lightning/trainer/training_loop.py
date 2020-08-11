@@ -528,16 +528,19 @@ class TrainerTrainLoopMixin(ABC):
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step+1:
+                print("self.max_steps")
                 break
 
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
             if self.should_stop:
+                print("self.should_stop")
                 break
 
             # stop epoch if we limited the number of training batches
             if batch_idx+1 >= self.num_training_batches:
+                print("self.num_training_batches")
                 break
 
             # progress global step according to grads progress. If it is the last batch, we will increment the
