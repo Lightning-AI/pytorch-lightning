@@ -1203,9 +1203,6 @@ class Trainer(
                         if isinstance(v, torch.Tensor):
                             result[k] = v.cpu().item()
 
-            print("eval_loop_results")
-            print(eval_loop_results)
-
             return eval_loop_results
 
         # run a few val batches before training starts
