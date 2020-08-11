@@ -309,8 +309,13 @@ class ModelHooks(Module):
         Note:
             This hook should only transfer the data and not modify it, nor should it move the data to
             any other device than the one passed in as argument (unless you know what you are doing).
-            The :class:`~pytorch_lightning.trainer.trainer.Trainer` already takes care of splitting the
-            batch and determines the target devices.
+
+        Note:
+            This hook only runs on single GPU training (no data-parallel). If you need multi-GPU support
+            for your custom batch objects, you need to define your custom
+            :class:`~torch.nn.parallel.DistributedDataParallel` or
+            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
+            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
 
         See Also:
             - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
