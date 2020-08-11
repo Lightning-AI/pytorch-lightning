@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pytest
 import torch
@@ -149,7 +150,7 @@ def test_metric(metric: Metric):
     DummyTensorMetric,
     DummyNumpyMetric(),
 ])
-def test_pickable(tmpdir, metric: Metric):
+def test_model_pickable(tmpdir, metric: Metric):
     """Make sure that metrics are pickable by including into a model and running in multi-gpu mode"""
     tutils.set_random_master_port()
 
@@ -166,3 +167,21 @@ def test_pickable(tmpdir, metric: Metric):
     model.training_step = model.training_step_using_metrics
 
     tpipes.run_model_test(trainer_options, model)
+
+
+@pytest.mark.parametrize("metric", [DummyTensorMetric(), DummyNumpyMetric()])
+def test_saving_pickable(tmpdir, metric: Metric):
+    """ Make sure that metrics are pickable by saving and loading them using torch """
+    x, y = torch.randn(10,), torch.randn(10,)
+    results_before_save = metric(x,y)
+
+    # save metric
+    save_path = os.path.join(tmpdir, 'save_test.ckpt')
+    torch.save(metric, save_path)
+
+    # load metric
+    new_metric = torch.load(save_path)
+    results_after_load = new_metric(x,y)
+
+    # Check metric value is the same
+    assert results_before_save == results_after_load
