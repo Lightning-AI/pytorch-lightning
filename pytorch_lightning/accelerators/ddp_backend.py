@@ -259,7 +259,7 @@ class DistributedConnection:
             print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port(), 'done')
 
         new_port = torch.tensor([int(self._get_master_port())], dtype=torch.int, device='cuda')
-        if torch.distributed.is_initialized() and trainer.global_rank > 0:
+        if torch.distributed.is_initialized() and trainer.global_rank == 0:
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
 
             #model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
