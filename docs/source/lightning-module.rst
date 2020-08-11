@@ -843,6 +843,49 @@ These are properties available in a LightningModule.
 
 -----------
 
+current_epoch
+~~~~~~~~~~~~~
+The current epoch
+
+.. code-block:: python
+
+    def training_step(...):
+        if self.current_epoch == 0:
+
+-------------
+
+device
+~~~~~~
+The device the module is on. Use it to keep your code device agnostic
+
+.. code-block:: python
+
+    def training_step(...):
+        z = torch.rand(2, 3, device=self.device)
+
+-------------
+
+global_rank
+~~~~~~~~~~~
+The global_rank of this LightningModule. Lightning saves logs, weights etc only from global_rank = 0. You
+normally do not need to use this property
+
+Global rank refers to the index of that GPU across ALL GPUs. For example, if using 10 machines, each with 4 GPUs,
+the 4th GPU on the 10th machine has global_rank = 39
+
+-------------
+
+global_step
+~~~~~~~~~~~
+The current step (does not reset each epoch)
+
+.. code-block:: python
+
+    def training_step(...):
+        self.logger.experiment.log_image(..., step=self.global_step)
+
+-------------
+
 hparams
 ~~~~~~~
 After calling `save_hyperparameters` anything passed to init() is available via hparams.
@@ -855,25 +898,7 @@ After calling `save_hyperparameters` anything passed to init() is available via 
     def configure_optimizers(self):
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-current_epoch
-~~~~~~~~~~~~~
-The current epoch
-
-.. code-block:: python
-
-    def training_step(...):
-        if self.current_epoch == 0:
-
------------
-
-global_step
-~~~~~~~~~~~
-The current step (does not reset each epoch)
-
-.. code-block:: python
-
-    def training_step(...):
-        self.logger.experiment.log_image(..., step=self.global_step)
+--------------
 
 logger
 ~~~~~~
@@ -888,15 +913,18 @@ The current logger being used (tensorboard or other supported logger)
         # the particular logger
         tensorboard_logger = self.logger.experiment
 
-trainer
-~~~~~~~
-Pointer to the trainer
+--------------
 
-.. code-block:: python
+local_rank
+~~~~~~~~~~~
+The local_rank of this LightningModule. Lightning saves logs, weights etc only from global_rank = 0. You
+normally do not need to use this property
 
-    def training_step(...):
-        max_steps = self.trainer.max_steps
-        any_flag = self.trainer.any_flag
+Local rank refers to the rank on that machine. For example, if using 10 machines, the GPU at index 0 on each machine
+has local_rank = 0.
+
+
+-----------
 
 precision
 ~~~~~~~~~
@@ -907,43 +935,39 @@ The type of precision used:
     def training_step(...):
         if self.precision == 16:
 
+------------
+
+trainer
+~~~~~~~
+Pointer to the trainer
+
+.. code-block:: python
+
+    def training_step(...):
+        max_steps = self.trainer.max_steps
+        any_flag = self.trainer.any_flag
+
+------------
+
 use_ddp
 ~~~~~~~
 True if using ddp
+
+------------
 
 use_ddp2
 ~~~~~~~~
 True if using ddp2
 
+------------
+
 use_dp
 ~~~~~~
 True if using dp
+
+------------
 
 use_tpu
 ~~~~~~~
 True if using TPUs
 
-device
-~~~~~~
-The device the module is on. Use it to keep your code device agnostic
-
-.. code-block:: python
-
-    def training_step(...):
-        z = torch.rand(2, 3, device=self.device)
-
-global_rank
-~~~~~~~~~~~
-The global_rank of this LightningModule. Lightning saves logs, weights etc only from global_rank = 0. You
-normally do not need to use this property
-
-Global rank refers to the index of that GPU across ALL GPUs. For example, if using 10 machines, each with 4 GPUs,
-the 4th GPU on the 10th machine has global_rank = 39
-
-local_rank
-~~~~~~~~~~~
-The local_rank of this LightningModule. Lightning saves logs, weights etc only from global_rank = 0. You
-normally do not need to use this property
-
-Local rank refers to the rank on that machine. For example, if using 10 machines, the GPU at index 0 on each machine
-has local_rank = 0.
