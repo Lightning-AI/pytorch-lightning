@@ -1,4 +1,5 @@
 from collections import namedtuple
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -384,3 +385,23 @@ def test_single_gpu_batch_parse():
 
     assert batch.text.type() == 'torch.cuda.LongTensor'
     assert batch.label.type() == 'torch.cuda.LongTensor'
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_non_blocking():
+    trainer = Trainer()
+
+    batch = torch.zeros(2, 3)
+    with patch.object(batch, 'to', wraps=batch.to) as mocked:
+        trainer.transfer_batch_to_gpu(batch, 0)
+        mocked.assert_called_with(torch.device('cuda', 0), non_blocking=True)
+
+    class BatchObject(object):
+
+        def to(self, *args, **kwargs):
+            pass
+
+    batch = BatchObject()
+    with patch.object(batch, 'to', wraps=batch.to) as mocked:
+        trainer.transfer_batch_to_gpu(batch, 0)
+        mocked.assert_called_with(torch.device('cuda', 0))
