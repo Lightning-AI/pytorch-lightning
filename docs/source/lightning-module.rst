@@ -905,6 +905,87 @@ True if using TPUs
 Hooks
 -----
 
+Hook lifecylce pseudocode
+^^^^^^^^^^^^^^^^^^^^^^^^^
+This is the pseudocode to describe how all the hooks are called during a call to `.fit()`
+
+.. code-block:: python
+
+    # -------------------
+    # FIT SETUP
+    # -------------------
+    def fit(...):
+        on_fit_start()
+
+        if global_rank == 0:
+            # prepare data is called on GLOBAL_ZERO only
+            prepare_data()
+
+        for gpu/tpu in gpu/tpus:
+            train_on_device(model.copy())
+
+        on_fit_end()
+
+    def train_on_device(model):
+        # setup is called PER DEVICE
+        setup()
+        configure_optimizers()
+        on_pretrain_routine_start()
+
+        for epoch in epochs:
+            train_loop()
+
+        teardown()
+
+    def train_loop():
+        on_train_epoch_start()
+        train_outs = []
+        for train_batch in train_dataloader():
+            on_train_batch_start()
+
+            # ----- train_step methods -------
+            out = training_step(batch)
+            train_outs.append(out)
+
+            loss = out.loss
+
+            backward()
+            on_after_backward()
+            optimizer_step()
+            on_before_zero_grad()
+            optimizer_zero_grad()
+
+            on_train_batch_end()
+
+            if should_check_val:
+                val_loop()
+
+        # end training epoch
+        logs = training_epoch_end(outs)
+
+    def val_loop():
+        model.eval()
+        torch.set_grad_enabled(False)
+
+        on_validation_epoch_start()
+        val_outs = []
+        for val_batch in val_dataloader():
+            on_validation_batch_start()
+
+            # -------- val step methods -------
+            out = validation_step(val_batch)
+            val_outs.append(out)
+
+            on_validation_batch_end()
+
+        validation_epoch_end(val_outs)
+        on_validation_epoch_end()
+
+        # set up for train
+        model.train()
+        torch.set_grad_enabled(True)
+
+
 Advanced hooks
 ^^^^^^^^^^^^^^
 Use these hooks to modify advanced functionality
@@ -1028,8 +1109,8 @@ optimizer_zero_grad
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
     :noindex:
 
-Training hooks
-^^^^^^^^^^^^^^
+Training lifecycle hooks
+^^^^^^^^^^^^^^^^^^^^^^^^^
 These hooks are called during training
 
 on_fit_start
