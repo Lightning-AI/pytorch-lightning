@@ -57,7 +57,7 @@ def get_available_signal_codes():
     return codes
 
 
-@pytest.mark.skipif(not torch.distributed.is_available())
+@pytest.mark.skipif(not torch.distributed.is_available(), "test requires torch.distributed module")
 @pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
 def test_graceful_training_shutdown(tmpdir, signal_code):
     trainer = Trainer(
@@ -75,6 +75,7 @@ from multiprocessing import Process, Queue
 
 
 @pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_graceful_training_shutdown_gpu(tmpdir, signal_code):
     trainer = Trainer(
         default_root_dir=tmpdir,
