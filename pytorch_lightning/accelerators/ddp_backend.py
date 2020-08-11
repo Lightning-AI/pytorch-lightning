@@ -247,27 +247,28 @@ class DistributedConnection:
             model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
             print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port(), 'done')
 
+        new_port = torch.tensor([self._get_master_port()], dtype=torch.int, device='cuda')
         if torch.distributed.is_initialized() and trainer.global_rank > 0:
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
 
             #model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
-            torch.distributed.barrier()
-            new_port = torch.empty(1, dtype=torch.int, device='cuda')
+            # torch.distributed.barrier()
 
-            if trainer.global_rank == 0:
-                port = find_open_network_port()
-                new_port[0] = port
 
-            torch.distributed.broadcast(new_port, src=0)
-            new_port = int(new_port.item())
-            print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
-            torch.distributed.destroy_process_group()  # destroy connections on old port
-            print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
-            print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
-            self._set_master_port(port=new_port)
+            #if trainer.global_rank == 0:
+            port = find_open_network_port()
+            new_port[0] = port
 
-            model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+        torch.distributed.broadcast(new_port, src=0)
+        new_port = int(new_port.item())
+        print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
+        torch.distributed.destroy_process_group()  # destroy connections on old port
+        print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
+        print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
+        self._set_master_port(port=new_port)
+
+        model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
 
 
