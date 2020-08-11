@@ -244,7 +244,7 @@ class DistributedConnection:
 
         if torch.distributed.is_initialized():
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
-
+            print(dir(torch.distributed.distributed_c10d._get_default_store()))
             torch.distributed.destroy_process_group()
 
 
