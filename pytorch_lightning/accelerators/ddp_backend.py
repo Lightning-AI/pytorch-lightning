@@ -272,6 +272,7 @@ class DistributedConnection:
 
         print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+        print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port(), 'done')
 
         def exit_handler():
             if torch.distributed.is_initialized() and trainer.global_rank > 0:
