@@ -52,6 +52,9 @@ class TrainerLoggingMixin(ABC):
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
 
+        print("step 0")
+        print(step)
+
         # add gpu memory
         if self.on_gpu and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
@@ -80,6 +83,9 @@ class TrainerLoggingMixin(ABC):
 
         print("metrics")
         print(metrics)
+
+        print("step 1")
+        print(step)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
