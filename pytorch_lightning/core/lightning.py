@@ -243,10 +243,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 out, hiddens = self.lstm(data, hiddens)
                 ...
 
-                return {
-                    "loss": ...,
-                    "hiddens": hiddens  # remember to detach() this
-                }
+                result = pl.TrainResult(minimize=loss, hiddens=hiddens)
+                return result
 
         Notes:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
