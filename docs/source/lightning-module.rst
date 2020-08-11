@@ -911,9 +911,6 @@ This is the pseudocode to describe how all the hooks are called during a call to
 
 .. code-block:: python
 
-    # -------------------
-    # FIT SETUP
-    # -------------------
     def fit(...):
         on_fit_start()
 
