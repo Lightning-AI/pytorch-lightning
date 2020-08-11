@@ -497,3 +497,29 @@ def test_model_ignores_non_exist_kwargument(tmpdir):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = LocalModel.load_from_checkpoint(raw_checkpoint_path, non_exist_kwarg=99)
     assert 'non_exist_kwarg' not in model.hparams
+
+
+class SuperClassPositionalArgs(EvalModelTemplate):
+
+    def __init__(self, hparams):
+        super().__init__()
+        self.hparams = hparams
+
+
+class SubClassVarArgs(SuperClassPositionalArgs):
+    """ Loading this model should accept hparams and init in the super class """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+def test_args(tmpdir):
+    """ Test for inheritance: super class takes positional arg, subclass takes varargs. """
+    hparams = dict(test=1)
+    model = SubClassVarArgs(hparams)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer.fit(model)
+
+    raw_checkpoint_path = _raw_checkpoint_path(trainer)
+    model = SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
+    assert model.hparams == hparams
+
