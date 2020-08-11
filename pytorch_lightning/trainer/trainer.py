@@ -1344,6 +1344,9 @@ class Trainer(
         else:
             results = self.__test_using_best_weights(ckpt_path, test_dataloaders)
 
+        print("results")
+        print(results)
+
         self.teardown('test')
 
         return results
