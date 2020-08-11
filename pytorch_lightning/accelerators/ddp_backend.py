@@ -282,7 +282,7 @@ class DistributedConnection:
         return os.environ.get('MASTER_PORT')
 
     def _get_master_address(self):
-        return os.environ.get('MASTER_ADDRESS')
+        return os.environ.get('MASTER_ADDR')
 
     def _set_master_port(self, port: int = None):
         """
