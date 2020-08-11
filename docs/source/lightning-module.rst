@@ -652,6 +652,8 @@ for a live demo.
 LightningModule methods
 -----------------------
 
+-----------
+
 Training loop methods
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -672,6 +674,8 @@ training_epoch_end
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
     :noindex:
 
+---------------
+
 Validation loop methods
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -689,6 +693,8 @@ validation_step_end
 
 validation_epoch_end
 ~~~~~~~~~~~~~~~~~~~~
+
+----------
 
 test loop methods
 ^^^^^^^^^^^^^^^^^
