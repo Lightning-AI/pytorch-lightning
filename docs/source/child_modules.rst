@@ -67,7 +67,7 @@ that change in the `Autoencoder` model are the init, forward, training, validati
 
             loss = F.nll_loss(logits, y)
             result = pl.EvalResult()
-            result.log('{prefix}_loss', loss)
+            result.log(f'{prefix}_loss', loss)
             return result
 
 
