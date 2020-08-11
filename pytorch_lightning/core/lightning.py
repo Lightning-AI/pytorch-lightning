@@ -534,7 +534,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def validation_epoch_end(
-        self, outputs: Union[EvalResult, List[EvalResult]]) -> EvalResult:
+            self, outputs: Union[EvalResult, List[EvalResult]]
+    ) -> EvalResult:
         """
         Called at the end of the validation epoch with the outputs of all validation steps.
 
@@ -734,7 +735,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
 
     def test_epoch_end(
-        self, outputs: Union[EvalResult, List[EvalResult]]) -> EvalResult:
+            self, outputs: Union[EvalResult, List[EvalResult]]
+    ) -> EvalResult:
 
         """
         Called at the end of a test epoch with the output of all test steps.
