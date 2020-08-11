@@ -652,7 +652,7 @@ for a live demo.
 LightningModule Class
 ---------------------
 
-.. automodule:: pytorch_lightning.core
+.. autoclass:: pytorch_lightning.core.lightning.LightningModule
    :noindex:
    :exclude-members:
         _abc_impl,
