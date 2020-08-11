@@ -217,11 +217,17 @@ class DDPBackend(object):
         else:  # includes ddp_cpu
             device_ids = None
 
+        print('here 4')
+
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)
 
+        print('here 5')
+
         # continue training routine
         results = self.trainer.run_pretrain_routine(model)
+
+        print('here 6')
 
         # get original model
         model = self.trainer.get_model()
