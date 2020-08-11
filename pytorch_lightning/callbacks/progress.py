@@ -17,6 +17,7 @@ else:
     from tqdm import tqdm
 
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.utilities.data import has_len
 
 
 class ProgressBarBase(Callback):
@@ -293,15 +294,9 @@ class ProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
-
-        # There will be circular imports if we move the following import to the
-        # top of the file.
-        from pytorch_lightning.trainer.data_loading import has_len
-
         self.val_progress_bar.total = sum(
-            min(trainer.num_sanity_val_steps,
-                len(d) if has_len(d) else float('inf'))
-            for d in trainer.val_dataloaders)
+            min(trainer.num_sanity_val_steps, len(d) if has_len(d) else float('inf')) for d in trainer.val_dataloaders
+        )
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):
