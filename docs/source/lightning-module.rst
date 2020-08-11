@@ -714,15 +714,132 @@ test_epoch_end
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
     :noindex:
 
-Stuff
------
+configure_optimizers
+^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: pytorch_lightning.core.lightning
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
     :noindex:
-    :exclude-members:
-        _abc_impl,
-        summarize,
-        __get_hparams_assignment_variable,
-        _auto_collect_arguments,
-        _init_slurm_connection,
+
+forward
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.forward
+    :noindex:
+
+Hooks
+^^^^^
+
+configure_apex
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_apex
+    :noindex:
+
+init_ddp_connection
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.init_ddp_connection
+    :noindex:
+
+configure_ddp
+~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_ddp
+    :noindex:
+
+configure_sync_batchnorm
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_ddp
+    :noindex:
+
+get_progress_bar_dict
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.get_progress_bar_dict
+    :noindex:
+
+on_load_checkpoint
+~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
+    :noindex:
+
+on_save_checkpoint
+~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
+    :noindex:
+
+optimizer_step
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
+    :noindex:
+
+prepare_data
+~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.prepare_data
+    :noindex:
+
+print
+~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.print
+    :noindex:
+
+save_hyperparameters
+~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
+    :noindex:
+
+tbptt_split_batch
+~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
+    :noindex:
+
+train_dataloader
+~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
+    :noindex:
+
+test_dataloader
+~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
+    :noindex:
+
+val_dataloader
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
+    :noindex:
+
+to_onnx
+~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.to_onnx
+    :noindex:
+
+freeze
+~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.freeze
+    :noindex:
+
+unfreeze
+~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.unfreeze
+    :noindex:
+
+Properties
+^^^^^^^^^^
+
+.. autoattribute:: pytorch_lightning.core.lightning.LightningModule.current_epoch
+    :noindex:
 
