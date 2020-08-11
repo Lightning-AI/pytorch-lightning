@@ -176,7 +176,7 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
+from pytorch_lightning.utilities import rank_zero_warn, AMPType, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -1115,15 +1115,15 @@ class TrainerTrainLoopMixin(ABC):
             for proc in self.interactive_ddp_procs:
                 subprocess.Popen.kill(proc)
 
-        # clean up dist group
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.destroy_process_group()
-
         # clear mem
         if self.on_gpu:
             model = self.get_model()
             model.cpu()
             torch.cuda.empty_cache()
+
+        # clean up dist group
+        if torch.distributed.is_initialized():
+            torch_distrib.destroy_process_group()
 
         rank_zero_info('Training teardown finished.')
 
