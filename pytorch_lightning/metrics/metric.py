@@ -59,12 +59,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         raise NotImplementedError
 
-    def compute(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def compute(self, data: Any, output: Any):
         """
         Implement additionally metric computations to be done after the ddp sync
 
         Args:
-            module: current metric module
 
             data: input to forward method
 
@@ -76,12 +76,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         return output
 
-    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def ddp_sync(self, data: Any, output: Any):
         """
         Implement how the outputs from forward should be synced
 
         Args:
-            module: current metric module
 
             data: input to forward method
 
@@ -93,12 +93,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         return output
 
-    def input_convert(self, module: nn.Module, data: Any):
+    @staticmethod
+    def input_convert(self, data: Any):
         """
         Implement how the inputs should be casted before calling forward
 
         Args:
-            module: current metric module
 
             data: input to forward method
 
@@ -107,12 +107,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         return data
 
-    def output_convert(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def output_convert(self, data: Any, output: Any):
         """
         Implement how outputs from forward should be casted
 
         Args:
-            module: current metric module
 
             data: input to forward method
 
@@ -147,17 +147,20 @@ class TensorMetric(Metric):
         self.reduce_group = reduce_group
         self.reduce_op = reduce_op
 
-    def input_convert(self, module: nn.Module, data: Any):
+    @staticmethod
+    def input_convert(self, data: Any):
         return apply_to_collection(data,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def output_convert(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def output_convert(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, convert_to_tensor,
                                    self.dtype, self.device)
 
-    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
 
@@ -195,19 +198,22 @@ class TensorCollectionMetric(Metric):
         self.reduce_group = reduce_group
         self.reduce_op = reduce_op
 
-    def input_convert(self, module: nn.Module, data: Any):
+    @staticmethod
+    def input_convert(self, data: Any):
         return apply_to_collection(data,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def output_convert(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def output_convert(self, data: Any, output: Any):
         return apply_to_collection(output,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
 
@@ -236,17 +242,20 @@ class NumpyMetric(Metric):
         self.reduce_group = reduce_group
         self.reduce_op = reduce_op
 
-    def input_convert(self, module: nn.Module, data: Any):
+    @staticmethod
+    def input_convert(self, data: Any):
         return apply_to_collection(data,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_numpy)
 
-    def output_convert(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def output_convert(self, data: Any, output: Any):
         return apply_to_collection(output,
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    def ddp_sync(self, module: nn.Module, data: Any, output: Any):
+    @staticmethod
+    def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
