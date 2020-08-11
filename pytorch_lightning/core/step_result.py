@@ -25,7 +25,7 @@ class Result(Dict):
         if checkpoint_on is not None and checkpoint_on:
             self.checkpoint_on = checkpoint_on
         if hiddens is not None:
-            self.hiddens = hiddens
+            self.hiddens = hiddens.detach()
         if minimize is not None:
             err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
             self._assert_grad_tensor_metric('minimize', minimize, err)
@@ -59,7 +59,7 @@ class Result(Dict):
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
-        if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
+        if key in {'checkpoint_on', 'early_stop_on'}:
             self._assert_tensor_metric(key, val)
             if val is not None and isinstance(val, torch.Tensor):
                 val = val.detach()
