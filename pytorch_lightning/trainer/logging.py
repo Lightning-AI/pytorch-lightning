@@ -52,9 +52,6 @@ class TrainerLoggingMixin(ABC):
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
 
-        print("step 0")
-        print(step)
-
         # add gpu memory
         if self.on_gpu and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
@@ -72,7 +69,6 @@ class TrainerLoggingMixin(ABC):
         elif step is None:
             # added metrics by Lightning for convenience
             scalar_metrics['epoch'] = self.current_epoch
-            print("self.current_epoch", self.current_epoch)
             step = step if step is not None else self.global_step
 
         # log actual metrics
@@ -81,12 +77,6 @@ class TrainerLoggingMixin(ABC):
             self.logger.save()
 
             self.dev_debugger.track_logged_metrics_history(scalar_metrics)
-
-        print("metrics")
-        print(metrics)
-
-        print("step 1")
-        print(step)
 
     def add_progress_bar_metrics(self, metrics):
         for k, v in metrics.items():
