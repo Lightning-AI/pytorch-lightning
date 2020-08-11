@@ -963,6 +963,38 @@ on_save_checkpoint
 
 -------------
 
+Data hooks
+^^^^^^^^^^
+Use these hooks if you want to couple a LightningModule to a dataset.
+
+.. note:: The same collection of hooks is available in a DataModule class to decouple the data from the model.
+
+train_dataloader
+~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
+    :noindex:
+
+val_dataloader
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
+    :noindex:
+
+test_dataloader
+~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
+    :noindex:
+
+prepare_data
+~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.prepare_data
+    :noindex:
+
+------------
+
 Optimization hooks
 ^^^^^^^^^^^^^^^^^^
 These are hooks related to the optimization procedure.
@@ -1112,34 +1144,4 @@ transfer_batch_to_device
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device
-    :noindex:
-
-Data hooks
-^^^^^^^^^^
-Use these hooks if you want to couple a LightningModule to a dataset.
-
-.. note:: The same collection of hooks is available in a DataModule class to decouple the data from the model.
-
-train_dataloader
-~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
-    :noindex:
-
-val_dataloader
-~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
-    :noindex:
-
-test_dataloader
-~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
-    :noindex:
-
-prepare_data
-~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.prepare_data
     :noindex:
