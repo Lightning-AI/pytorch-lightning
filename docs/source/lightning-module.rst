@@ -415,7 +415,7 @@ Here's the pseudocode of what it does under the hood:
 
 Train epoch-level operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need to do something with all the outputs of each `training_step`, implement `training_epoch_end` yourself.
+If you need to do something with all the outputs of each `training_step`, override `training_epoch_end` yourself.
 
 .. code-block:: python
 
@@ -502,7 +502,7 @@ The full pseudocode that lighting does under the hood is:
 
 Validation loop
 ---------------
-To add a validation loop, add the following to the :class:`~LightningModule`:
+To add a validation loop, override the `validation_step` method of the :class:`~LightningModule`:
 
 .. code-block:: python
 
@@ -540,186 +540,104 @@ Under the hood, Lightning does the following:
 
 Validation epoch-level metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TODO:
-The equivalent expanded version (which you normally wouldn't need to use) is the following:
+If you need to do something with all the outputs of each `validation_step`, override `validation_epoch_end`.
 
-    >>> import pytorch_lightning as pl
-    >>> class LitModel(pl.LightningModule):
-    ...     def validation_step(self, batch, batch_idx):
-    ...         x, y = batch
-    ...         y_hat = self(x)
-    ...         return {'val_loss': F.cross_entropy(y_hat, y)}
-    ...
-    ...     def validation_epoch_end(self, outputs):
-    ...         val_loss_mean = torch.stack([x['val_loss'] for x in outputs]).mean()
-    ...         return {'val_loss': val_loss_mean}
-    ...
-    ...     def val_dataloader(self):
-    ...         # can also return a list of val dataloaders
-    ...         return DataLoader(...)
+.. code-block:: python
 
-Add test loop
-^^^^^^^^^^^^^
+     def validation_step(self, batch, batch_idx):
+         x, y = batch
+         y_hat = self.model(x)
+         loss = F.cross_entropy(y_hat, y)
+         result = pl.EvalResult(loss)
+         result.prediction = some_prediction
 
-    >>> import pytorch_lightning as pl
-    >>> class LitModel(pl.LightningModule):
-    ...     def test_step(self, batch, batch_idx):
-    ...         x, y = batch
-    ...         y_hat = self(x)
-    ...         loss = F.cross_entropy(y_hat, y)
-    ...         result = pl.EvalResult(checkpoint_on=loss)
-    ...         result.log('test_loss', loss)
-    ...         return result
+     def validation_epoch_end(self, validation_step_outputs):
+        all_predictions = validation_step_outputs.prediction
+        ...
+        return result
 
-However, the test loop won't ever be called automatically to make sure you
-don't run your test data by accident. Instead you have to explicitly call:
+Validating with DataParallel
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When training using a `distributed_backend` that splits data from each batch across GPUs, sometimes you might
+need to aggregate them on the master GPU for processing (dp, or ddp2).
+
+In this case, implement the `validation_step_end` method
+
+.. code-block:: python
+
+     def validation_step(self, batch, batch_idx):
+         x, y = batch
+         y_hat = self.model(x)
+         loss = F.cross_entropy(y_hat, y)
+         result = pl.EvalResult(loss)
+         result.prediction = some_prediction
+
+     def validation_step_end(self, batch_parts):
+         gpu_0_prediction = batch_parts.prediction[0]
+         gpu_1_prediction = batch_parts.prediction[1]
+
+         # do something with both outputs
+         return result
+
+     def validation_epoch_end(self, validation_step_outputs):
+        all_predictions = validation_step_outputs.prediction
+        ...
+        return result
+
+The full pseudocode that lighting does under the hood is:
+
+.. code-block:: python
+
+    outs = []
+    for batch in dataloader:
+        batches = split_batch(batch)
+        dp_outs = []
+        for sub_batch in batches:
+            # 1
+            dp_out = validation_step(sub_batch)
+            dp_outs.append(dp_out)
+
+        # 2
+        out = validation_step_end(dp_outs)
+        outs.append(out)
+
+    # do something with the outputs for all batches
+    # 3
+    validation_epoch_end(outs)
+
+----------------
+
+Test loop
+---------
+The process for adding a test loop is the same as the process for adding a validation loop. Please refer to
+the section above for details.
+
+The only difference is that the test loop is only called when `.test()` is used:
+
+.. code-block:: python
+
+    model = Model()
+    trainer = Trainer()
+    trainer.fit()
+
+    # automatically loads the best weights for you
+    trainer.test(model)
+
+There are two ways to call `test()`:
 
 .. code-block:: python
 
     # call after training
     trainer = Trainer()
     trainer.fit(model)
+
+    # automatically auto-loads the best weights
     trainer.test(test_dataloaders=test_dataloader)
 
     # or call with pretrained model
     model = MyLightningModule.load_from_checkpoint(PATH)
     trainer = Trainer()
     trainer.test(model, test_dataloaders=test_dataloader)
-
--------------
-
-TrainResult
-^^^^^^^^^^^
-When you are using the `_step_end` and `_epoch_end` only for aggregating metrics and then logging,
-consider using either a `EvalResult` or `TrainResult` instead.
-
-Here's a training loop structure
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        return {'loss': loss}
-
-    def training_epoch_end(self, training_step_outputs):
-        epoch_loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
-        return {
-            'log': {'epoch_loss': epoch_loss},
-            'progress_bar': {'epoch_loss': epoch_loss}
-        }
-
-using the equivalent syntax via the `TrainResult` object:
-
-.. code-block:: python
-
-    def training_step(self, batch_subset, batch_idx):
-        loss = ...
-        result = pl.TrainResult(minimize=loss)
-        result.log('train_loss', loss, prog_bar=True)
-        return result
-
-EvalResult
-^^^^^^^^^^
-Same for val/test loop
-
-.. code-block:: python
-
-    def validation_step(self, batch, batch_idx):
-        return {'some_metric': some_metric}
-
-    def validation_epoch_end(self, validation_step_outputs):
-        some_metric_mean = torch.stack([x['some_metric'] for x in validation_step_outputs]).mean()
-        return {
-            'log': {'some_metric_mean': some_metric_mean},
-            'progress_bar': {'some_metric_mean': some_metric_mean}
-        }
-
-With the equivalent using the `EvalResult` syntax
-
-.. code-block:: python
-
-    def validation_step(self, batch, batch_idx):
-        some_metric = ...
-        result = pl.EvalResult(checkpoint_on=some_metric)
-        result.log('some_metric', some_metric, prog_bar=True)
-        return result
-
-----------
-
-Training_step_end method
-------------------------
-When using :class:`~pytorch_lightning.overrides.data_parallel.LightningDataParallel` or
-:class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel`, the
-:meth:`~LightningModule.training_step`
-will be operating on a portion of the batch. This is normally okay but in special
-cases like calculating NCE loss using negative samples, we might want to
-perform a softmax across all samples in the batch.
-
-For these types of situations, each loop has an additional ``__step_end`` method
-which allows you to operate on the pieces of the batch:
-
-.. code-block:: python
-
-    training_outs = []
-    for train_batch in train_data:
-        # dp, ddp2 splits the batch
-        sub_batches = split_batches_for_dp(batch)
-
-        # run training_step on each piece of the batch
-        batch_parts_outputs = [training_step(sub_batch) for sub_batch in sub_batches]
-
-        # do softmax with all pieces
-        out = training_step_end(batch_parts_outputs)
-        training_outs.append(out)
-
-    # do something with the outputs for all batches
-    # like calculate validation set accuracy or loss
-    training_epoch_end(val_outs)
-
-----------
-
-Remove cuda calls
------------------
-In a :class:`~LightningModule`, all calls to ``.cuda()``
-and ``.to(device)`` should be removed. Lightning will do these
-automatically. This will allow your code to work on CPUs, TPUs and GPUs.
-
-When you init a new tensor in your code, just use :meth:`~torch.Tensor.type_as`:
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-
-        # put the z on the appropriate gpu or tpu core
-        z = sample_noise()
-        z = z.type_as(x)
-
-----------
-
-Lifecycle
----------
-The methods in the :class:`~LightningModule` are called in this order:
-
-1. :meth:`~LightningModule.__init__`
-2. :meth:`~LightningModule.prepare_data`
-3. :meth:`~LightningModule.configure_optimizers`
-4. :meth:`~LightningModule.train_dataloader`
-
-If you define a validation loop then
-
-5. :meth:`~LightningModule.val_dataloader`
-
-And if you define a test loop:
-
-6. :meth:`~LightningModule.test_dataloader`
-
-Note:
-    :meth:`~LightningModule.test_dataloader` is only called with ``.test()``
-
-In every epoch, the loop methods are called in this frequency:
-
-1. :meth:`~LightningModule.validation_step` called every batch
-2. :meth:`~LightningModule.validation_epoch_end` called every epoch
 
 Live demo
 ---------
