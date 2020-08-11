@@ -24,6 +24,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.parsing import AttributeDict, collect_init_args, get_init_args
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
 
 try:
     import torch_xla.core.xla_model as xm
@@ -260,80 +261,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Deprecated in v0.7.0. Use  :meth:`training_step_end` instead.
         """
 
-    def training_epoch_end(
-        self, outputs: Union[List[Dict[str, Tensor]], List[List[Dict[str, Union[float, Tensor]]]]]
-    ) -> Dict[str, Dict[str, Union[float, Tensor]]]:
-        """Called at the end of the training epoch with the outputs of all training steps.
-
-        .. code-block:: python
-
-            # the pseudocode for these calls
-            train_outs = []
-            for train_batch in train_data:
-                out = training_step(train_batch)
-                train_outs.append(out)
-            training_epoch_end(train_outs)
-
-        Args:
-            outputs: List of outputs you defined in :meth:`training_step`, or if there are
-                multiple dataloaders, a list containing a list of outputs for each dataloader.
-
-        Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
-
-            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
-                functions for logging, distributed sync and error checking.
-
-        Note:
-            If this method is not overridden, this won't be called.
-
-        - The outputs here are strictly for logging or progress bar.
-        - If you don't need to display anything, don't return anything.
-        - If you want to manually set current step, you can specify the 'step' key in the 'log' dict.
-
-        Examples:
-            With a single dataloader:
-
-            .. code-block:: python
-
-                def training_epoch_end(self, outputs):
-                    train_acc_mean = 0
-                    for output in outputs:
-                        train_acc_mean += output['train_acc']
-
-                    train_acc_mean /= len(outputs)
-
-                    # log training accuracy at the end of an epoch
-                    results = {
-                        'log': {'train_acc': train_acc_mean.item()},
-                        'progress_bar': {'train_acc': train_acc_mean},
-                    }
-                    return results
-
-            With multiple dataloaders, ``outputs`` will be a list of lists. The outer list contains
-            one entry per dataloader, while the inner list contains the individual outputs of
-            each training step for that dataloader.
-
-            .. code-block:: python
-
-                def training_epoch_end(self, outputs):
-                    train_acc_mean = 0
-                    i = 0
-                    for dataloader_outputs in outputs:
-                        for output in dataloader_outputs:
-                            train_acc_mean += output['train_acc']
-                            i += 1
-
-                    train_acc_mean /= i
-
-                    # log training accuracy at the end of an epoch
-                    results = {
-                        'log': {'train_acc': train_acc_mean.item(), 'step': self.current_epoch}
-                        'progress_bar': {'train_acc': train_acc_mean},
-                    }
-                    return results
-        """
-
     def training_step_end(self, *args, **kwargs):
         """
         Use this when training with dp or ddp2 because :meth:`training_step`
@@ -362,7 +289,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
 
-        .. code-block: python
+        .. code-block:: python
 
             def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
@@ -377,7 +304,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         If you wish to do something with all the parts of the batch, then use this method to do it:
 
-        .. code-block: python
+        .. code-block:: python
 
             def training_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
@@ -398,6 +325,55 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         See Also:
             See the :ref:`multi-gpu-training` guide for more details.
+        """
+
+    def training_epoch_end(
+            self, outputs: Union[TrainResult, List[TrainResult]]
+    ):
+        """
+        Called at the end of the training epoch with the outputs of all training steps.
+        Use this in case you need to do something with all the outputs for every training_step.
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+            train_outs = []
+            for train_batch in train_data:
+                out = training_step(train_batch)
+                train_outs.append(out)
+            training_epoch_end(train_outs)
+
+        Args:
+            outputs: List of outputs you defined in :meth:`training_step`, or if there are
+                multiple dataloaders, a list containing a list of outputs for each dataloader.
+
+        Return:
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
+
+        .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
+            functions for logging, distributed sync and error checking.
+
+        Note:
+            If this method is not overridden, this won't be called.
+
+        Example::
+
+            def training_epoch_end(self, training_step_outputs):
+                # do something with all training_step outputs
+                return result
+
+        With multiple dataloaders, ``outputs`` will be a list of lists. The outer list contains
+        one entry per dataloader, while the inner list contains the individual outputs of
+        each training step for that dataloader.
+
+        .. code-block:: python
+
+            def training_epoch_end(self, outputs):
+                epoch_result = pl.TrainResult()
+                for train_result in outputs:
+                    all_losses = train_result.minimize
+                    # do something with all losses
+                return results
         """
 
     def validation_step(self, *args, **kwargs) -> Dict[str, Union[float, Tensor]]:
