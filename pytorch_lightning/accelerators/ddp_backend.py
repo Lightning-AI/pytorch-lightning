@@ -174,6 +174,8 @@ class DDPBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
+        print('here 1')
+
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
@@ -191,9 +193,12 @@ class DDPBackend(object):
                 available_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
                 gpu_idx = int(available_gpus[self.trainer.local_rank])
 
+            print('here 2')
             self.trainer.root_gpu = gpu_idx
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
+
+        print('here 3')
 
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
