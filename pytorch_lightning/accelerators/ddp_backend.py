@@ -246,7 +246,7 @@ class DistributedConnection:
             torch.distributed.destroy_process_group()
 
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self._get_master_address(), self._get_master_port()))
+            s.connect((self._get_master_address(), int(self._get_master_port())))
             s.shutdown(socket.SHUT_RDWR)
             s.close()
             sleep(10)
