@@ -70,7 +70,7 @@ def test_graceful_training_shutdown(tmpdir, signal_code):
     trainer.fit(model)
 
 
-from multiprocessing import Process, Queue
+from torch.multiprocessing import Process
 
 
 @pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
@@ -84,13 +84,12 @@ def test_graceful_training_shutdown_gpu(tmpdir, signal_code):
         callbacks=[KillCallback(signal_code)],
     )
     model = EvalModelTemplate()
-
-    queue = Queue()
+    torch.multiprocessing.set_start_method("spawn")
     p = Process(target=trainer.fit, args=(model, ))
     p.start()
     p.join(timeout=60)
-    # queue.get()  # to avoid deadlock
-    assert p.exitcode == signal_code
+    assert p.exitcode == -signal_code
+
 
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs.')
 # @pytest.mark.parametrize(['signal_code'], get_available_signal_codes())
