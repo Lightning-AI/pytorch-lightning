@@ -94,8 +94,6 @@ class LearningRateLogger(Callback):
                 trainer.logger.log_metrics(latest_stat, step=trainer.current_epoch)
 
     def _extract_lr(self, trainer, interval):
-        """ Extracts learning rates for lr schedulers and saves information
-            into dict structure. """
         latest_stat = {}
 
         for name, scheduler in zip(self.lr_sch_names, trainer.lr_schedulers):

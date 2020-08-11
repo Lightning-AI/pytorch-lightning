@@ -89,15 +89,6 @@ class EarlyStopping(Callback):
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def _validate_condition_metric(self, logs):
-        """
-        Checks that the condition metric for early stopping is good
-
-        Args:
-            logs: callback metrics from validation output
-
-        Return:
-             True if specified metric is available
-        """
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
                      f' which is not available. Either add `{self.monitor}` to the return of '
