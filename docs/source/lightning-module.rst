@@ -649,11 +649,73 @@ for a live demo.
 
 -----------
 
-LightningModule Class
----------------------
+LightningModule methods
+-----------------------
 
-.. toctree::
-    :maxdepth: 3
+Train loop
+^^^^^^^^^^
+
+training_step
+~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_step
+    :noindex:
+
+training_step_end
+~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_step_end
+    :noindex:
+
+training_epoch_end
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
+    :noindex:
+
+Val loop
+^^^^^^^^
+
+validation_step
+~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_step
+    :noindex:
+
+validation_step_end
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_step_end
+    :noindex:
+
+validation_epoch_end
+~~~~~~~~~~~~~~~~~~~~
+
+test loop
+^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
+    :noindex:
+
+test_step
+~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_step
+    :noindex:
+
+test_step_end
+~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_step_end
+    :noindex:
+
+test_epoch_end
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
+    :noindex:
+
+Stuff
+-----
 
 .. automodule:: pytorch_lightning.core.lightning
     :noindex:

@@ -92,6 +92,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.imgmath',
     'recommonmark',
+    'autodocsumm',
     'sphinx.ext.autosectionlabel',
     # 'm2r',
     'nbsphinx',
