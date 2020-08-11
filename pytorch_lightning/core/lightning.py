@@ -189,65 +189,64 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
 
-        Examples:
-            .. code-block:: python
+        Example::
 
-                def training_step(self, batch, batch_idx):
-                    x, y, z = batch
+            def training_step(self, batch, batch_idx):
+                x, y, z = batch
 
-                    # implement your own
-                    out = self(x)
-                    loss = self.loss(out, x)
+                # implement your own
+                out = self(x)
+                loss = self.loss(out, x)
 
-                    result = pl.TrainResult(minimize=loss)
+                result = pl.TrainResult(minimize=loss)
 
         The return object :class:`~pytorch_lightning.core.step_result.TrainResult` controls where to log,
         when to log (step or epoch) and syncing with multiple GPUs.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # log to progress bar and logger
-                result.log('train_loss', loss, prog_bar=True, logger=True)
+            # log to progress bar and logger
+            result.log('train_loss', loss, prog_bar=True, logger=True)
 
-                # sync metric value across GPUs in distributed training
-                result.log('train_loss_2', loss, sync_dist=True)
+            # sync metric value across GPUs in distributed training
+            result.log('train_loss_2', loss, sync_dist=True)
 
-                # log to progress bar as well
-                result.log('train_loss_2', loss, prog_bar=True)
+            # log to progress bar as well
+            result.log('train_loss_2', loss, prog_bar=True)
 
-                # assign arbitrary values
-                result.predictions = predictions
-                result.some_value = 'some_value'
+            # assign arbitrary values
+            result.predictions = predictions
+            result.some_value = 'some_value'
 
-            If you define multiple optimizers, this step will be called with an additional
-            ``optimizer_idx`` parameter.
+        If you define multiple optimizers, this step will be called with an additional
+        ``optimizer_idx`` parameter.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # Multiple optimizers (e.g.: GANs)
-                def training_step(self, batch, batch_idx, optimizer_idx):
-                    if optimizer_idx == 0:
-                        # do training_step with encoder
-                    if optimizer_idx == 1:
-                        # do training_step with decoder
+            # Multiple optimizers (e.g.: GANs)
+            def training_step(self, batch, batch_idx, optimizer_idx):
+                if optimizer_idx == 0:
+                    # do training_step with encoder
+                if optimizer_idx == 1:
+                    # do training_step with decoder
 
 
-            If you add truncated back propagation through time you will also get an additional
-            argument with the hidden states of the previous step.
+        If you add truncated back propagation through time you will also get an additional
+        argument with the hidden states of the previous step.
 
-            .. code-block:: python
+        .. code-block:: python
 
-                # Truncated back-propagation through time
-                def training_step(self, batch, batch_idx, hiddens):
-                    # hiddens are the hidden states from the previous truncated backprop step
-                    ...
-                    out, hiddens = self.lstm(data, hiddens)
-                    ...
+            # Truncated back-propagation through time
+            def training_step(self, batch, batch_idx, hiddens):
+                # hiddens are the hidden states from the previous truncated backprop step
+                ...
+                out, hiddens = self.lstm(data, hiddens)
+                ...
 
-                    return {
-                        "loss": ...,
-                        "hiddens": hiddens  # remember to detach() this
-                    }
+                return {
+                    "loss": ...,
+                    "hiddens": hiddens  # remember to detach() this
+                }
 
         Notes:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
