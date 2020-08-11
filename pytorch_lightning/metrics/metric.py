@@ -24,11 +24,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
     Metric hooks that can be implemented are:
         input_convert: pre-forward hook that takes care of input conversion
         output_convert: post-forward hook that takes care of output convertion
-        ddp_sync: implementation of ddp sync
+        ddp_sync: implementation of ddp sync, default is gather all
+        aggregate: implement how values should be aggregated
         compute: post-ddp sync for additional metric computations
 
     Call order:
-        input_convert -> forward -> output_convert -> ddp_sync -> compute
+        input_convert -> forward -> output_convert -> ddp_sync -> aggregate -> compute
 
     """
 
@@ -50,6 +51,20 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self.register_forward_hook(self.aggregate)
         self.register_forward_hook(self.compute)
 
+    @staticmethod
+    def input_convert(self, data: Any):
+        """
+        Implement how the inputs should be casted before calling forward
+
+        Args:
+
+            data: input to forward method
+
+        Returns:
+            casted data
+        """
+        return data
+
     @abstractmethod
     def forward(self, *args, **kwargs):
         """
@@ -62,9 +77,9 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         raise NotImplementedError
 
     @staticmethod
-    def compute(self, data: Any, output: Any):
+    def output_convert(self, data: Any, output: Any):
         """
-        Implement additionally metric computations to be done after the ddp sync
+        Implement how outputs from forward should be casted
 
         Args:
 
@@ -73,8 +88,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             output: output from forward method
 
         Returns:
-            final metric value
-
+            casted outputs
         """
         return output
 
@@ -87,7 +101,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
             data: input to forward method
 
-            output: output from forward method
+            output: output from the `output_convert` hook
 
         Returns:
             synced output
@@ -105,7 +119,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
             data: input to forward method
 
-            output: output from forward method
+            output: output from the `ddp_sync` hook
 
         Returns:
             aggregated values
@@ -114,32 +128,19 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         return output
 
     @staticmethod
-    def input_convert(self, data: Any):
+    def compute(self, data: Any, output: Any):
         """
-        Implement how the inputs should be casted before calling forward
+        Implement additionally metric computations to be done after the ddp sync
 
         Args:
 
             data: input to forward method
 
-        Returns:
-            casted data
-        """
-        return data
-
-    @staticmethod
-    def output_convert(self, data: Any, output: Any):
-        """
-        Implement how outputs from forward should be casted
-
-        Args:
-
-            data: input to forward method
-
-            output: output from forward method
+            output: output from the `aggregate` hook
 
         Returns:
-            casted outputs
+            final metric value
+
         """
         return output
 
@@ -183,10 +184,6 @@ class TensorMetric(Metric):
     def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
-
-    @staticmethod
-    def aggregate(self, data: Any, output: Any):
-        return output
 
 
 class TensorCollectionMetric(Metric):
@@ -242,11 +239,6 @@ class TensorCollectionMetric(Metric):
                                    self.reduce_group, self.reduce_op)
 
 
-    @staticmethod
-    def aggregate(self, data: Any, output: Any):
-        return output
-
-
 class NumpyMetric(Metric):
     """
     Base class for metric implementation operating on numpy arrays.
@@ -288,7 +280,3 @@ class NumpyMetric(Metric):
     def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
-
-    @staticmethod
-    def aggregate(self, data: Any, output: Any):
-        return output
