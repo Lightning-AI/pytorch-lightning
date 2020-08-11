@@ -69,6 +69,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         #: True if using amp
         self.use_amp = False
 
+        #: The precision used
+        self.precision = 32
+
         # optionally can be set by user
         self._example_input_array = None
         self._datamodule = None
