@@ -121,7 +121,51 @@ class ModelHooks(Module):
             batch_idx: the index of the batch
             dataloader_idx: the index of the dataloader
         """
-        # do something when the batch end
+        # do something when the batch ends
+
+    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the validation loop before anything happens for that batch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch starts
+
+    def on_validation_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the validation loop after the batch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch ends
+
+    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the test loop before anything happens for that batch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch starts
+
+    def on_test_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
+        """
+        Called in the test loop after the batch.
+
+        Args:
+            batch: The batched data as it is returned by the training DataLoader.
+            batch_idx: the index of the batch
+            dataloader_idx: the index of the dataloader
+        """
+        # do something when the batch ends
 
     def on_batch_start(self, batch: Any) -> None:
         """
