@@ -389,6 +389,7 @@ def test_single_gpu_batch_parse():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_non_blocking():
+    """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()
 
     batch = torch.zeros(2, 3)
