@@ -382,6 +382,8 @@ class _LRCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc='Finding best initial lr', total=self.num_training)
 
+        print("trainer.lr_schedulers[0]['scheduler'].lr[0]")
+        print(trainer.batch_idx, trainer.lr_schedulers[0]['scheduler'].lr[0])
         self.lrs.append(trainer.lr_schedulers[0]['scheduler'].lr[0])
 
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
