@@ -262,9 +262,9 @@ class DistributedConnection:
 
         torch.distributed.broadcast(new_port, src=0)
         new_port = int(new_port.item())
+        print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
 
         if int(self._get_master_port()) != new_port:
-            print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
             torch.distributed.destroy_process_group()  # destroy connections on old port
             print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
             print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
