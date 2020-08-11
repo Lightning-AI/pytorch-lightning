@@ -690,6 +690,9 @@ validation_step_end
 validation_epoch_end
 ~~~~~~~~~~~~~~~~~~~~
 
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
+    :noindex:
+
 test loop methods
 ^^^^^^^^^^^^^^^^^
 
