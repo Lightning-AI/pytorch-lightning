@@ -195,19 +195,18 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 
-@pytest.mark.parametrize('num_sanity_val_steps,num_val_dataloaders_batches', [
-    (-1, [10]),
-    (0, [10]),
-    (2, [10]),
-    (10, [2]),
-    (10, [2, 3]),
-    (10, [20, 3]),
-    (10, [20, 30]),
-    (10, [float('inf')]),
-    (10, [1, float('inf')]),
+@pytest.mark.parametrize('num_sanity_val_steps,num_val_dataloaders_batches,num_sanity_check_run_steps', [
+    (-1, [10], 10),
+    (0, [10], 0),
+    (2, [10], 2),
+    (10, [2], 2),
+    (10, [2, 3], 5),
+    (10, [20, 3], 13),
+    (10, [20, 30], 20),
+    (10, [float('inf')], 10),
+    (10, [1, float('inf')], 11),
 ])
-def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps,
-                                         num_val_dataloaders_batches):
+def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps, num_val_dataloaders_batches, num_sanity_check_run_steps):
     """Test that the sanity_check progress finishes with the correct total steps processed."""
 
     tmp_model = EvalModelTemplate(batch_size=1)
@@ -232,11 +231,5 @@ def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps,
                 model.dataloader(train=False, num_samples=num_samples))
     trainer.fit(model, val_dataloaders=val_dataloaders)
 
-    # check val progress bar total is the number of steps sanity check runs
-    max_sanity_val_steps = (float('inf') if num_sanity_val_steps == -1 else
-                            num_sanity_val_steps)
-    num_sanity_check_run_steps = sum(
-        min(max_sanity_val_steps, num_val_dataloader_batches)
-        for num_val_dataloader_batches in num_val_dataloaders_batches)
     val_progress_bar = trainer.progress_bar_callback.val_progress_bar
     assert getattr(val_progress_bar, 'total', 0) == num_sanity_check_run_steps
