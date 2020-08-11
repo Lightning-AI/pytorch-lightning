@@ -37,7 +37,6 @@ class KillCallback(Callback):
         print('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNNNNNNNNNNNNND')
         assert getattr(trainer, "_teardown_already_run")
 
-
     def on_keyboard_interrupt(self, trainer, pl_module):
         print('interrupted')
         assert trainer.state == TrainerState.INTERRUPTED
@@ -89,8 +88,8 @@ def test_graceful_training_shutdown_gpu(tmpdir, signal_code):
     queue = Queue()
     p = Process(target=trainer.fit, args=(model, ))
     p.start()
-    p.join()
-    queue.get()  # to avoid deadlock
+    p.join(timeout=60)
+    # queue.get()  # to avoid deadlock
     assert p.exitcode == signal_code
 
 # @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='Test requires multiple GPUs.')

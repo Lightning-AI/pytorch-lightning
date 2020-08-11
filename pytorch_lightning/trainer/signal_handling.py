@@ -1,13 +1,11 @@
 import atexit
 import os
 import signal
-import subprocess
-import sys
 from subprocess import call
 
 import pytorch_lightning as pl
 from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.trainer.states import TrainerState
 
 
 class SignalHandler:
@@ -36,7 +34,7 @@ class SignalHandler:
             self._register_signal(signal.SIGUSR1, self._slurm_auto_resubmit_handler)
             self._register_signal(signal.SIGTERM, self._slurm_sigterm_handler)
 
-        #atexit.register(self.trainer.run_training_teardown)
+        # atexit.register(self.trainer.run_training_teardown)
 
     def restore(self):
         """ Restores the original signal handlers (e.g. the Python defaults) """
@@ -82,6 +80,7 @@ class SignalHandler:
         trainer = self.trainer
         if not trainer.interrupted:
             trainer.interrupted = True
+            trainer.state = TrainerState.INTERRUPTED
             trainer.on_keyboard_interrupt()
             trainer.run_training_teardown()
             raise KeyboardInterrupt
