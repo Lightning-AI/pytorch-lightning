@@ -503,6 +503,7 @@ class SuperClassPositionalArgs(EvalModelTemplate):
 
     def __init__(self, hparams):
         super().__init__()
+        self._hparams = None  # pretend EvalModelTemplate did not call self.save_hyperparameters()
         self.hparams = hparams
 
 
