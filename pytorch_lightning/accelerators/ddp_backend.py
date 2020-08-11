@@ -242,21 +242,12 @@ class DistributedConnection:
 
     def reset_connection(self, trainer, model):
 
-
-
-
         if torch.distributed.is_initialized():
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
-
+            return
             torch.distributed.destroy_process_group()
 
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            print('shutdown', self._get_master_address(), int(self._get_master_port()))
-            s.connect((self._get_master_address(), int(self._get_master_port())))
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.shutdown(socket.SHUT_RDWR)
-            s.close()
-            sleep(10)
+
 
 
 
@@ -282,6 +273,14 @@ class DistributedConnection:
         print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
         print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port(), 'done')
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #print('shutdown', self._get_master_address(), int(self._get_master_port()))
+        s.connect((self._get_master_address(), int(self._get_master_port())))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #s.shutdown(socket.SHUT_RDWR)
+        s.close()
+        #sleep(10)
 
         def exit_handler():
             if torch.distributed.is_initialized() and trainer.global_rank > 0:
