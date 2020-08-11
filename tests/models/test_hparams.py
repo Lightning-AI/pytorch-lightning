@@ -522,4 +522,3 @@ def test_args(tmpdir):
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     model = SubClassVarArgs.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams == hparams
-
