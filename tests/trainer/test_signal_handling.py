@@ -31,11 +31,6 @@ class KillCallback(Callback):
         assert trainer.interrupted
 
 
-def trigger_fatal_signal(trainer):
-    model = EvalModelTemplate()
-    trainer.fit(model)
-
-
 def get_available_signal_codes():
     codes = [signal.SIGINT]
     if platform.system() != "Windows":
