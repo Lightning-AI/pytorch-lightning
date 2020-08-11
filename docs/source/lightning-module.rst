@@ -720,12 +720,6 @@ configure_optimizers
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
     :noindex:
 
-forward
-^^^^^^^
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.forward
-    :noindex:
-
 Convenience methods
 ^^^^^^^^^^^^^^^^^^^
 Use these methods for convenience
@@ -841,6 +835,12 @@ setup
 Inference methods
 ^^^^^^^^^^^^^^^^^
 Use these hooks for inference with a lightning module
+
+forward
+^^^^^^^
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.forward
+    :noindex:
 
 to_onnx
 ~~~~~~~
