@@ -485,7 +485,7 @@ class TrainerTrainLoopMixin(ABC):
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
-            print("self.run_training_batch")
+
             batch_output = self.run_training_batch(batch, batch_idx)
 
             # only track outputs when user implements training_epoch_end
@@ -546,7 +546,7 @@ class TrainerTrainLoopMixin(ABC):
             # progress global step according to grads progress. If it is the last batch, we will increment the
             # global_step after the loop is finished
             if not is_last_batch:
-                ("INCREMENT", self.global_step)
+                print("INCREMENT", self.global_step)
                 self.increment_accumulated_grad_global_step()
 
         print("LOOP END")
