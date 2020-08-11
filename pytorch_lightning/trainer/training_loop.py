@@ -157,6 +157,7 @@ in your model.
     trainer = Trainer(terminate_on_nan=True)
 
 """
+import os
 import subprocess
 from abc import ABC, abstractmethod
 from copy import copy
@@ -176,7 +177,8 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
-from pytorch_lightning.utilities import rank_zero_warn, AMPType, rank_zero_info
+from pytorch_lightning.utilities import rank_zero_warn, AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_debug
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -1117,15 +1119,13 @@ class TrainerTrainLoopMixin(ABC):
 
         # clear mem
         if self.on_gpu:
-            #model = self.get_model()
-            #model.cpu()
             torch.cuda.empty_cache()
 
         # clean up dist group
         if torch.distributed.is_initialized():
             torch_distrib.destroy_process_group()
 
-        rank_zero_info('Training teardown finished.')
+        rank_zero_debug(f'Training teardown finished. RANK={self.global_rank} PID={os.getpid()}')
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
