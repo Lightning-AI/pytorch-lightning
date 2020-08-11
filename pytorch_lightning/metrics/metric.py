@@ -7,7 +7,8 @@ from torch import nn
 import numpy as np
 
 from pytorch_lightning.metrics.converters import (
-    sync_ddp_if_available, convert_to_tensor, convert_to_numpy)
+    sync_ddp_if_available, gather_all_tensors_if_available,
+    convert_to_tensor, convert_to_numpy)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
@@ -46,6 +47,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self.register_forward_pre_hook(self.input_convert)
         self.register_forward_hook(self.output_convert)
         self.register_forward_hook(self.ddp_sync)
+        self.register_forward_hook(self.aggregate)
         self.register_forward_hook(self.compute)
 
     @abstractmethod
@@ -89,6 +91,24 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         Returns:
             synced output
+
+        """
+        return apply_to_collection(output, torch.Tensor, gather_all_tensors_if_available,
+                                   self.reduce_group)
+
+    @staticmethod
+    def aggregate(self, data: Any, output: Any):
+        """
+        Implement aggregation of values on the same device
+
+        Args:
+
+            data: input to forward method
+
+            output: output from forward method
+
+        Returns:
+            aggregated values
 
         """
         return output
@@ -164,6 +184,10 @@ class TensorMetric(Metric):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
 
+    @staticmethod
+    def aggregate(self, data: Any, output: Any):
+        return output
+
 
 class TensorCollectionMetric(Metric):
     """
@@ -218,6 +242,11 @@ class TensorCollectionMetric(Metric):
                                    self.reduce_group, self.reduce_op)
 
 
+    @staticmethod
+    def aggregate(self, data: Any, output: Any):
+        return output
+
+
 class NumpyMetric(Metric):
     """
     Base class for metric implementation operating on numpy arrays.
@@ -259,3 +288,7 @@ class NumpyMetric(Metric):
     def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
+
+    @staticmethod
+    def aggregate(self, data: Any, output: Any):
+        return output
