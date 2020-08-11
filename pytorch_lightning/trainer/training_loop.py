@@ -480,6 +480,8 @@ class TrainerTrainLoopMixin(ABC):
             self.batch_idx = batch_idx
             model.global_step = self.global_step
 
+            print("Batch, Step: ", self.batch_idx, self.global_step)
+
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
@@ -1084,6 +1086,12 @@ class TrainerTrainLoopMixin(ABC):
                     closure_loss = closure_loss.__enter__()
 
             # do backward pass
+            print("closure_loss")
+            print(closure_loss)
+            print("optimizer")
+            print(optimizer)
+            print("opt_idx")
+            print(opt_idx)
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
