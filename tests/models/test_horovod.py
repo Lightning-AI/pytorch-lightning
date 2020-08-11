@@ -181,6 +181,9 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     model = EvalModelTemplate(**hparams)
     model.configure_optimizers = model.configure_optimizers__multiple_schedulers
 
+    print("hparams")
+    print(hparams)
+
     num_workers = 8
     init_lr = hparams.get('learning_rate') * num_workers
 

@@ -548,12 +548,10 @@ class TrainerTrainLoopMixin(ABC):
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
-                # Undo increment_accumulated_grad_global_step
+                # Undo increment_accumulated_grad_global_step as it will accounted for in the end of this function
                 self.global_step -= 1
                 self.total_batch_idx -= 1
                 break
-
-        print("LOOP END")
 
         # let ddp devices catch up when using horovod
         self.sync_horovod()
