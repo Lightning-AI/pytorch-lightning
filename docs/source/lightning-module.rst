@@ -939,9 +939,6 @@ init_ddp_connection
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.init_ddp_connection
     :noindex:
 
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
-    :noindex:
-
 tbptt_split_batch
 ~~~~~~~~~~~~~~~~~
 
@@ -960,6 +957,9 @@ on_load_checkpoint
 
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
+    :noindex:
 
 -------------
 
