@@ -13,6 +13,8 @@
 # limitations under the License
 import atexit
 import os
+from socket import socket
+
 import torch
 import torch.distributed
 import subprocess
@@ -242,6 +244,9 @@ class DistributedConnection:
         if torch.distributed.is_initialized():
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
             torch.distributed.destroy_process_group()
+
+            sleep(10)
+
             model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
             return
