@@ -549,6 +549,13 @@ class TrainerTrainLoopMixin(ABC):
                 print("INCREMENT", self.global_step)
                 self.increment_accumulated_grad_global_step()
 
+            # max steps reached, end training
+            if self.max_steps is not None and self.max_steps == self.global_step:
+                self.global_step -= 1
+                self.total_batch_idx -= 1
+                print("self.max_steps", self.max_steps)
+                break
+
         print("LOOP END")
 
         # let ddp devices catch up when using horovod
