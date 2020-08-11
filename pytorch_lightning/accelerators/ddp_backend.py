@@ -244,7 +244,7 @@ class DistributedConnection:
 
         if torch.distributed.is_initialized():
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
-            print(dir(torch.distributed.distributed_c10d._get_default_store()))
+            return
             torch.distributed.destroy_process_group()
 
 
@@ -287,7 +287,7 @@ class DistributedConnection:
                 print('destroying on ', trainer.global_rank)
                 torch.distributed.destroy_process_group()
 
-        atexit.register(exit_handler)
+        #atexit.register(exit_handler)
 
     def _get_master_port(self):
         return os.environ.get('MASTER_PORT')
