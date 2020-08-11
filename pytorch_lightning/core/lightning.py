@@ -559,7 +559,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         - The outputs here are strictly for logging or progress bar.
         - If you don't need to display anything, don't return anything.
-        - If you want to manually set current step, you can specify the 'step' key in the 'log' dict.
 
         Examples:
             With a single dataloader:
@@ -761,7 +760,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         - The outputs here are strictly for logging or progress bar.
         - If you don't need to display anything, don't return anything.
-        - If you want to manually set current step, specify it with the 'step' key in the 'log' Dict
 
         Examples:
             With a single dataloader:
