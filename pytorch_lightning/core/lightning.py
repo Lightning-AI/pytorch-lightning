@@ -167,7 +167,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         """
 
-    def training_step(self, *args, **kwargs) -> Union[int, Dict[str, Union[Tensor, Dict[str, Union[float, Tensor]]]]]:
+    def training_step(self, *args, **kwargs):
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -279,12 +279,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            Dict or OrderedDict.
-            May contain the following optional keys:
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
-            - log (metrics to be added to the logger; only tensors)
-            - progress_bar (dict for progress bar display)
-            - any metric used in a callback (e.g. early stopping).
+            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
+                functions for logging, distributed sync and error checking.
 
         Note:
             If this method is not overridden, this won't be called.
@@ -336,7 +334,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return results
         """
 
-    def training_step_end(self, *args, **kwargs) -> Dict[str, Union[Tensor, Dict[str, Union[float, Tensor]]]]:
+    def training_step_end(self, *args, **kwargs):
         """
         Use this when training with dp or ddp2 because :meth:`training_step`
         will operate on only part of the batch. However, this is still optional
@@ -357,11 +355,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_parts_outputs: What you return in `training_step` for each batch part.
 
         Return:
-            Dict with loss key and optional log or progress bar keys.
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
-            - loss -> tensor scalar **REQUIRED**
-            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars
-            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc)
+            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
+                functions for logging, distributed sync and error checking.
 
         Examples:
             .. code-block:: python
