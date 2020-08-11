@@ -655,7 +655,7 @@ LightningModule Class
 .. toctree::
     :maxdepth: 3
 
-.. autoclass:: pytorch_lightning.core.lightning.LightningModule
+.. automodule:: pytorch_lightning.core.lightning
     :noindex:
     :exclude-members:
         _abc_impl,

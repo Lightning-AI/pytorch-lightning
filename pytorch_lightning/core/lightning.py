@@ -181,12 +181,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.truncated_bptt_steps` > 0.
 
         Return:
-            Dict with loss key and optional log or progress bar keys.
-            When implementing :meth:`training_step`, return whatever you need in that step:
+            :class:`~pytorch_lightning.core.step_result.TrainResult`
 
-            - loss -> tensor scalar **REQUIRED**
-            - progress_bar -> Dict for progress bar display. Must have either scalar tensors or Python scalars
-            - log -> Dict of metrics to add to logger. Must have either scalar tensors or Python scalars (no images, etc)
+            .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
+                functions for logging, distributed sync and error checking.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -201,19 +199,25 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     out = self(x)
                     loss = self.loss(out, x)
 
-                    logger_logs = {'training_loss': loss} # optional
+                    result = pl.TrainResult(minimize=loss)
 
-                    # if using TestTubeLogger or TensorBoardLogger you can nest scalars
-                    logger_logs = {'losses': logger_logs} # optional
+        The return object :class:`~pytorch_lightning.core.step_result.TrainResult` controls where to log,
+        when to log (step or epoch) and syncing with multiple GPUs.
 
-                    output = {
-                        'loss': loss, # required
-                        'progress_bar': {'training_loss': loss}, # optional
-                        'log': logger_logs
-                    }
+            .. code-block:: python
 
-                    # return a dict
-                    return output
+                # log to progress bar and logger
+                result.log('train_loss', loss, prog_bar=True, logger=True)
+
+                # sync metric value across GPUs in distributed training
+                result.log('train_loss_2', loss, sync_dist=True)
+
+                # log to progress bar as well
+                result.log('train_loss_2', loss, prog_bar=True)
+
+                # assign arbitrary values
+                result.predictions = predictions
+                result.some_value = 'some_value'
 
             If you define multiple optimizers, this step will be called with an additional
             ``optimizer_idx`` parameter.
@@ -888,6 +892,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         return model
 
     def _init_slurm_connection(self) -> None:
+        """"""
         """
         Sets up environment variables necessary for pytorch distributed communications
         based on slurm environment.
@@ -1635,6 +1640,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @classmethod
     def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
+        """"""
         """
         Collect all module arguments in the current constructor and all child constructors.
         The child constructors are all the ``__init__`` methods that reach the current class through
@@ -1795,6 +1801,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self._set_hparams(hp)
 
     def __get_hparams_assignment_variable(self):
+        """"""
         """
         looks at the code of the class to figure out what the user named self.hparams
         this only happens when the user explicitly sets self.hparams
