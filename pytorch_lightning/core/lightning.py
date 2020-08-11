@@ -360,36 +360,38 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. note:: :class:`~pytorch_lightning.core.step_result.TrainResult` is simply a Dict with convenient
                 functions for logging, distributed sync and error checking.
 
-        Examples:
-            .. code-block:: python
+        Example::
 
-                # WITHOUT training_step_end
-                # if used in DP or DDP2, this batch is 1/num_gpus large
-                def training_step(self, batch, batch_idx):
-                    # batch is 1/num_gpus big
-                    x, y = batch
+            # WITHOUT training_step_end
+            # if used in DP or DDP2, this batch is 1/num_gpus large
+            def training_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
 
-                    out = self(x)
-                    loss = self.softmax(out)
-                    loss = nce_loss(loss)
-                    return {'loss': loss}
+                out = self(x)
+                loss = self.softmax(out)
+                loss = nce_loss(loss)
+                return pl.TrainResult(loss)
 
-                # --------------
-                # with training_step_end to do softmax over the full batch
-                def training_step(self, batch, batch_idx):
-                    # batch is 1/num_gpus big
-                    x, y = batch
+            # --------------
+            # with training_step_end to do softmax over the full batch
+            def training_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
 
-                    out = self(x)
-                    return {'out': out}
+                out = self(x)
+                result = pl.TrainResult()
+                result.out = out
 
-                def training_step_end(self, outputs):
-                    # this out is now the full size of the batch
-                    out = outputs['out']
+            def training_step_end(self, training_step_outputs):
+                # this out is now the full size of the batch
+                all_outs = training_step_outputs.out
 
-                    # this softmax now uses the full batch size
-                    loss = nce_loss(loss)
-                    return {'loss': loss}
+                # this softmax now uses the full batch size
+                loss = nce_loss(all_outs)
+
+                result = pl.TrainResult(loss)
+                return result
 
         See Also:
             See the :ref:`multi-gpu-training` guide for more details.
