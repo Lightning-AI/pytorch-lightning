@@ -1117,8 +1117,8 @@ class TrainerTrainLoopMixin(ABC):
 
         # clear mem
         if self.on_gpu:
-            model = self.get_model()
-            model.cpu()
+            #model = self.get_model()
+            #model.cpu()
             torch.cuda.empty_cache()
 
         # clean up dist group
