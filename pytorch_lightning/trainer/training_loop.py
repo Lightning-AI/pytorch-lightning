@@ -1122,7 +1122,7 @@ class TrainerTrainLoopMixin(ABC):
             torch.cuda.empty_cache()
 
         # clean up dist group
-        if torch.distributed.is_initialized():
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
             torch_distrib.destroy_process_group()
 
         rank_zero_debug(f'Training teardown finished. RANK={self.global_rank} PID={os.getpid()}')
