@@ -839,6 +839,21 @@ unfreeze
 
 Properties
 ^^^^^^^^^^
+These are properties available in a LightningModule.
+
+-----------
+
+hparams
+~~~~~~~
+After calling `save_hyperparameters` anything passed to init() is available via hparams.
+
+.. code-block:: python
+
+    def __init__(self, learning_rate):
+        self.save_hyperparameters()
+
+    def configure_optimizers(self):
+        return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
 current_epoch
 ~~~~~~~~~~~~~
@@ -848,6 +863,8 @@ The current epoch
 
     def training_step(...):
         if self.current_epoch == 0:
+
+-----------
 
 global_step
 ~~~~~~~~~~~
