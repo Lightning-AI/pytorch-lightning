@@ -672,6 +672,8 @@ training_epoch_end
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
     :noindex:
 
+---------------
+
 Validation loop methods
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -693,11 +695,10 @@ validation_epoch_end
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
     :noindex:
 
+----------------
+
 test loop methods
 ^^^^^^^^^^^^^^^^^
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
-    :noindex:
 
 test_step
 ~~~~~~~~~
@@ -717,11 +718,15 @@ test_epoch_end
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
     :noindex:
 
+--------------
+
 configure_optimizers
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
     :noindex:
+
+--------------
 
 Convenience methods
 ^^^^^^^^^^^^^^^^^^^
@@ -768,6 +773,8 @@ unfreeze
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.unfreeze
     :noindex:
+
+------------
 
 Properties
 ^^^^^^^^^^
