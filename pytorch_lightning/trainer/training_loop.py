@@ -477,8 +477,7 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
-            print("batch_idx", self.batch_idx)
-            print("batch_idx", self.batch_idx)
+            print("self.global_step", self.global_step)
 
             self.batch_idx = batch_idx
             model.global_step = self.global_step
