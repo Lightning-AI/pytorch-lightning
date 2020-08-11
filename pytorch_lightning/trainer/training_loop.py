@@ -477,7 +477,7 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
-            print("self.global_step", self.global_step)
+            print("self.global_step", self.global_step, self.batch_idx)
 
             self.batch_idx = batch_idx
             model.global_step = self.global_step
@@ -485,6 +485,7 @@ class TrainerTrainLoopMixin(ABC):
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
+            print("self.run_training_batch")
             batch_output = self.run_training_batch(batch, batch_idx)
 
             # only track outputs when user implements training_epoch_end
