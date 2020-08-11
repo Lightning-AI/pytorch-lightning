@@ -639,11 +639,15 @@ There are two ways to call `test()`:
     trainer = Trainer()
     trainer.test(model, test_dataloaders=test_dataloader)
 
+----------
+
 Live demo
 ---------
 Check out this
 `COLAB <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg>`_
 for a live demo.
+
+-----------
 
 LightningModule Class
 ---------------------
