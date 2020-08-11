@@ -216,6 +216,9 @@ class DDPBackend(object):
         # continue training routine
         results = self.trainer.run_pretrain_routine(model)
 
+        # in case this is the testing loop, n
+        self.trainer.run_training_teardown()
+
         # get original model
         model = self.trainer.get_model()
 
@@ -241,7 +244,7 @@ class DistributedConnection:
     def reset_connection(self, trainer, model):
         if torch.distributed.is_initialized():
             print("DDP connection already initialized. Reinitializing on new port...")
-            
+
             torch.distributed.barrier()
             new_port = torch.empty(1, dtype=torch.int, device='cuda')
 
