@@ -441,15 +441,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     labels_hat = torch.argmax(out, dim=1)
                     val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                    # all optional...
-                    # return whatever you need for the collation function validation_epoch_end
-                    output = OrderedDict({
-                        'val_loss': loss_val,
-                        'val_acc': torch.tensor(val_acc), # everything must be a tensor
-                    })
-
-                    # return an optional dict
-                    return output
+                    # log the outputs!
+                    result = pl.EvalResult(checkpoint_on=loss)
+                    result.log_dict({'val_loss': loss, 'val_acc': val_acc})
+                    return result
 
             If you pass in multiple val datasets, validation_step will have an additional argument.
 
@@ -492,36 +487,40 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Return:
             :class:`~pytorch_lightning.core.step_result.TrainResult`
 
-        Examples:
-            .. code-block:: python
+        .. code-block:: python
 
-                # WITHOUT validation_step_end
-                # if used in DP or DDP2, this batch is 1/num_gpus large
-                def validation_step(self, batch, batch_idx):
-                    # batch is 1/num_gpus big
-                    x, y = batch
+            # WITHOUT validation_step_end
+            # if used in DP or DDP2, this batch is 1/num_gpus large
+            def validation_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
 
-                    out = self(x)
-                    loss = self.softmax(out)
-                    loss = nce_loss(loss)
-                    return {'loss': loss}
+                out = self(x)
+                loss = self.softmax(out)
+                loss = nce_loss(loss)
+                result = pl.EvalResult()
+                result.log('val_loss', loss)
+                return result
 
-                # --------------
-                # with validation_step_end to do softmax over the full batch
-                def validation_step(self, batch, batch_idx):
-                    # batch is 1/num_gpus big
-                    x, y = batch
+            # --------------
+            # with validation_step_end to do softmax over the full batch
+            def validation_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
 
-                    out = self(x)
-                    return {'out': out}
+                out = self(x)
+                result = pl.EvalResult()
+                result.out = out
+                return result
 
-                def validation_epoch_end(self, outputs):
-                    # this out is now the full size of the batch
-                    out = outputs['out']
+            def validation_epoch_end(self, output_results):
+                # this out is now the full size of the batch
+                all_val_step_outs = output_results.out
+                loss = nce_loss(all_val_step_outs)
 
-                    # this softmax now uses the full batch size
-                    loss = nce_loss(loss)
-                    return {'loss': loss}
+                result = pl.EvalResult(checkpoint_on=loss)
+                result.log('val_loss', loss)
+                return result
 
         See Also:
             See the :ref:`multi-gpu-training` guide for more details.
@@ -567,20 +566,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
             .. code-block:: python
 
-                def validation_epoch_end(self, outputs):
-                    val_acc_mean = 0
-                    for output in outputs:
-                        val_acc_mean += output['val_acc']
+                def validation_epoch_end(self, val_step_outputs):
+                    # do something with the outputs of all val batches
+                    all_val_preds = val_step_outputs.predictions
 
-                    val_acc_mean /= len(outputs)
-                    tqdm_dict = {'val_acc': val_acc_mean.item()}
-
-                    # show val_acc in progress bar but only log val_loss
-                    results = {
-                        'progress_bar': tqdm_dict,
-                        'log': {'val_acc': val_acc_mean.item()}
-                    }
-                    return results
+                    val_step_outputs.some_result = calc_all_results(all_val_preds)
+                    return val_step_outputs
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
@@ -589,22 +580,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 def validation_epoch_end(self, outputs):
-                    val_acc_mean = 0
-                    i = 0
-                    for dataloader_outputs in outputs:
-                        for output in dataloader_outputs:
-                            val_acc_mean += output['val_acc']
-                            i += 1
+                    for dataloader_output_result in outputs:
+                        dataloader_outs = dataloader_output_result.dataloader_i_outputs
 
-                    val_acc_mean /= i
-                    tqdm_dict = {'val_acc': val_acc_mean.item()}
-
-                    # show val_loss and val_acc in progress bar but only log val_loss
-                    results = {
-                        'progress_bar': tqdm_dict,
-                        'log': {'val_acc': val_acc_mean.item(), 'step': self.current_epoch}
-                    }
-                    return results
+                    result = pl.EvalResult()
+                    result.log('final_metric', final_value)
+                    return result
         """
 
     def test_step(self, *args, **kwargs) -> EvalResult:
@@ -659,17 +640,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     # calculate acc
                     labels_hat = torch.argmax(out, dim=1)
-                    val_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
+                    test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
 
-                    # all optional...
-                    # return whatever you need for the collation function test_epoch_end
-                    output = OrderedDict({
-                        'val_loss': loss_val,
-                        'val_acc': torch.tensor(val_acc), # everything must be a tensor
-                    })
-
-                    # return an optional dict
-                    return output
+                    # log the outputs!
+                    result = pl.EvalResult(checkpoint_on=loss)
+                    result.log_dict({'test_loss': loss, 'test_acc': test_acc})
+                    return resultt
 
             If you pass in multiple validation datasets, :meth:`test_step` will have an additional
             argument.
@@ -712,36 +688,40 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         Return:
             :class:`~pytorch_lightning.core.step_result.TrainResult`
 
-        Examples:
-            .. code-block:: python
+        .. code-block:: python
 
-                # WITHOUT test_step_end
-                # if used in DP or DDP2, this batch is 1/num_gpus large
-                def test_step(self, batch, batch_idx):
-                    # batch is 1/num_gpus big
-                    x, y = batch
+            # WITHOUT test_step_end
+            # if used in DP or DDP2, this batch is 1/num_gpus large
+            def test_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
 
-                    out = self(x)
-                    loss = self.softmax(out)
-                    loss = nce_loss(loss)
-                    return {'loss': loss}
+                out = self(x)
+                loss = self.softmax(out)
+                loss = nce_loss(loss)
+                result = pl.EvalResult()
+                result.log('test_loss', loss)
+                return result
 
-                # --------------
-                # with test_step_end to do softmax over the full batch
-                def test_step(self, batch, batch_idx):
-                    # batch is 1/num_gpus big
-                    x, y = batch
+            # --------------
+            # with test_step_end to do softmax over the full batch
+            def test_step(self, batch, batch_idx):
+                # batch is 1/num_gpus big
+                x, y = batch
 
-                    out = self(x)
-                    return {'out': out}
+                out = self(x)
+                result = pl.EvalResult()
+                result.out = out
+                return result
 
-                def test_step_end(self, outputs):
-                    # this out is now the full size of the batch
-                    out = outputs['out']
+            def test_epoch_end(self, output_results):
+                # this out is now the full size of the batch
+                all_test_step_outs = output_results.out
+                loss = nce_loss(all_test_step_outs)
 
-                    # this softmax now uses the full batch size
-                    loss = nce_loss(loss)
-                    return {'loss': loss}
+                result = pl.EvalResult(checkpoint_on=loss)
+                result.log('test_loss', loss)
+                return result
 
         See Also:
             See the :ref:`multi-gpu-training` guide for more details.
@@ -789,19 +769,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 def test_epoch_end(self, outputs):
-                    test_acc_mean = 0
-                    for output in outputs:
-                        test_acc_mean += output['test_acc']
+                    # do something with the outputs of all test batches
+                    all_test_preds = test_step_outputs.predictions
 
-                    test_acc_mean /= len(outputs)
-                    tqdm_dict = {'test_acc': test_acc_mean.item()}
-
-                    # show test_loss and test_acc in progress bar but only log test_loss
-                    results = {
-                        'progress_bar': tqdm_dict,
-                        'log': {'test_acc': test_acc_mean.item()}
-                    }
-                    return results
+                    test_step_outputs.some_result = calc_all_results(all_test_preds)
+                    return test_step_outputs
 
             With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
             one entry per dataloader, while the inner list contains the individual outputs of
@@ -810,21 +782,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             .. code-block:: python
 
                 def test_epoch_end(self, outputs):
-                    test_acc_mean = 0
-                    i = 0
-                    for dataloader_outputs in outputs:
-                        for output in dataloader_outputs:
-                            test_acc_mean += output['test_acc']
-                            i += 1
+                    for dataloader_output_result in outputs:
+                        dataloader_outs = dataloader_output_result.dataloader_i_outputs
 
-                    test_acc_mean /= i
-                    tqdm_dict = {'test_acc': test_acc_mean.item()}
-
-                    # show test_loss and test_acc in progress bar but only log test_loss
-                    results = {
-                        'progress_bar': tqdm_dict,
-                        'log': {'test_acc': test_acc_mean.item(), 'step': self.current_epoch}
-                    }
+                    result = pl.EvalResult()
+                    result.log('final_metric', final_value)
                     return results
         """
 
