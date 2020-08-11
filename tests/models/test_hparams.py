@@ -282,7 +282,7 @@ def test_collect_init_arguments(tmpdir, cls):
     assert model.hparams.batch_size == 179
 
     if isinstance(model, AggSubClassEvalModel):
-        assert isinstance(model.hparams.my_loss, torch.nn.CrossEntropyLoss)
+        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     if isinstance(model, DictConfSubClassEvalModel):
         assert isinstance(model.hparams.dict_conf, Container)
