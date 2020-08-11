@@ -742,6 +742,7 @@ class TrainerTrainLoopMixin(ABC):
             hvd.join(hvd.local_rank() if self.on_gpu else -1)
 
     def increment_accumulated_grad_global_step(self):
+        print("increment_accumulated_grad_global_step")
         # progress global step according to grads progress
         if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
                 or (self.batch_idx + 1) == self.num_training_batches):
