@@ -781,6 +781,18 @@ on_save_checkpoint
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
     :noindex:
 
+tbptt_split_batch
+~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
+    :noindex:
+
+-------------
+
+Optimization hooks
+^^^^^^^^^^^^^^^^^^
+These are hooks related to the optimization procedure.
+
 optimizer_step
 ~~~~~~~~~~~~~~
 
@@ -797,12 +809,6 @@ backward
 ~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.backward
-    :noindex:
-
-tbptt_split_batch
-~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
     :noindex:
 
 Training hooks
