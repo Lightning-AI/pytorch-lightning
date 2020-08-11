@@ -195,7 +195,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     assert progress_bar.test_batches_seen == progress_bar.total_test_batches
 
 
-@pytest.mark.parametrize('num_sanity_val_steps,num_val_dataloaders_batches,num_sanity_check_run_steps', [
+@pytest.mark.parametrize('num_sanity_val_steps,num_val_dataloaders_batches,expected_num_steps', [
     (-1, [10], 10),
     (0, [10], 0),
     (2, [10], 2),
@@ -206,7 +206,7 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     (10, [float('inf')], 10),
     (10, [1, float('inf')], 11),
 ])
-def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps, num_val_dataloaders_batches, num_sanity_check_run_steps):
+def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps, num_val_dataloaders_batches, expected_num_steps):
     """Test that the sanity_check progress finishes with the correct total steps processed."""
 
     tmp_model = EvalModelTemplate(batch_size=1)
@@ -232,4 +232,4 @@ def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps, num_val_d
     trainer.fit(model, val_dataloaders=val_dataloaders)
 
     val_progress_bar = trainer.progress_bar_callback.val_progress_bar
-    assert getattr(val_progress_bar, 'total', 0) == num_sanity_check_run_steps
+    assert getattr(val_progress_bar, 'total', 0) == expected_num_steps
