@@ -454,7 +454,7 @@ Training with DataParallel
 When training using a `distributed_backend` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the master GPU for processing (dp, or ddp2).
 
-In this case, implement the `training_batch_end` method
+In this case, implement the `training_step_end` method
 
 .. code-block:: python
 
@@ -465,7 +465,7 @@ In this case, implement the `training_batch_end` method
          result = pl.TrainResult(loss)
          result.prediction = some_prediction
 
-     def training_batch_end(self, batch_parts):
+     def training_step_end(self, batch_parts):
          gpu_0_prediction = batch_parts.prediction[0]
          gpu_1_prediction = batch_parts.prediction[1]
 
@@ -501,21 +501,48 @@ The full pseudocode that lighting does under the hood is:
 ------------------
 
 Validation loop
-^^^^^^^^^^^^^^^
+---------------
+To add a validation loop, add the following to the :class:`~LightningModule`:
 
-Thus, if we wanted to add a validation loop you would add this to your
-:class:`~LightningModule`:
+.. code-block:: python
 
-    >>> import pytorch_lightning as pl
-    >>> class LitModel(pl.LightningModule):
-    ...     def validation_step(self, batch, batch_idx):
-    ...         x, y = batch
-    ...         y_hat = self(x)
-    ...         loss = F.cross_entropy(y_hat, y)
-    ...         result = pl.EvalResult(checkpoint_on=loss)
-    ...         result.log('val_loss', loss)
-    ...         return result
+    class LitModel(pl.LightningModule):
+        def validation_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.model(x)
+            loss = F.cross_entropy(y_hat, y)
+            result = pl.EvalResult(checkpoint_on=loss)
+            result.log('val_loss', loss)
+            return result
 
+Under the hood, Lightning does the following:
+
+.. code-block:: python
+
+    # ...
+    for batch in train_dataloader:
+        loss = model.training_step()
+        loss.backward()
+        # ...
+
+        if validate_at_some_point:
+            # disable grads + batchnorm + dropout
+            torch.set_grad_enabled(False)
+            model.eval()
+
+            val_outs = []
+            for val_batch in model.val_dataloader:
+                val_out = model.validation_step(val_batch)
+                val_outs.append(val_out)
+            model.validation_epoch_end(val_outs)
+
+            # enable grads + batchnorm + dropout
+            torch.set_grad_enabled(True)
+            model.train()
+
+Validation epoch-level metrics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TODO:
 The equivalent expanded version (which you normally wouldn't need to use) is the following:
 
     >>> import pytorch_lightning as pl
