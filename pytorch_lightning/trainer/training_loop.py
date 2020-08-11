@@ -480,7 +480,7 @@ class TrainerTrainLoopMixin(ABC):
             self.batch_idx = batch_idx
             model.global_step = self.global_step
 
-            print("self.global_step", self.global_step, self.batch_idx)
+            print("self.global_step", self.global_step, self.batch_idx, is_last_batch)
 
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
