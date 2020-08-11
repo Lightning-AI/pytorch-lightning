@@ -107,8 +107,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             synced output
 
         """
-        return apply_to_collection(output, torch.Tensor, gather_all_tensors_if_available,
-                                   self.reduce_group)
+        return output
 
     @staticmethod
     def aggregate(self, data: Any, output: Any):
