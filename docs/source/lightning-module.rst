@@ -512,7 +512,6 @@ To add a validation loop, add the following to the :class:`~LightningModule`:
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
             result = pl.EvalResult(checkpoint_on=loss)
-            result.log('val_loss', loss)
             return result
 
 Under the hood, Lightning does the following:
@@ -530,11 +529,10 @@ Under the hood, Lightning does the following:
             torch.set_grad_enabled(False)
             model.eval()
 
-            val_outs = []
+            # ----------------- VAL LOOP ---------------
             for val_batch in model.val_dataloader:
                 val_out = model.validation_step(val_batch)
-                val_outs.append(val_out)
-            model.validation_epoch_end(val_outs)
+            # ----------------- VAL LOOP ---------------
 
             # enable grads + batchnorm + dropout
             torch.set_grad_enabled(True)
