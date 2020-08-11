@@ -967,18 +967,6 @@ Optimization hooks
 ^^^^^^^^^^^^^^^^^^
 These are hooks related to the optimization procedure.
 
-optimizer_step
-~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
-    :noindex:
-
-optimizer_zero_grad
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
-    :noindex:
-
 backward
 ~~~~~~~~
 
@@ -994,6 +982,18 @@ on_after_backward
 on_before_zero_grad
 ~~~~~~~~~~~~~~~~~~~
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.on_before_zero_grad
+    :noindex:
+
+optimizer_step
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
+    :noindex:
+
+optimizer_zero_grad
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
     :noindex:
 
 Training hooks
