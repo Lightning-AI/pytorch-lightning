@@ -546,6 +546,7 @@ class TrainerTrainLoopMixin(ABC):
             # progress global step according to grads progress. If it is the last batch, we will increment the
             # global_step after the loop is finished
             if not is_last_batch:
+                ("INCREMENT", self.global_step)
                 self.increment_accumulated_grad_global_step()
 
         print("LOOP END")
