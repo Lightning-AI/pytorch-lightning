@@ -206,7 +206,9 @@ def test_progress_bar_progress_refresh(tmpdir, refresh_rate):
     (10, [float('inf')], 10),
     (10, [1, float('inf')], 11),
 ])
-def test_sanity_check_progress_bar_total(tmpdir, num_sanity_val_steps, num_val_dataloaders_batches, expected_num_steps):
+def test_sanity_check_progress_bar_total(
+    tmpdir, num_sanity_val_steps, num_val_dataloaders_batches, expected_num_steps
+):
     """Test that the sanity_check progress finishes with the correct total steps processed."""
 
     tmp_model = EvalModelTemplate(batch_size=1)
