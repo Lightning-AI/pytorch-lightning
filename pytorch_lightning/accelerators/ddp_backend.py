@@ -13,7 +13,7 @@
 # limitations under the License
 import atexit
 import os
-from socket import socket
+import socket
 
 import torch
 import torch.distributed
@@ -245,8 +245,11 @@ class DistributedConnection:
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
             torch.distributed.destroy_process_group()
 
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((self._get_master_address(), self._get_master_port()))
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
             sleep(10)
-
             model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
             return
@@ -278,6 +281,9 @@ class DistributedConnection:
     def _get_master_port(self):
         return os.environ.get('MASTER_PORT')
 
+    def _get_master_address(self):
+        return os.environ.get('MASTER_ADDRESS')
+
     def _set_master_port(self, port: int = None):
         """
         Sets the `MASTER_PORT` environment variable in single-node DDP training.
@@ -295,7 +301,6 @@ class DistributedConnection:
 
 
 def find_open_network_port():
-    import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))
     s.listen(1)
