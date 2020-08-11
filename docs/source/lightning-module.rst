@@ -809,7 +809,7 @@ Training hooks
 ^^^^^^^^^^^^^^
 These hooks are called during training
 
-.. automodule:: pytorch_lightning.core.hooks.ModelHooks
+.. autoclass:: pytorch_lightning.core.hooks.ModelHooks
     :noindex:
 
 Data hooks
@@ -849,7 +849,7 @@ Inference methods
 Use these hooks for inference with a lightning module
 
 forward
-^^^^^^^
+~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.forward
     :noindex:
