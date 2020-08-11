@@ -57,7 +57,7 @@ def get_available_signal_codes():
     return codes
 
 
-@pytest.mark.skipif(not torch.distributed.is_available(), "test requires torch.distributed module")
+@pytest.mark.skipif(not torch.distributed.is_available(), reason="test requires torch.distributed module")
 @pytest.mark.parametrize(["signal_code"], get_available_signal_codes())
 def test_graceful_training_shutdown(tmpdir, signal_code):
     trainer = Trainer(
