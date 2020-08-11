@@ -824,116 +824,116 @@ Training hooks
 These hooks are called during training
 
 on_fit_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_fit_start
     :noindex:
 
 on_fit_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_fit_end
     :noindex:
 
 on_pretrain_routine_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_start
     :noindex:
 
 on_pretrain_routine_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_end
     :noindex:
 
 on_test_epoch_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_start
     :noindex:
 
 on_test_epoch_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
 
 on_test_batch_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_start
     :noindex:
 
 on_test_batch_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_end
     :noindex:
 
 on_train_batch_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_start
     :noindex:
 
 on_train_batch_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_batch_end
     :noindex:
 
 on_train_epoch_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_start
     :noindex:
 
 on_train_epoch_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_train_epoch_end
     :noindex:
 
 on_validation_batch_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_start
     :noindex:
 
 on_validation_batch_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_batch_end
     :noindex:
 
 on_validation_epoch_start
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_start
     :noindex:
 
 on_validation_epoch_end
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_validation_epoch_end
     :noindex:
 
 setup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.setup
     :noindex:
 
 teardown
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.teardown
     :noindex:
 
 
 transfer_batch_to_device
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device
     :noindex:
