@@ -241,34 +241,38 @@ class DistributedConnection:
             self._set_master_port(port=self._get_master_port())
 
     def reset_connection(self, trainer, model):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print('shutdown', self._get_master_address(), int(self._get_master_port()))
+        s.connect((self._get_master_address(), int(self._get_master_port())))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.shutdown(socket.SHUT_RDWR)
+        s.close()
+        sleep(10)
+
+
+
         if torch.distributed.is_initialized():
             print(trainer.global_rank, "DDP connection already initialized. Reinitializing on new port...")
+
             torch.distributed.destroy_process_group()
 
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            print('shutdown', self._get_master_address(), int(self._get_master_port()))
-            s.connect((self._get_master_address(), int(self._get_master_port())))
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.shutdown(socket.SHUT_RDWR)
-            s.close()
-            sleep(10)
             model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
 
-            return
-            torch.distributed.barrier()
-            new_port = torch.empty(1, dtype=torch.int, device='cuda')
-
-            if trainer.global_rank == 0:
-                port = find_open_network_port()
-                new_port[0] = port
-
-            torch.distributed.broadcast(new_port, src=0)
-            new_port = int(new_port.item())
-            print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
-            torch.distributed.destroy_process_group()  # destroy connections on old port
-            print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
-            print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
-            self._set_master_port(port=new_port)
+            #
+            # torch.distributed.barrier()
+            # new_port = torch.empty(1, dtype=torch.int, device='cuda')
+            #
+            # if trainer.global_rank == 0:
+            #     port = find_open_network_port()
+            #     new_port[0] = port
+            #
+            # torch.distributed.broadcast(new_port, src=0)
+            # new_port = int(new_port.item())
+            # print('recv new port', 'rank', trainer.global_rank, 'port', new_port)
+            # torch.distributed.destroy_process_group()  # destroy connections on old port
+            # print('destroy group', 'rank', trainer.global_rank, 'port', self._get_master_port())
+            # print('set port', 'rank', trainer.global_rank, 'port', self._get_master_port())
+            # self._set_master_port(port=new_port)
 
         print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
         model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
