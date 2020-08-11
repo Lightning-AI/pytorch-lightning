@@ -480,8 +480,6 @@ class TrainerTrainLoopMixin(ABC):
             self.batch_idx = batch_idx
             model.global_step = self.global_step
 
-            print("self.global_step", self.global_step, self.batch_idx, is_last_batch)
-
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
@@ -546,14 +544,13 @@ class TrainerTrainLoopMixin(ABC):
             # progress global step according to grads progress. If it is the last batch, we will increment the
             # global_step after the loop is finished
             if not is_last_batch:
-                print("INCREMENT", self.global_step)
                 self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
             if self.max_steps is not None and self.max_steps == self.global_step:
+                # Undo increment_accumulated_grad_global_step
                 self.global_step -= 1
                 self.total_batch_idx -= 1
-                print("self.max_steps", self.max_steps)
                 break
 
         print("LOOP END")
