@@ -524,12 +524,6 @@ class TrainerTrainLoopMixin(ABC):
             # -----------------------------------------
             self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
-            # progress global step according to grads progress. If it is the last batch, we will increment the
-            # global_step after the loop is finished
-            if not is_last_batch:
-                print("is_last_batch", is_last_batch)
-                self.increment_accumulated_grad_global_step()
-
             # update LR schedulers
             monitor_metrics = deepcopy(self.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
@@ -544,6 +538,12 @@ class TrainerTrainLoopMixin(ABC):
             # requested in the batches
             if self.should_stop:
                 break
+
+            # progress global step according to grads progress. If it is the last batch, we will increment the
+            # global_step after the loop is finished
+            if not is_last_batch:
+                print("is_last_batch", is_last_batch)
+                self.increment_accumulated_grad_global_step()
 
         # let ddp devices catch up when using horovod
         self.sync_horovod()
