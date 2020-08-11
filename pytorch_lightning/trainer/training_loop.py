@@ -996,6 +996,7 @@ class TrainerTrainLoopMixin(ABC):
                 self.scaler.update()
 
             # model hook
+            print("on_before_zero_grad")
             model.on_before_zero_grad(optimizer)
 
             # clear gradients
