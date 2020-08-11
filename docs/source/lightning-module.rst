@@ -854,16 +854,16 @@ forward
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.forward
     :noindex:
 
-to_onnx
-~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.to_onnx
-    :noindex:
-
 freeze
 ~~~~~~
 
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.freeze
+    :noindex:
+
+to_onnx
+~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.to_onnx
     :noindex:
 
 unfreeze
