@@ -129,7 +129,7 @@ class PredictionCollection(object):
 
             # Filename or filename with rank extension in multi-gpu environment
             outfile = Path(filename)
-            outfile = Path(f"{outfile.stem}{f'_rank_{self.global_rank}' if self.world_size > 1 else ''}{outfile.suffix}")
+            outfile = Path(f"{outfile.stem}'_rank_{self.global_rank}' if self.world_size > 1 else ''}{outfile.suffix}")
             outfile.parent.mkdir(exist_ok=True, parents=True)
 
             # Convert any tensor values to list
