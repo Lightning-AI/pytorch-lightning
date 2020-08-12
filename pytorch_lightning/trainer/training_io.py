@@ -88,7 +88,6 @@ import os
 import re
 import signal
 from abc import ABC
-from distutils.version import LooseVersion
 from subprocess import call
 
 import torch
@@ -104,8 +103,8 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities import rank_zero_warn, AMPType
-from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.cloud_io import cloud_open, gfile, makedirs
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.utilities.cloud_io import load as pl_load, atomic_save
 
 try:
     import torch_xla
@@ -274,12 +273,7 @@ class TrainerIOMixin(ABC):
         # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
         # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
         # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-        if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
-            torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
-        else:
-            torch.save(checkpoint, bytesbuffer)
-        with cloud_open(filepath, 'wb') as f:
-            f.write(bytesbuffer.getvalue())
+        atomic_save(checkpoint, filepath)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         checkpoint = self.dump_checkpoint(weights_only)
