@@ -312,7 +312,6 @@ class Trainer(
 
 
             amp_level: The optimization level to use (O1, O2, etc...).
-                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2

@@ -351,7 +351,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Deprecated
 
 - Deprecated `tags_csv` in favor of `hparams_file` ([#1271](https://github.com/PyTorchLightning/pytorch-lightning/pull/1271))
-- Deprecated `amp_level` in favor of native AMP ([#1561](https://github.com/PyTorchLightning/pytorch-lightning/pull/1561))
 
 ### Fixed
 
