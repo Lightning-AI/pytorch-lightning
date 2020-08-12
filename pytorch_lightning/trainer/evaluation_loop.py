@@ -331,8 +331,14 @@ class TrainerEvaluationLoopMixin(ABC):
                 else:
                     output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
+                is_result_obj = isinstance(output, Result)
+
+                # track batch size for weighted average
+                if is_result_obj:
+                    output.track_batch_size(len(batch))
+
                 # allow only EvalResult when using structured results (from val_step)
-                if isinstance(output, Result) and not isinstance(output, EvalResult):
+                if is_result_obj and not isinstance(output, EvalResult):
                     m = 'only EvalResults or dicts are allowed from validation_step'
                     raise MisconfigurationException(m)
 

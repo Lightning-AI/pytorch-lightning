@@ -1018,6 +1018,10 @@ class TrainerTrainLoopMixin(ABC):
             training_step_output_for_epoch_end = training_step_output
             is_result_obj = isinstance(training_step_output, Result)
 
+            # track batch size for weighted average
+            if is_result_obj:
+                training_step_output.track_batch_size(len(split_batch))
+
             # don't allow EvalResult in the training_step
             if isinstance(training_step_output, EvalResult):
                 raise MisconfigurationException('training_step cannot return EvalResult, '

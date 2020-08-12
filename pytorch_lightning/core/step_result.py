@@ -36,7 +36,8 @@ class Result(Dict):
 
         self['meta'] = {
             '_internal': {
-                '_reduce_on_epoch': False
+                '_reduce_on_epoch': False,
+                'batch_sizes': []
             }
         }
 
@@ -165,6 +166,10 @@ class Result(Dict):
         # track whether any input requires reduction on epoch end
         _internal = self['meta']['_internal']
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
+
+    def track_batch_size(self, batch_size):
+        meta = self['meta']
+        meta['_internal']['batch_sizes'].append(batch_size)
 
     def get_callback_metrics(self) -> dict:
         result = {
