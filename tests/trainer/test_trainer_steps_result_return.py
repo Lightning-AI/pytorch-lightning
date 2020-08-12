@@ -397,7 +397,7 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
-    all_losses = trainer.dev_debugger.saved_losses
+    all_losses = trainer.dev_debugger.saved_train_losses
     assert len(all_losses) == batches * epochs
 
     assert trainer.checkpoint_callback.monitor == 'checkpoint_on'
@@ -438,7 +438,7 @@ def test_no_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
-    all_losses = trainer.dev_debugger.saved_losses
+    all_losses = trainer.dev_debugger.saved_train_losses
     assert len(all_losses) == batches * epochs
 
     assert trainer.early_stop_callback is None
@@ -477,7 +477,7 @@ def test_use_callbacks_with_train_loop_only(tmpdir):
     assert len(early_stop_vals) == num_expected_epochs
     min_val = min([x['best'] for x in early_stop_vals])
     assert min_val == 171 + 9
-    all_losses = trainer.dev_debugger.saved_losses
+    all_losses = trainer.dev_debugger.saved_train_losses
 
     from collections import Counter
     batch_idxs = Counter([x['batch_idx'] for x in all_losses])

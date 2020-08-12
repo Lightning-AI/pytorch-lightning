@@ -8,6 +8,7 @@ import wandb
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -175,13 +176,28 @@ def test_cpu_model_with_amp(tmpdir):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_amp_with_apex():
+def test_amp_with_apex(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = EvalModelTemplate()
+
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
         amp_backend='apex',
     )
     assert trainer.amp_backend is None
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED
+    # todo check events
+
     trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
         precision=16,
         amp_backend='apex',
     )
     assert str(trainer.amp_backend) == "APEX"
+    trainer.fit(model)
+    assert trainer.state == TrainerState.FINISHED
+    # todo check events
