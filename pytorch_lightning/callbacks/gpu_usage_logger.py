@@ -121,7 +121,7 @@ class GpuUsageLogger(Callback):
 
     @staticmethod
     def _get_gpu_stat(pitem: str, unit: str):
-        result = subprocess.run(["nvidia-smi", f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
+        result = subprocess.run(["/bin/nvidia-smi", f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
                                 encoding="utf-8", stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
                                 check=True)
