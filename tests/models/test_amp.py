@@ -189,7 +189,7 @@ def test_amp_with_apex(tmpdir):
     assert trainer.amp_backend is None
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED
-    # todo check events
+    assert trainer.dev_debugger.count_events('AMP') == 0
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -200,4 +200,4 @@ def test_amp_with_apex(tmpdir):
     assert str(trainer.amp_backend) == "APEX"
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED
-    # todo check events
+    assert trainer.dev_debugger.count_events('AMP') == 1

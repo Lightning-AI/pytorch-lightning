@@ -1,8 +1,9 @@
 import os
 import time
 from collections import Counter
+from enum import Enum
 from functools import wraps
-from typing import Callable
+from typing import Callable, Any, Optional
 
 
 def enabled_only(fn: Callable):
@@ -35,7 +36,14 @@ class InternalDebugger(object):
         self.checkpoint_callback_history = []
         self.events = []
 
-    def track_event(self, evt_type, evt_value=None, global_rank=None, local_rank=None, comment=''):
+    def track_event(
+            self,
+            evt_type: str,
+            evt_value: Any = None,
+            global_rank: Optional[int] = None,
+            local_rank: Optional[int] = None,
+            comment: str = ''
+    ) -> None:
         self.events.append({
             "timestamp": time.time(),
             "event": evt_type,
@@ -44,6 +52,15 @@ class InternalDebugger(object):
             "local_rank": local_rank,
             "comment": comment,
         })
+
+    def count_events(self, evt_type: str, strict=False) -> int:
+        count = 0
+        for evt in self.events:
+            if strict and evt["event"] == evt_type:
+                count += 1
+            elif not strict and evt_type in evt["event"]:
+                count += 1
+        return count
 
     @enabled_only
     def track_logged_metrics_history(self, scalar_metrics):
