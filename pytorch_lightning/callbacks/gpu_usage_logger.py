@@ -121,13 +121,10 @@ class GpuUsageLogger(Callback):
 
     @staticmethod
     def _get_gpu_stat(pitem: str, unit: str):
-        result = subprocess.run(
-            ["nvidia-smi", f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
-            encoding="utf-8",
-            # capture_output=True,          # valid for python version >=3.7
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
-            check=True)
+        result = subprocess.run(["nvidia-smi", f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
+                                encoding="utf-8", stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+                                check=True)
         try:
             gpu_usage = [float(x) for x in result.stdout.strip().split(os.linesep)]
         except ValueError:
