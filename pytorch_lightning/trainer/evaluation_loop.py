@@ -180,7 +180,7 @@ class TrainerEvaluationLoopMixin(ABC):
     tpu_id: int
     verbose_test: bool
     running_sanity_check: bool
-    amp_type: AMPType
+    amp_backend: AMPType
 
     # Callback system
     on_validation_batch_start: Callable
@@ -325,7 +325,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+                if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:

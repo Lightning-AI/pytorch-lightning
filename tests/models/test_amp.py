@@ -177,11 +177,11 @@ def test_cpu_model_with_amp(tmpdir):
 
 def test_amp_with_apex():
     trainer = Trainer(
-        amp_type='apex',
+        amp_backend='apex',
     )
-    assert trainer.amp_type is None
+    assert trainer.amp_backend is None
     trainer = Trainer(
         precision=16,
-        amp_type='apex',
+        amp_backend='apex',
     )
-    assert str(trainer.amp_type) == "APEX"
+    assert str(trainer.amp_backend) == "APEX"

@@ -159,7 +159,7 @@ class TrainerIOMixin(ABC):
     accumulate_grad_batches: int
     scaler: ...
     use_tpu: bool
-    amp_type: AMPType
+    amp_backend: AMPType
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel, LightningDataParallel))
@@ -325,9 +325,9 @@ class TrainerIOMixin(ABC):
             model.cuda(self.root_gpu)
 
         # restore amp scaling
-        if self.amp_type == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
+        if self.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.amp_type == AMPType.APEX and 'amp_scaling_state' in checkpoint:
+        elif self.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
             amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         # load training state (affects trainer only)
@@ -378,9 +378,9 @@ class TrainerIOMixin(ABC):
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
-            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
-            elif self.amp_type == AMPType.APEX:
+            elif self.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
 
         # add the module_arguments and state_dict from the model
@@ -537,9 +537,9 @@ class TrainerIOMixin(ABC):
         model.load_state_dict(checkpoint['state_dict'])
 
         # restore amp scaling
-        if self.amp_type == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
+        if self.amp_backend == AMPType.NATIVE and 'native_amp_scaling_state' in checkpoint:
             self.scaler.load_state_dict(checkpoint['native_amp_scaling_state'])
-        elif self.amp_type == AMPType.APEX and 'amp_scaling_state' in checkpoint:
+        elif self.amp_backend == AMPType.APEX and 'amp_scaling_state' in checkpoint:
             amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         if self.root_gpu is not None:

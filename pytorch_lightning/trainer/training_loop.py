@@ -255,7 +255,7 @@ class TrainerTrainLoopMixin(ABC):
     tpu_id: int
     interactive_ddp_procs: ...
     state: TrainerState
-    amp_type: AMPType
+    amp_backend: AMPType
     on_tpu: bool
 
     # Callback system
@@ -935,7 +935,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+        if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients(optimizer)
 
@@ -969,7 +969,7 @@ class TrainerTrainLoopMixin(ABC):
             elif isinstance(optimizer, torch.optim.LBFGS):
 
                 # native amp + lbfgs is a no go right now
-                if self.amp_type == AMPType.NATIVE:
+                if self.amp_backend == AMPType.NATIVE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -978,12 +978,12 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                native_amp = self.amp_type == AMPType.NATIVE
+                native_amp = self.amp_backend == AMPType.NATIVE
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -1000,7 +1000,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -1058,10 +1058,10 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_backward'):
             # scale loss for 16 bit
             if self.precision == 16 and not self.on_tpu:
-                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
+                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_backend=self.amp_backend)
 
                 # enter amp context
-                if self.amp_type == AMPType.APEX:
+                if self.amp_backend == AMPType.APEX:
                     context = closure_loss
                     closure_loss = closure_loss.__enter__()
 
@@ -1069,7 +1069,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and self.amp_type == AMPType.APEX and not self.on_tpu:
+            if self.precision == 16 and self.amp_backend == AMPType.APEX and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:
