@@ -88,7 +88,8 @@ class GpuUsageLogger(Callback):
         if self.inter_step_time:
             # First log at beginning of second step
             if self.snap_inter_step_time:
-                trainer.logger.log_metrics({'Batch_Time/inter_step (ms)': (time.time() - self.snap_inter_step_time) * 1000},
+                trainer.logger.log_metrics({'Batch_Time/inter_step (ms)':
+                                                (time.time() - self.snap_inter_step_time) * 1000},
                                            step=trainer.global_step)
         if self.intra_step_time:
             self.snap_intra_step_time = time.time()
@@ -110,7 +111,8 @@ class GpuUsageLogger(Callback):
 
         if self.intra_step_time:
             if self.snap_intra_step_time:
-                trainer.logger.log_metrics({'Batch_Time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
+                trainer.logger.log_metrics({'Batch_Time/intra_step (ms)':
+                                                (time.time() - self.snap_intra_step_time) * 1000},
                                            step=trainer.global_step)
 
     def on_train_epoch_start(self, trainer, pl_module):
@@ -120,15 +122,12 @@ class GpuUsageLogger(Callback):
     @staticmethod
     def _get_gpu_stat(pitem: str, unit: str):
         result = subprocess.run(
-            ["nvidia-smi",
-             f"--query-gpu={pitem}",
-             "--format=csv,nounits,noheader", ],
+            ["nvidia-smi", f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
             encoding="utf-8",
             # capture_output=True,          # valid for python version >=3.7
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
-            check=True,
-        )
+            check=True)
         try:
             gpu_usage = [float(x) for x in result.stdout.strip().split(os.linesep)]
         except ValueError:
@@ -143,7 +142,3 @@ class GpuUsageLogger(Callback):
         trainer.logger.log_metrics(self._get_gpu_stat("memory.used", "MB"), step=trainer.global_step)
         trainer.logger.log_metrics(self._get_gpu_stat("memory.free", "MB"), step=trainer.global_step)
         trainer.logger.log_metrics(self._get_gpu_stat("utilization.memory", "%"), step=trainer.global_step)
-
-
-
-
