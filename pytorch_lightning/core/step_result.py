@@ -737,6 +737,7 @@ class EvalResult(Result):
         if isinstance(values, Tensor):
             values = values.detach()
 
+        # TODO - Perhaps call update on preds dict + include extra kwargs (delimiter, make dir if not exists, etc)
         preds = getattr(self, '_predictions', None)
         if preds is None:
             self._predictions = {filename: {name: values}}

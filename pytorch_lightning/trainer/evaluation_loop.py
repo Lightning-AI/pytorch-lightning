@@ -279,6 +279,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # bookkeeping
         outputs = []
         predictions = PredictionCollection(self.global_rank, self.world_size)
+
         # convert max_batches to list
         if isinstance(max_batches, int):
             max_batches = [max_batches] * len(dataloaders)
