@@ -263,6 +263,14 @@ We welcome any useful contribution! For your convenience here's a recommended wo
    # follow git instructions to resolve conflicts
    git push -f
    ```
+   
+   Eventually, you can perform the rebasing directly from upstream after setting it up:
+   ```bash
+   git fetch --all --prune
+   git rebase upstream/master
+   # follow git instructions to resolve conflicts
+   git push -f
+   ```
 
 ### Bonus Workflow Tip
 
