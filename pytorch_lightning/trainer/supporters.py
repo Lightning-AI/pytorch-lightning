@@ -125,8 +125,6 @@ class PredictionCollection(object):
     def to_disk(self):
         """Write predictions to file(s).
         """
-        files_to_write = list(self.predictions.keys())
-
         for filename, predictions in self.predictions.items():
 
             # Filename or filename with rank extension in multi-gpu environment

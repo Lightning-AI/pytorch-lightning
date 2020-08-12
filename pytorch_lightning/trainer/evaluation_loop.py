@@ -372,7 +372,8 @@ class TrainerEvaluationLoopMixin(ABC):
                 # track outputs for collation
                 if output is not None:
                     # Add predictions to our prediction collection if they are found in outputs
-                    predictions.add(output.pop('_predictions', None))
+                    if isinstance(output, EvalResult):
+                        predictions.add(output.pop('_predictions', None))
                     dl_outputs.append(output)
 
                 self.__eval_add_step_metrics(output)
