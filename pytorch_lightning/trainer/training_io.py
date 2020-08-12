@@ -83,6 +83,7 @@ At a rough level, here's what happens inside Trainer :py:mod:`pytorch_lightning.
 
 """
 
+import io
 import os
 import re
 import signal
@@ -104,7 +105,7 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.utilities.cloud_io import cloud_open, gfile, makedirs
 
 try:
     import torch_xla
@@ -269,15 +270,16 @@ class TrainerIOMixin(ABC):
             filepath: The path to which the checkpoint will be saved.
                 This points to the file that the checkpoint will be stored in.
         """
-        tmp_path = str(filepath) + ".part"
+        bytesbuffer = io.BytesIO()
         # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
         # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
         # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
         if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
-            torch.save(checkpoint, tmp_path, _use_new_zipfile_serialization=False)
+            torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
         else:
-            torch.save(checkpoint, tmp_path)
-        os.replace(tmp_path, filepath)
+            torch.save(checkpoint, bytesbuffer)
+        with cloud_open(filepath, 'wb') as f:
+            f.write(bytesbuffer.getvalue())
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         checkpoint = self.dump_checkpoint(weights_only)

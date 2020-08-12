@@ -16,7 +16,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
-from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs, is_remote_path
 
 
 class ModelCheckpoint(Callback):
@@ -122,10 +122,10 @@ class ModelCheckpoint(Callback):
             if gfile.isdir(filepath):
                 self.dirpath, self.filename = filepath, '{epoch}'
             else:
-                filepath = os.path.realpath(filepath)
+                if not is_remote_path(filepath):  # dont normalize remote paths
+                    filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
-            if not gfile.exists(self.dirpath):
-                makedirs(self.dirpath)
+            makedirs(self.dirpath)  # calls with exist_ok
         self.save_last = save_last
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
@@ -174,7 +174,12 @@ class ModelCheckpoint(Callback):
                 # dependencies exist then this will work fine.
                 gfile.remove(filepath)
             except AttributeError:
-                os.remove(filepath)
+                if is_remote_path(filepath):
+                    log.warning("Unable to remove stale checkpoints due to running gfile in compatibility mode."
+                                " Please install tensorflow to run gfile in full mode"
+                                " if writing checkpoints to remote locations")
+                else:
+                    os.remove(filepath)
 
     def _save_model(self, filepath, trainer, pl_module):
 
