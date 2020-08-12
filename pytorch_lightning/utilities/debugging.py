@@ -1,6 +1,23 @@
 import os
 import time
 from collections import Counter
+from functools import wraps
+from typing import Callable
+
+
+def enabled_only(fn: Callable):
+    """Decorate a logger method to run it only on the process with rank 0.
+
+    Args:
+        fn: Function to decorate
+    """
+
+    @wraps(fn)
+    def wrapped_fn(self, *args, **kwargs):
+        if self.enabled:
+            fn(self, *args, **kwargs)
+
+    return wrapped_fn
 
 
 class InternalDebugger(object):
@@ -28,21 +45,18 @@ class InternalDebugger(object):
             "comment": comment,
         })
 
+    @enabled_only
     def track_logged_metrics_history(self, scalar_metrics):
-        if not self.enabled:
-            return
         scalar_metrics['global_step'] = self.trainer.global_step
         self.logged_metrics.append(scalar_metrics)
 
+    @enabled_only
     def track_train_loss_history(self, batch_idx, loss):
-        if not self.enabled:
-            return
         loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch, 'loss': loss.detach()}
         self.saved_train_losses.append(loss_dict)
 
+    @enabled_only
     def track_eval_loss_history(self, test_mode, batch_idx, dataloader_idx, output):
-        if not self.enabled:
-            return
         loss_dict = {
             'sanity_check': self.trainer.running_sanity_check,
             'dataloader_idx': dataloader_idx,
@@ -56,15 +70,13 @@ class InternalDebugger(object):
         else:
             self.saved_val_losses.append(loss_dict)
 
+    @enabled_only
     def track_pbar_metrics_history(self, metrics):
-        if not self.enabled:
-            return
         metrics['debug_epoch'] = self.trainer.current_epoch
         self.pbar_added_metrics.append(metrics)
 
+    @enabled_only
     def track_early_stopping_history(self, current):
-        if not self.enabled:
-            return
         es = self.trainer.early_stop_callback
         debug_dict = {
             'epoch': self.trainer.current_epoch,
@@ -76,9 +88,8 @@ class InternalDebugger(object):
         }
         self.early_stopping_history.append(debug_dict)
 
+    @enabled_only
     def track_checkpointing_history(self, filepath):
-        if not self.enabled:
-            return
         cb = self.trainer.checkpoint_callback
         debug_dict = {
             'epoch': self.trainer.current_epoch,
