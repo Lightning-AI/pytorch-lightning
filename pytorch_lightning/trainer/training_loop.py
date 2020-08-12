@@ -848,16 +848,13 @@ class TrainerTrainLoopMixin(ABC):
                 # add metrics to loggers
                 if using_results_obj:
                     metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
-                else:
-                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
-                batch_log_metrics.append(metrics_to_log)
-
-                # add metrics to progress bar
-                if using_results_obj:
                     step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
                 else:
+                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
                     step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
 
+                # track metrics
+                batch_log_metrics.append(metrics_to_log)
                 if len(step_pbar_metrics) > 0:
                     self.add_progress_bar_metrics(step_pbar_metrics)
 
