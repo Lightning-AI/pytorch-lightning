@@ -1,4 +1,4 @@
-r"""
+"""
 
 GPU Usage Logger
 ====================
@@ -69,7 +69,7 @@ class GpuUsageLogger(Callback):
     def __init__(self, memory_utilisation: bool = True, gpu_utilisation: bool = True,
                  intra_step_time: bool = False, inter_step_time: bool = False,
                  fan_speed: bool = False, temperature: bool = False):
-        super(GpuUsage).__init__()
+        super(GpuUsageLogger).__init__()
         self.memory_utilisation = memory_utilisation
         self.gpu_utilisation = gpu_utilisation
         self.intra_step_time = intra_step_time
