@@ -732,6 +732,27 @@ class EvalResult(Result):
 
         return result
 
+    def write(self, name, values, filename='predictions.txt'):
+
+        if isinstance(values, Tensor):
+            values = values.detach()
+
+        preds = getattr(self, '_predictions', None)
+        if preds is None:
+            self._predictions = {filename: {name: values}}
+        elif filename not in preds:
+            preds[filename] = {name: values}
+        elif name not in preds[filename]:
+            preds[filename][name] = values
+        elif isinstance(values, Tensor):
+            preds[filename][name] = torch.cat((preds[filename][name], values))
+        elif isinstance(values, list):
+            preds[filename][name] = torch.cat((preds[filename][name], values))
+
+    def write_dict(self, predictions_dict, filename='predictions.txt'):
+        for k, v in predictions_dict.items():
+            self.write(k, v, filename)
+
 
 def weighted_mean(result, weights):
     weights = weights.to(result.device)

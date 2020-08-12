@@ -1,6 +1,9 @@
+import csv
+from pathlib import Path
 from typing import Optional
 
 import torch
+from torch import Tensor
 
 
 class TensorRunningAccum(object):
@@ -90,3 +93,57 @@ class Accumulator(object):
 
     def mean(self):
         return self.total / self.num_values
+
+
+class PredictionCollection(object):
+
+    def __init__(self, global_rank: int, world_size: int):
+        self.global_rank = global_rank
+        self.world_size = world_size
+        self.predictions = {}
+        self.num_predictions = 0
+
+    def _add_prediction(self, name, values, filename):
+        if filename not in self.predictions:
+            self.predictions[filename] = {name: values}
+        elif name not in self.predictions[filename]:
+            self.predictions[filename][name] = values
+        elif isinstance(values, Tensor):
+            self.predictions[filename][name] = torch.cat((self.predictions[filename][name], values.detach()))
+        elif isinstance(values, list):
+            self.predictions[filename][name].extend(values)
+
+    def add(self, predictions):
+
+        if predictions is None:
+            return
+
+        for filename, pred_dict in predictions.items():
+            for feature_name, values in pred_dict.items():
+                self._add_prediction(feature_name, values, filename)
+
+    def to_disk(self):
+        """Write predictions to file(s).
+        """
+        files_to_write = list(self.predictions.keys())
+
+        for filename, predictions in self.predictions.items():
+
+            # Filename or filename with rank extension in suffix if sync_ddp
+            outfile = Path(filename)
+            outfile = Path(f"{outfile.stem}{f'_rank_{self.global_rank}' if self.world_size > 1 else ''}{outfile.suffix}")
+
+            # Convert any tensor values to list
+            predictions = {k: v if not isinstance(v, Tensor) else v.tolist() for k, v in predictions.items()}
+
+            # This checks all values have same len so we can write csv
+            # TODO - change message to say something like:
+            # 'got len x for feature_name, and len y for other_feature_name'
+            assert len(set([len(v) for v in predictions.values()])) == 1, "prediction values not equal"
+
+            # Write predictions for current file to disk
+            with outfile.open(mode='w', newline='\n') as f:
+                fieldnames = list(predictions.keys())
+                writer = csv.writer(f)
+                writer.writerow(fieldnames)
+                writer.writerows(zip(*predictions.values()))
