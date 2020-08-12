@@ -36,7 +36,8 @@ class Result(Dict):
 
         self['meta'] = {
             '_internal': {
-                '_reduce_on_epoch': False
+                '_reduce_on_epoch': False,
+                'batch_sizes': []
             }
         }
 
@@ -165,6 +166,14 @@ class Result(Dict):
         # track whether any input requires reduction on epoch end
         _internal = self['meta']['_internal']
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
+
+    def track_batch_size(self, batch_size):
+        meta = self['meta']
+        meta['_internal']['batch_sizes'].append(batch_size)
+
+    def get_batch_sizes(self):
+        meta = self['meta']
+        return torch.tensor(meta['_internal']['batch_sizes'])
 
     def get_callback_metrics(self) -> dict:
         result = {
@@ -301,10 +310,14 @@ class Result(Dict):
 
     @classmethod
     def reduce_on_epoch_end(cls, outputs):
+        # get the batch sizes for all outputs
+        batch_sizes = torch.stack([x.get_batch_sizes() for x in outputs]).view(-1)
+
         meta = outputs[0]['meta']
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
+
 
         for k, option in meta.items():
             if k == '_internal':
@@ -312,7 +325,12 @@ class Result(Dict):
 
             if option['on_epoch']:
                 fx = option['reduce_fx']
-                result[k] = fx(result[k])
+                if fx == torch.mean:
+                    reduced_val = weighted_mean(result[k], batch_sizes)
+                else:
+                    reduced_val = fx(result[k])
+
+                result[k] = reduced_val
 
         result['meta'] = meta
         return result
@@ -713,3 +731,10 @@ class EvalResult(Result):
         }
 
         return result
+
+
+def weighted_mean(result, weights):
+    weights = weights.to(result.device)
+    numerator = torch.dot(result.float(), weights.t().float())
+    result = numerator / weights.sum().float()
+    return result
