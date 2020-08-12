@@ -232,19 +232,68 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 3. **How to rebase my PR?**
 
-   We recommend creating a PR in separate branch other than `master`, especially if you plan submitting several changes and do not want to wait until the first one is resolved (we can work on them in parallel). Update your master with upstream (assuming you have already set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork))
+   We recommend creating a PR in separate branch other than `master`, especially if you plan submitting several changes and do not want to wait until the first one is resolved (we can work on them in parallel).
+   
+   First, make sure you have set [upstream](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
 
+   ```bash
+   git remote add upstream https://github.com/PyTorchLightning/pytorch-lightning.git
+   ```
+   
+   You'll know its set up right if you run `git remote -v` and see something similar to this:
+
+   ```bash
+   origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (fetch)
+   origin  https://github.com/{YOUR_USERNAME}/pytorch-lightning.git (push)
+   upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (fetch)
+   upstream        https://github.com/PyTorchLightning/pytorch-lightning.git (push)
+   ```
+   
+   Now you can update your master with upstream's master by running:
    ```bash
    git fetch --all --prune
    git checkout master
    git merge upstream/master
    ```
 
-   checkout your feature branch
-
+   Finally, checkout your feature branch and rebase it with master before pushing up your feature branch:
    ```bash
    git checkout my-PR-branch
    git rebase master
    # follow git instructions to resolve conflicts
    git push -f
    ```
+
+### Bonus Workflow Tip
+
+If you don't want to remember all the commands above every time you want to push some code/setup a Lightning Dev environment on a new VM, you can set up bash aliases for some common commands. You can add these to one of your `~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases` files.
+
+Once you edit one of these files, remember to `source` it or restart your shell. (ex. `source ~/.bashrc` if you added these to your `~/.bashrc` file).
+
+```bash
+plclone (){
+    git clone https://github.com/{YOUR_USERNAME}/pytorch-lightning.git
+    cd pytorch-lightning
+    git remote add upstream https://github.com/PyTorchLightning/pytorch-lightning.git
+    # This is just here to print out info about your remote upstream/origin
+    git remote -v
+}
+
+plfetch (){
+    git fetch --all --prune
+    git checkout master
+    git merge upstream/master
+}
+
+# Rebase your branch with upstream's master
+# plrebase <your-branch-name>
+plrebase (){
+    git checkout $@
+    git rebase master
+}
+```
+
+Now, you can:
+  - clone your fork and set up upstream by running `plclone` from your terminal
+  - fetch upstream and update your local master branch with it by running `plfetch`
+  - rebase your feature branch (after running `plfetch`) by running `plrebase your-branch-name`
