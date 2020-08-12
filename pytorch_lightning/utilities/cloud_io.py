@@ -28,6 +28,14 @@ def load(path_or_url: str, map_location=None):
     return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
 
 
+def is_remote_path(path: pathlike):
+    """Determine if a path is a local path or a remote path like s3://bucket/path
+
+    This should catch paths like s3:// hdfs:// and gcs://
+    """
+    return "://" in str(path)
+
+
 def modern_gfile():
     """Check the version number of tensorboard.
 
@@ -61,6 +69,7 @@ def cloud_open(path: pathlike, mode: str, newline: str = None):
 
 def makedirs(path: pathlike):
     if hasattr(gfile, "makedirs") and modern_gfile():
-        return gfile.makedirs(str(path))
+        if not gfile.exists(str(path)):
+            return gfile.makedirs(str(path))
     # otherwise minimal dependencies are installed and only local files will work
     return os.makedirs(path, exist_ok=True)

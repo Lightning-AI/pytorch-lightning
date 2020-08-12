@@ -312,9 +312,16 @@ class TrainerEvaluationLoopMixin(ABC):
                 # callbacks
                 if test_mode:
                     self.on_test_batch_start(batch, batch_idx, dataloader_idx)
+                    if self.is_overridden('on_test_batch_start'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('on_test_batch_start'):
+                            model_ref.on_test_batch_start(output)
                 else:
                     self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
-
+                    if self.is_overridden('on_validation_batch_start'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('on_validation_batch_start'):
+                            model_ref.on_validation_batch_start(output)
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
@@ -324,8 +331,14 @@ class TrainerEvaluationLoopMixin(ABC):
                 else:
                     output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
+                is_result_obj = isinstance(output, Result)
+
+                # track batch size for weighted average
+                if is_result_obj:
+                    output.track_batch_size(len(batch))
+
                 # allow only EvalResult when using structured results (from val_step)
-                if isinstance(output, Result) and not isinstance(output, EvalResult):
+                if is_result_obj and not isinstance(output, EvalResult):
                     m = 'only EvalResults or dicts are allowed from validation_step'
                     raise MisconfigurationException(m)
 
@@ -335,13 +348,25 @@ class TrainerEvaluationLoopMixin(ABC):
                         model_ref = self.get_model()
                         with self.profiler.profile('test_step_end'):
                             output = model_ref.test_step_end(output)
-                    self.on_test_batch_end(batch, batch_idx, dataloader_idx)
                 else:
                     if self.is_overridden('validation_step_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('validation_step_end'):
                             output = model_ref.validation_step_end(output)
+
+                # callbacks (on __batch_end)
+                if test_mode:
+                    self.on_test_batch_end(batch, batch_idx, dataloader_idx)
+                    if self.is_overridden('on_test_batch_end'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('on_test_batch_end'):
+                            model_ref.on_test_batch_end(output)
+                else:
                     self.on_validation_batch_end(batch, batch_idx, dataloader_idx)
+                    if self.is_overridden('on_validation_batch_end'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('on_validation_batch_end'):
+                            model_ref.on_validation_batch_end(output)
 
                 # track outputs for collation
                 if output is not None:
