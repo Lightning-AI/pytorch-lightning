@@ -127,28 +127,21 @@ When the script starts again, Lightning will:
 
 """
 
-import io
 import os
 import re
 from abc import ABC, abstractmethod
-from distutils.version import LooseVersion
-from typing import Union, List, Optional, Callable, Tuple
-import subprocess
-import sys
-from time import sleep
-import numpy as np
-from os.path import abspath
-from pkg_resources import parse_version
+from typing import Union, List, Optional, Tuple
 
+import numpy as np
 import torch
+
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.utilities.cloud_io import cloud_open
-
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -437,13 +430,7 @@ class TrainerDDPMixin(ABC):
                 # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
                 # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
                 # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-                bytesbuffer = io.BytesIO()
-                if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
-                    torch.save(model.state_dict(), bytesbuffer, _use_new_zipfile_serialization=False)
-                else:
-                    torch.save(model.state_dict(), bytesbuffer)
-                with cloud_open(last_path, 'wb') as f:
-                    f.write(bytesbuffer.getvalue())
+                atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
 
     def save_spawn_weights(self, model):
