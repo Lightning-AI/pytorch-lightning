@@ -80,8 +80,6 @@ def makedirs(path: pathlike):
 def atomic_save(checkpoint, filepath: str):
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
-    This will create a temporary checkpoint with a suffix of ``.part``, then copy it to the final location once
-    saving is finished.
 
     Args:
         checkpoint: The object to save.
