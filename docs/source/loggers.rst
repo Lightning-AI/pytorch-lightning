@@ -6,6 +6,8 @@
 
 .. role:: hidden
     :class: hidden-section
+    
+.. _loggers:
 
 Loggers
 ===========
