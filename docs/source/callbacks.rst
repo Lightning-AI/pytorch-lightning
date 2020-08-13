@@ -59,6 +59,15 @@ We successfully extended functionality without polluting our super clean
 
 ----------------
 
+Built-in Callbacks
+------------------
+Lightning has a few built-in callbacks.
+
+For a richer collection of callbacks, check out our
+`bolts library <https://pytorch-lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
+
+----------------
+
 .. automodule:: pytorch_lightning.callbacks.early_stopping
    :noindex:
    :exclude-members:
