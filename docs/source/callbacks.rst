@@ -22,6 +22,8 @@ An overall Lightning system should have:
 
 |
 
+.. note:: Think of callbacks as self-contained programs that can be reused across projects.
+
 Example:
 
 .. testcode::
