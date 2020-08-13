@@ -2,6 +2,7 @@ import glob
 import logging as log
 import os
 import pickle
+import functools
 
 import cloudpickle
 import pytest
@@ -317,6 +318,105 @@ def test_model_saving_loading(tmpdir):
     # assert that both predictions are the same
     new_pred = model_2(x)
     assert torch.all(torch.eq(pred_before_saving, new_pred)).item() == 1
+
+
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
+
+    model = EvalModelTemplate()
+    # Extra layer
+    model.c_d3 = torch.nn.Linear(model.hidden_dim, model.hidden_dim)
+
+    # logger file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+    )
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1
+
+    # save model
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load new model
+    hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
+    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = hparams_url if url_ckpt else new_weights_path
+
+    EvalModelTemplate.load_from_checkpoint(
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
+        strict=False,
+    )
+
+    with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
+        EvalModelTemplate.load_from_checkpoint(
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+            strict=True,
+        )
+
+
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
+
+    model = EvalModelTemplate()
+
+    # logger file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+    )
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1
+
+    # save model
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load new model
+    hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
+    hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
+    ckpt_path = hparams_url if url_ckpt else new_weights_path
+
+    class CurrentModel(EvalModelTemplate):
+        def __init__(self):
+            super().__init__()
+            self.c_d3 = torch.nn.Linear(7, 7)
+
+    CurrentModel.load_from_checkpoint(
+        checkpoint_path=ckpt_path,
+        hparams_file=hparams_path,
+        strict=False,
+    )
+
+    with pytest.raises(RuntimeError, match=r'Missing key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
+        CurrentModel.load_from_checkpoint(
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+            strict=True,
+        )
 
 
 def test_model_pickle(tmpdir):
