@@ -662,7 +662,7 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
     trainer.fit(model, train_loader)
 
-Refer to the `distributed computing guide for more details <multi_gpu.rst>`_.
+Refer to the `distributed computing guide for more details <https://pytorch-lightning.readthedocs.io/en/stable/multi_gpu.html>`_.
 
 train on TPUs
 ^^^^
