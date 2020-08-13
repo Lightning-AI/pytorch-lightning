@@ -80,7 +80,6 @@ def makedirs(path: pathlike):
 def atomic_save(checkpoint, filepath: str):
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
-
     Args:
         checkpoint: The object to save.
             Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
