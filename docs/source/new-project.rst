@@ -56,8 +56,8 @@ Or with conda
 
 ----------
 
-Step 2: Define `LightningModule<lightning-module.rst>`_.
---------------------------------------------------------
+Step 2: Define LightningModule
+------------------------------
 The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 
 - The Train loop
@@ -66,7 +66,7 @@ The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 - The Model + system architecture
 - The Optimizer
 
-A :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module` but with added functionality. It organizes your research code into `hooks<hooks.rst>`_
+A :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module` but with added functionality. It organizes your research code into `hooks<https://pytorch-lightning.readthedocs.io/en/stable/hooks.html>`_
 
 
 .. testcode::
@@ -95,7 +95,7 @@ A :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module`
             return torch.optim.Adam(self.parameters(), lr=0.0005)
             
             
-You can use your :class:`~pytorch_lightning.core.LightningModule` just like a PyTorch model. Read more `here<lightning-module.rst>`_.
+You can use your :class:`~pytorch_lightning.core.LightningModule` just like a PyTorch model. Read more `here<https://pytorch-lightning.readthedocs.io/en/stable/lightning-module.html>`_.
 
 ----------
 
@@ -132,7 +132,7 @@ also captures:
             return DataLoader(YOUR_DATASET)
 
 
-DataModules are specifically useful for building models based on data. Read more `here<datamodules.rst>`_.
+DataModules are specifically useful for building models based on data. Read more `here<https://pytorch-lightning.readthedocs.io/en/stable/datamodules.html>`_.
 
 PyTorch DataLoader
 ^^^^^^^^^^^^^^^^^^
@@ -151,8 +151,8 @@ or just use them directly in your trainer.
 
 ----------
 
-Step 4: `Fit with a Trainer<trainer.rst>`_.
--------------------------------------------
+Step 4: Fit with a Trainer
+--------------------------
 You init your :class:`~pytorch_lightning.core.LightningModule`, your :class:`~pytorch_lightning.core.DataModule` and then the :class:`~pytorch_lightning.core.Trainer`. 
 The Lightning :class:`~pytorch_lightning.core.Trainer` is where the magic happens! It abstracts the most of the training engineering code such as:
 
@@ -199,7 +199,7 @@ The :class:`~pytorch_lightning.core.Trainer` will provide
 
 All of it 100% rigorously tested and benchmarked.
 
-More magical trainer flags can be found `here<trainer.rst>`_.
+More magical trainer flags can be found `here<https://pytorch-lightning.readthedocs.io/en/stable/trainer.html>`_.
 
 --------------
 
@@ -471,5 +471,5 @@ Go pro by tunning in to our Masterclass! New episodes every week.
     :target: https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2
     
 
-Or read our `walkthrough<introduction_guide.rst>`_. to learn more!
+Or read our `walkthrough<https://pytorch-lightning.readthedocs.io/en/stable/introduction_guide.html>`_. to learn more!
 
