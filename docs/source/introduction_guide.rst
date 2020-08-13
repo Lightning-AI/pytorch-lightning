@@ -23,7 +23,7 @@ By doing this refactor you'll:
 - Make your code more reusable.
 - You will not lose any flexibility.
 - You'll gain free features like 16-bit precision, distributed training etc... While it may be overkill
-for small projects, you won't get bogged down with engineering as your project grows in complexity.
+    for small projects, you won't get bogged down with engineering as your project grows in complexity.
 
 ----------------
 
