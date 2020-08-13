@@ -67,7 +67,8 @@ class TPUBackend(Accelerator):
         last_path = self.mp_queue.get()
 
         # transfer back the best path to the trainer
-        self.trainer.checkpoint_callback.best_model_path = best_path
+        if self.trainer.checkpoint_callback is not None:
+            self.trainer.checkpoint_callback.best_model_path = best_path
         # todo, pass also bets score
 
         # load last weights
