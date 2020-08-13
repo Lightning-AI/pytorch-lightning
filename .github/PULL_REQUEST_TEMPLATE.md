@@ -2,7 +2,7 @@
 Please note that we have freeze state on adding new features till v1.0 release.
 Anyway, any new feature suggestion is welcome and you are free to draft a PR,
  but be aware that several refactoring will take place for this major release yielding in significant collision solving.
-A recommendation for feature draft is draw just outline, do nit implement all details and propagate the changes to codebase...
+A recommendation for feature draft is draw just outline, do not implement all details and propagate the changes to codebase...
 -->
 
 ## What does this PR do?
