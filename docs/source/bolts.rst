@@ -1,3 +1,5 @@
+.. _bolts:
+
 Bolts
 =====
 `PyTorch Lightning Bolts <https://pytorch-lightning-bolts.readthedocs.io/en/latest/>`_, is our official collection
