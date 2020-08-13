@@ -33,7 +33,7 @@ In this guide we will go over how to build your Lightning code in 5 steps!
 ----------
 
 Step 1: Install PyTorch Lightning
------------------------------
+---------------------------------
 
 We reccoment using conda environments
 
@@ -57,7 +57,7 @@ Or with conda
 ----------
 
 Step 2: Define `LightningModule<lightning-module.rst>`_.
------------------------------
+--------------------------------------------------------
 The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 
 - The Train loop
@@ -100,10 +100,10 @@ You can use your :class:`~pytorch_lightning.core.LightningModule` just like a Py
 ----------
 
 Step 3: Define you data loaders
---------------------------
+-------------------------------
 
 :class:`~pytorch_lightning.core.DataModule`
-^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 A :class:`~pytorch_lightning.core.DataModule` is simply a collection of all 3 data splits but
 also captures:
 
@@ -152,7 +152,7 @@ or just use them directly in your trainer.
 ----------
 
 Step 4: `Fit with a Trainer<trainer.rst>`_.
---------------------------
+-------------------------------------------
 You init your :class:`~pytorch_lightning.core.LightningModule`, your :class:`~pytorch_lightning.core.DataModule` and then the :class:`~pytorch_lightning.core.Trainer`. 
 The Lightning :class:`~pytorch_lightning.core.Trainer` is where the magic happens! It abstracts the most of the training engineering code such as:
 
@@ -244,7 +244,7 @@ Main take-aways:
 
 
 Step 5: Add validation and test loop
---------------------------
+------------------------------------
 
 Adding a Validation loop
 ^^^^^^^^^^^^^^^^^^^^^^^^
