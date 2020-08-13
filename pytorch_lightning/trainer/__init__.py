@@ -13,6 +13,8 @@ the Trainer automates everything else.
 .. figure:: /_images/lightning_module/pt_trainer.png
    :alt: Convert from PyTorch to Lightning
 
+|
+
 This abstraction achieves the following:
 
 1. You maintain control over all aspects via PyTorch code without an added abstraction.
