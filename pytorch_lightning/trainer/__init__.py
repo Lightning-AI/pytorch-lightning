@@ -70,6 +70,25 @@ So you can run it like so:
 
     python main.py --gpus 2
 
+Note::
+
+Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
+
+.. code-block:: python
+
+    from argparse import ArgumentParser
+
+    def main(args):
+        model = LightningModule()
+        trainer = Trainer.from_argparse_args(args)
+        trainer.fit(model)
+
+    if __name__ == '__main__':
+        parser = ArgumentParser()
+        parser = Trainer.add_argparse_args(parser)
+        args = parser.parse_args()
+
+        main(args)
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
