@@ -71,6 +71,8 @@ well across any accelerator.
 
 |
 
+Here's an example of using the Trainer:
+
 .. code-block:: python
 
     # dataloader
