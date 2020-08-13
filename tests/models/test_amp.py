@@ -203,7 +203,7 @@ def test_amp_with_apex(tmpdir):
         max_epochs=1,
         precision=16,
         amp_backend='apex',
-        distributed_backend='ddp_spawn',
+        gpus=1,
     )
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
