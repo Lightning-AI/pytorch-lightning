@@ -13,8 +13,9 @@ A :class:`~LightningModule` organizes your PyTorch code into 5 sections
 
 |
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_mod_small.gif
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
 
 |
 
