@@ -46,6 +46,59 @@ What is a DataModule
 A DataModule is simply a collection of a train_dataloader, val_dataloader(s), test_dataloader(s) along with the
 matching transforms and data processing/downloads steps required.
 
+Here's a simple PyTorch example:
+
+.. code-block:: python
+
+    # regular PyTorch
+    test_data = MNIST(PATH, train=False, download=True)
+    train_data = MNIST(PATH, train=True, download=True)
+    train_data, val_data = random_split(train_data, [55000, 5000])
+
+    train_loader = DataLoader(train_data, batch_size=32)
+    val_loader = DataLoader(val_data, batch_size=32)
+    test_loader = DataLoader(test_data, batch_size=32)
+
+The equivalent DataModule just organizes the same exact code, but makes it reusable across projects.
+
+.. code-block:: python
+
+    DataLoader(self.mnist_train, batch_size=32)
+
+    class MNISTDataModule(pl.LightningDataModule):
+
+        def __init__(self, data_dir: str = PATH, batch_size):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def setup(self, stage=None):
+            self.mnist_test = MNIST(self.data_dir, train=False)
+            mnist_full = MNIST(self.data_dir, train=True)
+            self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
+
+        def train_dataloader(self):
+            return DataLoader(self.mnist_train, batch_size=self.batch_size)
+
+        def val_dataloader(self):
+            return DataLoader(self.mnist_val, batch_size=self.batch_size)
+
+        def test_dataloader(self):
+            return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+But now, as the complexity of your processing grows (transforms, multiple-GPU training), you can
+let Lightning handle those details for you while making this dataset reusable so you can share with
+colleagues or use in different projects.
+
+.. code-block:: python
+
+    mnist = MNISTDataModule(PATH)
+    model = LitClassifier()
+
+    trainer = Trainer()
+    trainer.fit(model, mnist)
+
+Here's a more realistic, complex DataModule that shows how much more reusable the datamodule is.
+
 .. code-block:: python
 
     import pytorch_lightning as pl
@@ -106,8 +159,8 @@ matching transforms and data processing/downloads steps required.
 
 ---------------
 
-Methods
--------
+LightningModule API
+-------------------
 To define a DataModule define 5 methods:
 
 - prepare_data (how to download(), tokenize, etc...)
