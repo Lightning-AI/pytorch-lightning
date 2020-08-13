@@ -733,14 +733,33 @@ class EvalResult(Result):
         return result
 
     def write(self, name, values, filename='predictions.txt'):
+        """Add feature name and value pair to collection of predictions that will be written to disk on
+        validation_end or test_end. If running on multiple GPUs, you will get separate n_gpu
+        prediction files with the rank prepended onto filename.
+
+        Example::
+
+            result = EvalResult()
+            result.log('ids', [0, 1, 2])
+            result.log('preds', ['cat', 'dog', 'dog'])
+
+        Args:
+            name (str): Feature name that will turn into column header of predictions file
+            values (Union[Tensor, list]): Flat tensor or list of row values for given feature column 'name'.
+            filename (str, optional): Filepath where your predictions will be saved. Defaults to 'predictions.txt'.
+        """
+        # Type check the incoming arguments
+        if not isinstance(name, str):
+            raise ValueError(f"Expected str for 'name' but got {type(name)}")
+        if not isinstance(filename, str):
+            raise ValueError(f"Expected str for 'filename' but got {type(name)}")
 
         if isinstance(values, Tensor):
             values = values.detach()
 
-        # TODO - Perhaps call update on preds dict + include extra kwargs (delimiter, make dir if not exists, etc)
-        preds = getattr(self, '_predictions', None)
+        preds = getattr(self, 'predictions', None)
         if preds is None:
-            self._predictions = {filename: {name: values}}
+            self.predictions = {filename: {name: values}}
         elif filename not in preds:
             preds[filename] = {name: values}
         elif name not in preds[filename]:
@@ -748,9 +767,23 @@ class EvalResult(Result):
         elif isinstance(values, Tensor):
             preds[filename][name] = torch.cat((preds[filename][name], values))
         elif isinstance(values, list):
-            preds[filename][name] = torch.cat((preds[filename][name], values))
+            preds[filename][name].extend(values)
 
     def write_dict(self, predictions_dict, filename='predictions.txt'):
+        """Calls EvalResult.write() for each key-value pair in predictions_dict.
+
+        It is recommended that you use this function call instead of .write if you need to
+        store more than one column of predictions in your output file.
+
+        Example::
+
+            predictions_to_write = {'preds': ['cat', 'dog'], 'ids': tensor([0, 1])}
+            result.write_dict(predictions_to_write)
+
+        Args:
+            predictions_dict ([type]): Dict of predictions to store and then write to filename at eval end.
+            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.txt'.
+        """
         for k, v in predictions_dict.items():
             self.write(k, v, filename)
 
