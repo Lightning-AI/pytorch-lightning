@@ -38,7 +38,7 @@ This is the basic use of the trainer:
     model = MyLightningModule()
 
     trainer = Trainer()
-    trainer.fit(model)
+    trainer.fit(model, train_dataloader, val_dataloader)
 
 
 --------
