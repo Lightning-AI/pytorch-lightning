@@ -1,6 +1,8 @@
 .. role:: hidden
     :class: hidden-section
 
+.. _trainer:
+
 Trainer
 =======
 .. automodule:: pytorch_lightning.trainer
