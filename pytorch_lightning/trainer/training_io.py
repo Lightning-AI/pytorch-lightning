@@ -88,7 +88,6 @@ import os
 import re
 import signal
 from abc import ABC
-from distutils.version import LooseVersion
 from subprocess import call
 
 import torch
@@ -104,8 +103,8 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDataParallel,
 )
 from pytorch_lightning.utilities import rank_zero_warn, AMPType
-from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.cloud_io import cloud_open, gfile, makedirs
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.utilities.cloud_io import load as pl_load, atomic_save
 
 try:
     import torch_xla
@@ -257,29 +256,6 @@ class TrainerIOMixin(ABC):
     # --------------------
     # MODEL SAVE CHECKPOINT
     # --------------------
-    def _atomic_save(self, checkpoint, filepath: str):
-        """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
-
-        This will create a temporary checkpoint with a suffix of ``.part``, then copy it to the final location once
-        saving is finished.
-
-        Args:
-            checkpoint: The object to save.
-                Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
-                accepts.
-            filepath: The path to which the checkpoint will be saved.
-                This points to the file that the checkpoint will be stored in.
-        """
-        bytesbuffer = io.BytesIO()
-        # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
-        # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
-        # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-        if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
-            torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
-        else:
-            torch.save(checkpoint, bytesbuffer)
-        with cloud_open(filepath, 'wb') as f:
-            f.write(bytesbuffer.getvalue())
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         checkpoint = self.dump_checkpoint(weights_only)
@@ -287,14 +263,14 @@ class TrainerIOMixin(ABC):
         if self.is_global_zero:
             # do the actual save
             try:
-                self._atomic_save(checkpoint, filepath)
+                atomic_save(checkpoint, filepath)
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn(
                     'Warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
                 )
-                self._atomic_save(checkpoint, filepath)
+                atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
         """
@@ -513,14 +489,14 @@ class TrainerIOMixin(ABC):
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
-            self._atomic_save(checkpoint, filepath)
+            atomic_save(checkpoint, filepath)
         except AttributeError as err:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
                 'warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
             )
-            self._atomic_save(checkpoint, filepath)
+            atomic_save(checkpoint, filepath)
 
         return filepath
 
