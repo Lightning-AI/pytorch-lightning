@@ -873,7 +873,7 @@ Enable synchronization between batchnorm layers across all GPUs.
     trainer = Trainer(sync_batchnorm=True)
 
 amp_backend
-^^^^^^^^
+^^^^^^^^^^^
 
 Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch built-in ("native") AMP which is supported from v1.6.
 
