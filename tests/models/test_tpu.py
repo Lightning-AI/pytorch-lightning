@@ -245,5 +245,5 @@ def test_exception_when_no_tpu_found(tmpdir):
 
 
 def test_distributed_backend_set_when_using_tpu(tmpdir):
-    """Test if exception is thrown when xla devices are not available"""
+    """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
     assert Trainer(tpu_cores=8).distributed_backend == 'tpu'
