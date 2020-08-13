@@ -208,4 +208,4 @@ def test_amp_with_apex(tmpdir):
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED
-    assert trainer.dev_debugger.count_events('AMP') == 1
+    assert trainer.dev_debugger.count_events('AMP') >= 1
