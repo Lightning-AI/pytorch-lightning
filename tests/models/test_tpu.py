@@ -102,7 +102,6 @@ def test_model_16bit_tpu_cores_1(tmpdir):
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -125,7 +124,6 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         train_percent_check=0.4,
         val_percent_check=0.2,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=[tpu_core],
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -146,7 +144,6 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -172,7 +169,6 @@ def test_model_tpu_early_stop(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
-        distributed_backend='tpu',
         tpu_cores=1,
     )
     trainer.fit(model)
@@ -186,7 +182,6 @@ def test_tpu_grad_norm(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -236,7 +231,6 @@ def test_exception_when_no_tpu_found(tmpdir):
         max_epochs=1,
         train_percent_check=0.4,
         val_percent_check=0.2,
-        distributed_backend='tpu',
         tpu_cores=8,
     )
 
