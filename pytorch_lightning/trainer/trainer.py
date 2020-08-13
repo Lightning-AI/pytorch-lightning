@@ -199,7 +199,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_type: str = 'native',
+        amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -312,7 +312,6 @@ class Trainer(
 
 
             amp_level: The optimization level to use (O1, O2, etc...).
-                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -593,7 +592,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp(amp_type)
+        self.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -1141,7 +1140,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1426,6 +1425,11 @@ class Trainer(
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
         model.setup(stage_name)
+
+    def init_amp(self, amp_type: str):
+        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
+        self.amp_backend = None
+        self._setup_amp_backend(amp_type)
 
 
 class _PatchDataLoader(object):

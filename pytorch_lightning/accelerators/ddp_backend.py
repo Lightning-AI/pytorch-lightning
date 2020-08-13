@@ -201,7 +201,7 @@ class DDPBackend(object):
         self.trainer.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
-        if self.trainer.amp_type == AMPType.APEX:
+        if self.trainer.amp_backend == AMPType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

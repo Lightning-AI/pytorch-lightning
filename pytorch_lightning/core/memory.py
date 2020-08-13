@@ -207,7 +207,7 @@ class ModelSummary(object):
         input_ = model.example_input_array
         input_ = model.transfer_batch_to_device(input_, model.device)
 
-        if trainer is not None and trainer.amp_type == AMPType.NATIVE and not trainer.use_tpu:
+        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and not trainer.use_tpu:
                 model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training

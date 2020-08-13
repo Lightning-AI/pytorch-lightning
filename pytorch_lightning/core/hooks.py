@@ -309,8 +309,8 @@ class ModelHooks(Module):
         """
         loss.backward()
 
-    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx, amp_type: AMPType):
-        if amp_type == AMPType.NATIVE:
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx, amp_backend: AMPType):
+        if amp_backend == AMPType.NATIVE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
