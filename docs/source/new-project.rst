@@ -337,6 +337,18 @@ also captures:
 - splitting.
 - etc...
 
+Here's an illustration that explains DataModules
+
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+
+|
+
+And the matching code:
+
+|
+
 .. code-block:: python
 
     class MyDataModule(pl.DataModule):
