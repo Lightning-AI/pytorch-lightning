@@ -320,15 +320,20 @@ You can of course use DataModules in plain PyTorch code as well.
 
 .. code-block:: python
 
+    # download, etc...
     dm = MNISTDataModule()
     dm.prepare_data()
 
+    # splits/transforms
     dm.setup('fit')
+
+    # use data
     for batch in dm.train_dataloader():
         ...
     for batch in dm.val_dataloader():
         ...
-    
+
+    # lazy load test data
     dm.setup('test')
     for batch in dm.test_dataloader():
         ...
