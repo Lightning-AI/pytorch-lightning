@@ -31,6 +31,7 @@ class EarlyStopping(Callback):
 
     Args:
         monitor: quantity to be monitored. Default: ``'val_loss'``.
+            .. note:: Has no effect when using `EvalResult` or `TrainResult`
         min_delta: minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
