@@ -427,9 +427,6 @@ class TrainerDDPMixin(ABC):
             last_path = None
             if not self.testing and best_model_path is not None and len(best_model_path) > 0:
                 last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
-                # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
-                # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
                 atomic_save(model.state_dict(), last_path)
             mp_queue.put(last_path)
 
