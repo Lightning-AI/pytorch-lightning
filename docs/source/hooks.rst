@@ -1,3 +1,4 @@
+.. _hooks:
 Model Hooks
 ===========
 
