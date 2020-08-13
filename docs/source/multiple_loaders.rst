@@ -2,6 +2,8 @@
 
     from pytorch_lightning.core.lightning import LightningModule
 
+.. _multiple_loaders:
+
 Multiple Datasets
 =================
 Lightning supports multiple dataloaders in a few ways.
