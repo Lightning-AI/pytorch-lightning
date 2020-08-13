@@ -1,4 +1,3 @@
-import csv
 from pathlib import Path
 from typing import Optional
 
@@ -140,7 +139,7 @@ class PredictionCollection(object):
             # Check if all features for this file add up to same length
             feature_lens = {k: len(v) for k, v in predictions.items()}
             if len(set(feature_lens.values())) != 1:
-                raise ValueError('Mismatching csv feature column lengths found in stored EvalResult predictions.')
+                raise ValueError('Mismatching feature column lengths found in stored EvalResult predictions.')
 
             # Switch predictions so each entry has its own dict
             outputs = []
