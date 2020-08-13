@@ -69,7 +69,7 @@ We successfully extended functionality without polluting our super clean
 
 ----------------
 
-.. automodule:: pytorch_lightning.callbacks.gpu_usage_looger
+.. automodule:: pytorch_lightning.callbacks.gpu_usage_logger
     :noindex:
     :exclude-members:
         _get_gpu_stat,
