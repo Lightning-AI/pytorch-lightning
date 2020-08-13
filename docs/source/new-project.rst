@@ -20,7 +20,7 @@ To illustrate, here's the typical PyTorch project structure organized in a Light
 
 .. raw:: html
 
-    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
+    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
 
 ----------
 
@@ -68,7 +68,7 @@ well across any accelerator.
 
 .. raw:: html
 
-    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
 
@@ -125,7 +125,7 @@ via hooks that are called on your LightningModule.
 
 .. raw:: html
 
-    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
 
 ----------------
 
@@ -342,7 +342,7 @@ Here's an illustration that explains how to refactor your code into reusable Dat
 
 .. raw:: html
 
-    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
 
 |
 
