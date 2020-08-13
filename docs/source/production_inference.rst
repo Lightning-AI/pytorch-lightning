@@ -1,3 +1,5 @@
+.. _production-inference:
+
 Inference in Production
 =======================
 PyTorch Lightning eases the process of deploying models into production.
