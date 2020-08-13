@@ -314,14 +314,9 @@ still ensures the method runs on the correct devices)
 
 ----------------
 
-Why use datamodules?
---------------------
-DataModules have a few key advantages:
-
-- It decouples the data from the model.
-- It has all the necessary details for anyone to use the exact same data setup.
-- Datamodules can be shared across models.
-- Datamodules can also be used without Lightning by calling the methods directly
+Datamodules without Lightning
+-----------------------------
+You can of course use DataModules in plain PyTorch code as well.
 
 .. code-block:: python
 
