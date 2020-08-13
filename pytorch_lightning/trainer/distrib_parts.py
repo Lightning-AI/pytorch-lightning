@@ -71,6 +71,7 @@ class TrainerDPMixin(ABC):
     amp_level: str
     precision: ...
     global_rank: int
+    local_rank: int
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
@@ -129,6 +130,9 @@ class TrainerDPMixin(ABC):
             m.use_tpu = self.use_tpu
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
+            m.precision = self.precision
+            m.global_rank = self.global_rank
+            m.local_rank = self.local_rank
 
     def transfer_batch_to_tpu(self, batch: Any, tpu_id: Optional[int] = None):
         """

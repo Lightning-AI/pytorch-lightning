@@ -291,7 +291,7 @@ Using DataModules allows easier sharing of full dataset definitions.
 
     # use an MNIST dataset
     mnist_dm = MNISTDatamodule()
-    model = LitModel(num_classes=mnist.num_classes)
+    model = LitModel(num_classes=mnist_dm.num_classes)
     trainer.fit(model, mnist_dm)
 
     # or other datasets with the same model
@@ -319,6 +319,8 @@ When your models need to know about the data, it's best to process the data befo
 
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
+
+|
 
 .. testcode::
 
@@ -391,11 +393,11 @@ In the case of MNIST we do the following
 
     for epoch in epochs:
         for batch in data:
-            # TRAINING STEP START
+            # ------ TRAINING STEP START ------
             x, y = batch
             logits = model(x)
             loss = F.nll_loss(logits, y)
-            # TRAINING STEP END
+            # ------ TRAINING STEP END ------
 
             loss.backward()
             optimizer.step()
@@ -419,12 +421,13 @@ This code is not restricted which means it can be as complicated as a full seq-2
 
 TrainResult
 ^^^^^^^^^^^
-Whenever you'd like more control over the outputs of the `training_step` use a `TrainResult` object which can:
+Whenever you'd like to log, or sync values across GPUs use `TrainResult`.
 
 - log to Tensorboard or the other logger of your choice.
 - log to the progress-bar.
 - log on every step.
 - log aggregate epoch metrics.
+- average values across GPUs/TPU cores
 
 .. code-block:: python
 
@@ -440,6 +443,13 @@ Whenever you'd like more control over the outputs of the `training_step` use a `
 
         # equivalent
         result.log('train_loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, reduce_fx=torch.mean)
+
+When training across accelerators (GPUs/TPUs) you can sync a metric if needed.
+
+.. code-block:: python
+
+        # sync across GPUs / TPUs, etc...
+        result.log('train_loss', loss, sync_dist=True)
 
 If you are only using a training_loop (`training_step`) without a
 validation or test loop (`validation_step`, `test_step`), you can still use EarlyStopping or automatic checkpointing
@@ -459,6 +469,8 @@ So far we defined 4 key ingredients in pure PyTorch but organized the code with 
 2. Training data.
 3. Optimizer.
 4. What happens in the training loop.
+
+|
 
 For clarity, we'll recall that the full LightningModule now looks like this.
 
@@ -533,6 +545,9 @@ Which will generate automatic tensorboard logs.
 
 .. figure:: /_images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
+   :width: 500
+
+|
 
 But you can also use any of the `number of other loggers <loggers.rst>`_ we support.
 
@@ -585,13 +600,20 @@ First, change the runtime to TPU (and reinstall lightning).
 
 .. figure:: /_images/mnist_imgs/runtime_tpu.png
     :alt: mnist GPU bar
+    :width: 400
 
 .. figure:: /_images/mnist_imgs/restart_runtime.png
     :alt: mnist GPU bar
+    :width: 400
+
+|
 
 Next, install the required xla library (adds support for PyTorch on TPUs)
 
+.. code-block:: shell
+
     !curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
+
     !python pytorch-xla-env-setup.py --version nightly --apt-packages libomp5 libopenblas-dev
 
 In distributed training (multiple GPUs and multiple TPU cores) each GPU or TPU core will run a copy
@@ -607,6 +629,10 @@ In this method we do all the preparation we need to do once (instead of on every
 .. code-block:: python
 
     class MNISTDataModule(LightningDataModule):
+        def __init__(self, batch_size=64):
+            super().__init__()
+            self.batch_size = batch_size
+
         def prepare_data(self):
             # download only
             MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor())
@@ -614,7 +640,7 @@ In this method we do all the preparation we need to do once (instead of on every
 
         def setup(self, stage):
             # transform
-            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+            transform=transforms.Compose([transforms.ToTensor()])
             MNIST(os.getcwd(), train=True, download=False, transform=transform)
             MNIST(os.getcwd(), train=False, download=False, transform=transform)
 
@@ -627,13 +653,13 @@ In this method we do all the preparation we need to do once (instead of on every
             self.test_dataset = mnist_test
 
         def train_dataloader(self):
-            return DataLoader(self.train_dataset, batch_size=64)
+            return DataLoader(self.train_dataset, batch_size=self.batch_size)
 
         def val_dataloader(self):
-            return DataLoader(self.val_dataset, batch_size=64)
+            return DataLoader(self.val_dataset, batch_size=self.batch_size)
 
         def test_dataloader(self):
-            return DataLoader(self.test_dataset, batch_size=64)
+            return DataLoader(self.test_dataset, batch_size=self.batch_size)
 
 The `prepare_data` method is also a good place to do any data processing that needs to be done only
 once (ie: download or tokenize, etc...).
@@ -653,11 +679,13 @@ You'll now see the TPU cores booting up.
 
 .. figure:: /_images/mnist_imgs/tpu_start.png
     :alt: TPU start
+    :width: 400
 
 Notice the epoch is MUCH faster!
 
 .. figure:: /_images/mnist_imgs/tpu_fast.png
     :alt: TPU speed
+    :width: 600
 
 ----------------
 
@@ -737,12 +765,13 @@ If you still need even more fine-grain control, define the other optional method
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
-        val_step_output = {'step_output': x}
-        return val_step_output
+        result = pl.EvalResult()
+        result.prediction = some_prediction
+        return result
 
     def validation_epoch_end(self, val_step_outputs):
-        for val_step_output in val_step_outputs:
-            # each object here is what you passed back at each validation_step
+        # do something with all the predictions from each validation_step
+        all_predictions = val_step_outputs.prediction
 
 ----------------
 

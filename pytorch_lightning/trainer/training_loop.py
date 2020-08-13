@@ -848,16 +848,13 @@ class TrainerTrainLoopMixin(ABC):
                 # add metrics to loggers
                 if using_results_obj:
                     metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
-                else:
-                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
-                batch_log_metrics.append(metrics_to_log)
-
-                # add metrics to progress bar
-                if using_results_obj:
                     step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
                 else:
+                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
                     step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
 
+                # track metrics
+                batch_log_metrics.append(metrics_to_log)
                 if len(step_pbar_metrics) > 0:
                     self.add_progress_bar_metrics(step_pbar_metrics)
 
@@ -1017,6 +1014,10 @@ class TrainerTrainLoopMixin(ABC):
             # format and reduce outputs accordingly
             training_step_output_for_epoch_end = training_step_output
             is_result_obj = isinstance(training_step_output, Result)
+
+            # track batch size for weighted average
+            if is_result_obj:
+                training_step_output.track_batch_size(len(split_batch))
 
             # don't allow EvalResult in the training_step
             if isinstance(training_step_output, EvalResult):

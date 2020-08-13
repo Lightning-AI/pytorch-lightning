@@ -25,7 +25,7 @@ class Result(Dict):
         if checkpoint_on is not None and checkpoint_on:
             self.checkpoint_on = checkpoint_on
         if hiddens is not None:
-            self.hiddens = hiddens
+            self.hiddens = hiddens.detach()
         if minimize is not None:
             err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
             self._assert_grad_tensor_metric('minimize', minimize, err)
@@ -36,7 +36,8 @@ class Result(Dict):
 
         self['meta'] = {
             '_internal': {
-                '_reduce_on_epoch': False
+                '_reduce_on_epoch': False,
+                'batch_sizes': []
             }
         }
 
@@ -59,7 +60,7 @@ class Result(Dict):
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
-        if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
+        if key in {'checkpoint_on', 'early_stop_on'}:
             self._assert_tensor_metric(key, val)
             if val is not None and isinstance(val, torch.Tensor):
                 val = val.detach()
@@ -95,17 +96,17 @@ class Result(Dict):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
         # sync across ddp
-        if sync_ddp and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = sync_ddp_if_available(value, group=sync_ddp_group, reduce_op=sync_ddp_op)
+        if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
+            value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
@@ -165,6 +166,14 @@ class Result(Dict):
         # track whether any input requires reduction on epoch end
         _internal = self['meta']['_internal']
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
+
+    def track_batch_size(self, batch_size):
+        meta = self['meta']
+        meta['_internal']['batch_sizes'].append(batch_size)
+
+    def get_batch_sizes(self):
+        meta = self['meta']
+        return torch.tensor(meta['_internal']['batch_sizes'])
 
     def get_callback_metrics(self) -> dict:
         result = {
@@ -301,10 +310,14 @@ class Result(Dict):
 
     @classmethod
     def reduce_on_epoch_end(cls, outputs):
+        # get the batch sizes for all outputs
+        batch_sizes = torch.stack([x.get_batch_sizes() for x in outputs]).view(-1)
+
         meta = outputs[0]['meta']
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
+
 
         for k, option in meta.items():
             if k == '_internal':
@@ -312,7 +325,12 @@ class Result(Dict):
 
             if option['on_epoch']:
                 fx = option['reduce_fx']
-                result[k] = fx(result[k])
+                if fx == torch.mean:
+                    reduced_val = weighted_mean(result[k], batch_sizes)
+                else:
+                    reduced_val = fx(result[k])
+
+                result[k] = reduced_val
 
         result['meta'] = meta
         return result
@@ -450,9 +468,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a key, value
@@ -485,9 +503,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
         """
         super().log(name=name,
                     value=value,
@@ -497,9 +515,9 @@ class TrainResult(Result):
                     on_epoch=on_epoch,
                     reduce_fx=reduce_fx,
                     enable_graph=enable_graph,
-                    sync_ddp=sync_ddp,
-                    sync_ddp_group=sync_ddp_group,
-                    sync_ddp_op=sync_ddp_op,
+                    sync_dist=sync_dist,
+                    sync_dist_group=sync_dist_group,
+                    sync_dist_op=sync_dist_op,
                     tbptt_pad_token=tbptt_pad_token,
                     tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -514,9 +532,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a dictonary of values at once
@@ -536,9 +554,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group:
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group:
         """
         for k, v in dictionary.items():
             self.log(name=k,
@@ -549,9 +567,9 @@ class TrainResult(Result):
                      on_epoch=on_epoch,
                      reduce_fx=reduce_fx,
                      enable_graph=enable_graph,
-                     sync_ddp=sync_ddp,
-                     sync_ddp_group=sync_ddp_group,
-                     sync_ddp_op=sync_ddp_op,
+                     sync_dist=sync_dist,
+                     sync_dist_group=sync_dist_group,
+                     sync_dist_op=sync_dist_op,
                      tbptt_pad_token=tbptt_pad_token,
                      tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -602,9 +620,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a key, value
@@ -636,9 +654,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
         """
         super().log(name=name,
                     value=value,
@@ -648,9 +666,9 @@ class EvalResult(Result):
                     on_epoch=on_epoch,
                     reduce_fx=reduce_fx,
                     enable_graph=enable_graph,
-                    sync_ddp=sync_ddp,
-                    sync_ddp_group=sync_ddp_group,
-                    sync_ddp_op=sync_ddp_op,
+                    sync_dist=sync_dist,
+                    sync_dist_group=sync_dist_group,
+                    sync_dist_op=sync_dist_op,
                     tbptt_pad_token=tbptt_pad_token,
                     tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -665,9 +683,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a dictonary of values at once
@@ -687,9 +705,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
         """
         for k, v in dictionary.items():
             self.log(name=k,
@@ -700,9 +718,9 @@ class EvalResult(Result):
                      on_epoch=on_epoch,
                      reduce_fx=reduce_fx,
                      enable_graph=enable_graph,
-                     sync_ddp=sync_ddp,
-                     sync_ddp_group=sync_ddp_group,
-                     sync_ddp_op=sync_ddp_op,
+                     sync_dist=sync_dist,
+                     sync_dist_group=sync_dist_group,
+                     sync_dist_op=sync_dist_op,
                      tbptt_pad_token=tbptt_pad_token,
                      tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -713,3 +731,10 @@ class EvalResult(Result):
         }
 
         return result
+
+
+def weighted_mean(result, weights):
+    weights = weights.to(result.device)
+    numerator = torch.dot(result.float(), weights.t().float())
+    result = numerator / weights.sum().float()
+    return result
