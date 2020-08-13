@@ -177,10 +177,15 @@ def test_cpu_model_with_amp(tmpdir):
 
 
 def test_amp_without_apex(tmpdir):
-    """Check if even with set apex without precision the amp type is void."""
+    """Check that even with apex amp type without requesting percussion=16 the amp backend is void."""
     os.environ['PL_DEV_DEBUG'] = '1'
-
     model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        amp_backend='native',
+    )
+    assert trainer.amp_backend is None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
