@@ -10,8 +10,8 @@
 Once you've organized your PyTorch code into a LightningModule,
 the Trainer automates everything else.
 
-.. figure:: /_images/lightning_module/pt_trainer.png
-   :alt: Convert from PyTorch to Lightning
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/trainer_v1.gif
+    :width: 800
 
 |
 
