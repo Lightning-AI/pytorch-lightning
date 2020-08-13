@@ -15,12 +15,14 @@ the Trainer automates everything else.
 
 This abstraction achieves the following:
 
-    1. You maintain control over all aspects via PyTorch code without an added abstraction.
+1. You maintain control over all aspects via PyTorch code without an added abstraction.
 
-    2. The trainer uses best practices embedded by contributors and users
-       from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
+2. The trainer uses best practices embedded by contributors and users
+   from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-    3. The trainer allows overriding any key part that you don't want automated.
+3. The trainer allows overriding any key part that you don't want automated.
+
+|
 
 -----------
 
