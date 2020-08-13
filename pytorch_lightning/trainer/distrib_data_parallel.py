@@ -238,9 +238,6 @@ class TrainerDDPMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def init_tpu(self):
-        # turn off all the GPU stuff
-        # self.distributed_backend = 'tpu'
-
         # enable tpu
         self.use_tpu = True
 
