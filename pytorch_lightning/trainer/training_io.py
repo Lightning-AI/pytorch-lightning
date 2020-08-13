@@ -256,20 +256,6 @@ class TrainerIOMixin(ABC):
     # --------------------
     # MODEL SAVE CHECKPOINT
     # --------------------
-    def _atomic_save(self, checkpoint, filepath: str):
-        """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
-
-        This will create a temporary checkpoint with a suffix of ``.part``, then copy it to the final location once
-        saving is finished.
-
-        Args:
-            checkpoint: The object to save.
-                Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
-                accepts.
-            filepath: The path to which the checkpoint will be saved.
-                This points to the file that the checkpoint will be stored in.
-        """
-        atomic_save(checkpoint, filepath)
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         checkpoint = self.dump_checkpoint(weights_only)
@@ -277,14 +263,14 @@ class TrainerIOMixin(ABC):
         if self.is_global_zero:
             # do the actual save
             try:
-                self._atomic_save(checkpoint, filepath)
+                atomic_save(checkpoint, filepath)
             except AttributeError as err:
                 if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                     del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
                 rank_zero_warn(
                     'Warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
                 )
-                self._atomic_save(checkpoint, filepath)
+                atomic_save(checkpoint, filepath)
 
     def restore(self, checkpoint_path: str, on_gpu: bool):
         """
@@ -503,14 +489,14 @@ class TrainerIOMixin(ABC):
         # do the actual save
         # TODO: fix for anything with multiprocess DP, DDP, DDP2
         try:
-            self._atomic_save(checkpoint, filepath)
+            atomic_save(checkpoint, filepath)
         except AttributeError as err:
             if LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
                 del checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
             rank_zero_warn(
                 'warning, `module_arguments` dropped from checkpoint.' f' An attribute is not picklable {err}'
             )
-            self._atomic_save(checkpoint, filepath)
+            atomic_save(checkpoint, filepath)
 
         return filepath
 
