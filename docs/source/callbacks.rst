@@ -10,8 +10,9 @@
 
 Callbacks
 =========
+A callback is a self-contained program that can be reused across projects.
 
-Lightning has a callback system to execute arbitrary code. Callbacks should capture NON-ESSENTIAL
+Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
 logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
 
 An overall Lightning system should have:
@@ -21,8 +22,6 @@ An overall Lightning system should have:
 3. Callbacks for non-essential code.
 
 |
-
-.. note:: Think of callbacks as self-contained programs that can be reused across projects.
 
 Example:
 
