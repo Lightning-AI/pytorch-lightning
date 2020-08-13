@@ -65,6 +65,12 @@ Step 2: Fit with a Trainer
 The trainer calls each loop at the correct time as needed. It also ensures it all works
 well across any accelerator.
 
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+
+|
+
 .. code-block:: python
 
     # dataloader
