@@ -1,6 +1,6 @@
 LightningDataModule
 ===================
-Data preparation in PyTorch follows 5 steps:
+A datamodule is a shareable, reusable class that encapsulates all the steps needed to process data:
 
 1. Download / tokenize / process.
 2. Clean and (maybe) save to disk.
@@ -8,6 +8,41 @@ Data preparation in PyTorch follows 5 steps:
 4. Apply transforms (rotate, tokenize, etc...).
 5. Wrap inside a :class:`~torch.utils.data.DataLoader`.
 
+|
+
+This class can then be shared and used anywhere:
+
+.. code-block:: python
+
+    from pl_bolts.datamodules import CIFAR10DataModule, ImagenetDataModule
+
+    model = LitClassifier()
+    trainer = Trainer()
+
+    imagenet = ImagenetDataModule()
+    trainer.fit(model, imagenet)
+
+    cifar10 = CIFAR10DataModule()
+    trainer.fit(model, cifar10)
+
+---------------
+
+Why do I need a DataModule?
+---------------------------
+In normal PyTorch code, the data cleaning/preparation is usually scattered across many files. This makes
+sharing and reusing the exact splits, and transforms across projects.
+
+Datamodules are for you if you ever asked the questions:
+
+- what splits did you use?
+- what transforms did you use?
+- what normalization did you use?
+- how did you prepare/tokenize the data?
+
+--------------
+
+What is a DataModule
+--------------------
 A DataModule is simply a collection of a train_dataloader, val_dataloader(s), test_dataloader(s) along with the
 matching transforms and data processing/downloads steps required.
 
