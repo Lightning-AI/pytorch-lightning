@@ -176,7 +176,7 @@ def test_cpu_model_with_amp(tmpdir):
         tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
-def test_amp_with_apex(tmpdir):
+def test_amp_without_apex(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
@@ -190,6 +190,13 @@ def test_amp_with_apex(tmpdir):
     trainer.fit(model)
     assert trainer.state == TrainerState.FINISHED
     assert trainer.dev_debugger.count_events('AMP') == 0
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_amp_with_apex(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = EvalModelTemplate()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
