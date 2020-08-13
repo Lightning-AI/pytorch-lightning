@@ -2,6 +2,13 @@ LightningDataModule
 ===================
 A datamodule is a shareable, reusable class that encapsulates all the steps needed to process data:
 
+.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/datamodules.gif
+    :width: 800
+
+|
+
+A datamodule encapsulates the five steps involved in data processing in PyTorch:
+
 1. Download / tokenize / process.
 2. Clean and (maybe) save to disk.
 3. Load inside :class:`~torch.utils.data.Dataset`.
