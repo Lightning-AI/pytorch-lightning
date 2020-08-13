@@ -35,10 +35,10 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
     comet_logger = pl_loggers.CometLogger(save_dir='logs/')
     trainer = Trainer(logger=[tb_logger, comet_logger])
 
-Note::
+.. note::
 
-    All loggers log by default to ``os.getcwd()``. To change the path without creating a logger set
-    ``Trainer(default_root_dir='/your/path/to/save/checkpoints')``
+    All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
+    `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
 
 ----------
 
