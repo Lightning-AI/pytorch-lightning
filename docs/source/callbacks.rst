@@ -61,6 +61,9 @@ You can do pretty much anything with callbacks.
 
 --------------
 
+Callback Hooks
+--------------
+
 .. automodule:: pytorch_lightning.callbacks.base
    :noindex:
    :exclude-members:
