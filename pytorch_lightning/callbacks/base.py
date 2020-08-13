@@ -1,6 +1,6 @@
 r"""
-Callback Base
--------------
+Callback Hooks
+--------------
 
 Abstract base class used to build new callbacks.
 
