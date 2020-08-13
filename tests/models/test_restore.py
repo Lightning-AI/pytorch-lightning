@@ -407,17 +407,19 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
         _cls.c_d1_bn = model.c_d1_bn
         _cls.c_d1_drop = model.c_d1_drop
 
-    # Remove c_d2 at class-level
-    EvalModelTemplate.__build_model = functools.partial(__build_model, EvalModelTemplate)
-    
-    EvalModelTemplate.load_from_checkpoint(
+    class CurrentModel(EvalModelTemplate):
+        def __init__(self):
+            super().__init__()
+            self.c_d3 = torch.nn.Linear(7, 7)
+
+    CurrentModel.load_from_checkpoint(
         checkpoint_path=ckpt_path,
         hparams_file=hparams_path,
         strict=False,
     )
-    
-    with pytest.raises(RuntimeError, match=r'Missing key\(s\) in state_dict: "c_d2.weight", "c_d2.bias"'):
-        EvalModelTemplate.load_from_checkpoint(
+
+    with pytest.raises(RuntimeError, match=r'Missing key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
+        CurrentModel.load_from_checkpoint(
             checkpoint_path=ckpt_path,
             hparams_file=hparams_path,
             strict=True,
