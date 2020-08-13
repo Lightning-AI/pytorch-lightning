@@ -242,3 +242,8 @@ def test_exception_when_no_tpu_found(tmpdir):
 
     with pytest.raises(MisconfigurationException, match='PyTorch XLA not installed.'):
         trainer.fit(model)
+
+
+def test_distributed_backend_set_when_using_tpu(tmpdir):
+    """Test if exception is thrown when xla devices are not available"""
+    assert Trainer(tpu_cores=8).distributed_backend == 'tpu'
