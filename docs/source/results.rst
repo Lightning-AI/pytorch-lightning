@@ -1,3 +1,5 @@
+.. _result:
+
 Result
 ======
 Lightning has two results objects `TrainResult` and `EvalResult`.
