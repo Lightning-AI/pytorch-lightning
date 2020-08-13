@@ -1082,8 +1082,8 @@ Options: 'full', 'top', None.
     # don't print a summary
     trainer = Trainer(weights_summary=None)
 
-Trainer class
--------------
+Trainer class API
+-----------------
 
 """
 
