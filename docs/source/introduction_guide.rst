@@ -3,6 +3,7 @@
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.trainer.trainer import Trainer
 
+.. _introduction-guide:
 
 Step-by-step walk-through
 =========================
