@@ -41,7 +41,6 @@ def test_model_tpu_cores_1(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -60,7 +59,6 @@ def test_model_tpu_index(tmpdir, tpu_core):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=[tpu_core],
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -79,7 +77,6 @@ def test_model_tpu_cores_8(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -199,7 +196,11 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, distributed_backend='tpu', tpu_cores=8)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        tpu_cores=8
+    )
     result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
@@ -216,9 +217,7 @@ def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
 def test_tpu_misconfiguration():
     """Test if trainer.tpu_id is set as expected"""
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
-        Trainer(
-            tpu_cores=[1, 8], distributed_backend='tpu',
-        )
+        Trainer(tpu_cores=[1, 8])
 
 
 # @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
@@ -238,6 +237,7 @@ def test_exception_when_no_tpu_found(tmpdir):
         trainer.fit(model)
 
 
-def test_distributed_backend_set_when_using_tpu(tmpdir):
+@pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
+def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
-    assert Trainer(tpu_cores=8).distributed_backend == 'tpu'
+    assert Trainer(tpu_cores=tpu_cores).distributed_backend == 'tpu'
