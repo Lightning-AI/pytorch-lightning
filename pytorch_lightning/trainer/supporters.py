@@ -109,7 +109,7 @@ class PredictionCollection(object):
         elif name not in self.predictions[filename]:
             self.predictions[filename][name] = values
         elif isinstance(values, Tensor):
-            self.predictions[filename][name] = torch.cat((self.predictions[filename][name], values.detach()))
+            self.predictions[filename][name] = torch.cat((self.predictions[filename][name], values))
         elif isinstance(values, list):
             self.predictions[filename][name].extend(values)
 
@@ -127,22 +127,26 @@ class PredictionCollection(object):
         """
         for filename, predictions in self.predictions.items():
 
-            # Filename or filename with rank extension in multi-gpu environment
-            outfile = Path(filename)
-            outfile = Path(f"{outfile.stem}{f'_rank_{self.global_rank}' if self.world_size > 1 else ''}{outfile.suffix}")
+            # Absolute path to defined prediction file. rank added to name if in multi-gpu environment
+            outfile = Path(filename).absolute()
+            outfile = outfile.with_name(
+                f"{outfile.stem}{f'_rank_{self.global_rank}' if self.world_size > 1 else ''}{outfile.suffix}"
+            )
             outfile.parent.mkdir(exist_ok=True, parents=True)
 
             # Convert any tensor values to list
             predictions = {k: v if not isinstance(v, Tensor) else v.tolist() for k, v in predictions.items()}
 
-            # This checks all values have same len so we can write csv
-            # TODO - change message to say something like:
-            # 'got len x for feature_name, and len y for other_feature_name'
-            assert len(set([len(v) for v in predictions.values()])) == 1, "prediction values not equal"
+            # Check if all features for this file add up to same length
+            feature_lens = {k: len(v) for k, v in predictions.items()}
+            if len(set(feature_lens.values())) != 1:
+                raise ValueError('Mismatching csv feature column lengths found in stored EvalResult predictions.')
+
+            # Switch predictions so each entry has its own dict
+            outputs = []
+            for values in zip(*predictions.values()):
+                output_element = {k: v for k, v in zip(predictions.keys(), values)}
+                outputs.append(output_element)
 
             # Write predictions for current file to disk
-            with outfile.open(mode='w', newline='\n') as f:
-                fieldnames = list(predictions.keys())
-                writer = csv.writer(f)
-                writer.writerow(fieldnames)
-                writer.writerows(zip(*predictions.values()))
+            torch.save(outputs, outfile)
