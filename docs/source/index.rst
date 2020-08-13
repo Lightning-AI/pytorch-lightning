@@ -25,7 +25,6 @@ PyTorch Lightning Documentation
    datamodules
    loggers
    metrics
-   hooks
    results
    trainer
 
