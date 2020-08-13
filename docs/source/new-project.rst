@@ -17,8 +17,9 @@ Once you've organized it into a LightningModule, it automates most of the traini
 
 To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
 
 ----------
 
