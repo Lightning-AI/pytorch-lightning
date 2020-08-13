@@ -12,7 +12,8 @@ the Trainer automates everything else.
 
 .. raw:: html
 
-    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+    <video width="800" controls
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
 
