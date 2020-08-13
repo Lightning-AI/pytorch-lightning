@@ -354,14 +354,12 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
     ckpt_path = hparams_url if url_ckpt else new_weights_path
 
-    
     EvalModelTemplate.load_from_checkpoint(
         checkpoint_path=ckpt_path,
         hparams_file=hparams_path,
         strict=False,
     )
 
-    
     with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
         EvalModelTemplate.load_from_checkpoint(
             checkpoint_path=ckpt_path,
@@ -401,11 +399,6 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
     hparams_path = os.path.join(tutils.get_data_path(logger, path_dir=tmpdir), 'hparams.yaml')
     hparams_url = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}'
     ckpt_path = hparams_url if url_ckpt else new_weights_path
-
-    def __build_model(_cls):
-        _cls.c_d1 = model.c_d1
-        _cls.c_d1_bn = model.c_d1_bn
-        _cls.c_d1_drop = model.c_d1_drop
 
     class CurrentModel(EvalModelTemplate):
         def __init__(self):
