@@ -520,6 +520,7 @@ class Trainer(
 
         # override dist backend when using tpus
         if self.on_tpu:
+            self.distributed_backend = 'tpu'
             self.init_tpu()
 
         # init flags for SLURM+DDP to work
