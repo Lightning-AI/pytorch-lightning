@@ -43,10 +43,9 @@ This is the basic use of the trainer:
 
 --------
 
-Best Practices
---------------
-For cluster computing, it's recommended you structure your
-main.py file this way
+Trainer in Python scrips
+------------------------
+In Python scripts, it's recommended you use a main function to call the Trainer.
 
 .. code-block:: python
 
@@ -72,7 +71,7 @@ So you can run it like so:
 
 Note::
 
-Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
+    Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
 
 .. code-block:: python
 
@@ -89,6 +88,12 @@ Pro-tip: You don't need to define all flags manually. Lightning can add them aut
         args = parser.parse_args()
 
         main(args)
+
+So you can run it like so:
+
+.. code-block:: bash
+
+    python main.py --gpus 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
