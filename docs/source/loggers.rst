@@ -140,6 +140,13 @@ For certain things like histograms, text, images, etc... you may need to use the
 
 This also applies to Callbacks
 
+
+----------
+
+Logging from a Callback
+-----------------------
+To log from a callback, access the logger object directly
+
 .. code-block:: python
 
     class MyCallback(Callback):
