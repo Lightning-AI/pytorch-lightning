@@ -7,7 +7,6 @@
     import sys
     sys.argv = ['foo']
 
-
 Hyperparameters
 ---------------
 Lightning has utilities to interact seamlessly with the command line ArgumentParser

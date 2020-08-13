@@ -1,3 +1,5 @@
+.. _data-modules:
+
 LightningDataModule
 ===================
 A datamodule is a shareable, reusable class that encapsulates all the steps needed to process data:

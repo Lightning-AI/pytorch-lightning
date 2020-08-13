@@ -16,7 +16,6 @@
         def val_dataloader():
             pass
 
-
 Child Modules
 -------------
 Research projects tend to test different approaches to the same dataset.
