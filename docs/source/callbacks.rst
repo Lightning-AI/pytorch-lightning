@@ -10,8 +10,9 @@
 
 Callbacks
 =========
+A callback is a self-contained program that can be reused across projects.
 
-Lightning has a callback system to execute arbitrary code. Callbacks should capture NON-ESSENTIAL
+Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
 logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
 
 An overall Lightning system should have:
@@ -47,6 +48,21 @@ Example:
 We successfully extended functionality without polluting our super clean
 :class:`~pytorch_lightning.core.LightningModule` research code.
 
+-----------
+
+Examples
+--------
+You can do pretty much anything with callbacks.
+
+- `Add a MLP to fine-tune self-supervised networks <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
+
+
+--------------
+
+Callback Hooks
 --------------
 
 .. automodule:: pytorch_lightning.callbacks.base
@@ -56,6 +72,16 @@ We successfully extended functionality without polluting our super clean
         _save_model,
         _abc_impl,
         check_monitor_top_k,
+
+----------------
+
+Built-in Callbacks
+------------------
+Lightning has a few built-in callbacks.
+
+.. note::
+    For a richer collection of callbacks, check out our
+    `bolts library <https://pytorch-lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
 
 ----------------
 
@@ -101,8 +127,7 @@ We successfully extended functionality without polluting our super clean
    :noindex:
    :exclude-members:
 
-
-----------------
+----------
 
 Best Practices
 --------------

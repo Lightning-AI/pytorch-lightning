@@ -479,10 +479,9 @@ Log to the progress bar
 ^^^^^^^^^^^^^^^^^^^^^^^
 |
 
-.. image:: /_images/mnist_imgs/mnist_cpu_bar.png
-    :width: 500
-    :align: center
-    :alt: Example CPU bar logging
+.. code-block:: shell
+
+    Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
 
 |
 
