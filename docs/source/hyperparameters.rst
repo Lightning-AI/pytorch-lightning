@@ -7,6 +7,7 @@
     import sys
     sys.argv = ['foo']
 
+.. _hyperparameters:
 
 Hyperparameters
 ---------------
