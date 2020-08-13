@@ -125,6 +125,10 @@ the aggregate at the end of the epoch (`EvalResult(on_epoch=True)`).
         # < -------------- log (on_epoch=True)
         auto_reduce_log(epoch_outs)
 
+Test loop logging
+^^^^^^^^^^^^^^^^^
+See the previous section.
+
 Manual logging
 ^^^^^^^^^^^^^^
 For certain things like histograms, text, images, etc... you may need to use the logger object directly.
