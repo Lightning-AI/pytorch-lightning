@@ -907,11 +907,11 @@ Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch buil
 
 .. testcode::
 
+    # using PyTorch built-in AMP, default used by the Trainer
+    trainer = Trainer(amp_backend='native')
+
     # using NVIDIA Apex
     trainer = Trainer(amp_backend='apex')
-    
-    # using PyTorch built-in AMP
-    trainer = Trainer(amp_backend='native')
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^

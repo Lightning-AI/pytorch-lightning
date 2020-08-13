@@ -310,6 +310,7 @@ class Trainer(
                     Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
 
+            amp_backend: The mixed precision backend to use ("native" or "apex")
 
             amp_level: The optimization level to use (O1, O2, etc...).
 
