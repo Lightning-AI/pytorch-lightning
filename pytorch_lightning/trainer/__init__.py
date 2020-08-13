@@ -10,8 +10,9 @@
 Once you've organized your PyTorch code into a LightningModule,
 the Trainer automates everything else.
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/trainer_v1.gif
-    :width: 800
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
 

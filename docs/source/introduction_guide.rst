@@ -9,13 +9,21 @@ Step-by-step walk-through
 PyTorch Lightning provides a very simple template for organizing your PyTorch code. Once
 you've organized it into a LightningModule, it automates most of the training for you.
 
-To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
+In this guide, we will walk through the API by looking at how you would organize your PyTorch
+code to work with Lightning.
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
 
-As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
-quickly becomes onerous and starts distracting from the core research code.
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
+
+|
+
+By doing this refactor you'll:
+
+- Make your code more reusable.
+- You will not lose any flexibility.
+- You'll gain free features like 16-bit precision, distributed training etc... While it may be overkill
+    for small projects, you won't get bogged down with engineering as your project grows in complexity.
 
 ----------------
 

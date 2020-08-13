@@ -15,6 +15,12 @@ A callback is a self-contained program that can be reused across projects.
 Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
 logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
 
+Here's the flow of how the callback hooks are executed:
+
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+
 An overall Lightning system should have:
 
 1. Trainer for all engineering

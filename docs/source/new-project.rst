@@ -17,8 +17,9 @@ Once you've organized it into a LightningModule, it automates most of the traini
 
 To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
 
 ----------
 
@@ -64,6 +65,14 @@ Step 2: Fit with a Trainer
 The trainer calls each loop at the correct time as needed. It also ensures it all works
 well across any accelerator.
 
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+
+|
+
+Here's an example of using the Trainer:
+
 .. code-block:: python
 
     # dataloader
@@ -106,9 +115,22 @@ All of it 100% rigorously tested and benchmarked
 
 --------------
 
+Lightning under the hood
+^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning is designed for state of the art research ideas by researchers and research engineers from top labs.
+
+A LightningModule handles advances cases by allowing you to override any critical part of training
+via hooks that are called on your LightningModule.
+
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+
+----------------
+
 Training loop under the hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Under the hood, lightning does the following (in high-level pseudocode):
+This is the training loop pseudocode that lightning does under the hood:
 
 .. code-block:: python
 
@@ -314,6 +336,18 @@ also captures:
 - processing.
 - splitting.
 - etc...
+
+Here's an illustration that explains how to refactor your code into reusable DataModules.
+
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+
+|
+
+And the matching code:
+
+|
 
 .. code-block:: python
 
