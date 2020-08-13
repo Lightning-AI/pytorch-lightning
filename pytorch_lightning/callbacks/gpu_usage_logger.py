@@ -28,7 +28,7 @@ class GpuUsageLogger(Callback):
             intra_step_time: Set to ``True`` to log the time of each step. Default: ``False``
             inter_step_time: Set to ``True`` to log the time between the end of one step
                 and the start of the next. Default: ``False``
-            fan_speed: Set to ``False`` to log percentage of fan speed. Default: ``False``.
+            fan_speed: Set to ``True`` to log percentage of fan speed. Default: ``False``.
             temperature: Set to ``True`` to log the memory and gpu temperature in degrees C.
                 Default: ``False``
         Example::

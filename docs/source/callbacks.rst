@@ -101,6 +101,15 @@ Lightning has a few built-in callbacks.
 
 ----------------
 
+.. automodule:: pytorch_lightning.callbacks.gpu_usage_logger
+    :noindex:
+    :exclude-members:
+        _get_gpu_stat,
+        _log_gpu,
+        _log_memory
+
+----------------
+
 .. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
    :exclude-members:
