@@ -1,4 +1,5 @@
 .. _hooks:
+
 Model Hooks
 ===========
 
