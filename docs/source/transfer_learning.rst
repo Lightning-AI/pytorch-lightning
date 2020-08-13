@@ -2,8 +2,6 @@
 
     from pytorch_lightning.core.lightning import LightningModule
     
-.. _transfer-learning:
-
 Transfer Learning
 -----------------
 
