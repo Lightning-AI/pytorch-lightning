@@ -111,9 +111,6 @@ Lightning has a few built-in callbacks.
    :noindex:
    :exclude-members:
 
-
-----------------
-
 Best Practices
 --------------
 The following are best practices when using/designing callbacks.
