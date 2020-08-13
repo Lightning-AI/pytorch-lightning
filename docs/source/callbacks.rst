@@ -122,6 +122,8 @@ You can do pretty much anything with callbacks.
 - `Interpolate the latent space of any variational model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
 - `Log images to Tensorboard for any mode <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
 
+----------
+
 Best Practices
 --------------
 The following are best practices when using/designing callbacks.
