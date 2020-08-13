@@ -16,6 +16,7 @@
         def val_dataloader():
             pass
 
+.. _child-modules:
 
 Child Modules
 -------------
