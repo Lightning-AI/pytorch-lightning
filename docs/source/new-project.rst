@@ -337,7 +337,7 @@ also captures:
 - splitting.
 - etc...
 
-Here's an illustration that explains DataModules
+Here's an illustration that explains how to refactor your code into reusable DataModules.
 
 .. raw:: html
 
