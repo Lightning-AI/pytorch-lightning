@@ -69,7 +69,7 @@ So you can run it like so:
 
     python main.py --gpus 2
 
-Note::
+.. note::
 
     Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
 
