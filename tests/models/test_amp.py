@@ -177,6 +177,7 @@ def test_cpu_model_with_amp(tmpdir):
 
 
 def test_amp_without_apex(tmpdir):
+    """Check if even with set apex without precision the amp type is void."""
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
@@ -194,6 +195,7 @@ def test_amp_without_apex(tmpdir):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_amp_with_apex(tmpdir):
+    """Check calling apex scaling in training."""
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
