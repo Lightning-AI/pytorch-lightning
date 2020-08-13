@@ -59,9 +59,7 @@ main.py file this way
 
     if __name__ == '__main__':
         parser = ArgumentParser()
-
-        # add all trainer flags
-        parser = Trainer.add_argparse_args(parser)
+        parser.add_argument('--gpus', default=None)
         args = parser.parse_args()
 
         main(args)
