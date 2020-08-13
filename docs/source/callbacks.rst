@@ -118,13 +118,13 @@ Examples
 You can do pretty much anything with callbacks.
 
 - `Add a MLP to fine-tune self-supervised networks
-    <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification
-    result <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model
-    <https://pytorch-lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model
-    <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
+<https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classificatio
+result <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
+- `Interpolate the latent space of any variational mode
+<https://pytorch-lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any mode
+<https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
 
 Best Practices
 --------------
