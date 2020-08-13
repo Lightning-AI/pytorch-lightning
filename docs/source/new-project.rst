@@ -107,9 +107,22 @@ All of it 100% rigorously tested and benchmarked
 
 --------------
 
+Lightning under the hood
+^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning is designed for state of the art research ideas by researchers and research engineers from top labs.
+
+A LightningModule handles advances cases by allowing you to override any critical part of training
+via hooks that are called on your LightningModule.
+
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+
+----------------
+
 Training loop under the hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Under the hood, lightning does the following (in high-level pseudocode):
+This is the training loop pseudocode that lightning does under the hood:
 
 .. code-block:: python
 
