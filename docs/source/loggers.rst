@@ -158,8 +158,8 @@ To log from a callback, access the logger object directly
 
 ----------
 
-Custom Logger
--------------
+Make a Custom Logger
+--------------------
 
 You can implement your own logger by writing a class that inherits from
 :class:`LightningLoggerBase`. Use the :func:`~pytorch_lightning.loggers.base.rank_zero_only`
