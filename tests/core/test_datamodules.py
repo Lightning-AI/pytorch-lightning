@@ -223,6 +223,7 @@ def test_full_loop(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
+        deterministic=True,
     )
 
     # fit model
@@ -247,7 +248,8 @@ def test_full_loop_single_gpu(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
-        gpus=1
+        gpus=1,
+        deterministic=True,
     )
 
     # fit model
@@ -273,7 +275,8 @@ def test_full_loop_dp(tmpdir):
         max_epochs=3,
         weights_summary=None,
         distributed_backend='dp',
-        gpus=2
+        gpus=2,
+        deterministic=True,
     )
 
     # fit model
@@ -302,7 +305,8 @@ def test_full_loop_ddp_spawn(tmpdir):
         max_epochs=5,
         weights_summary=None,
         distributed_backend='ddp_spawn',
-        gpus=[0, 1]
+        gpus=[0, 1],
+        deterministic=True,
     )
 
     # fit model
