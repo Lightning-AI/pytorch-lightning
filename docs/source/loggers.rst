@@ -35,7 +35,8 @@ To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers ...
     comet_logger = pl_loggers.CometLogger(save_dir='logs/')
     trainer = Trainer(logger=[tb_logger, comet_logger])
 
-Note:
+Note::
+
     All loggers log by default to ``os.getcwd()``. To change the path without creating a logger set
     ``Trainer(default_root_dir='/your/path/to/save/checkpoints')``
 
@@ -103,7 +104,7 @@ and automatically detaches tensors (except for the minimize value).
 
 .. code-block:: python
 
-    result = pl.TrainResult(minimize=loss)
+    result = pl.EvalResult()
     result.log('val_loss', loss)
     print(result)
 
@@ -190,30 +191,6 @@ If you write a logger that may be useful to others, please send
 a pull request to add it to Lighting!
 
 ----------
-
-Using loggers
--------------
-
-Call the logger anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule` by doing:
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def training_step(self, batch, batch_idx):
-            # example
-            self.logger.experiment.whatever_method_summary_writer_supports(...)
-
-            # example if logger is a tensorboard logger
-            self.logger.experiment.add_image('images', grid, 0)
-            self.logger.experiment.add_graph(model, images)
-
-        def any_lightning_module_function_or_hook(self):
-            self.logger.experiment.add_histogram(...)
-
-Read more in the `Experiment Logging use case <./experiment_logging.html>`_.
-
-------
 
 Supported Loggers
 -----------------
