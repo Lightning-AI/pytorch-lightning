@@ -519,10 +519,11 @@ Train on CPU
     trainer = Trainer()
     trainer.fit(model, train_loader)
 
-You should see the following weights summary and progress bar
+You should see a weights summary and the following progress bar
 
-.. figure:: /_images/mnist_imgs/mnist_cpu_bar.png
-   :alt: mnist CPU bar
+.. code-block:: shell
+
+    Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
 
 Logging
 ^^^^^^^
