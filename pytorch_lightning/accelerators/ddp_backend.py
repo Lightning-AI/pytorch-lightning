@@ -86,7 +86,10 @@ class DDPBackend(object):
         # use the same python interpreter and actually running
         command = [sys.executable] + command
 
-        # since this script sets the visible devices we replace the gpus flag with a number
+        # the visible devices tell us how many GPUs we want to use.
+        # when the trainer script was called the device has already been scoped by the time
+        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
+        # but forward the GPUs selected via environment variables
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
         if len(gpu_ids) == 1:
             gpu_ids = f'{gpu_ids},'
