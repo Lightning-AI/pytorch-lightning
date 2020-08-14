@@ -136,20 +136,25 @@ class TensorBoardLogger(LightningLoggerBase):
                 " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
                 " hyperparameter logging."
             )
-        else:
-            from torch.utils.tensorboard.summary import hparams
+#         else:
+#             from torch.utils.tensorboard.summary import hparams
 
             if metrics is None:
-                metrics = {}
-            exp, ssi, sei = hparams(params, metrics)
-            writer = self.experiment._get_file_writer()
-            writer.add_summary(exp)
-            writer.add_summary(ssi)
-            writer.add_summary(sei)
+                metrics = {"hp_metric":-1}
+            elif type(metrics) is Dict:
+                pass
+            else:
+                metrics = {"hp_metric": metrics}
+            self.experiment.log_hyperparams(params, metrics)
+#             exp, ssi, sei = hparams(params, metrics)
+#             writer = self.experiment._get_file_writer()
+#             writer.add_summary(exp)
+#             writer.add_summary(ssi)
+#             writer.add_summary(sei)
 
-            if metrics:
-                # necessary for hparam comparison with metrics
-                self.log_metrics(metrics)
+#             if metrics:
+#                 # necessary for hparam comparison with metrics
+#                 self.log_metrics(metrics)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
