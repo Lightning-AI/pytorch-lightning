@@ -744,9 +744,9 @@ class EvalResult(Result):
             result.log('preds', ['cat', 'dog', 'dog'])
 
         Args:
-            name (str): Feature name that will turn into column header of predictions file
-            values (Union[Tensor, list]): Flat tensor or list of row values for given feature column 'name'.
-            filename (str, optional): Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
+            name: Feature name that will turn into column header of predictions file
+            values: Flat tensor or list of row values for given feature column 'name'.
+            filename: Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
         """
         # Type check the incoming arguments
         if not isinstance(name, str):
