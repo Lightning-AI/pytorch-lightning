@@ -98,3 +98,55 @@ def test_result_obj_predictions(tmpdir, option, do_train):
     assert prediction_file.exists()
     predictions = torch.load(prediction_file)
     assert len(predictions) == len(dm.mnist_test)
+
+
+def test_result_obj_predictions_gpu(tmpdir):
+    distributed_backend = 'ddp'
+    option = 0
+
+    import os
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
+    tutils.reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    prediction_file = Path('predictions.pt')
+
+    model = EvalModelTemplate()
+    model.test_option = option
+    model.prediction_file = prediction_file.as_posix()
+    model.test_step = model.test_step_result_preds
+    model.test_step_end = None
+    model.test_epoch_end = None
+    model.test_end = None
+
+    prediction_files = [Path('predictions_rank_0.pt'), Path('predictions_rank_1.pt')]
+    for prediction_file in prediction_files:
+        if prediction_file.exists():
+            prediction_file.unlink()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+        deterministic=True,
+        distributed_backend=distributed_backend,
+        gpus=[0, 1]
+    )
+
+    # Prediction file shouldn't exist yet because we haven't done anything
+    # assert not model.prediction_file.exists()
+
+    result = trainer.fit(model, dm)
+    assert result == 1
+    result = trainer.test(datamodule=dm)
+    result = result[0]
+    assert result['test_loss'] < 0.6
+    assert result['test_acc'] > 0.8
+
+    # check prediction file now exists and is of expected length
+    for prediction_file in prediction_files:
+        assert prediction_file.exists()
+        predictions = torch.load(prediction_file)
+        assert len(predictions) == len(dm.mnist_test) // 2
