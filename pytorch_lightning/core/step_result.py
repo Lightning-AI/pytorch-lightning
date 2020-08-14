@@ -732,7 +732,7 @@ class EvalResult(Result):
 
         return result
 
-    def write(self, name, values, filename='predictions.txt'):
+    def write(self, name, values, filename='predictions.pt'):
         """Add feature name and value pair to collection of predictions that will be written to disk on
         validation_end or test_end. If running on multiple GPUs, you will get separate n_gpu
         prediction files with the rank prepended onto filename.
@@ -746,7 +746,7 @@ class EvalResult(Result):
         Args:
             name (str): Feature name that will turn into column header of predictions file
             values (Union[Tensor, list]): Flat tensor or list of row values for given feature column 'name'.
-            filename (str, optional): Filepath where your predictions will be saved. Defaults to 'predictions.txt'.
+            filename (str, optional): Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
         """
         # Type check the incoming arguments
         if not isinstance(name, str):
@@ -769,7 +769,7 @@ class EvalResult(Result):
         elif isinstance(values, list):
             preds[filename][name].extend(values)
 
-    def write_dict(self, predictions_dict, filename='predictions.txt'):
+    def write_dict(self, predictions_dict, filename='predictions.pt'):
         """Calls EvalResult.write() for each key-value pair in predictions_dict.
 
         It is recommended that you use this function call instead of .write if you need to
@@ -782,7 +782,7 @@ class EvalResult(Result):
 
         Args:
             predictions_dict ([type]): Dict of predictions to store and then write to filename at eval end.
-            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.txt'.
+            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.pt'.
         """
         for k, v in predictions_dict.items():
             self.write(k, v, filename)
