@@ -736,7 +736,7 @@ class Trainer(
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
