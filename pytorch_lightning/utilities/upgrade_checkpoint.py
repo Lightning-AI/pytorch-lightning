@@ -3,6 +3,7 @@ from shutil import copyfile
 
 import torch
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 KEYS_MAPPING = {
@@ -16,7 +17,7 @@ KEYS_MAPPING = {
 
 def upgrade_checkpoint(filepath):
     checkpoint = torch.load(filepath)
-    checkpoint['callbacks'] = checkpoint.get('callbacks') or {}
+    checkpoint["callbacks"] = checkpoint.get("callbacks") or {}
 
     for key, new_path in KEYS_MAPPING.items():
         if key in checkpoint:
@@ -31,9 +32,14 @@ def upgrade_checkpoint(filepath):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Upgrade an old checkpoint to the current schema.")
+    parser = argparse.ArgumentParser(
+        description="Upgrade an old checkpoint to the current schema. \
+        This will also save a backup of the original file."
+    )
     parser.add_argument("--file", help="filepath for a checkpoint to upgrade")
+
     args = parser.parse_args()
 
+    log.info("Creating a backup of the existing checkpoint file before overwriting in the upgrade process.")
     copyfile(args.file, args.file + ".bak")
     upgrade_checkpoint(args.file)
