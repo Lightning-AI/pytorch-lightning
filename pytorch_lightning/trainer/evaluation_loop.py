@@ -134,7 +134,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
+from pytorch_lightning.trainer.supporters import PredictionCollection
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -278,6 +278,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # bookkeeping
         outputs = []
+        predictions = PredictionCollection(self.global_rank, self.world_size)
 
         # convert max_batches to list
         if isinstance(max_batches, int):
@@ -370,6 +371,12 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # track outputs for collation
                 if output is not None:
+
+                    # Add step predictions to prediction collection to write later
+                    do_write_predictions = is_result_obj and test_mode
+                    if do_write_predictions:
+                        predictions.add(output.pop('predictions', None))
+
                     dl_outputs.append(output)
 
                 self.__eval_add_step_metrics(output)
@@ -387,6 +394,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # log callback metrics
         self.__update_callback_metrics(eval_results, using_eval_result)
+
+        # Write predictions to disk if they're available.
+        predictions.to_disk()
 
         # enable train mode again
         model.train()
