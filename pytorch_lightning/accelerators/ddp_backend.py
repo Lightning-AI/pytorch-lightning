@@ -58,6 +58,7 @@ class DDPBackend(object):
     def spawn_ddp_children(self, model):
         port = os.environ['MASTER_PORT']
 
+        import pdb; pdb.set_trace()
         master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
         os.environ['MASTER_PORT'] = f'{port}'
         os.environ['MASTER_ADDR'] = f'{master_address}'
