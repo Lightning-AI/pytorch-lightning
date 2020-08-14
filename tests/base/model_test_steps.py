@@ -97,12 +97,6 @@ class TestStepVariations(ABC):
 
 
     def test_step_result_preds(self, batch, batch_idx, optimizer_idx=None):
-        """Lightning calls this inside the training loop"""
-        """
-        Default, baseline test_step
-        :param batch:
-        :return:
-        """
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x)
