@@ -739,7 +739,7 @@ class EvalResult(Result):
 
         Example::
 
-            result = EvalResult()
+            result = pl.EvalResult()
             result.write('ids', [0, 1, 2])
             result.write('preds', ['cat', 'dog', 'dog'])
 
