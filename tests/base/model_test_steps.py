@@ -115,10 +115,11 @@ class TestStepVariations(ABC):
         result.log('test_loss', loss_test)
         result.log('test_acc', test_acc)
 
-        #lst_of_str = [random.choice(['dog', 'cat']) for i in range(batch_size)]
-        # int_outputs = [random.randint(500, 1000) for i in range(batch_size)]
-        #nested_lst = [[x] for x in int_outputs]
-        #lst_of_dicts = [{k: v} for k, v in zip(lst_of_str, int_outputs)]
+        batch_size = x.size(0)
+        lst_of_str = [random.choice(['dog', 'cat']) for i in range(batch_size)]
+        lst_of_int = [random.randint(500, 1000) for i in range(batch_size)]
+        lst_of_lst = [[x] for x in lst_of_int]
+        lst_of_dict = [{k: v} for k, v in zip(lst_of_str, lst_of_int)]
 
         # This is passed in from pytest via parameterization
         option = getattr(self, 'test_option', 0)
@@ -135,5 +136,31 @@ class TestStepVariations(ABC):
         elif option == 1:
             result.write('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
             result.write('preds', labels_hat, prediction_file)
+        
+        # write multi-dimension
+        elif option == 2:
+            result.write('idxs', lazy_ids, prediction_file)
+            result.write('preds', labels_hat, prediction_file)
+            result.write('x', x, prediction_file)
+        
+        # write str list
+        elif option == 3:
+            result.write('idxs', lazy_ids, prediction_file)
+            result.write('vals', lst_of_str, prediction_file)
+
+        # write int list
+        elif option == 4:
+            result.write('idxs', lazy_ids, prediction_file)
+            result.write('vals', lst_of_str, prediction_file)
+
+        # write nested list
+        elif option == 5:
+            result.write('idxs', lazy_ids, prediction_file)
+            result.write('vals', lst_of_str, prediction_file)
+
+        # write dict list
+        elif option == 6:
+            result.write('idxs', lazy_ids, prediction_file)
+            result.write('vals', lst_of_str, prediction_file)
 
         return result
