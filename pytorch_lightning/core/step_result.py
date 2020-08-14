@@ -740,8 +740,8 @@ class EvalResult(Result):
         Example::
 
             result = EvalResult()
-            result.log('ids', [0, 1, 2])
-            result.log('preds', ['cat', 'dog', 'dog'])
+            result.write('ids', [0, 1, 2])
+            result.write('preds', ['cat', 'dog', 'dog'])
 
         Args:
             name: Feature name that will turn into column header of predictions file
