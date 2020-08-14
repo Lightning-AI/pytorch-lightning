@@ -1,18 +1,22 @@
 FROM google/cloud-sdk:slim
 
+# CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/xla-extras/Dockerfile .
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
 ARG PYTHON_VERSION=3.6
 
 SHELL ["/bin/bash", "-c"]
 
+# for skipping configurations
+ENV DEBIAN_FRONTEND=noninteractive
+
+# show system inforation
+RUN lsb_release -a && cat /etc/*-release
+
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
     apt-get install -y --no-install-recommends \
         python${PYTHON_VERSION} \
-        python${PYTHON_VERSION}-dev \
-        $( [ ${PYTHON_VERSION%%.*} -ge 3 ] && echo "python${PYTHON_VERSION%%.*}-distutils" ) \
+        # python${PYTHON_VERSION}-dev \
+        # python${PYTHON_VERSION}-distutils \
         build-essential \
         cmake \
         wget \
