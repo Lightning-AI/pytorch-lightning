@@ -5,7 +5,7 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 import tests.base.develop_utils as tutils
 
@@ -108,7 +108,7 @@ def test_result_obj_predictions_gpu(tmpdir):
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
-    tutils.reset_seed()
+    seed_everything(4321)
 
     dm = TrialMNISTDataModule(tmpdir)
 
