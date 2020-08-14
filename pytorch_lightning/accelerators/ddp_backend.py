@@ -88,18 +88,12 @@ class DDPBackend(object):
 
         # since this script sets the visible devices we replace the gpus flag with a number
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
-
-        import pdb; pdb.set_trace()
-
-        if len(gpu_ids) == 1:
-            gpu_ids = f'{gpu_ids},'
-
-        if '--gpus' in command and len(gpu_ids) > 0:
-            gpu_flag_idx = command.index('--gpus')
-            command[gpu_flag_idx + 1] = gpu_ids
-
         num_gpus = min(1, len(gpu_ids.split(',')))
 
+        # set the flag for ddp scripts
+        os.environ['PL_TRAINER_GPUS'] = gpu_ids
+
+        import pdb; pdb.set_trace()
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
         self.trainer.interactive_ddp_procs = []
