@@ -141,7 +141,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
             if metrics is None:
                 metrics = {"hp_metric": -1}
-            elif type(metrics) is Dict:
+            elif type(metrics) is dict:
                 pass
             else:
                 metrics = {"hp_metric": metrics}
