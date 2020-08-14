@@ -151,16 +151,16 @@ class TestStepVariations(ABC):
         # write int list
         elif option == 4:
             result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_str, prediction_file)
+            result.write('vals', lst_of_int, prediction_file)
 
         # write nested list
         elif option == 5:
             result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_str, prediction_file)
+            result.write('vals', lst_of_lst, prediction_file)
 
         # write dict list
         elif option == 6:
             result.write('idxs', lazy_ids, prediction_file)
-            result.write('vals', lst_of_str, prediction_file)
+            result.write('vals', lst_of_dict, prediction_file)
 
         return result
