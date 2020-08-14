@@ -88,7 +88,7 @@ class DDPBackend(object):
 
         # since this script sets the visible devices we replace the gpus flag with a number
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
-        num_gpus = min(1, len(gpu_ids.split(',')))
+        num_gpus = max(1, len(gpu_ids.split(',')))
 
         # set the flag for ddp scripts
         os.environ['PL_TRAINER_GPUS'] = gpu_ids
