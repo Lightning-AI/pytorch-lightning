@@ -180,7 +180,6 @@ class TrainerEvaluationLoopMixin(ABC):
     tpu_id: int
     verbose_test: bool
     running_sanity_check: bool
-    testing: bool
     amp_backend: AMPType
 
     # Callback system
@@ -372,9 +371,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # track outputs for collation
                 if output is not None:
-                    do_write_preds = self.testing and isinstance(output, EvalResult) and not self.running_sanity_check
-                    # Add predictions to our prediction collection if they are found in outputs
-                    if do_write_preds:
+
+                    # Add step predictions to prediction collection to write later
+                    do_write_predictions = is_result_obj and test_mode
+                    if do_write_predictions:
                         predictions.add(output.pop('predictions', None))
 
                     dl_outputs.append(output)

@@ -1,10 +1,16 @@
+import sys
+from pathlib import Path
+
 import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 import tests.base.develop_utils as tutils
-import sys
+
+from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
 
 
 def _setup_ddp(rank, worldsize):
@@ -35,3 +41,59 @@ def test_result_reduce_ddp(result_cls):
 
     worldsize = 2
     mp.spawn(_ddp_test_fn, args=(worldsize, result_cls), nprocs=worldsize)
+
+
+@pytest.mark.parametrize(
+    "option,do_train",
+    [
+        pytest.param(
+            0, True, id='full_loop'
+        ),
+        pytest.param(
+            0, False, id='test_only'
+        ),
+        pytest.param(
+            1, False, id='test_only_mismatching_tensor', marks=pytest.mark.xfail(raises=ValueError, match="Mism.*")
+        ),
+    ]
+)
+def test_result_obj_predictions(tmpdir, option, do_train):
+    tutils.reset_seed()
+
+    dm = TrialMNISTDataModule(tmpdir)
+
+    model = EvalModelTemplate()
+    model.test_option = option
+    model.prediction_file = Path('predictions.pt')
+    model.test_step = model.test_step_result_preds
+    model.test_step_end = None
+    model.test_epoch_end = None
+    model.test_end = None
+
+    if model.prediction_file.exists():
+        model.prediction_file.unlink()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+        deterministic=True,
+    )
+
+    # Prediction file shouldn't exist yet because we haven't done anything
+    assert not model.prediction_file.exists()
+
+    if do_train:
+        result = trainer.fit(model, dm)
+        assert result == 1
+        result = trainer.test(datamodule=dm)
+        result = result[0]
+        assert result['test_loss'] < 0.6
+        assert result['test_acc'] > 0.8
+    else:
+        result = trainer.test(model, datamodule=dm)
+
+    # check prediction file now exists and is of expected length
+    assert model.prediction_file.exists()
+    predictions = torch.load(model.prediction_file)
+    assert len(predictions) == len(dm.mnist_test)
