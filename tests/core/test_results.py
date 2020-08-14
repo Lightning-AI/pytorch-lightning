@@ -150,6 +150,8 @@ def test_result_obj_predictions_gpu(tmpdir):
     assert result['test_loss'] < 0.6
     assert result['test_acc'] > 0.8
 
+    dm.setup('test')
+
     # check prediction file now exists and is of expected length
     for prediction_file in prediction_files:
         assert prediction_file.exists()

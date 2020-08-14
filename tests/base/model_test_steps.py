@@ -124,7 +124,7 @@ class TestStepVariations(ABC):
         option = getattr(self, 'test_option', 0)
         prediction_file = getattr(self, 'prediction_file', 'predictions.pt')
 
-        lazy_ids = torch.arange(batch_idx * self.batch_size, (batch_idx + 1) * x.size(0))
+        lazy_ids = torch.arange(batch_idx * self.batch_size, batch_idx * self.batch_size + x.size(0))
 
         # Base
         if option == 0:
