@@ -136,11 +136,11 @@ class TensorBoardLogger(LightningLoggerBase):
                 " Skipping log_hyperparams. Upgrade to Torch 1.3.0 or above to enable"
                 " hyperparameter logging."
             )
-#         else:
+        else:
 #             from torch.utils.tensorboard.summary import hparams
 
             if metrics is None:
-                metrics = {"hp_metric":-1}
+                metrics = {"hp_metric": -1}
             elif type(metrics) is Dict:
                 pass
             else:
