@@ -87,7 +87,7 @@ class DDPBackend(object):
         command = [sys.executable] + command
 
         # since this script sets the visible devices we replace the gpus flag with a number
-        num_gpus = os.environ.get('CUDA_VISIBLE_DEVICES', []).split(',').__len__()
+        num_gpus = torch.cuda.device_count()
 
         if '--gpus' in command:
             gpu_flag_idx = command.index('--gpus')
