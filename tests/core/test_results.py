@@ -61,17 +61,18 @@ def test_result_obj_predictions(tmpdir, option, do_train):
     tutils.reset_seed()
 
     dm = TrialMNISTDataModule(tmpdir)
+    prediction_file = Path('predictions.pt')
 
     model = EvalModelTemplate()
     model.test_option = option
-    model.prediction_file = Path('predictions.pt')
+    model.prediction_file = prediction_file.as_posix()
     model.test_step = model.test_step_result_preds
     model.test_step_end = None
     model.test_epoch_end = None
     model.test_end = None
 
-    if model.prediction_file.exists():
-        model.prediction_file.unlink()
+    if prediction_file.exists():
+        prediction_file.unlink()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -81,7 +82,7 @@ def test_result_obj_predictions(tmpdir, option, do_train):
     )
 
     # Prediction file shouldn't exist yet because we haven't done anything
-    assert not model.prediction_file.exists()
+    assert not prediction_file.exists()
 
     if do_train:
         result = trainer.fit(model, dm)
@@ -94,6 +95,6 @@ def test_result_obj_predictions(tmpdir, option, do_train):
         result = trainer.test(model, datamodule=dm)
 
     # check prediction file now exists and is of expected length
-    assert model.prediction_file.exists()
-    predictions = torch.load(model.prediction_file)
+    assert prediction_file.exists()
+    predictions = torch.load(prediction_file)
     assert len(predictions) == len(dm.mnist_test)

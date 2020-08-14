@@ -128,17 +128,18 @@ class TestStepVariations(ABC):
 
         # This is passed in from pytest via parameterization
         option = getattr(self, 'test_option', 0)
+        prediction_file = getattr(self, 'prediction_file', 'predictions.pt')
 
         lazy_ids = torch.arange(batch_idx * self.batch_size, (batch_idx + 1) * x.size(0))
 
         # Base
         if option == 0:
-            result.write('idxs', lazy_ids)
-            result.write('preds', labels_hat)
+            result.write('idxs', lazy_ids, prediction_file)
+            result.write('preds', labels_hat, prediction_file)
 
         # Check mismatching tensor len
         elif option == 1:
-            result.write('idxs', torch.cat((lazy_ids, lazy_ids)))
-            result.write('preds', labels_hat)
+            result.write('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
+            result.write('preds', labels_hat, prediction_file)
 
         return result
