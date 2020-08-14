@@ -432,7 +432,7 @@ class TrainerIOMixin(ABC):
                 "The checkpoint you're attempting to load follows an"
                 " outdated schema. You can upgrade to the current schema by running"
                 " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
-                "where `model.ckpt` is your checkpoint file."
+                " where `model.ckpt` is your checkpoint file."
             )
 
         # load callback states
