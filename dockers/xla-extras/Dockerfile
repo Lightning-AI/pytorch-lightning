@@ -14,25 +14,32 @@ RUN lsb_release -a && cat /etc/*-release
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python${PYTHON_VERSION} \
-        # python${PYTHON_VERSION}-dev \
-        # python${PYTHON_VERSION}-distutils \
         build-essential \
         cmake \
         wget \
+        curl \
         unzip \
         ca-certificates \
         libomp5 \
     && \
 
-# Install python dependencies
-    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
-    python${PYTHON_VERSION} get-pip.py && \
-    rm get-pip.py && \
+# Install conda and python.
+# NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
+    curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh  && \
+    chmod +x ~/miniconda.sh && \
+    ~/miniconda.sh -b && \
+    rm ~/miniconda.sh
 
-# Set the default python and install PIP packages
-    update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
-    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
+ENV PATH=/root/miniconda3/bin:$PATH
+RUN conda create -y --name container python=$PYTHON_VERSION
+
+ENV LD_LIBRARY_PATH=root/miniconda3/envs/container/lib
+
+# Run the rest of commands within the new conda env.
+# Use absolute path to appease Codefactor.
+RUN conda run -n container /bin/bash -c && \
+    conda install -y python=$PYTHON_VERSION mkl && \
+    conda init bash && \
 
 # Disable cache
     pip config set global.cache-dir false && \
@@ -67,9 +74,10 @@ RUN \
 # Install PL dependencies
     cd pytorch-lightning-master && \
     pip install --requirement ./requirements/base.txt && \
-    # Drop Horovod
+    # drop Horovod
     python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
     pip install --requirement ./requirements/extra.txt && \
+    pip install --requirement ./requirements/examples.txt && \
     cd .. && \
     rm -rf pytorch-lightning-master && \
     rm -rf /root/.cache
