@@ -13,7 +13,7 @@
 Quick Start
 ###########
 
-New to PyTorch Lightning and want to give it a go? Quick prototyping is our specility- you came to the right place!
+In this guide we will go over how to build your Lightning code in 5 simple steps.
 
 Organizing your code with PyTorch Lightning makes your code:
 
@@ -28,9 +28,6 @@ To illustrate, here's the typical PyTorch project structure organized in a :clas
 .. raw:: html
 
     <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
-
-   
-In this guide we will go over how to build your Lightning code in 5 steps!
 
 
 ----------
@@ -174,7 +171,7 @@ or just use them directly in your :class:`~pytorch_lightning.trainer.Trainer`.
 Step 4: Fit with a Trainer
 **************************
 Init your :class:`~pytorch_lightning.core.LightningModule`, your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` and then the :class:`~pytorch_lightning.trainer.Trainer`. 
-The Lightning :class:`~pytorch_lightning.trainer.Trainer` is where the magic happens! It abstracts the most of the training engineering code such as:
+The Lightning :class:`~pytorch_lightning.trainer.Trainer` automates most of the training engineering code such as:
 
 * The epoch iteration
 * The batch iteration
@@ -236,7 +233,7 @@ Main take-aways:
 - :func:`pytorch_lightning.core.lightning.LightningModule.training_step` gives you full control of the main loop.
 - :func:`pytorch_lightning.core.lightning.LightningModule.backward`, :func:`pytorch_lightning.core.lightning.LightningModule.step`, :func:`pytorch_lightning.core.lightning.LightningModule.zero_grad` are called for you. BUT, you can override this if you need manual control.
 
-Check out more magical flags in the :ref:`trainer` docs.
+Check out more flags in the :ref:`trainer` docs.
 
 
 --------------
@@ -347,8 +344,6 @@ However, this time you need to specifically call test (this is done so you don't
 ************
 Ready to go!
 ************
-
-That's it!
 
 Without changing a SINGLE line of your code, you can now do the following with the above code:
 
