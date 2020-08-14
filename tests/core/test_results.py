@@ -100,8 +100,9 @@ def test_result_obj_predictions(tmpdir, option, do_train):
     assert len(predictions) == len(dm.mnist_test)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_result_obj_predictions_gpu(tmpdir):
-    distributed_backend = 'ddp'
+    distributed_backend = 'ddp_spawn'
     option = 0
 
     import os
