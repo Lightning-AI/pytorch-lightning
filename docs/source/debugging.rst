@@ -1,8 +1,8 @@
 .. testsetup:: *
 
     from pytorch_lightning.trainer.trainer import Trainer
-    
- .. _debugging:
+
+.. _debugging:
 
 Debugging
 =========
