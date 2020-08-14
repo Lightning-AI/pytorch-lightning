@@ -88,6 +88,9 @@ class DDPBackend(object):
 
         # since this script sets the visible devices we replace the gpus flag with a number
         gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
+        if len(gpu_ids) == 1:
+            gpu_ids = f'{gpu_ids},'
+
         num_gpus = max(1, len(gpu_ids.split(',')))
 
         # set the flag for ddp scripts
