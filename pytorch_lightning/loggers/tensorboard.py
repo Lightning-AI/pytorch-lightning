@@ -145,7 +145,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 pass
             else:
                 metrics = {"hp_metric": metrics}
-            self.experiment.log_hyperparams(params, metrics)
+            self.experiment.add_hparams(params, metrics)
 #             exp, ssi, sei = hparams(params, metrics)
 #             writer = self.experiment._get_file_writer()
 #             writer.add_summary(exp)
