@@ -732,7 +732,7 @@ class EvalResult(Result):
 
         return result
 
-    def write(self, name, values, filename='predictions.pt'):
+    def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):
         """Add feature name and value pair to collection of predictions that will be written to disk on
         validation_end or test_end. If running on multiple GPUs, you will get separate n_gpu
         prediction files with the rank prepended onto filename.
