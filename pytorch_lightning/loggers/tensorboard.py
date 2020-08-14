@@ -137,7 +137,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 " hyperparameter logging."
             )
         else:
-#             from torch.utils.tensorboard.summary import hparams
+            from torch.utils.tensorboard.summary import hparams
 
             if metrics is None:
                 metrics = {"hp_metric": -1}
@@ -146,15 +146,12 @@ class TensorBoardLogger(LightningLoggerBase):
             else:
                 metrics = {"hp_metric": metrics}
             self.experiment.add_hparams(params, metrics)
-#             exp, ssi, sei = hparams(params, metrics)
-#             writer = self.experiment._get_file_writer()
-#             writer.add_summary(exp)
-#             writer.add_summary(ssi)
-#             writer.add_summary(sei)
-
-#             if metrics:
-#                 # necessary for hparam comparison with metrics
-#                 self.log_metrics(metrics)
+            exp, ssi, sei = hparams(params, metrics)
+            writer = self.experiment._get_file_writer()
+            writer.add_summary(exp)
+            writer.add_summary(ssi)
+            writer.add_summary(sei)
+            self.log_metrics(metrics)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
