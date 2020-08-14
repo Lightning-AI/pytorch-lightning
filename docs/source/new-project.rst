@@ -61,7 +61,8 @@ You could also use conda environments
 
 ******************************
 Step 2: Define LightningModule
-*********************************
+******************************
+
 The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 
 - The Train loop
@@ -223,7 +224,7 @@ The :class:`~pytorch_lightning.core.Trainer` will provide
 * Automatic :ref:`tpu`
 * Automatic :ref:`apex`
 
-All of it 100% rigorously tested and benchmarked.
+All automated code is rigorously tested and benchmarked.
 
 Main take-aways:
 
@@ -341,9 +342,9 @@ However, this time you need to specifically call test (this is done so you don't
 -----------------
 
 
-************
-Ready to go!
-************
+***********
+Ready to go
+***********
 
 Without changing a SINGLE line of your code, you can now do the following with the above code:
 
