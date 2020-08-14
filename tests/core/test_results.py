@@ -44,27 +44,30 @@ def test_result_reduce_ddp(result_cls):
 
 
 @pytest.mark.parametrize(
-    "option,do_train",
+    "test_option,do_train,gpus",
     [
         pytest.param(
-            0, True, id='full_loop'
+            0, True, 0, id='full_loop'
         ),
         pytest.param(
-            0, False, id='test_only'
+            0, False, 0, id='test_only'
         ),
         pytest.param(
-            1, False, id='test_only_mismatching_tensor', marks=pytest.mark.xfail(raises=ValueError, match="Mism.*")
+            1, False, 0, id='test_only_mismatching_tensor', marks=pytest.mark.xfail(raises=ValueError, match="Mism.*")
         ),
+        pytest.param(
+            0, True, 1, id='full_loop_single_gpu', marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
+        )
     ]
 )
-def test_result_obj_predictions(tmpdir, option, do_train):
+def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
     tutils.reset_seed()
 
     dm = TrialMNISTDataModule(tmpdir)
     prediction_file = Path('predictions.pt')
 
     model = EvalModelTemplate()
-    model.test_option = option
+    model.test_option = test_option
     model.prediction_file = prediction_file.as_posix()
     model.test_step = model.test_step_result_preds
     model.test_step_end = None
@@ -79,6 +82,7 @@ def test_result_obj_predictions(tmpdir, option, do_train):
         max_epochs=3,
         weights_summary=None,
         deterministic=True,
+        gpus=gpus
     )
 
     # Prediction file shouldn't exist yet because we haven't done anything
