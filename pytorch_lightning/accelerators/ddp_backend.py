@@ -58,7 +58,6 @@ class DDPBackend(object):
     def spawn_ddp_children(self, model):
         port = os.environ['MASTER_PORT']
 
-        import pdb; pdb.set_trace()
         master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
         os.environ['MASTER_PORT'] = f'{port}'
         os.environ['MASTER_ADDR'] = f'{master_address}'
@@ -88,11 +87,18 @@ class DDPBackend(object):
         command = [sys.executable] + command
 
         # since this script sets the visible devices we replace the gpus flag with a number
-        num_gpus = torch.cuda.device_count()
+        gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
 
-        if '--gpus' in command:
+        import pdb; pdb.set_trace()
+
+        if len(gpu_ids) == 1:
+            gpu_ids = f'{gpu_ids},'
+
+        if '--gpus' in command and len(gpu_ids) > 0:
             gpu_flag_idx = command.index('--gpus')
-            command[gpu_flag_idx + 1] = f'{num_gpus}'
+            command[gpu_flag_idx + 1] = gpu_ids
+
+        num_gpus = min(1, len(gpu_ids.split(',')))
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
