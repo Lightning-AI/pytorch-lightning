@@ -515,7 +515,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 # make the metrics appear as a different line in the same graph
                 metrics_by_epoch = {}
                 for k, v in step_log_metrics.items():
-                    metrics_by_epoch[f'epoch_{self.current_epoch}/{k}'] = v
+                    metrics_by_epoch[f'{k}/epoch_{self.current_epoch}'] = v
 
                 self.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
