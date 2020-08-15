@@ -104,8 +104,8 @@ We successfully extended functionality without polluting our super clean
 
 ----------------
 
-Persiting State
----------------
+Persisting State
+----------------
 
 If you need to persist your callback's state to be reloaded from a checkpoint,
 we provide hooks to allow for this. However, you must follow two constraints:
