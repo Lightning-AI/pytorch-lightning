@@ -22,6 +22,7 @@ Automatically save model checkpoints during training.
 
 import os
 import re
+import inspect
 from typing import Optional
 
 import numpy as np
@@ -119,6 +120,7 @@ class ModelCheckpoint(Callback):
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
+        print(inspect.currentframe().f_code.co_name)
         super().__init__()
         self._fs = get_filesystem(filepath if filepath is not None else "")
         if save_top_k > 0 and filepath is not None and self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
@@ -172,12 +174,14 @@ class ModelCheckpoint(Callback):
 
     @property
     def best(self):
+        print(inspect.currentframe().f_code.co_name)
         rank_zero_warn("Attribute `best` has been renamed to `best_model_score` since v0.8.0"
                        " and will be removed in v0.10.0", DeprecationWarning)
         return self.best_model_score
 
     @property
     def kth_best_model(self):
+        print(inspect.currentframe().f_code.co_name)
         rank_zero_warn("Attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
                        " and will be removed in v0.10.0", DeprecationWarning)
         return self.kth_best_model_path
@@ -188,6 +192,7 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
 
     def _save_model(self, filepath, trainer, pl_module):
+        print(inspect.currentframe().f_code.co_name)
 
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
@@ -202,6 +207,7 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current):
+        print(inspect.currentframe().f_code.co_name)
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
@@ -238,6 +244,7 @@ class ModelCheckpoint(Callback):
         return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
+        print(inspect.currentframe().f_code.co_name)
         """Generate a filename according to the defined template.
 
         Example::
@@ -316,6 +323,7 @@ class ModelCheckpoint(Callback):
             )
 
     def on_validation_end(self, trainer, pl_module):
+        print(inspect.currentframe().f_code.co_name)
         # only run on main process
         if trainer.global_rank != 0 and not trainer.on_tpu:
             return
@@ -390,6 +398,7 @@ class ModelCheckpoint(Callback):
                 self._del_model(self.last_model_path)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
+        print(inspect.currentframe().f_code.co_name)
         # remove kth
 
         del_list = []
