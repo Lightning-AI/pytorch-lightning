@@ -25,7 +25,7 @@ class TrialMNISTDataModule(LightningDataModule):
             self.dims = self.mnist_train[0][0].shape
 
         if stage == 'test' or stage is None:
-            self.mnist_test = TrialMNIST(root=self.data_dir, train=False, num_samples=32, download=True)
+            self.mnist_test = TrialMNIST(root=self.data_dir, train=False, num_samples=64, download=True)
             self.dims = getattr(self, 'dims', self.mnist_test[0][0].shape)
 
         self.non_picklable = lambda x: x**2
