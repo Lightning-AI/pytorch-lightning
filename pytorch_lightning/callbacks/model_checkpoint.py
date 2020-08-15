@@ -182,6 +182,7 @@ class ModelCheckpoint(Callback):
                        " and will be removed in v0.10.0", DeprecationWarning)
         return self.kth_best_model_path
 
+    @rank_zero_only
     def _del_model(self, filepath):
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
@@ -417,7 +418,7 @@ class ModelCheckpoint(Callback):
         self._save_model(filepath, trainer, pl_module)
 
         for cur_path in del_list:
-            if cur_path != filepath and os.path.isfile(cur_path):
+            if cur_path != filepath:
                 self._del_model(cur_path)
 
     def on_save_checkpoint(self, trainer, pl_module):
