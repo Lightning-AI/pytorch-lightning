@@ -252,6 +252,11 @@ class DistributedConnection:
             self._set_master_port(port=self._get_master_port())
 
     def reset_connection(self, trainer, model):
+        if not torch.distributed.is_initialized():
+            print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
+            model.init_ddp_connection(trainer.global_rank, trainer.world_size, trainer.is_slurm_managing_tasks)
+
+    def reset_connection_old(self, trainer, model):
 
         if not torch.distributed.is_initialized():
             print('init ddp', 'rank', trainer.global_rank, 'port', self._get_master_port())
