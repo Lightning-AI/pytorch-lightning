@@ -315,10 +315,9 @@ class ModelCheckpoint(Callback):
                 f" Remove `ModelCheckpoint(monitor='{self.monitor}')` to fix."
             )
 
-    @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
-        if trainer.global_rank != 0:
+        if trainer.global_rank != 0 or not trainer.on_tpu:
             return
 
         if trainer.running_sanity_check:

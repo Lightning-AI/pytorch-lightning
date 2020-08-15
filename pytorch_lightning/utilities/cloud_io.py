@@ -20,6 +20,16 @@ from urllib.parse import urlparse
 import torch
 import fsspec
 
+# we want this for tf.io.gfile, which if tf is installed gives full tf,
+# otherwise gives a pruned down version which works for some file backends but
+# not all
+
+try:
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
 
 pathlike = Union[Path, str]
 
@@ -40,7 +50,7 @@ def get_filesystem(path: pathlike):
         return fsspec.filesystem("file")
 
 
-def atomic_save(checkpoint, filepath: str):
+def atomic_save(checkpoint, filepath: str, is_xla_tensor=False):
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -51,10 +61,13 @@ def atomic_save(checkpoint, filepath: str):
             This points to the file that the checkpoint will be stored in.
     """
     bytesbuffer = io.BytesIO()
-    # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
-    # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
-    # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
-    if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+
+    if is_xla_tensor:
+        xm.save(checkpoint, bytesbuffer, master_only=True, global_master=True)
+    elif LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+        # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
+        # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
+        # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
         torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
     else:
         torch.save(checkpoint, bytesbuffer)
