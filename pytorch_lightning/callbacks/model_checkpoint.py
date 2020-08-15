@@ -377,7 +377,6 @@ class ModelCheckpoint(Callback):
             if self.verbose > 0:
                 log.info(f'Epoch {epoch:d}: saving model to {filepath}')
 
-            assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath, trainer, pl_module)
 
         if self.save_last:
@@ -418,7 +417,7 @@ class ModelCheckpoint(Callback):
         self._save_model(filepath, trainer, pl_module)
 
         for cur_path in del_list:
-            if cur_path != filepath:
+            if cur_path != filepath and os.path.isfile(cur_path):
                 self._del_model(cur_path)
 
     def on_save_checkpoint(self, trainer, pl_module):
