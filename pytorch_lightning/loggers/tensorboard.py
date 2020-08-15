@@ -150,7 +150,7 @@ class TensorBoardLogger(LightningLoggerBase):
             writer.add_summary(exp)
             writer.add_summary(ssi)
             writer.add_summary(sei)
-            self.log_metrics(metrics)
+            self.log_metrics(metrics, 0)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
