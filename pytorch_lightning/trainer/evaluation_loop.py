@@ -512,8 +512,12 @@ class TrainerEvaluationLoopMixin(ABC):
             step_pbar_metrics = output.batch_pbar_metrics
 
             if len(step_log_metrics) > 0:
-                import pdb; pdb.set_trace()
-                self.log_metrics(step_log_metrics, {}, step=batch_idx)
+                # make the metrics appear as a different line in the same graph
+                metrics_by_epoch = {}
+                for k, v in step_log_metrics:
+                    metrics_by_epoch[f'{self.current_epoch}/{k}'] = v
+
+                self.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
                 self.add_progress_bar_metrics(step_pbar_metrics)
