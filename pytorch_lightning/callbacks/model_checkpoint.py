@@ -412,29 +412,30 @@ class ModelCheckpoint(Callback):
         print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         # remove kth
 
-        del_list = []
-        if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
-            delpath = self.kth_best_model_path
-            self.best_k_models.pop(self.kth_best_model_path)
-            del_list.append(delpath)
+        if trainer.is_global_zero:
+            del_list = []
+            if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
+                delpath = self.kth_best_model_path
+                self.best_k_models.pop(self.kth_best_model_path)
+                del_list.append(delpath)
 
-        print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
+            print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
 
-        self.best_k_models[filepath] = current
-        if len(self.best_k_models) == self.save_top_k:
-            # monitor dict has reached k elements
-            _op = max if self.mode == 'min' else min
-            self.kth_best_model_path = _op(self.best_k_models,
-                                           key=self.best_k_models.get)
-            self.kth_value = self.best_k_models[self.kth_best_model_path]
+            self.best_k_models[filepath] = current
+            if len(self.best_k_models) == self.save_top_k:
+                # monitor dict has reached k elements
+                _op = max if self.mode == 'min' else min
+                self.kth_best_model_path = _op(self.best_k_models,
+                                               key=self.best_k_models.get)
+                self.kth_value = self.best_k_models[self.kth_best_model_path]
 
-        print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
+            print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
 
-        _op = min if self.mode == 'min' else max
-        self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
-        self.best_model_score = self.best_k_models[self.best_model_path]
+            _op = min if self.mode == 'min' else max
+            self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
+            self.best_model_score = self.best_k_models[self.best_model_path]
 
-        print(inspect.currentframe().f_code.co_name + f' Line 401 rank: {trainer.global_rank}')
+            print(inspect.currentframe().f_code.co_name + f' Line 401 rank: {trainer.global_rank}')
 
         if self.verbose > 0:
             log.info(
