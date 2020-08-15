@@ -210,10 +210,12 @@ class ModelCheckpoint(Callback):
         print(inspect.currentframe().f_code.co_name)
 
         less_than_k_models = len(self.best_k_models) < self.save_top_k
+        print('less_than_k_models ', less_than_k_models)
         if less_than_k_models:
+            print(inspect.currentframe().f_code.co_name + f'Line 211   {current.device}')
             return True
 
-        print(inspect.currentframe().f_code.co_name + f'Line 213   {current.device}')
+
 
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
