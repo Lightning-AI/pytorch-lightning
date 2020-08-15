@@ -15,7 +15,9 @@ from tests.base import EvalModelTemplate
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_multi_gpu_wandb_ddp_spawn(tmpdir):
-    """Make sure DP/DDP + AMP work."""
+    """
+    Test ddp + wb
+    """
     from pytorch_lightning.loggers import WandbLogger
     tutils.set_random_master_port()
 
