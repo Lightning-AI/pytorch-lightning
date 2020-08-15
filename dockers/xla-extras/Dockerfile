@@ -8,6 +8,7 @@ SHELL ["/bin/bash", "-c"]
 
 # for skipping configurations
 ENV DEBIAN_FRONTEND=noninteractive
+ENV CONDA_ENV=pytorch-xla
 
 # show system inforation
 RUN lsb_release -a && cat /etc/*-release
@@ -28,18 +29,22 @@ RUN apt-get update && \
     curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-4.7.12-Linux-x86_64.sh  && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b && \
-    rm ~/miniconda.sh
+    rm ~/miniconda.sh && \
 
-ENV PATH=/root/miniconda3/bin:$PATH
-RUN conda create -y --name container python=$PYTHON_VERSION
+# Cleaning
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /root/.cache
 
-ENV LD_LIBRARY_PATH=root/miniconda3/envs/container/lib
+ENV PATH="/root/miniconda3/bin:$PATH"
 
-# Run the rest of commands within the new conda env.
-# Use absolute path to appease Codefactor.
-RUN conda run -n container /bin/bash -c && \
-    conda install -y python=$PYTHON_VERSION mkl && \
+RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION
+
+ENV LD_LIBRARY_PATH="/root/miniconda3/lib:/root/miniconda3/envs/$CONDA_ENV/lib:$LD_LIBRARY_PATH"
+
+RUN \
     conda init bash && \
+    conda install -y python=$PYTHON_VERSION mkl && \
 
 # Disable cache
     pip config set global.cache-dir false && \
@@ -56,32 +61,30 @@ RUN conda run -n container /bin/bash -c && \
     pip install "torchvision-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
     rm "torch-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
     rm "torch_xla-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
-    rm "torchvision-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
-    pip install mkl && \
+    rm "torchvision-nightly-cp${py_version}-cp${py_version}m-linux_x86_64.whl"
 
-# Cleaning
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /root/.cache
+# if you want this environment to be the default one, uncomment the following line:
+ENV CONDA_DEFAULT_ENV ${CONDA_ENV}
 
 # Install pytorch-lightning dependencies.
 RUN \
 # Get package
     wget https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip --progress=bar:force:noscroll && \
-    unzip master.zip && \
+    unzip -q master.zip && \
     rm master.zip && \
 
 # Install PL dependencies
     cd pytorch-lightning-master && \
+    # drop Torch
+    python -c "fname = \"./requirements/base.txt\" ; lines = [line for line in open(fname).readlines() if not line.startswith(\"torch\")] ; open(fname, \"w\").writelines(lines)" && \
     pip install --requirement ./requirements/base.txt && \
     # drop Horovod
-    python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
+    python -c "fname = \"./requirements/extra.txt\" ; lines = [line for line in open(fname).readlines() if not line.startswith(\"horovod\")] ; open(fname, \"w\").writelines(lines)" && \
     pip install --requirement ./requirements/extra.txt && \
-    pip install --requirement ./requirements/examples.txt && \
+    #pip install --requirement ./requirements/examples.txt && \
     cd .. && \
     rm -rf pytorch-lightning-master && \
     rm -rf /root/.cache
 
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/"
-
-RUN python -c "import torch; print(torch.__version__)"
+RUN pip --version && \
+    python -c "import torch; print(torch.__version__)"
