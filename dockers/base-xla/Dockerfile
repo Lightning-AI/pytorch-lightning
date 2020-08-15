@@ -53,7 +53,7 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
     # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
     gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
     gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    #gsutil cp "gs://tpu-pytorch/wheels/torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
+    gsutil cp "gs://tpu-pytorch/wheels/torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
     pip install *.whl && \
     rm *.whl
 
@@ -76,7 +76,9 @@ RUN \
     # drop Horovod
     python -c "fname = \"./requirements/extra.txt\" ; lines = [line for line in open(fname).readlines() if not line.startswith(\"horovod\")] ; open(fname, \"w\").writelines(lines)" && \
     pip install --requirement ./requirements/extra.txt && \
-    #pip install --requirement ./requirements/examples.txt && \
+    # drop TorchVision
+    python -c "fname = \"./requirements/examples.txt\" ; lines = [line for line in open(fname).readlines() if not line.startswith(\"torchvision\")] ; open(fname, \"w\").writelines(lines)" && \
+    pip install --requirement ./requirements/examples.txt && \
     cd .. && \
     rm -rf pytorch-lightning-master && \
     rm -rf /root/.cache
