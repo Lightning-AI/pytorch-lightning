@@ -412,8 +412,9 @@ class ModelCheckpoint(Callback):
         print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         # remove kth
 
+        del_list = []
+
         if trainer.is_global_zero:
-            del_list = []
             if len(self.best_k_models) == self.save_top_k and self.save_top_k > 0:
                 delpath = self.kth_best_model_path
                 self.best_k_models.pop(self.kth_best_model_path)
