@@ -182,6 +182,19 @@ Example::
     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
+amp_backend
+^^^^^^^^^^^
+
+Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
+
+.. testcode::
+
+    # using PyTorch built-in AMP, default used by the Trainer
+    trainer = Trainer(amp_backend='native')
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_backend='apex')
+
 amp_level
 ^^^^^^^^^
 The optimization level to use (O1, O2, etc...)
@@ -901,20 +914,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
-
-amp_backend
-^^^^^^^^^^^
-
-Define a preferable mixed precision, either PyTorch built-in ("native") AMP,
-which is supported from v1.6, or NVIDIA Apex ("apex").
-
-.. testcode::
-
-    # using PyTorch built-in AMP, default used by the Trainer
-    trainer = Trainer(amp_backend='native')
-
-    # using NVIDIA Apex
-    trainer = Trainer(amp_backend='apex')
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^
