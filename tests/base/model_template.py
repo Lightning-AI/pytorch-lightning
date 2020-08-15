@@ -66,6 +66,7 @@ class EvalModelTemplate(
         self.hidden_dim = hidden_dim
         self.b1 = b1
         self.b2 = b2
+        self.save_hparams = save_hparams
         self.training_step_called = False
         self.training_step_end_called = False
         self.training_epoch_end_called = False
