@@ -10,8 +10,7 @@ class TrainerAMPMixin(ABC):
     #  the proper values/initialisation should be done in child class
     precision: int
 
-    def _setup_amp_type(self, amp_type: str):
-        self.amp_type = None
+    def _setup_amp_backend(self, amp_type: str):
         if self.precision != 16:
             # no AMP requested, so we can leave now
             return
@@ -25,24 +24,19 @@ class TrainerAMPMixin(ABC):
                 amp_type = 'apex'
             else:
                 log.info('Using native 16bit precision.')
-                self.amp_type = AMPType.NATIVE
+                self.amp_backend = AMPType.NATIVE
         if amp_type == 'apex':
             if not APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
                                ' Install apex first using this guide: https://github.com/NVIDIA/apex#linux')
             else:
                 log.info('Using APEX 16bit precision.')
-                self.amp_type = AMPType.APEX
-        if not self.amp_type:
+                self.amp_backend = AMPType.APEX
+        if not self.amp_backend:
             raise ModuleNotFoundError(
                 f'You have asked for AMP support {amp_type}, but there is no support on your side yet.'
                 f' Consider installing torch >= 1.6 or NVIDIA Apex.'
             )
-
-    def init_amp(self, amp_type: str):
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-
-        self._setup_amp_type(amp_type)
 
     @property
     def use_amp(self) -> bool:

@@ -45,6 +45,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
@@ -52,6 +53,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.cloud_io import is_remote_path
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -197,7 +199,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_type: str = 'native',
+        amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -219,6 +221,7 @@ class Trainer(
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             gradient_clip_val: 0 means don't clip.
 
@@ -304,10 +307,12 @@ class Trainer(
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                     for checkpoints only. Use this if for whatever reason you need the checkpoints
                     stored in a different place than the logs written in `default_root_dir`.
+                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
 
+            amp_backend: The mixed precision backend to use ("native" or "apex")
+
             amp_level: The optimization level to use (O1, O2, etc...).
-                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -395,6 +400,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
+        self.state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
@@ -492,6 +498,9 @@ class Trainer(
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
+        # override with environment flag
+        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
@@ -515,6 +524,7 @@ class Trainer(
 
         # override dist backend when using tpus
         if self.on_tpu:
+            self.distributed_backend = 'tpu'
             self.init_tpu()
 
         # init flags for SLURM+DDP to work
@@ -587,7 +597,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp(amp_type)
+        self.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -729,7 +739,7 @@ class Trainer(
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
@@ -875,6 +885,9 @@ class Trainer(
         The default location to save artifacts of loggers, checkpoints etc.
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
         """
+        if is_remote_path(self._default_root_dir):
+            # it is a remote uri, use as is
+            return self._default_root_dir
         return os.path.normpath(self._default_root_dir)
 
     @property
@@ -883,11 +896,15 @@ class Trainer(
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
+        if is_remote_path(self._weights_save_path):
+            # it is a remote uri, use as is
+            return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
 
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -1128,7 +1145,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1240,6 +1257,7 @@ class Trainer(
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -1412,6 +1430,11 @@ class Trainer(
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
         model.setup(stage_name)
+
+    def init_amp(self, amp_type: str):
+        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
+        self.amp_backend = None
+        self._setup_amp_backend(amp_type)
 
 
 class _PatchDataLoader(object):

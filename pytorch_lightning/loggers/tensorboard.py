@@ -16,6 +16,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs
 
 try:
     from omegaconf import Container, OmegaConf
@@ -109,7 +110,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return self._experiment
 
         assert rank_zero_only.rank == 0, 'tried to init log dirs in non global_rank=0'
-        os.makedirs(self.root_dir, exist_ok=True)
+        if self.root_dir and not gfile.exists(str(self.root_dir)):
+            makedirs(self.root_dir)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
@@ -162,7 +164,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def save(self) -> None:
         super().save()
         dir_path = self.log_dir
-        if not os.path.isdir(dir_path):
+        if not gfile.isdir(dir_path):
             dir_path = self.save_dir
 
         # prepare the file path
@@ -188,13 +190,13 @@ class TensorBoardLogger(LightningLoggerBase):
     def _get_next_version(self):
         root_dir = os.path.join(self.save_dir, self.name)
 
-        if not os.path.isdir(root_dir):
+        if not gfile.isdir(root_dir):
             log.warning('Missing logger folder: %s', root_dir)
             return 0
 
         existing_versions = []
-        for d in os.listdir(root_dir):
-            if os.path.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
+        for d in gfile.listdir(root_dir):
+            if gfile.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
                 existing_versions.append(int(d.split("_")[1]))
 
         if len(existing_versions) == 0:

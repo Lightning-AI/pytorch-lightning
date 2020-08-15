@@ -1,6 +1,16 @@
+.. _data-modules:
+
 LightningDataModule
 ===================
-Data preparation in PyTorch follows 5 steps:
+A datamodule is a shareable, reusable class that encapsulates all the steps needed to process data:
+
+.. raw:: html
+
+    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+
+|
+
+A datamodule encapsulates the five steps involved in data processing in PyTorch:
 
 1. Download / tokenize / process.
 2. Clean and (maybe) save to disk.
@@ -8,8 +18,96 @@ Data preparation in PyTorch follows 5 steps:
 4. Apply transforms (rotate, tokenize, etc...).
 5. Wrap inside a :class:`~torch.utils.data.DataLoader`.
 
+|
+
+This class can then be shared and used anywhere:
+
+.. code-block:: python
+
+    from pl_bolts.datamodules import CIFAR10DataModule, ImagenetDataModule
+
+    model = LitClassifier()
+    trainer = Trainer()
+
+    imagenet = ImagenetDataModule()
+    trainer.fit(model, imagenet)
+
+    cifar10 = CIFAR10DataModule()
+    trainer.fit(model, cifar10)
+
+---------------
+
+Why do I need a DataModule?
+---------------------------
+In normal PyTorch code, the data cleaning/preparation is usually scattered across many files. This makes
+sharing and reusing the exact splits, and transforms across projects.
+
+Datamodules are for you if you ever asked the questions:
+
+- what splits did you use?
+- what transforms did you use?
+- what normalization did you use?
+- how did you prepare/tokenize the data?
+
+--------------
+
+What is a DataModule
+--------------------
 A DataModule is simply a collection of a train_dataloader, val_dataloader(s), test_dataloader(s) along with the
 matching transforms and data processing/downloads steps required.
+
+Here's a simple PyTorch example:
+
+.. code-block:: python
+
+    # regular PyTorch
+    test_data = MNIST(PATH, train=False, download=True)
+    train_data = MNIST(PATH, train=True, download=True)
+    train_data, val_data = random_split(train_data, [55000, 5000])
+
+    train_loader = DataLoader(train_data, batch_size=32)
+    val_loader = DataLoader(val_data, batch_size=32)
+    test_loader = DataLoader(test_data, batch_size=32)
+
+The equivalent DataModule just organizes the same exact code, but makes it reusable across projects.
+
+.. code-block:: python
+
+    DataLoader(self.mnist_train, batch_size=32)
+
+    class MNISTDataModule(pl.LightningDataModule):
+
+        def __init__(self, data_dir: str = PATH, batch_size):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def setup(self, stage=None):
+            self.mnist_test = MNIST(self.data_dir, train=False)
+            mnist_full = MNIST(self.data_dir, train=True)
+            self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
+
+        def train_dataloader(self):
+            return DataLoader(self.mnist_train, batch_size=self.batch_size)
+
+        def val_dataloader(self):
+            return DataLoader(self.mnist_val, batch_size=self.batch_size)
+
+        def test_dataloader(self):
+            return DataLoader(self.mnist_test, batch_size=self.batch_size)
+
+But now, as the complexity of your processing grows (transforms, multiple-GPU training), you can
+let Lightning handle those details for you while making this dataset reusable so you can share with
+colleagues or use in different projects.
+
+.. code-block:: python
+
+    mnist = MNISTDataModule(PATH)
+    model = LitClassifier()
+
+    trainer = Trainer()
+    trainer.fit(model, mnist)
+
+Here's a more realistic, complex DataModule that shows how much more reusable the datamodule is.
 
 .. code-block:: python
 
@@ -71,8 +169,8 @@ matching transforms and data processing/downloads steps required.
 
 ---------------
 
-Methods
--------
+LightningModule API
+-------------------
 To define a DataModule define 5 methods:
 
 - prepare_data (how to download(), tokenize, etc...)
@@ -226,26 +324,26 @@ still ensures the method runs on the correct devices)
 
 ----------------
 
-Why use datamodules?
---------------------
-DataModules have a few key advantages:
-
-- It decouples the data from the model.
-- It has all the necessary details for anyone to use the exact same data setup.
-- Datamodules can be shared across models.
-- Datamodules can also be used without Lightning by calling the methods directly
+Datamodules without Lightning
+-----------------------------
+You can of course use DataModules in plain PyTorch code as well.
 
 .. code-block:: python
 
+    # download, etc...
     dm = MNISTDataModule()
     dm.prepare_data()
 
+    # splits/transforms
     dm.setup('fit')
+
+    # use data
     for batch in dm.train_dataloader():
         ...
     for batch in dm.val_dataloader():
         ...
-    
+
+    # lazy load test data
     dm.setup('test')
     for batch in dm.test_dataloader():
         ...

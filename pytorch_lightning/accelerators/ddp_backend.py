@@ -86,12 +86,18 @@ class DDPBackend(object):
         # use the same python interpreter and actually running
         command = [sys.executable] + command
 
-        # since this script sets the visible devices we replace the gpus flag with a number
-        num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
+        # the visible devices tell us how many GPUs we want to use.
+        # when the trainer script was called the device has already been scoped by the time
+        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
+        # but forward the GPUs selected via environment variables
+        gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
+        if len(gpu_ids) == 1:
+            gpu_ids = f'{gpu_ids},'
 
-        if '--gpus' in command:
-            gpu_flag_idx = command.index('--gpus')
-            command[gpu_flag_idx + 1] = f'{num_gpus}'
+        num_gpus = max(1, len(gpu_ids.split(',')))
+
+        # set the flag for ddp scripts
+        os.environ['PL_TRAINER_GPUS'] = gpu_ids
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
@@ -169,13 +175,6 @@ class DDPBackend(object):
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
-
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
@@ -197,11 +196,18 @@ class DDPBackend(object):
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
 
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
+
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
-        if self.trainer.amp_type == AMPType.APEX:
+        if self.trainer.amp_backend == AMPType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)

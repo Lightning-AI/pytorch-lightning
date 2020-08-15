@@ -1,6 +1,6 @@
 r"""
 Early Stopping
-==============
+^^^^^^^^^^^^^^
 
 Monitor a validation metric and stop training when it stops improving.
 
@@ -31,6 +31,7 @@ class EarlyStopping(Callback):
 
     Args:
         monitor: quantity to be monitored. Default: ``'val_loss'``.
+            .. note:: Has no effect when using `EvalResult` or `TrainResult`
         min_delta: minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
@@ -89,15 +90,6 @@ class EarlyStopping(Callback):
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def _validate_condition_metric(self, logs):
-        """
-        Checks that the condition metric for early stopping is good
-
-        Args:
-            logs: callback metrics from validation output
-
-        Return:
-             True if specified metric is available
-        """
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
                      f' which is not available. Either add `{self.monitor}` to the return of '
