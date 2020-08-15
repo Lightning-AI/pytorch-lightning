@@ -410,6 +410,8 @@ class ModelCheckpoint(Callback):
             self.best_k_models.pop(self.kth_best_model_path)
             del_list.append(delpath)
 
+        print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
+
         self.best_k_models[filepath] = current
         if len(self.best_k_models) == self.save_top_k:
             # monitor dict has reached k elements
@@ -418,9 +420,13 @@ class ModelCheckpoint(Callback):
                                            key=self.best_k_models.get)
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
+        print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
+
         _op = min if self.mode == 'min' else max
         self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
         self.best_model_score = self.best_k_models[self.best_model_path]
+
+        print(inspect.currentframe().f_code.co_name + f' Line 401 rank: {trainer.global_rank}')
 
         if self.verbose > 0:
             log.info(
@@ -428,6 +434,8 @@ class ModelCheckpoint(Callback):
                 f' {current:0.5f} (best {self.best_model_score:0.5f}),'
                 f' saving model to {filepath} as top {self.save_top_k}')
         self._save_model(filepath, trainer, pl_module)
+
+        print(inspect.currentframe().f_code.co_name + f' Line 410 rank: {trainer.global_rank}')
 
         for cur_path in del_list:
             if cur_path != filepath:
