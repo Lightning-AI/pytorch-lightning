@@ -408,7 +408,6 @@ class ModelCheckpoint(Callback):
             if self.last_model_path and self.last_model_path != filepath:
                 self._del_model(self.last_model_path)
 
-    @rank_zero_only
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
         print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         # remove kth
