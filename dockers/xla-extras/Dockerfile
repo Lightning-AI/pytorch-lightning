@@ -2,8 +2,8 @@ FROM google/cloud-sdk:slim
 
 # CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/xla-extras/Dockerfile .
 # This Dockerfile installs pytorch/xla 3.7 wheels. There are also 3.6 wheels available; see below.
-ARG PYTHON_VERSION=3.6
-ARG XLA_VERSION="nightly"
+ARG PYTHON_VERSION=3.7
+ARG XLA_VERSION="1.6"
 
 SHELL ["/bin/bash", "-c"]
 
@@ -53,13 +53,9 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
     # Python 3.7 wheels are available. Replace cp36-cp36m with cp37-cp37m
     gsutil cp "gs://tpu-pytorch/wheels/torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
     gsutil cp "gs://tpu-pytorch/wheels/torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    gsutil cp "gs://tpu-pytorch/wheels/torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
-    pip install "torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
-    pip install "torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
-    pip install "torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
-    rm "torch-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
-    rm "torch_xla-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" && \
-    rm "torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl"
+    #gsutil cp "gs://tpu-pytorch/wheels/torchvision-${XLA_VERSION}-cp${py_version}-cp${py_version}m-linux_x86_64.whl" . && \
+    pip install *.whl && \
+    rm *.whl
 
 ENV LD_LIBRARY_PATH="/root/miniconda3/envs/$CONDA_ENV/lib:$LD_LIBRARY_PATH"
 # if you want this environment to be the default one, uncomment the following line:
