@@ -142,15 +142,15 @@ class TensorBoardLogger(LightningLoggerBase):
             if metrics is None:
                 metrics = {"hp_metric": -1}
             elif type(metrics) is dict:
-                pass
+                self.log_metrics(metrics)
             else:
                 metrics = {"hp_metric": metrics}
+                self.log_metrics(metrics)
             exp, ssi, sei = hparams(params, metrics)
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
             writer.add_summary(ssi)
             writer.add_summary(sei)
-            self.log_metrics(metrics, 0)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
