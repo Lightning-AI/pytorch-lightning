@@ -107,11 +107,13 @@ We successfully extended functionality without polluting our super clean
 Persisting State
 ----------------
 
-If you need to persist your callback's state to be reloaded from a checkpoint,
-we provide hooks to allow for this. However, you must follow two constraints:
+Some callbacks require internal state in order to function properly. You can optionally
+choose to persist your callback's state as part of model checkpoint files using the callback hooks
+:meth:`~pytorch_lightning.callbacks.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.Callback.on_load_checkpoint`.
+However, you must follow two constraints:
 
-1. Your state must be able to be pickled.
-2. If you implement the hooks to persist state for a callback, you can only use one instance of that class in the Trainer callbacks list. We don't support persisting state for multiple callbacks of the same class.
+1. Your returned state must be able to be pickled.
+2. You can only use one instance of that class in the Trainer callbacks list. We don't support persisting state for multiple callbacks of the same class.
 
 
 Best Practices
