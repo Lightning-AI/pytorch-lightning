@@ -178,19 +178,19 @@ class ModelIO(object):
             # 4. Update cls_kwargs_new with cls_kwargs_old
             args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
             if args_name and args_name in cls_init_args_name:
-                cls_kwargs_extra.update({args_name: cls_kwargs_loaded})
+                cls_kwargs_new.update({args_name: cls_kwargs_loaded})
             else:
-                cls_kwargs_extra.update(cls_kwargs_loaded)
+                cls_kwargs_new.update(cls_kwargs_loaded)
 
         if not cls_spec.varkw:
             # filter kwargs according to class init unless it allows any argument via kwargs
-            cls_kwargs_extra = {k: v for k, v in cls_kwargs_extra.items() if k in cls_init_args_name}
+            cls_kwargs_extra = {k: v for k, v in cls_kwargs_new.items() if k in cls_init_args_name}
 
         # prevent passing positional arguments if class does not accept any
         if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
             _cls_args_new, _cls_kwargs_new = [], {}
         else:
-            _cls_args_new, _cls_kwargs_new = cls_args_extra, cls_kwargs_extra
+            _cls_args_new, _cls_kwargs_new = cls_kwargs_new, cls_kwargs_extra
 
         model = cls(*_cls_args_new, **_cls_kwargs_new)
 
