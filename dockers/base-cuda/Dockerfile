@@ -55,4 +55,5 @@ RUN apt-get update && \
     rm -rf /root/.cache && \
 
 # Show what we have
+    pip --version && \
     pip list
