@@ -217,7 +217,7 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def log_metrics(self, *args):
+    def log_metrics(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -379,7 +379,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
                     dl_outputs.append(output)
 
-                self.__eval_add_step_metrics(output)
+                self.__eval_add_step_metrics(output, batch_idx)
 
                 # track debug metrics
                 self.dev_debugger.track_eval_loss_history(test_mode, batch_idx, dataloader_idx, output)
@@ -505,14 +505,19 @@ class TrainerEvaluationLoopMixin(ABC):
             eval_results = eval_results[0]
         return eval_results
 
-    def __eval_add_step_metrics(self, output):
+    def __eval_add_step_metrics(self, output, batch_idx):
         # track step level metrics
         if isinstance(output, EvalResult) and not self.running_sanity_check:
             step_log_metrics = output.batch_log_metrics
             step_pbar_metrics = output.batch_pbar_metrics
 
             if len(step_log_metrics) > 0:
-                self.log_metrics(step_log_metrics, {})
+                # make the metrics appear as a different line in the same graph
+                metrics_by_epoch = {}
+                for k, v in step_log_metrics.items():
+                    metrics_by_epoch[f'{k}/epoch_{self.current_epoch}'] = v
+
+                self.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
                 self.add_progress_bar_metrics(step_pbar_metrics)
