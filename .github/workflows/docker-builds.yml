@@ -83,7 +83,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: dockers/xla-extras/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
-          tags: "py${{ matrix.python_version }}-XLA${{ matrix.xla_version }}-extras"
+          tags: "base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}-extras"
         timeout-minutes: 35
 
   build-cuda:
@@ -110,5 +110,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: dockers/cuda-extras/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          tags: "cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-extras"
+          tags: "base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-extras"
         timeout-minutes: 40

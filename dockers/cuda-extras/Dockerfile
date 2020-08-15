@@ -45,7 +45,7 @@ RUN apt-get update && \
     # HOROVOD_BUILD_ARCH_FLAGS="-mfma" && \
     pip install -r requirements-extra.txt && \
     pip install -r requirements-examples.txt && \
-    pip install -r requirements-tests.txt && \
+    #pip install -r requirements-tests.txt && \
     rm install_AMP.sh && \
     rm requirements* && \
 
