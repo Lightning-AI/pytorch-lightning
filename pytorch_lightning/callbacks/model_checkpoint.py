@@ -192,7 +192,7 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
 
     def _save_model(self, filepath, trainer, pl_module):
-        print(inspect.currentframe().f_code.co_name)
+        print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
 
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
@@ -207,7 +207,7 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current):
-        print(inspect.currentframe().f_code.co_name)
+        print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
@@ -398,7 +398,7 @@ class ModelCheckpoint(Callback):
                 self._del_model(self.last_model_path)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
-        print(inspect.currentframe().f_code.co_name)
+        print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         # remove kth
 
         del_list = []
