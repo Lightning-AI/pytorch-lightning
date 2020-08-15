@@ -207,7 +207,7 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current):
-        print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
+        print(inspect.currentframe().f_code.co_name)
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
