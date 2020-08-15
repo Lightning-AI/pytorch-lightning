@@ -81,7 +81,7 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: dockers/xla-extras/Dockerfile
+          dockerfile: dockers/base-xla/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
           tags: "base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}-extras"
         timeout-minutes: 35
@@ -108,7 +108,7 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: dockers/cuda-extras/Dockerfile
+          dockerfile: dockers/base-cuda/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
           tags: "base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-extras"
         timeout-minutes: 40
