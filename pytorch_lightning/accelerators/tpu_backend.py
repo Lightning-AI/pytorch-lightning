@@ -73,7 +73,7 @@ class TPUBackend(Accelerator):
         # load last weights
         if last_path and not self.trainer.testing:
             ckpt = torch.load(last_path, map_location=lambda storage, loc: storage)
-            model.load_state_dict(ckpt.state_dict())
+            model.load_state_dict(ckpt['state_dict'])
 
         self.trainer.model = model
 
