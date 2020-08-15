@@ -1349,10 +1349,10 @@ class Trainer(
         #     torch_distrib.destroy_process_group()
 
         # clear mem
-        if self.on_gpu:
-            model = self.get_model()
-            model.cpu()
-            torch.cuda.empty_cache()
+        # if self.on_gpu:
+        #     model = self.get_model()
+        #     model.cpu()
+        #     torch.cuda.empty_cache()
 
         return results
 

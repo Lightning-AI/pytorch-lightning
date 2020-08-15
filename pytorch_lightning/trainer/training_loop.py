@@ -1148,10 +1148,10 @@ class TrainerTrainLoopMixin(ABC):
         #     torch_distrib.destroy_process_group()
 
         # clear mem
-        if self.on_gpu:
-            model = self.get_model()
-            model.cpu()
-            torch.cuda.empty_cache()
+        # if self.on_gpu:
+        #     model = self.get_model()
+        #     model.cpu()
+        #     torch.cuda.empty_cache()
 
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
