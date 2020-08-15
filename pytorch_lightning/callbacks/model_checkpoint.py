@@ -317,7 +317,7 @@ class ModelCheckpoint(Callback):
 
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
-        if trainer.global_rank != 0 or not trainer.on_tpu:
+        if trainer.global_rank != 0 and not trainer.on_tpu:
             return
 
         if trainer.running_sanity_check:
