@@ -208,9 +208,12 @@ class ModelCheckpoint(Callback):
 
     def check_monitor_top_k(self, current):
         print(inspect.currentframe().f_code.co_name)
+
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
+
+        print(inspect.currentframe().f_code.co_name + f'Line 213   {current.device}')
 
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
@@ -219,10 +222,14 @@ class ModelCheckpoint(Callback):
             )
             current = torch.tensor(current)
 
+        print(inspect.currentframe().f_code.co_name + f'Line 222   {current.device}')
+
         monitor_op = {
             "min": torch.lt,
             "max": torch.gt,
         }[self.mode]
+
+        print(inspect.currentframe().f_code.co_name + f'Line 229   {current.device}')
 
         print(f'The current device is: {current.device}')
 
