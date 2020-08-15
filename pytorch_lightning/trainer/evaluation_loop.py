@@ -512,6 +512,7 @@ class TrainerEvaluationLoopMixin(ABC):
             step_pbar_metrics = output.batch_pbar_metrics
 
             if len(step_log_metrics) > 0:
+                import pdb; pdb.set_trace()
                 self.log_metrics(step_log_metrics, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
