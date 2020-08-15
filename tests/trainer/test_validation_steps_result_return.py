@@ -214,12 +214,15 @@ def test_val_step_only_step_metrics(tmpdir):
 
     # make sure we logged the correct epoch metrics
     total_empty_epoch_metrics = 0
+    epoch = 0
     for metric in trainer.dev_debugger.logged_metrics:
+        if 'epoch' in metric:
+            epoch += 1
         if len(metric) > 2:
             assert 'no_val_no_pbar' not in metric
             assert 'val_step_pbar_acc' not in metric
-            assert metric['val_step_log_acc']
-            assert metric['val_step_log_pbar_acc']
+            assert metric[f'val_step_log_acc/epoch_{epoch}']
+            assert metric[f'val_step_log_pbar_acc/epoch_{epoch}']
         else:
             total_empty_epoch_metrics += 1
 
@@ -228,6 +231,8 @@ def test_val_step_only_step_metrics(tmpdir):
     # make sure we logged the correct epoch pbar metrics
     total_empty_epoch_metrics = 0
     for metric in trainer.dev_debugger.pbar_added_metrics:
+        if 'epoch' in metric:
+            epoch += 1
         if len(metric) > 2:
             assert 'no_val_no_pbar' not in metric
             assert 'val_step_log_acc' not in metric
@@ -288,11 +293,12 @@ def test_val_step_epoch_step_metrics(tmpdir):
     for metric_idx in range(0, len(trainer.dev_debugger.logged_metrics), batches + 1):
         batch_metrics = trainer.dev_debugger.logged_metrics[metric_idx: metric_idx + batches]
         epoch_metric = trainer.dev_debugger.logged_metrics[metric_idx + batches]
+        epoch = epoch_metric['epoch']
 
         # make sure the metric was split
         for batch_metric in batch_metrics:
-            assert 'step_val_step_log_acc' in batch_metric
-            assert 'step_val_step_log_pbar_acc' in batch_metric
+            assert f'step_val_step_log_acc/epoch_{epoch}' in batch_metric
+            assert f'step_val_step_log_pbar_acc/epoch_{epoch}' in batch_metric
 
         # make sure the epoch split was correct
         assert 'epoch_val_step_log_acc' in epoch_metric
