@@ -343,6 +343,11 @@ class TrainerEvaluationLoopMixin(ABC):
                     m = 'only EvalResults or dicts are allowed from validation_step'
                     raise MisconfigurationException(m)
 
+                # throw warning if key other than 'val_loss' is used in output
+                if 'val_loss' not in output.keys():
+                    rank_zero_warn("Changing `val_loss` to another keyword will break checkpointing, "
+                                    "early stopping, and other features relying on it", UserWarning)
+
                 # on dp / ddp2 might still want to do something with the batch parts
                 if test_mode:
                     if self.is_overridden('test_step_end'):
