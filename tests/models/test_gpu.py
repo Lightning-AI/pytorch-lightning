@@ -119,7 +119,6 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
 
     # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    p.communicate()
 
     std, err = p.communicate(timeout=60)
     std = std.decode('utf-8').strip()
