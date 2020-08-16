@@ -1,6 +1,8 @@
 """
 Tests to ensure that the training loop works with a dict
 """
+import pytest
+
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
@@ -303,3 +305,20 @@ def test_full_val_loop(tmpdir):
     assert model.validation_step_called
     assert model.validation_step_end_called
     assert model.validation_epoch_end_called
+
+
+def test_changing_valloss_warning(tmpdir):
+    """
+    Tests if warning is thrown when EvalResult of validation_step has key other than val_loss
+    """
+
+    model = DeterministicModel()
+    model.training_step = model.training_step_dict_return
+    model.validation_step = model.validation_step_arbitary_dict_return
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+
+    trainer = Trainer(default_root_dir=tmpdir)
+
+    with pytest.warns(UserWarning, match='and other features relying on it'):
+        trainer.fit(model)

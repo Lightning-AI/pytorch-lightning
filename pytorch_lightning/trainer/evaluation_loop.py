@@ -344,7 +344,7 @@ class TrainerEvaluationLoopMixin(ABC):
                     raise MisconfigurationException(m)
 
                 # throw warning if key other than 'val_loss' is used in output
-                if 'val_loss' not in output.keys():
+                if not isinstance(output, EvalResult) or 'val_loss' not in output.keys():
                     rank_zero_warn("Changing `val_loss` to another keyword will break checkpointing, "
                                     "early stopping, and other features relying on it", UserWarning)
 
