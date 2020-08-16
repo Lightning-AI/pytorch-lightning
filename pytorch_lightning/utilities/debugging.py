@@ -74,7 +74,7 @@ class InternalDebugger(object):
         self.saved_train_losses.append(loss_dict)
 
     @enabled_only
-    def track_lr_schedulers_update(self, batch_idx, interval, monitor_key, scheduler_idx, old_lr, new_lr):
+    def track_lr_schedulers_update(self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None):
         loss_dict = {
             'batch_idx': batch_idx,
             'interval': interval,

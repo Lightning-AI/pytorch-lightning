@@ -1284,9 +1284,10 @@ class TrainerTrainLoopMixin(ABC):
                         self.dev_debugger.track_lr_schedulers_update(
                             self.batch_idx,
                             interval,
-                            monitor_key,
                             scheduler_idx,
-                            old_lr, new_lr
+                            old_lr,
+                            new_lr,
+                            monitor_key,
                         )
                 else:
                     if self.dev_debugger.enabled:
@@ -1300,7 +1301,6 @@ class TrainerTrainLoopMixin(ABC):
                         self.dev_debugger.track_lr_schedulers_update(
                             self.batch_idx,
                             interval,
-                            monitor_key,
                             scheduler_idx,
                             old_lr, new_lr
                         )
