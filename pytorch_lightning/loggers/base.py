@@ -10,6 +10,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class LightningLoggerBase(ABC):
@@ -220,6 +221,15 @@ class LightningLoggerBase(ABC):
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
 
+    def log_graph(self, model: LightningModule) -> None:
+        """
+        Record model graph
+
+        Args:
+            model: lightning model
+        """
+        pass
+
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
@@ -295,6 +305,10 @@ class LoggerCollection(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
+
+    def log_graph(self, model: LightningModule) -> None:
+        for logger in self._logger_iterable:
+            logger.log_graph(model)
 
     def save(self) -> None:
         for logger in self._logger_iterable:

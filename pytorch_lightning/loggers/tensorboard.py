@@ -15,8 +15,9 @@ from torch.utils.tensorboard import SummaryWriter
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.core.lightning import LightningModule
 
 try:
     from omegaconf import Container, OmegaConf
@@ -47,6 +48,9 @@ class TensorBoardLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
+        log_graph: Adds the computational graph to tensorboard. This requires that
+            the user has defined the `self.example_input_array` attribute in their
+            model.
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
@@ -56,11 +60,13 @@ class TensorBoardLogger(LightningLoggerBase):
                  save_dir: str,
                  name: Optional[str] = "default",
                  version: Optional[Union[int, str]] = None,
+                 log_graph: bool = True,
                  **kwargs):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._log_graph = log_graph
 
         self._experiment = None
         self.hparams = {}
@@ -159,6 +165,16 @@ class TensorBoardLogger(LightningLoggerBase):
             if isinstance(v, torch.Tensor):
                 v = v.item()
             self.experiment.add_scalar(k, v, step)
+
+    @rank_zero_only
+    def log_graph(self, model: LightningModule):
+        if self._log_graph:
+            if model.example_input_array is not None:
+                self.experiment.add_graph(model, model.example_input_array)
+            else:
+                rank_zero_warn('Could not log computational graph since the'
+                               ' `model.example_input_array` attribute is not set.',
+                               UserWarning)
 
     @rank_zero_only
     def save(self) -> None:

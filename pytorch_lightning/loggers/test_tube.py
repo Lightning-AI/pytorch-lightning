@@ -13,7 +13,8 @@ except ImportError:  # pragma: no-cover
     _TEST_TUBE_AVAILABLE = False
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class TestTubeLogger(LightningLoggerBase):
@@ -51,7 +52,9 @@ class TestTubeLogger(LightningLoggerBase):
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
         create_git_tag: If ``True`` creates a git tag to save the code used in this experiment.
-
+        log_graph: Adds the computational graph to tensorboard. This requires that
+            the user has defined the `self.example_input_array` attribute in their
+            model.
     """
 
     __test__ = False
@@ -62,7 +65,8 @@ class TestTubeLogger(LightningLoggerBase):
                  description: Optional[str] = None,
                  debug: bool = False,
                  version: Optional[int] = None,
-                 create_git_tag: bool = False):
+                 create_git_tag: bool = False,
+                 log_graph=True):
 
         if not _TEST_TUBE_AVAILABLE:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
@@ -74,6 +78,7 @@ class TestTubeLogger(LightningLoggerBase):
         self.debug = debug
         self._version = version
         self.create_git_tag = create_git_tag
+        self._log_graph = log_graph
         self._experiment = None
 
     @property
@@ -116,6 +121,16 @@ class TestTubeLogger(LightningLoggerBase):
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
+
+    @rank_zero_only
+    def log_graph(self, model: LightningModule):
+        if self._log_graph:
+            if model.example_input_array is not None:
+                self.experiment.add_graph(model, model.example_input_array)
+            else:
+                rank_zero_warn('Could not log computational graph since the'
+                               ' `model.example_input_array` attribute is not set.',
+                               UserWarning)
 
     @rank_zero_only
     def save(self) -> None:
