@@ -289,9 +289,7 @@ variables:
 We use DDP this way because `ddp_spawn` has a few limitations (due to Python and PyTorch):
 
 1. Since `.spawn()` trains the model in subprocesses, the model on the main process does not get updated.
-
 2. Dataloader(num_workers=N), where N is large, bottlenecks training with DDP... ie: it will be VERY slow or won't work at all. This is a PyTorch limitation.
-
 3. Forces everything to be picklable.
 
 There are cases in which it is not possible to use DDP. Examples are:
