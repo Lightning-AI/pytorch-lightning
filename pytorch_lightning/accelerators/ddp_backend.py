@@ -45,6 +45,7 @@ class DDPBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.task_idx = None
+        self._has_spawned_children = False
 
     def slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
@@ -57,6 +58,8 @@ class DDPBackend(object):
 
     def spawn_ddp_children(self, model):
         assert self.trainer.global_rank == 0
+        self._check_can_spawn_children()
+        self._has_spawned_children = True
 
         os.environ['MASTER_ADDR'] = os.environ.get('MASTER_ADDR', '127.0.0.1')
         os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
@@ -231,3 +234,10 @@ class DDPBackend(object):
 
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
+
+    def _check_can_spawn_children(self):
+        if self._has_spawned_children:
+            raise RuntimeError(
+                "You tried to run `.fit` or `.test` multiple times in the same script."
+                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+            )
