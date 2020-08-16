@@ -83,8 +83,6 @@ class GpuUsageLogger(Callback):
         self.inter_step_time = inter_step_time
         self.fan_speed = fan_speed
         self.temperature = temperature
-        self.snap_intra_step_time = None
-        self.snap_inter_step_time = None
 
     def on_batch_start(self, trainer, pl_module):
         if self.gpu_utilization:
