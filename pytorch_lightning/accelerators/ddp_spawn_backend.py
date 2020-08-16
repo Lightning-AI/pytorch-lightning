@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import os
 
 import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 
 try:
     from apex import amp
@@ -32,7 +33,7 @@ class DDPSpawnBackend(object):
         self.mp_queue = None
 
     def setup(self):
-        self.trainer.set_random_port()
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', find_free_network_port())
 
         # pass in a state q
         smp = mp.get_context('spawn')
