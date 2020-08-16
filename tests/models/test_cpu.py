@@ -346,6 +346,7 @@ def test_tbptt_cpu_model(tmpdir):
     )
 
     model = BpttTestModel(**hparams)
+    model.example_input_array = torch.rand(5, truncated_bptt_steps * truncated_bptt_steps)
 
     # fit model
     trainer = Trainer(
@@ -424,6 +425,7 @@ def test_tbptt_cpu_model_result(tmpdir):
     )
 
     model = BpttTestModel(**hparams)
+    model.example_input_array = torch.rand(5, truncated_bptt_steps * truncated_bptt_steps)
 
     # fit model
     trainer = Trainer(
@@ -494,6 +496,7 @@ def test_tbptt_cpu_model_result_auto_reduce(tmpdir):
     )
 
     model = BpttTestModel(**hparams)
+    model.example_input_array = torch.rand(5, truncated_bptt_steps * truncated_bptt_steps)
 
     # fit model
     trainer = Trainer(
