@@ -35,6 +35,7 @@ class InternalDebugger(object):
         self.early_stopping_history = []
         self.checkpoint_callback_history = []
         self.events = []
+        self.saved_lr_scheduler_updates = []
 
     def track_event(
             self,
@@ -71,6 +72,19 @@ class InternalDebugger(object):
     def track_train_loss_history(self, batch_idx, loss):
         loss_dict = {'batch_idx': batch_idx, 'epoch': self.trainer.current_epoch, 'loss': loss.detach()}
         self.saved_train_losses.append(loss_dict)
+
+    @enabled_only
+    def track_lr_schedulers_update(self, batch_idx, interval, scheduler_idx, old_lr, new_lr, monitor_key=None):
+        loss_dict = {
+            'batch_idx': batch_idx,
+            'interval': interval,
+            'scheduler_idx': scheduler_idx,
+            'epoch': self.trainer.current_epoch,
+            'monitor_key': monitor_key,
+            'old_lr': old_lr,
+            'new_lr': new_lr
+        }
+        self.saved_lr_scheduler_updates.append(loss_dict)
 
     @enabled_only
     def track_eval_loss_history(self, test_mode, batch_idx, dataloader_idx, output):
