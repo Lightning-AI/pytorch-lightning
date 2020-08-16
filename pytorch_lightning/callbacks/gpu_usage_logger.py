@@ -90,9 +90,6 @@ class GpuUsageLogger(Callback):
         self.snap_inter_step_time = None
 
     def on_batch_start(self, trainer, pl_module):
-        if trainer.logger is None:
-            return
-
         if self.gpu_utilisation:
             self._log_gpu(trainer)
         if self.memory_utilisation:
@@ -110,9 +107,6 @@ class GpuUsageLogger(Callback):
             self.snap_intra_step_time = time.time()
 
     def on_batch_end(self, trainer, pl_module):
-        if trainer.logger is None:
-            return
-
         if self.gpu_utilisation:
             self._log_gpu(trainer)
         if self.memory_utilisation:
@@ -133,6 +127,12 @@ class GpuUsageLogger(Callback):
                     {'Batch_Time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
                     step=trainer.global_step
                 )
+
+    def on_train_start(self, trainer, pl_module):
+        if not trainer.logger:
+            raise MisconfigurationException(
+                'Cannot use GpuUsageLogger callback with Trainer that has no logger.'
+            )
 
     def on_train_epoch_start(self, trainer, pl_module):
         self.snap_intra_step_time = None
