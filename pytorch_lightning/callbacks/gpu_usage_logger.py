@@ -21,19 +21,16 @@ class GpuUsageLogger(Callback):
     Automatically logs GPU memory and GPU usage during training stage.
 
     Args:
-        memory_utilisation: Set to ``True`` to log used, free and percentage of memory
-            utilisation at starts and ends of each step. Default: ``True``.
-            From nvidia-smi --help-query-gpu
-            memory.used = ```Total memory allocated by active contexts.```
-            memory.free = ```Total free memory.```
-        gpu_utilisation: Set to ``True`` to log percentage of GPU utilisation.
-            at starts and ends of each step. Default: ``True``.
-        intra_step_time: Set to ``True`` to log the time of each step. Default: ``False``
+        memory_utilization: Set to ``True`` to log used, free and percentage of memory
+            utilization at the start and end of each step. Default: ``True``.
+        gpu_utilization: Set to ``True`` to log percentage of GPU utilization
+            at the start and end of each step. Default: ``True``.
+        intra_step_time: Set to ``True`` to log the time of each step. Default: ``False``.
         inter_step_time: Set to ``True`` to log the time between the end of one step
-            and the start of the next. Default: ``False``
+            and the start of the next step. Default: ``False``.
         fan_speed: Set to ``True`` to log percentage of fan speed. Default: ``False``.
-        temperature: Set to ``True`` to log the memory and gpu temperature in degrees C.
-            Default: ``False``
+        temperature: Set to ``True`` to log the memory and gpu temperature in degree Celsius.
+            Default: ``False``.
 
     Example::
 
@@ -70,7 +67,7 @@ class GpuUsageLogger(Callback):
 
     """
 
-    def __init__(self, memory_utilisation: bool = True, gpu_utilisation: bool = True,
+    def __init__(self, memory_utilization: bool = True, gpu_utilization: bool = True,
                  intra_step_time: bool = False, inter_step_time: bool = False,
                  fan_speed: bool = False, temperature: bool = False):
         super().__init__()
@@ -80,8 +77,8 @@ class GpuUsageLogger(Callback):
                 'Cannot use GpuUsageLogger callback because nvidia driver is not installed.'
             )
 
-        self.memory_utilisation = memory_utilisation
-        self.gpu_utilisation = gpu_utilisation
+        self.memory_utilization = memory_utilization
+        self.gpu_utilization = gpu_utilization
         self.intra_step_time = intra_step_time
         self.inter_step_time = inter_step_time
         self.fan_speed = fan_speed
@@ -90,9 +87,9 @@ class GpuUsageLogger(Callback):
         self.snap_inter_step_time = None
 
     def on_batch_start(self, trainer, pl_module):
-        if self.gpu_utilisation:
+        if self.gpu_utilization:
             self._log_gpu(trainer)
-        if self.memory_utilisation:
+        if self.memory_utilization:
             self._log_memory(trainer)
 
         if self.inter_step_time:
@@ -107,9 +104,9 @@ class GpuUsageLogger(Callback):
             self.snap_intra_step_time = time.time()
 
     def on_batch_end(self, trainer, pl_module):
-        if self.gpu_utilisation:
+        if self.gpu_utilization:
             self._log_gpu(trainer)
-        if self.memory_utilisation:
+        if self.memory_utilization:
             self._log_memory(trainer)
 
         if self.fan_speed:
@@ -142,7 +139,8 @@ class GpuUsageLogger(Callback):
     def _get_gpu_stat(pitem: str, unit: str):
         result = subprocess.run(
             [shutil.which('nvidia-smi'), f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
-            encoding="utf-8", stdout=subprocess.PIPE,
+            encoding="utf-8",
+            stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
             check=True
         )
