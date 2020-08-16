@@ -353,6 +353,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     with open(config_yaml, 'w', newline='') as fp:
         yaml.dump(hparams, fp)
 
+
 def convert(val: str) -> Union[int, float, bool, str]:
     try:
         return ast.literal_eval(val)
