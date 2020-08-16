@@ -167,6 +167,7 @@ import numpy as np
 import torch
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
+from copy import deepcopy
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -504,9 +505,6 @@ class TrainerTrainLoopMixin(ABC):
                     opt_outputs = opt_outputs[0]
                 epoch_output[opt_idx].append(opt_outputs)
 
-            # update LR schedulers
-            self.update_train_loop_lr_schedulers()
-
             # when returning -1 from train_step, we end epoch early
             self.should_stop = batch_output.signal == -1
 
@@ -526,6 +524,11 @@ class TrainerTrainLoopMixin(ABC):
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
             self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+
+            # update LR schedulers
+            monitor_metrics = deepcopy(self.callback_metrics)
+            monitor_metrics.update(batch_output.batch_log_metrics)
+            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
@@ -589,11 +592,11 @@ class TrainerTrainLoopMixin(ABC):
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
-    def update_train_loop_lr_schedulers(self):
+    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
                 or (self.batch_idx + 1) == self.num_training_batches):
             # update lr
-            self.update_learning_rates(interval='step')
+            self.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, model):
         with self.profiler.profile('on_epoch_end'):
@@ -1238,7 +1241,7 @@ class TrainerTrainLoopMixin(ABC):
 
         return output
 
-    def update_learning_rates(self, interval: str):
+    def update_learning_rates(self, interval: str, monitor_metrics = None):
         """Update learning rates.
 
         Args:
@@ -1247,7 +1250,7 @@ class TrainerTrainLoopMixin(ABC):
         if not self.lr_schedulers:
             return
 
-        for lr_scheduler in self.lr_schedulers:
+        for scheduler_idx, lr_scheduler in enumerate(self.lr_schedulers):
             current_idx = self.batch_idx if interval == 'step' else self.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
@@ -1256,7 +1259,12 @@ class TrainerTrainLoopMixin(ABC):
                 # If instance of ReduceLROnPlateau, we need to pass validation loss
                 if lr_scheduler['reduce_on_plateau']:
                     monitor_key = lr_scheduler['monitor']
-                    monitor_val = self.callback_metrics.get(monitor_key)
+
+                    if monitor_metrics is not None:
+                        monitor_val = monitor_metrics.get(monitor_key)
+                    else:
+                        monitor_val = self.callback_metrics.get(monitor_key)
+
                     if monitor_val is None:
                         avail_metrics = ','.join(list(self.callback_metrics.keys()))
                         raise MisconfigurationException(
@@ -1264,9 +1272,37 @@ class TrainerTrainLoopMixin(ABC):
                             f' which is not available. Available metrics are: {avail_metrics}.'
                             ' Condition can be set using `monitor` key in lr scheduler dict'
                         )
+                    if self.dev_debugger.enabled:
+                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+
+                    # update LR
                     lr_scheduler['scheduler'].step(monitor_val)
+
+                    if self.dev_debugger.enabled:
+                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                        self.dev_debugger.track_lr_schedulers_update(
+                            self.batch_idx,
+                            interval,
+                            monitor_key,
+                            scheduler_idx,
+                            old_lr, new_lr
+                        )
                 else:
+                    if self.dev_debugger.enabled:
+                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+
+                    # update LR
                     lr_scheduler['scheduler'].step()
+
+                    if self.dev_debugger.enabled:
+                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                        self.dev_debugger.track_lr_schedulers_update(
+                            self.batch_idx,
+                            interval,
+                            monitor_key,
+                            scheduler_idx,
+                            old_lr, new_lr
+                        )
 
 
 def _with_is_last(iterable):
