@@ -156,3 +156,23 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
 
     metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)
+
+
+def test_tensorboard_log_graph(tmpdir):
+    """ test that log graph works """
+    model = EvalModelTemplate()
+    logger = TensorBoardLogger(tmpdir)
+    logger.log_graph(model)
+
+
+def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
+    """ test that log graph throws warning if model.example_input_array is None """
+    model = EvalModelTemplate()
+    model.example_input_array = None
+    logger = TensorBoardLogger(tmpdir)
+    with pytest.warns(
+        UserWarning,
+        match='Could not log computational graph since the `model.example_input_array` '
+            'attribute is not set.'
+    ):
+        logger.log_graph(model)
