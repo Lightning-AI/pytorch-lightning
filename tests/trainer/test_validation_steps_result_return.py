@@ -474,5 +474,6 @@ def test_full_loop_result_cpu(tmpdir):
     results = results[0]
     assert results['test_loss'] < 0.3
     assert results['test_acc'] > 0.9
+    assert len(results) == 2
     assert 'val_early_stop_on' not in results
     assert 'val_checkpoint_on' not in results
