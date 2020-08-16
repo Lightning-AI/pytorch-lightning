@@ -1039,7 +1039,6 @@ class Trainer(
 
         # ddp
         elif self.distributed_backend == 'ddp':
-            self.set_random_port()
             self.accelerator_backend = DDPBackend(self)
             results = self.accelerator_backend.spawn_ddp_children(model)
 
