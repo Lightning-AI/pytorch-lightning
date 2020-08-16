@@ -8,8 +8,8 @@
 
 .. _callbacks:
 
-Callbacks
-=========
+Callback
+========
 A callback is a self-contained program that can be reused across projects.
 
 Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
