@@ -33,7 +33,7 @@ class DDPSpawnBackend(object):
         self.mp_queue = None
 
     def setup(self):
-        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', find_free_network_port())
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
 
         # pass in a state q
         smp = mp.get_context('spawn')

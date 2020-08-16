@@ -59,7 +59,7 @@ class DDPBackend(object):
         assert self.trainer.global_rank == 0
 
         os.environ['MASTER_ADDR'] = os.environ.get('MASTER_ADDR', '127.0.0.1')
-        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', find_free_network_port())
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
 
         # allow the user to pass the node rank
         node_rank = '0'
