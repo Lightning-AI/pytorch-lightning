@@ -952,6 +952,7 @@ class Trainer(
 
         # bind logger and other properties
         self.copy_trainer_model_properties(model)
+        self.logger.log_graph(model)
 
         # clean hparams
         if hasattr(model, 'hparams'):
