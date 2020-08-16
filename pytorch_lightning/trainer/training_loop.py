@@ -1241,11 +1241,12 @@ class TrainerTrainLoopMixin(ABC):
 
         return output
 
-    def update_learning_rates(self, interval: str, monitor_metrics = None):
+    def update_learning_rates(self, interval: str, monitor_metrics=None):
         """Update learning rates.
 
         Args:
             interval: either 'epoch' or 'step'.
+            monitor_metrics: dict of possible values to monitor
         """
         if not self.lr_schedulers:
             return
