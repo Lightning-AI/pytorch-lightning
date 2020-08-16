@@ -352,7 +352,7 @@ And the matching code:
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(pl.LightningDataModule):
 
         def __init__(self):
             ...
@@ -381,7 +381,7 @@ over download/prepare/splitting data
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(pl.LightningDataModule):
 
         def prepare_data(self):
             # called only on 1 GPU
@@ -406,7 +406,7 @@ First, define the information that you might need.
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(pl.LightningDataModule):
 
         def __init__(self):
             super().__init__()

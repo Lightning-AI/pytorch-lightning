@@ -261,7 +261,7 @@ In this case, it's better to group the full definition of a dataset into a `Data
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(pl.LightningDataModule):
 
         def __init__(self):
             super().__init__()
