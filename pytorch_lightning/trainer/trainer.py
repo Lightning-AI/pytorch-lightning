@@ -1039,7 +1039,6 @@ class Trainer(
 
         # ddp
         elif self.distributed_backend == 'ddp':
-            self.set_random_port()
             self.accelerator_backend = DDPBackend(self)
             results = self.accelerator_backend.spawn_ddp_children(model)
 
@@ -1377,7 +1376,6 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.set_random_port(force=True)
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
@@ -1400,7 +1398,6 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.set_random_port(force=True)
         self.testing = True
         self.model = model
         results = self.fit(model)

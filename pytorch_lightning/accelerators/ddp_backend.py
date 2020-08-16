@@ -24,7 +24,7 @@ import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -45,6 +45,7 @@ class DDPBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.task_idx = None
+        self._has_spawned_children = False
 
     def slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
@@ -56,19 +57,17 @@ class DDPBackend(object):
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def spawn_ddp_children(self, model):
-        port = os.environ['MASTER_PORT']
+        assert self.trainer.global_rank == 0
+        self._check_can_spawn_children()
+        self._has_spawned_children = True
 
-        master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
-        os.environ['MASTER_PORT'] = f'{port}'
-        os.environ['MASTER_ADDR'] = f'{master_address}'
+        os.environ['MASTER_ADDR'] = os.environ.get('MASTER_ADDR', '127.0.0.1')
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
 
         # allow the user to pass the node rank
         node_rank = '0'
-        if 'NODE_RANK' in os.environ:
-            node_rank = os.environ['NODE_RANK']
-        if 'GROUP_RANK' in os.environ:
-            node_rank = os.environ['GROUP_RANK']
-
+        node_rank = os.environ.get('NODE_RANK', node_rank)
+        node_rank = os.environ.get('GROUP_RANK', node_rank)
         os.environ['NODE_RANK'] = node_rank
         os.environ['LOCAL_RANK'] = '0'
 
@@ -235,3 +234,10 @@ class DDPBackend(object):
 
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
+
+    def _check_can_spawn_children(self):
+        if self._has_spawned_children:
+            raise RuntimeError(
+                "You tried to run `.fit` or `.test` multiple times in the same script."
+                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+            )

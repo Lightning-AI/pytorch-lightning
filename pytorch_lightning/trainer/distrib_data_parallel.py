@@ -132,7 +132,6 @@ import re
 from abc import ABC, abstractmethod
 from typing import Union, List, Optional, Tuple
 
-import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
@@ -162,10 +161,6 @@ except ImportError:
     XLA_AVAILABLE = False
 else:
     XLA_AVAILABLE = True
-
-PID = os.getpid()
-RNG1 = np.random.RandomState(PID)
-RANDOM_PORTS = RNG1.randint(10000, 19999, 1000)
 
 
 class TrainerDDPMixin(ABC):
@@ -388,22 +383,6 @@ class TrainerDDPMixin(ABC):
 
         # don't make this debug... this is good UX
         rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
-
-    def set_random_port(self, force=False):
-        """
-        When running DDP NOT managed by SLURM, the ports might collide
-        """
-        # pick a random port first
-        assert self.num_nodes == 1, 'random port can only be called from single node training'
-        global RANDOM_PORTS
-        default_port = RANDOM_PORTS[-1]
-        RANDOM_PORTS = RANDOM_PORTS[:-1]
-
-        # when not forced, use the user port
-        if not force:
-            default_port = os.environ.get('MASTER_PORT', default_port)
-
-        os.environ['MASTER_PORT'] = str(default_port)
 
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         if self.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
