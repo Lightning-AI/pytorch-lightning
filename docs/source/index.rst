@@ -27,6 +27,7 @@ PyTorch Lightning Documentation
    metrics
    results
    trainer
+   tasks
 
 .. toctree::
    :maxdepth: 1
