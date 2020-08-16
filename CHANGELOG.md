@@ -138,7 +138,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed checkpointing to remote file paths ([#2925](https://github.com/PyTorchLightning/pytorch-lightning/pull/2925))
 
-- Fixed an issue when running `Trainer.test()` in ddp mode ([#2997](https://github.com/PyTorchLightning/pytorch-lightning/pull/2997))
+- Fixed an issue that caused `Trainer.test()` to stall in ddp mode ([#2997](https://github.com/PyTorchLightning/pytorch-lightning/pull/2997))
 
 ## [0.8.5] - 2020-07-09
 
