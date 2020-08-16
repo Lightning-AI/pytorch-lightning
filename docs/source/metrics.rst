@@ -5,6 +5,8 @@
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.metrics import TensorMetric, NumpyMetric
 
+.. _metrics:
+
 Metrics
 =======
 This is a general package for PyTorch Metrics. These can also be used with regular non-lightning PyTorch code.

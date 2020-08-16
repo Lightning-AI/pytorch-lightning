@@ -22,7 +22,7 @@ except ImportError:
 
 
 class GPUBackend(object):
-    amp_type: AMPType
+    amp_backend: AMPType
 
     def __init__(self, trainer):
         self.trainer = trainer
@@ -41,7 +41,7 @@ class GPUBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        if self.trainer.amp_type == AMPType.APEX:
+        if self.trainer.amp_backend == AMPType.APEX:
             model = self._setup_nvidia_apex(model)
         return model
 

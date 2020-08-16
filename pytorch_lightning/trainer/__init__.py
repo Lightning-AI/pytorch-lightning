@@ -10,17 +10,23 @@
 Once you've organized your PyTorch code into a LightningModule,
 the Trainer automates everything else.
 
-.. figure:: /_images/lightning_module/pt_trainer.png
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
+
+    <video width="100%" controls autoplay
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+
+|
 
 This abstraction achieves the following:
 
-    1. You maintain control over all aspects via PyTorch code without an added abstraction.
+1. You maintain control over all aspects via PyTorch code without an added abstraction.
 
-    2. The trainer uses best practices embedded by contributors and users
-       from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
+2. The trainer uses best practices embedded by contributors and users
+   from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-    3. The trainer allows overriding any key part that you don't want automated.
+3. The trainer allows overriding any key part that you don't want automated.
+
+|
 
 -----------
 
@@ -34,15 +40,14 @@ This is the basic use of the trainer:
     model = MyLightningModule()
 
     trainer = Trainer()
-    trainer.fit(model)
+    trainer.fit(model, train_dataloader, val_dataloader)
 
 
 --------
 
-Best Practices
---------------
-For cluster computing, it's recommended you structure your
-main.py file this way
+Trainer in Python scrips
+------------------------
+In Python scripts, it's recommended you use a main function to call the Trainer.
 
 .. code-block:: python
 
@@ -66,6 +71,31 @@ So you can run it like so:
 
     python main.py --gpus 2
 
+.. note::
+
+    Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
+
+.. code-block:: python
+
+    from argparse import ArgumentParser
+
+    def main(args):
+        model = LightningModule()
+        trainer = Trainer.from_argparse_args(args)
+        trainer.fit(model)
+
+    if __name__ == '__main__':
+        parser = ArgumentParser()
+        parser = Trainer.add_argparse_args(parser)
+        args = parser.parse_args()
+
+        main(args)
+
+So you can run it like so:
+
+.. code-block:: bash
+
+    python main.py --gpus 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
@@ -83,7 +113,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test()
+    trainer.test(test_dataloader=test_dataloader)
 
 ------------
 
@@ -138,6 +168,7 @@ Trainer flags
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 Accumulates grads every k batches or as set up in the dict.
+Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 .. testcode::
 
@@ -151,6 +182,19 @@ Example::
 
     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+
+amp_backend
+^^^^^^^^^^^
+
+Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
+
+.. testcode::
+
+    # using PyTorch built-in AMP, default used by the Trainer
+    trainer = Trainer(amp_backend='native')
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_backend='apex')
 
 amp_level
 ^^^^^^^^^
@@ -872,19 +916,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 
     trainer = Trainer(sync_batchnorm=True)
 
-amp_type
-^^^^^^^^
-
-Define a preferable mixed precision, either NVIDIA Apex ("apex") or PyTorch built-in ("native") AMP which is supported from v1.6.
-
-.. testcode::
-
-    # using NVIDIA Apex
-    trainer = Trainer(amp_type='apex')
-    
-    # using PyTorch built-in AMP
-    trainer = Trainer(amp_type='native')
-
 val_percent_check
 ^^^^^^^^^^^^^^^^^
 
@@ -1054,8 +1085,8 @@ Options: 'full', 'top', None.
     # don't print a summary
     trainer = Trainer(weights_summary=None)
 
-Trainer class
--------------
+Trainer class API
+-----------------
 
 """
 

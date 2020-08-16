@@ -1,5 +1,7 @@
+import io
 import platform
 import os
+from distutils.version import LooseVersion
 from typing import Union
 from pathlib import Path
 from urllib.parse import urlparse
@@ -26,6 +28,14 @@ def load(path_or_url: str, map_location=None):
     if urlparse(path_or_url).scheme == '' or Path(path_or_url).drive:  # no scheme or with a drive letter
         return torch.load(path_or_url, map_location=map_location)
     return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
+
+
+def is_remote_path(path: pathlike):
+    """Determine if a path is a local path or a remote path like s3://bucket/path
+
+    This should catch paths like s3:// hdfs:// and gcs://
+    """
+    return "://" in str(path)
 
 
 def modern_gfile():
@@ -61,6 +71,29 @@ def cloud_open(path: pathlike, mode: str, newline: str = None):
 
 def makedirs(path: pathlike):
     if hasattr(gfile, "makedirs") and modern_gfile():
-        return gfile.makedirs(str(path))
+        if not gfile.exists(str(path)):
+            return gfile.makedirs(str(path))
     # otherwise minimal dependencies are installed and only local files will work
     return os.makedirs(path, exist_ok=True)
+
+
+def atomic_save(checkpoint, filepath: str):
+    """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
+
+    Args:
+        checkpoint: The object to save.
+            Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
+            accepts.
+        filepath: The path to which the checkpoint will be saved.
+            This points to the file that the checkpoint will be stored in.
+    """
+    bytesbuffer = io.BytesIO()
+    # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
+    # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
+    # More details can be found here: https://github.com/pytorch/pytorch/issues/42239
+    if LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
+        torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
+    else:
+        torch.save(checkpoint, bytesbuffer)
+    with cloud_open(filepath, 'wb') as f:
+        f.write(bytesbuffer.getvalue())

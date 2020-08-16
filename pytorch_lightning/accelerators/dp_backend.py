@@ -49,7 +49,7 @@ class DataParallelBackend(object):
         self.model_autocast_original_forward = model.forward
 
         # init half precision
-        if self.trainer.amp_type:
+        if self.trainer.amp_backend:
             model = self.__init_half_precision(model)
 
         # init torch data parallel
@@ -69,7 +69,7 @@ class DataParallelBackend(object):
         return model
 
     def __init_half_precision(self, model):
-        if self.trainer.amp_type == AMPType.NATIVE:
+        if self.trainer.amp_backend == AMPType.NATIVE:
             self.__init_native_amp(model)
         else:
             model = self.__init_nvidia_apex(model)

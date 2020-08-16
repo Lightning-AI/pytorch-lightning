@@ -1,3 +1,5 @@
+.. _governance:
+
 Pytorch Lightning Governance | Persons of interest
 ==================================================
 

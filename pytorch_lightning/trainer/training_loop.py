@@ -168,6 +168,7 @@ import numpy as np
 import torch
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
+from copy import deepcopy
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -254,7 +255,7 @@ class TrainerTrainLoopMixin(ABC):
     tpu_id: int
     interactive_ddp_procs: ...
     state: TrainerState
-    amp_type: AMPType
+    amp_backend: AMPType
     on_tpu: bool
 
     # Callback system
@@ -479,9 +480,6 @@ class TrainerTrainLoopMixin(ABC):
                     opt_outputs = opt_outputs[0]
                 epoch_output[opt_idx].append(opt_outputs)
 
-            # update LR schedulers
-            self.update_train_loop_lr_schedulers()
-
             # when returning -1 from train_step, we end epoch early
             self.should_stop = batch_output.signal == -1
 
@@ -501,6 +499,11 @@ class TrainerTrainLoopMixin(ABC):
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
             self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+
+            # update LR schedulers
+            monitor_metrics = deepcopy(self.callback_metrics)
+            monitor_metrics.update(batch_output.batch_log_metrics)
+            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
@@ -564,10 +567,11 @@ class TrainerTrainLoopMixin(ABC):
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
-    def update_train_loop_lr_schedulers(self):
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
+        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
+                or (self.batch_idx + 1) == self.num_training_batches):
             # update lr
-            self.update_learning_rates(interval='step')
+            self.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self, model):
         with self.profiler.profile('on_epoch_end'):
@@ -712,7 +716,8 @@ class TrainerTrainLoopMixin(ABC):
 
     def increment_accumulated_grad_global_step(self):
         # progress global step according to grads progress
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
+                or (self.batch_idx + 1) == self.num_training_batches):
             self.global_step += 1
         self.total_batch_idx += 1
 
@@ -823,16 +828,13 @@ class TrainerTrainLoopMixin(ABC):
                 # add metrics to loggers
                 if using_results_obj:
                     metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
-                else:
-                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
-                batch_log_metrics.append(metrics_to_log)
-
-                # add metrics to progress bar
-                if using_results_obj:
                     step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
                 else:
+                    metrics_to_log = opt_closure_result.training_step_output.log_metrics
                     step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
 
+                # track metrics
+                batch_log_metrics.append(metrics_to_log)
                 if len(step_pbar_metrics) > 0:
                     self.add_progress_bar_metrics(step_pbar_metrics)
 
@@ -856,7 +858,8 @@ class TrainerTrainLoopMixin(ABC):
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-                if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
+                        or (self.batch_idx + 1) == self.num_training_batches):
 
                     # backward
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
@@ -913,7 +916,7 @@ class TrainerTrainLoopMixin(ABC):
         # ------------------
         # CLIP GRADS
         # ------------------
-        if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+        if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
             self.scaler.unscale_(optimizer)
         self.clip_gradients(optimizer)
 
@@ -947,7 +950,7 @@ class TrainerTrainLoopMixin(ABC):
             elif isinstance(optimizer, torch.optim.LBFGS):
 
                 # native amp + lbfgs is a no go right now
-                if self.amp_type == AMPType.NATIVE:
+                if self.amp_backend == AMPType.NATIVE:
                     raise MisconfigurationException(
                         'native PyTorch amp and lbfgs are not compatible.'
                         ' To request, please file a Github issue in PyTorch and tag @mcarilli')
@@ -956,12 +959,12 @@ class TrainerTrainLoopMixin(ABC):
 
             # when using 16-bit
             else:
-                native_amp = self.amp_type == AMPType.NATIVE
+                native_amp = self.amp_backend == AMPType.NATIVE
                 model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
                                      using_native_amp=native_amp)
 
             # in native 16-bit we need to update scaler after optimizer step
-            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                 self.scaler.update()
 
             # model hook
@@ -978,7 +981,7 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                 with torch.cuda.amp.autocast():
                     training_step_output = self.training_forward(split_batch, batch_idx,
                                                                  opt_idx, hiddens)
@@ -992,6 +995,10 @@ class TrainerTrainLoopMixin(ABC):
             # format and reduce outputs accordingly
             training_step_output_for_epoch_end = training_step_output
             is_result_obj = isinstance(training_step_output, Result)
+
+            # track batch size for weighted average
+            if is_result_obj:
+                training_step_output.track_batch_size(len(split_batch))
 
             # don't allow EvalResult in the training_step
             if isinstance(training_step_output, EvalResult):
@@ -1032,10 +1039,11 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_backward'):
             # scale loss for 16 bit
             if self.precision == 16 and not self.on_tpu:
-                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_type=self.amp_type)
+                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_backend=self.amp_backend)
 
                 # enter amp context
-                if self.amp_type == AMPType.APEX:
+                if self.amp_backend == AMPType.APEX:
+                    self.dev_debugger.track_event('AMP', str(AMPType.APEX))
                     context = closure_loss
                     closure_loss = closure_loss.__enter__()
 
@@ -1043,7 +1051,7 @@ class TrainerTrainLoopMixin(ABC):
             model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
             # exit amp context
-            if self.precision == 16 and self.amp_type == AMPType.APEX and not self.on_tpu:
+            if self.precision == 16 and self.amp_backend == AMPType.APEX and not self.on_tpu:
                 a, b, c = None, None, None
                 error = context.__exit__(a, b, c)
                 if error:
@@ -1207,16 +1215,17 @@ class TrainerTrainLoopMixin(ABC):
 
         return output
 
-    def update_learning_rates(self, interval: str):
+    def update_learning_rates(self, interval: str, monitor_metrics=None):
         """Update learning rates.
 
         Args:
             interval: either 'epoch' or 'step'.
+            monitor_metrics: dict of possible values to monitor
         """
         if not self.lr_schedulers:
             return
 
-        for lr_scheduler in self.lr_schedulers:
+        for scheduler_idx, lr_scheduler in enumerate(self.lr_schedulers):
             current_idx = self.batch_idx if interval == 'step' else self.current_epoch
             current_idx += 1  # account for both batch and epoch starts from 0
             # Take step if call to update_learning_rates matches the interval key and
@@ -1225,7 +1234,12 @@ class TrainerTrainLoopMixin(ABC):
                 # If instance of ReduceLROnPlateau, we need to pass validation loss
                 if lr_scheduler['reduce_on_plateau']:
                     monitor_key = lr_scheduler['monitor']
-                    monitor_val = self.callback_metrics.get(monitor_key)
+
+                    if monitor_metrics is not None:
+                        monitor_val = monitor_metrics.get(monitor_key)
+                    else:
+                        monitor_val = self.callback_metrics.get(monitor_key)
+
                     if monitor_val is None:
                         avail_metrics = ','.join(list(self.callback_metrics.keys()))
                         raise MisconfigurationException(
@@ -1233,9 +1247,37 @@ class TrainerTrainLoopMixin(ABC):
                             f' which is not available. Available metrics are: {avail_metrics}.'
                             ' Condition can be set using `monitor` key in lr scheduler dict'
                         )
+                    if self.dev_debugger.enabled:
+                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+
+                    # update LR
                     lr_scheduler['scheduler'].step(monitor_val)
+
+                    if self.dev_debugger.enabled:
+                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                        self.dev_debugger.track_lr_schedulers_update(
+                            self.batch_idx,
+                            interval,
+                            scheduler_idx,
+                            old_lr,
+                            new_lr,
+                            monitor_key,
+                        )
                 else:
+                    if self.dev_debugger.enabled:
+                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+
+                    # update LR
                     lr_scheduler['scheduler'].step()
+
+                    if self.dev_debugger.enabled:
+                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
+                        self.dev_debugger.track_lr_schedulers_update(
+                            self.batch_idx,
+                            interval,
+                            scheduler_idx,
+                            old_lr, new_lr
+                        )
 
 
 def _with_is_last(iterable):

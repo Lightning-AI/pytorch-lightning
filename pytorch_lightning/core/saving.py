@@ -16,11 +16,9 @@ from pytorch_lightning.utilities.cloud_io import gfile, cloud_open
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 try:
-    from omegaconf import Container
+    from omegaconf import OmegaConf
 except ImportError:
-    OMEGACONF_AVAILABLE = False
-else:
-    OMEGACONF_AVAILABLE = True
+    OmegaConf = None
 
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = (
@@ -41,6 +39,7 @@ class ModelIO(object):
             *args,
             map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
             hparams_file: Optional[str] = None,
+            strict: bool = True,
             **kwargs
     ):
         r"""
@@ -73,6 +72,8 @@ class ModelIO(object):
                 If your model's `hparams` argument is :class:`~argparse.Namespace`
                 and .yaml file has hierarchical structure, you need to refactor your model to treat
                 `hparams` as :class:`~dict`.
+            strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
+                returned by this module's state dict. Default: `True`.
             hparam_overrides: A dictionary with keys to override in the hparams
             kwargs: Any keyword args needed to init the model.
 
@@ -135,11 +136,11 @@ class ModelIO(object):
         # override the hparams with values that were passed in
         checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
-        model = cls._load_model_state(checkpoint, *args, **kwargs)
+        model = cls._load_model_state(checkpoint, strict=strict, *args, **kwargs)
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, **cls_kwargs):
+    def _load_model_state(cls, checkpoint: Dict[str, Any], strict: bool = True, *cls_args, **cls_kwargs):
         cls_spec = inspect.getfullargspec(cls.__init__)
         cls_init_args_name = inspect.signature(cls).parameters.keys()
         # pass in the values we saved automatically
@@ -169,11 +170,12 @@ class ModelIO(object):
             cls_kwargs = {k: v for k, v in cls_kwargs.items() if k in cls_init_args_name}
 
         # prevent passing positional arguments if class does not accept any
-        if len(cls_spec.args) <= 1 and not cls_spec.kwonlyargs:
+        if len(cls_spec.args) <= 1 and not cls_spec.varargs and not cls_spec.kwonlyargs:
             cls_args, cls_kwargs = [], {}
+
         model = cls(*cls_args, **cls_kwargs)
         # load the state_dict on the model automatically
-        model.load_state_dict(checkpoint['state_dict'])
+        model.load_state_dict(checkpoint['state_dict'], strict=strict)
 
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
@@ -330,20 +332,25 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
     if not gfile.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
-    if OMEGACONF_AVAILABLE and isinstance(hparams, Container):
-        from omegaconf import OmegaConf
-
-        OmegaConf.save(hparams, config_yaml, resolve=True)
-        return
-
-    # saving the standard way
+    # convert Namespace or AD to dict
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
     elif isinstance(hparams, AttributeDict):
         hparams = dict(hparams)
-    assert isinstance(hparams, dict)
 
-    with cloud_open(config_yaml, "w", newline="") as fp:
+    # saving with OmegaConf objects
+    if OmegaConf is not None:
+        if OmegaConf.is_config(hparams):
+            OmegaConf.save(hparams, config_yaml, resolve=True)
+            return
+        for v in hparams.values():
+            if OmegaConf.is_config(v):
+                OmegaConf.save(OmegaConf.create(hparams), config_yaml, resolve=True)
+                return
+
+    # saving the standard way
+    assert isinstance(hparams, dict)
+    with open(config_yaml, 'w', newline='') as fp:
         yaml.dump(hparams, fp)
 
 

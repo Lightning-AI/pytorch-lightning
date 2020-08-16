@@ -46,7 +46,7 @@ class TrainerTrainingTricksMixin(ABC):
     default_root_dir: str
     progress_bar_callback: ...
     on_gpu: bool
-    amp_type: AMPType
+    amp_backend: AMPType
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -71,7 +71,7 @@ class TrainerTrainingTricksMixin(ABC):
         if self.gradient_clip_val <= 0:
             return
         model = self.get_model()
-        if self.amp_type == AMPType.APEX:
+        if self.amp_backend == AMPType.APEX:
             parameters = amp.master_params(optimizer)
         else:
             parameters = model.parameters()

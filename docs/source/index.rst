@@ -25,7 +25,6 @@ PyTorch Lightning Documentation
    datamodules
    loggers
    metrics
-   hooks
    results
    trainer
 
@@ -57,6 +56,7 @@ PyTorch Lightning Documentation
    Transformers text classification <https://github.com/ricardorei/lightning-text-classification>
    VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>
    Transformers Question Answering (SQuAD) <https://github.com/tshrjn/Finetune-QA/>
+   Atlas: End-to-End 3D Scene Reconstruction from Posed Images <https://github.com/magicleap/atlas>
 
 .. toctree::
    :maxdepth: 1
