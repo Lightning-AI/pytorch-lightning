@@ -38,6 +38,25 @@ class TrainingStepVariations(ABC):
         )
         return output
 
+    def training_step_result_obj(self, batch, batch_idx, optimizer_idx=None):
+        # forward pass
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x)
+
+        # calculate loss
+        loss_val = self.loss(y, y_hat)
+        log_val = loss_val
+
+        # alternate between tensors and scalars for "log" and "progress_bar"
+        if batch_idx % 2 == 0:
+            log_val = log_val.item()
+
+        result = TrainResult(loss_val)
+        result.log('some_val', log_val * log_val, prog_bar=True, logger=False)
+        result.log('train_some_val', log_val * log_val)
+        return result
+
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
         output = self.training_step(batch, batch_idx, optimizer_idx)
         if batch_idx == self.test_step_inf_loss:

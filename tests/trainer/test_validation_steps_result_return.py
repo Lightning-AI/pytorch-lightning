@@ -9,6 +9,7 @@ import torch
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
 from tests.base.deterministic_model import DeterministicModel
+from pytorch_lightning import seed_everything
 
 
 # test with train_step_end
@@ -435,3 +436,44 @@ def test_val_step_full_loop_result_dp(tmpdir):
     assert 'epoch_test_step_metric' in seen_keys
     assert 'test_step_end_metric' in seen_keys
     assert 'test_epoch_end_metric' in seen_keys
+
+
+def test_full_loop_result_cpu(tmpdir):
+    seed_everything(1234)
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    batches = 5
+    epochs = 2
+
+    model = EvalModelTemplate()
+    model.training_step = model.training_step_result_obj
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_result_obj
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    model.test_step = model.test_step_result_obj
+    model.test_step_end = None
+    model.test_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=epochs,
+        early_stop_callback=True,
+        row_log_interval=2,
+        limit_train_batches=batches,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)
+
+    results = trainer.test()
+
+    # assert we returned all metrics requested
+    assert len(results) == 1
+    results = results[0]
+    assert results['test_loss'] < 0.3
+    assert results['test_acc'] > 0.9
+    assert len(results) == 2
+    assert 'val_early_stop_on' not in results
+    assert 'val_checkpoint_on' not in results

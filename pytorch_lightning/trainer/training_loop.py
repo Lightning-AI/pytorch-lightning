@@ -590,7 +590,8 @@ class TrainerTrainLoopMixin(ABC):
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
 
     def update_train_loop_lr_schedulers(self):
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
+                or (self.batch_idx + 1) == self.num_training_batches):
             # update lr
             self.update_learning_rates(interval='step')
 
@@ -737,7 +738,8 @@ class TrainerTrainLoopMixin(ABC):
 
     def increment_accumulated_grad_global_step(self):
         # progress global step according to grads progress
-        if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
+                or (self.batch_idx + 1) == self.num_training_batches):
             self.global_step += 1
         self.total_batch_idx += 1
 
@@ -878,7 +880,8 @@ class TrainerTrainLoopMixin(ABC):
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-                if (self.batch_idx + 1) % self.accumulate_grad_batches == 0:
+                if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
+                        or (self.batch_idx + 1) == self.num_training_batches):
 
                     # backward
                     grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)

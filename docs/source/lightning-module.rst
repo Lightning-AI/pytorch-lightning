@@ -16,7 +16,7 @@ A :class:`~LightningModule` organizes your PyTorch code into 5 sections
 
 .. raw:: html
 
-    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_mod_vid.m4v"></video>
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_mod_vid.m4v"></video>
 
 |
 

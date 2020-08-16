@@ -12,7 +12,7 @@ the Trainer automates everything else.
 
 .. raw:: html
 
-    <video width="800" controls autoplay
+    <video width="100%" controls autoplay
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
@@ -168,6 +168,7 @@ Trainer flags
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 Accumulates grads every k batches or as set up in the dict.
+Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 .. testcode::
 

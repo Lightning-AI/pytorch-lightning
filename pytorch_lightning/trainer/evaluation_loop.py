@@ -608,6 +608,10 @@ class TrainerEvaluationLoopMixin(ABC):
                     prog_bar_metrics = result.epoch_pbar_metrics
                     log_metrics = result.epoch_log_metrics
                     callback_metrics = result.callback_metrics
+
+                    # in testing we don't need the callback metrics
+                    if test_mode:
+                        callback_metrics = {}
                 else:
                     _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(result)
 

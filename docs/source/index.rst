@@ -29,6 +29,13 @@ PyTorch Lightning Documentation
    trainer
 
 .. toctree::
+   :maxdepth: 2
+   :name: tasks
+   :caption: Tasks
+
+   tasks
+
+.. toctree::
    :maxdepth: 1
    :name: Bolts
    :caption: Bolts
@@ -134,4 +141,5 @@ Indices and tables
    api/pytorch_lightning.overrides
    api/pytorch_lightning.profiler
    api/pytorch_lightning.trainer
+   api/pytorch_lightning.tasks
    api/pytorch_lightning.utilities
