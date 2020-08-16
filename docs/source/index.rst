@@ -32,6 +32,7 @@ PyTorch Lightning Documentation
    :maxdepth: 2
    :name: tasks
    :caption: Tasks
+
    tasks
 
 .. toctree::
