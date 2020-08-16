@@ -950,9 +950,10 @@ class Trainer(
         """
         results = None
 
-        # bind logger and other properties
+        # bind logger and other properties, log model graph if possible
         self.copy_trainer_model_properties(model)
-        self.logger.log_graph(model)
+        if self.logger is not None:
+            self.logger.log_graph(model)
 
         # clean hparams
         if hasattr(model, 'hparams'):
