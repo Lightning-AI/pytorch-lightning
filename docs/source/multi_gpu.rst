@@ -294,8 +294,7 @@ We use DDP this way because `ddp_spawn` has a few limitations (due to Python and
 
 There are cases in which it is not possible to use DDP. Examples are:
 
-- Jupyter Notebook
-- Google COLAB, Kaggle, etc.
+- Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
 - Your script needs to invoke `.fit` or `.test` multiple times
 
