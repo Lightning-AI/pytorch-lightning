@@ -1,6 +1,7 @@
 .. testsetup:: *
 
     from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
 
 .. _introduction-guide:
@@ -259,9 +260,9 @@ In this case, it's better to group the full definition of a dataset into a `Data
 - Val dataloader(s)
 - Test dataloader(s)
 
-.. code-block:: python
+.. testcode:: python
 
-    class MyDataModule(pl.LightningDataModule):
+    class MyDataModule(LightningDataModule):
 
         def __init__(self):
             super().__init__()

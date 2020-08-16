@@ -1,6 +1,7 @@
 .. testsetup:: *
 
     from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
     import os
     import torch
@@ -350,9 +351,9 @@ And the matching code:
 
 |
 
-.. code-block:: python
+.. testcode:: python
 
-    class MyDataModule(pl.LightningDataModule):
+    class MyDataModule(LightningDataModule):
 
         def __init__(self):
             ...
@@ -379,9 +380,9 @@ And train like so:
 When doing distributed training, Datamodules have two optional arguments for granular control
 over download/prepare/splitting data
 
-.. code-block:: python
+.. testcode:: python
 
-    class MyDataModule(pl.LightningDataModule):
+    class MyDataModule(LightningDataModule):
 
         def prepare_data(self):
             # called only on 1 GPU
@@ -404,9 +405,9 @@ Datamodules are the recommended approach when building models based on the data.
 
 First, define the information that you might need.
 
-.. code-block:: python
+.. testcode:: python
 
-    class MyDataModule(pl.LightningDataModule):
+    class MyDataModule(LightningDataModule):
 
         def __init__(self):
             super().__init__()
