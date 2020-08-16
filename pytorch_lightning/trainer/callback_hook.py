@@ -191,6 +191,7 @@ class TrainerCallbackHookMixin(ABC):
         """Called when loading a model checkpoint."""
         callback_states = checkpoint.get('callbacks')
         for callback in self.callbacks:
-            state = callback_states.get(type(callback), {})
-            state = deepcopy(state)
-            callback.on_load_checkpoint(state)
+            state = callback_states.get(type(callback))
+            if state:
+                state = deepcopy(state)
+                callback.on_load_checkpoint(state)
