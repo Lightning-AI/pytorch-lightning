@@ -36,7 +36,12 @@ rank_zero_info = rank_zero_only(_info)
 rank_zero_warn = rank_zero_only(_warn)
 
 
-def find_free_network_port():
+def find_free_network_port() -> int:
+    """
+    Finds a free port on localhost.
+    It is useful in single-node training when we don't want to connect to a real master node but
+    have to set the `MASTER_PORT` environment variable.
+    """
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))

@@ -286,8 +286,6 @@ variables:
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
 
-If your code does not support this (ie: jupyter notebook, colab, or a nested script without a root package),
-use `dp` or `ddp_spawn`.
 We use DDP this way because `ddp_spawn` has a few limitations (due to Python and PyTorch):
 
 1. Since `.spawn()` trains the model in subprocesses, the model on the main process does not get updated.
@@ -296,7 +294,14 @@ We use DDP this way because `ddp_spawn` has a few limitations (due to Python and
 
 3. Forces everything to be picklable.
 
-However, if you don't mind these limitations, you can use `ddp_spawn`.
+There are cases in which it is not possible to use DDP. Examples are:
+
+- Jupyter Notebook
+- Google COLAB, Kaggle, etc.
+- You have a nested script without a root package
+- Your script needs to invoke `.fit` or `.test` multiple times
+
+In these situations you should use `dp` or `ddp_spawn` instead.
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

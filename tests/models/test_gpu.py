@@ -112,9 +112,11 @@ def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
     cli_args += ['--default_root_dir', str(tmpdir)]
     cli_args += ['--variation', variation]
     command = [sys.executable, str(file)] + cli_args
+
     # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
     env = os.environ.copy()
     env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
+
     # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     p.communicate()
