@@ -37,9 +37,13 @@ A lightningModule defines
 .. testcode::
     :skipif: not TORCHVISION_AVAILABLE
 
-
+    import os
+    import torch
+    import torch.nn.functional as F
+    from torchvision.datasets import MNIST
+    from torchvision import transforms
+    from torch.utils.data import DataLoader
     import pytorch_lightning as pl
-    from pytorch_lightning.metrics.functional import accuracy
 
     class LitModel(pl.LightningModule):
 
