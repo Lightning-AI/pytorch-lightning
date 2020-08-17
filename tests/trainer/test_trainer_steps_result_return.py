@@ -548,7 +548,6 @@ def test_loop_steps_only_dp(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
     model.validation_step = model.validation_step_result_obj_dp
-    model.val_dataloader = None
     model.test_dataloader = None
 
     trainer = Trainer(
