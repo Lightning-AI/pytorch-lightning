@@ -158,7 +158,7 @@ class EarlyStopping(Callback):
 
     def __warn_deprecated_monitor_key(self):
         using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
-        invalid_key = self.monitor not in ['val_loss', 'early_stop_on']
+        invalid_key = self.monitor not in ['val_loss', 'early_stop_on', 'val_early_step_on']
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
             m = f"""
@@ -171,10 +171,10 @@ class EarlyStopping(Callback):
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
 
-        self.__warn_deprecated_monitor_key()
-
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
+
+        self.__warn_deprecated_monitor_key()
 
         current = logs.get(self.monitor)
 
