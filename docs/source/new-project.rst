@@ -355,7 +355,8 @@ And the matching code:
 
 |
 
-.. test-block::
+.. testcode::
+    :skipif: not TORCHVISION_AVAILABLE
 
     class MNISTDataModule(pl.LightningDataModule):
 
