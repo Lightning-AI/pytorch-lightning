@@ -477,8 +477,15 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
-
-            print("batch_idx", batch_idx, self.num_training_batches)
+            # stop epoch if we limited the number of training batches
+            if batch_idx >= self.num_training_batches:
+                # if not breaking on the first batch, we will need to reset the global_step and total_batch_idx to
+                # the ones in the last step so that we can record the results from training_epoch_end on the last
+                # proper batch training step done
+                if batch_idx != 0:
+                    self.total_batch_idx -= 1
+                    self.global_step = model.global_step
+                break
 
             self.batch_idx = batch_idx
             model.global_step = self.global_step
@@ -535,14 +542,11 @@ class TrainerTrainLoopMixin(ABC):
             if self.should_stop:
                 break
 
-            # stop epoch if we limited the number of training batches
-            if batch_idx+1 >= self.num_training_batches:
-                break
-
-            # max steps reached, end training
             next_global_step, next_total_batch_idx = self.increment_accumulated_grad_global_step()
+            # max steps reached, end training
             if self.max_steps is not None and self.max_steps == next_global_step:
                 break
+
 
             # progress global step according to grads progress. If it is the last batch, we will increment the
             # global_step after the loop is finished
@@ -750,13 +754,17 @@ class TrainerTrainLoopMixin(ABC):
             hvd.join(hvd.local_rank() if self.on_gpu else -1)
 
     def increment_accumulated_grad_global_step(self):
+        global_step = deepcopy(self.global_step)
+        total_batch_idx = deepcopy(self.total_batch_idx)
+
         # progress global step according to grads progress
         if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
                 or (self.batch_idx + 1) == self.num_training_batches):
-            global_step = self.global_step + 1
-        total_batch_idx = self.total_batch_idx + 1
+            global_step += 1
+        total_batch_idx += 1
 
         return global_step, total_batch_idx
+
 
     def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
