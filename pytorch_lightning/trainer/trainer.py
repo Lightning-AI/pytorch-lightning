@@ -950,7 +950,7 @@ class Trainer(
         """
         results = None
 
-        # bind logger and other properties, log model graph if possible
+        # bind logger and other properties
         self.copy_trainer_model_properties(model)
 
         # clean hparams
