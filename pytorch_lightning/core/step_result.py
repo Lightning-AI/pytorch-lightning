@@ -413,11 +413,11 @@ def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
         # items is not a sequence, empty, or contains non-tensors
         return items
 
-    if all(item.shape == items[0].shape for item in items):
-        # all tensors have the same shape
+    if all(item.ndim == 0 for item in items):
+        # all tensors are scalars, we need to stack
         return torch.stack(items)
 
-    if all(item.shape[1:] == items[0].shape[1:] for item in items):
+    if all(item.ndim >= 1 and item.shape[1:] == items[0].shape[1:] for item in items):
         # we can concatenate along the first dimension
         return torch.cat(items)
 

@@ -177,7 +177,7 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
 
 
 def test_result_gather_stack():
-    """ Test that tensors get stacked when they all have the same shape. """
+    """ Test that tensors get concatenated when they all have the same shape. """
     outputs = [
         {"foo": torch.zeros(4, 5)},
         {"foo": torch.zeros(4, 5)},
@@ -185,19 +185,19 @@ def test_result_gather_stack():
     ]
     result = Result.gather(outputs)
     assert isinstance(result["foo"], torch.Tensor)
-    assert list(result["foo"].shape) == [3, 4, 5]
+    assert list(result["foo"].shape) == [12, 5]
 
 
 def test_result_gather_concatenate():
-    """ Test that tensors that cannot be stacked get concatenated along the first dim. """
+    """ Test that tensors get concatenated when they have varying size in first dimension. """
     outputs = [
         {"foo": torch.zeros(4, 5)},
-        {"foo": torch.zeros(4, 5)},
+        {"foo": torch.zeros(8, 5)},
         {"foo": torch.zeros(3, 5)},
     ]
     result = Result.gather(outputs)
     assert isinstance(result["foo"], torch.Tensor)
-    assert list(result["foo"].shape) == [11, 5]
+    assert list(result["foo"].shape) == [15, 5]
 
 
 def test_result_gather_scalar():
