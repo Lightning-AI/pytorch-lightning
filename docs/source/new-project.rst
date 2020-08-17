@@ -364,6 +364,7 @@ And the matching code:
             self.batch_size = batch_size
 
         def prepare_data(self):
+            # optional to support downloading only once when using multi-GPU or multi-TPU
             MNIST(os.getcwd(), train=True, download=True)
             MNIST(os.getcwd(), train=False, download=True)
 
