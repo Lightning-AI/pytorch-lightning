@@ -87,6 +87,7 @@ class LightningLoggerBase(ABC):
             print("PREV", len(self._metrics_to_agg))
             return step, None
 
+        print("COUNTINYE")
         # compute the metrics
         agg_step, agg_mets = self._reduce_agg_metrics()
 
