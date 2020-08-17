@@ -83,11 +83,11 @@ class LightningLoggerBase(ABC):
         """
         # if you still receiving metric from the same step, just accumulate it
         if step == self._prev_step:
+            print("PREV 0", len(self._metrics_to_agg))
             self._metrics_to_agg.append(metrics)
-            print("PREV", len(self._metrics_to_agg))
+            print("PREV 1", len(self._metrics_to_agg))
             return step, None
 
-        print("COUNTINYE")
         # compute the metrics
         agg_step, agg_mets = self._reduce_agg_metrics()
 
