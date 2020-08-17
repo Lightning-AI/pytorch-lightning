@@ -20,6 +20,10 @@ jobs:
   setup-build-publish-deploy:
     name: tpu-testing-job
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7]
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 50
 
@@ -62,7 +66,7 @@ jobs:
     - name: Build and Push Docker Image
       run: |
         cd dockers/tpu-tests
-        docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" .
+        docker build --tag "$IMAGE:$GITHUB_RUN_ID" -f Dockerfile --build-arg "GITHUB_REF=$GITHUB_REF" --build-arg "TEST_IMAGE=1" --build-arg "PYTHON_VERSION=${{ matrix.python-version }}" .
         docker push "$IMAGE:$GITHUB_RUN_ID"
       shell: bash
 

@@ -40,7 +40,7 @@ references:
         # $CI_PULL_REQUEST seems to be of form: https://github.com/org/repo-name/pull/11.
         # Grab the last bit, e.g. pull/11, convert to pull/11/head, and use it
         # for the GITHUB_REF so Docker can pull the latest pending code in PR.
-        if [ -z "$CI_PULL_REQUEST" ]; then docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" .; else git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head && docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" .; fi
+        if [ -z "$CI_PULL_REQUEST" ]; then docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" .; else git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head && docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" --build-arg "PYTHON_VERSION=$PYTHON_VER" .; fi
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
@@ -99,9 +99,13 @@ references:
 jobs:
 
   TPU-tests:
+    parameters:
+      python:
+        type: string
     docker:
       - image: circleci/python:3.7
     environment:
+      - PYTHON_VER: << parameters.python >>
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
@@ -152,6 +156,9 @@ workflows:
     jobs:
       - build-Docs
       - TPU-tests:
+          matrix:
+            parameters:
+              python: ["3.6", "3.7"]
           filters:
             branches:
               # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
