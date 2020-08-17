@@ -362,7 +362,7 @@ class Result(Dict):
             if k == 'meta':
                 continue
 
-            self[k] = value.mean(dim=-1)
+            self[k] = torch.stack(value).mean(dim=-1)
 
     @property
     def should_reduce_on_epoch_end(self) -> bool:
