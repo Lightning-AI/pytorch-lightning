@@ -174,3 +174,34 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
         predictions = torch.load(prediction_file)
         size += len(predictions)
     assert size == len(dm.mnist_test)
+
+
+def test_result_gather_stack():
+    outputs = [
+        {"result": torch.zeros(4, 5)},
+        {"result": torch.zeros(4, 5)},
+        {"result": torch.zeros(4, 5)},
+    ]
+    result = Result.gather(outputs)
+    assert list(result["result"].shape) == [3, 4, 5]
+
+
+def test_result_gather_concatenate():
+    outputs = [
+        {"result": torch.zeros(4, 5)},
+        {"result": torch.zeros(4, 5)},
+        {"result": torch.zeros(3, 5)},
+    ]
+    result = Result.gather(outputs)
+    assert list(result["result"].shape) == [11, 5]
+
+
+def test_result_gather_scalar():
+    outputs = [
+        {"result": torch.tensor(1)},
+        {"result": torch.tensor(2)},
+        {"result": torch.tensor(3)},
+    ]
+    result = Result.gather(outputs)
+    assert list(result["result"].shape) == [3]
+
