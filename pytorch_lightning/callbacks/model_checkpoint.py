@@ -235,6 +235,9 @@ class ModelCheckpoint(Callback):
         print(inspect.currentframe().f_code.co_name + f'Line 229   {current.device}')
 
         print(f'The current device is: {current.device}')
+        print('current:', current)
+        print('best k models', self.best_k_models)
+        print('kth_best_model_path:', self.kth_best_model_path)
 
         return monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
