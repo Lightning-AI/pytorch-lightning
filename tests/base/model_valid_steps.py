@@ -57,7 +57,8 @@ class ValidationStepVariations(ABC):
         x = x.view(x.size(0), -1)
         y_hat = self(x)
 
-        loss_val = self.loss(y.to(y_hat.device), y_hat)
+        y = y.to(y_hat.device)
+        loss_val = self.loss(y, y_hat)
 
         # acc
         labels_hat = torch.argmax(y_hat, dim=1)
