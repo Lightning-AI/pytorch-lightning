@@ -44,6 +44,7 @@ A lightningModule defines
     from torchvision import transforms
     from torch.utils.data import DataLoader
     import pytorch_lightning as pl
+    from torch.utils.data import random_split
 
     class LitModel(pl.LightningModule):
 
@@ -354,30 +355,48 @@ And the matching code:
 
 |
 
-.. code-block:: python
+.. test-block::
 
-    class MyDataModule(pl.DataModule):
+    class MNISTDataModule(pl.LightningDataModule):
 
-        def __init__(self):
-            ...
+        def __init__(self, batch_size=32):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def prepare_data(self):
+            MNIST(os.getcwd(), train=True, download=True)
+            MNIST(os.getcwd(), train=False, download=True)
+
+        def setup(self, stage):
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ])
+
+            if stage == 'fit':
+                mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
+                self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
+            if stage == 'test':
+                mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
+                self.mnist_test = MNIST(os.getcwd(), train=False, download=True)
 
         def train_dataloader(self):
-            # your train transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
+            return mnist_train
 
         def val_dataloader(self):
-            # your val transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
+            return mnist_val
 
         def test_dataloader(self):
-            # your test transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_test = DataLoader(mnist_test, batch_size=self.batch_size)
+            return mnist_test
 
 And train like so:
 
 .. code-block:: python
 
-    dm = MyDataModule()
+    dm = MNISTDataModule()
     trainer.fit(model, dm)
 
 When doing distributed training, Datamodules have two optional arguments for granular control
