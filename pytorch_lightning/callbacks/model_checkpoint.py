@@ -340,8 +340,6 @@ class ModelCheckpoint(Callback):
     def on_validation_end(self, trainer, pl_module):
         print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         # only run on main process
-        if trainer.global_rank != 0 and not trainer.on_tpu:
-            return
 
         if trainer.running_sanity_check:
             return
