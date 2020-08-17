@@ -520,6 +520,7 @@ class TrainerTrainLoopMixin(ABC):
             should_check_val = self.should_check_val(batch_idx, is_last_batch)
             if should_check_val:
                 self.run_evaluation(test_mode=False)
+                print("global_step eval", self.global_step)
 
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
@@ -559,6 +560,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # process epoch outputs
         self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers)
+        print("global_step train eval", self.global_step)
 
         # checkpoint callback
         self.check_checkpoint_callback(should_check_val)
