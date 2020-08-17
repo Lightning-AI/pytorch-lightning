@@ -34,10 +34,10 @@ class GpuUsageLogger(Callback):
 
     Example::
 
-        >> from pytorch_lightning import Trainer
-        >> from pytorch_lightning.callbacks import GpuUsageLogger
-        >> gpu_usage = GpuUsageLogger()
-        >> trainer = Trainer(callbacks=[gpu_usage])
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.callbacks import GpuUsageLogger
+        >>> gpu_usage = GpuUsageLogger() # doctest: +SKIP
+        >>> trainer = Trainer(callbacks=[gpu_usage]) # doctest: +SKIP
 
     Gpu usage is mainly based on nvidia-smi --query-gpu command.
     The description of the queries used here as appears in
