@@ -21,9 +21,7 @@ Automatically save model checkpoints during training.
 """
 
 import os
-import pdb
 import re
-import inspect
 from typing import Optional
 
 import numpy as np
@@ -121,7 +119,6 @@ class ModelCheckpoint(Callback):
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
-        print(inspect.currentframe().f_code.co_name)
         super().__init__()
         self._fs = get_filesystem(filepath if filepath is not None else "")
         if save_top_k > 0 and filepath is not None and self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
@@ -175,14 +172,12 @@ class ModelCheckpoint(Callback):
 
     @property
     def best(self):
-        print(inspect.currentframe().f_code.co_name)
         rank_zero_warn("Attribute `best` has been renamed to `best_model_score` since v0.8.0"
                        " and will be removed in v0.10.0", DeprecationWarning)
         return self.best_model_score
 
     @property
     def kth_best_model(self):
-        print(inspect.currentframe().f_code.co_name)
         rank_zero_warn("Attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
                        " and will be removed in v0.10.0", DeprecationWarning)
         return self.kth_best_model_path
@@ -193,7 +188,6 @@ class ModelCheckpoint(Callback):
             self._fs.rm(filepath)
 
     def _save_model(self, filepath, trainer, pl_module):
-        print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
 
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
@@ -208,15 +202,9 @@ class ModelCheckpoint(Callback):
             raise ValueError(".save_function() not set")
 
     def check_monitor_top_k(self, current):
-        print(inspect.currentframe().f_code.co_name)
-
         less_than_k_models = len(self.best_k_models) < self.save_top_k
-        print('less_than_k_models ', less_than_k_models)
         if less_than_k_models:
-            print(inspect.currentframe().f_code.co_name + f'Line 211   {current.device}')
             return True
-
-
 
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
@@ -225,19 +213,10 @@ class ModelCheckpoint(Callback):
             )
             current = torch.tensor(current)
 
-        print(inspect.currentframe().f_code.co_name + f'Line 222   {current.device}')
-
         monitor_op = {
             "min": torch.lt,
             "max": torch.gt,
         }[self.mode]
-
-        print(inspect.currentframe().f_code.co_name + f'Line 229   {current.device}')
-
-        print(f'The current device is: {current.device}')
-        print('current:', current)
-        print('best k models', self.best_k_models)
-        print('kth_best_model_path:', self.kth_best_model_path)
 
         return monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
@@ -338,7 +317,6 @@ class ModelCheckpoint(Callback):
             )
 
     def on_validation_end(self, trainer, pl_module):
-        print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         # only run on main process
 
         if trainer.running_sanity_check:
@@ -391,7 +369,6 @@ class ModelCheckpoint(Callback):
                     f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
                 )
             elif self.check_monitor_top_k(current):
-                print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}' + 'Line 368')
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose > 0:
                 log.info(f'Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}')
@@ -400,7 +377,6 @@ class ModelCheckpoint(Callback):
             if self.verbose > 0:
                 log.info(f'Epoch {epoch:d}: saving model to {filepath}')
 
-            log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}' + 'Line 378')
             self._save_model(filepath, trainer, pl_module)
 
         if self.save_last:
@@ -413,7 +389,6 @@ class ModelCheckpoint(Callback):
                 self._del_model(self.last_model_path)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
-        print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}')
         # remove kth
 
         del_list = []
@@ -424,8 +399,6 @@ class ModelCheckpoint(Callback):
                 self.best_k_models.pop(self.kth_best_model_path)
                 del_list.append(delpath)
 
-            print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
-
             self.best_k_models[filepath] = current
             if len(self.best_k_models) == self.save_top_k:
                 # monitor dict has reached k elements
@@ -433,8 +406,6 @@ class ModelCheckpoint(Callback):
                 self.kth_best_model_path = _op(self.best_k_models,
                                                key=self.best_k_models.get)
                 self.kth_value = self.best_k_models[self.kth_best_model_path]
-
-            print(inspect.currentframe().f_code.co_name + f' Line 385 rank: {trainer.global_rank}')
 
             _op = min if self.mode == 'min' else max
             self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
@@ -448,8 +419,6 @@ class ModelCheckpoint(Callback):
                 f' {current:0.5f} (best {self.best_model_score:0.5f}),'
                 f' saving model to {filepath} as top {self.save_top_k}')
         self._save_model(filepath, trainer, pl_module)
-
-        print(inspect.currentframe().f_code.co_name + f' Line 410 rank: {trainer.global_rank}')
 
         for cur_path in del_list:
             if cur_path != filepath:
