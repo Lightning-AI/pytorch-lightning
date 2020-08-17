@@ -7,6 +7,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.step_result import TrainResult
 from tests.base import EvalModelTemplate
 from tests.base.deterministic_model import DeterministicModel
@@ -543,3 +544,43 @@ def test_result_map(tmpdir):
     assert 'x2' not in result
     assert 'y1' in result
     assert 'y2' in result
+
+
+def test_result_monitor_warnings(tmpdir):
+    """
+    Tests that we warn when the monitor key is changed and we use Results obj
+    """
+    model = EvalModelTemplate()
+    model.test_step = None
+    model.training_step = model.training_step_result_obj
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_result_obj
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    model.test_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        early_stop_callback=True,
+        row_log_interval=2,
+        limit_train_batches=2,
+        weights_summary=None,
+        checkpoint_callback=ModelCheckpoint(monitor='not_val_loss')
+    )
+
+    with pytest.warns(UserWarning, match='key of ModelCheckpoint has no effect'):
+        trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        row_log_interval=2,
+        limit_train_batches=2,
+        weights_summary=None,
+        early_stop_callback=EarlyStopping(monitor='not_val_loss')
+    )
+
+    with pytest.warns(UserWarning, match='key of EarlyStopping has no effec'):
+        trainer.fit(model)

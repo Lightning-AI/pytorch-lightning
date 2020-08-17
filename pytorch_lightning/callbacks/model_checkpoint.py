@@ -138,6 +138,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = 0
         self.best_model_path = ''
         self.save_function = None
+        self.warned_result_obj = False
 
         torch_inf = torch.tensor(np.Inf)
         mode_dict = {
@@ -297,11 +298,26 @@ class ModelCheckpoint(Callback):
         if not gfile.exists(self.dirpath):
             makedirs(self.dirpath)
 
+    def __warn_deprecated_monitor_key(self):
+        using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
+        invalid_key = self.monitor not in ['val_loss', 'checkpoint_on']
+        if using_result_obj and not self.warned_result_obj and invalid_key:
+            self.warned_result_obj = True
+            m = f"""
+                    When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the
+                    'monitor' key of ModelCheckpoint has no effect.
+                    Remove ModelCheckpoint(monitor='{self.monitor}) to fix')
+                """
+            rank_zero_warn(m)
+
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
         if trainer.global_rank != 0:
             return
+
+        # TODO: remove when dict results are deprecated
+        self.__warn_deprecated_monitor_key()
 
         metrics = trainer.callback_metrics
         epoch = trainer.current_epoch
