@@ -238,7 +238,6 @@ class ModelCheckpoint(Callback):
         return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
-        print(inspect.currentframe().f_code.co_name)
         """Generate a filename according to the defined template.
 
         Example::
