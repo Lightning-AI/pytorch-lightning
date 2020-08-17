@@ -184,6 +184,7 @@ def test_result_gather_stack():
         {"foo": torch.zeros(4, 5)},
     ]
     result = Result.gather(outputs)
+    assert isinstance(result["foo"], torch.Tensor)
     assert list(result["foo"].shape) == [3, 4, 5]
 
 
@@ -195,6 +196,7 @@ def test_result_gather_concatenate():
         {"foo": torch.zeros(3, 5)},
     ]
     result = Result.gather(outputs)
+    assert isinstance(result["foo"], torch.Tensor)
     assert list(result["foo"].shape) == [11, 5]
 
 
@@ -206,6 +208,7 @@ def test_result_gather_scalar():
         {"foo": torch.tensor(3)},
     ]
     result = Result.gather(outputs)
+    assert isinstance(result["foo"], torch.Tensor)
     assert list(result["foo"].shape) == [3]
 
 
@@ -218,4 +221,5 @@ def test_result_gather_different_shapes():
     ]
     result = Result.gather(outputs)
     expected = [torch.tensor(1), torch.zeros(2, 3), torch.zeros(1, 2, 3)]
+    assert isinstance(result["foo"], list)
     assert all(torch.eq(r, e).all() for r, e in zip(result["foo"], expected))
