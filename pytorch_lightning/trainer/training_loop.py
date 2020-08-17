@@ -482,9 +482,9 @@ class TrainerTrainLoopMixin(ABC):
                 # if not breaking on the first batch, we will need to reset the global_step and total_batch_idx to
                 # the ones in the last step so that we can record the results from training_epoch_end on the last
                 # proper batch training step done
-                if batch_idx != 0:
-                    self.total_batch_idx -= 1
-                    self.global_step = model.global_step
+                # if batch_idx != 0:
+                #     self.total_batch_idx -= 1
+                #     self.global_step = model.global_step
                 break
 
             self.batch_idx = batch_idx
