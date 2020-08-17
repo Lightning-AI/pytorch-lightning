@@ -390,8 +390,6 @@ class ModelCheckpoint(Callback):
                     f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
                 )
             elif self.check_monitor_top_k(current):
-                if trainer.is_global_zero:
-                    pdb.set_trace()
                 print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}' + 'Line 368')
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose > 0:
