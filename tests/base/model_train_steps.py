@@ -66,6 +66,19 @@ class TrainingStepVariations(ABC):
                 output /= 0
         return output
 
+    def training_step_full_loop_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
+        """
+        Full loop flow train step (result obj + dp)
+        """
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x.to(self.device))
+        loss_val = y_hat.sum()
+        result = TrainResult(minimize=loss_val)
+        result.log('train_step_metric', loss_val + 1)
+        self.training_step_called = True
+        return result
+
     def training_step_result_obj_dp(self, batch, batch_idx, optimizer_idx=None):
         # forward pass
         x, y = batch
