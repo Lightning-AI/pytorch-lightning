@@ -4,6 +4,7 @@ from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, An
 
 import torch
 from torch import Tensor
+import os
 
 from pytorch_lightning.metrics.converters import _sync_ddp_if_available
 
@@ -19,6 +20,9 @@ class Result(Dict):
     ):
 
         super().__init__()
+
+        # temporary until dict results are deprecated
+        os.environ['PL_USING_RESULT_OBJ'] = '1'
 
         if early_stop_on is not None:
             self.early_stop_on = early_stop_on

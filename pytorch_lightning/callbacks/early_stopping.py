@@ -14,6 +14,7 @@ import torch.distributed as dist
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
+import os
 
 torch_inf = torch.tensor(np.Inf)
 
@@ -72,6 +73,7 @@ class EarlyStopping(Callback):
         self.wait_count = 0
         self.stopped_epoch = 0
         self.mode = mode
+        self.warned_result_obj = False
 
         if mode not in self.mode_dict:
             if self.verbose > 0:
@@ -154,8 +156,22 @@ class EarlyStopping(Callback):
         if should_check_early_stop:
             self._run_early_stopping_check(trainer, pl_module)
 
+    def __warn_deprecated_monitor_key(self):
+        using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
+        invalid_key = self.monitor not in ['val_loss', 'early_stop_on']
+        if using_result_obj and not self.warned_result_obj and invalid_key:
+            self.warned_result_obj = True
+            m = f"""
+                    When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the 
+                    'monitor' key of EarlyStopping has no effect. 
+                    Remove EarlyStopping(monitor='{self.monitor}) to fix')
+                """
+            rank_zero_warn(m)
+
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
+
+        self.__warn_deprecated_monitor_key()
 
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
