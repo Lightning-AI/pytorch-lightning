@@ -1,6 +1,6 @@
 import numbers
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple
 
 import torch
 from torch import Tensor
@@ -405,19 +405,24 @@ def recursive_stack(result: MutableMapping):
         if isinstance(v, dict):
             recursive_stack(v)
 
-        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
-            v = torch.stack(v)
-            result[k] = v
+        result[k] = collate_tensors(v)
 
 
-def recursive_padded_stack(result: MutableMapping):
-    for k, v in result.items():
-        if isinstance(v, dict):
-            recursive_stack(v)
+def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
+    if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
+        # items is not a sequence, empty, or contains non-tensors
+        print('here')
+        return items
 
-        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
-            v = torch.stack(v)
-            result[k] = v
+    if all(item.shape == items[0].shape for item in items):
+        # all tensors have the same shape
+        return torch.stack(items)
+
+    if all(item.shape[1:] == items[0].shape[1:] for item in items):
+        # we can concatenate along the first dimension
+        return torch.cat(items)
+
+    return items
 
 
 class TrainResult(Result):
