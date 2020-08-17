@@ -952,8 +952,6 @@ class Trainer(
 
         # bind logger and other properties, log model graph if possible
         self.copy_trainer_model_properties(model)
-        if self.logger is not None:
-            self.logger.log_graph(model)
 
         # clean hparams
         if hasattr(model, 'hparams'):
@@ -1154,6 +1152,7 @@ class Trainer(
         if self.logger is not None:
             # save exp to get started
             self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_graph(model)
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:

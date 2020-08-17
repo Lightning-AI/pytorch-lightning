@@ -221,7 +221,6 @@ class LightningLoggerBase(ABC):
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
 
-    @rank_zero_only
     def log_graph(self, model: LightningModule) -> None:
         """
         Record model graph
