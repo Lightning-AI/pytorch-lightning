@@ -1,6 +1,7 @@
 ARG PYTHON_VERSION=3.7
+ARG PYTORCH_VERSION=1.6
 
-FROM pytorchlightning/pytorch_lightning:XLA-extras-py${PYTHON_VERSION}
+FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
 # Build args.
 ARG GITHUB_REF=refs/heads/master
