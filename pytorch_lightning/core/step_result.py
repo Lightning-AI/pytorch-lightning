@@ -361,8 +361,9 @@ class Result(Dict):
         for k, value in self.items():
             if k == 'meta':
                 continue
-
-            self[k] = torch.stack(value).mean(dim=-1)
+            if isinstance(value, list):
+                value = torch.tensor(value)
+            self[k] = value.mean(dim=-1)
 
     @property
     def should_reduce_on_epoch_end(self) -> bool:
