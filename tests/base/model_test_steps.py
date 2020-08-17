@@ -133,7 +133,6 @@ class TestStepVariations(ABC):
     def test_step__empty(self, batch, batch_idx, *args, **kwargs):
         return {}
 
-
     def test_step_result_preds(self, batch, batch_idx, optimizer_idx=None):
         x, y = batch
         x = x.view(x.size(0), -1)
@@ -174,13 +173,13 @@ class TestStepVariations(ABC):
         elif option == 1:
             result.write('idxs', torch.cat((lazy_ids, lazy_ids)), prediction_file)
             result.write('preds', labels_hat, prediction_file)
-        
+
         # write multi-dimension
         elif option == 2:
             result.write('idxs', lazy_ids, prediction_file)
             result.write('preds', labels_hat, prediction_file)
             result.write('x', x, prediction_file)
-        
+
         # write str list
         elif option == 3:
             result.write('idxs', lazy_ids, prediction_file)
