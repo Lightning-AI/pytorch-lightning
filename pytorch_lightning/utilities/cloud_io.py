@@ -65,7 +65,7 @@ def atomic_save(checkpoint, filepath: str, is_xla_tensor=False):
     if is_xla_tensor:
         print(inspect.currentframe().f_code.co_name)
         saved = xm.save(checkpoint['state_dict'], filepath, master_only=True, global_master=True)
-        print(inspect.currentframe().f_code.co_name)
+        print(inspect.currentframe().f_code.co_name, 'Done saving')
         return saved
 
     elif LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
