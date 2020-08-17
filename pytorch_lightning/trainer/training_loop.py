@@ -537,11 +537,6 @@ class TrainerTrainLoopMixin(ABC):
             monitor_metrics.update(batch_output.batch_log_metrics)
             self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
-            # max steps reached, end training
-            if self.max_steps is not None and self.max_steps == self.global_step+1:
-                print("self.max_steps", self.max_steps)
-                break
-
             # end epoch early
             # stop when the flag is changed or we've gone past the amount
             # requested in the batches
