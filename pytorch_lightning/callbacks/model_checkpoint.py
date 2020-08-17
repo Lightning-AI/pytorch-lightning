@@ -206,6 +206,7 @@ class ModelCheckpoint(Callback):
         else:
             raise ValueError(".save_function() not set")
 
+    @rank_zero_only
     def check_monitor_top_k(self, current):
         print(inspect.currentframe().f_code.co_name)
 
@@ -447,9 +448,10 @@ class ModelCheckpoint(Callback):
 
         print(inspect.currentframe().f_code.co_name + f' Line 410 rank: {trainer.global_rank}')
 
-        for cur_path in del_list:
-            if cur_path != filepath:
-                self._del_model(cur_path)
+        if trainer.is_global_zero:
+            for cur_path in del_list:
+                if cur_path != filepath:
+                    self._del_model(cur_path)
 
     def on_save_checkpoint(self, trainer, pl_module):
         return {
