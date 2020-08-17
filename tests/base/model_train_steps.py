@@ -83,7 +83,7 @@ class TrainingStepVariations(ABC):
         # forward pass
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self(x)
+        y_hat = self(x.to(self.device))
 
         # calculate loss
         loss_val = self.loss(y.to(y_hat.device), y_hat)

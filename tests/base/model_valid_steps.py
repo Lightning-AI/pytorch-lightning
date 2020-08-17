@@ -55,7 +55,7 @@ class ValidationStepVariations(ABC):
     def validation_step_result_obj_dp(self, batch, batch_idx, *args, **kwargs):
         x, y = batch
         x = x.view(x.size(0), -1)
-        y_hat = self(x)
+        y_hat = self(x.to(self.device))
 
         y = y.to(y_hat.device)
         loss_val = self.loss(y, y_hat)
