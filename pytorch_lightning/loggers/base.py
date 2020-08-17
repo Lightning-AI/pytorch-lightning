@@ -142,8 +142,8 @@ class LightningLoggerBase(ABC):
             step: Step number at which the metrics should be recorded
         """
         agg_step, metrics_to_log = self._aggregate_metrics(metrics=metrics, step=step)
-        print("metrics")
-        print(metrics)
+        print("metrics", step)
+        print(metrics.keys())
 
         if metrics_to_log:
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
