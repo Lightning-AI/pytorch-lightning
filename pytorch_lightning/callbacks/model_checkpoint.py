@@ -304,8 +304,8 @@ class ModelCheckpoint(Callback):
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
             m = f"""
-                    When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the 
-                    'monitor' key of ModelCheckpoint has no effect. 
+                    When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the
+                    'monitor' key of ModelCheckpoint has no effect.
                     Remove ModelCheckpoint(monitor='{self.monitor}) to fix')
                 """
             rank_zero_warn(m)
