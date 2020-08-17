@@ -83,6 +83,9 @@ class TrainingStepVariations(ABC):
         result = TrainResult(loss_val)
         result.log('some_val', log_val * log_val, prog_bar=True, logger=False)
         result.log('train_some_val', log_val * log_val)
+
+        self.training_step_called = True
+
         return result
 
     def training_step_end_full_loop_result_obj_dp(self, result):

@@ -564,6 +564,9 @@ def test_loop_steps_only_dp(tmpdir):
 
     trainer.fit(model)
 
+    assert model.training_step_called
+    assert model.validation_step_called
+
 
 def test_result_map(tmpdir):
     result = TrainResult()
