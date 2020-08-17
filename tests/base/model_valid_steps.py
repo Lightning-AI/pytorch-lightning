@@ -71,7 +71,7 @@ class ValidationStepVariations(ABC):
             'val_acc': val_acc,
         })
 
-        # self.validation_step_called = True
+        self.validation_step_called = True
         return result
 
     def validation_step__multiple_dataloaders(self, batch, batch_idx, dataloader_idx, **kwargs):
