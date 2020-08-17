@@ -170,7 +170,11 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_graph(self, model: LightningModule):
         if self._log_graph:
             if model.example_input_array is not None:
-                self.experiment.add_graph(model, model.example_input_array)
+                self.experiment.add_graph(
+                    model,
+                    model.transfer_batch_to_device(
+                        model.example_input_array, model.device)
+                )
             else:
                 rank_zero_warn('Could not log computational graph since the'
                                ' `model.example_input_array` attribute is not set.',
