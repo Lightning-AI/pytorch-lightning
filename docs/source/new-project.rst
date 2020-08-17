@@ -88,7 +88,7 @@ Here's an example of using the Trainer:
     # init model
     model = LitModel()
 
-    # most basic trainer, uses good defaults
+    # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
