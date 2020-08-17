@@ -343,17 +343,20 @@ class TrainerEvaluationLoopMixin(ABC):
                     m = 'only EvalResults or dicts are allowed from validation_step'
                     raise MisconfigurationException(m)
 
+                # ------------------
+                # EVAL STEP END
+                # ------------------
                 # on dp / ddp2 might still want to do something with the batch parts
-                if test_mode:
-                    if self.is_overridden('test_step_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('test_step_end'):
-                            output = model_ref.test_step_end(output)
-                else:
-                    if self.is_overridden('validation_step_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('validation_step_end'):
-                            output = model_ref.validation_step_end(output)
+                eval_step_end_hook_name = 'test_step_end' if test_mode else 'validation_step_end'
+                if self.is_overridden(eval_step_end_hook_name):
+                    model_ref = self.get_model()
+                    with self.profiler.profile(eval_step_end_hook_name):
+                        eval_step_end = getattr(model_ref, eval_step_end_hook_name)
+                        output = eval_step_end(output)
+
+                elif is_result_obj and (self.use_dp or self.use_ddp2):
+                    # result auto reduce
+                    output.dp_reduce()
 
                 # callbacks (on __batch_end)
                 if test_mode:
