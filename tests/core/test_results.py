@@ -177,31 +177,45 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
 
 
 def test_result_gather_stack():
+    """ Test that tensors get stacked when they all have the same shape. """
     outputs = [
-        {"result": torch.zeros(4, 5)},
-        {"result": torch.zeros(4, 5)},
-        {"result": torch.zeros(4, 5)},
+        {"foo": torch.zeros(4, 5)},
+        {"foo": torch.zeros(4, 5)},
+        {"foo": torch.zeros(4, 5)},
     ]
     result = Result.gather(outputs)
-    assert list(result["result"].shape) == [3, 4, 5]
+    assert list(result["foo"].shape) == [3, 4, 5]
 
 
 def test_result_gather_concatenate():
+    """ Test that tensors that cannot be stacked get concatenated along the first dim. """
     outputs = [
-        {"result": torch.zeros(4, 5)},
-        {"result": torch.zeros(4, 5)},
-        {"result": torch.zeros(3, 5)},
+        {"foo": torch.zeros(4, 5)},
+        {"foo": torch.zeros(4, 5)},
+        {"foo": torch.zeros(3, 5)},
     ]
     result = Result.gather(outputs)
-    assert list(result["result"].shape) == [11, 5]
+    assert list(result["foo"].shape) == [11, 5]
 
 
 def test_result_gather_scalar():
+    """ Test that 0-dim tensors get gathered and stacked correctly. """
     outputs = [
-        {"result": torch.tensor(1)},
-        {"result": torch.tensor(2)},
-        {"result": torch.tensor(3)},
+        {"foo": torch.tensor(1)},
+        {"foo": torch.tensor(2)},
+        {"foo": torch.tensor(3)},
     ]
     result = Result.gather(outputs)
-    assert list(result["result"].shape) == [3]
+    assert list(result["foo"].shape) == [3]
 
+
+def test_result_gather_different_shapes():
+    """ Test that tensors of varying shape get gathered into a list. """
+    outputs = [
+        {"foo": torch.tensor(1)},
+        {"foo": torch.zeros(2, 3)},
+        {"foo": torch.zeros(1, 2, 3)},
+    ]
+    result = Result.gather(outputs)
+    expected = [torch.tensor(1), torch.zeros(2, 3), torch.zeros(1, 2, 3)]
+    assert all(torch.eq(r, e).all() for r, e in zip(result["foo"], expected))

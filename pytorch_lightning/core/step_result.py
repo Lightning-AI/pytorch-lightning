@@ -411,7 +411,6 @@ def recursive_stack(result: MutableMapping):
 def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
     if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
         # items is not a sequence, empty, or contains non-tensors
-        print('here')
         return items
 
     if all(item.shape == items[0].shape for item in items):
