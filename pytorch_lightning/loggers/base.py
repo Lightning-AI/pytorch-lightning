@@ -147,6 +147,8 @@ class LightningLoggerBase(ABC):
         print(metrics.keys())
 
         if metrics_to_log:
+            print("metrics_to_log")
+            print(metrics_to_log.keys())
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     @abstractmethod
