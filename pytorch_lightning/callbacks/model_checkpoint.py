@@ -21,6 +21,7 @@ Automatically save model checkpoints during training.
 """
 
 import os
+import pdb
 import re
 import inspect
 from typing import Optional
@@ -206,7 +207,6 @@ class ModelCheckpoint(Callback):
         else:
             raise ValueError(".save_function() not set")
 
-    @rank_zero_only
     def check_monitor_top_k(self, current):
         print(inspect.currentframe().f_code.co_name)
 
@@ -390,6 +390,9 @@ class ModelCheckpoint(Callback):
                     f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
                 )
             elif self.check_monitor_top_k(current):
+                if trainer.is_global_zero:
+                    pdb.set_trace()
+                print(inspect.currentframe().f_code.co_name + f' rank: {trainer.global_rank}' + 'Line 368')
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose > 0:
                 log.info(f'Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}')
@@ -398,6 +401,7 @@ class ModelCheckpoint(Callback):
             if self.verbose > 0:
                 log.info(f'Epoch {epoch:d}: saving model to {filepath}')
 
+            log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}' + 'Line 378')
             self._save_model(filepath, trainer, pl_module)
 
         if self.save_last:
@@ -448,10 +452,9 @@ class ModelCheckpoint(Callback):
 
         print(inspect.currentframe().f_code.co_name + f' Line 410 rank: {trainer.global_rank}')
 
-        if trainer.is_global_zero:
-            for cur_path in del_list:
-                if cur_path != filepath:
-                    self._del_model(cur_path)
+        for cur_path in del_list:
+            if cur_path != filepath:
+                self._del_model(cur_path)
 
     def on_save_checkpoint(self, trainer, pl_module):
         return {
