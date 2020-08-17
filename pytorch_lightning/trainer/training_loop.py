@@ -477,16 +477,8 @@ class TrainerTrainLoopMixin(ABC):
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
                 enumerate(_with_is_last(train_dataloader)), "get_train_batch"
         ):
-            # stop epoch if we limited the number of training batches
-            if batch_idx >= self.num_training_batches:
-                self.decrement_accumulated_grad_global_step()
-                break
 
-            # max steps reached, end training
-            if self.max_steps is not None and self.max_steps == self.global_step:
-                # Undo increment_accumulated_grad_global_step as it will accounted for in the end of this function
-                self.decrement_accumulated_grad_global_step()
-                break
+            print("batch_idx", batch_idx, self.num_training_batches)
 
             self.batch_idx = batch_idx
             model.global_step = self.global_step
@@ -543,10 +535,19 @@ class TrainerTrainLoopMixin(ABC):
             if self.should_stop:
                 break
 
+            # stop epoch if we limited the number of training batches
+            if batch_idx+1 >= self.num_training_batches:
+                break
+
+            # max steps reached, end training
+            next_global_step, next_total_batch_idx = self.increment_accumulated_grad_global_step()
+            if self.max_steps is not None and self.max_steps == next_global_step:
+                break
+
             # progress global step according to grads progress. If it is the last batch, we will increment the
             # global_step after the loop is finished
             if not is_last_batch:
-                self.increment_accumulated_grad_global_step()
+                self.global_step, self.total_batch_idx = self.increment_accumulated_grad_global_step()
 
 
         # let ddp devices catch up when using horovod
@@ -562,7 +563,7 @@ class TrainerTrainLoopMixin(ABC):
         self.run_on_epoch_end_hook(model)
 
         # increate global step by one to progress to the next epoch
-        self.increment_accumulated_grad_global_step()
+        self.global_step, self.total_batch_idx = self.increment_accumulated_grad_global_step()
 
 
 
@@ -752,14 +753,10 @@ class TrainerTrainLoopMixin(ABC):
         # progress global step according to grads progress
         if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
                 or (self.batch_idx + 1) == self.num_training_batches):
-            self.global_step += 1
-        self.total_batch_idx += 1
+            global_step = self.global_step + 1
+        total_batch_idx = self.total_batch_idx + 1
 
-    def decrement_accumulated_grad_global_step(self):
-        # decrement global step according to grads progress
-        if (self.batch_idx) % self.accumulate_grad_batches == 0:
-            self.global_step = max(0, self.global_step-1)
-        self.total_batch_idx = max(0, self.total_batch_idx-1)
+        return global_step, total_batch_idx
 
     def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
