@@ -1232,7 +1232,6 @@ class TrainerTrainLoopMixin(ABC):
                 output = model_ref.training_step_end(output)
 
         elif is_result_obj and (self.use_dp or self.use_ddp2):
-            import pdb; pdb.set_trace()
             output.dp_reduce()
 
         # allow any mode to define training_end
