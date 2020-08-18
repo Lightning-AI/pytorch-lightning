@@ -163,7 +163,11 @@ def test_adding_step_key(tmpdir):
 
     model = EvalModelTemplate()
     model.validation_epoch_end = _validation_epoch_end
+    print("model.validation_epoch_end")
+    print(model.validation_epoch_end)
     model.training_epoch_end = _training_epoch_end
+    print("model.training_epoch_end")
+    print(model.training_epoch_end)
     trainer = Trainer(
         max_epochs=3,
         default_root_dir=tmpdir,
@@ -173,6 +177,8 @@ def test_adding_step_key(tmpdir):
     )
     trainer.logger.log_metrics = _log_metrics_decorator(
         trainer.logger.log_metrics)
+    print("trainer.logger.log_metrics")
+    print(trainer.logger.log_metrics)
     trainer.fit(model)
 
 
