@@ -1125,6 +1125,10 @@ class Trainer(
             if self.is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
 
+            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
+            if self.is_overridden('transfer_batch_to_device', datamodule):
+                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
+
             self.datamodule = datamodule
 
     def run_pretrain_routine(self, model: LightningModule):
