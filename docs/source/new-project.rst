@@ -40,7 +40,6 @@ A lightningModule defines
 - Optimizer
 
 .. code-block::
-    :skipif: not TORCHVISION_AVAILABLE
 
     import os
     import torch
