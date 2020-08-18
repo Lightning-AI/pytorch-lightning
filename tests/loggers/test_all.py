@@ -79,6 +79,8 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     trainer.test()
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
+    print("log_metric_names")
+    print(log_metric_names)
     assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
                                 (0, ['epoch', 'train_some_val']),
                                 (1, ['epoch', 'test_acc', 'test_loss'])]
