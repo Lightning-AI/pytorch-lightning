@@ -221,12 +221,13 @@ class LightningLoggerBase(ABC):
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
 
-    def log_graph(self, model: LightningModule) -> None:
+    def log_graph(self, model: LightningModule, input_array = None) -> None:
         """
         Record model graph
 
         Args:
             model: lightning model
+            input_array: input passes to `model.forward`
         """
         pass
 
@@ -306,9 +307,9 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
 
-    def log_graph(self, model: LightningModule) -> None:
+    def log_graph(self, model: LightningModule, input_array = None) -> None:
         for logger in self._logger_iterable:
-            logger.log_graph(model)
+            logger.log_graph(model, input_array)
 
     def save(self) -> None:
         for logger in self._logger_iterable:

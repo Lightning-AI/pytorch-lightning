@@ -123,9 +123,12 @@ class TestTubeLogger(LightningLoggerBase):
         self.experiment.log(metrics, global_step=step)
 
     @rank_zero_only
-    def log_graph(self, model: LightningModule):
+    def log_graph(self, model: LightningModule, input_array = None):
         if self._log_graph:
-            if model.example_input_array is not None:
+            if input_array is None:
+                input_array = model.example_input_array()
+
+            if input_array is not None:
                 self.experiment.add_graph(
                     model,
                     model.transfer_batch_to_device(
@@ -133,7 +136,8 @@ class TestTubeLogger(LightningLoggerBase):
                 )
             else:
                 rank_zero_warn('Could not log computational graph since the'
-                               ' `model.example_input_array` attribute is not set.',
+                               ' `model.example_input_array` attribute is not set'
+                               ' or `input_array` was not given',
                                UserWarning)
 
     @rank_zero_only
