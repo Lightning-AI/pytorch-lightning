@@ -16,6 +16,7 @@
 Quick Start
 ===========
 
+
 PyTorch Lightning is nothing more than organized PyTorch code.
 
 Once you've organized it into a LightningModule, it automates most of the training for you.
