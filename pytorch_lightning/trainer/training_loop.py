@@ -566,10 +566,10 @@ class TrainerTrainLoopMixin(ABC):
         # epoch end hook
         self.run_on_epoch_end_hook(model)
 
-        self.logger.save()
-
         # increate global step by one to progress to the next epoch
         self.global_step, self.total_batch_idx = self.increment_accumulated_grad_global_step()
+
+        self.log_metrics({}, {})
 
 
 
