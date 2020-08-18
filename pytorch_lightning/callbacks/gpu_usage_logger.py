@@ -1,5 +1,4 @@
 """
-
 GPU Usage Logger
 ====================
 
@@ -13,6 +12,7 @@ import subprocess
 import time
 
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -127,6 +127,12 @@ class GpuUsageLogger(Callback):
         if not trainer.logger:
             raise MisconfigurationException(
                 'Cannot use GpuUsageLogger callback with Trainer that has no logger.'
+            )
+
+        if not self.on_gpu:
+            rank_zero_warn(
+                'You are using GpuUsageLogger but are not running on GPU.'
+                'Logged utilization will be independent from your model.', RuntimeWarning
             )
 
     def on_train_epoch_start(self, trainer, pl_module):
