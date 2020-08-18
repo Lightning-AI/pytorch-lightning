@@ -126,7 +126,7 @@ class TestTubeLogger(LightningLoggerBase):
     def log_graph(self, model: LightningModule, input_array = None):
         if self._log_graph:
             if input_array is None:
-                input_array = model.example_input_array()
+                input_array = model.example_input_array
 
             if input_array is not None:
                 self.experiment.add_graph(
