@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType
 
@@ -32,6 +33,7 @@ class GPUBackend(object):
         # call setup
         self.trainer.call_setup_hook(model)
 
+        torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
 
         # CHOOSE OPTIMIZER
