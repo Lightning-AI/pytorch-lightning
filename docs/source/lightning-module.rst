@@ -51,7 +51,7 @@ Notice a few things.
 
         # or to init a new tensor
         new_x = torch.Tensor(2, 3)
-        new_x = new_x.type_as(x.type())
+        new_x = new_x.type_as(x)
 
 5.  There are no samplers for distributed, Lightning also does this for you.
 

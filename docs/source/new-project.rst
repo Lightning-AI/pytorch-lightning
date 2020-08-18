@@ -1,6 +1,7 @@
 .. testsetup:: *
 
     from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
     import os
     import torch
@@ -357,9 +358,9 @@ And the matching code:
 
 |
 
-.. code-block::
+.. testcode:: python
 
-    class MNISTDataModule(pl.LightningDataModule):
+    class MNISTDataModule(LightningDataModule):
 
         def __init__(self, batch_size=32):
             super().__init__()
@@ -407,7 +408,7 @@ over download/prepare/splitting data
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(LightningDataModule):
 
         def prepare_data(self):
             # called only on 1 GPU
@@ -415,12 +416,12 @@ over download/prepare/splitting data
             tokenize()
             etc()
 
-         def setup(self):
+        def setup(self, stage=None):
             # called on every GPU (assigning state is OK)
             self.train = ...
             self.val = ...
 
-         def train_dataloader(self):
+        def train_dataloader(self):
             # do more...
             return self.train
 
@@ -432,7 +433,7 @@ First, define the information that you might need.
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(LightningDataModule):
 
         def __init__(self):
             super().__init__()
@@ -444,7 +445,7 @@ First, define the information that you might need.
             tokenize()
             build_vocab()
 
-        def setup(self):
+        def setup(self, stage=None):
             vocab = load_vocab
             self.vocab_size = len(vocab)
 
