@@ -1221,6 +1221,8 @@ class TrainerTrainLoopMixin(ABC):
         else:
             output = self.model.training_step(*args)
 
+        is_result_obj = isinstance(output, Result)
+
         # allow any mode to define training_step_end
         # do something will all the dp outputs (like softmax)
         if self.is_overridden('training_step_end'):
@@ -1228,6 +1230,9 @@ class TrainerTrainLoopMixin(ABC):
             with self.profiler.profile('training_step_end'):
                 # TODO: modify when using result obj
                 output = model_ref.training_step_end(output)
+
+        elif is_result_obj and (self.use_dp or self.use_ddp2):
+            output.dp_reduce()
 
         # allow any mode to define training_end
         # TODO: remove in 1.0.0
