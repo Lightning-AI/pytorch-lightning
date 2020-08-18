@@ -416,12 +416,12 @@ over download/prepare/splitting data
             tokenize()
             etc()
 
-         def setup(self):
+        def setup(self, stage=None):
             # called on every GPU (assigning state is OK)
             self.train = ...
             self.val = ...
 
-         def train_dataloader(self):
+        def train_dataloader(self):
             # do more...
             return self.train
 
@@ -445,7 +445,7 @@ First, define the information that you might need.
             tokenize()
             build_vocab()
 
-        def setup(self):
+        def setup(self, stage=None):
             vocab = load_vocab
             self.vocab_size = len(vocab)
 
