@@ -158,11 +158,16 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
     logger.log_hyperparams(hparams, metrics)
 
 
-def test_tensorboard_log_graph(tmpdir):
-    """ test that log graph works """
+@pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 28 * 28)])
+def test_tensorboard_log_graph(tmpdir, example_input_array):
+    """ test that log graph works with both model.example_input_array and
+        if array is passed externaly
+    """
     model = EvalModelTemplate()
+    if example_input_array is None:
+        model.example_input_array = None
     logger = TensorBoardLogger(tmpdir)
-    logger.log_graph(model)
+    logger.log_graph(model, example_input_array)
 
 
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
