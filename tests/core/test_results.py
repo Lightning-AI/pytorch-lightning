@@ -223,3 +223,16 @@ def test_result_gather_different_shapes():
     expected = [torch.tensor(1), torch.zeros(2, 3), torch.zeros(1, 2, 3)]
     assert isinstance(result["foo"], list)
     assert all(torch.eq(r, e).all() for r, e in zip(result["foo"], expected))
+
+
+def test_result_gather_mixed_types():
+    """ Test that a collection of mixed types gets gathered into a list. """
+    outputs = [
+        {"foo": 1.2},
+        {"foo": ["bar", None]},
+        {"foo": torch.tensor(1)},
+    ]
+    result = Result.gather(outputs)
+    expected = [1.2, ["bar", None], torch.tensor(1)]
+    assert isinstance(result["foo"], list)
+    assert result["foo"] == expected
