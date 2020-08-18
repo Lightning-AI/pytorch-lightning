@@ -30,7 +30,7 @@ def test_gpu_usage_logger(tmpdir):
     results = trainer.fit(model)
     assert results
 
-    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_HPARAMS_FILE)
+    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     with open(path_csv, 'r') as fp:
         lines = fp.readlines()
 
