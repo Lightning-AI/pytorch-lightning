@@ -569,8 +569,6 @@ class TrainerTrainLoopMixin(ABC):
         # increate global step by one to progress to the next epoch
         self.global_step, self.total_batch_idx = self.increment_accumulated_grad_global_step()
 
-        self.log_metrics({}, {})
-
 
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):

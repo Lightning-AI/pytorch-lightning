@@ -75,6 +75,7 @@ class TrainerLoggingMixin(ABC):
         print(scalar_metrics)
         # log actual metrics
         if self.is_global_zero and self.logger is not None:
+            print("self.is_global_zero and self.logger is not None")
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
