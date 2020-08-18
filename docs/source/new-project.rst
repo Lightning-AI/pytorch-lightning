@@ -39,7 +39,7 @@ A lightningModule defines
 - Model + system architecture
 - Optimizer
 
-.. testcode::
+.. code-block::
     :skipif: not TORCHVISION_AVAILABLE
 
     import os
@@ -84,7 +84,7 @@ well across any accelerator.
 
 Here's an example of using the Trainer:
 
-.. testcode::
+.. code-block::
 
     # dataloader
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
@@ -360,7 +360,7 @@ And the matching code:
 
 |
 
-.. testcode::
+.. code-block::
     :skipif: not TORCHVISION_AVAILABLE
 
     class MNISTDataModule(pl.LightningDataModule):
