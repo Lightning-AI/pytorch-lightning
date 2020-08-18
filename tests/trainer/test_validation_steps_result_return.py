@@ -217,8 +217,6 @@ def test_val_step_only_step_metrics(tmpdir):
     total_empty_epoch_metrics = 0
     epoch = 0
     for metric in trainer.dev_debugger.logged_metrics:
-        print("metric")
-        print(metric.keys())
         if 'epoch' in metric:
             epoch += 1
         if len(metric) > 2:
