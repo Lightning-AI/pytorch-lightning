@@ -1,8 +1,5 @@
 r"""
-Callback Base
--------------
-
-Abstract base class used to build new callbacks.
+Subclass this class and override any of the relevant hooks
 
 """
 

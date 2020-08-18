@@ -1,3 +1,5 @@
+.. _tpu:
+
 TPU support
 ===========
 

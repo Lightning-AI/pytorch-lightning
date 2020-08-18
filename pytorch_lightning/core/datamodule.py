@@ -317,7 +317,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         depr_arg_names = blacklist + added_args
         depr_arg_names = set(depr_arg_names)
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (

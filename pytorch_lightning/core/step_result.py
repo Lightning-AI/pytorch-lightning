@@ -4,6 +4,7 @@ from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, An
 
 import torch
 from torch import Tensor
+import os
 
 from pytorch_lightning.metrics.converters import sync_ddp_if_available
 
@@ -19,6 +20,9 @@ class Result(Dict):
     ):
 
         super().__init__()
+
+        # temporary until dict results are deprecated
+        os.environ['PL_USING_RESULT_OBJ'] = '1'
 
         if early_stop_on is not None:
             self.early_stop_on = early_stop_on
@@ -356,6 +360,14 @@ class Result(Dict):
 
         result['meta'] = meta
         return result
+
+    def dp_reduce(self):
+        for k, value in self.items():
+            if k == 'meta':
+                continue
+            if isinstance(value, list):
+                value = torch.tensor(value)
+            self[k] = value.mean(dim=-1)
 
     @property
     def should_reduce_on_epoch_end(self) -> bool:
@@ -731,6 +743,61 @@ class EvalResult(Result):
         }
 
         return result
+
+    def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):
+        """Add feature name and value pair to collection of predictions that will be written to disk on
+        `validation_end` or `test_end`. If running on multiple GPUs, you will get separate `n_gpu`
+        prediction files with the rank prepended onto filename.
+
+        Example::
+
+            result = pl.EvalResult()
+            result.write('ids', [0, 1, 2])
+            result.write('preds', ['cat', 'dog', 'dog'])
+
+        Args:
+            name: Feature name that will turn into column header of predictions file
+            values: Flat tensor or list of row values for given feature column 'name'.
+            filename: Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
+        """
+        # Type check the incoming arguments
+        if not isinstance(name, str):
+            raise ValueError(f"Expected str for 'name' but got {type(name)}")
+        if not isinstance(filename, str):
+            raise ValueError(f"Expected str for 'filename' but got {type(name)}")
+
+        if isinstance(values, Tensor):
+            values = values.detach()
+
+        preds = getattr(self, 'predictions', None)
+        if preds is None:
+            self.predictions = {filename: {name: values}}
+        elif filename not in preds:
+            preds[filename] = {name: values}
+        elif name not in preds[filename]:
+            preds[filename][name] = values
+        elif isinstance(values, Tensor):
+            preds[filename][name] = torch.cat((preds[filename][name], values))
+        elif isinstance(values, list):
+            preds[filename][name].extend(values)
+
+    def write_dict(self, predictions_dict, filename='predictions.pt'):
+        """Calls EvalResult.write() for each key-value pair in predictions_dict.
+
+        It is recommended that you use this function call instead of .write if you need to
+        store more than one column of predictions in your output file.
+
+        Example::
+
+            predictions_to_write = {'preds': ['cat', 'dog'], 'ids': tensor([0, 1])}
+            result.write_dict(predictions_to_write)
+
+        Args:
+            predictions_dict ([type]): Dict of predictions to store and then write to filename at eval end.
+            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.pt'.
+        """
+        for k, v in predictions_dict.items():
+            self.write(k, v, filename)
 
 
 def weighted_mean(result, weights):

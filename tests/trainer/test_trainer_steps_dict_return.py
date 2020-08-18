@@ -3,6 +3,7 @@ Tests to ensure that the training loop works with a dict
 """
 from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
+import os
 
 
 def test_training_step_dict(tmpdir):
@@ -128,6 +129,50 @@ def test_full_training_loop_dict(tmpdir):
     pbar_metrics = train_step_end_out['progress_bar']
     assert pbar_metrics['pbar_acc1'] == 19.0
     assert pbar_metrics['pbar_acc2'] == 21.0
+
+
+def test_result_obj_lr_scheduler_epoch(tmpdir):
+    """
+    test that the LR scheduler was called at the correct time with the correct metrics
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+    model = DeterministicModel()
+    model.training_step = model.training_step_for_step_end_dict
+    model.training_step_end = model.training_step_end_dict
+    model.training_epoch_end = model.training_epoch_end_dict
+    model.val_dataloader = None
+    model.configure_optimizers = model.configure_optimizers__lr_on_plateau_epoch
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == 3
+
+
+def test_result_obj_lr_scheduler_step(tmpdir):
+    """
+    test that the LR scheduler was called at the correct time with the correct metrics
+    """
+    os.environ['PL_DEV_DEBUG'] = '1'
+    model = DeterministicModel()
+    model.training_step = model.training_step_for_step_end_dict
+    model.training_step_end = model.training_step_end_dict
+    model.training_epoch_end = model.training_epoch_end_dict
+    model.val_dataloader = None
+    model.configure_optimizers = model.configure_optimizers__lr_on_plateau_step
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    assert len(trainer.dev_debugger.saved_lr_scheduler_updates) == 8
 
 
 def test_train_step_epoch_end(tmpdir):

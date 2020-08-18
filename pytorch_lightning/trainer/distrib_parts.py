@@ -80,7 +80,7 @@ class TrainerDPMixin(ABC):
     on_colab_kaggle: str
     save_spawn_weights: Callable
     logger: ...
-    amp_type: AMPType
+    amp_backend: AMPType
 
     @abstractmethod
     def call_setup_hook(self, *args):
@@ -124,7 +124,7 @@ class TrainerDPMixin(ABC):
             m.use_dp = self.use_dp
             m.use_ddp2 = self.use_ddp2
             m.use_ddp = self.use_ddp
-            m.use_amp = self.amp_type is not None
+            m.use_amp = self.amp_backend is not None
             m.testing = self.testing
             m.use_single_gpu = self.use_single_gpu
             m.use_tpu = self.use_tpu
@@ -209,7 +209,7 @@ class TrainerDPMixin(ABC):
             if isinstance(scheduler, _LRScheduler):
                 scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
 
-        if self.amp_type:
+        if self.amp_backend:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)

@@ -6,7 +6,11 @@
     import torch
     from torch.nn import functional as F
     from torch.utils.data import DataLoader
+    from torch.utils.data import DataLoader
+    import pytorch_lightning as pl
+    from torch.utils.data import random_split
 
+.. _quick-start:
 
 Quick Start
 ===========
@@ -15,10 +19,11 @@ PyTorch Lightning is nothing more than organized PyTorch code.
 
 Once you've organized it into a LightningModule, it automates most of the training for you.
 
-To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
+Here's a 2 minute conversion guide for PyTorch projects:
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
 
 ----------
 
@@ -32,12 +37,16 @@ A lightningModule defines
 - Model + system architecture
 - Optimizer
 
-.. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+.. code-block::
 
-
+    import os
+    import torch
+    import torch.nn.functional as F
+    from torchvision.datasets import MNIST
+    from torchvision import transforms
+    from torch.utils.data import DataLoader
     import pytorch_lightning as pl
-    from pytorch_lightning.metrics.functional import accuracy
+    from torch.utils.data import random_split
 
     class LitModel(pl.LightningModule):
 
@@ -64,7 +73,15 @@ Step 2: Fit with a Trainer
 The trainer calls each loop at the correct time as needed. It also ensures it all works
 well across any accelerator.
 
-.. code-block:: python
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+
+|
+
+Here's an example of using the Trainer:
+
+.. code-block::
 
     # dataloader
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
@@ -73,7 +90,7 @@ well across any accelerator.
     # init model
     model = LitModel()
 
-    # most basic trainer, uses good defaults
+    # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
@@ -106,9 +123,22 @@ All of it 100% rigorously tested and benchmarked
 
 --------------
 
+Lightning under the hood
+^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning is designed for state of the art research ideas by researchers and research engineers from top labs.
+
+A LightningModule handles advances cases by allowing you to override any critical part of training
+via hooks that are called on your LightningModule.
+
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+
+----------------
+
 Training loop under the hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Under the hood, lightning does the following (in high-level pseudocode):
+This is the training loop pseudocode that lightning does under the hood:
 
 .. code-block:: python
 
@@ -315,30 +345,61 @@ also captures:
 - splitting.
 - etc...
 
-.. code-block:: python
+Here's an illustration that explains how to refactor your code into reusable DataModules.
 
-    class MyDataModule(pl.DataModule):
+.. raw:: html
 
-        def __init__(self):
-            ...
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+
+|
+
+And the matching code:
+
+|
+
+.. code-block::
+
+    class MNISTDataModule(pl.LightningDataModule):
+
+        def __init__(self, batch_size=32):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def prepare_data(self):
+            # optional to support downloading only once when using multi-GPU or multi-TPU
+            MNIST(os.getcwd(), train=True, download=True)
+            MNIST(os.getcwd(), train=False, download=True)
+
+        def setup(self, stage):
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ])
+
+            if stage == 'fit':
+                mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
+                self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
+            if stage == 'test':
+                mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
+                self.mnist_test = MNIST(os.getcwd(), train=False, download=True)
 
         def train_dataloader(self):
-            # your train transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
+            return mnist_train
 
         def val_dataloader(self):
-            # your val transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
+            return mnist_val
 
         def test_dataloader(self):
-            # your test transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_test = DataLoader(mnist_test, batch_size=self.batch_size)
+            return mnist_test
 
 And train like so:
 
 .. code-block:: python
 
-    dm = MyDataModule()
+    dm = MNISTDataModule()
     trainer.fit(model, dm)
 
 When doing distributed training, Datamodules have two optional arguments for granular control
@@ -479,10 +540,9 @@ Log to the progress bar
 ^^^^^^^^^^^^^^^^^^^^^^^
 |
 
-.. image:: /_images/mnist_imgs/mnist_cpu_bar.png
-    :width: 500
-    :align: center
-    :alt: Example CPU bar logging
+.. code-block:: shell
+
+    Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
 
 |
 
@@ -583,7 +643,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
     trainer = Trainer(
         tpu_cores=8,
         precision=16,
-        early_stop_checkpoint=True,
+        early_stop_callback=True,
         limit_train_batches=0.5,
         val_check_interval=0.25
     )
