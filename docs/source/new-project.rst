@@ -16,7 +16,7 @@ PyTorch Lightning is nothing more than organized PyTorch code.
 
 Once you've organized it into a LightningModule, it automates most of the training for you.
 
-To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
+Here's a 2 minute conversion guide for PyTorch projects:
 
 .. raw:: html
 
