@@ -144,7 +144,6 @@ class LightningLoggerBase(ABC):
         agg_step, metrics_to_log = self._aggregate_metrics(metrics=metrics, step=step)
 
         if metrics_to_log:
-            print("LOGGED")
             self.log_metrics(metrics=metrics_to_log, step=agg_step)
 
     @abstractmethod
