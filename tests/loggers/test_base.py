@@ -146,15 +146,18 @@ def test_adding_step_key(tmpdir):
     def _validation_epoch_end(outputs):
         nonlocal logged_step
         logged_step += 1
+        print("_validation_epoch_end", logged_step)
         return {"log": {"step": logged_step, "val_acc": logged_step / 10}}
 
     def _training_epoch_end(outputs):
         nonlocal logged_step
         logged_step += 1
+        print("_training_epoch_end", logged_step)
         return {"log": {"step": logged_step, "train_acc": logged_step / 10}}
 
     def _log_metrics_decorator(log_metrics_fn):
         def decorated(metrics, step):
+            print("_log_metrics_decorator", step, logged_step)
             if "val_acc" in metrics:
                 assert step == logged_step
             return log_metrics_fn(metrics, step)
@@ -163,11 +166,7 @@ def test_adding_step_key(tmpdir):
 
     model = EvalModelTemplate()
     model.validation_epoch_end = _validation_epoch_end
-    print("model.validation_epoch_end")
-    print(model.validation_epoch_end)
     model.training_epoch_end = _training_epoch_end
-    print("model.training_epoch_end")
-    print(model.training_epoch_end)
     trainer = Trainer(
         max_epochs=3,
         default_root_dir=tmpdir,
@@ -177,8 +176,6 @@ def test_adding_step_key(tmpdir):
     )
     trainer.logger.log_metrics = _log_metrics_decorator(
         trainer.logger.log_metrics)
-    print("trainer.logger.log_metrics")
-    print(trainer.logger.log_metrics)
     trainer.fit(model)
 
 
