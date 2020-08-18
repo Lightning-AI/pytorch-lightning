@@ -129,7 +129,7 @@ class GpuUsageLogger(Callback):
                 'Cannot use GpuUsageLogger callback with Trainer that has no logger.'
             )
 
-        if not self.on_gpu:
+        if not trainer.on_gpu:
             rank_zero_warn(
                 'You are using GpuUsageLogger but are not running on GPU.'
                 'Logged utilization will be independent from your model.', RuntimeWarning
