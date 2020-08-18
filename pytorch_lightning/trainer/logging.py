@@ -74,7 +74,6 @@ class TrainerLoggingMixin(ABC):
         # log actual metrics
         if self.is_global_zero and self.logger is not None:
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
-            # self.logger.save()
             self.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
