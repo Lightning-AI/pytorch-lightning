@@ -18,7 +18,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class GpuUsageLogger(Callback):
     r"""
-    Automatically logs GPU memory and GPU usage during training stage.
+    Automatically logs GPU memory and GPU usage during training stage. GpuUsageLogger is a callback
+    and in-order to use it you need to assign a logger in the Trainer.
 
     Args:
         memory_utilization: Set to ``True`` to log used, free and percentage of memory
@@ -39,9 +40,8 @@ class GpuUsageLogger(Callback):
         >>> gpu_usage = GpuUsageLogger() # doctest: +SKIP
         >>> trainer = Trainer(callbacks=[gpu_usage]) # doctest: +SKIP
 
-    Gpu usage is mainly based on nvidia-smi --query-gpu command.
-    The description of the queries used here as appears in
-    in ``nvidia-smi --help-query-gpu``:
+    GPU usage is mainly based on ``nvidia-smi --query-gpu`` command.
+    The description of the queries is as follows:
 
         "fan.speed"
         ```The fan speed value is the percent of maximum speed that the device's fan is currently
