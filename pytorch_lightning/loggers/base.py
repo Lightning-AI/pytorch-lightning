@@ -221,7 +221,7 @@ class LightningLoggerBase(ABC):
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
 
-    def log_graph(self, model: LightningModule, input_array = None) -> None:
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
         """
         Record model graph
 
@@ -307,7 +307,7 @@ class LoggerCollection(LightningLoggerBase):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
 
-    def log_graph(self, model: LightningModule, input_array = None) -> None:
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 

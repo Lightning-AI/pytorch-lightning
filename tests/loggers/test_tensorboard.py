@@ -172,7 +172,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     logger = TensorBoardLogger(tmpdir)
     with pytest.warns(
         UserWarning,
-        match='Could not log computational graph since the `model.example_input_array` '
-            'attribute is not set.'
+        match='Could not log computational graph since the `model.example_input_array`'
+            ' attribute is not set or `input_array` was not given'
     ):
         logger.log_graph(model)
