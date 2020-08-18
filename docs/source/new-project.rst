@@ -361,7 +361,6 @@ And the matching code:
 |
 
 .. code-block::
-    :skipif: not TORCHVISION_AVAILABLE
 
     class MNISTDataModule(pl.LightningDataModule):
 
