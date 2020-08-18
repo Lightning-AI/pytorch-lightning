@@ -6,8 +6,6 @@
     import torch
     from torch.nn import functional as F
     from torch.utils.data import DataLoader
-    from torchvision.datasets import MNIST
-    from torchvision import transforms
     from torch.utils.data import DataLoader
     import pytorch_lightning as pl
     from torch.utils.data import random_split
