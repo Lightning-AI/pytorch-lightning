@@ -566,6 +566,8 @@ class TrainerTrainLoopMixin(ABC):
         # epoch end hook
         self.run_on_epoch_end_hook(model)
 
+        self.logger.save()
+
         # increate global step by one to progress to the next epoch
         self.global_step, self.total_batch_idx = self.increment_accumulated_grad_global_step()
 
@@ -1147,7 +1149,6 @@ class TrainerTrainLoopMixin(ABC):
 
     # @atexit.register
     def run_training_teardown(self):
-        self.logger.save()
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
 
