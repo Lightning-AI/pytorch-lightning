@@ -39,7 +39,7 @@ Notice a few things.
 
 |
 
-    .. testcode:: python
+    .. code-block:: python
 
         # don't do in lightning
         x = torch.Tensor(2, 3)
