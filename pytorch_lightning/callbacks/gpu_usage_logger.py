@@ -132,7 +132,7 @@ class GpuUsageLogger(Callback):
         if not trainer.on_gpu:
             rank_zero_warn(
                 'You are using GpuUsageLogger but are not running on GPU.'
-                'Logged utilization will be independent from your model.', RuntimeWarning
+                ' Logged utilization will be independent from your model.', RuntimeWarning
             )
 
     def on_train_epoch_start(self, trainer, pl_module):
