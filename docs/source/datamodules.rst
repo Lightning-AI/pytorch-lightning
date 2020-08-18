@@ -73,8 +73,6 @@ The equivalent DataModule just organizes the same exact code, but makes it reusa
 
 .. code-block:: python
 
-    DataLoader(self.mnist_train, batch_size=32)
-
     class MNISTDataModule(pl.LightningDataModule):
 
         def __init__(self, data_dir: str = PATH, batch_size):
