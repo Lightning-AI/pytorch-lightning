@@ -406,7 +406,7 @@ And train like so:
 When doing distributed training, Datamodules have two optional arguments for granular control
 over download/prepare/splitting data
 
-.. testcode:: python
+.. code-block:: python
 
     class MyDataModule(LightningDataModule):
 
@@ -431,7 +431,7 @@ Datamodules are the recommended approach when building models based on the data.
 
 First, define the information that you might need.
 
-.. testcode:: python
+.. code-block:: python
 
     class MyDataModule(LightningDataModule):
 
