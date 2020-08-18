@@ -1147,6 +1147,7 @@ class TrainerTrainLoopMixin(ABC):
 
     # @atexit.register
     def run_training_teardown(self):
+        self.logger.save()
         if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
             return
 
