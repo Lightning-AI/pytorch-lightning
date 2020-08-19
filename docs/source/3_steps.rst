@@ -11,7 +11,7 @@
     import pytorch_lightning as pl
     from torch.utils.data import random_split
 
-.. _quick-start:
+.. _3-steps:
 
 ####################
 Lightning in 3 steps
