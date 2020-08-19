@@ -44,7 +44,7 @@ class Result(Dict):
                 'batch_sizes': []
             }
         }
-        
+
     def __getitem__(self, key: Union[str, Any]) -> Any:
         try:
             return super().__getitem__(key)
