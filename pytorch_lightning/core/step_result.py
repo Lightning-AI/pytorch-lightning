@@ -60,7 +60,11 @@ class Result(Dict):
             else:
                 return self[key]
         except KeyError:
-            return None
+            # return last logged value
+            try:
+                return self[f'step_{key}']
+            except KeyError:
+                return None
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
