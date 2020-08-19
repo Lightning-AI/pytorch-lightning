@@ -148,14 +148,14 @@ jobs:
 
 workflows:
   version: 2
-  build:
+  tpu-tests:
     jobs:
       - build-Docs
       - TPU-tests:
           matrix:
             parameters:
               python: ["3.6", "3.7"]
-  cleanup:
+  tpu-cleanup:
     triggers:
       - schedule:
           # The cron format is:
