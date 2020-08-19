@@ -464,10 +464,6 @@ Learn more
 
 That's it! Once you build your module, data, and call trainer.fit(), Lightning trainer calls each loop at the correct time as needed.
 
-.. raw:: html
-
-    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
-
 You can then boot up your logger or tensorboard instance to view training logs
 
 .. code-block:: bash
