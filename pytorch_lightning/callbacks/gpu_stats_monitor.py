@@ -1,5 +1,5 @@
 """
-GPU Status Monitor
+GPU Stats Monitor
 ====================
 
 Monitor and logs GPU stats during training
@@ -40,30 +40,19 @@ class GPUStatsMonitor(Callback):
         >>> gpu_stats = GPUStatsMonitor() # doctest: +SKIP
         >>> trainer = Trainer(callbacks=[gpu_stats]) # doctest: +SKIP
 
-    GPU stats are mainly based on ``nvidia-smi --query-gpu`` command.
-    The description of the queries is as follows:
-
-        "fan.speed"
-        ```The fan speed value is the percent of maximum speed that the device's fan is currently
-        intended to run at. It ranges from 0 to 100 %. Note: The reported speed is the intended
-        fan speed. If the fan is physically blocked and unable to spin, this output will not match
-        the actual fan speed. Many parts do not report fan speeds because they rely on cooling via
-        fans in the surrounding enclosure.```
-        "memory.used"
-        ```Total memory allocated by active contexts.```
-        "memory.free"
-        ```Total free memory.```
-        "utilization.gpu"
-        ```Percent of time over the past sample period during which one or more kernels was executing
-        on the GPU. The sample period may be between 1 second and 1/6 second depending on the product.```
-        "utilization.memory"
-        ```Percent of time over the past sample period during which global (device) memory was being
-        read or written. The sample period may be between 1 second and 1/6 second depending on the
-        product.```
-        "temperature.gpu"
-        ```Core GPU temperature. in degrees C.```
-        "temperature.memory"
-        ```HBM memory temperature. in degrees C.```
+    GPU stats are mainly based on `nvidia-smi --query-gpu` command. The description of the queries is as follows:
+        - **fan.speed** – The fan speed value is the percent of maximum speed that the device's fan is currently
+          intended to run at. It ranges from 0 to 100 %. Note: The reported speed is the intended fan speed.
+          If the fan is physically blocked and unable to spin, this output will not match the actual fan speed.
+          Many parts do not report fan speeds because they rely on cooling via fans in the surrounding enclosure.
+        - **memory.used** – Total memory allocated by active contexts.
+        - **memory.free** – Total free memory.
+        - **utilization.gpu** – Percent of time over the past sample period during which one or more kernels was
+          executing on the GPU. The sample period may be between 1 second and 1/6 second depending on the product.
+        - **utilization.memory** – Percent of time over the past sample period during which global (device) memory was
+          being read or written. The sample period may be between 1 second and 1/6 second depending on the product.
+        - **temperature.gpu** – Core GPU temperature. in degrees C.
+        - **temperature.memory** – HBM memory temperature. in degrees C.
 
     """
 
@@ -94,7 +83,7 @@ class GPUStatsMonitor(Callback):
             # First log at beginning of second step
             if self.snap_inter_step_time:
                 trainer.logger.log_metrics(
-                    {'Batch_Time/inter_step (ms)': (time.time() - self.snap_inter_step_time) * 1000},
+                    {'batch_time/inter_step (ms)': (time.time() - self.snap_inter_step_time) * 1000},
                     step=trainer.global_step
                 )
 
@@ -119,7 +108,7 @@ class GPUStatsMonitor(Callback):
         if self.intra_step_time:
             if self.snap_intra_step_time:
                 trainer.logger.log_metrics(
-                    {'Batch_Time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
+                    {'batch_time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
                     step=trainer.global_step
                 )
 
@@ -154,7 +143,7 @@ class GPUStatsMonitor(Callback):
         except ValueError:
             gpu_usage = [0]
 
-        return {f"GPU_{pitem}/gpu_id_{index} ({unit})": usage for index, usage in enumerate(gpu_usage)}
+        return {f"gpu_{pitem}/gpu_id_{index} ({unit})": usage for index, usage in enumerate(gpu_usage)}
 
     def _log_gpu(self, trainer):
         trainer.logger.log_metrics(self._get_gpu_stat("utilization.gpu", "%"), step=trainer.global_step)
