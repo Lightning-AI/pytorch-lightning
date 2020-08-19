@@ -195,24 +195,35 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
+@pytest.mark.parametrize('use_hparams', [False, True])
 @pytest.mark.parametrize('scale_arg', ['power', 'binsearch'])
-def test_trainer_arg(tmpdir, scale_arg):
+def test_auto_scale_batch_size_arg_name(tmpdir, scale_arg, use_hparams):
     """ Check that trainer arg works with bool input. """
     tutils.reset_seed()
 
     hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
-
     before_batch_size = hparams.get('batch_size')
-    # logger file to get meta
+
+    class HparamsEvalModelTemplate(EvalModelTemplate):
+
+        def dataloader(self, *args, **kwargs):
+            # artificially set batch_size so we can get a dataloader
+            # remove it immediately after, because we want only self.hparams.batch_size
+            setattr(self, "batch_size", before_batch_size)
+            dataloader = super().dataloader(*args, **kwargs)
+            del self.batch_size
+            return dataloader
+
+    model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
+    model = model_class(**hparams)
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         auto_scale_batch_size=scale_arg,
     )
-
     trainer.fit(model)
-    after_batch_size = model.batch_size
+    after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
 
