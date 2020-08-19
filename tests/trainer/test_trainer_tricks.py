@@ -5,6 +5,7 @@ from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
@@ -288,3 +289,22 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 
     with pytest.raises(MisconfigurationException):
         trainer.fit(model, **fit_options)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+def test_auto_scale_batch_size_with_amp(tmpdir):
+    model = EvalModelTemplate()
+    batch_size_before = model.batch_size
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        auto_scale_batch_size=True,
+        gpus=1,
+        precision=16
+    )
+    trainer.fit(model)
+    batch_size_after = model.batch_size
+    assert trainer.amp_backend == AMPType.NATIVE
+    assert trainer.scaler is not None
+    assert batch_size_after != batch_size_before

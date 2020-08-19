@@ -10,3 +10,5 @@ https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#eg
 # pip_shims
 sphinx-autodoc-typehints
 sphinx-paramlinks<0.4.0
+sphinx-togglebutton
+sphinx-copybutton

@@ -45,6 +45,12 @@ class Result(Dict):
             }
         }
 
+    def __getitem__(self, key: Union[str, Any]) -> Any:
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return super().__getitem__(f'step_{key}')
+
     def __getattr__(self, key: str) -> Any:
         try:
             if key == 'callback_metrics':

@@ -354,7 +354,7 @@ class TrainerIOMixin(ABC):
             checkpoint['lr_schedulers'] = lr_schedulers
 
             # save native amp scaling
-            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
+            if self.amp_backend == AMPType.NATIVE and not self.use_tpu and self.scaler is not None:
                 checkpoint['native_amp_scaling_state'] = self.scaler.state_dict()
             elif self.amp_backend == AMPType.APEX:
                 checkpoint['amp_scaling_state'] = amp.state_dict()
