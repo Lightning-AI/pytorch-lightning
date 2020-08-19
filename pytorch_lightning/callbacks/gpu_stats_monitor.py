@@ -1,8 +1,8 @@
 """
-GPU Usage Logger
+GPU Status Monitor
 ====================
 
-Log GPU memory and GPU usage during training
+Monitor and logs GPU stats during training
 
 """
 
@@ -16,10 +16,10 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class GpuUsageLogger(Callback):
+class GPUStatsMonitor(Callback):
     r"""
-    Automatically logs GPU memory and GPU usage during training stage. GpuUsageLogger is a callback
-    and in-order to use it you need to assign a logger in the Trainer.
+    Automatically monitor and logs GPU stats during training stage. GPUStatsMonitor
+    is a callback and in-order to use it you need to assign a logger in the Trainer.
 
     Args:
         memory_utilization: Set to ``True`` to log used, free and percentage of memory
@@ -36,11 +36,11 @@ class GpuUsageLogger(Callback):
     Example::
 
         >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import GpuUsageLogger
-        >>> gpu_usage = GpuUsageLogger() # doctest: +SKIP
-        >>> trainer = Trainer(callbacks=[gpu_usage]) # doctest: +SKIP
+        >>> from pytorch_lightning.callbacks import GPUStatsMonitor
+        >>> gpu_stats = GPUStatsMonitor() # doctest: +SKIP
+        >>> trainer = Trainer(callbacks=[gpu_stats]) # doctest: +SKIP
 
-    GPU usage is mainly based on ``nvidia-smi --query-gpu`` command.
+    GPU stats are mainly based on ``nvidia-smi --query-gpu`` command.
     The description of the queries is as follows:
 
         "fan.speed"
@@ -74,7 +74,7 @@ class GpuUsageLogger(Callback):
 
         if shutil.which('nvidia-smi') is None:
             raise MisconfigurationException(
-                'Cannot use GpuUsageLogger callback because nvidia driver is not installed.'
+                'Cannot use GPUStatsMonitor callback because nvidia driver is not installed.'
             )
 
         self.memory_utilization = memory_utilization
@@ -126,12 +126,12 @@ class GpuUsageLogger(Callback):
     def on_train_start(self, trainer, pl_module):
         if not trainer.logger:
             raise MisconfigurationException(
-                'Cannot use GpuUsageLogger callback with Trainer that has no logger.'
+                'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
             )
 
         if not trainer.on_gpu:
             rank_zero_warn(
-                'You are using GpuUsageLogger but are not running on GPU.'
+                'You are using GPUStatsMonitor but are not running on GPU.'
                 ' Logged utilization will be independent from your model.', RuntimeWarning
             )
 
