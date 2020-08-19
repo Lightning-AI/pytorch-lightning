@@ -132,7 +132,7 @@ class TrainerTrainingTricksMixin(ABC):
                          model: LightningModule,
                          mode: str = 'power',
                          steps_per_trial: int = 3,
-                         init_val: int = 0,
+                         init_val: int = 2,
                          max_trials: int = 25,
                          batch_arg_name: str = 'batch_size'):
         r"""
