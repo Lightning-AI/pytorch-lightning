@@ -469,7 +469,9 @@ You can then boot up your logger or tensorboard instance to view training logs
 .. code-block:: bash
 
     tensorboard --logdir ./lightning_logs
+ 
 ---------------
+
 
 Advanced Lightning Features
 ===========================
