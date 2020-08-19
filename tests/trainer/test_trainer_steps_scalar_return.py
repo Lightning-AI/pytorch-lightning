@@ -108,7 +108,7 @@ def test_full_training_loop_scalar(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert 'epoch' in trainer.callback_metrics and len(trainer.callback_metrics) == 1
+    assert len(trainer.callback_metrics) == 0
     assert len(trainer.progress_bar_metrics) == 0
 
     # make sure training outputs what is expected
@@ -151,7 +151,7 @@ def test_train_step_epoch_end_scalar(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert 'epoch' in trainer.callback_metrics and len(trainer.callback_metrics) == 1
+    assert len(trainer.callback_metrics) == 0
     assert len(trainer.progress_bar_metrics) == 0
 
     # make sure training outputs what is expected
