@@ -44,6 +44,12 @@ class Result(Dict):
                 'batch_sizes': []
             }
         }
+        
+    def __getitem__(self, key: Union[str, Any]) -> Any:
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return super().__getitem__(f'step_{key}')
 
     def __getattr__(self, key: str) -> Any:
         try:
@@ -60,10 +66,6 @@ class Result(Dict):
             else:
                 return self[key]
         except KeyError:
-            # return last logged value
-            try:
-                return self[f'step_{key}']
-            except KeyError:
                 return None
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
