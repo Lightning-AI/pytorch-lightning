@@ -1232,8 +1232,9 @@ class Trainer(
         # to make sure program won't crash during val
         if should_sanity_check:
             self.reset_val_dataloader(ref_model)
-            self.num_sanity_val_batches = [min(self.num_sanity_val_steps, val_batches)
-                                          for val_batches in self.num_val_batches]
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # hook and callback
             self.running_sanity_check = True
