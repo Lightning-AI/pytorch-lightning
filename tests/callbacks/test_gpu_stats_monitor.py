@@ -52,7 +52,7 @@ def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """
     Test GPUStatsMonitor on CPU machine.
     """
-    with pytest.raises(MisconfigurationException, match='nvidia driver is not installed'):
+    with pytest.raises(MisconfigurationException, match='NVIDIA driver is not installed'):
         gpu_stats = GPUStatsMonitor()
 
 

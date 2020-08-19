@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 class GPUStatsMonitor(Callback):
     r"""
     Automatically monitor and logs GPU stats during training stage. GPUStatsMonitor
-    is a callback and in-order to use it you need to assign a logger in the Trainer.
+    is a callback and in order to use it you need to assign a logger in the Trainer.
 
     Args:
         memory_utilization: Set to ``True`` to log used, free and percentage of memory
@@ -74,7 +74,7 @@ class GPUStatsMonitor(Callback):
 
         if shutil.which('nvidia-smi') is None:
             raise MisconfigurationException(
-                'Cannot use GPUStatsMonitor callback because nvidia driver is not installed.'
+                'Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed.'
             )
 
         self.memory_utilization = memory_utilization
