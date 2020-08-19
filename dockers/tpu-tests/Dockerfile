@@ -4,7 +4,6 @@ ARG PYTORCH_VERSION=1.6
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
 # Build args.
-ARG GITHUB_REF=refs/heads/master
 ARG TEST_IMAGE=0
 
 #SHELL ["/bin/bash", "-c"]
@@ -23,7 +22,7 @@ RUN \
     if [ $TEST_IMAGE -eq 1 ] ; then \
         pip install --requirement pytorch-lightning/requirements/test.txt --no-cache-dir ; \
     else \
-        rm -rf pytorch-lightning ; \
+        rm -rf ./pytorch-lightning ; \
     fi
 
 #RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"

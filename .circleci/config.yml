@@ -36,11 +36,7 @@ references:
       command: |
         gcloud --quiet auth configure-docker
         #cd dockers/tpu-tests
-        # TODO: How to find the GITHUB_REF in CircleCI?
-        # $CI_PULL_REQUEST seems to be of form: https://github.com/org/repo-name/pull/11.
-        # Grab the last bit, e.g. pull/11, convert to pull/11/head, and use it
-        # for the GITHUB_REF so Docker can pull the latest pending code in PR.
-        if [ -z "$CI_PULL_REQUEST" ]; then docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "TEST_IMAGE=1" .; else git_ref=$(echo "$CI_PULL_REQUEST" | sed "s/.*pytorch-lightning\///")/head && docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "GITHUB_REF=$git_ref" --build-arg "PYTHON_VERSION=$PYTHON_VER" .; fi
+        docker build --tag "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID" -f ./dockers/tpu-tests/Dockerfile --build-arg "TEST_IMAGE=1" --build-arg "PYTHON_VERSION=$PYTHON_VER" .
         docker push "$GCR_IMAGE_PATH:$CIRCLE_WORKFLOW_JOB_ID"
 
   deploy_cluster: &deploy_cluster
