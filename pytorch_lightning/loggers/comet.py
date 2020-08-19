@@ -247,7 +247,7 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        # don't create an experiment if we don't have one
+        # Don't create an experiment if we don't have one
         if self._experiment is not None and self._experiment.project_name is not None:
             return self._experiment.project_name
 
@@ -277,7 +277,7 @@ class CometLogger(LightningLoggerBase):
         state = self.__dict__.copy()
 
         # Save the experiment id in case an experiment object already exists,
-        # this way we could create an ExistingExperiment poiting to the same
+        # this way we could create an ExistingExperiment pointing to the same
         # experiment
         state["_experiment_key"] = self._experiment.id if self._experiment is not None else None
 
