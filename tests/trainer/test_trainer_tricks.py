@@ -200,8 +200,8 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     """ Test possible values for 'batch size auto scaling' Trainer argument. """
     tutils.reset_seed()
     hparams = EvalModelTemplate.get_default_hparams()
-    before_batch_size = hparams.get('batch_size')
     model = EvalModelTemplate(**hparams)
+    before_batch_size = hparams.get('batch_size')
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg)
     trainer.fit(model)
     after_batch_size = model.batch_size
