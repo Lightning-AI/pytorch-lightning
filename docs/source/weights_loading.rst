@@ -4,6 +4,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
+.. _weights-loading:
 
 Saving and loading weights
 ==========================

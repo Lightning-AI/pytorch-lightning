@@ -1,23 +1,30 @@
 .. testsetup:: *
 
     from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
     import os
     import torch
     from torch.nn import functional as F
     from torch.utils.data import DataLoader
+    from torch.utils.data import DataLoader
+    import pytorch_lightning as pl
+    from torch.utils.data import random_split
 
+.. _quick-start:
 
 Quick Start
 ===========
 
 PyTorch Lightning is nothing more than organized PyTorch code.
+
 Once you've organized it into a LightningModule, it automates most of the training for you.
 
-To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
+Here's a 2 minute conversion guide for PyTorch projects:
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
 
 ----------
 
@@ -31,12 +38,16 @@ A lightningModule defines
 - Model + system architecture
 - Optimizer
 
-.. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+.. code-block::
 
-
+    import os
+    import torch
+    import torch.nn.functional as F
+    from torchvision.datasets import MNIST
+    from torchvision import transforms
+    from torch.utils.data import DataLoader
     import pytorch_lightning as pl
-    from pytorch_lightning.metrics.functional import accuracy
+    from torch.utils.data import random_split
 
     class LitModel(pl.LightningModule):
 
@@ -63,7 +74,15 @@ Step 2: Fit with a Trainer
 The trainer calls each loop at the correct time as needed. It also ensures it all works
 well across any accelerator.
 
-.. code-block:: python
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+
+|
+
+Here's an example of using the Trainer:
+
+.. code-block::
 
     # dataloader
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
@@ -72,7 +91,7 @@ well across any accelerator.
     # init model
     model = LitModel()
 
-    # most basic trainer, uses good defaults
+    # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
@@ -105,9 +124,22 @@ All of it 100% rigorously tested and benchmarked
 
 --------------
 
+Lightning under the hood
+^^^^^^^^^^^^^^^^^^^^^^^^
+Lightning is designed for state of the art research ideas by researchers and research engineers from top labs.
+
+A LightningModule handles advances cases by allowing you to override any critical part of training
+via hooks that are called on your LightningModule.
+
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+
+----------------
+
 Training loop under the hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Under the hood, lightning does (in high-level pseudocode):
+This is the training loop pseudocode that lightning does under the hood:
 
 .. code-block:: python
 
@@ -156,7 +188,12 @@ To add an (optional) validation loop add the following function
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            return {'val_loss': loss, 'log': {'val_loss': loss}}
+
+            result = pl.EvalResult(checkpoint_on=loss)
+            result.log('val_loss', loss)
+            return result
+
+.. note:: EvalResult is a plain Dict, with convenience functions for logging
 
 And now the trainer will call the validation loop automatically
 
@@ -216,7 +253,10 @@ You might also need an optional test loop
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            return {'test_loss': loss, 'log': {'test_loss': loss}}
+
+            result = pl.EvalResult()
+            result.log('test_loss', loss)
+            return result
 
 
 However, this time you need to specifically call test (this is done so you don't use the test set by mistake)
@@ -306,30 +346,61 @@ also captures:
 - splitting.
 - etc...
 
-.. code-block:: python
+Here's an illustration that explains how to refactor your code into reusable DataModules.
 
-    class MyDataModule(pl.DataModule):
+.. raw:: html
 
-        def __init__(self):
-            ...
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+
+|
+
+And the matching code:
+
+|
+
+.. testcode:: python
+
+    class MNISTDataModule(LightningDataModule):
+
+        def __init__(self, batch_size=32):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def prepare_data(self):
+            # optional to support downloading only once when using multi-GPU or multi-TPU
+            MNIST(os.getcwd(), train=True, download=True)
+            MNIST(os.getcwd(), train=False, download=True)
+
+        def setup(self, stage):
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ])
+
+            if stage == 'fit':
+                mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
+                self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
+            if stage == 'test':
+                mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
+                self.mnist_test = MNIST(os.getcwd(), train=False, download=True)
 
         def train_dataloader(self):
-            # your train transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
+            return mnist_train
 
         def val_dataloader(self):
-            # your val transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
+            return mnist_val
 
         def test_dataloader(self):
-            # your test transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_test = DataLoader(mnist_test, batch_size=self.batch_size)
+            return mnist_test
 
 And train like so:
 
 .. code-block:: python
 
-    dm = MyDataModule()
+    dm = MNISTDataModule()
     trainer.fit(model, dm)
 
 When doing distributed training, Datamodules have two optional arguments for granular control
@@ -337,7 +408,7 @@ over download/prepare/splitting data
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(LightningDataModule):
 
         def prepare_data(self):
             # called only on 1 GPU
@@ -345,12 +416,12 @@ over download/prepare/splitting data
             tokenize()
             etc()
 
-         def setup(self):
+        def setup(self, stage=None):
             # called on every GPU (assigning state is OK)
             self.train = ...
             self.val = ...
 
-         def train_dataloader(self):
+        def train_dataloader(self):
             # do more...
             return self.train
 
@@ -362,7 +433,7 @@ First, define the information that you might need.
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(LightningDataModule):
 
         def __init__(self):
             super().__init__()
@@ -374,7 +445,7 @@ First, define the information that you might need.
             tokenize()
             build_vocab()
 
-        def setup(self):
+        def setup(self, stage=None):
             vocab = load_vocab
             self.vocab_size = len(vocab)
 
@@ -426,33 +497,18 @@ Lightning has built-in logging to any of the supported loggers or progress bar.
 
 Log in train loop
 ^^^^^^^^^^^^^^^^^
-To log from the training loop use the `log` reserved key.
+To log from the training loop use the `log` method in the `TrainResult`.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         loss = ...
-        return {'loss': loss, 'log': {'train_loss': loss}}
-
-
-However, for more fine-grain control use the `TrainResult` object.
-These are equivalent:
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        loss = ...
-        return {'loss': loss, 'log': {'train_loss': loss}}
-
-    # equivalent
-    def training_step(self, batch, batch_idx):
-        loss = ...
-
         result = pl.TrainResult(minimize=loss)
         result.log('train_loss', loss)
         return result
 
-But the TrainResult gives you error-checking and greater flexibility:
+The `TrainResult` gives you options for logging on every step and/or at the end of the epoch.
+It also allows logging to the progress bar.
 
 .. code-block:: python
 
@@ -471,72 +527,67 @@ Then boot up your logger or tensorboard instance to view training logs
 
 Log in Val/Test loop
 ^^^^^^^^^^^^^^^^^^^^
-To log from the validation or test loop use a similar approach
+To log from the validation or test loop use the `EvalResult`.
 
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
         loss = ...
-        acc = ...
-        val_output = {'loss': loss, 'acc': acc}
-        return val_output
-
-    def validation_epoch_end(self, validation_step_outputs):
-        # this step allows you to aggregate whatever you passed in from every val step
-        val_epoch_loss = torch.stack([x['loss'] for x in val_output]).mean()
-        val_epoch_acc = torch.stack([x['acc'] for x in val_output]).mean()
-        return {
-            'val_loss': val_epoch_loss,
-            'log': {'avg_val_loss': val_epoch_loss, 'avg_val_acc': val_epoch_acc}
-        }
-
-The recommended equivalent version in case you don't need to do anything special
-with all the outputs of the validation step:
-
-.. code-block:: python
-
-    def validation_step(self, batch, batch_idx):
-        loss = ...
-        acc = ...
-
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log('val_loss', loss)
-        result.log('val_acc', acc)
+        result = pl.EvalResult()
+        result.log_dict({'val_loss': loss, 'val_acc': acc})
         return result
-
-.. note:: Only use `validation_epoch_end` if you need fine-grain control over aggreating all step outputs
-
 
 Log to the progress bar
 ^^^^^^^^^^^^^^^^^^^^^^^
 |
 
-.. image:: /_images/mnist_imgs/mnist_cpu_bar.png
-    :width: 500
-    :align: center
-    :alt: Example CPU bar logging
+.. code-block:: shell
+
+    Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
 
 |
 
-In addition to visual logging, you can log to the progress bar by using the keyword `progress_bar`:
+In addition to visual logging, you can log to the progress bar by setting `prog_bar` to True
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         loss = ...
-        return {'loss': loss, 'progress_bar': {'train_loss': loss}}
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss, prog_bar=True)
 
-Or simply set `prog_bar=True` in either of the `EvalResult` or `TrainResult`
+-----------------
+
+Advanced loop aggregation
+-------------------------
+For certain train/val/test loops, you may wish to do more than just logging. In this case,
+you can also implement `__epoch_end` which gives you the output for each step
+
+Here's the motivating Pytorch example:
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        result = TrainResult(loss)
-        result.log('train_loss', loss, prog_bar=True)
-        return result
+    validation_step_outputs = []
+    for batch_idx, batch in val_dataloader():
+        out = validation_step(batch, batch_idx)
+        validation_step_outputs.append(out)
 
+    validation_epoch_end(validation_step_outputs)
 
------------------
+And the lightning equivalent
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        loss = ...
+        predictions = ...
+        result = pl.EvalResult(checkpoint_on=loss)
+        result.log('val_loss', loss)
+        result.predictions = predictions
+
+     def validation_epoch_end(self, validation_step_outputs):
+        all_val_losses = validation_step_outputs.val_loss
+        all_predictions = validation_step_outputs.predictions
 
 Why do you need Lightning?
 --------------------------
@@ -544,12 +595,19 @@ The MAIN teakeaway points are:
 
 - Lightning is for professional AI researchers/production teams.
 - Lightning is organized PyTorch. It is not an abstraction.
+- You STILL keep pure PyTorch.
+- You DON't lose any flexibility.
+- You can get rid of all of your boilerplate.
+- You make your code generalizable to any hardware.
+- Your code is now readable and easier to reproduce (ie: you help with the reproducibility crisis).
+- Your LightningModule is still just a pure PyTorch module.
 
 Lightning is for you if
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - You're a professional researcher/ml engineer working on non-trivial deep learning.
 - You already know PyTorch and are not a beginner.
+- You want to iterate through research much faster.
 - You want to put models into production much faster.
 - You need full control of all the details but don't need the boilerplate.
 - You want to leverage code written by hundreds of AI researchers, research engs and PhDs from the world's top AI labs.
@@ -586,7 +644,7 @@ Without changing a SINGLE line of your code, you can now do the following with t
     trainer = Trainer(
         tpu_cores=8,
         precision=16,
-        early_stop_checkpoint=True,
+        early_stop_callback=True,
         limit_train_batches=0.5,
         val_check_interval=0.25
     )
@@ -617,13 +675,12 @@ would normally do.
 
 ---------------
 
-Summary
--------
-In short, by refactoring your PyTorch code:
+Masterclass
+-----------
+You can learn Lightning in-depth by watching our Masterclass.
 
-1.  You STILL keep pure PyTorch.
-2.  You DON't lose any flexibility.
-3.  You can get rid of all of your boilerplate.
-4.  You make your code generalizable to any hardware.
-5.  Your code is now readable and easier to reproduce (ie: you help with the reproducibility crisis).
-6.  Your LightningModule is still just a pure PyTorch module.
+.. image:: _images/general/PTL101_youtube_thumbnail.jpg
+    :width: 500
+    :align: center
+    :alt: Masterclass
+    :target: https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2

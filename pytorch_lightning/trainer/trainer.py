@@ -53,6 +53,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.cloud_io import is_remote_path
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -198,7 +199,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_type: str = 'native',
+        amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -309,9 +310,9 @@ class Trainer(
                     Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
 
+            amp_backend: The mixed precision backend to use ("native" or "apex")
 
             amp_level: The optimization level to use (O1, O2, etc...).
-                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -497,6 +498,9 @@ class Trainer(
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
+        # override with environment flag
+        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
@@ -520,6 +524,7 @@ class Trainer(
 
         # override dist backend when using tpus
         if self.on_tpu:
+            self.distributed_backend = 'tpu'
             self.init_tpu()
 
         # init flags for SLURM+DDP to work
@@ -592,7 +597,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp(amp_type)
+        self.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -734,7 +739,7 @@ class Trainer(
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
@@ -880,7 +885,7 @@ class Trainer(
         The default location to save artifacts of loggers, checkpoints etc.
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
         """
-        if "://" in str(self._default_root_dir):
+        if is_remote_path(self._default_root_dir):
             # it is a remote uri, use as is
             return self._default_root_dir
         return os.path.normpath(self._default_root_dir)
@@ -891,7 +896,7 @@ class Trainer(
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
-        if "://" in str(self._weights_save_path):
+        if is_remote_path(self._weights_save_path):
             # it is a remote uri, use as is
             return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
@@ -1034,7 +1039,6 @@ class Trainer(
 
         # ddp
         elif self.distributed_backend == 'ddp':
-            self.set_random_port()
             self.accelerator_backend = DDPBackend(self)
             results = self.accelerator_backend.spawn_ddp_children(model)
 
@@ -1140,7 +1144,7 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
@@ -1372,7 +1376,6 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.set_random_port(force=True)
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
@@ -1395,7 +1398,6 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.set_random_port(force=True)
         self.testing = True
         self.model = model
         results = self.fit(model)
@@ -1425,6 +1427,11 @@ class Trainer(
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
         model.setup(stage_name)
+
+    def init_amp(self, amp_type: str):
+        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
+        self.amp_backend = None
+        self._setup_amp_backend(amp_type)
 
 
 class _PatchDataLoader(object):

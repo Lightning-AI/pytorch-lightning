@@ -2,6 +2,8 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
+.. _debugging:
+
 Debugging
 =========
 The following are flags that make debugging much easier.

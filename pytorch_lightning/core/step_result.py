@@ -1,9 +1,10 @@
 import numbers
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple
 
 import torch
 from torch import Tensor
+import os
 
 from pytorch_lightning.metrics.converters import _sync_ddp_if_available
 
@@ -20,12 +21,15 @@ class Result(Dict):
 
         super().__init__()
 
+        # temporary until dict results are deprecated
+        os.environ['PL_USING_RESULT_OBJ'] = '1'
+
         if early_stop_on is not None:
             self.early_stop_on = early_stop_on
         if checkpoint_on is not None and checkpoint_on:
             self.checkpoint_on = checkpoint_on
         if hiddens is not None:
-            self.hiddens = hiddens
+            self.hiddens = hiddens.detach()
         if minimize is not None:
             err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
             self._assert_grad_tensor_metric('minimize', minimize, err)
@@ -36,7 +40,8 @@ class Result(Dict):
 
         self['meta'] = {
             '_internal': {
-                '_reduce_on_epoch': False
+                '_reduce_on_epoch': False,
+                'batch_sizes': []
             }
         }
 
@@ -59,7 +64,7 @@ class Result(Dict):
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
-        if key in {'hiddens', 'checkpoint_on', 'early_stop_on'}:
+        if key in {'checkpoint_on', 'early_stop_on'}:
             self._assert_tensor_metric(key, val)
             if val is not None and isinstance(val, torch.Tensor):
                 val = val.detach()
@@ -95,17 +100,17 @@ class Result(Dict):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
         # sync across ddp
-        if sync_ddp and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = _sync_ddp_if_available(value, group=sync_ddp_group, reduce_op=sync_ddp_op)
+        if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
+            value = _sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
@@ -165,6 +170,14 @@ class Result(Dict):
         # track whether any input requires reduction on epoch end
         _internal = self['meta']['_internal']
         _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
+
+    def track_batch_size(self, batch_size):
+        meta = self['meta']
+        meta['_internal']['batch_sizes'].append(batch_size)
+
+    def get_batch_sizes(self):
+        meta = self['meta']
+        return torch.tensor(meta['_internal']['batch_sizes'])
 
     def get_callback_metrics(self) -> dict:
         result = {
@@ -301,10 +314,14 @@ class Result(Dict):
 
     @classmethod
     def reduce_on_epoch_end(cls, outputs):
+        # get the batch sizes for all outputs
+        batch_sizes = torch.stack([x.get_batch_sizes() for x in outputs]).view(-1)
+
         meta = outputs[0]['meta']
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
+
 
         for k, option in meta.items():
             if k == '_internal':
@@ -312,7 +329,12 @@ class Result(Dict):
 
             if option['on_epoch']:
                 fx = option['reduce_fx']
-                result[k] = fx(result[k])
+                if fx == torch.mean:
+                    reduced_val = weighted_mean(result[k], batch_sizes)
+                else:
+                    reduced_val = fx(result[k])
+
+                result[k] = reduced_val
 
         result['meta'] = meta
         return result
@@ -338,6 +360,14 @@ class Result(Dict):
 
         result['meta'] = meta
         return result
+
+    def dp_reduce(self):
+        for k, value in self.items():
+            if k == 'meta':
+                continue
+            if isinstance(value, list):
+                value = torch.tensor(value)
+            self[k] = value.mean(dim=-1)
 
     @property
     def should_reduce_on_epoch_end(self) -> bool:
@@ -387,19 +417,23 @@ def recursive_stack(result: MutableMapping):
         if isinstance(v, dict):
             recursive_stack(v)
 
-        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
-            v = torch.stack(v)
-            result[k] = v
+        result[k] = collate_tensors(v)
 
 
-def recursive_padded_stack(result: MutableMapping):
-    for k, v in result.items():
-        if isinstance(v, dict):
-            recursive_stack(v)
+def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
+    if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
+        # items is not a sequence, empty, or contains non-tensors
+        return items
 
-        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
-            v = torch.stack(v)
-            result[k] = v
+    if all(item.ndim == 0 for item in items):
+        # all tensors are scalars, we need to stack
+        return torch.stack(items)
+
+    if all(item.ndim >= 1 and item.shape[1:] == items[0].shape[1:] for item in items):
+        # we can concatenate along the first dimension
+        return torch.cat(items)
+
+    return items
 
 
 class TrainResult(Result):
@@ -450,9 +484,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a key, value
@@ -485,9 +519,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
         """
         super().log(name=name,
                     value=value,
@@ -497,9 +531,9 @@ class TrainResult(Result):
                     on_epoch=on_epoch,
                     reduce_fx=reduce_fx,
                     enable_graph=enable_graph,
-                    sync_ddp=sync_ddp,
-                    sync_ddp_group=sync_ddp_group,
-                    sync_ddp_op=sync_ddp_op,
+                    sync_dist=sync_dist,
+                    sync_dist_group=sync_dist_group,
+                    sync_dist_op=sync_dist_op,
                     tbptt_pad_token=tbptt_pad_token,
                     tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -514,9 +548,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a dictonary of values at once
@@ -536,9 +570,9 @@ class TrainResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group:
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group:
         """
         for k, v in dictionary.items():
             self.log(name=k,
@@ -549,9 +583,9 @@ class TrainResult(Result):
                      on_epoch=on_epoch,
                      reduce_fx=reduce_fx,
                      enable_graph=enable_graph,
-                     sync_ddp=sync_ddp,
-                     sync_ddp_group=sync_ddp_group,
-                     sync_ddp_op=sync_ddp_op,
+                     sync_dist=sync_dist,
+                     sync_dist_group=sync_dist_group,
+                     sync_dist_op=sync_dist_op,
                      tbptt_pad_token=tbptt_pad_token,
                      tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -602,9 +636,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a key, value
@@ -636,9 +670,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
         """
         super().log(name=name,
                     value=value,
@@ -648,9 +682,9 @@ class EvalResult(Result):
                     on_epoch=on_epoch,
                     reduce_fx=reduce_fx,
                     enable_graph=enable_graph,
-                    sync_ddp=sync_ddp,
-                    sync_ddp_group=sync_ddp_group,
-                    sync_ddp_op=sync_ddp_op,
+                    sync_dist=sync_dist,
+                    sync_dist_group=sync_dist_group,
+                    sync_dist_op=sync_dist_op,
                     tbptt_pad_token=tbptt_pad_token,
                     tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -665,9 +699,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: Callable = torch.mean,
             tbptt_pad_token: int = 0,
             enable_graph: bool = False,
-            sync_ddp: bool = False,
-            sync_ddp_op: Union[Any, str] = 'mean',
-            sync_ddp_group: Optional[Any] = None
+            sync_dist: bool = False,
+            sync_dist_op: Union[Any, str] = 'mean',
+            sync_dist_group: Optional[Any] = None
     ):
         """
         Log a dictonary of values at once
@@ -687,9 +721,9 @@ class EvalResult(Result):
             tbptt_reduce_fx: function to reduce on truncated back prop
             tbptt_pad_token: token to use for padding
             enable_graph: if True, will not auto detach the graph
-            sync_ddp: if True, reduces the metric across GPUs/TPUs
-            sync_ddp_op: the op to sync across
-            sync_ddp_group: the ddp group
+            sync_dist: if True, reduces the metric across GPUs/TPUs
+            sync_dist_op: the op to sync across
+            sync_dist_group: the ddp group
         """
         for k, v in dictionary.items():
             self.log(name=k,
@@ -700,9 +734,9 @@ class EvalResult(Result):
                      on_epoch=on_epoch,
                      reduce_fx=reduce_fx,
                      enable_graph=enable_graph,
-                     sync_ddp=sync_ddp,
-                     sync_ddp_group=sync_ddp_group,
-                     sync_ddp_op=sync_ddp_op,
+                     sync_dist=sync_dist,
+                     sync_dist_group=sync_dist_group,
+                     sync_dist_op=sync_dist_op,
                      tbptt_pad_token=tbptt_pad_token,
                      tbptt_reduce_fx=tbptt_reduce_fx)
 
@@ -713,3 +747,65 @@ class EvalResult(Result):
         }
 
         return result
+
+    def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):
+        """Add feature name and value pair to collection of predictions that will be written to disk on
+        `validation_end` or `test_end`. If running on multiple GPUs, you will get separate `n_gpu`
+        prediction files with the rank prepended onto filename.
+
+        Example::
+
+            result = pl.EvalResult()
+            result.write('ids', [0, 1, 2])
+            result.write('preds', ['cat', 'dog', 'dog'])
+
+        Args:
+            name: Feature name that will turn into column header of predictions file
+            values: Flat tensor or list of row values for given feature column 'name'.
+            filename: Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
+        """
+        # Type check the incoming arguments
+        if not isinstance(name, str):
+            raise ValueError(f"Expected str for 'name' but got {type(name)}")
+        if not isinstance(filename, str):
+            raise ValueError(f"Expected str for 'filename' but got {type(name)}")
+
+        if isinstance(values, Tensor):
+            values = values.detach()
+
+        preds = getattr(self, 'predictions', None)
+        if preds is None:
+            self.predictions = {filename: {name: values}}
+        elif filename not in preds:
+            preds[filename] = {name: values}
+        elif name not in preds[filename]:
+            preds[filename][name] = values
+        elif isinstance(values, Tensor):
+            preds[filename][name] = torch.cat((preds[filename][name], values))
+        elif isinstance(values, list):
+            preds[filename][name].extend(values)
+
+    def write_dict(self, predictions_dict, filename='predictions.pt'):
+        """Calls EvalResult.write() for each key-value pair in predictions_dict.
+
+        It is recommended that you use this function call instead of .write if you need to
+        store more than one column of predictions in your output file.
+
+        Example::
+
+            predictions_to_write = {'preds': ['cat', 'dog'], 'ids': tensor([0, 1])}
+            result.write_dict(predictions_to_write)
+
+        Args:
+            predictions_dict ([type]): Dict of predictions to store and then write to filename at eval end.
+            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.pt'.
+        """
+        for k, v in predictions_dict.items():
+            self.write(k, v, filename)
+
+
+def weighted_mean(result, weights):
+    weights = weights.to(result.device)
+    numerator = torch.dot(result.float(), weights.t().float())
+    result = numerator / weights.sum().float()
+    return result

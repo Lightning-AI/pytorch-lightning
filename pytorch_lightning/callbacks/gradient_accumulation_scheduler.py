@@ -3,6 +3,7 @@ Gradient Accumulator
 ====================
 
 Change gradient accumulation factor according to scheduling.
+Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 """
 

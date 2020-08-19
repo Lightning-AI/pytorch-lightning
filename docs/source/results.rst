@@ -1,34 +1,20 @@
+.. _result:
+
 Result
 ======
 Lightning has two results objects `TrainResult` and `EvalResult`.
 
-When your `_step_end` or `_epoch_end` does nothing but aggregate metrics to log, you can delete those
-methods and use a Result object instead.
+Use these to control:
 
-However, if you need fine-grain control to do more than logging or a complex aggregation, then keep
-the loops as they are and do not use the `EvalResult` or `TrainResult` objects.
-
-.. note:: These objects are optional and should only be used if you don't need full control of the loops.
+- When to log (each step and/or epoch aggregate).
+- Where to log (progress bar or a logger).
+- How to sync across accelerators.
 
 ------------------
 
 Training loop example
 ---------------------
-We can simplify the following multi-method training loop:
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        return {'loss': loss}
-
-    def training_epoch_end(self, training_step_outputs):
-        epoch_loss = torch.stack([x['loss'] for x in training_step_outputs]).mean()
-        return {
-            'log': {'epoch_loss': epoch_loss},
-            'progress_bar': {'epoch_loss': epoch_loss}
-        }
-
-using the equivalent syntax via the `TrainResult` object:
+Return a `TrainResult` from the Training loop.
 
 .. code-block:: python
 
@@ -38,25 +24,26 @@ using the equivalent syntax via the `TrainResult` object:
         result.log('train_loss', loss, prog_bar=True)
         return result
 
+If you'd like to do something special with the outputs other than logging, implement `__epoch_end`.
+
+.. code-block:: python
+
+    def training_step(self, batch, batch_idx):
+        result = pl.TrainResult(loss)
+        result.some_prediction = some_prediction
+        return result
+
+    def training_epoch_end(self, training_step_output_result):
+        all_train_predictions = training_step_output_result.some_prediction
+
+        training_step_output_result.some_new_prediction = some_new_prediction
+        return training_step_output_result
+
 --------------------
 
 Validation/Test loop example
 -----------------------------
-We can replace the following validation/test loop:
-
-.. code-block:: python
-
-    def validation_step(self, batch, batch_idx):
-        return {'some_metric': some_metric}
-
-    def validation_epoch_end(self, validation_step_outputs):
-        some_metric_mean = torch.stack([x['some_metric'] for x in validation_step_outputs]).mean()
-        return {
-            'log': {'some_metric_mean': some_metric_mean},
-            'progress_bar': {'some_metric_mean': some_metric_mean}
-        }
-
-With the equivalent using the `EvalResult` syntax
+Return a `EvalResult` object from a validation/test loop
 
 .. code-block:: python
 
@@ -65,6 +52,25 @@ With the equivalent using the `EvalResult` syntax
         result = pl.EvalResult(checkpoint_on=some_metric)
         result.log('some_metric', some_metric, prog_bar=True)
         return result
+
+If you'd like to do something special with the outputs other than logging, implement `__epoch_end`.
+
+.. code-block:: python
+
+    def validation_step(self, batch, batch_idx):
+        result = pl.EvalResult(checkpoint_on=some_metric)
+        result.a_prediction = some_prediction
+        return result
+
+    def validation_epoch_end(self, validation_step_output_result):
+        all_validation_step_predictions = validation_step_output_result.a_prediction
+        # do something with the predictions from all validation_steps
+
+        return validation_step_output_result
+
+
+With the equivalent using the `EvalResult` syntax
+
 
 ------------------
 
@@ -161,7 +167,6 @@ Finally, you can use your own reduction function instead:
 
 Finally, you may need more esoteric logging such as something specific to your logger like images:
 
-
 .. code-block:: python
 
     def training_step(...):
@@ -170,6 +175,14 @@ Finally, you may need more esoteric logging such as something specific to your l
 
         # also log images (if tensorboard for example)
         self.logger.experiment.log_figure(...)
+
+Sync across devices
+^^^^^^^^^^^^^^^^^^^
+When training on multiple GPUs/CPUs/TPU cores, calculate the global mean of a logged metric as follows:
+
+.. code-block:: python
+
+    result.log('train_loss', loss, sync_dist=True)
 
 TrainResult API
 ^^^^^^^^^^^^^^^
@@ -225,6 +238,14 @@ Logging has the same behavior as `TrainResult` but the logging defaults are diff
 Val/Test loop
 ^^^^^^^^^^^^^
 Eval result can be used in both `test_step` and `validation_step`.
+
+Sync across devices (v)
+^^^^^^^^^^^^^^^^^^^^^^^
+When training on multiple GPUs/CPUs/TPU cores, calculate the global mean of a logged metric as follows:
+
+.. code-block:: python
+
+    result.log('val_loss', loss, sync_dist=True)
 
 EvalResult API
 ^^^^^^^^^^^^^^^
