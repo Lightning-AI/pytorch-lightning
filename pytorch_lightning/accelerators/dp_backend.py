@@ -15,6 +15,7 @@
 import torch
 from torch import optim
 
+from pytorch_lightning.core import LightningModule
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -37,10 +38,11 @@ class DataParallelBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        if not self.trainer.testing:
+            optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+            self.trainer.optimizers = optimizers
+            self.trainer.lr_schedulers = lr_schedulers
+            self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
@@ -50,7 +52,7 @@ class DataParallelBackend(Accelerator):
 
         # init half precision
         if self.trainer.amp_backend:
-            model = self.__init_half_precision(model)
+            model = self._setup_half_precision(model)
 
         self.trainer.model = model
 
@@ -65,17 +67,17 @@ class DataParallelBackend(Accelerator):
         model = LightningDataParallel(model, device_ids=device_ids)
         return model
 
-    def __init_half_precision(self, model):
+    def _setup_half_precision(self, model):
         if self.trainer.amp_backend == AMPType.NATIVE:
-            self.__init_native_amp(model)
+            self._setup_native_amp(model)
         else:
-            model = self.__init_nvidia_apex(model)
+            model = self._setup_nvidia_apex(model)
         return model
 
-    def __init_native_amp(self, model):
+    def _setup_native_amp(self, model):
         model.forward = torch.cuda.amp.autocast()(model.forward)
 
-    def __init_nvidia_apex(self, model):
+    def _setup_nvidia_apex(self, model):
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.trainer.amp_level == 'O2':

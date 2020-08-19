@@ -33,10 +33,11 @@ class GPUBackend(Accelerator):
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
+        if not self.trainer.testing:
+            optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+            self.trainer.optimizers = optimizers
+            self.trainer.lr_schedulers = lr_schedulers
+            self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # init precision
         model, optimizers = self.trainer.precision_connector.connect(model, optimizers)
@@ -51,7 +52,6 @@ class GPUBackend(Accelerator):
 
         # train or test
         results = self.train_or_test()
-
         return results
 
     def training_step(self, args):

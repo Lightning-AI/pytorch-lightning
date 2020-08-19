@@ -1050,7 +1050,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
                     return model, optimizers
         """
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
+        if optimizers is None:
+            model = amp.initialize(model, opt_level=amp_level)
+        else:
+            model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
 
         return model, optimizers
 

@@ -139,10 +139,6 @@ class DDPBackend(DDPBase):
                 " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
             )
 
-    def set_world_ranks(self, process_idx):
-        self.trainer.local_rank = process_idx
-        self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
-        self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx, is_master):
         gpu_idx = process_idx
