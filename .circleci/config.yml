@@ -151,7 +151,6 @@ workflows:
   build:
     jobs:
       - build-Docs
-      - cleanup-gke-jobs
       - TPU-tests:
           filters:
             branches:
