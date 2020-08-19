@@ -56,6 +56,7 @@ class TensorBoardLogger(LightningLoggerBase):
                  save_dir: str,
                  name: Optional[str] = "default",
                  version: Optional[Union[int, str]] = None,
+                 default_hp_metric: Optional[bool] = True,
                  **kwargs):
         super().__init__()
         self._save_dir = save_dir
@@ -65,6 +66,8 @@ class TensorBoardLogger(LightningLoggerBase):
         self._experiment = None
         self.hparams = {}
         self._kwargs = kwargs
+        
+        self.default_hp_metric = default_hp_metric
 
     @property
     def root_dir(self) -> str:
@@ -139,18 +142,20 @@ class TensorBoardLogger(LightningLoggerBase):
         else:
             from torch.utils.tensorboard.summary import hparams
 
-            if metrics is None:
+            if metrics is None and self.default_hp_metric:
                 metrics = {"hp_metric": -1}
             elif type(metrics) is dict:
-                self.log_metrics(metrics)
+                pass
             else:
                 metrics = {"hp_metric": metrics}
+            
+            if metrics:
                 self.log_metrics(metrics)
-            exp, ssi, sei = hparams(params, metrics)
-            writer = self.experiment._get_file_writer()
-            writer.add_summary(exp)
-            writer.add_summary(ssi)
-            writer.add_summary(sei)
+                exp, ssi, sei = hparams(params, metrics)
+                writer = self.experiment._get_file_writer()
+                writer.add_summary(exp)
+                writer.add_summary(ssi)
+                writer.add_summary(sei)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
