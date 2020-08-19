@@ -66,7 +66,7 @@ class Result(Dict):
             else:
                 return self[key]
         except KeyError:
-                return None
+            return None
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
