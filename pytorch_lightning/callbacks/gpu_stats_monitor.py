@@ -18,7 +18,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class GPUStatsMonitor(Callback):
     r"""
-    Automatically monitor and logs GPU stats during training stage. ``GPUStatsMonitor
+    Automatically monitor and logs GPU stats during training stage. ``GPUStatsMonitor``
     is a callback and in order to use it you need to assign a logger in the ``Trainer``.
 
     Args:
