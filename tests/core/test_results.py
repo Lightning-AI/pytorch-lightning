@@ -236,3 +236,10 @@ def test_result_gather_mixed_types():
     expected = [1.2, ["bar", None], torch.tensor(1)]
     assert isinstance(result["foo"], list)
     assert result["foo"] == expected
+    
+def test_result_retrieve_last_logged_item():
+    result = Result()
+    result.log('a', 5., on_step=True, on_epoch=True)
+    assert result['epoch_a'] == 5.
+    assert result['step_a'] == 5.
+    assert result['a'] == 5.
