@@ -62,13 +62,8 @@ def atomic_save(checkpoint, filepath: str, is_xla_tensor=False):
     """
     bytesbuffer = io.BytesIO()
 
-    if not is_xla_tensor:
-        traceback.print_stack()
-
     if is_xla_tensor and XLA_AVAILABLE:
-        saved = xm.save(checkpoint, filepath, master_only=True, global_master=True)
-        print('Saved file using TPU:', xm.get_ordinal())
-        return saved
+        return xm.save(checkpoint, filepath, master_only=True, global_master=True)
     elif LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
         # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
         # torch.hub.load_state_dict_from_url() that prevents it from loading the new files.
