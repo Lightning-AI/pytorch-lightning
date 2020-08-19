@@ -150,10 +150,7 @@ def lightning_hasattr(model, attribute):
         attr = True
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
-        if isinstance(model.hparams, dict):
-            attr = attribute in model.hparams
-        else:
-            attr = hasattr(model.hparams, attribute)
+        attr = attribute in model.hparams
     else:
         attr = False
 
