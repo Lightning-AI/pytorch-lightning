@@ -151,8 +151,8 @@ workflows:
   build:
     jobs:
       - build-Docs
-      - TPU-tests:
       - cleanup-gke-jobs
+      - TPU-tests:
           filters:
             branches:
               # https://discuss.circleci.com/t/create-separate-steps-jobs-for-pr-forks-versus-branches/13419/4
