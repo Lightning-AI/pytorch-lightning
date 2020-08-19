@@ -22,6 +22,7 @@ Automatically save model checkpoints during training.
 
 import os
 import re
+import json
 from copy import deepcopy
 from typing import Any, Dict, Optional
 
@@ -531,3 +532,10 @@ class ModelCheckpoint(Callback):
             if cur_path != filepath:
                 self._del_model(cur_path)
 
+    def to_json(self, save_path=None):
+        """ Saves `{'checkpoint_name': score}` dict as a JSON file."""
+        best_k = {k: v.item() for k, v in self.best_k_models.items()}
+        if save_path is None:
+            save_path = os.path.join(self.dirpath, "best_k_models.json")
+        with open(save_path, "w") as f:
+            json.dump(best_k, f, indent=0)
