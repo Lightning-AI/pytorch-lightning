@@ -1151,6 +1151,7 @@ class Trainer(
         if self.logger is not None:
             # save exp to get started
             self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_graph(ref_model)
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
