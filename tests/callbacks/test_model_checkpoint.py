@@ -1,4 +1,5 @@
 import os
+import re
 import pickle
 import platform
 from pathlib import Path
@@ -128,3 +129,27 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     model_last = EvalModelTemplate.load_from_checkpoint(path_last)
     for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
         assert w0.eq(w1).all()
+
+
+def test_ckpt_metric_names(tmpdir):
+    model = EvalModelTemplate()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gradient_clip_val=1.0,
+        overfit_batches=0.20,
+        progress_bar_refresh_rate=0,
+        limit_train_batches=0.01,
+        limit_val_batches=0.01,
+        checkpoint_callback=ModelCheckpoint(filepath=tmpdir + '/{val_loss:.2f}')
+    )
+
+    trainer.fit(model)
+
+    # make sure the checkpoint we saved has the metric in the name
+    ckpts = os.listdir(tmpdir)
+    ckpts = [x for x in ckpts if 'val_loss' in x]
+    assert len(ckpts) == 1
+    val = re.sub('[^0-9.]', '', ckpts[0])
+    assert len(val) > 3
