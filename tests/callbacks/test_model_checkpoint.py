@@ -1,4 +1,5 @@
 import os
+import json
 import pickle
 import platform
 import re
@@ -34,6 +35,23 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
     assert (
         checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
     )
+
+
+@pytest.mark.parametrize('save_top_k', [-1, 0, 1, 2])
+def test_model_checkpoint_to_json(tmpdir, save_top_k):
+    """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
+    tutils.reset_seed()
+    model = EvalModelTemplate()
+
+    checkpoint = ModelCheckpoint(filepath=None, save_top_k=save_top_k)
+
+    trainer = Trainer(default_root_dir=tmpdir, checkpoint_callback=checkpoint, overfit_batches=0.20, max_epochs=2)
+    trainer.fit(model)
+
+    checkpoint.to_json('./best_k_models.json')
+    d = json.load(open('./best_k_models.json', 'r'))
+    best_k = {k: torch.Tensor(v) for k, v in d.items()}
+    torch.testing.assert_allclose(best_k, checkpoint.best_k_models)
 
 
 @pytest.mark.parametrize(
