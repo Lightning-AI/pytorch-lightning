@@ -10,8 +10,6 @@ ARG TEST_IMAGE=0
 
 COPY ./ ./pytorch-lightning/
 
-RUN ls -lh ./pytorch-lightning
-
 # If using this image for tests, intall more dependencies and don"t delete the source code where the tests live.
 RUN \
     # Install pytorch-lightning at the current PR, plus dependencies.
@@ -27,7 +25,7 @@ RUN \
 
 #RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY ./dockers/tpu-tests/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
