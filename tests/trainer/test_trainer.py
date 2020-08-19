@@ -912,7 +912,7 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     """
     Test that num_sanity_val_steps=-1 runs through all validation data once.
-    Makes sure this setting is independent of limit_val_batches.
+    Makes sure the number of sanity check batches is clipped to limit_val_batches.
     """
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
