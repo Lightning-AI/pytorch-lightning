@@ -196,26 +196,57 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-@pytest.mark.parametrize('scale_arg', ['power', 'binsearch'])
-def test_trainer_arg(tmpdir, scale_arg):
-    """ Check that trainer arg works with bool input. """
+@pytest.mark.parametrize('scale_arg', ['power', 'binsearch', True])
+def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
+    """ Test possible values for 'batch size auto scaling' Trainer argument. """
     tutils.reset_seed()
-
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
-
     before_batch_size = hparams.get('batch_size')
-    # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        auto_scale_batch_size=scale_arg,
-    )
-
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg)
     trainer.fit(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
+
+
+@pytest.mark.parametrize('use_hparams', [True, False])
+def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
+    """ Test that new batch size gets written to the correct hyperparameter attribute. """
+    tutils.reset_seed()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    before_batch_size = hparams.get('batch_size')
+
+    class HparamsEvalModelTemplate(EvalModelTemplate):
+
+        def dataloader(self, *args, **kwargs):
+            # artificially set batch_size so we can get a dataloader
+            # remove it immediately after, because we want only self.hparams.batch_size
+            setattr(self, "batch_size", before_batch_size)
+            dataloader = super().dataloader(*args, **kwargs)
+            del self.batch_size
+            return dataloader
+
+    model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
+    model = model_class(**hparams)
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
+    trainer.fit(model)
+    after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
+    assert before_batch_size != after_batch_size
+
+
+def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
+    """ Test for a warning when model.batch_size and model.hparams.batch_size both present. """
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    model.hparams = hparams
+    # now we have model.batch_size and model.hparams.batch_size
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True)
+    expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
+    with pytest.warns(UserWarning, match=expected_message):
+        trainer.fit(model)
 
 
 @pytest.mark.parametrize('scale_method', ['power', 'binsearch'])
