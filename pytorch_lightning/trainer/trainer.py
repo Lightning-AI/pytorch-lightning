@@ -376,6 +376,7 @@ class Trainer(
         self.callback_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
+        self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.train_dataloader = None
         self.test_dataloaders = None
@@ -1231,14 +1232,14 @@ class Trainer(
         # to make sure program won't crash during val
         if should_sanity_check:
             self.reset_val_dataloader(ref_model)
-            self._num_sanity_val_steps = [min(self.num_sanity_val_steps, val_batches)
+            self.num_sanity_val_batches = [min(self.num_sanity_val_steps, val_batches)
                                           for val_batches in self.num_val_batches]
 
             # hook and callback
             self.running_sanity_check = True
             self.on_sanity_check_start()
 
-            eval_results = self._evaluate(model, self.val_dataloaders, self._num_sanity_val_steps, False)
+            eval_results = self._evaluate(model, self.val_dataloaders, self.num_sanity_val_batches, False)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
