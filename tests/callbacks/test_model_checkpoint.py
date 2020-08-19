@@ -153,3 +153,34 @@ def test_ckpt_metric_names(tmpdir):
     assert len(ckpts) == 1
     val = re.sub('[^0-9.]', '', ckpts[0])
     assert len(val) > 3
+
+
+def test_ckpt_metric_names_results(tmpdir):
+    model = EvalModelTemplate()
+    model.training_step = model.training_step_result_obj
+    model.training_step_end = None
+    model.training_epoch_end = None
+
+    model.validation_step = model.validation_step_result_obj
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        gradient_clip_val=1.0,
+        overfit_batches=0.20,
+        progress_bar_refresh_rate=0,
+        limit_train_batches=0.01,
+        limit_val_batches=0.01,
+        checkpoint_callback=ModelCheckpoint(filepath=tmpdir + '/{val_loss:.2f}')
+    )
+
+    trainer.fit(model)
+
+    # make sure the checkpoint we saved has the metric in the name
+    ckpts = os.listdir(tmpdir)
+    ckpts = [x for x in ckpts if 'val_loss' in x]
+    assert len(ckpts) == 1
+    val = re.sub('[^0-9.]', '', ckpts[0])
+    assert len(val) > 3
