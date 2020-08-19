@@ -928,7 +928,10 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 
     with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
         trainer.fit(model, val_dataloaders=val_dataloaders)
-        assert mocked.call_count == sum(len(dl) * (limit_val_batches > 0) for dl in val_dataloaders)
+        if isinstance(limit_val_batches, float):
+            assert mocked.call_count == sum(len(dl) * limit_val_batches for dl in val_dataloaders)
+        if isinstance(limit_val_batches, int):
+            assert mocked.call_count == sum(limit_val_batches for dl in val_dataloaders)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
