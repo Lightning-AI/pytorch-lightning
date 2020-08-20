@@ -57,8 +57,11 @@ c. Less error prone
 ===================
 
 Why re-invent the wheel?
+
 Use PyTorch Lightning to enjoy a deep learning structure that is rigorously tested (500+ tests)
 across CPUs/multi-GPUs/multi-TPUs on every pull-request.
+
+We promise our collective team of 20+ has thought about training more than you :)
 
 d. No need to learn a new library
 =================================
