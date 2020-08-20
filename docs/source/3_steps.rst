@@ -468,13 +468,11 @@ the :class:`~pytorch_lightning.trainer.Trainer`:
     # init model
     model = LitModel()
     # init data
-    data_module = MNISTDataModule()
+    dm = MNISTDataModule()
 
     trainer = pl.Trainer()
-    trainer.fit(model, data_module)
-
-    dm = MNISTDataModule()
     trainer.fit(model, dm)
+    trainer.test(datamodule=dm)
 
 DataModules are specifically useful for building models based on data. Read more on :ref:`data-modules`.
 
