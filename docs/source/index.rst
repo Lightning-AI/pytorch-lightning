@@ -11,6 +11,7 @@ PyTorch Lightning Documentation
    :name: start
    :caption: Start Here
 
+   3_steps
    new-project
    introduction_guide
    performance

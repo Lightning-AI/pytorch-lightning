@@ -129,7 +129,7 @@ The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 A :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module` but with added functionality.
 It organizes your research code into :ref:`hooks`.
             
-In the snippet above we override the basic hooks, but a full list of hooks to custumize can be found under :ref:`hooks`.
+In the snippet above we override the basic hooks, but a full list of hooks to customize can be found under :ref:`hooks`.
 
 You can use your :class:`~pytorch_lightning.core.LightningModule` just like a PyTorch model.
 
@@ -149,7 +149,7 @@ Convert your PyTorch Module to Lightning
 
 1. Move your computational code
 -------------------------------
-Move the model architucture and farward pass to your :class:`~pytorch_lightning.core.LightningModule`. 
+Move the model architucture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
 
 .. code-block::
 
