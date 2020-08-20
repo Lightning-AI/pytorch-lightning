@@ -7,9 +7,9 @@
 **The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
 
 <p align="center">
+  <a href="#pytorch-lightning-masterclass">Masterclass</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
-  <a href="#convert-your-pytorch">Convert your PyTorch</a> •
   <a href="#resources">Resources</a> •
   <a href="#community">Community</a> •
   <a href="#faq">FAQ</a> •
@@ -81,7 +81,9 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 </center>
 
 ---
-### [PyTorch Lightning Masterclass (new lessons weekly)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+
+## [PyTorch Lightning Masterclass](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+### [New lessons weekly!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
 
 <div style="display: flex">
   <div>
@@ -97,6 +99,7 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
     </a>
   </div>
 </div>
+
 ---
 
 ## Key Features
@@ -203,18 +206,6 @@ trainer = Trainer(tpu_cores=8)
 # Single TPU core training
 trainer = Trainer(tpu_cores=[1])
 ```
-
----
-
-## Convert your PyTorch
-
-Here's how you would organize a realistic PyTorch project into Lightning.
-
-![PT to PL](docs/source/_images/mnist_imgs/pt_to_pl.jpg)
-
-
-## [Refactoring your PyTorch code + benefits + full walk-through](https://www.youtube.com/watch?v=QHww1JH7IDU)
-[![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
 
 ---
 
