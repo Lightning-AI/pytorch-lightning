@@ -4,7 +4,7 @@
 
 # PyTorch Lightning
 
-**The lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate.**
+**The lightweight PyTorch wrapper for high-performance AI research. Scale your models. Write less boilerplate.**
 
 
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
@@ -21,6 +21,8 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
 -->
 </div>
+
+###### *Codecov is 90%+ but build delays may show less
 
 ---
 ## Trending contributors
