@@ -114,7 +114,7 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
 ---
 
 ## Demo
-Here's a minimal example without a validation or test loop.
+Here's a minimal example without a test loop.
 
 ```python
 import pytorch_lightning as pl
