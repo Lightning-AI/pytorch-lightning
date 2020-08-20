@@ -221,10 +221,6 @@ For example, here you could do your own backward pass without worrying about GPU
 
 ```python
 class LitModel(LightningModule):
-    def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                     second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-      optimizer.step()
-
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
 ```
@@ -282,45 +278,6 @@ Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/
 - [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)
 
 ---
-
-## Realistic example
-Here's how you would organize a realistic PyTorch project into Lightning.
-
-![PT to PL](docs/source/_images/mnist_imgs/pt_to_pl.jpg)
-
-The LightningModule defines a *system* such as seq-2-seq, GAN, etc...
-It can ALSO define a simple classifier.
-
-In summary, you:
-
-1. Define a [LightningModule](https://pytorch-lightning.rtfd.io/en/latest/lightning-module.html)
-```python
-    class LitSystem(pl.LightningModule):
-
-        def __init__(self):
-            super().__init__()
-            # not the best model...
-            self.l1 = torch.nn.Linear(28 * 28, 10)
-
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-        def training_step(self, batch, batch_idx):
-            ...
-```
-
-2. Fit it with a [Trainer](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.html)
- ```python
- from pytorch_lightning import Trainer
-
- model = LitSystem()
-
- # most basic trainer, uses good defaults
- trainer = Trainer()
- trainer.fit(model)
- ```
-
-[Check out the COLAB demo here](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 ## What types of research works?
 Anything! Remember, that this is just organized PyTorch code.
@@ -418,31 +375,6 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - Experiment management
 - [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
 
-
-## Running speed
-Migrating to lightning does not mean compromising on speed! You can expect an overhead of about 300 ms per epoch compared with pure PyTorch.
-
-
-## Examples
-Check out this awesome list of research papers and implementations done with Lightning.
-
-- [Contextual Emotion Detection (DoubleDistilBert)](https://github.com/PyTorchLightning/emotion_transformer)
-- [Generative Adversarial Network](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0)
-- [Hyperparameter optimization with Optuna](https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py)
-- [Hyperparameter optimization with Ray Tune](https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html)
-- [Image Inpainting using Partial Convolutions](https://github.com/ryanwongsa/Image-Inpainting)
-- [MNIST on TPU](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_)
-- [NER (transformers, TPU, huggingface)](https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D)
-- [NeuralTexture (CVPR)](https://github.com/PyTorchLightning/neuraltexture)
-- [Recurrent Attentive Neural Process](https://github.com/PyTorchLightning/attentive-neural-processes)
-- [Siamese Nets for One-shot Image Recognition](https://github.com/PyTorchLightning/Siamese-Neural-Networks)
-- [Speech Transformers](https://github.com/PyTorchLightning/speech-transformer-pytorch_lightning)
-- [Transformers transfer learning (Huggingface)](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf)
-- [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
-- [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
-- [Transformers Question Answering (SQuAD)](https://github.com/tshrjn/Finetune-QA/)
-- [Pytorch-Lightning + Microsoft NNI with Docker](https://github.com/davinnovation/pytorch-boilerplate)
-
 ## Tutorials
 Check out our [introduction guide](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html) to get started.
 Or jump straight into [our tutorials](https://pytorch-lightning.readthedocs.io/en/latest/#tutorials).
@@ -461,10 +393,12 @@ If you have any questions, feel free to:
 ---
 
 ## FAQ
-**How do I use Lightning for rapid research?**
+**How do I use Lightning for rapid research?**   
+
 [Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)
 
 **Why was Lightning created?**
+
 Lightning has 3 goals in mind:
 
 1. Maximal flexibility while abstracting out the common boilerplate across research projects.
