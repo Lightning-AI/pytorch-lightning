@@ -317,15 +317,16 @@ Step 2: Fit with Lightning Trainer
 
 .. code-block::
 
+    # dataloader
+    dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
+    train_loader = DataLoader(dataset)
+
     # init model
     model = LitModel()
-    # init data
-    train_dataloader = ....
-    val_dataloader = ....
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     trainer = pl.Trainer()
-    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.fit(model, train_loader)
 
 Init :class:`~pytorch_lightning.core.LightningModule`, your PyTorch dataloaders, and then the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`.
 The :class:`~pytorch_lightning.trainer.Trainer` will automate:
