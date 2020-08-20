@@ -14,10 +14,10 @@
 
 r"""
 
-Learning Rate Logger
+Learning Rate Monitor
 ====================
 
-Log learning rate for lr schedulers during training
+Monitor and logs learning rate for lr schedulers during training.
 
 """
 
@@ -28,9 +28,9 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class LearningRateLogger(Callback):
+class LearningRateMonitor(Callback):
     r"""
-    Automatically logs learning rate for learning rate schedulers during training.
+    Automatically monitor and logs learning rate for learning rate schedulers during training.
 
     Args:
         logging_interval: set to `epoch` or `step` to log `lr` of all optimizers
@@ -40,9 +40,9 @@ class LearningRateLogger(Callback):
     Example::
 
         >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import LearningRateLogger
-        >>> lr_logger = LearningRateLogger(logging_interval='step')
-        >>> trainer = Trainer(callbacks=[lr_logger])
+        >>> from pytorch_lightning.callbacks import LearningRateMonitor
+        >>> lr_monitor = LearningRateMonitor(logging_interval='step')
+        >>> trainer = Trainer(callbacks=[lr_monitor])
 
     Logging names are automatically determined based on optimizer class name.
     In case of multiple optimizers of same type, they will be named `Adam`,
@@ -57,6 +57,7 @@ class LearningRateLogger(Callback):
             lr_scheduler = {'scheduler': torch.optim.lr_schedulers.LambdaLR(optimizer, ...)
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
+    
     """
     def __init__(self, logging_interval: Optional[str] = None):
         if logging_interval not in (None, 'step', 'epoch'):
@@ -69,18 +70,19 @@ class LearningRateLogger(Callback):
         self.lr_sch_names = []
 
     def on_train_start(self, trainer, pl_module):
-        """ Called before training, determines unique names for all lr
-            schedulers in the case of multiple of the same type or in
-            the case of multiple parameter groups
+        """
+        Called before training, determines unique names for all lr
+        schedulers in the case of multiple of the same type or in
+        the case of multiple parameter groups
         """
         if not trainer.logger:
             raise MisconfigurationException(
-                'Cannot use LearningRateLogger callback with Trainer that has no logger.'
+                'Cannot use LearningRateMonitor callback with Trainer that has no logger.'
             )
 
         if not trainer.lr_schedulers:
             rank_zero_warn(
-                'You are using LearningRateLogger callback with models that'
+                'You are using LearningRateMonitor callback with models that'
                 ' have no learning rate schedulers. Please see documentation'
                 ' for `configure_optimizers` method.', RuntimeWarning
             )
