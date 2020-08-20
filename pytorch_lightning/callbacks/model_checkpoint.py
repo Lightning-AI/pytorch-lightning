@@ -314,7 +314,7 @@ class ModelCheckpoint(Callback):
 
     def __warn_deprecated_monitor_key(self):
         using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
-        invalid_key = self.monitor not in ['val_loss', 'checkpoint_on']
+        invalid_key = self.monitor not in ['val_loss', 'checkpoint_on', 'loss']
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
             m = f"""
