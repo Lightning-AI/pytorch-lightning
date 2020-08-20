@@ -144,7 +144,7 @@ This is code that helps the research but isn't relevant to the research code. So
     generated = decoder(z)
     self.experiment.log('images', generated)
     
-In Lightning this code is abstracted out by `Callbacks`.
+In Lightning this code is abstracted out by :ref:`callbacks`.
 
 ----------------
 
