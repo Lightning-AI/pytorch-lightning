@@ -74,7 +74,6 @@ conda install pytorch-lightning -c conda-forge
 - [0.8.4](https://pytorch-lightning.readthedocs.io/en/0.8.4/)
 - [0.8.3](https://pytorch-lightning.readthedocs.io/en/0.8.3/)
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
-- [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
 
 ## PyTorch Lightning is just organized PyTorch
 ![PT to PL](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/fast_2.gif)
