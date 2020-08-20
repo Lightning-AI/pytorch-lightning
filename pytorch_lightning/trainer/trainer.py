@@ -771,7 +771,8 @@ class Trainer(
 
             # hack for types in (int, float)
             if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
-                use_type = float
+                use_type = Trainer._int_or_float_type
+                arg_default = Trainer._int_or_float_default
 
             # hack for track_grad_norm
             if arg == 'track_grad_norm':
@@ -797,6 +798,18 @@ class Trainer(
     def _gpus_arg_default(x) -> Union[int, str]:
         if ',' in x:
             return str(x)
+        else:
+            return int(x)
+
+    def _int_or_float_type(x) -> Union[int, float]:
+        if '.' in x:
+            return float(x)
+        else:
+            return int(x)
+
+    def _int_or_float_default(x) -> Union[int, float]:
+        if '.' in x:
+            return float(x)
         else:
             return int(x)
 
