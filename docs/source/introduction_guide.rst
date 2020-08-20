@@ -11,11 +11,15 @@ Step-by-step walk-through
 #########################
 This guide will walk you through the core pieces of PyTorch Lightning.
 
-To show how Lightning works, we'll start with an MNIST classifier. We'll end showing how
-to use inheritance to very quickly create an AutoEncoder.
+We'll accomplish the following:
+
+- Implement an MNIST classifier.
+- Use inheritance to implement an AutoEncoder
 
 .. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
     of research to illustrate.
+
+--------------
 
 *********************
 Why PyTorch Lightning
