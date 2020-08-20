@@ -801,7 +801,7 @@ class Trainer(
             return int(x)
 
     def _int_or_float_type(x) -> Union[int, float]:
-        if '.' in x:
+        if '.' in str(x):
             return float(x)
         else:
             return int(x)
