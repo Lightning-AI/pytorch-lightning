@@ -93,6 +93,28 @@ Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit 
 Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
 
 ---
+
+## README Table of Contents
+- [Masterclass](https://github.com/PytorchLightning/pytorch-lightning#pytorch-lightning-masterclass-new-lessons-weekly)
+- [Demo](https://github.com/PytorchLightning/pytorch-lightning#demo)
+- [Some Examples](https://github.com/PytorchLightning/pytorch-lightning#some-examples)
+- [Testing Rigour](https://github.com/PytorchLightning/pytorch-lightning#testing-rigour)
+- [Flexibility](https://github.com/PytorchLightning/pytorch-lightning#how-flexible-is-it)
+- [What does Lightning control for me?](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)
+- [Converting to Lightning](https://github.com/PytorchLightning/pytorch-lightning#how-much-effort-is-it-to-convert)
+- [New Project](https://github.com/PytorchLightning/pytorch-lightning#starting-a-new-project)
+- [Why do I need Lightning?](https://github.com/PytorchLightning/pytorch-lightning#why-do-i-want-to-use-lightning)
+- [Support](https://github.com/PytorchLightning/pytorch-lightning#support)
+- [Supported Research use cases](https://github.com/PytorchLightning/pytorch-lightning#what-types-of-research-works)
+- [Visualization](https://github.com/PytorchLightning/pytorch-lightning#visualization)
+- [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
+- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
+- [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)
+- [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)
+- [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
+- [BibTex](https://github.com/PytorchLightning/pytorch-lightning#bibtex)
+
+---
 ### [PyTorch Lightning Masterclass (new lessons weekly)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
 
 <div style="display: flex">
@@ -260,23 +282,6 @@ Although your research/production project might start simple, once you add thing
 - 100+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
-
----
-
-## README Table of Contents
-- [How do I use it](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it)
-- [What lightning automates](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)
-- [Tensorboard integration](https://github.com/PytorchLightning/pytorch-lightning#tensorboard)
-- [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)
-- [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)
-- [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
-- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
-- [Contributing](https://github.com/PytorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
-- [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)
-- [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)
-- [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
-- [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)
-
 ---
 
 ## What types of research works?
