@@ -80,14 +80,13 @@ conda install pytorch-lightning -c conda-forge
 ## PyTorch Lightning is just organized PyTorch
 ![PT to PL](/docs/source/_images/general/pl_quick_start_full_compressed.gif)
 
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
-It's more of a PyTorch style-guide than a framework.
+Lightning disentangles PyTorch code to decouple the science from the engineering 
+by organizing it into 4 categories:
 
-In Lightning, you organize your code into 3 distinct categories:
-
-1. Research code (goes in the LightningModule).
+1. Research code (the LightningModule).
 2. Engineering code (you delete, and is handled by the Trainer).
 3. Non-essential research code (logging, etc... this goes in Callbacks).
+4. Data (use PyTorch Dataloaders or organize them into a LightningDataModule)
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
