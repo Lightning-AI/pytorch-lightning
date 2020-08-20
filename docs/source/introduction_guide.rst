@@ -63,8 +63,8 @@ across CPUs/multi-GPUs/multi-TPUs on every pull-request.
 
 We promise our collective team of 20+ from the top labs has thought about training more than you :)
 
-d. No need to learn a new library
-=================================
+d. Not a new library
+====================
 
 PyTorch Lightning is organized PyTorch - no need to learn a new framework.
 
