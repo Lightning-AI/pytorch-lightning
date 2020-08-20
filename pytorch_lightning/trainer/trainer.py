@@ -769,6 +769,15 @@ class Trainer(
                 use_type = Trainer._allowed_type
                 arg_default = Trainer._arg_default
 
+            # hack for types in (int, float)
+            if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
+                use_type = float
+
+            # hack for track_grad_norm
+            if arg == 'track_grad_norm':
+                use_type = Trainer._grad_norm_allowed_type
+                arg_default = Trainer._grad_norm_arg_default
+
             parser.add_argument(
                 f'--{arg}',
                 dest=arg,
@@ -780,17 +789,29 @@ class Trainer(
 
         return parser
 
-    def _allowed_type(x) -> Union[int, str]:
+    def _gpus_allowed_type(x) -> Union[int, str]:
         if ',' in x:
             return str(x)
         else:
             return int(x)
 
-    def _arg_default(x) -> Union[int, str]:
+    def _gpus_arg_default(x) -> Union[int, str]:
         if ',' in x:
             return str(x)
         else:
             return int(x)
+
+    def _grad_norm_allowed_type(x) -> Union[int, float, str]:
+        if 'inf' in x:
+            return str(x)
+        else:
+            return float(x)
+
+    def _grad_norm_arg_default(x) -> Union[int, float, str]:
+        if 'inf' in x:
+            return str(x)
+        else:
+            return float(x)
 
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
