@@ -4,7 +4,7 @@
 
 # PyTorch Lightning
 
-**The lightweight PyTorch wrapper for high-performance AI research. Scale your models. Write less boilerplate.**
+**The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
 
 
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
