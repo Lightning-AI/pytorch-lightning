@@ -117,6 +117,14 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
 Here's a minimal example without a validation or test loop.
 
 ```python
+import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+from torchvision.datasets import MNIST
+from torch.utils.data import DataLoader, random_split
+import os
+```
+
 # this is just a plain nn.Module with some structure
 
 class LitClassifier(pl.LightningModule):
@@ -128,21 +136,32 @@ class LitClassifier(pl.LightningModule):
     def forward(self, x):
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         x, y = batch
-        loss = F.cross_entropy(self(x), y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss, on_epoch=True)
+        return result
+        
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+        result = pl.EvalResult(checkpoint_on=loss)
+        result.log('val_loss', loss)
+        return result
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
 # train!
-train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
+train, val = random_split(dataset, [55000, 5000])
 
 model = LitClassifier()
 trainer = pl.Trainer(gpus=8, precision=16)
-trainer.fit(model, train_loader)
+trainer.fit(model, DataLoader(train), DataLoader(val))
 ```
 
 Other examples:   
