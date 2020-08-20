@@ -444,6 +444,7 @@ class Trainer(
 
         if not (isinstance(track_grad_norm, (int, float)) or callable(track_grad_norm)) and track_grad_norm != 'inf':
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
+        self.track_grad_norm = track_grad_norm
 
         self.tpu_cores = _parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
