@@ -99,6 +99,7 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
 - [Demo](https://github.com/PytorchLightning/pytorch-lightning#demo)
 - [Advanced Examples](https://github.com/PytorchLightning/pytorch-lightning#advanced-examples)
 - [Testing Rigour](https://github.com/PytorchLightning/pytorch-lightning#testing-rigour)
+- [Does Lightning slow my PyTorch](https://github.com/PytorchLightning/pytorch-lightning#does-lightning-slow-my-pytorch)
 - [Flexibility](https://github.com/PytorchLightning/pytorch-lightning#how-flexible-is-it)
 - [What does Lightning control for me?](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)
 - [Converting to Lightning](https://github.com/PytorchLightning/pytorch-lightning#how-much-effort-is-it-to-convert)
@@ -228,7 +229,11 @@ For every PR we test all combinations of:
 - Linux, OSX, Windows
 - Multiple GPUs
 
-**How does performance compare with vanilla PyTorch?**   
+---
+
+## Does Lightning Slow my PyTorch
+No! Lightning is meant for research/production cases that require high-performance.
+
 We have tests to ensure we get the EXACT same results in under 600 ms difference per epoch. In reality, lightning adds about a 300 ms overhead per epoch.
 [Check out the parity tests here](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/benchmarks).
 
