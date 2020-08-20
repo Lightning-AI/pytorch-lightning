@@ -392,11 +392,22 @@ Without changing a SINGLE line of your code, you can now do the following with t
         val_check_interval=0.25
     )
     
-**********************************
-Step 3: Define LightningDataModule
-**********************************
+************************
+Step 3: Define Your Data
+************************
+Lightning works with pure PyTorch DataLoaders
 
-Organize your code into reusable :class:`~pytorch_lightning.core.datamodule.LightningDataModule`:
+.. code-block:: python
+
+    train_dataloader = DataLoader(...)
+    val_dataloader = DataLoader(...)
+    trainer.fit(model, train_dataloader, val_dataloader)
+
+Optional: DataModule
+====================
+DataLoader and data processing code tends to end up scattered around.
+Make your data code more reusable by organizing
+it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
 
 .. code-block:: python
 
@@ -442,8 +453,12 @@ Organize your code into reusable :class:`~pytorch_lightning.core.datamodule.Ligh
             mnist_test = DataLoader(mnist_test, batch_size=self.batch_size)
             return mnist_test
 
-:class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed to enable sharing and reusing data splits and transforms across different projects. It encapsulates all the steps needed to process data: downloading, tokenizeing, processing etc.
-Now you can simply pass your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` to the :class:`~pytorch_lightning.trainer.Trainer`:
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed to enable sharing and reusing data splits
+and transforms across different projects. It encapsulates all the steps needed to process data: downloading,
+tokenizeing, processing etc.
+
+Now you can simply pass your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` to
+the :class:`~pytorch_lightning.trainer.Trainer`:
 
 .. code-block::
 
