@@ -24,6 +24,7 @@ class TrainerLoggingMixin(ABC):
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
+    logged_metrics: ...
 
     def configure_logger(self, logger):
         if logger is True:
@@ -75,6 +76,8 @@ class TrainerLoggingMixin(ABC):
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
+            # track the logged metrics
+            self.logged_metrics = scalar_metrics
             self.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):

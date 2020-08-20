@@ -374,6 +374,7 @@ class Trainer(
         self.batch_idx = 0
         self.progress_bar_metrics = {}
         self.callback_metrics = {}
+        self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
         self.num_test_batches = []

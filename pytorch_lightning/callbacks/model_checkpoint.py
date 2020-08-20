@@ -339,10 +339,11 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
-        filepath = self.format_checkpoint_name(epoch, metrics)
+        ckpt_name_metrics = trainer.logged_metrics
+        filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
         while gfile.exists(filepath):
-            filepath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
+            filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1
 
