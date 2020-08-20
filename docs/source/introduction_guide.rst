@@ -82,11 +82,12 @@ Defer the hardest parts to Lightning!
 ********************
 Lightning Philosophy
 ********************
-Lightning structures your deep learning code in 3 parts:
+Lightning structures your deep learning code in 4 parts:
 
 - Research code
 - Engineering code
 - Non-essential code
+- Data code
 
 Research code
 =============
@@ -105,7 +106,7 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
     
-In Lightning, this code is abstracted out by the :ref:`lightning-module`.
+In Lightning, this code is organized into a :ref:`lightning-module`.
 
 Engineering code
 ================
@@ -144,7 +145,35 @@ This is code that helps the research but isn't relevant to the research code. So
     generated = decoder(z)
     self.experiment.log('images', generated)
     
-In Lightning this code is abstracted out by :ref:`callbacks`.
+In Lightning this code is organized into :ref:`callbacks`.
+
+Data code
+=========
+Lightning uses standard PyTorch DataLoaders or anything that gives a batch of data.
+This code tends to end up getting messy with transforms, normalization constants and data splitting
+spread all over files.
+
+.. code-block:: python
+
+    # data
+    train = MNIST(...)
+    train, val = split(train, val)
+    test = MNIST(...)
+
+    # transforms
+    train_transforms = ...
+    val_transforms = ...
+    test_transforms = ...
+
+    # dataloader ...
+    # download with dist.barrier() for multi-gpu, etc...
+
+This code gets specially complicated once you start doing multi-gpu training or needing info about
+the data to build your models.
+
+In Lightning this code is organized inside a :ref:`data-modules`.
+
+.. note:: DataModules are optional but encouraged, otherwise you can use standard DataModules
 
 ----------------
 
