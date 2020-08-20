@@ -56,6 +56,8 @@
 
 </center>
 
+## Install
+
 Simple installation from PyPI
 ```bash
 pip install pytorch-lightning
