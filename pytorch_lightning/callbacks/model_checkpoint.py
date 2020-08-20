@@ -48,7 +48,6 @@ class ModelCheckpoint(Callback):
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
-        checkpoints_folder: checkpoints folder name within an experiment folder. Default: ``"checkpoints"``
         monitor: quantity to monitor.
         verbose: verbosity mode. Default: ``False``.
         save_last: always saves the model at the end of the epoch. Default: ``False``.
@@ -102,9 +101,9 @@ class ModelCheckpoint(Callback):
     CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
     CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
 
-    def __init__(self, filepath: Optional[str] = None, checkpoints_folder: str = 'checkpoints',
-                 monitor: str = 'val_loss', verbose: bool = False, save_last: bool = False, save_top_k: int = 1,
-                 save_weights_only: bool = False, mode: str = 'auto', period: int = 1, prefix: str = ''):
+    def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
+                 save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
+                 mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
         if(filepath):
             filepath = str(filepath)  # the tests pass in a py.path.local but we want a str
@@ -115,7 +114,6 @@ class ModelCheckpoint(Callback):
             )
         self._rank = 0
 
-        self.checkpoints_folder = checkpoints_folder
         self.monitor = monitor
         self.verbose = verbose
         if filepath is None:  # will be determined by trainer at runtime
@@ -289,10 +287,10 @@ class ModelCheckpoint(Callback):
                 save_dir,
                 trainer.logger.name,
                 version,
-                self.checkpoints_folder
+                "checkpoints"
             )
         else:
-            ckpt_path = os.path.join(trainer.weights_save_path, self.checkpoints_folder)
+            ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
         self.dirpath = ckpt_path
 
@@ -341,14 +339,11 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
-        # save epoch count in sync with progress bar
-        save_epoch = epoch + 1
-
         ckpt_name_metrics = trainer.logged_metrics
-        filepath = self.format_checkpoint_name(save_epoch, ckpt_name_metrics)
+        filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
         while gfile.exists(filepath):
-            filepath = self.format_checkpoint_name(save_epoch, ckpt_name_metrics, ver=version_cnt)
+            filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1
 
