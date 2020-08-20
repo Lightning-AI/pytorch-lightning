@@ -87,7 +87,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self.precision = 32
 
         # optionally can be set by user
-        self._example_input_array = None
+        self.register_buffer('_example_input_array', None)
         self._datamodule = None
 
     @property
