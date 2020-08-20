@@ -17,15 +17,17 @@
 Lightning in 3 steps
 ####################
 
-*In this guide we will go over how to organize your PyTorch code into Lightning in 3 simple steps.*
+**In this guide we'll show you how to organize your PyTorch code into Lightning in 3 simple steps.**
 
 Organizing your code with PyTorch Lightning makes your code:
 
-* more readable by decoupling the research code from the engineering
+* Keep all the flexibility (this is all pure PyTorch), but removes a ton of boilerplate
+* More readable by decoupling the research code from the engineering
 * Easier to reproduce
-* less error prone by automtaing most of the training loop and tricky engineering
-* keep all the flexibility (this is all pure PyTorch), but removes a ton of boilerplate
-* scalable to any hardware without changing your model
+* Less error prone by automating most of the training loop and tricky engineering
+* Scalable to any hardware without changing your model
+
+----------
 
 Here's a 2 minute conversion guide for PyTorch projects:
 
