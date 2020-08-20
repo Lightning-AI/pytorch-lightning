@@ -80,9 +80,15 @@ class GpuUsageLogger(Callback):
 
         """
 
-    def __init__(self, memory_utilisation: bool = True, gpu_utilisation: bool = True,
-                 intra_step_time: bool = False, inter_step_time: bool = False,
-                 fan_speed: bool = False, temperature: bool = False):
+    def __init__(
+        self,
+        memory_utilisation: bool = True,
+        gpu_utilisation: bool = True,
+        intra_step_time: bool = False,
+        inter_step_time: bool = False,
+        fan_speed: bool = False,
+        temperature: bool = False,
+    ):
         super(GpuUsageLogger).__init__()
         self.memory_utilisation = memory_utilisation
         self.gpu_utilisation = gpu_utilisation
@@ -102,9 +108,10 @@ class GpuUsageLogger(Callback):
         if self.inter_step_time:
             # First log at beginning of second step
             if self.snap_inter_step_time:
-                trainer.logger.log_metrics({'Batch_Time/inter_step (ms)':
-                                                (time.time() - self.snap_inter_step_time) * 1000},
-                                           step=trainer.global_step)
+                trainer.logger.log_metrics(
+                    {'Batch_Time/inter_step (ms)': (time.time() - self.snap_inter_step_time) * 1000},
+                    step=trainer.global_step,
+                )
         if self.intra_step_time:
             self.snap_intra_step_time = time.time()
 
@@ -125,9 +132,10 @@ class GpuUsageLogger(Callback):
 
         if self.intra_step_time:
             if self.snap_intra_step_time:
-                trainer.logger.log_metrics({'Batch_Time/intra_step (ms)':
-                                                (time.time() - self.snap_intra_step_time) * 1000},
-                                           step=trainer.global_step)
+                trainer.logger.log_metrics(
+                    {'Batch_Time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
+                    step=trainer.global_step,
+                )
 
     def on_train_epoch_start(self, trainer, pl_module):
         self.snap_intra_step_time = None
@@ -135,10 +143,13 @@ class GpuUsageLogger(Callback):
 
     @staticmethod
     def _get_gpu_stat(pitem: str, unit: str):
-        result = subprocess.run(["/bin/nvidia-smi", f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
-                                encoding="utf-8", stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
-                                check=True)
+        result = subprocess.run(
+            ["/bin/nvidia-smi", f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
+            encoding="utf-8",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+            check=True,
+        )
         try:
             gpu_usage = [float(x) for x in result.stdout.strip().split(os.linesep)]
         except ValueError:
