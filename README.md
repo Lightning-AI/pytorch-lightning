@@ -464,15 +464,16 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Justus Schock [(justusschock)](https://github.com/justusschock) (Former Core Member PyTorch Ignite)
 
 #### Core Maintainers
-
-- Nick Eggert [(neggert)](https://github.com/neggert)
-- Jeff Ling [(jeffling)](https://github.com/jeffling)
 - Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 - Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 - Peter Yu [(yukw777)](https://github.com/yukw777)
 - Rohit Gupta [(rohitgr7)](https://github.com/rohitgr7)
+
+#### Alumni
+- Nick Eggert [(neggert)](https://github.com/neggert)
+- Jeff Ling [(jeffling)](https://github.com/jeffling)
 
 ---
 
