@@ -31,6 +31,7 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
 -->
 </div>
+
 ###### *Codecov is > 90%+ but build delays may show less
 
 ## PyTorch Lightning is just organized PyTorch
