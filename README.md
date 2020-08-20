@@ -4,7 +4,7 @@
 
 # PyTorch Lightning
 
-**The lightweight PyTorch wrapper for ML researchers. Scale your models. Write less boilerplate.**
+**The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
 
 
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
@@ -21,6 +21,8 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning/badge)](https://www.codefactor.io/repository/github/pytorchlightning/pytorch-lightning)
 -->
 </div>
+
+###### *Codecov is > 90%+ but build delays may show less
 
 ---
 ## Trending contributors
@@ -54,6 +56,8 @@
 
 </center>
 
+## Install
+
 Simple installation from PyPI
 ```bash
 pip install pytorch-lightning
@@ -67,42 +71,86 @@ conda install pytorch-lightning -c conda-forge
 ## Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [stable](https://pytorch-lightning.readthedocs.io/en/stable)
+- [0.9.0](https://pytorch-lightning.readthedocs.io/en/0.9.0/)
 - [0.8.5](https://pytorch-lightning.readthedocs.io/en/0.8.5/)
 - [0.8.4](https://pytorch-lightning.readthedocs.io/en/0.8.4/)
 - [0.8.3](https://pytorch-lightning.readthedocs.io/en/0.8.3/)
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
-- [0.7.6](https://pytorch-lightning.readthedocs.io/en/0.7.6/)
 
 ## PyTorch Lightning is just organized PyTorch
-![PT to PL](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/fast_2.gif)
+![PT to PL](/docs/source/_images/general/pl_quick_start_full_compressed.gif)
 
-Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
-It's more of a PyTorch style-guide than a framework.
+Lightning disentangles PyTorch code to decouple the science from the engineering 
+by organizing it into 4 categories:
 
-In Lightning, you organize your code into 3 distinct categories:
-
-1. Research code (goes in the LightningModule).
+1. Research code (the LightningModule).
 2. Engineering code (you delete, and is handled by the Trainer).
 3. Non-essential research code (logging, etc... this goes in Callbacks).
+4. Data (use PyTorch Dataloaders or organize them into a LightningDataModule)
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
 Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io/en/stable/new-project.html)
 
 ---
+
+## README Table of Contents
+- [Masterclass](https://github.com/PytorchLightning/pytorch-lightning#pytorch-lightning-masterclass-new-lessons-weekly)
+- [Demo](https://github.com/PytorchLightning/pytorch-lightning#demo)
+- [Advanced Examples](https://github.com/PytorchLightning/pytorch-lightning#advanced-examples)
+- [Testing Rigour](https://github.com/PytorchLightning/pytorch-lightning#testing-rigour)
+- [Does Lightning slow my PyTorch](https://github.com/PytorchLightning/pytorch-lightning#does-lightning-slow-my-pytorch)
+- [Flexibility](https://github.com/PytorchLightning/pytorch-lightning#how-flexible-is-it)
+- [What does Lightning control for me?](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)
+- [Converting to Lightning](https://github.com/PytorchLightning/pytorch-lightning#how-much-effort-is-it-to-convert)
+- [New Project](https://github.com/PytorchLightning/pytorch-lightning#starting-a-new-project)
+- [Why do I need Lightning?](https://github.com/PytorchLightning/pytorch-lightning#why-do-i-want-to-use-lightning)
+- [Support](https://github.com/PytorchLightning/pytorch-lightning#support)
+- [Supported Research use cases](https://github.com/PytorchLightning/pytorch-lightning#what-types-of-research-works)
+- [Visualization](https://github.com/PytorchLightning/pytorch-lightning#visualization)
+- [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
+- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
+- [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)
+- [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)
+- [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
+- [BibTex](https://github.com/PytorchLightning/pytorch-lightning#bibtex)
+
+---
 ### [PyTorch Lightning Masterclass (new lessons weekly)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
-[![IMAGE ALT TEXT HERE](docs/source/_images/general/PTL101_youtube_thumbnail.jpg)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+
+<div style="display: flex">
+  <div>
+    <p>From PyTorch to PyTorch Lightning</p>
+    <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2">
+         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/PTL101_youtube_thumbnail.jpg" width=250">
+    </a>
+  </div>
+  <div style="margin-top: 5px">
+    <p>Converting a VAE to PyTorch Lightning</p>
+    <a href="https://www.youtube.com/watch?v=QHww1JH7IDU">
+         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.jpg" width=250">
+    </a>
+  </div>
+</div>
+
+
 ---
 
-## [Refactoring your PyTorch code + benefits + full walk-through](https://www.youtube.com/watch?v=QHww1JH7IDU)
-[![Watch the video](docs/source/_images/general/tutorial_cover.jpg)](https://www.youtube.com/watch?v=QHww1JH7IDU)
-
 ## Demo
-Here's a minimal example without a validation or test loop.
+Here's a minimal example without a test loop.
+
+```python
+import os
+import torch
+import torch.nn.functional as F
+from torchvision.datasets import MNIST
+from torch.utils.data import DataLoader, random_split
+from torchvision import transforms
+import pytorch_lightning as pl
+```
 
 ```python
 # this is just a plain nn.Module with some structure
-
 class LitClassifier(pl.LightningModule):
 
     def __init__(self):
@@ -112,29 +160,65 @@ class LitClassifier(pl.LightningModule):
     def forward(self, x):
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch, batch_idx):
         x, y = batch
-        loss = F.cross_entropy(self(x), y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss, on_epoch=True)
+        return result
+        
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+        result = pl.EvalResult(checkpoint_on=loss)
+        result.log('val_loss', loss)
+        return result
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
 # train!
-train_loader = DataLoader(MNIST(os.getcwd(), train=True, download=True, transform=transforms.ToTensor()), batch_size=32)
+dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
+train, val = random_split(dataset, [55000, 5000])
 
 model = LitClassifier()
-trainer = pl.Trainer(gpus=8, precision=16)
-trainer.fit(model, train_loader)
+trainer = pl.Trainer()
+trainer.fit(model, DataLoader(train), DataLoader(val))
 ```
 
-Other examples:   
+---
+
+## Advanced Examples
+
+###### Hello world
 [MNIST hello world](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL)   
-[GAN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=P0bSmCw57aV5)   
-[BERT](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=7uQVI-xv9Ddj)   
-[DQN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=NWvMLBDySQI5)   
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)    
+
+###### Contrastive Learning
+[BYOL](https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol)    
+[CPC v2](https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#cpc-v2)    
+[Moco v2](https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#moco-v2)    
+[SIMCLR](https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr)    
+
+###### NLP
+[BERT](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=7uQVI-xv9Ddj)   
+[GPT-2](https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2)   
+
+###### Reinforcement Learning
+[DQN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=NWvMLBDySQI5)   
+[Dueling-DQN](https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#dueling-dqn)   
+[Reinforce](https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#reinforce)
+
+###### Vision
+[GAN](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=P0bSmCw57aV5)   
+
+###### Classic ML
+[Logistic Regression](https://pytorch-lightning-bolts.readthedocs.io/en/latest/classic_ml.html#logistic-regression)   
+[Linear Regression](https://pytorch-lightning-bolts.readthedocs.io/en/latest/classic_ml.html#linear-regression)   
+
+---
 
 ## Testing Rigour
 All the automated code by the Trainer is [tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests).
@@ -145,7 +229,11 @@ For every PR we test all combinations of:
 - Linux, OSX, Windows
 - Multiple GPUs
 
-**How does performance compare with vanilla PyTorch?**
+---
+
+## Does Lightning Slow my PyTorch
+No! Lightning is meant for research/production cases that require high-performance.
+
 We have tests to ensure we get the EXACT same results in under 600 ms difference per epoch. In reality, lightning adds about a 300 ms overhead per epoch.
 [Check out the parity tests here](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/benchmarks).
 
@@ -160,10 +248,6 @@ For example, here you could do your own backward pass without worrying about GPU
 
 ```python
 class LitModel(LightningModule):
-    def optimizer_step(self, current_epoch, batch_idx, optimizer, optimizer_idx,
-                     second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
-      optimizer.step()
-
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
 ```
@@ -203,63 +287,7 @@ Although your research/production project might start simple, once you add thing
 - 100+ community contributors.
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
-
 ---
-
-## README Table of Contents
-- [How do I use it](https://github.com/PytorchLightning/pytorch-lightning#how-do-i-do-use-it)
-- [What lightning automates](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)
-- [Tensorboard integration](https://github.com/PytorchLightning/pytorch-lightning#tensorboard)
-- [Lightning features](https://github.com/PytorchLightning/pytorch-lightning#lightning-automates-all-of-the-following-each-is-also-configurable)
-- [Examples](https://github.com/PytorchLightning/pytorch-lightning#examples)
-- [Tutorials](https://github.com/PytorchLightning/pytorch-lightning#tutorials)
-- [Asking for help](https://github.com/PytorchLightning/pytorch-lightning#asking-for-help)
-- [Contributing](https://github.com/PytorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md)
-- [Bleeding edge install](https://github.com/PytorchLightning/pytorch-lightning#bleeding-edge)
-- [Lightning Design Principles](https://github.com/PytorchLightning/pytorch-lightning#lightning-design-principles)
-- [Lightning team](https://github.com/PytorchLightning/pytorch-lightning#lightning-team)
-- [FAQ](https://github.com/PytorchLightning/pytorch-lightning#faq)
-
----
-
-## Realistic example
-Here's how you would organize a realistic PyTorch project into Lightning.
-
-![PT to PL](docs/source/_images/mnist_imgs/pt_to_pl.jpg)
-
-The LightningModule defines a *system* such as seq-2-seq, GAN, etc...
-It can ALSO define a simple classifier.
-
-In summary, you:
-
-1. Define a [LightningModule](https://pytorch-lightning.rtfd.io/en/latest/lightning-module.html)
-```python
-    class LitSystem(pl.LightningModule):
-
-        def __init__(self):
-            super().__init__()
-            # not the best model...
-            self.l1 = torch.nn.Linear(28 * 28, 10)
-
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-        def training_step(self, batch, batch_idx):
-            ...
-```
-
-2. Fit it with a [Trainer](https://pytorch-lightning.rtfd.io/en/latest/pytorch_lightning.trainer.html)
- ```python
- from pytorch_lightning import Trainer
-
- model = LitSystem()
-
- # most basic trainer, uses good defaults
- trainer = Trainer()
- trainer.fit(model)
- ```
-
-[Check out the COLAB demo here](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=HOk9c4_35FKg)
 
 ## What types of research works?
 Anything! Remember, that this is just organized PyTorch code.
@@ -357,31 +385,6 @@ Lightning has out-of-the-box integration with the popular logging/visualizing fr
 - Experiment management
 - [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
 
-
-## Running speed
-Migrating to lightning does not mean compromising on speed! You can expect an overhead of about 300 ms per epoch compared with pure PyTorch.
-
-
-## Examples
-Check out this awesome list of research papers and implementations done with Lightning.
-
-- [Contextual Emotion Detection (DoubleDistilBert)](https://github.com/PyTorchLightning/emotion_transformer)
-- [Generative Adversarial Network](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=TyYOdg8g77P0)
-- [Hyperparameter optimization with Optuna](https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py)
-- [Hyperparameter optimization with Ray Tune](https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html)
-- [Image Inpainting using Partial Convolutions](https://github.com/ryanwongsa/Image-Inpainting)
-- [MNIST on TPU](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_)
-- [NER (transformers, TPU, huggingface)](https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D)
-- [NeuralTexture (CVPR)](https://github.com/PyTorchLightning/neuraltexture)
-- [Recurrent Attentive Neural Process](https://github.com/PyTorchLightning/attentive-neural-processes)
-- [Siamese Nets for One-shot Image Recognition](https://github.com/PyTorchLightning/Siamese-Neural-Networks)
-- [Speech Transformers](https://github.com/PyTorchLightning/speech-transformer-pytorch_lightning)
-- [Transformers transfer learning (Huggingface)](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf)
-- [Transformers text classification](https://github.com/ricardorei/lightning-text-classification)
-- [VAE Library of over 18+ VAE flavors](https://github.com/AntixK/PyTorch-VAE)
-- [Transformers Question Answering (SQuAD)](https://github.com/tshrjn/Finetune-QA/)
-- [Pytorch-Lightning + Microsoft NNI with Docker](https://github.com/davinnovation/pytorch-boilerplate)
-
 ## Tutorials
 Check out our [introduction guide](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html) to get started.
 Or jump straight into [our tutorials](https://pytorch-lightning.readthedocs.io/en/latest/#tutorials).
@@ -400,10 +403,12 @@ If you have any questions, feel free to:
 ---
 
 ## FAQ
-**How do I use Lightning for rapid research?**
+**How do I use Lightning for rapid research?**   
+
 [Here's a walk-through](https://pytorch-lightning.readthedocs.io/en/latest/introduction_guide.html)
 
 **Why was Lightning created?**
+
 Lightning has 3 goals in mind:
 
 1. Maximal flexibility while abstracting out the common boilerplate across research projects.
@@ -459,15 +464,19 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Justus Schock [(justusschock)](https://github.com/justusschock) (Former Core Member PyTorch Ignite)
 
 #### Core Maintainers
-
-- Nick Eggert [(neggert)](https://github.com/neggert)
-- Jeff Ling [(jeffling)](https://github.com/jeffling)
 - Jeremy Jordan [(jeremyjordan)](https://github.com/jeremyjordan)
 - Tullie Murrell [(tullie)](https://github.com/tullie)
 - Adrian Wälchli [(awaelchli)](https://github.com/awaelchli)
 - Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 - Peter Yu [(yukw777)](https://github.com/yukw777)
 - Rohit Gupta [(rohitgr7)](https://github.com/rohitgr7)
+- Nathan Raw[(nateraw)](https://github.com/nateraw)
+- Ananya Harsh Jha [(ananyahjha93)](https://github.com/ananyahjha93)
+- Teddy Koker [(teddykoker)](https://github.com/teddykoker)
+
+#### Alumni
+- Nick Eggert [(neggert)](https://github.com/neggert)
+- Jeff Ling [(jeffling)](https://github.com/jeffling)
 
 ---
 
