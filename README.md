@@ -94,7 +94,7 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
 ---
 ### [PyTorch Lightning Masterclass (new lessons weekly)](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
 
-<div style="display: table">
+<div style="display: block">
   <div style='padding: 5px'>
     <h5>hello</h5>
     <img src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/PTL101_youtube_thumbnail.jpg" alt="https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2" width="250">
