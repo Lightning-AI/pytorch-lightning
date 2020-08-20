@@ -78,7 +78,7 @@ conda install pytorch-lightning -c conda-forge
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
 
 ## PyTorch Lightning is just organized PyTorch
-![PT to PL](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/fast_2.gif)
+![PT to PL](https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full_compressed.gif)
 
 Lightning is a way to organize your PyTorch code to decouple the science code from the engineering.
 It's more of a PyTorch style-guide than a framework.
