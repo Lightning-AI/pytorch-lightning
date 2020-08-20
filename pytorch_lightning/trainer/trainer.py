@@ -775,7 +775,7 @@ class Trainer(
 
             # hack for track_grad_norm
             if arg == 'track_grad_norm':
-                use_type = str
+                use_type = float
 
             parser.add_argument(
                 f'--{arg}',
