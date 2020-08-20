@@ -28,14 +28,24 @@ Why PyTorch Lightning
 a. Less boilerplate
 ===================
 
-Writing code for complex deep learning research experiments tends to be... complex. Training on distributed hardware, using 16-bit percision, implementing early stopping or checkpointing requires non trivial engineering skills, could make research code get massive and make it increasingly harder to debug.
-PyTorch Lightning provides a very simple template for organizing your PyTorch code, to decouple your research code from the engineering. It leaves the core research logic to you and automates all the rest, still giving you full control over every single part.
-Writing less engineering code means iterating and prototyping much faster!
+Research and production code starts with simple code, but quickly grows in complexity
+once you add gpu training, 16-bit, checkpointing, logging, etc...
+
+PyTorch Lightning implements these features so for you and tests them rigorously to make sure you can
+instead focus on the research idea.
+
+Writing less engineering/bolierplate code means:
+
+- fewer bugs
+- faster iteration
+- faster prototyping
 
 b. More functionality
 =====================
 
-With PyTorch Lightning you can leverage code written by hundreds of AI researchers, research engs and PhDs from the world's top AI labs, implementing all the latest best practices and SOTA features such as
+In PyTorch Lightning you leverage code written by hundreds of AI researchers,
+research engs and PhDs from the world's top AI labs,
+implementing all the latest best practices and SOTA features such as
 
 - GPU, Multi GPU, TPU training
 - Multi node training
@@ -46,27 +56,30 @@ With PyTorch Lightning you can leverage code written by hundreds of AI researche
 c. Less error prone
 ===================
 
-Why invent the wheel? Use PyTorch Lightning to enjoy a deep learning structure that is rigorously tested (500+ tests) across CPUs/multi-GPUs/multi-TPUs on every pull-request.
+Why re-invent the wheel?
+Use PyTorch Lightning to enjoy a deep learning structure that is rigorously tested (500+ tests)
+across CPUs/multi-GPUs/multi-TPUs on every pull-request.
 
 d. No need to learn a new library
 =================================
 
-PyTorch Lightning is basically organized PyTorch- no need to learn a new language. Switching your model to Lightnig is pretty stright farward- here's the typical PyTorch project structure organized in a LightningModule.
+PyTorch Lightning is organized PyTorch - no need to learn a new framework.
 
-.. figure:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pt_animation_gif.gif
-   :alt: Convert from PyTorch to Lightning
+Switching your model to Lightning is straight forward - here's a 2-minute video on how to do it.
 
-As your project grows in complexity with things like 16-bit precision, distributed training, etc... the part in blue
-quickly becomes onerous and starts distracting from the core research code.
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+
+Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
+Defer the hardest parts to Lightning!
 
 ----------------
 
 ********************
 Lightning Philosophy
 ********************
-
-
-Lightning structures your deep learning code in to 3:
+Lightning structures your deep learning code in 3 parts:
 
 - Research code
 - Engineering code
@@ -74,9 +87,8 @@ Lightning structures your deep learning code in to 3:
 
 Research code
 =============
-
-
-In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
+In the MNIST generation example, the research code
+would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
 .. code-block:: python
 
@@ -116,8 +128,11 @@ Non-essential code
 ==================
 
 This is code that helps the research but isn't relevant to the research code. Some examples might be:
+
 1. Inspect gradients
 2. Log to tensorboard.
+
+|
 
 .. code-block:: python
 
