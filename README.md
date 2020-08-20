@@ -470,6 +470,9 @@ pip install https://github.com/PytorchLightning/pytorch-lightning/archive/0.X.Y.
 - Nicki Skafte [(skaftenicki)](https://github.com/SkafteNicki)
 - Peter Yu [(yukw777)](https://github.com/yukw777)
 - Rohit Gupta [(rohitgr7)](https://github.com/rohitgr7)
+- Nathan Raw[(nateraw)](https://github.com/nateraw)
+- Ananya Harsh Jha [(ananyahjha93)](https://github.com/ananyahjha93)
+- Teddy Koker [(teddykoker)](https://github.com/teddykoker)
 
 #### Alumni
 - Nick Eggert [(neggert)](https://github.com/neggert)
