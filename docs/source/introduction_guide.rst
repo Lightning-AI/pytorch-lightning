@@ -36,8 +36,8 @@ With PyTorch Lightning you can leverage code written by hundreds of AI researche
 - GPU, Multi GPU, TPU training
 - Multi node training
 - Auto logging
-- Gradient accumelation
-- .....
+- ...
+- Gradient accumulation
 
 c. Less error prone
 ===================
@@ -123,8 +123,8 @@ This is code that helps the research but isn't relevant to the research code. So
     self.experiment.log('images', generated)
     
 In Lightning this code is abstracted out by `Callbacks`.
-----------------
 
+----------------
 
 ***************
 Using Lightning
@@ -135,7 +135,7 @@ Installing Lightning
 ====================
 
 
-Lightning is trivial to install. We reccomend using conda environments
+Lightning is trivial to install. We recommend using conda environments
 
 .. code-block:: bash
 
