@@ -97,7 +97,7 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
 ## README Table of Contents
 - [Masterclass](https://github.com/PytorchLightning/pytorch-lightning#pytorch-lightning-masterclass-new-lessons-weekly)
 - [Demo](https://github.com/PytorchLightning/pytorch-lightning#demo)
-- [Some Examples](https://github.com/PytorchLightning/pytorch-lightning#some-examples)
+- [Advanced Examples](https://github.com/PytorchLightning/pytorch-lightning#advanced-examples)
 - [Testing Rigour](https://github.com/PytorchLightning/pytorch-lightning#testing-rigour)
 - [Flexibility](https://github.com/PytorchLightning/pytorch-lightning#how-flexible-is-it)
 - [What does Lightning control for me?](https://github.com/PytorchLightning/pytorch-lightning#what-does-lightning-control-for-me)
@@ -189,7 +189,7 @@ trainer.fit(model, DataLoader(train), DataLoader(val))
 
 ---
 
-## Some Examples
+## Advanced Examples
 
 ###### Hello world
 [MNIST hello world](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL)   
