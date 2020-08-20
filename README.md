@@ -103,7 +103,9 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
   </div>
   <div style="margin-top: 5px">
     <p>Converting a VAE to PyTorch Lightning</p>
-    <img src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.jpg" alt="https://www.youtube.com/watch?v=QHww1JH7IDU" width="250">
+    <a href="https://www.youtube.com/watch?v=QHww1JH7IDU">
+         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.jpg" width=250">
+    </a>
   </div>
 </div>
 
