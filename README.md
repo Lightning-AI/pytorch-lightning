@@ -117,12 +117,13 @@ Get started with our [QUICK START PAGE](https://pytorch-lightning.readthedocs.io
 Here's a minimal example without a test loop.
 
 ```python
-import pytorch_lightning as pl
+import os
 import torch
 import torch.nn.functional as F
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
-import os
+from torchvision import transforms
+import pytorch_lightning as pl
 ```
 
 ```python
@@ -160,7 +161,7 @@ dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
 train, val = random_split(dataset, [55000, 5000])
 
 model = LitClassifier()
-trainer = pl.Trainer(gpus=8, precision=16)
+trainer = pl.Trainer()
 trainer.fit(model, DataLoader(train), DataLoader(val))
 ```
 
