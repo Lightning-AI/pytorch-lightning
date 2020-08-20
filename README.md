@@ -480,6 +480,10 @@ have gone on to fund operations through things like support and special help for
 
 If you are one of these corporations, please feel free to reach out to will@pytorchlightning.ai!
 
+## Licence
+Please observe the Apache 2.0 license that is listed in this repository. In addition
+the Lightning framework is Patent Pending.
+
 ## BibTeX
 If you want to cite the framework feel free to use this (but only if you loved it 😊):
 
