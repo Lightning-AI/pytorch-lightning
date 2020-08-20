@@ -51,6 +51,7 @@ class TensorBoardLogger(LightningLoggerBase):
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
+        default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is called without a metric
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
@@ -61,19 +62,19 @@ class TensorBoardLogger(LightningLoggerBase):
                  name: Optional[str] = "default",
                  version: Optional[Union[int, str]] = None,
                  log_graph: bool = True,
-                 default_hp_metric: Optional[bool] = True,
+                 default_hp_metric: bool = True,
                  **kwargs):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
         self._log_graph = log_graph
+        self._default_hp_metric = default_hp_metric
 
         self._experiment = None
         self.hparams = {}
         self._kwargs = kwargs
         
-        self.default_hp_metric = default_hp_metric
 
     @property
     def root_dir(self) -> str:
@@ -148,7 +149,7 @@ class TensorBoardLogger(LightningLoggerBase):
         else:
             from torch.utils.tensorboard.summary import hparams
 
-            if metrics is None and self.default_hp_metric:
+            if metrics is None and self._default_hp_metric:
                 metrics = {"hp_metric": -1}
             elif type(metrics) is dict:
                 pass
