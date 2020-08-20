@@ -96,7 +96,18 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     @example_input_array.setter
     def example_input_array(self, example: Any) -> None:
-        self._example_input_array = example
+        if example is None or isinstance(example, torch.Tensor):
+            if '_example_input_array' in self._buffers:
+                self._example_input_array = example
+                
+            else:
+                self.register_buffer('_example_input_array', example)
+                
+        else:
+            if '_example_input_array' in self._buffers:
+                self._buffers.pop('_example_input_array')
+            
+            self._example_input_array = example
 
     @property
     def datamodule(self) -> Any:
