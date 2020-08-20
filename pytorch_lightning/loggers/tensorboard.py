@@ -149,8 +149,9 @@ class TensorBoardLogger(LightningLoggerBase):
         else:
             from torch.utils.tensorboard.summary import hparams
 
-            if metrics is None and self._default_hp_metric:
-                metrics = {"hp_metric": -1}
+            if metrics is None:
+                if self._default_hp_metric:
+                    metrics = {"hp_metric": -1}
             elif type(metrics) is dict:
                 pass
             else:
