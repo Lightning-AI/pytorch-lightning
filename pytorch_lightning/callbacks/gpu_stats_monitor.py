@@ -56,12 +56,18 @@ class GPUStatsMonitor(Callback):
 
     """
 
-    def __init__(self, memory_utilization: bool = True, gpu_utilization: bool = True,
-                 intra_step_time: bool = False, inter_step_time: bool = False,
-                 fan_speed: bool = False, temperature: bool = False):
+    def __init__(
+        self,
+        memory_utilization: bool = True,
+        gpu_utilization: bool = True,
+        intra_step_time: bool = False,
+        inter_step_time: bool = False,
+        fan_speed: bool = False,
+        temperature: bool = False
+    ):
         super().__init__()
 
-        if shutil.which('nvidia-smi') is None:
+        if shutil.which("nvidia-smi") is None:
             raise MisconfigurationException(
                 'Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed.'
             )
@@ -131,7 +137,7 @@ class GPUStatsMonitor(Callback):
     @staticmethod
     def _get_gpu_stat(pitem: str, unit: str):
         result = subprocess.run(
-            [shutil.which('nvidia-smi'), f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
+            [shutil.which("nvidia-smi"), f"--query-gpu={pitem}", "--format=csv,nounits,noheader"],
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
