@@ -442,9 +442,8 @@ class Trainer(
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
 
-        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
+        if not (isinstance(track_grad_norm, (int, float)) or callable(track_grad_norm)) and track_grad_norm != 'inf':
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
-        self.track_grad_norm = float(track_grad_norm)
 
         self.tpu_cores = _parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
@@ -802,16 +801,10 @@ class Trainer(
             return int(x)
 
     def _grad_norm_allowed_type(x) -> Union[int, float, str]:
-        if 'inf' in x:
-            return str(x)
-        else:
-            return float(x)
+        return float(x)
 
     def _grad_norm_arg_default(x) -> Union[int, float, str]:
-        if 'inf' in x:
-            return str(x)
-        else:
-            return float(x)
+        return float(x)
 
     @classmethod
     def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
