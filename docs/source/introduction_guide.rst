@@ -105,7 +105,7 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
     
-In Lightning, this code is abstracted out by the :class:`~pytorch_lightning.core.LightningModule`.
+In Lightning, this code is abstracted out by the :ref:`lightning-module`.
 
 Engineering code
 ================
@@ -125,7 +125,7 @@ over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across 
 
     dist.barrier()
     
-In Lightning, this code is abstracted out by the `Trainer`.
+In Lightning, this code is abstracted out by the :ref:`trainer`.
 
 Non-essential code
 ==================
