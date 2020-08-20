@@ -48,13 +48,13 @@ class ModelIO(object):
 
     @classmethod
     def load_from_checkpoint(
-            cls,
-            checkpoint_path: str,
-            *args,
-            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-            hparams_file: Optional[str] = None,
-            strict: bool = True,
-            **kwargs
+        cls,
+        checkpoint_path: str,
+        *args,
+        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        hparams_file: Optional[str] = None,
+        strict: bool = True,
+        **kwargs,
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
@@ -156,7 +156,7 @@ class ModelIO(object):
     @classmethod
     def _load_model_state(cls, checkpoint: Dict[str, Any], strict: bool = True, *cls_args, **cls_kwargs):
         cls_spec = inspect.getfullargspec(cls.__init__)
-        cls_init_args_name = inspect.signature(cls).parameters.keys()
+        cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
             model_args = {}
