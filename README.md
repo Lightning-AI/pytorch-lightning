@@ -10,6 +10,7 @@
   <a href="#pytorch-lightning-masterclass">Masterclass</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
+  <a href="#docs">Docs</a> •
   <a href="#resources">Resources</a> •
   <a href="#community">Community</a> •
   <a href="#faq">FAQ</a> •
@@ -210,8 +211,6 @@ trainer = Trainer(tpu_cores=[1])
 
 ---
 
-## Resources
-
 ### Docs
 - [master](https://pytorch-lightning.readthedocs.io/en/latest)
 - [stable](https://pytorch-lightning.readthedocs.io/en/stable)
@@ -221,6 +220,9 @@ trainer = Trainer(tpu_cores=[1])
 - [0.8.3](https://pytorch-lightning.readthedocs.io/en/0.8.3/)
 - [0.8.1](https://pytorch-lightning.readthedocs.io/en/0.8.1/)
 
+---
+
+## Resources
 
 ### Examples
 ###### Hello world
