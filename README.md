@@ -206,7 +206,7 @@ For every PR we test all combinations of:
 - Linux, OSX, Windows
 - Multiple GPUs
 
-**How does performance compare with vanilla PyTorch?**
+**How does performance compare with vanilla PyTorch?**   
 We have tests to ensure we get the EXACT same results in under 600 ms difference per epoch. In reality, lightning adds about a 300 ms overhead per epoch.
 [Check out the parity tests here](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/benchmarks).
 
