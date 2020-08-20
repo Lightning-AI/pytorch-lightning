@@ -22,7 +22,7 @@
 -->
 </div>
 
-###### *Codecov is 90%+ but build delays may show less
+###### *Codecov is > 90%+ but build delays may show less
 
 ---
 ## Trending contributors
