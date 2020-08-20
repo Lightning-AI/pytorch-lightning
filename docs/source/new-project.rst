@@ -407,7 +407,7 @@ over download/prepare/splitting data
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(pl.LightningDataModule):
 
         def prepare_data(self):
             # called only on 1 GPU
