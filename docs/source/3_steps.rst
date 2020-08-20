@@ -17,7 +17,7 @@
 Lightning in 3 steps
 ####################
 
-In this guide we will go over how to build your Lightning code in 3 simple steps.
+*In this guide we will go over how to organize your PyTorch code into Lightning in 3 simple steps.*
 
 Organizing your code with PyTorch Lightning makes your code:
 
