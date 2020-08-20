@@ -316,13 +316,13 @@ class TrainerEvaluationLoopMixin(ABC):
                     if self.is_overridden('on_test_batch_start'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_test_batch_start'):
-                            model_ref.on_test_batch_start(output)
+                            model_ref.on_test_batch_start(batch, batch_idx, dataloader_idx)
                 else:
                     self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
                     if self.is_overridden('on_validation_batch_start'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_validation_batch_start'):
-                            model_ref.on_validation_batch_start(output)
+                            model_ref.on_validation_batch_start(batch, batch_idx, dataloader_idx)
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
@@ -364,13 +364,13 @@ class TrainerEvaluationLoopMixin(ABC):
                     if self.is_overridden('on_test_batch_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_test_batch_end'):
-                            model_ref.on_test_batch_end(output)
+                            model_ref.on_test_batch_end(batch, batch_idx, dataloader_idx)
                 else:
                     self.on_validation_batch_end(batch, batch_idx, dataloader_idx)
                     if self.is_overridden('on_validation_batch_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_validation_batch_end'):
-                            model_ref.on_validation_batch_end(output)
+                            model_ref.on_validation_batch_end(batch, batch_idx, dataloader_idx)
 
                 # track outputs for collation
                 if output is not None:
