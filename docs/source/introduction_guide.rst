@@ -31,7 +31,7 @@ a. Less boilerplate
 Research and production code starts with simple code, but quickly grows in complexity
 once you add gpu training, 16-bit, checkpointing, logging, etc...
 
-PyTorch Lightning implements these features so for you and tests them rigorously to make sure you can
+PyTorch Lightning implements these features for you and tests them rigorously to make sure you can
 instead focus on the research idea.
 
 Writing less engineering/bolierplate code means:
