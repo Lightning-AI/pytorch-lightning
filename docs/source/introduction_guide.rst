@@ -177,9 +177,9 @@ In Lightning this code is organized inside a :ref:`data-modules`.
 
 ----------------
 
-***************
-Using Lightning
-***************
+**************************
+From MNIST to AutoEncoders
+**************************
 
 
 Installing Lightning
