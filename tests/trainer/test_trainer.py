@@ -5,6 +5,7 @@ import pickle
 import sys
 import types
 from argparse import Namespace
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
@@ -196,7 +197,7 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 
     trainer = Trainer(
         accumulate_grad_batches=schedule,
-        limit_train_batches=0.8,
+        limit_train_batches=0.7,  # not to be divisible by accumulate_grad_batches on purpose
         limit_val_batches=0.8,
         max_epochs=4,
         default_root_dir=tmpdir,
@@ -216,8 +217,15 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[0]
 
-                assert batch_idx == model.prev_called_batch_idx
-                model.prev_called_batch_idx += expected[0]
+                # separate check for last batch with accumulate 1 step
+                if expected[0] == 1 and (batch_idx + 1) == trainer.num_training_batches:
+                    assert batch_idx == model.prev_called_batch_idx
+                elif (batch_idx + 1) == trainer.num_training_batches:
+                    # prev_called_batch_idx - schedule + modulus remainder
+                    assert batch_idx == (model.prev_called_batch_idx - expected[0] + (batch_idx + 1) % expected[0])
+                else:
+                    assert batch_idx == model.prev_called_batch_idx
+                    model.prev_called_batch_idx += expected[0]
 
             elif 1 <= epoch <= 2:
                 # reset counter when starting epoch
@@ -227,8 +235,12 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[1]
 
-                assert batch_idx == model.prev_called_batch_idx
-                model.prev_called_batch_idx += expected[1]
+                if trainer.num_training_batches == batch_idx + 1:
+                    # prev_called_batch_idx - schedule + modulus remainder
+                    assert batch_idx == (model.prev_called_batch_idx - expected[1] + (batch_idx + 1) % expected[1])
+                else:
+                    assert batch_idx == model.prev_called_batch_idx
+                    model.prev_called_batch_idx += expected[1]
 
             else:
                 if batch_idx == expected[2] - 1:
@@ -237,8 +249,12 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[2]
 
-                assert batch_idx == model.prev_called_batch_idx
-                model.prev_called_batch_idx += expected[2]
+                if (batch_idx + 1) == trainer.num_training_batches:
+                    # prev_called_batch_idx - schedule + modulus remainder
+                    assert batch_idx == (model.prev_called_batch_idx - expected[2] + (batch_idx + 1) % expected[2])
+                else:
+                    assert batch_idx == model.prev_called_batch_idx
+                    model.prev_called_batch_idx += expected[2]
 
         optimizer.step()
 
@@ -248,6 +264,48 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     # for the test
     model.optimizer_step = _optimizer_step
     model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ['accumulate_grad_batches', 'limit_train_batches'],
+    [
+        pytest.param({1: 2, 3: 4}, 1.0),
+        pytest.param({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
+        pytest.param(3, 1.0),
+        pytest.param(3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
+        pytest.param(4, 1.0),
+        pytest.param(4, 0.7),  # not to be divisible by accumulate_grad_batches on purpose
+    ],
+)
+def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
+    """ Verify optimizer.step() applied to last batch while grad accumulation """
+
+    class CurrentModel(EvalModelTemplate):
+        def on_after_backward(self):
+            self.loss_backward = deepcopy(self.state_dict())
+
+        def on_before_zero_grad(self, optimizer):
+            self.opt_step = self.state_dict()
+
+        def on_train_batch_end(self, batch, batch_idx, dataloader_idx):
+            _exclude_keys = ['num_batches_tracked', 'running_mean', 'running_var']
+
+            if (batch_idx + 1) == self.trainer.num_training_batches:
+                for key in self.loss_backward.keys():
+                    # exclude the check for batch_norm parameters
+                    if not any([k in key for k in _exclude_keys]):
+                        assert not torch.equal(self.loss_backward[key], self.opt_step[key])
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        accumulate_grad_batches=accumulate_grad_batches,
+        max_epochs=4,
+        limit_train_batches=limit_train_batches,
+        default_root_dir=tmpdir
+    )
 
     trainer.fit(model)
 

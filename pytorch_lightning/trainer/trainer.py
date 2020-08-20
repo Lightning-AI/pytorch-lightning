@@ -498,6 +498,9 @@ class Trainer(
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
+        # override with environment flag
+        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
@@ -1036,7 +1039,6 @@ class Trainer(
 
         # ddp
         elif self.distributed_backend == 'ddp':
-            self.set_random_port()
             self.accelerator_backend = DDPBackend(self)
             results = self.accelerator_backend.spawn_ddp_children(model)
 
@@ -1149,6 +1151,7 @@ class Trainer(
         if self.logger is not None:
             # save exp to get started
             self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_graph(ref_model)
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
@@ -1374,7 +1377,6 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.set_random_port(force=True)
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
@@ -1397,7 +1399,6 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.set_random_port(force=True)
         self.testing = True
         self.model = model
         results = self.fit(model)

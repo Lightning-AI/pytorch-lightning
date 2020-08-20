@@ -6,7 +6,7 @@ A datamodule is a shareable, reusable class that encapsulates all the steps need
 
 .. raw:: html
 
-    <video width="800" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+    <video width="100%" controls src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
 
 |
 
@@ -72,8 +72,6 @@ Here's a simple PyTorch example:
 The equivalent DataModule just organizes the same exact code, but makes it reusable across projects.
 
 .. code-block:: python
-
-    DataLoader(self.mnist_train, batch_size=32)
 
     class MNISTDataModule(pl.LightningDataModule):
 

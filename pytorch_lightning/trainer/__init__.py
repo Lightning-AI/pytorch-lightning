@@ -12,7 +12,7 @@ the Trainer automates everything else.
 
 .. raw:: html
 
-    <video width="800" controls autoplay
+    <video width="100%" controls autoplay
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
@@ -168,6 +168,7 @@ Trainer flags
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 Accumulates grads every k batches or as set up in the dict.
+Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 .. testcode::
 
@@ -181,6 +182,19 @@ Example::
 
     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+
+amp_backend
+^^^^^^^^^^^
+
+Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
+
+.. testcode::
+
+    # using PyTorch built-in AMP, default used by the Trainer
+    trainer = Trainer(amp_backend='native')
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_backend='apex')
 
 amp_level
 ^^^^^^^^^
@@ -901,20 +915,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
-
-amp_backend
-^^^^^^^^^^^
-
-Define a preferable mixed precision, either PyTorch built-in ("native") AMP,
-which is supported from v1.6, or NVIDIA Apex ("apex").
-
-.. testcode::
-
-    # using PyTorch built-in AMP, default used by the Trainer
-    trainer = Trainer(amp_backend='native')
-
-    # using NVIDIA Apex
-    trainer = Trainer(amp_backend='apex')
 
 val_percent_check
 ^^^^^^^^^^^^^^^^^

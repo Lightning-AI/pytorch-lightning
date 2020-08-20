@@ -1,6 +1,7 @@
 .. testsetup:: *
 
     from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
 
 .. _introduction-guide:
@@ -15,7 +16,7 @@ code to work with Lightning.
 
 .. raw:: html
 
-    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
 
 |
 
@@ -259,9 +260,9 @@ In this case, it's better to group the full definition of a dataset into a `Data
 - Val dataloader(s)
 - Test dataloader(s)
 
-.. code-block:: python
+.. testcode:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(LightningDataModule):
 
         def __init__(self):
             super().__init__()

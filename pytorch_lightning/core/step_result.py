@@ -1,9 +1,10 @@
 import numbers
 from copy import copy
-from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any
+from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple
 
 import torch
 from torch import Tensor
+import os
 
 from pytorch_lightning.metrics.converters import _sync_ddp_if_available
 
@@ -19,6 +20,9 @@ class Result(Dict):
     ):
 
         super().__init__()
+
+        # temporary until dict results are deprecated
+        os.environ['PL_USING_RESULT_OBJ'] = '1'
 
         if early_stop_on is not None:
             self.early_stop_on = early_stop_on
@@ -40,6 +44,12 @@ class Result(Dict):
                 'batch_sizes': []
             }
         }
+
+    def __getitem__(self, key: Union[str, Any]) -> Any:
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            return super().__getitem__(f'step_{key}')
 
     def __getattr__(self, key: str) -> Any:
         try:
@@ -357,6 +367,14 @@ class Result(Dict):
         result['meta'] = meta
         return result
 
+    def dp_reduce(self):
+        for k, value in self.items():
+            if k == 'meta':
+                continue
+            if isinstance(value, list):
+                value = torch.tensor(value)
+            self[k] = value.mean(dim=-1)
+
     @property
     def should_reduce_on_epoch_end(self) -> bool:
         return self['meta']['_internal']['_reduce_on_epoch']
@@ -405,19 +423,23 @@ def recursive_stack(result: MutableMapping):
         if isinstance(v, dict):
             recursive_stack(v)
 
-        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
-            v = torch.stack(v)
-            result[k] = v
+        result[k] = collate_tensors(v)
 
 
-def recursive_padded_stack(result: MutableMapping):
-    for k, v in result.items():
-        if isinstance(v, dict):
-            recursive_stack(v)
+def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
+    if not items or not isinstance(items, (list, tuple)) or any(not isinstance(item, Tensor) for item in items):
+        # items is not a sequence, empty, or contains non-tensors
+        return items
 
-        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], torch.Tensor):
-            v = torch.stack(v)
-            result[k] = v
+    if all(item.ndim == 0 for item in items):
+        # all tensors are scalars, we need to stack
+        return torch.stack(items)
+
+    if all(item.ndim >= 1 and item.shape[1:] == items[0].shape[1:] for item in items):
+        # we can concatenate along the first dimension
+        return torch.cat(items)
+
+    return items
 
 
 class TrainResult(Result):
@@ -731,6 +753,61 @@ class EvalResult(Result):
         }
 
         return result
+
+    def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):
+        """Add feature name and value pair to collection of predictions that will be written to disk on
+        `validation_end` or `test_end`. If running on multiple GPUs, you will get separate `n_gpu`
+        prediction files with the rank prepended onto filename.
+
+        Example::
+
+            result = pl.EvalResult()
+            result.write('ids', [0, 1, 2])
+            result.write('preds', ['cat', 'dog', 'dog'])
+
+        Args:
+            name: Feature name that will turn into column header of predictions file
+            values: Flat tensor or list of row values for given feature column 'name'.
+            filename: Filepath where your predictions will be saved. Defaults to 'predictions.pt'.
+        """
+        # Type check the incoming arguments
+        if not isinstance(name, str):
+            raise ValueError(f"Expected str for 'name' but got {type(name)}")
+        if not isinstance(filename, str):
+            raise ValueError(f"Expected str for 'filename' but got {type(name)}")
+
+        if isinstance(values, Tensor):
+            values = values.detach()
+
+        preds = getattr(self, 'predictions', None)
+        if preds is None:
+            self.predictions = {filename: {name: values}}
+        elif filename not in preds:
+            preds[filename] = {name: values}
+        elif name not in preds[filename]:
+            preds[filename][name] = values
+        elif isinstance(values, Tensor):
+            preds[filename][name] = torch.cat((preds[filename][name], values))
+        elif isinstance(values, list):
+            preds[filename][name].extend(values)
+
+    def write_dict(self, predictions_dict, filename='predictions.pt'):
+        """Calls EvalResult.write() for each key-value pair in predictions_dict.
+
+        It is recommended that you use this function call instead of .write if you need to
+        store more than one column of predictions in your output file.
+
+        Example::
+
+            predictions_to_write = {'preds': ['cat', 'dog'], 'ids': tensor([0, 1])}
+            result.write_dict(predictions_to_write)
+
+        Args:
+            predictions_dict ([type]): Dict of predictions to store and then write to filename at eval end.
+            filename (str, optional): File where your predictions will be stored. Defaults to './predictions.pt'.
+        """
+        for k, v in predictions_dict.items():
+            self.write(k, v, filename)
 
 
 def weighted_mean(result, weights):

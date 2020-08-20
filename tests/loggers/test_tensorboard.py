@@ -156,3 +156,28 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
 
     metrics = {"abc": torch.tensor([0.54])}
     logger.log_hyperparams(hparams, metrics)
+
+
+@pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 28 * 28)])
+def test_tensorboard_log_graph(tmpdir, example_input_array):
+    """ test that log graph works with both model.example_input_array and
+        if array is passed externaly
+    """
+    model = EvalModelTemplate()
+    if example_input_array is None:
+        model.example_input_array = None
+    logger = TensorBoardLogger(tmpdir)
+    logger.log_graph(model, example_input_array)
+
+
+def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
+    """ test that log graph throws warning if model.example_input_array is None """
+    model = EvalModelTemplate()
+    model.example_input_array = None
+    logger = TensorBoardLogger(tmpdir)
+    with pytest.warns(
+        UserWarning,
+        match='Could not log computational graph since the `model.example_input_array`'
+            ' attribute is not set or `input_array` was not given'
+    ):
+        logger.log_graph(model)

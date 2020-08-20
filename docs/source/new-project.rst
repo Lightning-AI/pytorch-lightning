@@ -1,11 +1,15 @@
 .. testsetup:: *
 
     from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
     import os
     import torch
     from torch.nn import functional as F
     from torch.utils.data import DataLoader
+    from torch.utils.data import DataLoader
+    import pytorch_lightning as pl
+    from torch.utils.data import random_split
 
 .. _quick-start:
 
@@ -16,11 +20,11 @@ PyTorch Lightning is nothing more than organized PyTorch code.
 
 Once you've organized it into a LightningModule, it automates most of the training for you.
 
-To illustrate, here's the typical PyTorch project structure organized in a LightningModule.
+Here's a 2 minute conversion guide for PyTorch projects:
 
 .. raw:: html
 
-    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_module_vid.m4v"></video>
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
 
 ----------
 
@@ -34,12 +38,16 @@ A lightningModule defines
 - Model + system architecture
 - Optimizer
 
-.. testcode::
-    :skipif: not TORCHVISION_AVAILABLE
+.. code-block::
 
-
+    import os
+    import torch
+    import torch.nn.functional as F
+    from torchvision.datasets import MNIST
+    from torchvision import transforms
+    from torch.utils.data import DataLoader
     import pytorch_lightning as pl
-    from pytorch_lightning.metrics.functional import accuracy
+    from torch.utils.data import random_split
 
     class LitModel(pl.LightningModule):
 
@@ -68,13 +76,13 @@ well across any accelerator.
 
 .. raw:: html
 
-    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
 
 |
 
 Here's an example of using the Trainer:
 
-.. code-block:: python
+.. code-block::
 
     # dataloader
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
@@ -83,7 +91,7 @@ Here's an example of using the Trainer:
     # init model
     model = LitModel()
 
-    # most basic trainer, uses good defaults
+    # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
@@ -125,7 +133,7 @@ via hooks that are called on your LightningModule.
 
 .. raw:: html
 
-    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
 
 ----------------
 
@@ -342,7 +350,7 @@ Here's an illustration that explains how to refactor your code into reusable Dat
 
 .. raw:: html
 
-    <video width="800" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_dm_vid.m4v"></video>
 
 |
 
@@ -350,30 +358,49 @@ And the matching code:
 
 |
 
-.. code-block:: python
+.. testcode:: python
 
-    class MyDataModule(pl.DataModule):
+    class MNISTDataModule(LightningDataModule):
 
-        def __init__(self):
-            ...
+        def __init__(self, batch_size=32):
+            super().__init__()
+            self.batch_size = batch_size
+
+        def prepare_data(self):
+            # optional to support downloading only once when using multi-GPU or multi-TPU
+            MNIST(os.getcwd(), train=True, download=True)
+            MNIST(os.getcwd(), train=False, download=True)
+
+        def setup(self, stage):
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ])
+
+            if stage == 'fit':
+                mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
+                self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
+            if stage == 'test':
+                mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
+                self.mnist_test = MNIST(os.getcwd(), train=False, download=True)
 
         def train_dataloader(self):
-            # your train transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
+            return mnist_train
 
         def val_dataloader(self):
-            # your val transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
+            return mnist_val
 
         def test_dataloader(self):
-            # your test transforms
-            return DataLoader(YOUR_DATASET)
+            mnist_test = DataLoader(mnist_test, batch_size=self.batch_size)
+            return mnist_test
 
 And train like so:
 
 .. code-block:: python
 
-    dm = MyDataModule()
+    dm = MNISTDataModule()
     trainer.fit(model, dm)
 
 When doing distributed training, Datamodules have two optional arguments for granular control
@@ -381,7 +408,7 @@ over download/prepare/splitting data
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(LightningDataModule):
 
         def prepare_data(self):
             # called only on 1 GPU
@@ -389,12 +416,12 @@ over download/prepare/splitting data
             tokenize()
             etc()
 
-         def setup(self):
+        def setup(self, stage=None):
             # called on every GPU (assigning state is OK)
             self.train = ...
             self.val = ...
 
-         def train_dataloader(self):
+        def train_dataloader(self):
             # do more...
             return self.train
 
@@ -406,7 +433,7 @@ First, define the information that you might need.
 
 .. code-block:: python
 
-    class MyDataModule(pl.DataModule):
+    class MyDataModule(LightningDataModule):
 
         def __init__(self):
             super().__init__()
@@ -418,7 +445,7 @@ First, define the information that you might need.
             tokenize()
             build_vocab()
 
-        def setup(self):
+        def setup(self, stage=None):
             vocab = load_vocab
             self.vocab_size = len(vocab)
 
