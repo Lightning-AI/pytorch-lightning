@@ -6,10 +6,10 @@
 
 .. _introduction-guide:
 
-##################
+#########################
 Step-by-step walk-through
-##################
-This guide will walk you through the core pieces of PyTorch Lightning. 
+#########################
+This guide will walk you through the core pieces of PyTorch Lightning.
 
 To show how Lightning works, we'll start with an MNIST classifier. We'll end showing how
 to use inheritance to very quickly create an AutoEncoder.
@@ -17,19 +17,19 @@ to use inheritance to very quickly create an AutoEncoder.
 .. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
     of research to illustrate.
 
-*********
+*********************
 Why PyTorch Lightning
-*********
+*********************
 
 a. Less boilerplate
-=========
+===================
 
 Writing code for complex deep learning research experiments tends to be... complex. Training on distributed hardware, using 16-bit percision, implementing early stopping or checkpointing requires non trivial engineering skills, could make research code get massive and make it increasingly harder to debug.
 PyTorch Lightning provides a very simple template for organizing your PyTorch code, to decouple your research code from the engineering. It leaves the core research logic to you and automates all the rest, still giving you full control over every single part.
 Writing less engineering code means iterating and prototyping much faster!
 
 b. More functionality
-=========
+=====================
 
 With PyTorch Lightning you can leverage code written by hundreds of AI researchers, research engs and PhDs from the world's top AI labs, implementing all the latest best practices and SOTA features such as
 
@@ -40,12 +40,12 @@ With PyTorch Lightning you can leverage code written by hundreds of AI researche
 - .....
 
 c. Less error prone
-=========
+===================
 
 Why invent the wheel? Use PyTorch Lightning to enjoy a deep learning structure that is rigorously tested (500+ tests) across CPUs/multi-GPUs/multi-TPUs on every pull-request.
 
 d. No need to learn a new library
-=========
+=================================
 
 PyTorch Lightning is basically organized PyTorch- no need to learn a new language. Switching your model to Lightnig is pretty stright farward- here's the typical PyTorch project structure organized in a LightningModule.
 
@@ -57,9 +57,9 @@ quickly becomes onerous and starts distracting from the core research code.
 
 ----------------
 
-*********
+********************
 Lightning Philosophy
-*********
+********************
 
 
 Lightning structures your deep learning code in to 3:
@@ -69,7 +69,7 @@ Lightning structures your deep learning code in to 3:
 - Non-essential code
 
 Research code
-=========
+=============
 
 
 In the MNIST generation example, the research code would be the particular system and how it's trained (ie: A GAN or VAE).
@@ -89,7 +89,7 @@ In the MNIST generation example, the research code would be the particular syste
 In Lightning, this code is abstracted out by the :class:`~pytorch_lightning.core.LightningModule`.
 
 Engineering code
-=========
+================
 
 The Engineering code is all the code related to training this system. Things such as early stopping, distribution
 over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across most projects.
@@ -109,7 +109,7 @@ over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across 
 In Lightning, this code is abstracted out by the `Trainer`.
 
 Non-essential code
-=========
+==================
 
 This is code that helps the research but isn't relevant to the research code. Some examples might be:
 1. Inspect gradients
@@ -126,13 +126,13 @@ In Lightning this code is abstracted out by `Callbacks`.
 ----------------
 
 
-*********
+***************
 Using Lightning
-*********
+***************
 
 
 Installing Lightning
-=========
+====================
 
 
 Lightning is trivial to install. We reccomend using conda environments
@@ -157,7 +157,7 @@ Or conda.
 
 
 The research
-=========
+============
 
 The Model
 ---------
@@ -230,7 +230,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
 
 
 Data
----------
+----
 
 
 Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIST.
@@ -268,7 +268,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
 You can use DataLoaders in 3 ways:
 
 1. Pass DataLoaders to .fit()
-^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Pass in the dataloaders to the `.fit()` function.
 
 .. code-block:: python
@@ -279,7 +279,7 @@ Pass in the dataloaders to the `.fit()` function.
     
 
 2. LightningModule DataLoaders
-^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For fast research prototyping, it might be easier to link the model with the dataloaders.
 
 
@@ -314,7 +314,7 @@ DataLoaders are already in the model, no need to specify on .fit().
     trainer.fit(model)
 
 3. DataModules (recommended)
-^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Defining free-floating dataloaders, splits, download instructions and such can get messy.
 In this case, it's better to group the full definition of a dataset into a `DataModule` which includes:
 
@@ -378,7 +378,7 @@ Using DataModules allows easier sharing of full dataset definitions.
 .. note:: `setup` is called on every GPU (automatically)
 
 Models defined by data
-^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 When your models need to know about the data, it's best to process the data before passing it to the model.
 
 .. code-block:: python
@@ -448,7 +448,7 @@ However, if you have multiple optimizers use the matching parameters
             
 
 Training step
----------
+-------------
 
 The training step is what happens inside the training loop.
 
@@ -496,7 +496,7 @@ Again, this is the same PyTorch code except that it has been organized by the Li
 This code is not restricted which means it can be as complicated as a full seq-2-seq, RL loop, GAN, etc...
 
 TrainResult
-^^^^^^^^^
+^^^^^^^^^^^
 Whenever you'd like to log, or sync values across GPUs use `TrainResult`.
 
 - log to Tensorboard or the other logger of your choice.
@@ -538,7 +538,7 @@ validation or test loop (`validation_step`, `test_step`), you can still use Earl
 ----------------
 
 The engineering
-=========
+===============
 
 Training
 --------
@@ -665,7 +665,7 @@ Or multiple nodes
 Refer to the `distributed computing guide for more details <https://pytorch-lightning.readthedocs.io/en/stable/multi_gpu.html>`_.
 
 train on TPUs
-^^^^
+^^^^^^^^^^^^^
 Did you know you can use PyTorch on TPUs? It's very hard to do, but we've
 worked with the xla team to use their awesome library to get this to work
 out of the box!
@@ -1012,7 +1012,7 @@ prediction.
 ----------------
 
 The non essentials
-=========
+==================
 
 Extensibility
 -------------
