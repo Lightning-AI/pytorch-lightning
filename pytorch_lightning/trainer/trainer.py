@@ -766,8 +766,8 @@ class Trainer(
                 use_type = arg_types[0]
 
             if arg == 'gpus' or arg == 'tpu_cores':
-                use_type = Trainer._allowed_type
-                arg_default = Trainer._arg_default
+                use_type = Trainer._gpus_allowed_type
+                arg_default = Trainer._gpus_arg_default
 
             # hack for types in (int, float)
             if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
