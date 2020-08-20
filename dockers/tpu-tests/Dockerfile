@@ -3,9 +3,6 @@ ARG PYTORCH_VERSION=1.6
 
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-# Build args.
-ARG TEST_IMAGE=0
-
 #SHELL ["/bin/bash", "-c"]
 
 COPY ./ ./pytorch-lightning/
@@ -17,11 +14,7 @@ RUN \
     # drop Horovod
     #python -c "fname = 'pytorch-lightning/requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if not line.startswith('horovod')] ; open(fname, 'w').writelines(lines)" && \
     #pip install --requirement pytorch-lightning/requirements/extra.txt --no-cache-dir && \
-    if [ $TEST_IMAGE -eq 1 ] ; then \
-        pip install --requirement pytorch-lightning/requirements/test.txt --no-cache-dir ; \
-    else \
-        rm -rf ./pytorch-lightning ; \
-    fi
+    pip install --requirement pytorch-lightning/requirements/test.txt --no-cache-dir
 
 #RUN python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
