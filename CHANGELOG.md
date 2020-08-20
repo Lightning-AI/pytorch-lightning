@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - YYYY-MM-DD
+## [0.9.0] - YYYY-MM-DD
 
 ### Added
 
@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * tests for val loop flow ([#2605](https://github.com/PyTorchLightning/pytorch-lightning/pull/2605))
   * `EvalResult` support for train and val. loop ([#2615](https://github.com/PyTorchLightning/pytorch-lightning/pull/2615), [#2651](https://github.com/PyTorchLightning/pytorch-lightning/pull/2651))
   * weighted average in results obj ([#2930](https://github.com/PyTorchLightning/pytorch-lightning/pull/2930))
+  * fix result obj DP auto reduce ([#3013](https://github.com/PyTorchLightning/pytorch-lightning/pull/3013))
 
 - Added class `LightningDataModule` ([#2668](https://github.com/PyTorchLightning/pytorch-lightning/pull/2668))
 
@@ -48,9 +49,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added GPU Usage Logger ([#2932](https://github.com/PyTorchLightning/pytorch-lightning/pull/2932))
 
-- Added `strict=False` and `hparams_file` accepts dict for `load_from_checkpoint` ([#2819](https://github.com/PyTorchLightning/pytorch-lightning/pull/2819))
+- Added `strict=False` for `load_from_checkpoint` ([#2819](https://github.com/PyTorchLightning/pytorch-lightning/pull/2819))
 
 - Added saving test predictions on multiple GPUs ([#2926](https://github.com/PyTorchLightning/pytorch-lightning/pull/2926))
+
+- Auto log the computational graph for loggers that support this ([#3003](https://github.com/PyTorchLightning/pytorch-lightning/pull/3003))
+
+- Added warning when changing monitor and using results obj ([#3014](https://github.com/PyTorchLightning/pytorch-lightning/pull/3014))
+
+- Added a hook `transfer_batch_to_device` to the `LightningDataModule` ([#3038](https://github.com/PyTorchLightning/pytorch-lightning/pull/3038))
 
 ### Changed
 
@@ -62,6 +69,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * GPU training ([#2704](https://github.com/PyTorchLightning/pytorch-lightning/pull/2704))
     * TPU training ([#2708](https://github.com/PyTorchLightning/pytorch-lightning/pull/2708))
     * DDP(2) backend ([#2796](https://github.com/PyTorchLightning/pytorch-lightning/pull/2796))
+    * Retrieve last logged val from result by key ([#3049](https://github.com/PyTorchLightning/pytorch-lightning/pull/3049))
 
 - Using `.comet.config` file for `CometLogger` ([#1913](https://github.com/PyTorchLightning/pytorch-lightning/pull/1913))
 
@@ -72,6 +80,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Moved optimizer creation after device placement for DDP backends ([#2904](https://github.com/PyTorchLightning/pytorch-lightning/pull/2904))
 
 - Support `**DictConfig` for `hparam` serialization ([#2519](https://github.com/PyTorchLightning/pytorch-lightning/pull/2519))
+
+- Removed callback metrics from test results obj ([#2994](https://github.com/PyTorchLightning/pytorch-lightning/pull/2994))
+
+- Re-enabled naming metrics in ckpt name ([#3060](https://github.com/PyTorchLightning/pytorch-lightning/pull/3060))
+
+- Changed progress bar epoch counting to start from 0 ([#3061](https://github.com/PyTorchLightning/pytorch-lightning/pull/3061))
 
 ### Deprecated
 
@@ -110,7 +124,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed test metrics not being logged with `LoggerCollection` ([#2723](https://github.com/PyTorchLightning/pytorch-lightning/pull/2723))
 
-- Fixed data transfer to device when using `torchtext.data.Field` and `include_lengths is True` ([#2689](https://github.com/PyTorchLightning/pytorch-lightning/pull/2689)) 
+- Fixed data transfer to device when using `torchtext.data.Field` and `include_lengths is True` ([#2689](https://github.com/PyTorchLightning/pytorch-lightning/pull/2689))
 
 - Fixed shuffle argument for distributed sampler ([#2789](https://github.com/PyTorchLightning/pytorch-lightning/pull/2789))
 
@@ -148,9 +162,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed gathering of results with tensors of varying shape ([#3020](https://github.com/PyTorchLightning/pytorch-lightning/pull/3020))
 
+- Fixed batch size auto-scaling feature to set the new value on the correct model attribute ([#3043](https://github.com/PyTorchLightning/pytorch-lightning/pull/3043)) 
+
 - Fixed automatic batch scaling not working with half precision ([#3045](https://github.com/PyTorchLightning/pytorch-lightning/pull/3045))
 
 - Fixed `num_sanity_val_steps` is clipped to `limit_val_batches` ([#2917](https://github.com/PyTorchLightning/pytorch-lightning/pull/2917))
+
+- Fixed setting device to root gpu ([#3042](https://github.com/PyTorchLightning/pytorch-lightning/pull/3042))
 
 ## [0.8.5] - 2020-07-09
 

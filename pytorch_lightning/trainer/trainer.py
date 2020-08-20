@@ -374,6 +374,7 @@ class Trainer(
         self.batch_idx = 0
         self.progress_bar_metrics = {}
         self.callback_metrics = {}
+        self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
         self.num_sanity_val_batches = []
@@ -1113,11 +1114,6 @@ class Trainer(
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
-            # If datamodule.setup('test') has not been called yet, call it
-            # if stage == 'test':
-            #     if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
-            #         datamodule.setup('test')
-
             # Override loader hooks
             if self.is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
@@ -1125,6 +1121,10 @@ class Trainer(
                 model.val_dataloader = datamodule.val_dataloader
             if self.is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+
+            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
+            if self.is_overridden('transfer_batch_to_device', datamodule):
+                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
 
             self.datamodule = datamodule
 
@@ -1152,6 +1152,7 @@ class Trainer(
         if self.logger is not None:
             # save exp to get started
             self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_graph(ref_model)
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:

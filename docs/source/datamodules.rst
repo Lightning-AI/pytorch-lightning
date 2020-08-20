@@ -290,6 +290,22 @@ Use this method to generate the test dataloader. This is also a good place to pl
             ])
             return DataLoader(self.test_dataset, transform=transforms, batch_size=64)
 
+transfer_batch_to_device
+^^^^^^^^^^^^^^^^^^^^^^^^
+Override to define how you want to move an arbitrary batch to a device
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def transfer_batch_to_device(self, batch, device):
+            x = batch['x']
+            x = CustomDataWrapper(x)
+            batch['x'].to(device)
+            return batch
+
 ------------------
 
 Using a DataModule
