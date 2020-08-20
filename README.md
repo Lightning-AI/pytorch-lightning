@@ -125,8 +125,8 @@ from torch.utils.data import DataLoader, random_split
 import os
 ```
 
+```python
 # this is just a plain nn.Module with some structure
-
 class LitClassifier(pl.LightningModule):
 
     def __init__(self):
