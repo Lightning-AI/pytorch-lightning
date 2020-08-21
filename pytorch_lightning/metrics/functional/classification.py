@@ -963,9 +963,10 @@ def dice_score(
 def iou(
         pred: torch.Tensor,
         target: torch.Tensor,
+        not_present_score: float = 1.0,
         num_classes: Optional[int] = None,
         remove_bg: bool = False,
-        reduction: str = 'elementwise_mean'
+        reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
     Intersection over union, or Jaccard index calculation.
@@ -973,6 +974,7 @@ def iou(
     Args:
         pred: Tensor containing predictions
         target: Tensor containing targets
+        not_present_score: score to use for a class, if no instance of that class was present in either pred or target
         num_classes: Optionally specify the number of classes
         remove_bg: Flag to state whether a background class has been included
             within input parameters. If true, will remove background class. If
@@ -998,12 +1000,26 @@ def iou(
         tensor(0.4914)
 
     """
+    num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
+
+    # Determine minimum class index we will be evaluating. If using the background, then this is 0; otherwise, if
+    # removing background, use 1.
+    min_class_idx = 1 if remove_bg else 0
+
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
-    if remove_bg:
-        tps = tps[1:]
-        fps = fps[1:]
-        fns = fns[1:]
-    denom = fps + fns + tps
-    denom[denom == 0] = torch.tensor(FLOAT16_EPSILON).type_as(denom)
-    iou = tps / denom
-    return reduce(iou, reduction=reduction)
+
+    scores = torch.zeros(num_classes - min_class_idx, device=pred.device, dtype=torch.float32)
+    for class_idx in range(min_class_idx, num_classes):
+        # If this class is not present in either the pred or the target, then use the not_present_score for this class.
+        if not (target == class_idx).any() and not (pred == class_idx).any():
+            scores[class_idx - min_class_idx] = not_present_score
+            continue
+
+        tp = tps[class_idx]
+        fp = fps[class_idx]
+        fn = fns[class_idx]
+        denom = tp + fp + fn
+        score = tp.to(torch.float) / denom
+        scores[class_idx - min_class_idx] = score
+
+    return reduce(scores, reduction=reduction)

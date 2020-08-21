@@ -804,9 +804,18 @@ class IoU(TensorMetric):
 
     """
 
-    def __init__(self, remove_bg: bool = False, reduction: str = "elementwise_mean"):
+    def __init__(
+            self,
+            not_present_score: float = 1.0,
+            num_classes: Optional[int] = None,
+            remove_bg: bool = False,
+            reduction: str = "elementwise_mean",
+    ):
         """
         Args:
+            not_present_score: score to use for a class, if no instance of that class was present in either pred or
+                target
+            num_classes: Optionally specify the number of classes
             remove_bg: Flag to state whether a background class has been included
                 within input parameters. If true, will remove background class. If
                 false, return IoU over all classes.
@@ -819,6 +828,8 @@ class IoU(TensorMetric):
                 - sum: add elements
         """
         super().__init__(name="iou")
+        self.not_present_score = not_present_score
+        self.num_classes = num_classes
         self.remove_bg = remove_bg
         self.reduction = reduction
 
@@ -826,4 +837,11 @@ class IoU(TensorMetric):
         """
         Actual metric calculation.
         """
-        return iou(y_pred, y_true, remove_bg=self.remove_bg, reduction=self.reduction)
+        return iou(
+            pred=y_pred,
+            target=y_true,
+            not_present_score=self.not_present_score,
+            num_classes=self.num_classes,
+            remove_bg=self.remove_bg,
+            reduction=self.reduction,
+        )
