@@ -42,18 +42,18 @@ class GPUStatsMonitor(Callback):
 
     GPU stats are mainly based on `nvidia-smi --query-gpu` command. The description of the queries is as follows:
 
-        - **fan.speed** – The fan speed value is the percent of maximum speed that the device's fan is currently
-          intended to run at. It ranges from 0 to 100 %. Note: The reported speed is the intended fan speed.
-          If the fan is physically blocked and unable to spin, this output will not match the actual fan speed.
-          Many parts do not report fan speeds because they rely on cooling via fans in the surrounding enclosure.
-        - **memory.used** – Total memory allocated by active contexts.
-        - **memory.free** – Total free memory.
-        - **utilization.gpu** – Percent of time over the past sample period during which one or more kernels was
-          executing on the GPU. The sample period may be between 1 second and 1/6 second depending on the product.
-        - **utilization.memory** – Percent of time over the past sample period during which global (device) memory was
-          being read or written. The sample period may be between 1 second and 1/6 second depending on the product.
-        - **temperature.gpu** – Core GPU temperature. in degrees C.
-        - **temperature.memory** – HBM memory temperature. in degrees C.
+    - **fan.speed** – The fan speed value is the percent of maximum speed that the device's fan is currently
+      intended to run at. It ranges from 0 to 100 %. Note: The reported speed is the intended fan speed.
+      If the fan is physically blocked and unable to spin, this output will not match the actual fan speed.
+      Many parts do not report fan speeds because they rely on cooling via fans in the surrounding enclosure.
+    - **memory.used** – Total memory allocated by active contexts.
+    - **memory.free** – Total free memory.
+    - **utilization.gpu** – Percent of time over the past sample period during which one or more kernels was
+      executing on the GPU. The sample period may be between 1 second and 1/6 second depending on the product.
+    - **utilization.memory** – Percent of time over the past sample period during which global (device) memory was
+      being read or written. The sample period may be between 1 second and 1/6 second depending on the product.
+    - **temperature.gpu** – Core GPU temperature. in degrees C.
+    - **temperature.memory** – HBM memory temperature. in degrees C.
 
     """
 
