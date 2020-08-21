@@ -51,7 +51,8 @@ class TensorBoardLogger(LightningLoggerBase):
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
-        default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is called without a metric
+        default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
+            called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
@@ -74,7 +75,6 @@ class TensorBoardLogger(LightningLoggerBase):
         self._experiment = None
         self.hparams = {}
         self._kwargs = kwargs
-        
 
     @property
     def root_dir(self) -> str:
@@ -156,7 +156,7 @@ class TensorBoardLogger(LightningLoggerBase):
                 pass
             else:
                 metrics = {"hp_metric": metrics}
-            
+
             if metrics:
                 self.log_metrics(metrics, 0)
                 exp, ssi, sei = hparams(params, metrics)
