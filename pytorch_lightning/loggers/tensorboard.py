@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 TensorBoard
 -----------
@@ -15,7 +29,9 @@ from torch.utils.tensorboard import SummaryWriter
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.core.lightning import LightningModule
 
 try:
     from omegaconf import Container, OmegaConf
@@ -46,6 +62,9 @@ class TensorBoardLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
+        log_graph: Adds the computational graph to tensorboard. This requires that
+            the user has defined the `self.example_input_array` attribute in their
+            model.
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
@@ -55,11 +74,13 @@ class TensorBoardLogger(LightningLoggerBase):
                  save_dir: str,
                  name: Optional[str] = "default",
                  version: Optional[Union[int, str]] = None,
+                 log_graph: bool = True,
                  **kwargs):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._log_graph = log_graph
 
         self._experiment = None
         self.hparams = {}
@@ -109,7 +130,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return self._experiment
 
         assert rank_zero_only.rank == 0, 'tried to init log dirs in non global_rank=0'
-        os.makedirs(self.root_dir, exist_ok=True)
+        if self.root_dir and not gfile.exists(str(self.root_dir)):
+            makedirs(self.root_dir)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
@@ -159,10 +181,28 @@ class TensorBoardLogger(LightningLoggerBase):
             self.experiment.add_scalar(k, v, step)
 
     @rank_zero_only
+    def log_graph(self, model: LightningModule, input_array=None):
+        if self._log_graph:
+            if input_array is None:
+                input_array = model.example_input_array
+
+            if input_array is not None:
+                self.experiment.add_graph(
+                    model,
+                    model.transfer_batch_to_device(
+                        model.example_input_array, model.device)
+                )
+            else:
+                rank_zero_warn('Could not log computational graph since the'
+                               ' `model.example_input_array` attribute is not set'
+                               ' or `input_array` was not given',
+                               UserWarning)
+
+    @rank_zero_only
     def save(self) -> None:
         super().save()
         dir_path = self.log_dir
-        if not os.path.isdir(dir_path):
+        if not gfile.isdir(dir_path):
             dir_path = self.save_dir
 
         # prepare the file path
@@ -188,13 +228,13 @@ class TensorBoardLogger(LightningLoggerBase):
     def _get_next_version(self):
         root_dir = os.path.join(self.save_dir, self.name)
 
-        if not os.path.isdir(root_dir):
+        if not gfile.isdir(root_dir):
             log.warning('Missing logger folder: %s', root_dir)
             return 0
 
         existing_versions = []
-        for d in os.listdir(root_dir):
-            if os.path.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
+        for d in gfile.listdir(root_dir):
+            if gfile.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
                 existing_versions.append(int(d.split("_")[1]))
 
         if len(existing_versions) == 0:

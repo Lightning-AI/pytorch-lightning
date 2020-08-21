@@ -7,7 +7,6 @@
     import sys
     sys.argv = ['foo']
 
-
 Hyperparameters
 ---------------
 Lightning has utilities to interact seamlessly with the command line ArgumentParser
@@ -41,6 +40,8 @@ It is best practice to layer your arguments in three sections.
 1.  Trainer args (gpus, num_nodes, etc...)
 2.  Model specific arguments (layer_dim, num_layers, learning_rate, etc...)
 3.  Program arguments (data_path, cluster_email, etc...)
+
+|
 
 We can do this as follows. First, in your LightningModule, define the arguments
 specific to that module. Remember that data splits or data paths may also be specific to

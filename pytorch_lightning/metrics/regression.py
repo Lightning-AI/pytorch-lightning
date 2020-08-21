@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Sequence
 
 import torch
@@ -33,7 +47,7 @@ class MSE(Metric):
     ):
         """
         Args:
-            reduction: a method for reducing mse over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -76,7 +90,7 @@ class RMSE(Metric):
     ):
         """
         Args:
-            reduction: a method for reducing mse over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -119,7 +133,7 @@ class MAE(Metric):
     ):
         """
         Args:
-            reduction: a method for reducing mse over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -162,7 +176,7 @@ class RMSLE(Metric):
     ):
         """
         Args:
-            reduction: a method for reducing mse over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -209,7 +223,7 @@ class PSNR(Metric):
         Args:
             data_range: the range of the data. If None, it is determined from the data (max - min)
             base: a base of a logarithm to use (default: 10)
-            reduction: method for reducing psnr (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -245,23 +259,23 @@ class SSIM(Metric):
         >>> metric = SSIM()
         >>> metric(pred, target)
         tensor(0.9219)
+
     """
 
     def __init__(
-        self,
-        kernel_size: Sequence[int] = (11, 11),
-        sigma: Sequence[float] = (1.5, 1.5),
-        reduction: str = "elementwise_mean",
-        data_range: float = None,
-        k1: float = 0.01,
-        k2: float = 0.03
+            self,
+            kernel_size: Sequence[int] = (11, 11),
+            sigma: Sequence[float] = (1.5, 1.5),
+            reduction: str = "elementwise_mean",
+            data_range: float = None,
+            k1: float = 0.01,
+            k2: float = 0.03
     ):
         """
         Args:
-            kernel_size: Size of the gaussian kernel. Default: (11, 11)
-            sigma: Standard deviation of the gaussian kernel. Default: (1.5, 1.5)
-            reduction: A method for reducing ssim. Default: ``elementwise_mean``
-
+            kernel_size: Size of the gaussian kernel (default: (11, 11))
+            sigma: Standard deviation of the gaussian kernel (default: (1.5, 1.5))
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass away
@@ -288,6 +302,6 @@ class SSIM(Metric):
             target: Ground truth image
 
         Return:
-            torch.Tensor: SSIM Score
+            A Tensor with SSIM score.
         """
         return ssim(pred, target, self.kernel_size, self.sigma, self.reduction, self.data_range, self.k1, self.k2)

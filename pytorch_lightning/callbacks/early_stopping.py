@@ -1,6 +1,20 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 r"""
 Early Stopping
-==============
+^^^^^^^^^^^^^^
 
 Monitor a validation metric and stop training when it stops improving.
 
@@ -12,6 +26,7 @@ import torch.distributed as dist
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
+import os
 
 torch_inf = torch.tensor(np.Inf)
 
@@ -29,6 +44,7 @@ class EarlyStopping(Callback):
 
     Args:
         monitor: quantity to be monitored. Default: ``'val_loss'``.
+            .. note:: Has no effect when using `EvalResult` or `TrainResult`
         min_delta: minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
@@ -69,6 +85,7 @@ class EarlyStopping(Callback):
         self.wait_count = 0
         self.stopped_epoch = 0
         self.mode = mode
+        self.warned_result_obj = False
 
         if mode not in self.mode_dict:
             if self.verbose > 0:
@@ -87,15 +104,6 @@ class EarlyStopping(Callback):
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     def _validate_condition_metric(self, logs):
-        """
-        Checks that the condition metric for early stopping is good
-
-        Args:
-            logs: callback metrics from validation output
-
-        Return:
-             True if specified metric is available
-        """
         monitor_val = logs.get(self.monitor)
         error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
                      f' which is not available. Either add `{self.monitor}` to the return of '
@@ -159,11 +167,25 @@ class EarlyStopping(Callback):
         if should_check_early_stop:
             self._run_early_stopping_check(trainer, pl_module)
 
+    def __warn_deprecated_monitor_key(self):
+        using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
+        invalid_key = self.monitor not in ['val_loss', 'early_stop_on', 'val_early_step_on', 'loss']
+        if using_result_obj and not self.warned_result_obj and invalid_key:
+            self.warned_result_obj = True
+            m = f"""
+                    When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the
+                    'monitor' key of EarlyStopping has no effect.
+                    Remove EarlyStopping(monitor='{self.monitor}) to fix')
+                """
+            rank_zero_warn(m)
+
     def _run_early_stopping_check(self, trainer, pl_module):
         logs = trainer.callback_metrics
 
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
+
+        self.__warn_deprecated_monitor_key()
 
         current = logs.get(self.monitor)
 

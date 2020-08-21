@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Progress Bars
 =============
@@ -99,7 +113,7 @@ class ProgressBarBase(Callback):
         """
         total_val_batches = 0
         if not self.trainer.disable_validation:
-            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            is_val_epoch = (self.trainer.current_epoch) % self.trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
         return total_val_batches
 
@@ -316,7 +330,7 @@ class ProgressBar(ProgressBarBase):
         total_batches = total_train_batches + total_val_batches
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(total_batches))
-        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch + 1}')
+        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
 
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         super().on_train_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)

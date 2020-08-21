@@ -24,9 +24,10 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
+from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
 
 try:
     from apex import amp
@@ -46,7 +47,7 @@ class TrainerTrainingTricksMixin(ABC):
     default_root_dir: str
     progress_bar_callback: ...
     on_gpu: bool
-    amp_type: AMPType
+    amp_backend: AMPType
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -71,7 +72,7 @@ class TrainerTrainingTricksMixin(ABC):
         if self.gradient_clip_val <= 0:
             return
         model = self.get_model()
-        if self.amp_type == AMPType.APEX:
+        if self.amp_backend == AMPType.APEX:
             parameters = amp.master_params(optimizer)
         else:
             parameters = model.parameters()
@@ -158,11 +159,15 @@ class TrainerTrainingTricksMixin(ABC):
                algorithm is terminated
 
         """
-        if not hasattr(model, batch_arg_name):
-            if not hasattr(model.hparams, batch_arg_name):
-                raise MisconfigurationException(
-                    'Neither of `model.batch_size` and `model.hparams.batch_size` found.'
-                )
+        if not lightning_hasattr(model, batch_arg_name):
+            raise MisconfigurationException(
+                f'Field {batch_arg_name} not found in both `model` and `model.hparams`')
+        if hasattr(model, batch_arg_name) and hasattr(model, "hparams") and batch_arg_name in model.hparams:
+            rank_zero_warn(
+                f'Field `model.{batch_arg_name}` and `model.hparams.{batch_arg_name}` are mutually exclusive!'
+                f' `model.{batch_arg_name}` will be used as the initial batch size for scaling.'
+                f' If this is not the intended behavior, please remove either one.'
+            )
 
         if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
@@ -268,15 +273,9 @@ def _adjust_batch_size(trainer,
 
     """
     model = trainer.get_model()
-    if hasattr(model, batch_arg_name):
-        batch_size = getattr(model, batch_arg_name)
-    else:
-        batch_size = getattr(model.hparams, batch_arg_name)
+    batch_size = lightning_getattr(model, batch_arg_name)
     if value:
-        if hasattr(model, batch_arg_name):
-            setattr(model, batch_arg_name, value)
-        else:
-            setattr(model.hparams, batch_arg_name, value)
+        lightning_setattr(model, batch_arg_name, value)
         new_size = value
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
@@ -284,7 +283,7 @@ def _adjust_batch_size(trainer,
         new_size = int(batch_size * factor)
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-        setattr(model.hparams, batch_arg_name, new_size)
+        lightning_setattr(model, batch_arg_name, new_size)
     return new_size
 
 

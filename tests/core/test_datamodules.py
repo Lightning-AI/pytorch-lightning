@@ -1,10 +1,11 @@
 import pickle
 from argparse import ArgumentParser
+from unittest.mock import MagicMock
 
 import pytest
 import torch
 
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import LightningDataModule, Trainer, seed_everything
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
@@ -223,6 +224,7 @@ def test_full_loop(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
+        deterministic=True,
     )
 
     # fit model
@@ -247,7 +249,8 @@ def test_full_loop_single_gpu(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=3,
         weights_summary=None,
-        gpus=1
+        gpus=1,
+        deterministic=True,
     )
 
     # fit model
@@ -273,7 +276,8 @@ def test_full_loop_dp(tmpdir):
         max_epochs=3,
         weights_summary=None,
         distributed_backend='dp',
-        gpus=2
+        gpus=2,
+        deterministic=True,
     )
 
     # fit model
@@ -302,7 +306,8 @@ def test_full_loop_ddp_spawn(tmpdir):
         max_epochs=5,
         weights_summary=None,
         distributed_backend='ddp_spawn',
-        gpus=[0, 1]
+        gpus=[0, 1],
+        deterministic=True,
     )
 
     # fit model
@@ -313,3 +318,40 @@ def test_full_loop_ddp_spawn(tmpdir):
     result = trainer.test(datamodule=dm)
     result = result[0]
     assert result['test_acc'] > 0.8
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires multi-GPU machine")
+def test_dm_transfer_batch_to_device(tmpdir):
+    class CustomBatch:
+
+        def __init__(self, data):
+            self.samples = data[0]
+            self.targets = data[1]
+
+    class CurrentTestDM(LightningDataModule):
+
+        hook_called = False
+
+        def transfer_batch_to_device(self, data, device):
+            self.hook_called = True
+            if isinstance(data, CustomBatch):
+                data.samples = data.samples.to(device)
+                data.targets = data.targets.to(device)
+            else:
+                data = super().transfer_batch_to_device(data, device)
+            return data
+
+    model = EvalModelTemplate()
+    dm = CurrentTestDM()
+    batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
+
+    trainer = Trainer()
+    # running .fit() would require us to implement custom data loaders, we mock the model reference instead
+    trainer.get_model = MagicMock(return_value=model)
+    if trainer.is_overridden('transfer_batch_to_device', dm):
+        model.transfer_batch_to_device = dm.transfer_batch_to_device
+
+    batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)
+    expected = torch.device('cuda', 0)
+    assert dm.hook_called
+    assert batch_gpu.samples.device == batch_gpu.targets.device == expected

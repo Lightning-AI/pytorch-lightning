@@ -134,7 +134,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
+from pytorch_lightning.trainer.supporters import PredictionCollection
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -180,7 +180,7 @@ class TrainerEvaluationLoopMixin(ABC):
     tpu_id: int
     verbose_test: bool
     running_sanity_check: bool
-    amp_type: AMPType
+    amp_backend: AMPType
 
     # Callback system
     on_validation_batch_start: Callable
@@ -217,7 +217,7 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def log_metrics(self, *args):
+    def log_metrics(self, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -255,7 +255,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model: LightningModule,
         dataloaders: List[DataLoader],
         max_batches: Union[int, List[int]],
-        test_mode: bool = False
+        test_mode: bool = False,
     ):
         """Run evaluation code.
 
@@ -278,6 +278,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # bookkeeping
         outputs = []
+        predictions = PredictionCollection(self.global_rank, self.world_size)
 
         # convert max_batches to list
         if isinstance(max_batches, int):
@@ -312,42 +313,76 @@ class TrainerEvaluationLoopMixin(ABC):
                 # callbacks
                 if test_mode:
                     self.on_test_batch_start(batch, batch_idx, dataloader_idx)
+                    if self.is_overridden('on_test_batch_start'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('on_test_batch_start'):
+                            model_ref.on_test_batch_start(batch, batch_idx, dataloader_idx)
                 else:
                     self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
-
+                    if self.is_overridden('on_validation_batch_start'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('on_validation_batch_start'):
+                            model_ref.on_validation_batch_start(batch, batch_idx, dataloader_idx)
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
-                if self.amp_type == AMPType.NATIVE and not self.use_tpu:
+                if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
                         output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
                 else:
                     output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
 
+                is_result_obj = isinstance(output, Result)
+
+                # track batch size for weighted average
+                if is_result_obj:
+                    output.track_batch_size(len(batch))
+
                 # allow only EvalResult when using structured results (from val_step)
-                if isinstance(output, Result) and not isinstance(output, EvalResult):
+                if is_result_obj and not isinstance(output, EvalResult):
                     m = 'only EvalResults or dicts are allowed from validation_step'
                     raise MisconfigurationException(m)
 
+                # ------------------
+                # EVAL STEP END
+                # ------------------
                 # on dp / ddp2 might still want to do something with the batch parts
+                eval_step_end_hook_name = 'test_step_end' if test_mode else 'validation_step_end'
+                if self.is_overridden(eval_step_end_hook_name):
+                    model_ref = self.get_model()
+                    with self.profiler.profile(eval_step_end_hook_name):
+                        eval_step_end = getattr(model_ref, eval_step_end_hook_name)
+                        output = eval_step_end(output)
+
+                elif is_result_obj and (self.use_dp or self.use_ddp2):
+                    # result auto reduce
+                    output.dp_reduce()
+
+                # callbacks (on __batch_end)
                 if test_mode:
-                    if self.is_overridden('test_step_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('test_step_end'):
-                            output = model_ref.test_step_end(output)
                     self.on_test_batch_end(batch, batch_idx, dataloader_idx)
-                else:
-                    if self.is_overridden('validation_step_end'):
+                    if self.is_overridden('on_test_batch_end'):
                         model_ref = self.get_model()
-                        with self.profiler.profile('validation_step_end'):
-                            output = model_ref.validation_step_end(output)
+                        with self.profiler.profile('on_test_batch_end'):
+                            model_ref.on_test_batch_end(batch, batch_idx, dataloader_idx)
+                else:
                     self.on_validation_batch_end(batch, batch_idx, dataloader_idx)
+                    if self.is_overridden('on_validation_batch_end'):
+                        model_ref = self.get_model()
+                        with self.profiler.profile('on_validation_batch_end'):
+                            model_ref.on_validation_batch_end(batch, batch_idx, dataloader_idx)
 
                 # track outputs for collation
                 if output is not None:
+
+                    # Add step predictions to prediction collection to write later
+                    do_write_predictions = is_result_obj and test_mode
+                    if do_write_predictions:
+                        predictions.add(output.pop('predictions', None))
+
                     dl_outputs.append(output)
 
-                self.__eval_add_step_metrics(output)
+                self.__eval_add_step_metrics(output, batch_idx)
 
                 # track debug metrics
                 self.dev_debugger.track_eval_loss_history(test_mode, batch_idx, dataloader_idx, output)
@@ -362,6 +397,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # log callback metrics
         self.__update_callback_metrics(eval_results, using_eval_result)
+
+        # Write predictions to disk if they're available.
+        predictions.to_disk()
 
         # enable train mode again
         model.train()
@@ -418,8 +456,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 eval_results = model.test_end(eval_results)
                 user_reduced = True
-                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
-                               ' Use `test_epoch_end` instead.', DeprecationWarning)
+                rank_zero_warn(
+                    'Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
+                    ' Use `test_epoch_end` instead.',
+                    DeprecationWarning,
+                )
 
             elif self.is_overridden('test_epoch_end', model=model):
                 if using_eval_result:
@@ -436,8 +477,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 eval_results = model.validation_end(eval_results)
                 user_reduced = True
-                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
-                               ' Use `validation_epoch_end` instead.', DeprecationWarning)
+                rank_zero_warn(
+                    'Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
+                    ' Use `validation_epoch_end` instead.',
+                    DeprecationWarning,
+                )
 
             elif self.is_overridden('validation_epoch_end', model=model):
                 if using_eval_result:
@@ -470,14 +514,19 @@ class TrainerEvaluationLoopMixin(ABC):
             eval_results = eval_results[0]
         return eval_results
 
-    def __eval_add_step_metrics(self, output):
+    def __eval_add_step_metrics(self, output, batch_idx):
         # track step level metrics
         if isinstance(output, EvalResult) and not self.running_sanity_check:
             step_log_metrics = output.batch_log_metrics
             step_pbar_metrics = output.batch_pbar_metrics
 
             if len(step_log_metrics) > 0:
-                self.log_metrics(step_log_metrics, {})
+                # make the metrics appear as a different line in the same graph
+                metrics_by_epoch = {}
+                for k, v in step_log_metrics.items():
+                    metrics_by_epoch[f'{k}/epoch_{self.current_epoch}'] = v
+
+                self.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
                 self.add_progress_bar_metrics(step_pbar_metrics)
@@ -568,6 +617,10 @@ class TrainerEvaluationLoopMixin(ABC):
                     prog_bar_metrics = result.epoch_pbar_metrics
                     log_metrics = result.epoch_log_metrics
                     callback_metrics = result.callback_metrics
+
+                    # in testing we don't need the callback metrics
+                    if test_mode:
+                        callback_metrics = {}
                 else:
                     _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.process_output(result)
 
@@ -600,8 +653,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if (test_mode and len(self.test_dataloaders) > 1) \
-                or (not test_mode and len(self.val_dataloaders) > 1):
+        if (test_mode and len(self.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):
             args.append(dataloader_idx)
 
         # handle DP, DDP forward

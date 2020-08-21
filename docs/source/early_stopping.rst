@@ -3,6 +3,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+.. _early-stopping:
 
 Early stopping
 ==============
