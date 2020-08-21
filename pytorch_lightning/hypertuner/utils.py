@@ -3,6 +3,7 @@ from functools import wraps
 
 from pytorch_lightning.utilities import rank_zero_warn
 
+
 def check_call_order(method: Callable):
     """ Define decorator that checks for the correct call order """
     @wraps(method)

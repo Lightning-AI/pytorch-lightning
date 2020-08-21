@@ -5,6 +5,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.hypertuner import HyperTuner
 from tests.base import EvalModelTemplate
 
+
 @pytest.mark.parametrize(['first_method', 'second_method'],[
     pytest.param('lr_find','scale_batch_size'),
     pytest.param('n_worker_search', 'scale_batch_size')

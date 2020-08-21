@@ -74,9 +74,10 @@ class HyperTuner(HyperTunerLRFinderMixin,
              train_dataloader: Optional[DataLoader] = None,
              val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
              datamodule: Optional[LightningDataModule] = None,
-    ):
+             ):
         r"""
         Automatic run the enabled tuner algorithms
+
         Args:
             train_dataloader: A Pytorch
                 DataLoader with training samples. If the model has
@@ -94,13 +95,23 @@ class HyperTuner(HyperTunerLRFinderMixin,
             from pytorch_lightning import Trainer, HyperTuner
             model = ModelClass(...)
             trainer = Trainer(...)
-            tuner = HyperTuner(trainer,
+            tuner = HyperTuner(trainer, model
                                auto_scale_batch_size=True,
                                auto_lr_find=True,
                                auto_n_worker_search=True)
-            tuner.tune(model)  # automatically tunes hyperparameters
+            tuner.tune()  # automatically tunes hyperparameters
 
             # Do standard training with optimized parameters
             trainer.fit(model)
         """
-        pass
+        # Batch size scaling
+        if self.auto_scale_batch_size:
+            self.scale_batch_size()
+
+        # N worker search
+        if self.auto_n_worker_search:
+            self.n_worker_search()
+
+        # Lr finder
+        if self.auto_lr_find:
+            self.lr_find()

@@ -3,10 +3,10 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
     from pytorch_lightning.hypertuner.hypertuner import HyperTuner
-    
+
 .. warning::
     HyperTuner is still under active development and is not meant to be used yet!
-    
+
 The hyper tuner class can assist in tuning some parameters of your model. It is
 not a general hyperparameter search class, since it relies on specific search algorithms
 for optimizing specific hyperparameters. Currently the `HyperTuner` class have two
@@ -14,7 +14,7 @@ tuner algorithms implemented
     * Batch size scaling
     * Learning Rate Finder
     * n_worker searcher
-    
+
 *************************************
 Automatic hyperparameter optimization
 *************************************
@@ -29,10 +29,12 @@ This can be done by:
     model = ModelClass(...)
     trainer = Trainer(...)
     # Automatically tune hyperparameters
-    tuner = HyperTuner(trainer,
+    tuner = HyperTuner(trainer, model
                        auto_scale_batch_size=True,
-                       auto_lr_find=True)
-    tuner.tune(model)  # automatically tunes hyperparameters
+                       auto_lr_find=True,
+                       auto_n_worker_search=True)
+    tuner.tune()  # automatically tunes hyperparameters
+
     # Fit as normally
     trainer.fit(model)
 
@@ -54,7 +56,7 @@ written to either (in this order):
 
 and throw an error if not able to. If you instead want to write to another field
 you can specify this with a string: `auto_scale_batch_size='my_batch_size_field'`.
-This works simiarly for the `auto_lr_find` argument.
+This works similar for the other `auto_` arguments.
 
 ***************
 Tuner algoritms
@@ -62,11 +64,13 @@ Tuner algoritms
 The default search strategy may not be optimal for your specific model
 and the individual algorithms can therefore be invoked using the `HyperTuner`
 class to gain more control over the search.
-Both methods return a single object that can be used to investigate the results
+
+All methods return a single object that can be used to investigate the results
 afterwards. Each object comes with the following fields/methods
 * `obj.results`: dict with the information logged from the search
 * `fig = obj.plot(...)`: method for plotting the results of the search
 * `new_val = obj.suggestion(...)`: method for getting suggestion for optimal value to use
+
 ----------
 
 """
