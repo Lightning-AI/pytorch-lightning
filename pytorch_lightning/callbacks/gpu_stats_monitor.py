@@ -41,6 +41,7 @@ class GPUStatsMonitor(Callback):
         >>> trainer = Trainer(callbacks=[gpu_stats]) # doctest: +SKIP
 
     GPU stats are mainly based on `nvidia-smi --query-gpu` command. The description of the queries is as follows:
+
         - **fan.speed** – The fan speed value is the percent of maximum speed that the device's fan is currently
           intended to run at. It ranges from 0 to 100 %. Note: The reported speed is the intended fan speed.
           If the fan is physically blocked and unable to spin, this output will not match the actual fan speed.
