@@ -86,13 +86,12 @@ class GPUStatsMonitor(Callback):
         if self.memory_utilization:
             self._log_memory(trainer)
 
-        if self.inter_step_time:
+        if self.inter_step_time and self.snap_inter_step_time:
             # First log at beginning of second step
-            if self.snap_inter_step_time:
-                trainer.logger.log_metrics(
-                    {'batch_time/inter_step (ms)': (time.time() - self.snap_inter_step_time) * 1000},
-                    step=trainer.global_step
-                )
+            trainer.logger.log_metrics(
+                {'batch_time/inter_step (ms)': (time.time() - self.snap_inter_step_time) * 1000},
+                step=trainer.global_step
+            )
 
         if self.intra_step_time:
             self.snap_intra_step_time = time.time()
@@ -100,11 +99,13 @@ class GPUStatsMonitor(Callback):
     def on_batch_end(self, trainer, pl_module):
         if self.gpu_utilization:
             self._log_gpu(trainer)
+
         if self.memory_utilization:
             self._log_memory(trainer)
 
         if self.fan_speed:
             trainer.logger.log_metrics(self._get_gpu_stat("fan.speed", "%"), step=trainer.global_step)
+            
         if self.temperature:
             trainer.logger.log_metrics(self._get_gpu_stat("temperature.gpu", "degrees C"), step=trainer.global_step)
             trainer.logger.log_metrics(self._get_gpu_stat("temperature.memory", "degrees C"), step=trainer.global_step)
@@ -112,12 +113,11 @@ class GPUStatsMonitor(Callback):
         if self.inter_step_time:
             self.snap_inter_step_time = time.time()
 
-        if self.intra_step_time:
-            if self.snap_intra_step_time:
-                trainer.logger.log_metrics(
-                    {'batch_time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
-                    step=trainer.global_step
-                )
+        if self.intra_step_time and self.snap_intra_step_time:
+            trainer.logger.log_metrics(
+                {'batch_time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
+                step=trainer.global_step
+            )
 
     def on_train_start(self, trainer, pl_module):
         if not trainer.logger:
