@@ -244,7 +244,7 @@ It also allows logging to the progress bar (by setting prog_bar=True). Read more
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.TrainResult(loss)
+            result = pl.TrainResult(minimize=loss)
             # Add logging to progress bar (note that refreshing the progress bar too frequently
             # in Jupyter notebooks or Colab may freeze your UI) 
             result.log('train_loss', loss, prog_bar=True)
