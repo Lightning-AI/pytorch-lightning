@@ -95,15 +95,13 @@ import torch.distributed as torch_distrib
 
 import pytorch_lightning
 from pytorch_lightning import _logger as log
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.overrides.data_parallel import (
-    LightningDistributedDataParallel,
-    LightningDataParallel,
-)
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
+from pytorch_lightning.overrides.data_parallel import LightningDataParallel, LightningDistributedDataParallel
+from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 try:
     import torch_xla
@@ -420,14 +418,7 @@ class TrainerIOMixin(ABC):
                 ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
             )
 
-        deprecated_keys = (
-            'checkpoint_callback_best_model_score',
-            'checkpoint_callback_best_model_path',
-            'checkpoint_callback_best',
-            'early_stop_callback_wait',
-            'early_stop_callback_patience'
-        )
-        if any([key in checkpoint for key in deprecated_keys]):
+        if any([key in checkpoint for key in DEPRECATED_CHECKPOINT_KEYS]):
             raise ValueError(
                 "The checkpoint you're attempting to load follows an"
                 " outdated schema. You can upgrade to the current schema by running"
