@@ -17,6 +17,7 @@ from torch import optim
 
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.casting import cast_model_to_precision
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
@@ -34,6 +35,8 @@ class DataParallelBackend(object):
     def setup(self, model):
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
+
+        model = cast_model_to_precision(model)
 
         # put model on correct device
         model.cuda(self.trainer.root_gpu)
@@ -94,6 +97,7 @@ class DataParallelBackend(object):
 
     def train(self):
         model = self.trainer.model
+        model = cast_model_to_precision(model)
         results = self.trainer.run_pretrain_routine(model)
         return results
 

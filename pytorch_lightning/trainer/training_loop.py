@@ -295,6 +295,10 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
+    def cast_batch_to_precision(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
     def clip_gradients(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -1175,6 +1179,8 @@ class TrainerTrainLoopMixin(ABC):
         # ---------------
         # FORWARD
         # ---------------
+        batch = self.cast_batch_to_precision(batch, precision=self.precision)
+
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 

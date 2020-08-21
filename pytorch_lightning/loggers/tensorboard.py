@@ -190,7 +190,12 @@ class TensorBoardLogger(LightningLoggerBase):
                 self.experiment.add_graph(
                     model,
                     model.transfer_batch_to_device(
-                        model.example_input_array, model.device)
+                        model.cast_batch_to_dtype(
+                            model.example_input_array,
+                            model.dtype
+                        ),
+                        model.device,
+                    )
                 )
             else:
                 rank_zero_warn('Could not log computational graph since the'

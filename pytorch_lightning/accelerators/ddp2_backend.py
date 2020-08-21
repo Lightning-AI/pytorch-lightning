@@ -20,6 +20,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.casting import cast_model_to_precision
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -56,6 +57,7 @@ class DDP2Backend(object):
                 raise MisconfigurationException(m)
 
     def train(self, model):
+        model = cast_model_to_precision(model)
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):

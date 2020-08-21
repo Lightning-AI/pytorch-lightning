@@ -19,7 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
-from pytorch_lightning.utilities import move_data_to_device, AMPType
+from pytorch_lightning.utilities import move_data_to_device, cast_float_data_to_dtype, AMPType
 
 try:
     from apex import amp
@@ -380,3 +380,6 @@ class ModelHooks(Module):
             - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
         """
         return move_data_to_device(batch, device)
+
+    def cast_batch_to_dtype(self, batch: Any, dtype: torch.dtype) -> Any:
+        return cast_float_data_to_dtype(batch, dtype)

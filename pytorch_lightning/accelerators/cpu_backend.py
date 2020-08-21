@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.casting import cast_model_to_precision
 
 
 class CPUBackend(object):
@@ -28,6 +29,8 @@ class CPUBackend(object):
         # call setup after the ddp process has connected
         self.trainer.call_setup_hook(model)
 
+        model = cast_model_to_precision(model)
+
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
         optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
@@ -36,5 +39,6 @@ class CPUBackend(object):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
     def train(self, model):
+        model = cast_model_to_precision(model)
         results = self.trainer.run_pretrain_routine(model)
         return results

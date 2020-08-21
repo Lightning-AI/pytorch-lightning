@@ -21,6 +21,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.casting import cast_model_to_precision
 
 try:
     import torch_xla
@@ -74,6 +75,7 @@ class TPUBackend(object):
         return results
 
     def train(self, model: LightningModule):
+        model = cast_model_to_precision(model)
         self.trainer.model = model
 
         # train

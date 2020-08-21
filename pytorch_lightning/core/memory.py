@@ -219,6 +219,7 @@ class ModelSummary(object):
         trainer = self._model.trainer
 
         input_ = model.example_input_array
+        input_ = model.cast_batch_to_dtype(input_, model.dtype)
         input_ = model.transfer_batch_to_device(input_, model.device)
 
         if trainer is not None and trainer.amp_backend == AMPType.NATIVE and not trainer.use_tpu:

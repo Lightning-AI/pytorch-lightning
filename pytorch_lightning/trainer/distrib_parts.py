@@ -33,7 +33,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device, AMPType
+from pytorch_lightning.utilities import move_data_to_device, cast_float_data_to_dtype, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -173,11 +173,22 @@ class TrainerDPMixin(ABC):
         device = torch.device('cuda', gpu_id)
         return self.__transfer_batch_to_device(batch, device)
 
+    def cast_batch_to_precision(self, batch, precision: int):
+        return self.__cast_batch_to_precision(batch, precision)
+
     def __transfer_batch_to_device(self, batch: Any, device: torch.device):
         model = self.get_model()
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
+
+    def __cast_batch_to_precision(self, batch: Any, precision: int):
+        dtype = torch.float64 if precision == 64 else torch.float32
+
+        model = self.get_model()
+        if model is not None:
+            return model.cast_batch_to_dtype(batch, dtype)
+        return cast_float_data_to_dtype(batch, dtype)
 
     def horovod_train(self, model):
         # call setup after the ddp process has connected

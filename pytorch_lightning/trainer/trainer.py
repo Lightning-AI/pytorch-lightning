@@ -1444,7 +1444,8 @@ class Trainer(
         model.setup(stage_name)
 
     def init_amp(self, amp_type: str):
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
+        if not (self.precision in (16, 32, 64)):
+            raise Exception('only 64, 32 or 16 bit precision supported')
         self.amp_backend = None
         self._setup_amp_backend(amp_type)
 

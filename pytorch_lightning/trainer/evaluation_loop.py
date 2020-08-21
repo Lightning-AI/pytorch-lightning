@@ -213,6 +213,10 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
+    def cast_batch_to_precision(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
     def add_progress_bar_metrics(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -651,6 +655,8 @@ class TrainerEvaluationLoopMixin(ABC):
 
     def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
         # make dataloader_idx arg in validation_step optional
+        batch = self.cast_batch_to_precision(batch, precision=self.precision)
+
         args = [batch, batch_idx]
 
         if (test_mode and len(self.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):

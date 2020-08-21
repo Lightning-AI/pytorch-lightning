@@ -122,3 +122,27 @@ def move_data_to_device(batch: Any, device: torch.device):
         return data.to(device, **kwargs)
 
     return apply_to_collection(batch, dtype=(TransferableDataType, Batch), function=batch_to)
+
+
+def cast_float_data_to_dtype(batch: Any, dtype: torch.dtype):
+    def batch_to(data):
+        # try to move torchtext data first
+        if TORCHTEXT_AVAILABLE and isinstance(data, Batch):
+
+            # Shallow copy because each Batch has a reference to Dataset which contains all examples
+            device_data = copy(data)
+            for field in data.fields:
+                device_field = cast_float_data_to_dtype(getattr(data, field), dtype)
+                setattr(device_data, field, device_field)
+            return device_data
+
+        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+        return data.to(dtype, **kwargs)
+
+    # Only cast float tensors to FP32 or FP64.
+    # int tensors may require int64 even if precision == 32, e.g. torch.nn.functional.one_hot.
+    return apply_to_collection(
+        batch,
+        dtype=(torch.FloatTensor, torch.DoubleTensor, torch.cuda.FloatTensor, torch.cuda.DoubleTensor, Batch),
+        function=batch_to,
+    )

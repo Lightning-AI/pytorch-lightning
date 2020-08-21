@@ -15,6 +15,7 @@
 import torch
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.casting import cast_model_to_precision
 
 try:
     from apex import amp
@@ -33,6 +34,8 @@ class GPUBackend(object):
         # call setup
         self.trainer.call_setup_hook(model)
 
+        model = cast_model_to_precision(model)
+
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
 
@@ -48,6 +51,7 @@ class GPUBackend(object):
         return model
 
     def train(self, model):
+        model = cast_model_to_precision(model)
         results = self.trainer.run_pretrain_routine(model)
         return results
 
@@ -56,3 +60,4 @@ class GPUBackend(object):
         self.trainer.optimizers = optimizers
         self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
         return model
+

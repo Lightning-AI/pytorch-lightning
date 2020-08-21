@@ -18,6 +18,7 @@ import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities.casting import cast_model_to_precision
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 
 try:
@@ -40,6 +41,7 @@ class DDPSpawnBackend(object):
         self.mp_queue = smp.SimpleQueue()
 
     def train(self, model, nprocs):
+        model = cast_model_to_precision(model)
         mp.spawn(self.ddp_train, nprocs=nprocs, args=(self.mp_queue, model,))
 
     def teardown(self, model):
