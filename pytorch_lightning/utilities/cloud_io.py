@@ -59,6 +59,8 @@ def atomic_save(checkpoint, filepath: str, is_xla_tensor=False):
             accepts.
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
+        is_xla_tensor: If the tensor to be saved in an XLA Tensor
+            Is true if the model is being trained on a TPU
     """
     bytesbuffer = io.BytesIO()
 
