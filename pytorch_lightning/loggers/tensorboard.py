@@ -70,12 +70,14 @@ class TensorBoardLogger(LightningLoggerBase):
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'
 
-    def __init__(self,
-                 save_dir: str,
-                 name: Optional[str] = "default",
-                 version: Optional[Union[int, str]] = None,
-                 log_graph: bool = True,
-                 **kwargs):
+    def __init__(
+        self,
+        save_dir: str,
+        name: Optional[str] = "default",
+        version: Optional[Union[int, str]] = None,
+        log_graph: bool = False,
+        **kwargs
+    ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
@@ -187,11 +189,8 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                self.experiment.add_graph(
-                    model,
-                    model.transfer_batch_to_device(
-                        model.example_input_array, model.device)
-                )
+                input_array = model.transfer_batch_to_device(input_array, model.device)
+                self.experiment.add_graph(model, input_array)
             else:
                 rank_zero_warn('Could not log computational graph since the'
                                ' `model.example_input_array` attribute is not set'
