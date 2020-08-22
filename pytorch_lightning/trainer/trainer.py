@@ -374,8 +374,10 @@ class Trainer(
         self.batch_idx = 0
         self.progress_bar_metrics = {}
         self.callback_metrics = {}
+        self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
+        self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.train_dataloader = None
         self.test_dataloaders = None
@@ -462,9 +464,9 @@ class Trainer(
         self.min_steps = min_steps
 
         if num_sanity_val_steps == -1:
-            self.num_sanity_val_steps = float("inf")
+            self.num_sanity_val_steps = float('inf')
         else:
-            self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
+            self.num_sanity_val_steps = num_sanity_val_steps
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -765,8 +767,16 @@ class Trainer(
                 use_type = arg_types[0]
 
             if arg == 'gpus' or arg == 'tpu_cores':
-                use_type = Trainer._allowed_type
-                arg_default = Trainer._arg_default
+                use_type = Trainer._gpus_allowed_type
+                arg_default = Trainer._gpus_arg_default
+
+            # hack for types in (int, float)
+            if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
+                use_type = Trainer._int_or_float_type
+
+            # hack for track_grad_norm
+            if arg == 'track_grad_norm':
+                use_type = float
 
             parser.add_argument(
                 f'--{arg}',
@@ -779,15 +789,21 @@ class Trainer(
 
         return parser
 
-    def _allowed_type(x) -> Union[int, str]:
+    def _gpus_allowed_type(x) -> Union[int, str]:
         if ',' in x:
             return str(x)
         else:
             return int(x)
 
-    def _arg_default(x) -> Union[int, str]:
+    def _gpus_arg_default(x) -> Union[int, str]:
         if ',' in x:
             return str(x)
+        else:
+            return int(x)
+
+    def _int_or_float_type(x) -> Union[int, float]:
+        if '.' in str(x):
+            return float(x)
         else:
             return int(x)
 
@@ -1112,11 +1128,6 @@ class Trainer(
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
-            # If datamodule.setup('test') has not been called yet, call it
-            # if stage == 'test':
-            #     if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
-            #         datamodule.setup('test')
-
             # Override loader hooks
             if self.is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
@@ -1124,6 +1135,10 @@ class Trainer(
                 model.val_dataloader = datamodule.val_dataloader
             if self.is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+
+            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
+            if self.is_overridden('transfer_batch_to_device', datamodule):
+                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
 
             self.datamodule = datamodule
 
@@ -1225,7 +1240,6 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
-
         using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
@@ -1233,14 +1247,15 @@ class Trainer(
         # to make sure program won't crash during val
         if should_sanity_check:
             self.reset_val_dataloader(ref_model)
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # hook and callback
             self.running_sanity_check = True
             self.on_sanity_check_start()
 
-            num_loaders = len(self.val_dataloaders)
-            max_batches = [self.num_sanity_val_steps] * num_loaders
-            eval_results = self._evaluate(model, self.val_dataloaders, max_batches, False)
+            eval_results = self._evaluate(model, self.val_dataloaders, self.num_sanity_val_batches, False)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:

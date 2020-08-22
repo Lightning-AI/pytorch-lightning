@@ -255,7 +255,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model: LightningModule,
         dataloaders: List[DataLoader],
         max_batches: Union[int, List[int]],
-        test_mode: bool = False
+        test_mode: bool = False,
     ):
         """Run evaluation code.
 
@@ -316,13 +316,13 @@ class TrainerEvaluationLoopMixin(ABC):
                     if self.is_overridden('on_test_batch_start'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_test_batch_start'):
-                            model_ref.on_test_batch_start(output)
+                            model_ref.on_test_batch_start(batch, batch_idx, dataloader_idx)
                 else:
                     self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
                     if self.is_overridden('on_validation_batch_start'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_validation_batch_start'):
-                            model_ref.on_validation_batch_start(output)
+                            model_ref.on_validation_batch_start(batch, batch_idx, dataloader_idx)
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
@@ -364,13 +364,13 @@ class TrainerEvaluationLoopMixin(ABC):
                     if self.is_overridden('on_test_batch_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_test_batch_end'):
-                            model_ref.on_test_batch_end(output)
+                            model_ref.on_test_batch_end(batch, batch_idx, dataloader_idx)
                 else:
                     self.on_validation_batch_end(batch, batch_idx, dataloader_idx)
                     if self.is_overridden('on_validation_batch_end'):
                         model_ref = self.get_model()
                         with self.profiler.profile('on_validation_batch_end'):
-                            model_ref.on_validation_batch_end(output)
+                            model_ref.on_validation_batch_end(batch, batch_idx, dataloader_idx)
 
                 # track outputs for collation
                 if output is not None:
@@ -456,8 +456,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 eval_results = model.test_end(eval_results)
                 user_reduced = True
-                rank_zero_warn('Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
-                               ' Use `test_epoch_end` instead.', DeprecationWarning)
+                rank_zero_warn(
+                    'Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
+                    ' Use `test_epoch_end` instead.',
+                    DeprecationWarning,
+                )
 
             elif self.is_overridden('test_epoch_end', model=model):
                 if using_eval_result:
@@ -474,8 +477,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 eval_results = model.validation_end(eval_results)
                 user_reduced = True
-                rank_zero_warn('Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
-                               ' Use `validation_epoch_end` instead.', DeprecationWarning)
+                rank_zero_warn(
+                    'Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
+                    ' Use `validation_epoch_end` instead.',
+                    DeprecationWarning,
+                )
 
             elif self.is_overridden('validation_epoch_end', model=model):
                 if using_eval_result:
@@ -647,8 +653,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if (test_mode and len(self.test_dataloaders) > 1) \
-                or (not test_mode and len(self.val_dataloaders) > 1):
+        if (test_mode and len(self.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):
             args.append(dataloader_idx)
 
         # handle DP, DDP forward

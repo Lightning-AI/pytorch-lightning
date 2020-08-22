@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 TensorBoard
 -----------
@@ -58,13 +72,15 @@ class TensorBoardLogger(LightningLoggerBase):
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'
 
-    def __init__(self,
-                 save_dir: str,
-                 name: Optional[str] = "default",
-                 version: Optional[Union[int, str]] = None,
-                 log_graph: bool = True,
-                 default_hp_metric: bool = True,
-                 **kwargs):
+    def __init__(
+        self,
+        save_dir: str,
+        name: Optional[str] = "default",
+        version: Optional[Union[int, str]] = None,
+        log_graph: bool = True,
+        default_hp_metric: bool = True,
+        **kwargs
+    ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
@@ -181,11 +197,8 @@ class TensorBoardLogger(LightningLoggerBase):
                 input_array = model.example_input_array
 
             if input_array is not None:
-                self.experiment.add_graph(
-                    model,
-                    model.transfer_batch_to_device(
-                        model.example_input_array, model.device)
-                )
+                input_array = model.transfer_batch_to_device(input_array, model.device)
+                self.experiment.add_graph(model, input_array)
             else:
                 rank_zero_warn('Could not log computational graph since the'
                                ' `model.example_input_array` attribute is not set'

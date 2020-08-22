@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numbers
 from copy import copy
 from typing import Optional, Dict, Union, Sequence, Callable, MutableMapping, Any, List, Tuple
@@ -10,13 +24,12 @@ from pytorch_lightning.metrics.converters import _sync_ddp_if_available
 
 
 class Result(Dict):
-
     def __init__(
-            self,
-            minimize: Optional[Tensor] = None,
-            early_stop_on: Optional[Tensor] = None,
-            checkpoint_on: Union[Tensor, bool, None] = None,
-            hiddens: Optional[Tensor] = None,
+        self,
+        minimize: Optional[Tensor] = None,
+        early_stop_on: Optional[Tensor] = None,
+        checkpoint_on: Union[Tensor, bool, None] = None,
+        hiddens: Optional[Tensor] = None,
     ):
 
         super().__init__()
@@ -38,12 +51,7 @@ class Result(Dict):
         if minimize is not None and checkpoint_on is None:
             self.checkpoint_on = minimize.detach()
 
-        self['meta'] = {
-            '_internal': {
-                '_reduce_on_epoch': False,
-                'batch_sizes': []
-            }
-        }
+        self['meta'] = {'_internal': {'_reduce_on_epoch': False, 'batch_sizes': []}}
 
     def __getitem__(self, key: Union[str, Any]) -> Any:
         try:
@@ -95,20 +103,20 @@ class Result(Dict):
             assert x.grad_fn is not None, m
 
     def log(
-            self,
-            name: str,
-            value: Any,
-            prog_bar: bool = False,
-            logger: bool = True,
-            on_step: bool = False,
-            on_epoch: bool = True,
-            reduce_fx: Callable = torch.mean,
-            tbptt_reduce_fx: Callable = torch.mean,
-            tbptt_pad_token: int = 0,
-            enable_graph: bool = False,
-            sync_dist: bool = False,
-            sync_dist_op: Union[Any, str] = 'mean',
-            sync_dist_group: Optional[Any] = None
+        self,
+        name: str,
+        value: Any,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: bool = False,
+        on_epoch: bool = True,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
     ):
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
@@ -126,37 +134,60 @@ class Result(Dict):
         if on_step and on_epoch:
             # set step version
             step_name = f'step_{name}'
-            self.__set_meta(step_name, value, prog_bar, logger,
-                            on_step=True, on_epoch=False,
-                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
+            self.__set_meta(
+                step_name,
+                value,
+                prog_bar,
+                logger,
+                on_step=True,
+                on_epoch=False,
+                reduce_fx=reduce_fx,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+                tbptt_pad_token=tbptt_pad_token,
+            )
             self.__setitem__(step_name, value)
 
             # set epoch version
             epoch_name = f'epoch_{name}'
-            self.__set_meta(epoch_name, value, prog_bar, logger, on_step=False, on_epoch=True,
-                            reduce_fx=reduce_fx, tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
+            self.__set_meta(
+                epoch_name,
+                value,
+                prog_bar,
+                logger,
+                on_step=False,
+                on_epoch=True,
+                reduce_fx=reduce_fx,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+                tbptt_pad_token=tbptt_pad_token,
+            )
             self.__setitem__(epoch_name, value)
         else:
-            self.__set_meta(name, value,
-                            prog_bar, logger,
-                            on_step, on_epoch,
-                            reduce_fx,
-                            tbptt_reduce_fx=tbptt_reduce_fx, tbptt_pad_token=tbptt_pad_token)
+            self.__set_meta(
+                name,
+                value,
+                prog_bar,
+                logger,
+                on_step,
+                on_epoch,
+                reduce_fx,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+                tbptt_pad_token=tbptt_pad_token,
+            )
 
             # set the value
             self.__setitem__(name, value)
 
     def __set_meta(
-            self,
-            name: str,
-            value: Any,
-            prog_bar: bool,
-            logger: bool,
-            on_step: bool,
-            on_epoch: bool,
-            reduce_fx: Callable,
-            tbptt_pad_token: int,
-            tbptt_reduce_fx: Callable
+        self,
+        name: str,
+        value: Any,
+        prog_bar: bool,
+        logger: bool,
+        on_step: bool,
+        on_epoch: bool,
+        reduce_fx: Callable,
+        tbptt_pad_token: int,
+        tbptt_reduce_fx: Callable,
     ):
         # set the meta for the item
         meta_value = value
@@ -168,7 +199,7 @@ class Result(Dict):
             reduce_fx=reduce_fx,
             value=meta_value,
             tbptt_reduce_fx=tbptt_reduce_fx,
-            tbptt_pad_token=tbptt_pad_token
+            tbptt_pad_token=tbptt_pad_token,
         )
 
         self['meta'][name] = meta
@@ -186,10 +217,7 @@ class Result(Dict):
         return torch.tensor(meta['_internal']['batch_sizes'])
 
     def get_callback_metrics(self) -> dict:
-        result = {
-            'early_stop_on': self.early_stop_on,
-            'checkpoint_on': self.checkpoint_on
-        }
+        result = {'early_stop_on': self.early_stop_on, 'checkpoint_on': self.checkpoint_on}
 
         return result
 
@@ -328,7 +356,6 @@ class Result(Dict):
         result = recursive_gather(outputs, result)
         recursive_stack(result)
 
-
         for k, option in meta.items():
             if k == '_internal':
                 continue
@@ -443,13 +470,12 @@ def collate_tensors(items: Union[List, Tuple]) -> Union[Tensor, List, Tuple]:
 
 
 class TrainResult(Result):
-
     def __init__(
-            self,
-            minimize: Optional[Tensor] = None,
-            early_stop_on: Tensor = None,
-            checkpoint_on: Union[Tensor, bool] = None,
-            hiddens: Optional[Tensor] = None,
+        self,
+        minimize: Optional[Tensor] = None,
+        early_stop_on: Tensor = None,
+        checkpoint_on: Union[Tensor, bool] = None,
+        hiddens: Optional[Tensor] = None,
     ):
         """
         Used in train loop to auto-log to a logger or progress bar without needing to define
@@ -479,20 +505,20 @@ class TrainResult(Result):
         super().__init__(minimize, early_stop_on, checkpoint_on, hiddens)
 
     def log(
-            self,
-            name,
-            value,
-            prog_bar: bool = False,
-            logger: bool = True,
-            on_step: bool = True,
-            on_epoch: bool = False,
-            reduce_fx: Callable = torch.mean,
-            tbptt_reduce_fx: Callable = torch.mean,
-            tbptt_pad_token: int = 0,
-            enable_graph: bool = False,
-            sync_dist: bool = False,
-            sync_dist_op: Union[Any, str] = 'mean',
-            sync_dist_group: Optional[Any] = None
+        self,
+        name,
+        value,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: bool = True,
+        on_epoch: bool = False,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
     ):
         """
         Log a key, value
@@ -529,34 +555,36 @@ class TrainResult(Result):
             sync_dist_op: the op to sync across
             sync_dist_group: the ddp group
         """
-        super().log(name=name,
-                    value=value,
-                    prog_bar=prog_bar,
-                    logger=logger,
-                    on_step=on_step,
-                    on_epoch=on_epoch,
-                    reduce_fx=reduce_fx,
-                    enable_graph=enable_graph,
-                    sync_dist=sync_dist,
-                    sync_dist_group=sync_dist_group,
-                    sync_dist_op=sync_dist_op,
-                    tbptt_pad_token=tbptt_pad_token,
-                    tbptt_reduce_fx=tbptt_reduce_fx)
+        super().log(
+            name=name,
+            value=value,
+            prog_bar=prog_bar,
+            logger=logger,
+            on_step=on_step,
+            on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
+            enable_graph=enable_graph,
+            sync_dist=sync_dist,
+            sync_dist_group=sync_dist_group,
+            sync_dist_op=sync_dist_op,
+            tbptt_pad_token=tbptt_pad_token,
+            tbptt_reduce_fx=tbptt_reduce_fx,
+        )
 
     def log_dict(
-            self,
-            dictionary: dict,
-            prog_bar: bool = False,
-            logger: bool = True,
-            on_step: bool = False,
-            on_epoch: bool = True,
-            reduce_fx: Callable = torch.mean,
-            tbptt_reduce_fx: Callable = torch.mean,
-            tbptt_pad_token: int = 0,
-            enable_graph: bool = False,
-            sync_dist: bool = False,
-            sync_dist_op: Union[Any, str] = 'mean',
-            sync_dist_group: Optional[Any] = None
+        self,
+        dictionary: dict,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: bool = False,
+        on_epoch: bool = True,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
     ):
         """
         Log a dictonary of values at once
@@ -581,28 +609,29 @@ class TrainResult(Result):
             sync_dist_group: the ddp group:
         """
         for k, v in dictionary.items():
-            self.log(name=k,
-                     value=v,
-                     prog_bar=prog_bar,
-                     logger=logger,
-                     on_step=on_step,
-                     on_epoch=on_epoch,
-                     reduce_fx=reduce_fx,
-                     enable_graph=enable_graph,
-                     sync_dist=sync_dist,
-                     sync_dist_group=sync_dist_group,
-                     sync_dist_op=sync_dist_op,
-                     tbptt_pad_token=tbptt_pad_token,
-                     tbptt_reduce_fx=tbptt_reduce_fx)
+            self.log(
+                name=k,
+                value=v,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                enable_graph=enable_graph,
+                sync_dist=sync_dist,
+                sync_dist_group=sync_dist_group,
+                sync_dist_op=sync_dist_op,
+                tbptt_pad_token=tbptt_pad_token,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+            )
 
 
 class EvalResult(Result):
-
     def __init__(
-            self,
-            early_stop_on: Optional[Tensor] = None,
-            checkpoint_on: Optional[Tensor] = None,
-            hiddens: Optional[Tensor] = None,
+        self,
+        early_stop_on: Optional[Tensor] = None,
+        checkpoint_on: Optional[Tensor] = None,
+        hiddens: Optional[Tensor] = None,
     ):
         """
         Used in val/train loop to auto-log to a logger or progress bar without needing to define
@@ -631,20 +660,20 @@ class EvalResult(Result):
         super().__init__(None, early_stop_on, checkpoint_on, hiddens)
 
     def log(
-            self,
-            name,
-            value,
-            prog_bar: bool = False,
-            logger: bool = True,
-            on_step: bool = False,
-            on_epoch: bool = True,
-            reduce_fx: Callable = torch.mean,
-            tbptt_reduce_fx: Callable = torch.mean,
-            tbptt_pad_token: int = 0,
-            enable_graph: bool = False,
-            sync_dist: bool = False,
-            sync_dist_op: Union[Any, str] = 'mean',
-            sync_dist_group: Optional[Any] = None
+        self,
+        name,
+        value,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: bool = False,
+        on_epoch: bool = True,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
     ):
         """
         Log a key, value
@@ -680,34 +709,36 @@ class EvalResult(Result):
             sync_dist_op: the op to sync across
             sync_dist_group: the ddp group
         """
-        super().log(name=name,
-                    value=value,
-                    prog_bar=prog_bar,
-                    logger=logger,
-                    on_step=on_step,
-                    on_epoch=on_epoch,
-                    reduce_fx=reduce_fx,
-                    enable_graph=enable_graph,
-                    sync_dist=sync_dist,
-                    sync_dist_group=sync_dist_group,
-                    sync_dist_op=sync_dist_op,
-                    tbptt_pad_token=tbptt_pad_token,
-                    tbptt_reduce_fx=tbptt_reduce_fx)
+        super().log(
+            name=name,
+            value=value,
+            prog_bar=prog_bar,
+            logger=logger,
+            on_step=on_step,
+            on_epoch=on_epoch,
+            reduce_fx=reduce_fx,
+            enable_graph=enable_graph,
+            sync_dist=sync_dist,
+            sync_dist_group=sync_dist_group,
+            sync_dist_op=sync_dist_op,
+            tbptt_pad_token=tbptt_pad_token,
+            tbptt_reduce_fx=tbptt_reduce_fx,
+        )
 
     def log_dict(
-            self,
-            dictionary: dict,
-            prog_bar: bool = False,
-            logger: bool = True,
-            on_step: bool = False,
-            on_epoch: bool = True,
-            reduce_fx: Callable = torch.mean,
-            tbptt_reduce_fx: Callable = torch.mean,
-            tbptt_pad_token: int = 0,
-            enable_graph: bool = False,
-            sync_dist: bool = False,
-            sync_dist_op: Union[Any, str] = 'mean',
-            sync_dist_group: Optional[Any] = None
+        self,
+        dictionary: dict,
+        prog_bar: bool = False,
+        logger: bool = True,
+        on_step: bool = False,
+        on_epoch: bool = True,
+        reduce_fx: Callable = torch.mean,
+        tbptt_reduce_fx: Callable = torch.mean,
+        tbptt_pad_token: int = 0,
+        enable_graph: bool = False,
+        sync_dist: bool = False,
+        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_group: Optional[Any] = None,
     ):
         """
         Log a dictonary of values at once
@@ -732,25 +763,24 @@ class EvalResult(Result):
             sync_dist_group: the ddp group
         """
         for k, v in dictionary.items():
-            self.log(name=k,
-                     value=v,
-                     prog_bar=prog_bar,
-                     logger=logger,
-                     on_step=on_step,
-                     on_epoch=on_epoch,
-                     reduce_fx=reduce_fx,
-                     enable_graph=enable_graph,
-                     sync_dist=sync_dist,
-                     sync_dist_group=sync_dist_group,
-                     sync_dist_op=sync_dist_op,
-                     tbptt_pad_token=tbptt_pad_token,
-                     tbptt_reduce_fx=tbptt_reduce_fx)
+            self.log(
+                name=k,
+                value=v,
+                prog_bar=prog_bar,
+                logger=logger,
+                on_step=on_step,
+                on_epoch=on_epoch,
+                reduce_fx=reduce_fx,
+                enable_graph=enable_graph,
+                sync_dist=sync_dist,
+                sync_dist_group=sync_dist_group,
+                sync_dist_op=sync_dist_op,
+                tbptt_pad_token=tbptt_pad_token,
+                tbptt_reduce_fx=tbptt_reduce_fx,
+            )
 
     def get_callback_metrics(self) -> dict:
-        result = {
-            'val_early_stop_on': self.early_stop_on,
-            'val_checkpoint_on': self.checkpoint_on
-        }
+        result = {'val_early_stop_on': self.early_stop_on, 'val_checkpoint_on': self.checkpoint_on}
 
         return result
 

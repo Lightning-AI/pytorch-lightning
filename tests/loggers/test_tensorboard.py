@@ -164,9 +164,9 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
         if array is passed externaly
     """
     model = EvalModelTemplate()
-    if example_input_array is None:
+    if example_input_array is not None:
         model.example_input_array = None
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, log_graph=True)
     logger.log_graph(model, example_input_array)
 
 
@@ -174,7 +174,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     """ test that log graph throws warning if model.example_input_array is None """
     model = EvalModelTemplate()
     model.example_input_array = None
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
         match='Could not log computational graph since the `model.example_input_array`'
