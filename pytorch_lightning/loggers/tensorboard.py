@@ -77,7 +77,7 @@ class TensorBoardLogger(LightningLoggerBase):
         save_dir: str,
         name: Optional[str] = "default",
         version: Optional[Union[int, str]] = None,
-        log_graph: bool = True,
+        log_graph: bool = False,
         default_hp_metric: bool = True,
         **kwargs
     ):
