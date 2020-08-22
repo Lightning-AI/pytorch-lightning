@@ -125,7 +125,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
 
 
 def test_tensorboard_log_hparams_and_metrics(tmpdir):
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
         "float": 0.3,
         "int": 1,
@@ -141,7 +141,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
 
 
 def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
         "float": 0.3,
         "int": 1,
