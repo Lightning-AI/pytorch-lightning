@@ -140,6 +140,11 @@ From Conda
 conda install pytorch-lightning -c conda-forge
 ```
 
+Install bleeding-edge (no guarantees)   
+```bash
+pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
+```
+
 ##### Here's a minimal example without a test loop.
 
 ```python
