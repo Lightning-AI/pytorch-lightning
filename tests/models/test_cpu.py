@@ -1,9 +1,9 @@
 import os
 import platform
+from distutils.version import LooseVersion
 
 import pytest
 import torch
-from packaging.version import parse as version_parse
 
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
@@ -111,7 +111,7 @@ def test_early_stopping_cpu_model(tmpdir):
 @pytest.mark.skipif(platform.system() == "Windows",
                     reason="Distributed training is not supported on Windows")
 @pytest.mark.skipif((platform.system() == "Darwin" and
-                     version_parse(torch.__version__) < version_parse("1.3.0")),
+                     LooseVersion(torch.__version__) < LooseVersion("1.3.0")),
                     reason="Distributed training is not supported on MacOS before Torch 1.3.0")
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
