@@ -272,7 +272,7 @@ def gather_all_tensors_if_available(result: Union[torch.Tensor],
                                     group: Optional[Any] = None):
     """
     Function to gather all tensors from several ddp processes onto a list that
-    is broadcastet all all processes
+    is broadcasted to all processes
 
     Args:
         result: the value to sync
