@@ -105,7 +105,7 @@ class GPUStatsMonitor(Callback):
 
         if self.fan_speed:
             trainer.logger.log_metrics(self._get_gpu_stat("fan.speed", "%"), step=trainer.global_step)
-            
+
         if self.temperature:
             trainer.logger.log_metrics(self._get_gpu_stat("temperature.gpu", "degrees C"), step=trainer.global_step)
             trainer.logger.log_metrics(self._get_gpu_stat("temperature.memory", "degrees C"), step=trainer.global_step)

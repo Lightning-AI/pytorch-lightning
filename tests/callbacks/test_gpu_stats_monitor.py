@@ -37,10 +37,10 @@ def test_gpu_stats_monitor(tmpdir):
     header = lines[0].split()
 
     fields = [
-        'GPU_utilization.gpu',
-        'GPU_memory.used',
-        'GPU_memory.free',
-        'GPU_utilization.memory'
+        'gpu_utilization.gpu',
+        'gpu_memory.used',
+        'gpu_memory.free',
+        'gpu_utilization.memory'
     ]
 
     for f in fields:
