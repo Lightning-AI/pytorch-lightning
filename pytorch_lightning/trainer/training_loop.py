@@ -1132,6 +1132,10 @@ class TrainerTrainLoopMixin(ABC):
 
         self._teardown_already_run = True
 
+        # Save latest checkpoint
+        log.info('Saving latest checkpoint..')
+        self.check_checkpoint_callback(should_check_val=False)
+
         # Train end events
         with self.profiler.profile('on_train_end'):
             # callbacks
