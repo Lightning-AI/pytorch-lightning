@@ -109,7 +109,7 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 * Scale your models to run on any hardware (CPU, GPUs, TPUs) without changing your model
 * Making code more readable by decoupling the research code from the engineering
 * Easier to reproduce
-* Less error prone by automtaing most of the training loop and tricky engineering
+* Less error prone by automating most of the training loop and tricky engineering
 * Keeps all the flexibility (LightningModules are still PyTorch modules), but removes a ton of boilerplate
 * Lightning has out-of-the-box integration with the popular logging/visualizing frameworks ([Tensorboard](https://pytorch.org/docs/stable/tensorboard.html), [MLFlow](https://mlflow.org/), [Neptune.ai](https://neptune.ai/), [Comet.ml](https://www.comet.ml/site/), [Wandb](https://www.wandb.com/)).
 * [Tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests). We test every combination og PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
