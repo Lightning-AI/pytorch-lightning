@@ -255,7 +255,7 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
-    state: TrainerState
+    _state: TrainerState
     amp_backend: AMPType
     on_tpu: bool
 
@@ -421,7 +421,7 @@ class TrainerTrainLoopMixin(ABC):
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
-                self.state = TrainerState.INTERRUPTED
+                self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
 
                 self.run_training_teardown()

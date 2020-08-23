@@ -42,20 +42,20 @@ def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[
             if not isinstance(self, pytorch_lightning.Trainer):
                 return fn(self, *args, **kwargs)
 
-            state_before = self.state
+            state_before = self._state
             if entering is not None:
-                self.state = entering
+                self._state = entering
             result = fn(self, *args, **kwargs)
 
             # The INTERRUPTED state can be set inside the run function. To indicate that run was interrupted
             # we retain INTERRUPTED state
-            if self.state == TrainerState.INTERRUPTED:
+            if self._state == TrainerState.INTERRUPTED:
                 return result
 
             if exiting is not None:
-                self.state = exiting
+                self._state = exiting
             else:
-                self.state = state_before
+                self._state = state_before
             return result
 
         return wrapped_fn

@@ -402,7 +402,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
-        self.state = TrainerState.INITIALIZING
+        self._state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
@@ -610,6 +610,10 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def state(self) -> TrainerState:
+        return self._state
 
     @property
     def is_global_zero(self) -> bool:
