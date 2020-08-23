@@ -14,7 +14,7 @@
 
 import itertools
 import threading
-from collections import Mapping, Iterable
+from collections.abc import Mapping, Iterable
 from itertools import chain
 
 import torch
