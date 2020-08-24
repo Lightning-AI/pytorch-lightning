@@ -4,12 +4,15 @@ import inspect
 
 from torch.utils.data import DataLoader
 
+from pytorch_lightning import _logger as log
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.hypertuner.lr_finder import HyperTunerLRFinderMixin
 from pytorch_lightning.hypertuner.batch_scaler import HyperTunerBatchScalerMixin
 from pytorch_lightning.hypertuner.n_worker_search import HyperTunerNworkerSearchMixin
+from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class HyperTuner(HyperTunerLRFinderMixin,
@@ -108,15 +111,40 @@ class HyperTuner(HyperTunerLRFinderMixin,
         """
         # Batch size scaling
         if self.auto_scale_batch_size:
-            self.scale_batch_size()
+            self._call_internally(self.scale_batch_size,
+                                  self.auto_scale_batch_size,
+                                  'batch_size')
 
         # N worker search
         if self.auto_n_worker_search:
-            self.n_worker_search()
+            self._call_internally(self.n_worker_search,
+                                  self.auto_n_worker_search,
+                                  'n_workers')
 
         # Lr finder
         if self.auto_lr_find:
-            self.lr_find()
+            self._call_internally(self.lr_find,
+                                  self.auto_lr_find,
+                                  'learning_rate')
+
+    def _call_internally(self, model, method, attribute, default):
+        attribute = attribute if isinstance(attribute, str) else default
+
+        # Check that user has the wanted attribute in their model
+        if not lightning_hasattr(model, attribute):
+            raise MisconfigurationException('model or model.hparams does not have'
+                                            f' a field called {attribute} which is'
+                                            f' required by tuner algorithm {method}')
+
+        # Call method
+        obj = method(model, attribute_name=attribute)
+
+        # Get suggested value
+        value = obj.suggestion()
+
+        # Set value in model
+        lightning_setattr(model, attribute, value)
+        log.info(f'Tuner method {method} completed. Attribute {attribute} set to {value}.')
 
     @classmethod
     def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
