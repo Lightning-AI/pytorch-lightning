@@ -1180,6 +1180,8 @@ class TrainerTrainLoopMixin(ABC):
         if self.truncated_bptt_steps is not None:
             args.append(hiddens)
 
+        return args
+
     def training_forward(self, batch, batch_idx, opt_idx, hiddens):
         """
         Handle forward for each training case (distributed, single gpu, etc...)
