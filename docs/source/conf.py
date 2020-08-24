@@ -96,7 +96,9 @@ extensions = [
     # 'm2r',
     'nbsphinx',
     'sphinx_autodoc_typehints',
+    'sphinx_copybutton',
     'sphinx_paramlinks',
+    'sphinx_togglebutton',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

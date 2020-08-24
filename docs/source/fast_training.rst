@@ -2,6 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
+.. _fast-training:
 
 Fast Training
 =============

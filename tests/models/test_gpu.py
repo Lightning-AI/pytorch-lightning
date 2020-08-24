@@ -1,9 +1,15 @@
+import os
+import subprocess
+import sys
 from collections import namedtuple
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import torch
 from torchtext.data import Batch, Dataset, Example, Field, LabelField
 
+import pytorch_lightning
 import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
@@ -11,6 +17,7 @@ from pytorch_lightning.core import memory
 from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_root_gpu_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.models.data.ddp import train_test_variations
 
 PRETEND_N_OF_GPUS = 16
 
@@ -91,6 +98,34 @@ def test_multi_gpu_model_dp(tmpdir):
 
     # test memory helper functions
     memory.get_memory_profile('min_max')
+
+
+@pytest.mark.parametrize('cli_args', [
+    pytest.param('--max_epochs 1 --gpus 2 --distributed_backend ddp'),
+])
+@pytest.mark.parametrize('variation', train_test_variations.get_variations())
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_multi_gpu_model_ddp(tmpdir, cli_args, variation):
+    """ Runs a basic training and test run with distributed_backend=ddp. """
+    file = Path(train_test_variations.__file__).absolute()
+    cli_args = cli_args.split(' ') if cli_args else []
+    cli_args += ['--default_root_dir', str(tmpdir)]
+    cli_args += ['--variation', variation]
+    command = [sys.executable, str(file)] + cli_args
+
+    # need to set the PYTHONPATH in case pytorch_lightning was not installed into the environment
+    env = os.environ.copy()
+    env['PYTHONPATH'] = f'{pytorch_lightning.__file__}:' + env.get('PYTHONPATH', '')
+
+    # for running in ddp mode, we need to lauch it's own process or pytest will get stuck
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+
+    std, err = p.communicate(timeout=60)
+    std = std.decode('utf-8').strip()
+    err = err.decode('utf-8').strip()
+    assert std, f"{variation} produced no output"
+    if p.returncode > 0:
+        pytest.fail(err)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -384,3 +419,24 @@ def test_single_gpu_batch_parse():
 
     assert batch.text.type() == 'torch.cuda.LongTensor'
     assert batch.label.type() == 'torch.cuda.LongTensor'
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_non_blocking():
+    """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
+    trainer = Trainer()
+
+    batch = torch.zeros(2, 3)
+    with patch.object(batch, 'to', wraps=batch.to) as mocked:
+        trainer.transfer_batch_to_gpu(batch, 0)
+        mocked.assert_called_with(torch.device('cuda', 0), non_blocking=True)
+
+    class BatchObject(object):
+
+        def to(self, *args, **kwargs):
+            pass
+
+    batch = BatchObject()
+    with patch.object(batch, 'to', wraps=batch.to) as mocked:
+        trainer.transfer_batch_to_gpu(batch, 0)
+        mocked.assert_called_with(torch.device('cuda', 0))

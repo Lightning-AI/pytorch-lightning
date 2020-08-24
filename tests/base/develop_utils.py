@@ -7,7 +7,7 @@ import numpy as np
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
-from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
+from tests import TEMP_PATH, RANDOM_PORTS
 from tests.base.model_template import EvalModelTemplate
 
 
@@ -72,8 +72,7 @@ def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def reset_seed():
-    seed = RANDOM_SEEDS.pop()
+def reset_seed(seed=0):
     seed_everything(seed)
 
 

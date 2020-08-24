@@ -97,13 +97,6 @@ class DDP2Backend(object):
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
-
         # MODEL
         # copy model to each gpu
         if self.trainer.on_gpu:
@@ -121,11 +114,18 @@ class DDP2Backend(object):
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
 
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
+
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
-        if self.trainer.amp_type == AMPType.APEX:
+        if self.trainer.amp_backend == AMPType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
@@ -147,3 +147,15 @@ class DDP2Backend(object):
 
         # clean up memory
         torch.cuda.empty_cache()
+
+    def training_step(self, args):
+        output = self.trainer.model(*args)
+        return output
+
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output

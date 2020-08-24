@@ -62,6 +62,7 @@ class TrainerDPMixin(ABC):
     amp_level: str
     precision: ...
     global_rank: int
+    local_rank: int
     tpu_local_core_rank: int
     tpu_global_core_rank: int
     use_tpu: bool
@@ -70,7 +71,7 @@ class TrainerDPMixin(ABC):
     on_colab_kaggle: str
     save_spawn_weights: Callable
     logger: ...
-    amp_type: AMPType
+    amp_backend: AMPType
 
     @abstractmethod
     def call_setup_hook(self, *args):
@@ -114,34 +115,15 @@ class TrainerDPMixin(ABC):
             m.use_dp = self.use_dp
             m.use_ddp2 = self.use_ddp2
             m.use_ddp = self.use_ddp
-            m.use_amp = self.amp_type is not None
+            m.use_amp = self.amp_backend is not None
             m.testing = self.testing
             m.use_single_gpu = self.use_single_gpu
             m.use_tpu = self.use_tpu
             m.tpu_local_core_rank = self.tpu_local_core_rank
             m.tpu_global_core_rank = self.tpu_global_core_rank
-
-    def transfer_batch_to_tpu(self, batch: Any, tpu_id: Optional[int] = None):
-        """
-        Transfers the data to the TPU.
-
-        Args:
-            batch: A tensor or collection of tensors.
-            tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
-
-        Return:
-            the tensor on the TPU device.
-
-        See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
-        """
-        if not is_xla_available():
-            raise MisconfigurationException(
-                'Requested to transfer batch to TPU but XLA is not available.'
-                ' Are you sure this machine has TPUs?'
-            )
-        device = xm.xla_device(tpu_id)
-        return self.__transfer_batch_to_device(batch, device)
+            m.precision = self.precision
+            m.global_rank = self.global_rank
+            m.local_rank = self.local_rank
 
     def transfer_batch_to_gpu(self, batch: Any, gpu_id: Optional[int] = None):
         """
@@ -196,7 +178,7 @@ class TrainerDPMixin(ABC):
             if isinstance(scheduler, _LRScheduler):
                 scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
 
-        if self.amp_type:
+        if self.amp_backend:
             model, optimizers = model.configure_apex(amp, model, self.optimizers, self.amp_level)
             self.optimizers = optimizers
             self.reinit_scheduler_properties(self.optimizers, self.lr_schedulers)

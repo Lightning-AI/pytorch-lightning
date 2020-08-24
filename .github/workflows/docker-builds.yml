@@ -64,7 +64,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7]  # TODO: add 3.6, for now the Google docker image has missing 3.6
+        python_version: [3.6, 3.7]
+        xla_version: [1.6, "nightly"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -80,10 +81,10 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: dockers/tpu-extras/Dockerfile
-          build_args: PYTHON_VERSION=${{ matrix.python_version }}
-          tags: "XLA-extras-py${{ matrix.python_version }}"
-        timeout-minutes: 25
+          dockerfile: dockers/base-xla/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
+          tags: "base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}"
+        timeout-minutes: 35
 
   build-cuda:
     runs-on: ubuntu-20.04
@@ -107,7 +108,7 @@ jobs:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          dockerfile: dockers/tpu-extras/Dockerfile
+          dockerfile: dockers/base-cuda/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          tags: "cuda-extras-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+          tags: "base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
         timeout-minutes: 40

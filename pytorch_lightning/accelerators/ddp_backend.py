@@ -24,7 +24,7 @@ import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 from pytorch_lightning.utilities.imports import is_apex_available, is_hydra_available
 
 if is_hydra_available():
@@ -40,6 +40,7 @@ class DDPBackend(object):
     def __init__(self, trainer):
         self.trainer = trainer
         self.task_idx = None
+        self._has_spawned_children = False
 
     def slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
@@ -51,19 +52,17 @@ class DDPBackend(object):
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def spawn_ddp_children(self, model):
-        port = os.environ['MASTER_PORT']
+        assert self.trainer.global_rank == 0
+        self._check_can_spawn_children()
+        self._has_spawned_children = True
 
-        master_address = '127.0.0.1' if 'MASTER_ADDR' not in os.environ else os.environ['MASTER_ADDR']
-        os.environ['MASTER_PORT'] = f'{port}'
-        os.environ['MASTER_ADDR'] = f'{master_address}'
+        os.environ['MASTER_ADDR'] = os.environ.get('MASTER_ADDR', '127.0.0.1')
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', str(find_free_network_port()))
 
         # allow the user to pass the node rank
         node_rank = '0'
-        if 'NODE_RANK' in os.environ:
-            node_rank = os.environ['NODE_RANK']
-        if 'GROUP_RANK' in os.environ:
-            node_rank = os.environ['GROUP_RANK']
-
+        node_rank = os.environ.get('NODE_RANK', node_rank)
+        node_rank = os.environ.get('GROUP_RANK', node_rank)
         os.environ['NODE_RANK'] = node_rank
         os.environ['LOCAL_RANK'] = '0'
 
@@ -81,12 +80,18 @@ class DDPBackend(object):
         # use the same python interpreter and actually running
         command = [sys.executable] + command
 
-        # since this script sets the visible devices we replace the gpus flag with a number
-        num_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',').__len__()
+        # the visible devices tell us how many GPUs we want to use.
+        # when the trainer script was called the device has already been scoped by the time
+        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
+        # but forward the GPUs selected via environment variables
+        gpu_ids = os.environ.get('CUDA_VISIBLE_DEVICES', '')
+        if len(gpu_ids) == 1:
+            gpu_ids = f'{gpu_ids},'
 
-        if '--gpus' in command:
-            gpu_flag_idx = command.index('--gpus')
-            command[gpu_flag_idx + 1] = f'{num_gpus}'
+        num_gpus = max(1, len(gpu_ids.split(',')))
+
+        # set the flag for ddp scripts
+        os.environ['PL_TRAINER_GPUS'] = gpu_ids
 
         os.environ['WORLD_SIZE'] = f'{num_gpus * self.trainer.num_nodes}'
 
@@ -164,13 +169,6 @@ class DDPBackend(object):
             log.info(f'All DDP processes registered. Starting ddp with {self.trainer.world_size} processes')
             log.info('-' * 100)
 
-        # CHOOSE OPTIMIZER
-        # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
-        self.trainer.optimizers = optimizers
-        self.trainer.lr_schedulers = lr_schedulers
-        self.trainer.optimizer_frequencies = optimizer_frequencies
-
         # call sync_bn before .cuda(), configure_apex and configure_ddp
         if self.trainer.sync_batchnorm:
             model = model.configure_sync_batchnorm(model)
@@ -192,11 +190,18 @@ class DDPBackend(object):
             torch.cuda.set_device(self.trainer.root_gpu)
             model.cuda(self.trainer.root_gpu)
 
+        # CHOOSE OPTIMIZER
+        # allow for lr schedulers as well
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
+
         # set model properties before going into wrapper
         self.trainer.copy_trainer_model_properties(model)
 
         # AMP - run through amp wrapper before going to distributed DP
-        if self.trainer.amp_type == AMPType.APEX:
+        if self.trainer.amp_backend == AMPType.APEX:
             model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
             self.trainer.optimizers = optimizers
             self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
@@ -224,3 +229,22 @@ class DDPBackend(object):
 
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
+
+    def training_step(self, args):
+        output = self.trainer.model(*args)
+        return output
+
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def _check_can_spawn_children(self):
+        if self._has_spawned_children:
+            raise RuntimeError(
+                "You tried to run `.fit` or `.test` multiple times in the same script."
+                " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
+            )

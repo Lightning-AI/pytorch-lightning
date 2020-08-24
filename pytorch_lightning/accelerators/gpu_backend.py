@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType, is_apex_available
 
@@ -20,7 +21,7 @@ if is_apex_available():
 
 
 class GPUBackend(object):
-    amp_type: AMPType
+    amp_backend: AMPType
 
     def __init__(self, trainer):
         self.trainer = trainer
@@ -30,6 +31,7 @@ class GPUBackend(object):
         # call setup
         self.trainer.call_setup_hook(model)
 
+        torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
 
         # CHOOSE OPTIMIZER
@@ -39,7 +41,7 @@ class GPUBackend(object):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        if self.trainer.amp_type == AMPType.APEX:
+        if self.trainer.amp_backend == AMPType.APEX:
             model = self._setup_nvidia_apex(model)
         return model
 

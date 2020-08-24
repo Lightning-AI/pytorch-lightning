@@ -1,24 +1,38 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Any, Optional, Sequence, Tuple
 
 import torch
 
 from pytorch_lightning.metrics.functional.classification import (
     accuracy,
-    confusion_matrix,
-    precision_recall_curve,
-    precision,
-    recall,
-    average_precision,
     auroc,
-    fbeta_score,
-    f1_score,
-    roc,
-    multiclass_roc,
-    multiclass_precision_recall_curve,
+    average_precision,
+    confusion_matrix,
     dice_score,
+    f1_score,
+    fbeta_score,
     iou,
+    multiclass_precision_recall_curve,
+    multiclass_roc,
+    precision,
+    precision_recall_curve,
+    recall,
+    roc
 )
-from pytorch_lightning.metrics.metric import TensorMetric, TensorCollectionMetric
+from pytorch_lightning.metrics.metric import TensorCollectionMetric, TensorMetric
 
 
 class Accuracy(TensorMetric):
@@ -45,7 +59,7 @@ class Accuracy(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -208,7 +222,7 @@ class Precision(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -262,7 +276,7 @@ class Recall(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -428,7 +442,7 @@ class FBeta(TensorMetric):
         Args:
             beta: determines the weight of recall in the combined score.
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -484,7 +498,7 @@ class F1(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -605,11 +619,6 @@ class MulticlassROC(TensorCollectionMetric):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
         """
@@ -669,11 +678,6 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
         """
         Args:
             num_classes: number of classes
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
 
@@ -737,7 +741,7 @@ class DiceCoefficient(TensorMetric):
             include_background: whether to also compute dice for the background
             nan_score: score to return, if a NaN occurs during computation (denom zero)
             no_fg_score: score to return, if no foreground pixel was found in target
-            reduction: a method for reducing accuracies over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
                 - elementwise_mean: takes the mean
                 - none: pass array
@@ -790,16 +794,19 @@ class IoU(TensorMetric):
         tensor(0.7045)
 
     """
-    def __init__(self,
-                 remove_bg: bool = False,
-                 reduction: str = 'elementwise_mean'):
+
+    def __init__(
+            self,
+            remove_bg: bool = False,
+            reduction: str = 'elementwise_mean'
+    ):
         """
         Args:
             remove_bg: Flag to state whether a background class has been included
                 within input parameters. If true, will remove background class. If
                 false, return IoU over all classes.
                 Assumes that background is '0' class in input tensor
-            reduction: a method for reducing IoU over labels (default: takes the mean)
+            reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
 
                 - elementwise_mean: takes the mean

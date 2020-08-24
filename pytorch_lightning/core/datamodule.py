@@ -18,6 +18,7 @@ from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Optional, Tuple, Union
 
+import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.utilities import parsing, rank_zero_only, rank_zero_warn
@@ -306,6 +307,56 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 return loader
         """
 
+    @abstractmethod
+    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
+        """
+        Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors
+        wrapped in a custom data structure.
+
+        The data types listed below (and any arbitrary nesting of them) are supported out of the box:
+
+        - :class:`torch.Tensor` or anything that implements `.to(...)`
+        - :class:`list`
+        - :class:`dict`
+        - :class:`tuple`
+        - :class:`torchtext.data.batch.Batch`
+
+        For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
+
+        Example::
+
+            def transfer_batch_to_device(self, batch, device)
+                if isinstance(batch, CustomBatch):
+                    # move all tensors in your custom data structure to the device
+                    batch.samples = batch.samples.to(device)
+                    batch.targets = batch.targets.to(device)
+                else:
+                    batch = super().transfer_batch_to_device(data, device)
+                return batch
+
+        Args:
+            batch: A batch of data that needs to be transferred to a new device.
+            device: The target device as defined in PyTorch.
+
+        Returns:
+            A reference to the data on the new device.
+
+        Note:
+            This hook should only transfer the data and not modify it, nor should it move the data to
+            any other device than the one passed in as argument (unless you know what you are doing).
+
+        Note:
+            This hook only runs on single GPU training (no data-parallel). If you need multi-GPU support
+            for your custom batch objects, you need to define your custom
+            :class:`~torch.nn.parallel.DistributedDataParallel` or
+            :class:`~pytorch_lightning.overrides.data_parallel.LightningDistributedDataParallel` and
+            override :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`.
+
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
+            - :func:`~pytorch_lightning.utilities.apply_func.apply_to_collection`
+        """
+
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         r"""Extends existing argparse by default `LightningDataModule` attributes.
@@ -317,7 +368,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         depr_arg_names = blacklist + added_args
         depr_arg_names = set(depr_arg_names)
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (

@@ -45,6 +45,7 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
+from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
@@ -53,6 +54,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
     is_xla_available, is_horovod_available
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.cloud_io import is_remote_path
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -183,7 +185,7 @@ class Trainer(
         terminate_on_nan: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         prepare_data_per_node: bool = True,
-        amp_type: str = 'native',
+        amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
@@ -205,6 +207,7 @@ class Trainer(
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
+                Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             gradient_clip_val: 0 means don't clip.
 
@@ -290,10 +293,12 @@ class Trainer(
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                     for checkpoints only. Use this if for whatever reason you need the checkpoints
                     stored in a different place than the logs written in `default_root_dir`.
+                    Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                     Defaults to `default_root_dir`.
 
+            amp_backend: The mixed precision backend to use ("native" or "apex")
+
             amp_level: The optimization level to use (O1, O2, etc...).
-                .. warning:: .. deprecated:: v0.7.4
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders. Default: 2
@@ -355,8 +360,10 @@ class Trainer(
         self.batch_idx = 0
         self.progress_bar_metrics = {}
         self.callback_metrics = {}
+        self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
+        self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.train_dataloader = None
         self.test_dataloaders = None
@@ -381,6 +388,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
+        self.state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
@@ -442,9 +450,9 @@ class Trainer(
         self.min_steps = min_steps
 
         if num_sanity_val_steps == -1:
-            self.num_sanity_val_steps = float("inf")
+            self.num_sanity_val_steps = float('inf')
         else:
-            self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
+            self.num_sanity_val_steps = num_sanity_val_steps
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -478,6 +486,9 @@ class Trainer(
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
 
+        # override with environment flag
+        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
             self.gpus = pick_multiple_gpus(gpus)
@@ -501,6 +512,7 @@ class Trainer(
 
         # override dist backend when using tpus
         if self.on_tpu:
+            self.distributed_backend = 'tpu'
             self.init_tpu()
 
         # init flags for SLURM+DDP to work
@@ -573,7 +585,7 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp(amp_type)
+        self.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
@@ -715,7 +727,7 @@ class Trainer(
         blacklist = ['kwargs']
         depr_arg_names = cls.get_deprecated_arg_names() + blacklist
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
@@ -741,8 +753,16 @@ class Trainer(
                 use_type = arg_types[0]
 
             if arg == 'gpus' or arg == 'tpu_cores':
-                use_type = Trainer._allowed_type
-                arg_default = Trainer._arg_default
+                use_type = Trainer._gpus_allowed_type
+                arg_default = Trainer._gpus_arg_default
+
+            # hack for types in (int, float)
+            if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
+                use_type = Trainer._int_or_float_type
+
+            # hack for track_grad_norm
+            if arg == 'track_grad_norm':
+                use_type = float
 
             parser.add_argument(
                 f'--{arg}',
@@ -755,15 +775,21 @@ class Trainer(
 
         return parser
 
-    def _allowed_type(x) -> Union[int, str]:
+    def _gpus_allowed_type(x) -> Union[int, str]:
         if ',' in x:
             return str(x)
         else:
             return int(x)
 
-    def _arg_default(x) -> Union[int, str]:
+    def _gpus_arg_default(x) -> Union[int, str]:
         if ',' in x:
             return str(x)
+        else:
+            return int(x)
+
+    def _int_or_float_type(x) -> Union[int, float]:
+        if '.' in str(x):
+            return float(x)
         else:
             return int(x)
 
@@ -861,6 +887,9 @@ class Trainer(
         The default location to save artifacts of loggers, checkpoints etc.
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
         """
+        if is_remote_path(self._default_root_dir):
+            # it is a remote uri, use as is
+            return self._default_root_dir
         return os.path.normpath(self._default_root_dir)
 
     @property
@@ -869,11 +898,15 @@ class Trainer(
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
+        if is_remote_path(self._weights_save_path):
+            # it is a remote uri, use as is
+            return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
 
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -1008,7 +1041,6 @@ class Trainer(
 
         # ddp
         elif self.distributed_backend == 'ddp':
-            self.set_random_port()
             self.accelerator_backend = DDPBackend(self)
             results = self.accelerator_backend.spawn_ddp_children(model)
 
@@ -1082,11 +1114,6 @@ class Trainer(
         # If we have a datamodule, attach necessary hooks + dataloaders
         if datamodule:
 
-            # If datamodule.setup('test') has not been called yet, call it
-            # if stage == 'test':
-            #     if self.is_overridden('setup', datamodule) and not datamodule.has_setup_test:
-            #         datamodule.setup('test')
-
             # Override loader hooks
             if self.is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
@@ -1094,6 +1121,10 @@ class Trainer(
                 model.val_dataloader = datamodule.val_dataloader
             if self.is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
+
+            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
+            if self.is_overridden('transfer_batch_to_device', datamodule):
+                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
 
             self.datamodule = datamodule
 
@@ -1114,13 +1145,14 @@ class Trainer(
         self.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_type == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
+        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
             self.scaler = torch.cuda.amp.GradScaler()
 
         # log hyper-parameters
         if self.logger is not None:
             # save exp to get started
             self.logger.log_hyperparams(ref_model.hparams)
+            self.logger.log_graph(ref_model)
             self.logger.save()
 
         if self.use_ddp or self.use_ddp2:
@@ -1194,7 +1226,6 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
-
         using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
@@ -1202,14 +1233,15 @@ class Trainer(
         # to make sure program won't crash during val
         if should_sanity_check:
             self.reset_val_dataloader(ref_model)
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # hook and callback
             self.running_sanity_check = True
             self.on_sanity_check_start()
 
-            num_loaders = len(self.val_dataloaders)
-            max_batches = [self.num_sanity_val_steps] * num_loaders
-            eval_results = self._evaluate(model, self.val_dataloaders, max_batches, False)
+            eval_results = self._evaluate(model, self.val_dataloaders, self.num_sanity_val_batches, False)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
@@ -1226,6 +1258,7 @@ class Trainer(
             self.on_sanity_check_end()
             self.running_sanity_check = False
 
+    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def test(
         self,
         model: Optional[LightningModule] = None,
@@ -1345,7 +1378,6 @@ class Trainer(
 
         # run tests
         self.tested_ckpt_path = ckpt_path
-        self.set_random_port(force=True)
         self.testing = True
         os.environ['PL_TESTING_MODE'] = '1'
         self.model = model
@@ -1368,7 +1400,6 @@ class Trainer(
 
         # run test
         # sets up testing so we short circuit to eval
-        self.set_random_port(force=True)
         self.testing = True
         self.model = model
         results = self.fit(model)
@@ -1398,6 +1429,11 @@ class Trainer(
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
         model.setup(stage_name)
+
+    def init_amp(self, amp_type: str):
+        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
+        self.amp_backend = None
+        self._setup_amp_backend(amp_type)
 
 
 class _PatchDataLoader(object):

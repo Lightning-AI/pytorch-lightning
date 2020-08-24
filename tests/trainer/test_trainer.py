@@ -5,6 +5,7 @@ import pickle
 import sys
 import types
 from argparse import Namespace
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
@@ -104,6 +105,66 @@ def test_no_val_end_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     model_2.eval()
 
 
+@pytest.mark.parametrize('url_ckpt', [True, False])
+def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
+    """Tests use case where trainer saves the model, and user loads it from tags independently."""
+    # set $TORCH_HOME, which determines torch hub's cache path, to tmpdir
+    monkeypatch.setenv('TORCH_HOME', tmpdir)
+
+    model = EvalModelTemplate()
+    # Extra layer
+    model.c_d3 = torch.nn.Linear(model.hidden_dim, model.hidden_dim)
+
+    # logger file to get meta
+    logger = tutils.get_default_logger(tmpdir)
+
+    # fit model
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        logger=logger,
+        checkpoint_callback=ModelCheckpoint(tmpdir),
+    )
+    result = trainer.fit(model)
+
+    # traning complete
+    assert result == 1
+
+    # save model
+    new_weights_path = os.path.join(tmpdir, 'save_test.ckpt')
+    trainer.save_checkpoint(new_weights_path)
+
+    # load new model
+    hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
+    hparams_path = os.path.join(hparams_path, 'hparams.yaml')
+    ckpt_path = f'http://{tmpdir_server[0]}:{tmpdir_server[1]}/{os.path.basename(new_weights_path)}' \
+        if url_ckpt else new_weights_path
+
+    try:
+        EvalModelTemplate.load_from_checkpoint(
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+        )
+    except Exception:
+        failed = True
+    else:
+        failed = False
+
+    assert failed, "Model should not been loaded since the extra layer added."
+
+    failed = False
+    try:
+        EvalModelTemplate.load_from_checkpoint(
+            checkpoint_path=ckpt_path,
+            hparams_file=hparams_path,
+            strict=False,
+        )
+    except Exception:
+        failed = True
+
+    assert not failed, "Model should be loaded due to strict=False."
+
+
 @pytest.mark.parametrize(
     ['schedule', 'expected'],
     [
@@ -136,7 +197,7 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
 
     trainer = Trainer(
         accumulate_grad_batches=schedule,
-        limit_train_batches=0.8,
+        limit_train_batches=0.7,  # not to be divisible by accumulate_grad_batches on purpose
         limit_val_batches=0.8,
         max_epochs=4,
         default_root_dir=tmpdir,
@@ -156,8 +217,15 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[0]
 
-                assert batch_idx == model.prev_called_batch_idx
-                model.prev_called_batch_idx += expected[0]
+                # separate check for last batch with accumulate 1 step
+                if expected[0] == 1 and (batch_idx + 1) == trainer.num_training_batches:
+                    assert batch_idx == model.prev_called_batch_idx
+                elif (batch_idx + 1) == trainer.num_training_batches:
+                    # prev_called_batch_idx - schedule + modulus remainder
+                    assert batch_idx == (model.prev_called_batch_idx - expected[0] + (batch_idx + 1) % expected[0])
+                else:
+                    assert batch_idx == model.prev_called_batch_idx
+                    model.prev_called_batch_idx += expected[0]
 
             elif 1 <= epoch <= 2:
                 # reset counter when starting epoch
@@ -167,8 +235,12 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[1]
 
-                assert batch_idx == model.prev_called_batch_idx
-                model.prev_called_batch_idx += expected[1]
+                if trainer.num_training_batches == batch_idx + 1:
+                    # prev_called_batch_idx - schedule + modulus remainder
+                    assert batch_idx == (model.prev_called_batch_idx - expected[1] + (batch_idx + 1) % expected[1])
+                else:
+                    assert batch_idx == model.prev_called_batch_idx
+                    model.prev_called_batch_idx += expected[1]
 
             else:
                 if batch_idx == expected[2] - 1:
@@ -177,8 +249,12 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
                     # use this opportunity to test once
                     assert trainer.accumulate_grad_batches == expected[2]
 
-                assert batch_idx == model.prev_called_batch_idx
-                model.prev_called_batch_idx += expected[2]
+                if (batch_idx + 1) == trainer.num_training_batches:
+                    # prev_called_batch_idx - schedule + modulus remainder
+                    assert batch_idx == (model.prev_called_batch_idx - expected[2] + (batch_idx + 1) % expected[2])
+                else:
+                    assert batch_idx == model.prev_called_batch_idx
+                    model.prev_called_batch_idx += expected[2]
 
         optimizer.step()
 
@@ -188,6 +264,48 @@ def test_gradient_accumulation_scheduling(tmpdir, schedule, expected):
     # for the test
     model.optimizer_step = _optimizer_step
     model.prev_called_batch_idx = 0
+
+    trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ['accumulate_grad_batches', 'limit_train_batches'],
+    [
+        pytest.param({1: 2, 3: 4}, 1.0),
+        pytest.param({1: 2, 3: 4}, 0.5),  # not to be divisible by accumulate_grad_batches on purpose
+        pytest.param(3, 1.0),
+        pytest.param(3, 0.8),  # not to be divisible by accumulate_grad_batches on purpose
+        pytest.param(4, 1.0),
+        pytest.param(4, 0.7),  # not to be divisible by accumulate_grad_batches on purpose
+    ],
+)
+def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_batches, limit_train_batches):
+    """ Verify optimizer.step() applied to last batch while grad accumulation """
+
+    class CurrentModel(EvalModelTemplate):
+        def on_after_backward(self):
+            self.loss_backward = deepcopy(self.state_dict())
+
+        def on_before_zero_grad(self, optimizer):
+            self.opt_step = self.state_dict()
+
+        def on_train_batch_end(self, batch, batch_idx, dataloader_idx):
+            _exclude_keys = ['num_batches_tracked', 'running_mean', 'running_var']
+
+            if (batch_idx + 1) == self.trainer.num_training_batches:
+                for key in self.loss_backward.keys():
+                    # exclude the check for batch_norm parameters
+                    if not any([k in key for k in _exclude_keys]):
+                        assert not torch.equal(self.loss_backward[key], self.opt_step[key])
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        accumulate_grad_batches=accumulate_grad_batches,
+        max_epochs=4,
+        limit_train_batches=limit_train_batches,
+        default_root_dir=tmpdir
+    )
 
     trainer.fit(model)
 
@@ -789,12 +907,42 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     pytest.param(0.0),  # this should run no sanity checks
     pytest.param(1),
     pytest.param(1.0),
-    pytest.param(0.3),
+    pytest.param(0.5),
+    pytest.param(5),
 ])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
+    """ Test that the number of sanity check batches is clipped to limit_val_batches. """
+    model = EvalModelTemplate()
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    num_sanity_val_steps = 4
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=num_sanity_val_steps,
+        limit_val_batches=limit_val_batches,
+        max_steps=1,
+    )
+    assert trainer.num_sanity_val_steps == num_sanity_val_steps
+    val_dataloaders = model.val_dataloader__multiple_mixed_length()
+
+    with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
+        trainer.fit(model, val_dataloaders=val_dataloaders)
+        assert mocked.call_count == sum(
+            min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
+        )
+
+
+@pytest.mark.parametrize(['limit_val_batches'], [
+    pytest.param(0.0),  # this should run no sanity checks
+    pytest.param(1),
+    pytest.param(1.0),
+    pytest.param(0.3),
+])
+def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     """
-    Test that num_sanity_val_steps=-1 runs through all validation data once.
-    Makes sure this setting is independent of limit_val_batches.
+    Test that num_sanity_val_steps=-1 runs through all validation data once, and as many batches as
+    limited by "limit_val_batches" Trainer argument.
     """
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
@@ -802,7 +950,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=-1,
-        limit_val_batches=limit_val_batches,  # should have no influence
+        limit_val_batches=limit_val_batches,
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float('inf')
@@ -810,7 +958,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
 
     with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
         trainer.fit(model, val_dataloaders=val_dataloaders)
-        assert mocked.call_count == sum(len(dl) * (limit_val_batches > 0) for dl in val_dataloaders)
+        assert mocked.call_count == sum(trainer.num_val_batches)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [

@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from abc import ABC
 from typing import Union, Iterable
 
@@ -24,6 +38,7 @@ class TrainerLoggingMixin(ABC):
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
+    logged_metrics: ...
 
     def configure_logger(self, logger):
         if logger is True:
@@ -64,15 +79,19 @@ class TrainerLoggingMixin(ABC):
 
         if "step" in scalar_metrics and step is None:
             step = scalar_metrics.pop("step")
-        else:
+
+        elif step is None:
             # added metrics by Lightning for convenience
             scalar_metrics['epoch'] = self.current_epoch
             step = step if step is not None else self.global_step
+
         # log actual metrics
         if self.is_global_zero and self.logger is not None:
             self.logger.agg_and_log_metrics(scalar_metrics, step=step)
             self.logger.save()
 
+            # track the logged metrics
+            self.logged_metrics = scalar_metrics
             self.dev_debugger.track_logged_metrics_history(scalar_metrics)
 
     def add_progress_bar_metrics(self, metrics):
