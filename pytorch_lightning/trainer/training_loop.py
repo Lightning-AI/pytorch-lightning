@@ -1193,8 +1193,8 @@ class TrainerTrainLoopMixin(ABC):
         if self.use_ddp or self.use_ddp2 or self.use_dp:
             output = self.accelerator_backend.training_step(args)
 
-        # Horovod
-        elif self.use_horovod and self.on_gpu:
+        # horovod
+        elif self.use_horovod:
             output = self.accelerator_backend.training_step(args)
 
         # single GPU forward
