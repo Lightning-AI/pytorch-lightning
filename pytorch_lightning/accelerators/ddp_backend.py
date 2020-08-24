@@ -237,7 +237,11 @@ class DDPBackend(Accelerator):
             return results
 
     def training_step(self, args):
-        output = self.trainer.model(*args)
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model(*args)
+        else:
+            output = self.trainer.model(*args)
         return output
 
     def validation_step(self, args):

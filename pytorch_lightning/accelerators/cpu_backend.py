@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import torch
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
 
 
 class CPUBackend(Accelerator):
@@ -41,7 +42,12 @@ class CPUBackend(Accelerator):
         return results
 
     def training_step(self, args):
-        return self.trainer.model.training_step(*args)
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model.training_step(*args)
+        else:
+            output = self.trainer.model.training_step(*args)
+        return output
 
     def validation_step(self, args):
         return self.trainer.model.validation_step(*args)
