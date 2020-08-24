@@ -75,12 +75,12 @@ class GPUStatsMonitor(Callback):
             )
 
         self._log_stats = Namespace(
-            memory_utilization = memory_utilization,
-            gpu_utilization = gpu_utilization,
-            intra_step_time = intra_step_time,
-            inter_step_time = inter_step_time,
-            fan_speed = fan_speed,
-            temperature = temperature
+            memory_utilization=memory_utilization,
+            gpu_utilization=gpu_utilization,
+            intra_step_time=intra_step_time,
+            inter_step_time=inter_step_time,
+            fan_speed=fan_speed,
+            temperature=temperature
         )
 
     def on_train_batch_start(self, trainer, pl_module):
