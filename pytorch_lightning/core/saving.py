@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import ast
 import csv
 import inspect
@@ -34,13 +48,13 @@ class ModelIO(object):
 
     @classmethod
     def load_from_checkpoint(
-            cls,
-            checkpoint_path: str,
-            *args,
-            map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
-            hparams_file: Optional[str] = None,
-            strict: bool = True,
-            **kwargs
+        cls,
+        checkpoint_path: str,
+        *args,
+        map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+        hparams_file: Optional[str] = None,
+        strict: bool = True,
+        **kwargs,
     ):
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
@@ -136,13 +150,13 @@ class ModelIO(object):
         # override the hparams with values that were passed in
         checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
-        model = cls._load_model_state(checkpoint, strict=strict, *args, **kwargs)
+        model = cls._load_model_state(checkpoint, *args, strict=strict, **kwargs)
         return model
 
     @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], strict: bool = True, *cls_args, **cls_kwargs):
+    def _load_model_state(cls, checkpoint: Dict[str, Any], *cls_args, strict: bool = True, **cls_kwargs):
         cls_spec = inspect.getfullargspec(cls.__init__)
-        cls_init_args_name = inspect.signature(cls).parameters.keys()
+        cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
         # pass in the values we saved automatically
         if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
             model_args = {}

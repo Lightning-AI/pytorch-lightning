@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 TensorBoard
 -----------
@@ -15,8 +29,9 @@ from torch.utils.tensorboard import SummaryWriter
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.core.lightning import LightningModule
 
 try:
     from omegaconf import Container, OmegaConf
@@ -47,20 +62,31 @@ class TensorBoardLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
+        log_graph: Adds the computational graph to tensorboard. This requires that
+            the user has defined the `self.example_input_array` attribute in their
+            model.
+        default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
+            called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'
 
-    def __init__(self,
-                 save_dir: str,
-                 name: Optional[str] = "default",
-                 version: Optional[Union[int, str]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        save_dir: str,
+        name: Optional[str] = "default",
+        version: Optional[Union[int, str]] = None,
+        log_graph: bool = False,
+        default_hp_metric: bool = True,
+        **kwargs
+    ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
         self._version = version
+        self._log_graph = log_graph
+        self._default_hp_metric = default_hp_metric
 
         self._experiment = None
         self.hparams = {}
@@ -140,16 +166,18 @@ class TensorBoardLogger(LightningLoggerBase):
             from torch.utils.tensorboard.summary import hparams
 
             if metrics is None:
-                metrics = {}
-            exp, ssi, sei = hparams(params, metrics)
-            writer = self.experiment._get_file_writer()
-            writer.add_summary(exp)
-            writer.add_summary(ssi)
-            writer.add_summary(sei)
+                if self._default_hp_metric:
+                    metrics = {"hp_metric": -1}
+            elif not isinstance(metrics, dict):
+                metrics = {"hp_metric": metrics}
 
             if metrics:
-                # necessary for hparam comparison with metrics
-                self.log_metrics(metrics)
+                self.log_metrics(metrics, 0)
+                exp, ssi, sei = hparams(params, metrics)
+                writer = self.experiment._get_file_writer()
+                writer.add_summary(exp)
+                writer.add_summary(ssi)
+                writer.add_summary(sei)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
@@ -159,6 +187,21 @@ class TensorBoardLogger(LightningLoggerBase):
             if isinstance(v, torch.Tensor):
                 v = v.item()
             self.experiment.add_scalar(k, v, step)
+
+    @rank_zero_only
+    def log_graph(self, model: LightningModule, input_array=None):
+        if self._log_graph:
+            if input_array is None:
+                input_array = model.example_input_array
+
+            if input_array is not None:
+                input_array = model.transfer_batch_to_device(input_array, model.device)
+                self.experiment.add_graph(model, input_array)
+            else:
+                rank_zero_warn('Could not log computational graph since the'
+                               ' `model.example_input_array` attribute is not set'
+                               ' or `input_array` was not given',
+                               UserWarning)
 
     @rank_zero_only
     def save(self) -> None:

@@ -12,7 +12,7 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from tests.base import EvalModelTemplate
+from tests.base import EvalModelTemplate, GenericEvalModelTemplate
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -151,10 +151,11 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     tutils.assert_ok_model_acc(new_trainer)
 
 
-def test_load_model_from_checkpoint(tmpdir):
+@pytest.mark.parametrize('model_template', [EvalModelTemplate, GenericEvalModelTemplate])
+def test_load_model_from_checkpoint(tmpdir, model_template):
     """Verify test() on pretrained model."""
-    hparams = EvalModelTemplate.get_default_hparams()
-    model = EvalModelTemplate(**hparams)
+    hparams = model_template.get_default_hparams()
+    model = model_template(**hparams)
 
     trainer_options = dict(
         progress_bar_refresh_rate=0,
@@ -175,7 +176,7 @@ def test_load_model_from_checkpoint(tmpdir):
 
     # load last checkpoint
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
-    pretrained_model = EvalModelTemplate.load_from_checkpoint(last_checkpoint)
+    pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
 
     # test that hparams loaded correctly
     for k, v in hparams.items():
@@ -198,12 +199,7 @@ def test_dp_resume(tmpdir):
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
 
-    trainer_options = dict(
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='dp',
-        default_root_dir=tmpdir,
-    )
+    trainer_options = dict(max_epochs=1, gpus=2, distributed_backend='dp', default_root_dir=tmpdir,)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)
@@ -275,10 +271,7 @@ def test_model_saving_loading(tmpdir):
 
     # fit model
     trainer = Trainer(
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
-        default_root_dir=tmpdir,
+        max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir), default_root_dir=tmpdir,
     )
     result = trainer.fit(model)
 
@@ -308,10 +301,7 @@ def test_model_saving_loading(tmpdir):
     # load new model
     hparams_path = tutils.get_data_path(logger, path_dir=tmpdir)
     hparams_path = os.path.join(hparams_path, 'hparams.yaml')
-    model_2 = EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=new_weights_path,
-        hparams_file=hparams_path,
-    )
+    model_2 = EvalModelTemplate.load_from_checkpoint(checkpoint_path=new_weights_path, hparams_file=hparams_path,)
     model_2.eval()
 
     # make prediction
@@ -335,10 +325,7 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir, max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     result = trainer.fit(model)
 
@@ -355,16 +342,12 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
     ckpt_path = hparams_url if url_ckpt else new_weights_path
 
     EvalModelTemplate.load_from_checkpoint(
-        checkpoint_path=ckpt_path,
-        hparams_file=hparams_path,
-        strict=False,
+        checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False,
     )
 
     with pytest.raises(RuntimeError, match=r'Unexpected key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
         EvalModelTemplate.load_from_checkpoint(
-            checkpoint_path=ckpt_path,
-            hparams_file=hparams_path,
-            strict=True,
+            checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=True,
         )
 
 
@@ -381,10 +364,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        logger=logger,
-        checkpoint_callback=ModelCheckpoint(tmpdir),
+        default_root_dir=tmpdir, max_epochs=1, logger=logger, checkpoint_callback=ModelCheckpoint(tmpdir),
     )
     result = trainer.fit(model)
 
@@ -406,16 +386,12 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
             self.c_d3 = torch.nn.Linear(7, 7)
 
     CurrentModel.load_from_checkpoint(
-        checkpoint_path=ckpt_path,
-        hparams_file=hparams_path,
-        strict=False,
+        checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=False,
     )
 
     with pytest.raises(RuntimeError, match=r'Missing key\(s\) in state_dict: "c_d3.weight", "c_d3.bias"'):
         CurrentModel.load_from_checkpoint(
-            checkpoint_path=ckpt_path,
-            hparams_file=hparams_path,
-            strict=True,
+            checkpoint_path=ckpt_path, hparams_file=hparams_path, strict=True,
         )
 
 
