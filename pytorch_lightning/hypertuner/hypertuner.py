@@ -127,23 +127,23 @@ class HyperTuner(HyperTunerLRFinderMixin,
                                   self.auto_lr_find,
                                   'learning_rate')
 
-    def _call_internally(self, model, method, attribute, default):
+    def _call_internally(self, method, attribute, default):
         attribute = attribute if isinstance(attribute, str) else default
 
         # Check that user has the wanted attribute in their model
-        if not lightning_hasattr(model, attribute):
+        if not lightning_hasattr(self.model, attribute):
             raise MisconfigurationException('model or model.hparams does not have'
                                             f' a field called {attribute} which is'
                                             f' required by tuner algorithm {method}')
 
         # Call method
-        obj = method(model, attribute_name=attribute)
+        obj = method(attribute_name=attribute)
 
         # Get suggested value
         value = obj.suggestion()
 
         # Set value in model
-        lightning_setattr(model, attribute, value)
+        lightning_setattr(self.model, attribute, value)
         log.info(f'Tuner method {method} completed. Attribute {attribute} set to {value}.')
 
     @classmethod
