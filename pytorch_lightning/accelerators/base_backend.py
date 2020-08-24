@@ -1,12 +1,11 @@
 import torch
 from typing import Any
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.trainer import Trainer
 
 
 class Accelerator(object):
 
-    def __init__(self, trainer: Trainer):
+    def __init__(self, trainer):
         self.trainer = trainer
 
     def batch_to_device(self, batch: Any, device: torch.device):
