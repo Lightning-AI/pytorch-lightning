@@ -83,7 +83,7 @@ class GPUStatsMonitor(Callback):
             temperature=temperature
         )
 
-    def on_train_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self._log_stats.gpu_utilization:
             self._log_gpu(trainer)
         if self._log_stats.memory_utilization:
@@ -99,7 +99,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time:
             self.snap_intra_step_time = time.time()
 
-    def on_train_batch_end(self, trainer, pl_module):
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self._log_stats.gpu_utilization:
             self._log_gpu(trainer)
 
