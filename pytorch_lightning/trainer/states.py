@@ -52,10 +52,7 @@ def trainer_state(*, entering: Optional[TrainerState] = None, exiting: Optional[
             if self._state == TrainerState.INTERRUPTED:
                 return result
 
-            if exiting is not None:
-                self._state = exiting
-            else:
-                self._state = state_before
+            self._state = exiting if exiting is not None else state_before
             return result
 
         return wrapped_fn
