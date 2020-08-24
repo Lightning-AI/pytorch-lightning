@@ -323,11 +323,20 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
+                args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
+
+                # TODO: collapse if statement into backends (next)
                 if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
                     with torch.cuda.amp.autocast():
-                        output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                        if test_mode:
+                            output = self.accelerator_backend.test_step(args)
+                        else:
+                            output = self.accelerator_backend.validation_step(args)
                 else:
-                    output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                    if test_mode:
+                        output = self.accelerator_backend.test_step(args)
+                    else:
+                        output = self.accelerator_backend.validation_step(args)
 
                 is_result_obj = isinstance(output, Result)
 
@@ -646,50 +655,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
         return eval_loop_results
 
-    def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
+    def build_args(self, test_mode, batch, batch_idx, dataloader_idx):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
         if (test_mode and len(self.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):
             args.append(dataloader_idx)
 
-        # handle DP, DDP forward
-        if self.use_ddp or self.use_dp or self.use_ddp2:
-            if test_mode:
-                output = self.accelerator_backend.test_step(args)
-            else:
-                output = self.accelerator_backend.validation_step(args)
-            return output
-
-        # Horovod
-        if self.use_horovod and self.on_gpu:
-            if test_mode:
-                output = self.accelerator_backend.test_step(args)
-            else:
-                output = self.accelerator_backend.validation_step(args)
-            return output
-
-        # single GPU data transfer
-        if self.use_single_gpu:
-            if test_mode:
-                output = self.accelerator_backend.test_step(args)
-            else:
-                output = self.accelerator_backend.validation_step(args)
-            return output
-
-        # TPU data  transfer
-        if self.use_tpu:
-            if test_mode:
-                output = self.accelerator_backend.test_step(args)
-            else:
-                output = self.accelerator_backend.validation_step(args)
-            return output
-
-        # CPU, TPU or gpu step
-        # TODO: remove during refactors
-        if test_mode:
-            output = model.test_step(*args)
-        else:
-            output = model.validation_step(*args)
-
-        return output
+        return args
