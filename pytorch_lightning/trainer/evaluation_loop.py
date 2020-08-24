@@ -331,12 +331,11 @@ class TrainerEvaluationLoopMixin(ABC):
                 # EVAL STEP END
                 # ------------------
                 # on dp / ddp2 might still want to do something with the batch parts
-                eval_step_end_hook_name = 'test_step_end' if test_mode else 'validation_step_end'
-                if self.is_overridden(eval_step_end_hook_name):
-                    model_ref = self.get_model()
-                    with self.profiler.profile(eval_step_end_hook_name):
-                        eval_step_end = getattr(model_ref, eval_step_end_hook_name)
-                        output = eval_step_end(output)
+                if self.is_overridden('test_step_end') or self.is_overridden('validation_step_end'):
+                    if test_mode:
+                        output = self.call_hook('test_step_end')
+                    else:
+                        output = self.call_hook('validation_step_end')
 
                 elif is_result_obj and (self.use_dp or self.use_ddp2):
                     # result auto reduce
