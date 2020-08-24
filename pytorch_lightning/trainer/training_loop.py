@@ -258,6 +258,7 @@ class TrainerTrainLoopMixin(ABC):
     state: TrainerState
     amp_backend: AMPType
     on_tpu: bool
+    accelerator_backend: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -1217,9 +1218,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # TPU support
         elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
-            args[0] = batch
-            output = self.model.training_step(*args)
+            output = self.accelerator_backend.training_step(batch, args)
 
         # CPU forward
         else:
