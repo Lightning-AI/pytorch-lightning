@@ -1472,6 +1472,12 @@ class Trainer(
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
+            # if the PL module doesn't have the hook then call the accelator
+            # used to auto-reduce things for the user with Results obj
+            elif hasattr(self.accelerator_backend, hook_name):
+                accelerator_hook = getattr(self.accelerator_backend, hook_name)
+                output = accelerator_hook(*args, **kwargs)
+
             return output
 
 

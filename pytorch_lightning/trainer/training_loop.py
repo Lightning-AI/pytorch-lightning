@@ -1201,14 +1201,8 @@ class TrainerTrainLoopMixin(ABC):
         # distributed forward
         output = self.accelerator_backend.training_step(args)
 
-        is_result_obj = isinstance(output, Result)
-
-        # allow any mode to define training_step_end
-        # do something will all the dp outputs (like softmax)
-        if self.is_overridden('training_step_end'):
-            output = self.call_hook('training_step_end', output)
-        elif is_result_obj and (self.use_dp or self.use_ddp2):
-            output.dp_reduce()
+        # Training step end
+        output = self.call_hook('training_step_end', output)
 
         return output
 

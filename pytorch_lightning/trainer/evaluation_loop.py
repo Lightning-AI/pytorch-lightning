@@ -330,23 +330,23 @@ class TrainerEvaluationLoopMixin(ABC):
                 # ------------------
                 # EVAL STEP END
                 # ------------------
-                # on dp / ddp2 might still want to do something with the batch parts
-                if self.is_overridden('test_step_end') or self.is_overridden('validation_step_end'):
-                    if test_mode:
-                        output = self.call_hook('test_step_end', output)
-                    else:
-                        output = self.call_hook('validation_step_end', output)
+                if test_mode:
+                    output = self.call_hook('test_step_end', output)
+                else:
+                    output = self.call_hook('validation_step_end', output)
 
-                elif is_result_obj and (self.use_dp or self.use_ddp2):
-                    # result auto reduce
-                    output.dp_reduce()
-
+                # ------------------
+                # Hook: on_eval_batch_end
+                # ------------------
                 # callbacks (on __batch_end)
                 if test_mode:
                     self.call_hook('on_test_batch_end', batch, batch_idx, dataloader_idx)
                 else:
                     self.call_hook('on_validation_batch_end', batch, batch_idx, dataloader_idx)
 
+                # ----------------------
+                # Post processing
+                # ----------------------
                 # track outputs for collation
                 if output is not None:
 
