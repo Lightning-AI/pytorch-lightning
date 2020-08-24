@@ -1008,13 +1008,8 @@ class TrainerTrainLoopMixin(ABC):
         # ---------------------------
         with self.profiler.profile('model_forward'):
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
-            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
-                with torch.cuda.amp.autocast():
-                    training_step_output = self.accelerator_backend.training_step(args)
-                    training_step_output = self.call_hook('training_step_end', training_step_output)
-            else:
-                training_step_output = self.accelerator_backend.training_step(args)
-                training_step_output = self.call_hook('training_step_end', training_step_output)
+            training_step_output = self.accelerator_backend.training_step(args)
+            training_step_output = self.call_hook('training_step_end', training_step_output)
 
             # ----------------------------
             # PROCESS THE RESULT

@@ -120,7 +120,12 @@ class HorovodBackend(Accelerator):
             batch = self.batch_to_device(batch, hvd.local_rank())
             args[0] = batch
 
-        output = self.trainer.model.training_step(*args)
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model.training_step(*args)
+        else:
+            output = self.trainer.model.training_step(*args)
+
         return output
 
     def validation_step(self, args):
