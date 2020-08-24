@@ -24,7 +24,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import AMPType, is_apex_available
+from pytorch_lightning.utilities import AMPType, is_apex_available, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
