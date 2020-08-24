@@ -124,15 +124,19 @@ class HorovodBackend(Accelerator):
         return output
 
     def validation_step(self, args):
-        batch = args[0]
-        batch = self.batch_to_device(batch, hvd.local_rank())
-        args[0] = batch
+        if self.trainer.on_gpu:
+            batch = args[0]
+            batch = self.batch_to_device(batch, hvd.local_rank())
+            args[0] = batch
+
         output = self.trainer.model.validation_step(*args)
         return output
 
     def test_step(self, args):
-        batch = args[0]
-        batch = self.batch_to_device(batch, hvd.local_rank())
-        args[0] = batch
+        if self.trainer.on_gpu:
+            batch = args[0]
+            batch = self.batch_to_device(batch, hvd.local_rank())
+            args[0] = batch
+
         output = self.trainer.model.test_step(*args)
         return output
