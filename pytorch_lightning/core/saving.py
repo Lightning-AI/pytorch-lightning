@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.cloud_io import gfile, cloud_open
 
 if is_omegaconf_available():
-    from omegaconf import Container
+    from omegaconf import OmegaConf
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
@@ -354,7 +354,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
-    if OmegaConf is not None:
+    if is_omegaconf_available():
         if OmegaConf.is_config(hparams):
             OmegaConf.save(hparams, config_yaml, resolve=True)
             return
