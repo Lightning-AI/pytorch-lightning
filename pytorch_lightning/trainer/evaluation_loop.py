@@ -333,9 +333,9 @@ class TrainerEvaluationLoopMixin(ABC):
                 # on dp / ddp2 might still want to do something with the batch parts
                 if self.is_overridden('test_step_end') or self.is_overridden('validation_step_end'):
                     if test_mode:
-                        output = self.call_hook('test_step_end')
+                        output = self.call_hook('test_step_end', output)
                     else:
-                        output = self.call_hook('validation_step_end')
+                        output = self.call_hook('validation_step_end', output)
 
                 elif is_result_obj and (self.use_dp or self.use_ddp2):
                     # result auto reduce
