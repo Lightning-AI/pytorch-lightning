@@ -63,14 +63,14 @@ class GPUBackend(Accelerator):
         batch = args[0]
         batch = self.to_device(batch)
         args[0] = batch
-        output = self.trainer.model.training_step(*args)
+        output = self.trainer.model.validation_step(*args)
         return output
 
     def test_step(self, args):
         batch = args[0]
         batch = self.to_device(batch)
         args[0] = batch
-        output = self.trainer.model.training_step(*args)
+        output = self.trainer.model.test_step(*args)
         return output
 
     def to_device(self, batch):
