@@ -1207,7 +1207,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # CPU forward
         else:
-            output = self.model.training_step(*args)
+            output = self.accelerator_backend.training_step(args)
 
         is_result_obj = isinstance(output, Result)
 
