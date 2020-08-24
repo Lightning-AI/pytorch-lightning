@@ -14,12 +14,6 @@ class Accelerator(object):
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
 
-    def on_test_batch_end(self, output):
-        return output
-
-    def on_validation_batch_end(self, output):
-        return output
-
     def training_step_end(self, output):
         return output
 
