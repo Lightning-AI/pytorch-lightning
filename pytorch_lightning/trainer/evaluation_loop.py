@@ -229,28 +229,6 @@ class TrainerEvaluationLoopMixin(ABC):
     def call_hook(self, hook_name, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def __call_eval_loop_hook_start(self, test_mode):
-        """on_validation/test_epoch_start"""
-        self.__call_eval_loop_hook_evt(test_mode, 'start')
-
-    def __call_eval_loop_hook_end(self, test_mode):
-        """on_validation/test_epoch_end"""
-        self.__call_eval_loop_hook_evt(test_mode, 'end')
-
-    def __call_eval_loop_hook_evt(self, test_mode, epoch_event):
-        model = self.get_model()
-
-        # on_[train/validation]_epoch_start hook
-        hook_root_name = 'test' if test_mode else 'validation'
-        hook_name = f'on_{hook_root_name}_epoch_{epoch_event}'
-        with self.profiler.profile(hook_name):
-            # call hook
-            getattr(self, hook_name)()
-
-            # model hooks
-            if self.is_function_implemented(hook_name):
-                getattr(model, hook_name)()
-
     def _evaluate(
         self,
         model: LightningModule,
@@ -288,7 +266,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # --------------------------
         # ON_EVAL_EPOCH_START hook
         # --------------------------
-        self.__call_eval_loop_hook_start(test_mode)
+        if test_mode:
+            self.call_hook('on_test_epoch_start')
+        else:
+            self.call_hook('on_validation_epoch_start')
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -405,7 +386,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # --------------------------
         # ON_EVAL_EPOCH_END hook
         # --------------------------
-        self.__call_eval_loop_hook_end(test_mode)
+        if test_mode:
+            self.call_hook('on_test_epoch_end')
+        else:
+            self.call_hook('on_validation_epoch_end')
 
         return eval_results
 
