@@ -13,3 +13,18 @@ class Accelerator(object):
         if model is not None:
             return model.transfer_batch_to_device(batch, device)
         return move_data_to_device(batch, device)
+
+    def on_test_batch_end(self, output):
+        return output
+
+    def on_validation_batch_end(self, output):
+        return output
+
+    def training_step_end(self, output):
+        return output
+
+    def test_step_end(self, output):
+        return output
+
+    def validation_step_end(self, output):
+        return output
