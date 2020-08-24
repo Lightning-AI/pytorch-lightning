@@ -1162,7 +1162,7 @@ class TrainerTrainLoopMixin(ABC):
             model.cpu()
             torch.cuda.empty_cache()
 
-    def build_args(self, batch, batch_idx, opt_idx, hiddens):
+    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 
@@ -1192,7 +1192,7 @@ class TrainerTrainLoopMixin(ABC):
         # ---------------
         # FORWARD
         # ---------------
-        args = self.build_args(batch, batch_idx, opt_idx, hiddens)
+        args = self.build_train_args(batch, batch_idx, opt_idx, hiddens)
 
         # distributed forward
         output = self.accelerator_backend.training_step(args)
