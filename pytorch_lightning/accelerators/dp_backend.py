@@ -18,7 +18,7 @@ from torch import optim
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import EvalResult
+from pytorch_lightning.core.step_result import EvalResult, TrainResult
 from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
@@ -116,7 +116,7 @@ class DataParallelBackend(Accelerator):
         return output
 
     def training_step_end(self, output):
-        if isinstance(output, EvalResult):
+        if isinstance(output, TrainResult):
             output.dp_reduce()
         return output
 
