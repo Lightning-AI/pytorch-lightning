@@ -73,15 +73,16 @@ class TestTubeLogger(LightningLoggerBase):
 
     __test__ = False
 
-    def __init__(self,
-                 save_dir: str,
-                 name: str = "default",
-                 description: Optional[str] = None,
-                 debug: bool = False,
-                 version: Optional[int] = None,
-                 create_git_tag: bool = False,
-                 log_graph=True):
-
+    def __init__(
+        self,
+        save_dir: str,
+        name: str = "default",
+        description: Optional[str] = None,
+        debug: bool = False,
+        version: Optional[int] = None,
+        create_git_tag: bool = False,
+        log_graph: bool = False
+    ):
         if not _TEST_TUBE_AVAILABLE:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')

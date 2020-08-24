@@ -21,6 +21,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     import torch_xla
@@ -32,10 +33,10 @@ else:
     XLA_AVAILABLE = True
 
 
-class TPUBackend(object):
+class TPUBackend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.start_method = None
         self.mp_queue = None
 
@@ -116,6 +117,50 @@ class TPUBackend(object):
 
         # persist info in spawn
         trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
+
+    def training_step(self, args):
+        batch = args[0]
+        batch = self.to_device(batch)
+        args[0] = batch
+        output = self.trainer.model.training_step(*args)
+        return output
+
+    def validation_step(self, args):
+        batch = args[0]
+        batch = self.to_device(batch)
+        args[0] = batch
+        output = self.trainer.model.validation_step(*args)
+        return output
+
+    def test_step(self, args):
+        batch = args[0]
+        batch = self.to_device(batch)
+        args[0] = batch
+        output = self.trainer.model.test_step(*args)
+        return output
+
+    def to_device(self, batch):
+        """
+        Transfers the data to the TPU.
+
+        Args:
+            batch: A tensor or collection of tensors.
+            tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
+
+        Return:
+            the tensor on the TPU device.
+
+        See Also:
+            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
+        """
+        if not XLA_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested to transfer batch to TPU but XLA is not available.'
+                ' Are you sure this machine has TPUs?'
+            )
+        device = xm.xla_device(self.trainer.tpu_id)
+
+        return self.batch_to_device(batch, device)
 
     def __save_end_of_training_weights(self, model: LightningModule, trainer):
         # when training ends on these platforms dump weights to get out of the main process

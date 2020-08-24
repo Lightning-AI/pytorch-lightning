@@ -98,9 +98,20 @@ class DataParallelBackend(object):
         return results
 
     def teardown(self):
-
         # replace the original fwd function
         self.trainer.model.forward = self.model_autocast_original_forward
+
+    def training_step(self, args):
+        output = self.trainer.model(*args)
+        return output
+
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output
 
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):
         """

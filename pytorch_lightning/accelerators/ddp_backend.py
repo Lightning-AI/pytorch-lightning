@@ -235,6 +235,18 @@ class DDPBackend(object):
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
 
+    def training_step(self, args):
+        output = self.trainer.model(*args)
+        return output
+
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output
+
     def _check_can_spawn_children(self):
         if self._has_spawned_children:
             raise RuntimeError(

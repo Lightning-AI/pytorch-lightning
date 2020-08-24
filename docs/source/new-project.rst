@@ -151,7 +151,7 @@ Convert your PyTorch Module to Lightning
 
 1. Move your computational code
 -------------------------------
-Move the model architucture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
+Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
 
 .. code-block::
 
@@ -244,8 +244,8 @@ It also allows logging to the progress bar (by setting prog_bar=True). Read more
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.TrainResult(loss)
-            # Add logging to progress bar (note that efreshing the progress bar too frequently
+            result = pl.TrainResult(minimize=loss)
+            # Add logging to progress bar (note that refreshing the progress bar too frequently
             # in Jupyter notebooks or Colab may freeze your UI) 
             result.log('train_loss', loss, prog_bar=True)
             return result
@@ -440,8 +440,7 @@ it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
                 mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
             if stage == 'test':
-                mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
-                self.mnist_test = MNIST(os.getcwd(), train=False, download=True)
+                self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
 
         # return the dataloader for each split
         def train_dataloader(self):
@@ -453,12 +452,12 @@ it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
             return mnist_val
         
         def test_dataloader(self):
-            mnist_test = DataLoader(mnist_test, batch_size=self.batch_size)
+            mnist_test = DataLoader(self.mnist_test, batch_size=self.batch_size)
             return mnist_test
 
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed to enable sharing and reusing data splits
 and transforms across different projects. It encapsulates all the steps needed to process data: downloading,
-tokenizeing, processing etc.
+tokenizing, processing etc.
 
 Now you can simply pass your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` to
 the :class:`~pytorch_lightning.trainer.Trainer`:

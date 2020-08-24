@@ -22,7 +22,6 @@ from urllib.parse import urlparse
 import torch
 
 import tensorboard
-from packaging import version
 from pytorch_lightning import _logger as log
 
 # we want this for tf.io.gfile, which if tf is installed gives full tf,
@@ -58,8 +57,8 @@ def modern_gfile():
     Cheking to see if it has the gfile compatibility layers needed for remote
     file operations
     """
-    tb_version = version.parse(tensorboard.version.VERSION)
-    modern_gfile = tb_version >= version.parse("2.0")
+    tb_version = LooseVersion(tensorboard.version.VERSION)
+    modern_gfile = tb_version >= LooseVersion("2.0")
     return modern_gfile
 
 

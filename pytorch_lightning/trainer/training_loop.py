@@ -258,6 +258,7 @@ class TrainerTrainLoopMixin(ABC):
     state: TrainerState
     amp_backend: AMPType
     on_tpu: bool
+    accelerator_backend: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -288,10 +289,6 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def transfer_batch_to_gpu(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def transfer_batch_to_tpu(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -1194,7 +1191,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # distributed forward
         if self.use_ddp or self.use_ddp2 or self.use_dp:
-            output = self.model(*args)
+            output = self.accelerator_backend.training_step(args)
 
         # Horovod
         elif self.use_horovod and self.on_gpu:
@@ -1217,9 +1214,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # TPU support
         elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
-            args[0] = batch
-            output = self.model.training_step(*args)
+            output = self.accelerator_backend.training_step(args)
 
         # CPU forward
         else:

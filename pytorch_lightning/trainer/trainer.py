@@ -377,6 +377,7 @@ class Trainer(
         self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
+        self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.train_dataloader = None
         self.test_dataloaders = None
@@ -463,9 +464,9 @@ class Trainer(
         self.min_steps = min_steps
 
         if num_sanity_val_steps == -1:
-            self.num_sanity_val_steps = float("inf")
+            self.num_sanity_val_steps = float('inf')
         else:
-            self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
+            self.num_sanity_val_steps = num_sanity_val_steps
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -1239,7 +1240,6 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
-
         using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
@@ -1247,14 +1247,15 @@ class Trainer(
         # to make sure program won't crash during val
         if should_sanity_check:
             self.reset_val_dataloader(ref_model)
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # hook and callback
             self.running_sanity_check = True
             self.on_sanity_check_start()
 
-            num_loaders = len(self.val_dataloaders)
-            max_batches = [self.num_sanity_val_steps] * num_loaders
-            eval_results = self._evaluate(model, self.val_dataloaders, max_batches, False)
+            eval_results = self._evaluate(model, self.val_dataloaders, self.num_sanity_val_batches, False)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:

@@ -90,8 +90,11 @@ references:
        # Match jobs whose age matches patterns like '1h' or '1d', i.e. any job
        # that has been around longer than 1hr. First print all columns for
        # matches, then execute the delete.
-       kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $0}'
-       kubectl delete job $(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $1}')
+       jobs_to_delete=$(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $0}')
+       echo $jobs_to_delete
+       if [ ${#jobs_to_delete} -gt 1 ];
+         then kubectl delete job $(kubectl get job | awk 'match($4,/[0-9]+[dh]/) {print $1}');
+       fi
 
 jobs:
 
