@@ -121,13 +121,13 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 def test_result_obj_predictions_ddp_spawn(tmpdir):
+    seed_everything(4321)
+
     distributed_backend = 'ddp_spawn'
     option = 0
 
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-
-    seed_everything(4321)
 
     dm = TrialMNISTDataModule(tmpdir)
 
