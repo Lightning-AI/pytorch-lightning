@@ -1,11 +1,11 @@
 import os
 from argparse import Namespace
+from distutils.version import LooseVersion
 
 import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
-from packaging import version
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -13,7 +13,7 @@ from tests.base import EvalModelTemplate
 
 
 @pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"),
+    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
     reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
