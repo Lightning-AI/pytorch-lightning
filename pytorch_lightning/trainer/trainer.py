@@ -1456,6 +1456,16 @@ class Trainer(
         self.amp_backend = None
         self._setup_amp_backend(amp_type)
 
+    def call_hook(self, hook_name, *args, **kwargs):
+        output = None
+        if self.is_overridden(hook_name):
+            model_ref = self.get_model()
+            with self.profiler.profile(hook_name):
+                hook_fx = getattr(model_ref, hook_name)
+                output = hook_fx(*args, **kwargs)
+
+        return output
+
 
 class _PatchDataLoader(object):
     r"""

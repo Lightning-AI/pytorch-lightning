@@ -324,6 +324,10 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
+    def call_hook(self, hook_name, *args, **kwargs):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -1202,23 +1206,9 @@ class TrainerTrainLoopMixin(ABC):
         # allow any mode to define training_step_end
         # do something will all the dp outputs (like softmax)
         if self.is_overridden('training_step_end'):
-            model_ref = self.get_model()
-            with self.profiler.profile('training_step_end'):
-                # TODO: modify when using result obj
-                output = model_ref.training_step_end(output)
-
+            output = self.call_hook('training_step_end', output)
         elif is_result_obj and (self.use_dp or self.use_ddp2):
             output.dp_reduce()
-
-        # allow any mode to define training_end
-        # TODO: remove in 1.0.0
-        if self.is_overridden('training_end'):
-            model_ref = self.get_model()
-            with self.profiler.profile('training_end'):
-                output = model_ref.training_end(output)
-
-            rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                           ' Use training_epoch_end instead', DeprecationWarning)
 
         return output
 
