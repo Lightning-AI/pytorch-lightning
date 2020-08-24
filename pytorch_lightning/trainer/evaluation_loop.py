@@ -655,7 +655,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # handle DP, DDP forward
         if self.use_ddp or self.use_dp or self.use_ddp2:
-            output = model(*args)
+            if test_mode:
+                output = self.accelerator_backend.test_step(args)
+            else:
+                output = self.accelerator_backend.validation_step(args)
             return output
 
         # Horovod
@@ -675,9 +678,9 @@ class TrainerEvaluationLoopMixin(ABC):
         # TPU data  transfer
         if self.use_tpu:
             if test_mode:
-                output = self.accelerator_backend.test_step(batch, args)
+                output = self.accelerator_backend.test_step(args)
             else:
-                output = self.accelerator_backend.validation_step(batch, args)
+                output = self.accelerator_backend.validation_step(args)
             return output
 
         # CPU, TPU or gpu step

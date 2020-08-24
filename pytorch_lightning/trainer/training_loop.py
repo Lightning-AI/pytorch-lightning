@@ -1191,7 +1191,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # distributed forward
         if self.use_ddp or self.use_ddp2 or self.use_dp:
-            output = self.model(*args)
+            output = self.accelerator_backend.training_step(args)
 
         # Horovod
         elif self.use_horovod and self.on_gpu:
@@ -1214,7 +1214,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # TPU support
         elif self.use_tpu:
-            output = self.accelerator_backend.training_step(batch, args)
+            output = self.accelerator_backend.training_step(args)
 
         # CPU forward
         else:

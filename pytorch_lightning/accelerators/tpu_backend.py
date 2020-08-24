@@ -118,19 +118,22 @@ class TPUBackend(Accelerator):
         # persist info in spawn
         trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
-    def training_step(self, batch, args):
+    def training_step(self, args):
+        batch = args[0]
         batch = self.to_device(batch)
         args[0] = batch
         output = self.trainer.model.training_step(*args)
         return output
 
-    def validation_step(self, batch, args):
+    def validation_step(self, args):
+        batch = args[0]
         batch = self.to_device(batch)
         args[0] = batch
         output = self.trainer.model.validation_step(*args)
         return output
 
-    def test_step(self, batch, args):
+    def test_step(self, args):
+        batch = args[0]
         batch = self.to_device(batch)
         args[0] = batch
         output = self.trainer.model.test_step(*args)
