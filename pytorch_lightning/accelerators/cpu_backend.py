@@ -21,16 +21,16 @@ class CPUBackend(LightningBackend):
     def setup(self, model: LightningModule):
         super().setup(model)
         # run through amp wrapper
-        if self._trainer.amp_backend:
+        if self.trainer.amp_backend:
             raise MisconfigurationException('amp + cpu is not supported.  Please use a GPU option')
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self._trainer.init_optimizers(model)
-        self._trainer.optimizers = optimizers
-        self._trainer.lr_schedulers = lr_schedulers
-        self._trainer.optimizer_frequencies = optimizer_frequencies
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
 
     def train(self):
-        results = self._trainer.run_pretrain_routine(self._model)
+        results = self.trainer.run_pretrain_routine(self.model)
         return results

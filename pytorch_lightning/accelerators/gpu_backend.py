@@ -27,31 +27,31 @@ class GPUBackend(LightningBackend):
 
     def __init__(self, trainer):
         super().__init__(trainer)
-        self._trainer = trainer
+        self.trainer = trainer
 
     def setup(self, model):
         super().setup(model)
 
-        torch.cuda.set_device(self._trainer.root_gpu)
-        model.cuda(self._trainer.root_gpu)
+        torch.cuda.set_device(self.trainer.root_gpu)
+        model.cuda(self.trainer.root_gpu)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
-        optimizers, lr_schedulers, optimizer_frequencies = self._trainer.init_optimizers(model)
-        self._trainer.optimizers = optimizers
-        self._trainer.lr_schedulers = lr_schedulers
-        self._trainer.optimizer_frequencies = optimizer_frequencies
+        optimizers, lr_schedulers, optimizer_frequencies = self.trainer.init_optimizers(model)
+        self.trainer.optimizers = optimizers
+        self.trainer.lr_schedulers = lr_schedulers
+        self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        if self._trainer.amp_backend == AMPType.APEX:
+        if self.trainer.amp_backend == AMPType.APEX:
             model = self._setup_nvidia_apex(model)
         return model
 
     def train(self):
-        results = self._trainer.run_pretrain_routine(self._model)
+        results = self.trainer.run_pretrain_routine(self.model)
         return results
 
     def _setup_nvidia_apex(self, model: LightningModule):
-        model, optimizers = model.configure_apex(amp, model, self._trainer.optimizers, self._trainer.amp_level)
-        self._trainer.optimizers = optimizers
-        self._trainer.reinit_scheduler_properties(self._trainer.optimizers, self._trainer.lr_schedulers)
+        model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
+        self.trainer.optimizers = optimizers
+        self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
         return model
