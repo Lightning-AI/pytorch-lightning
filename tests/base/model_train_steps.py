@@ -189,7 +189,6 @@ class TrainingStepVariations(ABC):
         # call metric
         val = self.metric(x, y)
 
-        output = OrderedDict({'loss': loss_val,
-                              'progress_bar': {'metric_val': val},
-                              'log': {'metric_val': val}})
-        return output
+        result = TrainResult(minimize=loss_val)
+        result.log('metric_val', val)
+        return result
