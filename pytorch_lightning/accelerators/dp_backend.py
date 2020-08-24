@@ -30,7 +30,7 @@ except ImportError:
 class DataParallelBackend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.model_autocast_original_forward = None
 
     def setup(self, model):

@@ -13,12 +13,13 @@
 # limitations under the License.
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
 
-class CPUBackend(object):
+class CPUBackend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
 
     def setup(self, model):
         # run through amp wrapper

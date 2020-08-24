@@ -19,6 +19,7 @@ import torch.multiprocessing as mp
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     from apex import amp
@@ -26,10 +27,10 @@ except ImportError:
     amp = None
 
 
-class DDPSpawnBackend(object):
+class DDPSpawnBackend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.mp_queue = None
 
     def setup(self):

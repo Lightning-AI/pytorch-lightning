@@ -40,7 +40,7 @@ except ImportError:
 class DDP2Backend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.task_idx = None
 
     def setup(self):

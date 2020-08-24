@@ -25,6 +25,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -40,10 +41,10 @@ except ImportError:
     amp = None
 
 
-class DDPBackend(object):
+class DDPBackend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.task_idx = None
         self._has_spawned_children = False
 
