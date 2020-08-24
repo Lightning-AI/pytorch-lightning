@@ -303,6 +303,22 @@ class ModelCheckpoint(Callback):
                 f" Remove `ModelCheckpoint(monitor='{self.monitor}')` to fix."
             )
 
+    def _validate_condition_metric(self, logs):
+        monitor_val = logs.get(self.monitor)
+
+        if monitor_val is None:  # self.monitor wasn't found in the metrics dict
+            error_msg = (f'Checkpointing conditioned on metric `{self.monitor}`'
+                         f' which is not available. Either add `{self.monitor}` to the return of '
+                         f' validation_epoch end or modify your CheckPoint callback to use any of the '
+                         f'following: `{"`, `".join(list(logs.keys()))}`')
+
+            if self.verbose > 0:
+                rank_zero_warn(error_msg, RuntimeWarning)
+
+            return False
+
+        return True
+
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
@@ -317,6 +333,9 @@ class ModelCheckpoint(Callback):
 
         metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
+
+        if not self._validate_condition_metric(metrics):
+            return  # needed metric for checkpointing was not calculated
 
         # support structured results
         if metrics.get('checkpoint_on') is not None:
