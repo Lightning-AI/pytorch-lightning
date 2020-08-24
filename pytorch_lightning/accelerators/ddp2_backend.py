@@ -20,7 +20,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import EvalResult, TrainResult
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
@@ -172,16 +172,16 @@ class DDP2Backend(Accelerator):
         return output
 
     def training_step_end(self, output):
-        if isinstance(output, TrainResult):
+        if isinstance(output, Result):
             output.dp_reduce()
         return output
 
     def validation_step_end(self, output):
-        if isinstance(output, EvalResult):
+        if isinstance(output, Result):
             output.dp_reduce()
         return output
 
     def test_step_end(self, output):
-        if isinstance(output, EvalResult):
+        if isinstance(output, Result):
             output.dp_reduce()
         return output
