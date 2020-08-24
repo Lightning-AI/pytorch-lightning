@@ -1471,6 +1471,10 @@ class Trainer(
                 model_ref = self.get_model()
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
+            else:
+                if hasattr(self.accelerator_backend, hook_name):
+                    accelerator_hook = getattr(self.accelerator_backend, hook_name)
+                    output = accelerator_hook(*args, **kwargs)
 
             return output
 

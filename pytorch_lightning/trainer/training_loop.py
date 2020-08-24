@@ -1203,7 +1203,6 @@ class TrainerTrainLoopMixin(ABC):
 
         # Training step end
         output = self.call_hook('training_step_end', output)
-        output = self.accelerator_backend.training_step_end(output)
 
         return output
 

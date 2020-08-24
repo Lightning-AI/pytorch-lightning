@@ -332,10 +332,8 @@ class TrainerEvaluationLoopMixin(ABC):
                 # ------------------
                 if test_mode:
                     output = self.call_hook('test_step_end', output)
-                    output = self.accelerator_backend.test_step_end(output)
                 else:
                     output = self.call_hook('validation_step_end', output)
-                    output = self.accelerator_backend.validation_step_end(output)
 
                 # ------------------
                 # Hook: on_eval_batch_end
