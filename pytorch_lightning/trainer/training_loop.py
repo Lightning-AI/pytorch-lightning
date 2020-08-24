@@ -292,10 +292,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_tpu(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def clip_gradients(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
