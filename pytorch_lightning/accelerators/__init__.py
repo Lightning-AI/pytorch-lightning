@@ -5,3 +5,4 @@ from pytorch_lightning.accelerators.ddp_spawn_backend import DDPSpawnBackend
 from pytorch_lightning.accelerators.dp_backend import DataParallelBackend
 from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 from pytorch_lightning.accelerators.tpu_backend import TPUBackend
+from pytorch_lightning.accelerators.horovod_backend import HorovodBackend

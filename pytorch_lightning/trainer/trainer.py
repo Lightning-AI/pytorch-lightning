@@ -23,7 +23,7 @@ import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend, HorovodBackend)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -1066,7 +1066,10 @@ class Trainer(
             self.accelerator_backend.teardown()
 
         elif self.use_horovod:
-            results = self.horovod_train(model)
+            self.accelerator_backend = HorovodBackend(self)
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train()
+            self.accelerator_backend.teardown()
 
         elif self.use_single_gpu:
             self.accelerator_backend = GPUBackend(self)
