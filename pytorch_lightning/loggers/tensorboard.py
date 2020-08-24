@@ -65,6 +65,8 @@ class TensorBoardLogger(LightningLoggerBase):
         log_graph: Adds the computational graph to tensorboard. This requires that
             the user has defined the `self.example_input_array` attribute in their
             model.
+        default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
+            called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
 
     """
@@ -76,6 +78,7 @@ class TensorBoardLogger(LightningLoggerBase):
         name: Optional[str] = "default",
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
+        default_hp_metric: bool = True,
         **kwargs
     ):
         super().__init__()
@@ -83,6 +86,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._name = name or ''
         self._version = version
         self._log_graph = log_graph
+        self._default_hp_metric = default_hp_metric
 
         self._experiment = None
         self.hparams = {}
@@ -162,16 +166,18 @@ class TensorBoardLogger(LightningLoggerBase):
             from torch.utils.tensorboard.summary import hparams
 
             if metrics is None:
-                metrics = {}
-            exp, ssi, sei = hparams(params, metrics)
-            writer = self.experiment._get_file_writer()
-            writer.add_summary(exp)
-            writer.add_summary(ssi)
-            writer.add_summary(sei)
+                if self._default_hp_metric:
+                    metrics = {"hp_metric": -1}
+            elif not isinstance(metrics, dict):
+                metrics = {"hp_metric": metrics}
 
             if metrics:
-                # necessary for hparam comparison with metrics
-                self.log_metrics(metrics)
+                self.log_metrics(metrics, 0)
+                exp, ssi, sei = hparams(params, metrics)
+                writer = self.experiment._get_file_writer()
+                writer.add_summary(exp)
+                writer.add_summary(ssi)
+                writer.add_summary(sei)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
