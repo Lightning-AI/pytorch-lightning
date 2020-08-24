@@ -660,12 +660,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # single GPU data transfer
         if self.use_single_gpu:
-            # for single GPU put inputs on gpu manually
-            root_gpu = 0
-            if isinstance(self.data_parallel_device_ids, list):
-                root_gpu = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(batch, root_gpu)
-            args[0] = batch
+            if test_mode:
+                output = self.accelerator_backend.test_step(args)
+            else:
+                output = self.accelerator_backend.validation_step(args)
+            return output
 
         # TPU data  transfer
         if self.use_tpu:
