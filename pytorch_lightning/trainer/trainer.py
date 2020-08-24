@@ -1457,14 +1457,22 @@ class Trainer(
         self._setup_amp_backend(amp_type)
 
     def call_hook(self, hook_name, *args, **kwargs):
-        output = None
-        if self.is_overridden(hook_name):
-            model_ref = self.get_model()
-            with self.profiler.profile(hook_name):
+        # always profile hooks
+        with self.profiler.profile(hook_name):
+
+            # first call trainer hook
+            if hasattr(self, hook_name):
+                trainer_hook = getattr(self, hook_name)
+                trainer_hook(*args, **kwargs)
+
+            # next call hook in lightningModule
+            output = None
+            if self.is_overridden(hook_name):
+                model_ref = self.get_model()
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
-        return output
+            return output
 
 
 class _PatchDataLoader(object):
