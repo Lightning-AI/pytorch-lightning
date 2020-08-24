@@ -663,8 +663,11 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # Horovod
         if self.use_horovod and self.on_gpu:
-            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
-            args[0] = batch
+            if test_mode:
+                output = self.accelerator_backend.test_step(args)
+            else:
+                output = self.accelerator_backend.validation_step(args)
+            return output
 
         # single GPU data transfer
         if self.use_single_gpu:
