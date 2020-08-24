@@ -36,7 +36,7 @@ else:
 class TPUBackend(Accelerator):
 
     def __init__(self, trainer):
-        super(trainer).__init__()
+        super().__init__(trainer)
         self.start_method = None
         self.mp_queue = None
 
