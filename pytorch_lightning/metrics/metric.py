@@ -18,17 +18,20 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
     Abstract base class for metric implementation.
 
     Should be used to implement metrics that
-    1. Return multiple Outputs
-    2. Handle their own DDP sync
 
-    Metric hooks that can be implemented are:
+        1. Return multiple Outputs
+        2. Handle their own DDP sync
+
+    Metric hooks that can be implemented are
+
         * input_convert: pre-forward hook that takes care of input conversion
         * output_convert: post-forward hook that takes care of output convertion
         * ddp_sync: implementation of ddp sync, default is gather all
         * aggregate: implement how values should be aggregated
         * compute: post-ddp sync for additional metric computations
 
-    Call order:
+    Call order
+
         input_convert -> forward -> output_convert -> ddp_sync -> aggregate -> compute
 
     """
