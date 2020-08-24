@@ -31,7 +31,6 @@ def test_state_decorator_nothing_passed(tmpdir):
         return self.state
 
     trainer = Trainer(default_root_dir=tmpdir)
-    trainer.state = TrainerState.INITIALIZING
 
     snapshot_state = test_method(trainer)
 
@@ -47,7 +46,6 @@ def test_state_decorator_entering_only(tmpdir):
         return self.state
 
     trainer = Trainer(default_root_dir=tmpdir)
-    trainer.state = TrainerState.INITIALIZING
 
     snapshot_state = test_method(trainer)
 
@@ -63,7 +61,6 @@ def test_state_decorator_exiting_only(tmpdir):
         return self.state
 
     trainer = Trainer(default_root_dir=tmpdir)
-    trainer.state = TrainerState.INITIALIZING
 
     snapshot_state = test_method(trainer)
 
@@ -79,7 +76,6 @@ def test_state_decorator_entering_and_exiting(tmpdir):
         return self.state
 
     trainer = Trainer(default_root_dir=tmpdir)
-    trainer.state = TrainerState.INITIALIZING
 
     snapshot_state = test_method(trainer)
 
@@ -92,10 +88,9 @@ def test_state_decorator_interrupt(tmpdir):
 
     @trainer_state(exiting=TrainerState.FINISHED)
     def test_method(self):
-        self.state = TrainerState.INTERRUPTED
+        self._state = TrainerState.INTERRUPTED
 
     trainer = Trainer(default_root_dir=tmpdir)
-    trainer.state = TrainerState.INITIALIZING
 
     test_method(trainer)
     assert trainer.state == TrainerState.INTERRUPTED

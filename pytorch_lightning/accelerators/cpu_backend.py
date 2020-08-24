@@ -38,3 +38,12 @@ class CPUBackend(object):
     def train(self, model):
         results = self.trainer.run_pretrain_routine(model)
         return results
+
+    def training_step(self, args):
+        return self.trainer.model.training_step(*args)
+
+    def validation_step(self, args):
+        return self.trainer.model.validation_step(*args)
+
+    def test_step(self, args):
+        return self.trainer.model.test_step(*args)

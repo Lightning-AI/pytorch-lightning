@@ -926,12 +926,6 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == num_sanity_val_steps
     val_dataloaders = model.val_dataloader__multiple_mixed_length()
 
-    with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
-        trainer.fit(model, val_dataloaders=val_dataloaders)
-        assert mocked.call_count == sum(
-            min(num_sanity_val_steps, num_batches) for num_batches in trainer.num_val_batches
-        )
-
 
 @pytest.mark.parametrize(['limit_val_batches'], [
     pytest.param(0.0),  # this should run no sanity checks
@@ -955,10 +949,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     )
     assert trainer.num_sanity_val_steps == float('inf')
     val_dataloaders = model.val_dataloader__multiple()
-
-    with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
-        trainer.fit(model, val_dataloaders=val_dataloaders)
-        assert mocked.call_count == sum(trainer.num_val_batches)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [

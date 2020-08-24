@@ -268,12 +268,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         """
         rank_zero_warn('`training_step` must be implemented to be used with the Lightning Trainer')
 
-    def training_end(self, *args, **kwargs):
-        """
-        Warnings:
-            Deprecated in v0.7.0. Use  :meth:`training_step_end` instead.
-        """
-
     def training_step_end(self, *args, **kwargs):
         """
         Use this when training with dp or ddp2 because :meth:`training_step`

@@ -23,7 +23,7 @@ import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend, HorovodBackend)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -388,7 +388,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
-        self.state = TrainerState.INITIALIZING
+        self._state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
@@ -596,6 +596,10 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def state(self) -> TrainerState:
+        return self._state
 
     @property
     def is_global_zero(self) -> bool:
@@ -1052,7 +1056,10 @@ class Trainer(
             self.accelerator_backend.teardown()
 
         elif self.use_horovod:
-            results = self.horovod_train(model)
+            self.accelerator_backend = HorovodBackend(self)
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train()
+            self.accelerator_backend.teardown()
 
         elif self.use_single_gpu:
             self.accelerator_backend = GPUBackend(self)
@@ -1434,6 +1441,16 @@ class Trainer(
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
         self.amp_backend = None
         self._setup_amp_backend(amp_type)
+
+    def call_hook(self, hook_name, *args, **kwargs):
+        output = None
+        if self.is_overridden(hook_name):
+            model_ref = self.get_model()
+            with self.profiler.profile(hook_name):
+                hook_fx = getattr(model_ref, hook_name)
+                output = hook_fx(*args, **kwargs)
+
+        return output
 
 
 class _PatchDataLoader(object):
