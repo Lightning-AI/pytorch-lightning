@@ -135,10 +135,7 @@ from typing import Union, List, Optional, Tuple
 import torch
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import is_horovod_available, is_xla_available
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase

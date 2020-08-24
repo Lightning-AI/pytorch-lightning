@@ -31,8 +31,7 @@ from pytorch_lightning.overrides.data_parallel import (
     LightningDistributedDataParallel,
     LightningDataParallel,
 )
-from pytorch_lightning.utilities import move_data_to_device, AMPType, is_apex_available, is_xla_available, \
-    is_horovod_available
+from pytorch_lightning.utilities import move_data_to_device, AMPType, is_apex_available, is_horovod_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.distributed import rank_zero_only
 
@@ -42,10 +41,6 @@ if is_apex_available():
 
 if is_horovod_available():
     import horovod.torch as hvd
-
-
-if is_xla_available():
-    import torch_xla.core.xla_model as xm
 
 
 class TrainerDPMixin(ABC):
