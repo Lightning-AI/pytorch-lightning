@@ -225,6 +225,10 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def call_hook(self, hook_name, *args, **kwargs):
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def __call_eval_loop_hook_start(self, test_mode):
         """on_validation/test_epoch_start"""
         self.__call_eval_loop_hook_evt(test_mode, 'start')
@@ -309,17 +313,10 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # callbacks
                 if test_mode:
-                    self.on_test_batch_start(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_test_batch_start'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_test_batch_start'):
-                            model_ref.on_test_batch_start(batch, batch_idx, dataloader_idx)
+                    self.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
                 else:
-                    self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_validation_batch_start'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_validation_batch_start'):
-                            model_ref.on_validation_batch_start(batch, batch_idx, dataloader_idx)
+                    self.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
+
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
@@ -366,17 +363,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 # callbacks (on __batch_end)
                 if test_mode:
-                    self.on_test_batch_end(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_test_batch_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_test_batch_end'):
-                            model_ref.on_test_batch_end(batch, batch_idx, dataloader_idx)
+                    self.call_hook('on_test_batch_end', batch, batch_idx, dataloader_idx)
                 else:
-                    self.on_validation_batch_end(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_validation_batch_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_validation_batch_end'):
-                            model_ref.on_validation_batch_end(batch, batch_idx, dataloader_idx)
+                    self.call_hook('on_validation_batch_end', batch, batch_idx, dataloader_idx)
 
                 # track outputs for collation
                 if output is not None:
