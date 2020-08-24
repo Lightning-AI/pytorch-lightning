@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import time
+from argparse import Namespace
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
@@ -73,47 +74,49 @@ class GPUStatsMonitor(Callback):
                 'Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed.'
             )
 
-        self.memory_utilization = memory_utilization
-        self.gpu_utilization = gpu_utilization
-        self.intra_step_time = intra_step_time
-        self.inter_step_time = inter_step_time
-        self.fan_speed = fan_speed
-        self.temperature = temperature
+        self._log_stats = Namespace(
+            memory_utilization = memory_utilization,
+            gpu_utilization = gpu_utilization,
+            intra_step_time = intra_step_time,
+            inter_step_time = inter_step_time,
+            fan_speed = fan_speed,
+            temperature = temperature
+        )
 
-    def on_batch_start(self, trainer, pl_module):
-        if self.gpu_utilization:
+    def on_train_batch_start(self, trainer, pl_module):
+        if self._log_stats.gpu_utilization:
             self._log_gpu(trainer)
-        if self.memory_utilization:
+        if self._log_stats.memory_utilization:
             self._log_memory(trainer)
 
-        if self.inter_step_time and self.snap_inter_step_time:
+        if self._log_stats.inter_step_time and self.snap_inter_step_time:
             # First log at beginning of second step
             trainer.logger.log_metrics(
                 {'batch_time/inter_step (ms)': (time.time() - self.snap_inter_step_time) * 1000},
                 step=trainer.global_step
             )
 
-        if self.intra_step_time:
+        if self._log_stats.intra_step_time:
             self.snap_intra_step_time = time.time()
 
-    def on_batch_end(self, trainer, pl_module):
-        if self.gpu_utilization:
+    def on_train_batch_end(self, trainer, pl_module):
+        if self._log_stats.gpu_utilization:
             self._log_gpu(trainer)
 
-        if self.memory_utilization:
+        if self._log_stats.memory_utilization:
             self._log_memory(trainer)
 
-        if self.fan_speed:
+        if self._log_stats.fan_speed:
             trainer.logger.log_metrics(self._get_gpu_stat("fan.speed", "%"), step=trainer.global_step)
 
-        if self.temperature:
+        if self._log_stats.temperature:
             trainer.logger.log_metrics(self._get_gpu_stat("temperature.gpu", "degrees C"), step=trainer.global_step)
             trainer.logger.log_metrics(self._get_gpu_stat("temperature.memory", "degrees C"), step=trainer.global_step)
 
-        if self.inter_step_time:
+        if self._log_stats.inter_step_time:
             self.snap_inter_step_time = time.time()
 
-        if self.intra_step_time and self.snap_intra_step_time:
+        if self._log_stats.intra_step_time and self.snap_intra_step_time:
             trainer.logger.log_metrics(
                 {'batch_time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
                 step=trainer.global_step
