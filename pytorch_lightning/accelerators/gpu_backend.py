@@ -15,6 +15,7 @@
 import torch
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     from apex import amp
@@ -22,11 +23,11 @@ except ImportError:
     amp = None
 
 
-class GPUBackend(object):
+class GPUBackend(Accelerator):
     amp_backend: AMPType
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
 
     def setup(self, model):
 
@@ -50,6 +51,37 @@ class GPUBackend(object):
     def train(self, model):
         results = self.trainer.run_pretrain_routine(model)
         return results
+
+    def training_step(self, args):
+        batch = args[0]
+        batch = self.to_device(batch)
+        args[0] = batch
+        output = self.trainer.model.training_step(*args)
+        return output
+
+    def validation_step(self, args):
+        batch = args[0]
+        batch = self.to_device(batch)
+        args[0] = batch
+        output = self.trainer.model.training_step(*args)
+        return output
+
+    def test_step(self, args):
+        batch = args[0]
+        batch = self.to_device(batch)
+        args[0] = batch
+        output = self.trainer.model.training_step(*args)
+        return output
+
+    def to_device(self, batch):
+        gpu_id = 0
+        if isinstance(self.trainer.data_parallel_device_ids, list):
+            gpu_id = self.trainer.data_parallel_device_ids[0]
+
+        # Don't copy the batch since there is a single gpu that the batch could
+        # be referenced from and if there are multiple optimizers the batch will
+        # wind up copying it to the same device repeatedly.
+        return self.batch_to_device(batch, gpu_id)
 
     def _setup_nvidia_apex(self, model: LightningModule):
         model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
