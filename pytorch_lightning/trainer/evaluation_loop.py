@@ -191,6 +191,7 @@ class TrainerEvaluationLoopMixin(ABC):
     on_validation_end: Callable
     on_test_start: Callable
     on_test_end: Callable
+    accelerator_backend: ...
 
     @abstractmethod
     def copy_trainer_model_properties(self, *args):
@@ -202,10 +203,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def is_overridden(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def transfer_batch_to_tpu(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -677,10 +674,14 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # TPU data  transfer
         if self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
-            args[0] = batch
+            if test_mode:
+                output = self.accelerator_backend.test_step(batch, args)
+            else:
+                output = self.accelerator_backend.validation_step(batch, args)
+            return output
 
         # CPU, TPU or gpu step
+        # TODO: remove during refactors
         if test_mode:
             output = model.test_step(*args)
         else:

@@ -134,28 +134,6 @@ class TrainerDPMixin(ABC):
             m.global_rank = self.global_rank
             m.local_rank = self.local_rank
 
-    def transfer_batch_to_tpu(self, batch: Any, tpu_id: Optional[int] = None):
-        """
-        Transfers the data to the TPU.
-
-        Args:
-            batch: A tensor or collection of tensors.
-            tpu_id: The id of the TPU core. If omitted, the first available core is chosen.
-
-        Return:
-            the tensor on the TPU device.
-
-        See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
-        """
-        if not XLA_AVAILABLE:
-            raise MisconfigurationException(
-                'Requested to transfer batch to TPU but XLA is not available.'
-                ' Are you sure this machine has TPUs?'
-            )
-        device = xm.xla_device(tpu_id)
-        return self.__transfer_batch_to_device(batch, device)
-
     def transfer_batch_to_gpu(self, batch: Any, gpu_id: Optional[int] = None):
         """
         Transfers the data to the GPU.
