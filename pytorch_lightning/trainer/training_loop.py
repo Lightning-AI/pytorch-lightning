@@ -1195,9 +1195,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # Horovod
         elif self.use_horovod and self.on_gpu:
-            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
-            args[0] = batch
-            output = self.model.training_step(*args)
+            output = self.accelerator_backend.training_step(args)
 
         # single GPU forward
         elif self.use_single_gpu:
