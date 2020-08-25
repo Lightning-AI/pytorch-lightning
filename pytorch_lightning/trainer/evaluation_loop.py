@@ -80,7 +80,7 @@ This avoids crashing in the validation loop sometime deep into a lengthy trainin
     trainer = Trainer(num_sanity_val_steps=2)
 
 
-You can use `Trainer(num_sanity_val_steps=0)` to skip the sanity check or `Trainer(num_sanity_val_steps=-1)`
+You can use `Trainer(num_sanity_val_steps=0)` to skip the sanity check or `Trainer(num_sanity_val_steps=fullEpoch)`
 to check all the validation data.
 
 # Testing loop
