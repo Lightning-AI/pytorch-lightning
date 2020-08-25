@@ -130,9 +130,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         Implement aggregation of values on the same device
 
         Args:
-
             data: input to forward method
-
             output: output from the `ddp_sync` hook
 
         Returns:
