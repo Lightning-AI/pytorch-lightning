@@ -497,8 +497,9 @@ class TrainResult(Result):
                 return result
 
         Args:
-            early_stop_on:
-            checkpoint_on:
+            minimize: Metric currently being minimized.
+            early_stop_on: Metric to early stop on.
+            checkpoint_on: Metric to checkpoint on.
             hiddens:
         """
 
@@ -652,8 +653,8 @@ class EvalResult(Result):
                 return result
 
         Args:
-            early_stop_on:
-            checkpoint_on:
+            early_stop_on: Metric to early stop on.
+            checkpoint_on: Metric to checkpoint on.
             hiddens:
         """
 
