@@ -37,9 +37,7 @@ class EvaluationLoop(object):
 
         self.max_batches = max_batches
 
-        # --------------------------
-        # ON_EVAL_EPOCH_START hook
-        # --------------------------
+    def on_evaluation_epoch_start(self):
         if self.testing:
             self.trainer.call_hook('on_test_epoch_start')
         else:

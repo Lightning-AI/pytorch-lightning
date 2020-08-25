@@ -252,6 +252,9 @@ class TrainerEvaluationLoopMixin(ABC):
         # set up the eval loop
         self.evaluation_loop.setup(model, max_batches, dataloaders)
 
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_start()
+
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
