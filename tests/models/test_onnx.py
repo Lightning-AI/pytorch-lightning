@@ -28,7 +28,7 @@ def test_model_saves_with_input_sample(tmpdir):
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu"""
     model = EvalModelTemplate()
-    trainer = Trainer(max_epochs=1)
+    trainer = Trainer(gpus=1, max_epochs=1)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onxx")
