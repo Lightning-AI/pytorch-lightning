@@ -113,7 +113,7 @@ class ModelCheckpoint(Callback):
 
     CHECKPOINT_JOIN_CHAR = "-"
     CHECKPOINT_NAME_LAST = "last"
-    CHECKPOINT_SUFFIX = "ckpt"
+    CHECKPOINT_SUFFIX = ".ckpt"
     CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
     CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
 
@@ -262,7 +262,7 @@ class ModelCheckpoint(Callback):
         filename = self._format_checkpoint_name(self.filename, epoch, metrics, prefix=self.prefix)
         str_ver = f'v{ver}' if ver is not None else ''
         joint_filename = self.CHECKPOINT_JOIN_CHAR.join([txt for txt in (filename, str_ver) if txt])
-        return os.path.join(self.dirpath, f'{joint_filename}.{self.CHECKPOINT_SUFFIX}')
+        return os.path.join(self.dirpath, f'{joint_filename}{self.CHECKPOINT_SUFFIX}')
 
     @rank_zero_only
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -390,7 +390,7 @@ class ModelCheckpoint(Callback):
             filename = self._format_checkpoint_name(
                 self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
             )
-            filepath = os.path.join(self.dirpath, f'{filename}.{self.CHECKPOINT_SUFFIX}')
+            filepath = os.path.join(self.dirpath, f'{filename}{self.CHECKPOINT_SUFFIX}')
             self._del_model(self.last_model_path)
             self._save_model(filepath, trainer, pl_module)
             self.last_model_path = filepath
