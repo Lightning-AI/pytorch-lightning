@@ -260,10 +260,7 @@ class TrainerEvaluationLoopMixin(ABC):
             dl_outputs = []
 
             # on TPU we have to wrap it under the ParallelLoader
-            if self.use_tpu:
-                device = xm.xla_device(self.tpu_id)
-                dataloader = xla_pl.ParallelLoader(dataloader, [device])
-                dataloader = dataloader.per_device_loader(device)
+            dataloader = self.accelerator_backend.process_dataloader(dataloader)
 
             # each dataloader has a max num batches
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
