@@ -34,17 +34,17 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
-    #
-    # # verify tb logs
-    # event_acc = EventAccumulator(folder_path)
-    # event_acc.Reload()
-    #
-    # hparams_data = b'\x12\x84\x01"\x0b\n\tdrop_prob"\x0c\n\nbatch_size"\r\n\x0bin_features"' \
-    #                b'\x0f\n\rlearning_rate"\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n' \
-    #                b'\x0cout_features"\x0c\n\nhidden_dim"\x04\n\x02b1"\x04\n\x02b2'
-    #
-    # assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
-    # assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
+    
+    # verify tb logs
+    event_acc = EventAccumulator(folder_path)
+    event_acc.Reload()
+    
+    hparams_data = b'\x12\x84\x01"\x0b\n\tdrop_prob"\x0c\n\nbatch_size"\r\n\x0bin_features"' \
+                   b'\x0f\n\rlearning_rate"\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n' \
+                   b'\x0cout_features"\x0c\n\nhidden_dim"\x04\n\x02b1"\x04\n\x02b2'
+    
+    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
+    assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
