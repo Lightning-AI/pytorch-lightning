@@ -303,18 +303,10 @@ class TrainerEvaluationLoopMixin(ABC):
                 # -----------------
                 args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
 
-                # TODO: collapse if statement into backends (next)
-                if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
-                    with torch.cuda.amp.autocast():
-                        if test_mode:
-                            output = self.accelerator_backend.test_step(args)
-                        else:
-                            output = self.accelerator_backend.validation_step(args)
+                if test_mode:
+                    output = self.accelerator_backend.test_step(args)
                 else:
-                    if test_mode:
-                        output = self.accelerator_backend.test_step(args)
-                    else:
-                        output = self.accelerator_backend.validation_step(args)
+                    output = self.accelerator_backend.validation_step(args)
 
                 is_result_obj = isinstance(output, Result)
 

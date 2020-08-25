@@ -69,6 +69,15 @@ class GPUBackend(Accelerator):
         return output
 
     def validation_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.__validation_step(args)
+        else:
+            output = self.__validation_step(args)
+
+        return output
+
+    def __validation_step(self, args):
         batch = args[0]
         batch = self.to_device(batch)
         args[0] = batch
@@ -76,6 +85,15 @@ class GPUBackend(Accelerator):
         return output
 
     def test_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.__test_step(args)
+        else:
+            output = self.__test_step(args)
+
+        return output
+
+    def __test_step(self, args):
         batch = args[0]
         batch = self.to_device(batch)
         args[0] = batch
