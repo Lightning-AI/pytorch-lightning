@@ -13,6 +13,54 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
 
+    def get_evaluation_dataloaders(self):
+        # select dataloaders
+        model = self.trainer.get_model()
+
+        if self.testing:
+            self.trainer.reset_test_dataloader(model)
+            dataloaders = self.trainer.test_dataloaders
+            max_batches = self.trainer.num_test_batches
+        else:
+            if self.trainer.val_dataloaders is None:
+                self.trainer.reset_val_dataloader(model)
+
+            dataloaders = self.trainer.val_dataloaders
+            max_batches = self.trainer.num_val_batches
+
+        return dataloaders, max_batches
+
+    def should_skip_evaluation(self, dataloaders, max_batches):
+        # skip when dataloaders aren't defined
+        if dataloaders is None:
+            return True
+
+        # enable disabling validation step with limit_val_batches = 0
+        should_skip = sum(max_batches) == 0
+        if should_skip:
+            return True
+
+        return False
+
+    def on_evaluation_start(self, *args, **kwargs):
+        if self.testing:
+            self.trainer.call_hook('on_test_start', *args, **kwargs)
+        else:
+            self.trainer.call_hook('on_validation_start', *args, **kwargs)
+
+    def on_evaluation_end(self, *args, **kwargs):
+        if self.testing:
+            self.trainer.call_hook('on_test_end', *args, **kwargs)
+        else:
+            self.trainer.call_hook('on_validation_end', *args, **kwargs)
+
+    def reload_evaluation_dataloaders(self):
+        model = self.trainer.get_model()
+        if self.testing:
+            self.trainer.reset_test_dataloader(model)
+        else:
+            self.trainer.reset_val_dataloader(model)
+
     def is_using_eval_results(self):
         outputs = self.outputs
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
