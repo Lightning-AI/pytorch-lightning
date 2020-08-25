@@ -115,7 +115,7 @@ class DeterministicModel(LightningModule):
         Early stop and checkpoint only on these values
         """
         acc = self.step(batch, batch_idx)
-        result = TrainResult(minimize=acc, checkpoint_on=False)
+        result = TrainResult(minimize=acc, checkpoint_on=None)
         assert 'early_step_on' not in result
         assert 'checkpoint_on' not in result
         return result

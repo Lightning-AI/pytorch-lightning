@@ -244,3 +244,14 @@ def test_result_retrieve_last_logged_item():
     assert result['epoch_a'] == 5.
     assert result['step_a'] == 5.
     assert result['a'] == 5.
+
+
+@pytest.mark.parametrize("result_cls", [Result, TrainResult, EvalResult])
+@pytest.mark.parametrize("checkpoint_on", [
+    torch.tensor(1.0),
+    torch.tensor(0.0),  # Notably, even a tensor with 0 value (and that therefore is falsy) should be kept.
+])
+def test_result_checkpoint_on_keeps_tensor(result_cls, checkpoint_on):
+    """ Test that checkpoint_on tensor values (both zero and nonzero) are kept after init. """
+    result = result_cls(checkpoint_on=checkpoint_on)
+    assert result.checkpoint_on == checkpoint_on

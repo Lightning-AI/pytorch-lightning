@@ -28,7 +28,7 @@ class Result(Dict):
         self,
         minimize: Optional[Tensor] = None,
         early_stop_on: Optional[Tensor] = None,
-        checkpoint_on: Union[Tensor, bool, None] = None,
+        checkpoint_on: Optional[Tensor] = None,
         hiddens: Optional[Tensor] = None,
     ):
 
@@ -39,7 +39,7 @@ class Result(Dict):
 
         if early_stop_on is not None:
             self.early_stop_on = early_stop_on
-        if checkpoint_on is not None and checkpoint_on:
+        if checkpoint_on is not None:
             self.checkpoint_on = checkpoint_on
         if hiddens is not None:
             self.hiddens = hiddens.detach()
@@ -476,7 +476,7 @@ class TrainResult(Result):
         self,
         minimize: Optional[Tensor] = None,
         early_stop_on: Tensor = None,
-        checkpoint_on: Union[Tensor, bool] = None,
+        checkpoint_on: Optional[Tensor] = None,
         hiddens: Optional[Tensor] = None,
     ):
         """
