@@ -16,7 +16,7 @@ from tests.base import EvalModelTemplate
 
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k):
-    """ Test that None in checkpoint callback is valid and that chkp_path is set correctly """
+    """Test that None in checkpoint callback is valid and that ckpt_path is set correctly"""
     tutils.reset_seed()
     model = EvalModelTemplate()
 
@@ -111,14 +111,29 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     assert 1 == result
 
 
+def test_model_checkpoint_format_checkpoint_name():
+    # Empty filename:
+    r = ModelCheckpoint._format_checkpoint_name('', 3, {}, prefix='test')
+    assert r == 'test-epoch=3'
+    # No groups case:
+    r = ModelCheckpoint._format_checkpoint_name('no_groups', 3, {}, prefix='test')
+    assert r == 'test-no_groups'
+    # No prefix
+    r = ModelCheckpoint._format_checkpoint_name('{epoch:03d}-{acc}', 3, {'acc': 0.03})
+    assert r == 'epoch=003-acc=0.03'
+    # Prefix
+    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '@'
+    r = ModelCheckpoint._format_checkpoint_name('{epoch},{acc:.5f}', 3, {'acc': 0.03}, prefix='test')
+    assert r == 'test@epoch=3,acc=0.03000'
+
+
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
-    """ Tests that the checkpoint saved as 'last.ckpt' contains the latest information. """
+    """Tests that the save_last checkpoint contains the latest information."""
     seed_everything(100)
     model = EvalModelTemplate()
     num_epochs = 3
-    model_checkpoint = ModelCheckpoint(
-        filepath=tmpdir, save_top_k=num_epochs, save_last=True
-    )
+    ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last-{epoch}'
+    model_checkpoint = ModelCheckpoint(filepath=tmpdir, save_top_k=num_epochs, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=False,
@@ -126,10 +141,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         max_epochs=num_epochs,
     )
     trainer.fit(model)
-    path_last_epoch = model_checkpoint.format_checkpoint_name(
-        num_epochs - 1, {}
-    )  # epoch=3.ckpt
-    path_last = str(tmpdir / ModelCheckpoint.CHECKPOINT_NAME_LAST)  # last.ckpt
+    last_filename = model_checkpoint._format_checkpoint_name(ModelCheckpoint.CHECKPOINT_NAME_LAST, num_epochs - 1, {})
+    path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})  # epoch=3.ckpt
+    path_last = str(tmpdir / f'{last_filename}.{ModelCheckpoint.CHECKPOINT_SUFFIX}')  # last-epoch=3.ckpt
     assert path_last_epoch != path_last
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)

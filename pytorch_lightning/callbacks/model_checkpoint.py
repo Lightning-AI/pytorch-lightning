@@ -47,11 +47,11 @@ class ModelCheckpoint(Callback):
             Example::
 
                 # custom path
-                # saves a file like: my/path/epoch_0.ckpt
+                # saves a file like: my/path/epoch=0.ckpt
                 >>> checkpoint_callback = ModelCheckpoint('my/path/')
 
                 # save any arbitrary metrics like `val_loss`, etc. in name
-                # saves a file like: my/path/epoch=2-val_loss=0.2_other_metric=0.3.ckpt
+                # saves a file like: my/path/epoch=2-val_loss=0.02-other_metric=0.03.ckpt
                 >>> checkpoint_callback = ModelCheckpoint(
                 ...     filepath='my/path/{epoch}-{val_loss:.2f}-{other_metric:.2f}'
                 ... )
@@ -97,9 +97,9 @@ class ModelCheckpoint(Callback):
         >>> trainer = Trainer(checkpoint_callback=checkpoint_callback)
 
         # save epoch and val_loss in name
-        # saves a file like: my/path/sample-mnist_epoch=02_val_loss=0.32.ckpt
+        # saves a file like: my/path/sample-mnist-epoch=02-val_loss=0.32.ckpt
         >>> checkpoint_callback = ModelCheckpoint(
-        ...     filepath='my/path/sample-mnist_{epoch:02d}-{val_loss:.2f}'
+        ...     filepath='my/path/sample-mnist-{epoch:02d}-{val_loss:.2f}'
         ... )
 
         # retrieve the best checkpoint after training
@@ -111,7 +111,9 @@ class ModelCheckpoint(Callback):
 
     """
 
-    CHECKPOINT_NAME_LAST = "last.ckpt"
+    CHECKPOINT_JOIN_CHAR = "-"
+    CHECKPOINT_NAME_LAST = "last"
+    CHECKPOINT_SUFFIX = "ckpt"
     CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
     CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
 
@@ -153,6 +155,7 @@ class ModelCheckpoint(Callback):
         self.kth_best_model_path = ''
         self.best_model_score = 0
         self.best_model_path = ''
+        self.last_model_path = ''
         self.save_function = None
         self.warned_result_obj = False
 
@@ -220,6 +223,23 @@ class ModelCheckpoint(Callback):
 
         return monitor_op(current, self.best_k_models[self.kth_best_model_path])
 
+    @classmethod
+    def _format_checkpoint_name(cls, filename, epoch, metrics, prefix=""):
+        # check if user passed in keys to the string
+        groups = re.findall(r'(\{.*?)[:\}]', filename)
+        if not filename and not len(groups):
+            # default name
+            filename = f'epoch={epoch}'
+        else:
+            metrics['epoch'] = epoch
+            for tmp in groups:
+                name = tmp[1:]
+                filename = filename.replace(tmp, name + '={' + name)
+                if name not in metrics:
+                    metrics[name] = 0
+            filename = filename.format(**metrics)
+        return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
+
     def format_checkpoint_name(self, epoch, metrics, ver=None):
         """Generate a filename according to the defined template.
 
@@ -239,24 +259,10 @@ class ModelCheckpoint(Callback):
             >>> os.path.basename(ckpt.format_checkpoint_name(0, {}))
             'missing=0.ckpt'
         """
-        # check if user passed in keys to the string
-        groups = re.findall(r'(\{.*?)[:\}]', self.filename)
-
-        if len(groups) == 0:
-            # default name
-            filename = f'{self.prefix}_ckpt_epoch_{epoch}'
-        else:
-            metrics['epoch'] = epoch
-            filename = self.filename
-            for tmp in groups:
-                name = tmp[1:]
-                filename = filename.replace(tmp, name + '={' + name)
-                if name not in metrics:
-                    metrics[name] = 0
-            filename = filename.format(**metrics)
-        str_ver = f'_v{ver}' if ver is not None else ''
-        filepath = os.path.join(self.dirpath, self.prefix + filename + str_ver + '.ckpt')
-        return filepath
+        filename = self._format_checkpoint_name(self.filename, epoch, metrics, prefix=self.prefix)
+        str_ver = f'v{ver}' if ver is not None else ''
+        joint_filename = self.CHECKPOINT_JOIN_CHAR.join([txt for txt in (filename, str_ver) if txt])
+        return os.path.join(self.dirpath, f'{joint_filename}.{self.CHECKPOINT_SUFFIX}')
 
     @rank_zero_only
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -309,7 +315,7 @@ class ModelCheckpoint(Callback):
             m = f"""
                     When using EvalResult(checkpoint_on=X) or TrainResult(checkpoint_on=X) the
                     'monitor' key of ModelCheckpoint has no effect.
-                    Remove ModelCheckpoint(monitor='{self.monitor}) to fix')
+                    Remove ModelCheckpoint(monitor='{self.monitor}') to fix)
                 """
             rank_zero_warn(m)
 
@@ -381,8 +387,13 @@ class ModelCheckpoint(Callback):
             self._save_model(filepath, trainer, pl_module)
 
         if self.save_last:
-            filepath = os.path.join(self.dirpath, self.prefix + ModelCheckpoint.CHECKPOINT_NAME_LAST)
+            filename = self._format_checkpoint_name(
+                self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
+            )
+            filepath = os.path.join(self.dirpath, f'{filename}.{self.CHECKPOINT_SUFFIX}')
             self._save_model(filepath, trainer, pl_module)
+            self._del_model(self.last_model_path)
+            self.last_model_path = filepath
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
         # remove kth
