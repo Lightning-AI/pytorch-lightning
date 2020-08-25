@@ -497,6 +497,7 @@ class TrainResult(Result):
                 return result
 
         Args:
+            minimize:
             early_stop_on:
             checkpoint_on:
             hiddens:
