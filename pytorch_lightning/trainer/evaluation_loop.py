@@ -132,8 +132,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
-from pytorch_lightning.core.step_result import Result, EvalResult
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 
 try:
@@ -273,54 +272,18 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch_idx >= dl_max_batches:
                     break
 
-                # -----------------
-                # eval_batch_start
-                # -----------------
+                # val loop hooks
                 self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # -----------------
-                # RUN EVALUATION STEP
-                # -----------------
-                args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
-                output = self.evaluation_loop.evaluation_step(args)
-
-                # track batch size for weighted average
-                is_result_obj = isinstance(output, Result)
-                if is_result_obj:
-                    output.track_batch_size(len(batch))
-
-                # allow only EvalResult when using structured results (from val_step)
-                if is_result_obj and not isinstance(output, EvalResult):
-                    m = 'only EvalResults or dicts are allowed from validation_step'
-                    raise MisconfigurationException(m)
-
-                # ------------------
-                # EVAL STEP END
-                # ------------------
+                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
                 output = self.evaluation_loop.evaluation_step_end(output)
-
-                # ------------------
-                # Hook: on_eval_batch_end
-                # ------------------
                 self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
 
-                # ----------------------
-                # Post processing
-                # ----------------------
-                # track outputs for collation
+                # clean up
+                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
+                self.evaluation_loop.log_metrics(output, batch_idx)
+
                 if output is not None:
-
-                    # Add step predictions to prediction collection to write later
-                    do_write_predictions = is_result_obj and test_mode
-                    if do_write_predictions:
-                        self.evaluation_loop.predictions.add(output.pop('predictions', None))
-
                     dl_outputs.append(output)
-
-                self.__eval_add_step_metrics(output, batch_idx)
-
-                # track debug metrics
-                self.dev_debugger.track_eval_loss_history(test_mode, batch_idx, dataloader_idx, output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
 
@@ -453,23 +416,6 @@ class TrainerEvaluationLoopMixin(ABC):
         if len(eval_results) == 1:
             eval_results = eval_results[0]
         return eval_results
-
-    def __eval_add_step_metrics(self, output, batch_idx):
-        # track step level metrics
-        if isinstance(output, EvalResult) and not self.running_sanity_check:
-            step_log_metrics = output.batch_log_metrics
-            step_pbar_metrics = output.batch_pbar_metrics
-
-            if len(step_log_metrics) > 0:
-                # make the metrics appear as a different line in the same graph
-                metrics_by_epoch = {}
-                for k, v in step_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.current_epoch}'] = v
-
-                self.log_metrics(metrics_by_epoch, {}, step=batch_idx)
-
-            if len(step_pbar_metrics) > 0:
-                self.add_progress_bar_metrics(step_pbar_metrics)
 
     def __auto_reduce_result_objs(self, outputs):
         # outputs has a list of results per dataloader
