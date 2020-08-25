@@ -353,10 +353,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # --------------------------
         # ON_EVAL_EPOCH_END hook
         # --------------------------
-        if test_mode:
-            self.call_hook('on_test_epoch_end')
-        else:
-            self.call_hook('on_validation_epoch_end')
+        self.evaluation_loop.on_evaluation_epoch_end()
 
         return eval_results
 

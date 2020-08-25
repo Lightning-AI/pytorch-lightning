@@ -68,3 +68,9 @@ class EvaluationLoop(object):
             self.trainer.call_hook('on_test_batch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_batch_end', *args, **kwargs)
+
+    def on_evaluation_epoch_end(self):
+        if self.testing:
+            self.trainer.call_hook('on_test_epoch_end')
+        else:
+            self.trainer.call_hook('on_validation_epoch_end')
