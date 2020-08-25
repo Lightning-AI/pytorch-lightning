@@ -54,6 +54,13 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_end', *args, **kwargs)
 
+    def reload_evaluation_dataloaders(self):
+        model = self.trainer.get_model()
+        if self.testing:
+            self.trainer.reset_test_dataloader(model)
+        else:
+            self.trainer.reset_val_dataloader(model)
+
     def is_using_eval_results(self):
         outputs = self.outputs
         using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)

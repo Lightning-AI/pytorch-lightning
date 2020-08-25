@@ -333,14 +333,9 @@ class TrainerEvaluationLoopMixin(ABC):
         # hook
         model.on_post_performance_check()
 
-        # eventual dataset reloading
-        if test_mode:
-            if self.reload_dataloaders_every_epoch:
-                self.reset_test_dataloader(model)
-        else:
-            # val
-            if self.reload_dataloaders_every_epoch:
-                self.reset_val_dataloader(model)
+        # user may want to reload every epoch
+        if self.reload_dataloaders_every_epoch:
+            self.evaluation_loop.reload_evaluation_dataloaders()
 
         # TODO: deprecate
         self.evaluation_loop.on_evaluation_end()
