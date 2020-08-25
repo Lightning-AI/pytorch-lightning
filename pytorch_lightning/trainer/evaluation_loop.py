@@ -310,61 +310,99 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def run_evaluation(self, test_mode: bool = False):
-        # hook
+        # configure eval loop to use test data or validation data
+        self.evaluation_loop.testing = test_mode
         model = self.get_model()
+
+        # enable eval mode + no grads
+        model.zero_grad()
+        model.eval()
+        torch.set_grad_enabled(False)
+
+        # all these hooks seem to be duplicates...
+        # TODO: deprecate these hooks
         model.on_pre_performance_check()
+        self.evaluation_loop.on_evaluation_start()
 
-        # select dataloaders
-        if test_mode:
-            self.reset_test_dataloader(model)
+        # dataloaders are lazy loaded
+        # here we ask for it the first time or reuse the last
+        # however, the user can also choose to reload these datasets on every evaluation loop
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
-            dataloaders = self.test_dataloaders
-            max_batches = self.num_test_batches
-        else:
-            # val
-            if self.val_dataloaders is None:
-                self.reset_val_dataloader(model)
-
-            dataloaders = self.val_dataloaders
-            max_batches = self.num_val_batches
-
-        if dataloaders is None:
+        # certain conditions let us skip evaluation
+        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # Validation/Test begin callbacks
-        if test_mode:
-            self.on_test_start()
-        else:
-            self.on_validation_start()
+        # ----------------------------------------
+        # ----------------------------------------
+        # ----------------------------------------
+        # set up the eval loop
+        self.evaluation_loop.setup(model, max_batches, dataloaders)
 
-        # enable disabling validation step with limit_val_batches = 0
-        should_skip = sum(max_batches) == 0
-        if should_skip:
-            return [], []
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_start()
 
-        # run evaluation (val_step + val_step_end + val_epoch_end)
-        eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
+        # run validation/testing
+        for dataloader_idx, dataloader in enumerate(dataloaders):
+            dl_outputs = []
+
+            # certain accelerators need to process the dataloader
+            dataloader = self.accelerator_backend.process_dataloader(dataloader)
+
+            # each dataloader has a max num batches
+            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+
+            for batch_idx, batch in enumerate(dataloader):
+                if batch is None:
+                    continue
+
+                # stop short when running on limited batches
+                if batch_idx >= dl_max_batches:
+                    break
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+
+                # lightning module methods
+                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                output = self.evaluation_loop.evaluation_step_end(output)
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
+
+                # clean up
+                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
+                self.evaluation_loop.log_step_metrics(output, batch_idx)
+
+                # track epoch level metrics
+                if output is not None:
+                    dl_outputs.append(output)
+
+            self.evaluation_loop.outputs.append(dl_outputs)
+
+        # lightning module method
+        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end(eval_results)
+
+        # enable train mode again
+        model.train()
+        torch.set_grad_enabled(True)
+        # ----------------------------------------
+        # ----------------------------------------
+        # ----------------------------------------
 
         # log the final eval loop metrics
         eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
 
-        # hook
+        # reload dataset when requested
+        if self.reload_dataloaders_every_epoch:
+            self.evaluation_loop.reload_evaluation_dataloaders()
+
+        # TODO: deprecate these
         model.on_post_performance_check()
-
-        # eventual dataset reloading
-        if test_mode:
-            if self.reload_dataloaders_every_epoch:
-                self.reset_test_dataloader(model)
-        else:
-            # val
-            if self.reload_dataloaders_every_epoch:
-                self.reset_val_dataloader(model)
-
-        # Validation/Test end callbacks
-        if test_mode:
-            self.on_test_end()
-        else:
-            self.on_validation_end()
+        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, eval_results
 
