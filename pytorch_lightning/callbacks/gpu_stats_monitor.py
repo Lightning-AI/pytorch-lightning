@@ -10,11 +10,11 @@ import os
 import shutil
 import subprocess
 import time
-from argparse import Namespace
 
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 
 class GPUStatsMonitor(Callback):
@@ -74,14 +74,14 @@ class GPUStatsMonitor(Callback):
                 'Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed.'
             )
 
-        self._log_stats = Namespace(
-            memory_utilization=memory_utilization,
-            gpu_utilization=gpu_utilization,
-            intra_step_time=intra_step_time,
-            inter_step_time=inter_step_time,
-            fan_speed=fan_speed,
-            temperature=temperature
-        )
+        self._log_stats = AttributeDict({
+            'memory_utilization': memory_utilization,
+            'gpu_utilization': gpu_utilization,
+            'intra_step_time': intra_step_time,
+            'inter_step_time': inter_step_time,
+            'fan_speed': fan_speed,
+            'temperature': temperature
+        })
 
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self._log_stats.gpu_utilization:
