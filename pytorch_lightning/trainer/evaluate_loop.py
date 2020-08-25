@@ -2,6 +2,7 @@ import torch
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import flatten_dict
 
 
 class EvaluationLoop(object):
@@ -18,15 +19,8 @@ class EvaluationLoop(object):
         return using_eval_result
 
     def setup(self, model, max_batches, dataloaders):
-        # enable eval mode
-        model.zero_grad()
-        model.eval()
-
         # copy properties for forward overrides
         self.trainer.copy_trainer_model_properties(model)
-
-        # disable gradients to save memory
-        torch.set_grad_enabled(False)
 
         # bookkeeping
         self.outputs = []
@@ -85,6 +79,103 @@ class EvaluationLoop(object):
             output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
         return output
 
+    def evaluation_epoch_end(self, num_dataloaders):
+        using_eval_result = self.is_using_eval_results()
+
+        # call the model epoch end
+        eval_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
+        return eval_results
+
+    def log_epoch_metrics(self, eval_results):
+        using_eval_result = self.is_using_eval_results()
+        if using_eval_result:
+            if isinstance(eval_results, list):
+                for eval_result in eval_results:
+                    self.trainer.callback_metrics = eval_result.callback_metrics
+            else:
+                self.trainer.callback_metrics = eval_results.callback_metrics
+        else:
+            if isinstance(eval_results, list):
+                for eval_result in eval_results:
+                    # with a scalar return, auto set it to "val_loss" for callbacks
+                    if isinstance(eval_result, torch.Tensor):
+                        flat = {'val_loss': eval_result}
+                    else:
+                        flat = flatten_dict(eval_result)
+                    self.trainer.callback_metrics.update(flat)
+            else:
+                # with a scalar return, auto set it to "val_loss" for callbacks
+                if isinstance(eval_results, torch.Tensor):
+                    flat = {'val_loss': eval_results}
+                else:
+                    flat = flatten_dict(eval_results)
+                self.trainer.callback_metrics.update(flat)
+
+    def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
+        model = self.trainer.get_model()
+
+        # with a single dataloader don't pass an array
+        outputs = self.outputs
+        eval_results = outputs
+        if num_dataloaders == 1:
+            eval_results = outputs[0]
+
+        user_reduced = False
+
+        if self.testing:
+            if self.trainer.is_overridden('test_epoch_end', model=model):
+                if using_eval_result:
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
+                eval_results = model.test_epoch_end(eval_results)
+                user_reduced = True
+
+        else:
+            if self.trainer.is_overridden('validation_epoch_end', model=model):
+                if using_eval_result:
+                    eval_results = self.__gather_epoch_end_eval_results(outputs)
+
+                eval_results = model.validation_epoch_end(eval_results)
+                user_reduced = True
+
+        if using_eval_result and not user_reduced:
+            eval_results = self.__auto_reduce_result_objs(outputs)
+
+        if not isinstance(eval_results, list):
+            eval_results = [eval_results]
+
+        return eval_results
+
+    def __gather_epoch_end_eval_results(self, outputs):
+        eval_results = []
+        for epoch_output in outputs:
+            result = epoch_output[0].__class__.gather(epoch_output)
+            if 'checkpoint_on' in result:
+                result.checkpoint_on = result.checkpoint_on.mean()
+            if 'early_stop_on' in result:
+                result.early_stop_on = result.early_stop_on.mean()
+
+            eval_results.append(result)
+
+        # with 1 dataloader don't pass in a list
+        if len(eval_results) == 1:
+            eval_results = eval_results[0]
+        return eval_results
+
+    def __auto_reduce_result_objs(self, outputs):
+        # outputs has a list of results per dataloader
+        eval_results = []
+        for dl_output in outputs:
+            result = dl_output[0]
+            result = result.__class__.reduce_on_epoch_end(dl_output)
+            if 'checkpoint_on' in result:
+                result.checkpoint_on = result.checkpoint_on.mean()
+            if 'early_stop_on' in result:
+                result.early_stop_on = result.early_stop_on.mean()
+            eval_results.append(result)
+
+        return eval_results
+
     def on_evaluation_batch_start(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
@@ -107,13 +198,20 @@ class EvaluationLoop(object):
         # track debug metrics
         self.trainer.dev_debugger.track_eval_loss_history(self.testing, batch_idx, dataloader_idx, output)
 
-    def on_evaluation_epoch_end(self, *args, **kwargs):
+    def on_evaluation_epoch_end(self, eval_results, *args, **kwargs):
+        # log epoch level metrics
+        self.log_epoch_metrics(eval_results)
+
+        # Write predictions to disk if they're available
+        self.predictions.to_disk()
+
+        # call the callback hook
         if self.testing:
             self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
             self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
 
-    def log_metrics(self, output, batch_idx):
+    def log_step_metrics(self, output, batch_idx):
         if self.trainer.running_sanity_check:
             return
 

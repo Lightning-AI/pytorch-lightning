@@ -248,17 +248,22 @@ class TrainerEvaluationLoopMixin(ABC):
         # set up the loop for val/test
         self.evaluation_loop.testing = test_mode
 
+        # enable eval mode + no grads
+        model.zero_grad()
+        model.eval()
+        torch.set_grad_enabled(False)
+
         # set up the eval loop
         self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_start()
 
-        # run validation
+        # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
             dl_outputs = []
 
-            # on TPU we have to wrap it under the ParallelLoader
+            # certain accelerators need to process the dataloader
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
 
             # each dataloader has a max num batches
@@ -272,162 +277,35 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch_idx >= dl_max_batches:
                     break
 
-                # val loop hooks
+                # hook
                 self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+
+                # lightning module methods
                 output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
                 output = self.evaluation_loop.evaluation_step_end(output)
+
+                # hook
                 self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
 
                 # clean up
                 self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
-                self.evaluation_loop.log_metrics(output, batch_idx)
+                self.evaluation_loop.log_step_metrics(output, batch_idx)
 
+                # track epoch level metrics
                 if output is not None:
                     dl_outputs.append(output)
 
             self.evaluation_loop.outputs.append(dl_outputs)
 
-        # ---------------------
-        # EVAL_EPOCH_END
-        # ---------------------
-        using_eval_result = self.evaluation_loop.is_using_eval_results()
-        eval_results = self.__run_eval_epoch_end(
-            test_mode,
-            self.evaluation_loop.outputs,
-            dataloaders,
-            using_eval_result
-        )
+        # lightning module method
+        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
-        # log callback metrics
-        self.__update_callback_metrics(eval_results, using_eval_result)
-
-        # Write predictions to disk if they're available.
-        self.evaluation_loop.predictions.to_disk()
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end(eval_results)
 
         # enable train mode again
         model.train()
-
-        # enable gradients to save memory
         torch.set_grad_enabled(True)
-
-        # --------------------------
-        # ON_EVAL_EPOCH_END hook
-        # --------------------------
-        self.evaluation_loop.on_evaluation_epoch_end()
-
-        return eval_results
-
-    def __update_callback_metrics(self, eval_results, using_eval_result):
-        if using_eval_result:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    self.callback_metrics = eval_result.callback_metrics
-            else:
-                self.callback_metrics = eval_results.callback_metrics
-        else:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    # with a scalar return, auto set it to "val_loss" for callbacks
-                    if isinstance(eval_result, torch.Tensor):
-                        flat = {'val_loss': eval_result}
-                    else:
-                        flat = flatten_dict(eval_result)
-                    self.callback_metrics.update(flat)
-            else:
-                # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_results, torch.Tensor):
-                    flat = {'val_loss': eval_results}
-                else:
-                    flat = flatten_dict(eval_results)
-                self.callback_metrics.update(flat)
-
-    def __run_eval_epoch_end(self, test_mode, outputs, dataloaders, using_eval_result):
-        model = self.get_model()
-
-        # with a single dataloader don't pass an array
-        eval_results = outputs
-        if len(dataloaders) == 1:
-            eval_results = outputs[0]
-
-        user_reduced = False
-
-        if test_mode:
-            if self.is_overridden('test_end', model=model):
-                # TODO: remove in v1.0.0
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.test_end(eval_results)
-                user_reduced = True
-                rank_zero_warn(
-                    'Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
-                    ' Use `test_epoch_end` instead.',
-                    DeprecationWarning,
-                )
-
-            elif self.is_overridden('test_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.test_epoch_end(eval_results)
-                user_reduced = True
-
-        else:
-            if self.is_overridden('validation_end', model=model):
-                # TODO: remove in v1.0.0
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.validation_end(eval_results)
-                user_reduced = True
-                rank_zero_warn(
-                    'Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
-                    ' Use `validation_epoch_end` instead.',
-                    DeprecationWarning,
-                )
-
-            elif self.is_overridden('validation_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.validation_epoch_end(eval_results)
-                user_reduced = True
-
-        if using_eval_result and not user_reduced:
-            eval_results = self.__auto_reduce_result_objs(outputs)
-
-        if not isinstance(eval_results, list):
-            eval_results = [eval_results]
-
-        return eval_results
-
-    def __gather_epoch_end_eval_results(self, outputs):
-        eval_results = []
-        for epoch_output in outputs:
-            result = epoch_output[0].__class__.gather(epoch_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-
-            eval_results.append(result)
-
-        # with 1 dataloader don't pass in a list
-        if len(eval_results) == 1:
-            eval_results = eval_results[0]
-        return eval_results
-
-    def __auto_reduce_result_objs(self, outputs):
-        # outputs has a list of results per dataloader
-        eval_results = []
-        for dl_output in outputs:
-            result = dl_output[0]
-            result = result.__class__.reduce_on_epoch_end(dl_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-            eval_results.append(result)
 
         return eval_results
 
