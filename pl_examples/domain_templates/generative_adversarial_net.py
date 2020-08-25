@@ -129,7 +129,8 @@ class GAN(LightningModule):
             g_loss = self.adversarial_loss(self.discriminator(self(z)), valid)
             tqdm_dict = {'g_loss': g_loss}
             result = TrainResult(
-                minimize= g_loss
+                minimize=g_loss,
+                checkpoint_on=True
             )
             result.log_dict(tqdm_dict)
 
@@ -156,7 +157,8 @@ class GAN(LightningModule):
             d_loss = (real_loss + fake_loss) / 2
             tqdm_dict = {'d_loss': d_loss}
             result = TrainResult(
-                minimize= d_loss
+                minimize=d_loss,
+                checkpoint_on=True
             )
             result.log_dict(tqdm_dict)
 
@@ -198,7 +200,7 @@ def main(args: Namespace) -> None:
     # If use distubuted training  PyTorch recommends to use DistributedDataParallel.
     # See: https://pytorch.org/docs/stable/nn.html#torch.nn.DataParallel
     trainer = Trainer()
-xw
+
     # ------------------------
     # 3 START TRAINING
     # ------------------------
