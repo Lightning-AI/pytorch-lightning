@@ -37,17 +37,17 @@ class EvaluationLoop(object):
 
         self.max_batches = max_batches
 
-    def on_evaluation_epoch_start(self):
+    def on_evaluation_epoch_start(self, *args, **kwargs):
         if self.testing:
-            self.trainer.call_hook('on_test_epoch_start')
+            self.trainer.call_hook('on_test_epoch_start', *args, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_epoch_start')
+            self.trainer.call_hook('on_validation_epoch_start', *args, **kwargs)
 
-    def evaluation_step(self, args):
+    def evaluation_step(self, *args, **kwargs):
         if self.testing:
-            output = self.trainer.accelerator_backend.test_step(args)
+            output = self.trainer.accelerator_backend.test_step(*args, **kwargs)
         else:
-            output = self.trainer.accelerator_backend.validation_step(args)
+            output = self.trainer.accelerator_backend.validation_step(*args, **kwargs)
         return output
 
     def evaluation_step_end(self, *args, **kwargs):
@@ -69,8 +69,8 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_batch_end', *args, **kwargs)
 
-    def on_evaluation_epoch_end(self):
+    def on_evaluation_epoch_end(self, *args, **kwargs):
         if self.testing:
-            self.trainer.call_hook('on_test_epoch_end')
+            self.trainer.call_hook('on_test_epoch_end', *args, **kwargs)
         else:
-            self.trainer.call_hook('on_validation_epoch_end')
+            self.trainer.call_hook('on_validation_epoch_end', *args, **kwargs)
