@@ -50,7 +50,17 @@ class CPUBackend(Accelerator):
         return output
 
     def validation_step(self, args):
-        return self.trainer.model.validation_step(*args)
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model.validation_step(*args)
+        else:
+            output = self.trainer.model.validation_step(*args)
+        return output
 
     def test_step(self, args):
-        return self.trainer.model.test_step(*args)
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model.test_step(*args)
+        else:
+            output = self.trainer.model.test_step(*args)
+        return output
