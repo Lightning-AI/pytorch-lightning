@@ -24,7 +24,7 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.getsize(file_path) > 3e+06
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu"""
     model = EvalModelTemplate()
