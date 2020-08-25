@@ -29,7 +29,7 @@ class EvaluationLoop(object):
                 self.trainer.reset_val_dataloader(model)
 
             dataloaders = self.trainer.val_dataloaders
-            max_batches = self.trianer.num_val_batches
+            max_batches = self.trainer.num_val_batches
 
         return dataloaders, max_batches
 
