@@ -24,6 +24,20 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.getsize(file_path) > 3e+06
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_model_saves_on_gpu(tmpdir):
+    """Test that model saves on gpu"""
+    model = EvalModelTemplate()
+    trainer = Trainer(max_epochs=1)
+    trainer.fit(model)
+
+    file_path = os.path.join(tmpdir, "model.onxx")
+    input_sample = torch.randn((1, 28 * 28))
+    model.to_onnx(file_path, input_sample)
+    assert os.path.isfile(file_path)
+    assert os.path.getsize(file_path) > 3e+06
+
+
 def test_model_saves_with_example_output(tmpdir):
     """Test that ONNX model saves when provided with example output"""
     model = EvalModelTemplate()
