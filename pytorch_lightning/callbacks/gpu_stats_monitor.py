@@ -85,7 +85,7 @@ class GPUStatsMonitor(Callback):
 
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self._log_stats.gpu_utilization:
-            self._log_gpu(trainer)
+            self._log_usage(trainer)
         if self._log_stats.memory_utilization:
             self._log_memory(trainer)
 
@@ -101,7 +101,7 @@ class GPUStatsMonitor(Callback):
 
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self._log_stats.gpu_utilization:
-            self._log_gpu(trainer)
+            self._log_usage(trainer)
 
         if self._log_stats.memory_utilization:
             self._log_memory(trainer)
@@ -155,7 +155,7 @@ class GPUStatsMonitor(Callback):
 
         return {f"gpu_{pitem}/gpu_id_{index} ({unit})": usage for index, usage in enumerate(gpu_usage)}
 
-    def _log_gpu(self, trainer):
+    def _log_usage(self, trainer):
         trainer.logger.log_metrics(self._get_gpu_stat("utilization.gpu", "%"), step=trainer.global_step)
 
     def _log_memory(self, trainer):
