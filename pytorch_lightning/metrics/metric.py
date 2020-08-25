@@ -74,7 +74,6 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         Implement how the inputs should be casted before calling forward
 
         Args:
-
             data: input to forward method
 
         Returns:
