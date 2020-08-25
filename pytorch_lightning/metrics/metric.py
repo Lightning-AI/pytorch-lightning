@@ -147,9 +147,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         Implement additionally metric computations to be done after the ddp sync
 
         Args:
-
             data: input to forward method
-
             output: output from the `aggregate` hook
 
         Returns:
