@@ -273,25 +273,19 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch_idx >= dl_max_batches:
                     break
 
-                # callbacks
-                if test_mode:
-                    self.call_hook('on_test_batch_start', batch, batch_idx, dataloader_idx)
-                else:
-                    self.call_hook('on_validation_batch_start', batch, batch_idx, dataloader_idx)
+                # -----------------
+                # eval_batch_start
+                # -----------------
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
                 # -----------------
                 # RUN EVALUATION STEP
                 # -----------------
                 args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
-
-                if test_mode:
-                    output = self.accelerator_backend.test_step(args)
-                else:
-                    output = self.accelerator_backend.validation_step(args)
-
-                is_result_obj = isinstance(output, Result)
+                output = self.evaluation_loop.evaluation_step(args)
 
                 # track batch size for weighted average
+                is_result_obj = isinstance(output, Result)
                 if is_result_obj:
                     output.track_batch_size(len(batch))
 
@@ -303,19 +297,12 @@ class TrainerEvaluationLoopMixin(ABC):
                 # ------------------
                 # EVAL STEP END
                 # ------------------
-                if test_mode:
-                    output = self.call_hook('test_step_end', output)
-                else:
-                    output = self.call_hook('validation_step_end', output)
+                output = self.evaluation_loop.evaluation_step_end(output)
 
                 # ------------------
                 # Hook: on_eval_batch_end
                 # ------------------
-                # callbacks (on __batch_end)
-                if test_mode:
-                    self.call_hook('on_test_batch_end', batch, batch_idx, dataloader_idx)
-                else:
-                    self.call_hook('on_validation_batch_end', batch, batch_idx, dataloader_idx)
+                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
 
                 # ----------------------
                 # Post processing

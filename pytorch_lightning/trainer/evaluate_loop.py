@@ -45,3 +45,28 @@ class EvaluationLoop(object):
         else:
             self.trainer.call_hook('on_validation_epoch_start')
 
+    def evaluation_step(self, args):
+        if self.testing:
+            output = self.trainer.accelerator_backend.test_step(args)
+        else:
+            output = self.trainer.accelerator_backend.validation_step(args)
+        return output
+
+    def evaluation_step_end(self, *args, **kwargs):
+        if self.testing:
+            output = self.trainer.call_hook('test_step_end', *args, **kwargs)
+        else:
+            output = self.trainer.call_hook('validation_step_end', *args, **kwargs)
+        return output
+
+    def on_evaluation_batch_start(self, *args, **kwargs):
+        if self.testing:
+            self.trainer.call_hook('on_test_batch_start', *args, **kwargs)
+        else:
+            self.trainer.call_hook('on_validation_batch_start', *args, **kwargs)
+
+    def on_evaluation_batch_end(self, *args, **kwargs):
+        if self.testing:
+            self.trainer.call_hook('on_test_batch_end', *args, **kwargs)
+        else:
+            self.trainer.call_hook('on_validation_batch_end', *args, **kwargs)
