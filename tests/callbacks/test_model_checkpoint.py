@@ -125,6 +125,7 @@ def test_model_checkpoint_format_checkpoint_name():
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '@'
     r = ModelCheckpoint._format_checkpoint_name('{epoch},{acc:.5f}', 3, {'acc': 0.03}, prefix='test')
     assert r == 'test@epoch=3,acc=0.03000'
+    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '-'
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
@@ -164,6 +165,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     model_last = EvalModelTemplate.load_from_checkpoint(path_last)
     for w0, w1 in zip(model_last_epoch.parameters(), model_last.parameters()):
         assert w0.eq(w1).all()
+    ModelCheckpoint.CHECKPOINT_NAME_LAST = 'last'
 
 
 def test_ckpt_metric_names(tmpdir):
