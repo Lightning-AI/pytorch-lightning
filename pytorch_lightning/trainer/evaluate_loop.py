@@ -91,9 +91,9 @@ class EvaluationLoop(object):
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
-                    self.callback_metrics = eval_result.callback_metrics
+                    self.trainer.callback_metrics = eval_result.callback_metrics
             else:
-                self.callback_metrics = eval_results.callback_metrics
+                self.trainer.callback_metrics = eval_results.callback_metrics
         else:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
@@ -102,14 +102,14 @@ class EvaluationLoop(object):
                         flat = {'val_loss': eval_result}
                     else:
                         flat = flatten_dict(eval_result)
-                    self.callback_metrics.update(flat)
+                    self.trainer.callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
                 if isinstance(eval_results, torch.Tensor):
                     flat = {'val_loss': eval_results}
                 else:
                     flat = flatten_dict(eval_results)
-                self.callback_metrics.update(flat)
+                self.trainer.callback_metrics.update(flat)
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
