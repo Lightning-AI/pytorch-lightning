@@ -245,8 +245,6 @@ class TrainerEvaluationLoopMixin(ABC):
                 entry is the number of batches to process in the corresponding dataloader.
             test_mode:
         """
-        # set up the loop for val/test
-        self.evaluation_loop.testing = test_mode
 
         # enable eval mode + no grads
         model.zero_grad()
@@ -310,6 +308,9 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def run_evaluation(self, test_mode: bool = False):
+        # set up the loop for val/test
+        self.evaluation_loop.testing = test_mode
+
         # TODO: deprecate
         model = self.get_model()
         model.on_pre_performance_check()
