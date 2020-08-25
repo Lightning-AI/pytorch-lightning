@@ -99,9 +99,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         Implement how outputs from forward should be casted
 
         Args:
-
             data: input to forward method
-
             output: output from forward method
 
         Returns:
