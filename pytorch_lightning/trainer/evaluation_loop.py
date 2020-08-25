@@ -310,36 +310,18 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_results
 
     def run_evaluation(self, test_mode: bool = False):
-        # hook
+        # TODO: deprecate
         model = self.get_model()
         model.on_pre_performance_check()
 
         # select dataloaders
-        if test_mode:
-            self.reset_test_dataloader(model)
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
 
-            dataloaders = self.test_dataloaders
-            max_batches = self.num_test_batches
-        else:
-            # val
-            if self.val_dataloaders is None:
-                self.reset_val_dataloader(model)
-
-            dataloaders = self.val_dataloaders
-            max_batches = self.num_val_batches
-
-        if dataloaders is None:
-            return [], []
-
-        # Validation/Test begin callbacks
-        if test_mode:
-            self.on_test_start()
-        else:
-            self.on_validation_start()
+        # TODO: deprecate
+        self.evaluation_loop.on_evaluation_start()
 
         # enable disabling validation step with limit_val_batches = 0
-        should_skip = sum(max_batches) == 0
-        if should_skip:
+        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
         # run evaluation (val_step + val_step_end + val_epoch_end)
@@ -360,11 +342,8 @@ class TrainerEvaluationLoopMixin(ABC):
             if self.reload_dataloaders_every_epoch:
                 self.reset_val_dataloader(model)
 
-        # Validation/Test end callbacks
-        if test_mode:
-            self.on_test_end()
-        else:
-            self.on_validation_end()
+        # TODO: deprecate
+        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, eval_results
 
