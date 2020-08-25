@@ -1714,7 +1714,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         if input_sample is not None:
             input_data = input_sample
         elif self.example_input_array is not None:
-            input_data = self.example_input_array.to(self.device)
+            input_data = self.example_input_array
         else:
             raise ValueError('`input_sample` and `example_input_array` tensors are both missing.')
 
