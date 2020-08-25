@@ -173,7 +173,7 @@ def test_model_pickable(tmpdir, metric: Metric):
 def test_saving_pickable(tmpdir, metric: Metric):
     """ Make sure that metrics are pickable by saving and loading them using torch """
     x, y = torch.randn(10,), torch.randn(10,)
-    results_before_save = metric(x,y)
+    results_before_save = metric(x, y)
 
     # save metric
     save_path = os.path.join(tmpdir, 'save_test.ckpt')
@@ -181,7 +181,7 @@ def test_saving_pickable(tmpdir, metric: Metric):
 
     # load metric
     new_metric = torch.load(save_path)
-    results_after_load = new_metric(x,y)
+    results_after_load = new_metric(x, y)
 
     # Check metric value is the same
     assert results_before_save == results_after_load
