@@ -27,6 +27,7 @@ try:
     import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
+    import torch_xla.distributed.parallel_loader as xla_pl
 except ImportError:
     XLA_AVAILABLE = False
 else:
@@ -138,6 +139,12 @@ class TPUBackend(Accelerator):
         args[0] = batch
         output = self.trainer.model.test_step(*args)
         return output
+
+    def process_dataloader(self, dataloader):
+        device = xm.xla_device(self.trainer.tpu_id)
+        dataloader = xla_pl.ParallelLoader(dataloader, [device])
+        dataloader = dataloader.per_device_loader(device)
+        return dataloader
 
     def to_device(self, batch):
         """

@@ -427,15 +427,6 @@ class TrainerTrainLoopMixin(ABC):
 
                 self.run_training_teardown()
 
-    def prepare_train_loop_dataloader(self, train_dataloader):
-        # on TPU we have to wrap it under the ParallelLoader
-        if self.use_tpu:
-            device = xm.xla_device(self.tpu_id)
-            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
-            train_dataloader = train_dataloader.per_device_loader(device)
-
-        return train_dataloader
-
     def run_on_epoch_start_hook(self, model):
         # Epoch start events
         with self.profiler.profile('on_epoch_start'):
@@ -464,7 +455,7 @@ class TrainerTrainLoopMixin(ABC):
         self.run_on_epoch_start_hook(model)
 
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
+        train_dataloader = self.accelerator_backend.process_dataloader(self.train_dataloader)
 
         # bookkeeping
         num_optimizers = len(self._get_optimizers_iterable())
