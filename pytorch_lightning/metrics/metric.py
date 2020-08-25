@@ -113,9 +113,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         Implement how the outputs from forward should be synced
 
         Args:
-
             data: input to forward method
-
             output: output from the `output_convert` hook
 
         Returns:
