@@ -92,9 +92,7 @@ def convert_to_tensor(data: Any, dtype=None, device=None) -> Any:
 
     Args:
         data: the data to convert to tensor
-
         dtype: data type to convert to
-
         device: device to cast to
 
     Return:
