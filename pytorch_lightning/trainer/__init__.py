@@ -682,6 +682,8 @@ The Trainer uses 2 steps by default. Turn it off or modify it here.
 
     # check all validation data
     trainer = Trainer(num_sanity_val_steps=-1)
+    or 
+    trainer = Trainer(num_sanity_val_steps='fullEpoch)
 
 Example::
 

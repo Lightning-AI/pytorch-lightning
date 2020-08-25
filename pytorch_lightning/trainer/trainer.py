@@ -316,7 +316,7 @@ class Trainer(
             amp_level: The optimization level to use (O1, O2, etc...).
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
-                Set it to `-1` to run all batches in all validation dataloaders. Default: 2
+                Set it to `fullEpoch` or `-1` to run all batches in all validation dataloaders. Default: 2
 
             truncated_bptt_steps: Truncated back prop breaks performs backprop every k steps of much longer
                 sequence.
@@ -464,7 +464,7 @@ class Trainer(
         self.max_steps = max_steps
         self.min_steps = min_steps
 
-        if num_sanity_val_steps == -1:
+        if num_sanity_val_steps == -1 or num_sanity_val_steps == 'fullEpoch':
             self.num_sanity_val_steps = float('inf')
         else:
             self.num_sanity_val_steps = num_sanity_val_steps

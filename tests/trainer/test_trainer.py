@@ -950,6 +950,28 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     assert trainer.num_sanity_val_steps == float('inf')
     val_dataloaders = model.val_dataloader__multiple()
 
+@pytest.mark.parametrize(['limit_val_batches'], [
+    pytest.param(0.0),  # this should run no sanity checks
+    pytest.param(1),
+    pytest.param(1.0),
+    pytest.param(0.3),
+])
+def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
+    """
+    Test that num_sanity_val_steps=fullEpoch runs through all validation data once, and as many batches as
+    limited by "limit_val_batches" Trainer argument.
+    """
+    model = EvalModelTemplate()
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps='fullEpoch',
+        limit_val_batches=limit_val_batches,
+        max_steps=1,
+    )
+    assert trainer.num_sanity_val_steps == float('inf')
+    val_dataloaders = model.val_dataloader__multiple()
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [
     pytest.param(
