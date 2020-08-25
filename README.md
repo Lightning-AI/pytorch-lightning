@@ -112,7 +112,7 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 * Less error prone by automating most of the training loop and tricky engineering
 * Keeps all the flexibility (LightningModules are still PyTorch modules), but removes a ton of boilerplate
 * Lightning has out-of-the-box integration with the popular logging/visualizing frameworks ([Tensorboard](https://pytorch.org/docs/stable/tensorboard.html), [MLFlow](https://mlflow.org/), [Neptune.ai](https://neptune.ai/), [Comet.ml](https://www.comet.ml/site/), [Wandb](https://www.wandb.com/)).
-* [Tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests). We test every combination og PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
+* [Tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
 * Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
 
 ### Lightning automates 40+ parts of DL/ML research
