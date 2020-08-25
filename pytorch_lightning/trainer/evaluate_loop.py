@@ -17,11 +17,14 @@ class EvaluationLoop(object):
         # select dataloaders
         model = self.trainer.get_model()
 
+        # select dataloaders
         if self.testing:
             self.trainer.reset_test_dataloader(model)
+
             dataloaders = self.trainer.test_dataloaders
             max_batches = self.trainer.num_test_batches
         else:
+            # val
             if self.trainer.val_dataloaders is None:
                 self.trainer.reset_val_dataloader(model)
 
