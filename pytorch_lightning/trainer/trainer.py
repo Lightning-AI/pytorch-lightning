@@ -54,6 +54,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import is_remote_path
+from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -607,6 +608,9 @@ class Trainer(
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.accelerator_backend = None
+
+        # loops
+        self.evaluation_loop = EvaluationLoop(self)
 
         # Callback system
         self.on_init_end()

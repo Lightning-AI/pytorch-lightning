@@ -134,7 +134,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -192,6 +192,7 @@ class TrainerEvaluationLoopMixin(ABC):
     on_test_start: Callable
     on_test_end: Callable
     accelerator_backend: ...
+    evaluation_loop: EvaluationLoop
 
     @abstractmethod
     def copy_trainer_model_properties(self, *args):
@@ -245,31 +246,11 @@ class TrainerEvaluationLoopMixin(ABC):
                 entry is the number of batches to process in the corresponding dataloader.
             test_mode:
         """
-        # enable eval mode
-        model.zero_grad()
-        model.eval()
+        # set up the loop for val/test
+        self.evaluation_loop.testing = test_mode
 
-        # copy properties for forward overrides
-        self.copy_trainer_model_properties(model)
-
-        # disable gradients to save memory
-        torch.set_grad_enabled(False)
-
-        # bookkeeping
-        outputs = []
-        predictions = PredictionCollection(self.global_rank, self.world_size)
-
-        # convert max_batches to list
-        if isinstance(max_batches, int):
-            max_batches = [max_batches] * len(dataloaders)
-
-        # --------------------------
-        # ON_EVAL_EPOCH_START hook
-        # --------------------------
-        if test_mode:
-            self.call_hook('on_test_epoch_start')
-        else:
-            self.call_hook('on_validation_epoch_start')
+        # set up the eval loop
+        self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # run validation
         for dataloader_idx, dataloader in enumerate(dataloaders):
@@ -282,7 +263,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader = dataloader.per_device_loader(device)
 
             # each dataloader has a max num batches
-            dl_max_batches = max_batches[dataloader_idx]
+            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
@@ -345,7 +326,7 @@ class TrainerEvaluationLoopMixin(ABC):
                     # Add step predictions to prediction collection to write later
                     do_write_predictions = is_result_obj and test_mode
                     if do_write_predictions:
-                        predictions.add(output.pop('predictions', None))
+                        self.evaluation_loop.predictions.add(output.pop('predictions', None))
 
                     dl_outputs.append(output)
 
@@ -354,19 +335,24 @@ class TrainerEvaluationLoopMixin(ABC):
                 # track debug metrics
                 self.dev_debugger.track_eval_loss_history(test_mode, batch_idx, dataloader_idx, output)
 
-            outputs.append(dl_outputs)
+            self.evaluation_loop.outputs.append(dl_outputs)
 
         # ---------------------
         # EVAL_EPOCH_END
         # ---------------------
-        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
-        eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders, using_eval_result)
+        using_eval_result = self.evaluation_loop.is_using_eval_results()
+        eval_results = self.__run_eval_epoch_end(
+            test_mode,
+            self.evaluation_loop.outputs,
+            dataloaders,
+            using_eval_result
+        )
 
         # log callback metrics
         self.__update_callback_metrics(eval_results, using_eval_result)
 
         # Write predictions to disk if they're available.
-        predictions.to_disk()
+        self.evaluation_loop.predictions.to_disk()
 
         # enable train mode again
         model.train()
