@@ -63,6 +63,7 @@ def test_argparse_args_parsing(cli_args, expected):
 
     for k, v in expected.items():
         assert getattr(arguments, k) == v
-    assert HyperTuner.from_argparse_args(arguments,
-                                         trainer=Trainer(),
-                                         model=EvalModelTemplate())
+    tuner = HyperTuner.from_argparse_args(arguments,
+                                          trainer=Trainer(),
+                                          model=EvalModelTemplate())
+    assert isinstance(tuner, HyperTuner)
