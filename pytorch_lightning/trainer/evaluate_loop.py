@@ -235,8 +235,6 @@ class EvaluationLoop(object):
         self.trainer.dev_debugger.track_eval_loss_history(self.testing, batch_idx, dataloader_idx, output)
 
     def on_evaluation_epoch_end(self, eval_results, *args, **kwargs):
-        # log epoch level metrics
-        self.log_epoch_metrics(eval_results)
 
         # Write predictions to disk if they're available
         self.predictions.to_disk()

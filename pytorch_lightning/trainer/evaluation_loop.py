@@ -383,6 +383,9 @@ class TrainerEvaluationLoopMixin(ABC):
         # lightning module method
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
+        # log epoch level metrics
+        self.evaluation_loop.log_epoch_metrics(eval_results)
+
         # hook
         self.evaluation_loop.on_evaluation_epoch_end(eval_results)
 
@@ -394,6 +397,7 @@ class TrainerEvaluationLoopMixin(ABC):
         # ----------------------------------------
 
         # log the final eval loop metrics
+        # TODO: duplicates?
         eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
 
         # reload dataset when requested
