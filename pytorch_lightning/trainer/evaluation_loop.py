@@ -534,12 +534,3 @@ class TrainerEvaluationLoopMixin(ABC):
                 print('-' * 80)
 
         return eval_loop_results
-
-    def build_args(self, test_mode, batch, batch_idx, dataloader_idx):
-        # make dataloader_idx arg in validation_step optional
-        args = [batch, batch_idx]
-
-        if (test_mode and len(self.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):
-            args.append(dataloader_idx)
-
-        return args
