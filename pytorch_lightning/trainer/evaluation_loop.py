@@ -315,17 +315,25 @@ class TrainerEvaluationLoopMixin(ABC):
         model.on_pre_performance_check()
 
         # select dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+        if test_mode:
+            self.reset_test_dataloader(model)
+
+            dataloaders = self.test_dataloaders
+            max_batches = self.num_test_batches
+        else:
+            # val
+            if self.val_dataloaders is None:
+                self.reset_val_dataloader(model)
+
+            dataloaders = self.val_dataloaders
+            max_batches = self.num_val_batches
 
         # enable disabling validation step with limit_val_batches = 0
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
         # TODO: deprecate
-        if test_mode:
-            self.on_test_start()
-        else:
-            self.on_validation_start()
+        self.evaluation_loop.on_evaluation_start()
 
         # run evaluation (val_step + val_step_end + val_epoch_end)
         eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
@@ -341,11 +349,7 @@ class TrainerEvaluationLoopMixin(ABC):
             self.evaluation_loop.reload_evaluation_dataloaders()
 
         # TODO: deprecate
-        # Validation/Test end callbacks
-        if test_mode:
-            self.on_test_end()
-        else:
-            self.on_validation_end()
+        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, eval_results
 
