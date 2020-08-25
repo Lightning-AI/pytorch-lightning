@@ -391,8 +391,8 @@ class ModelCheckpoint(Callback):
                 self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
             )
             filepath = os.path.join(self.dirpath, f'{filename}.{self.CHECKPOINT_SUFFIX}')
-            self._save_model(filepath, trainer, pl_module)
             self._del_model(self.last_model_path)
+            self._save_model(filepath, trainer, pl_module)
             self.last_model_path = filepath
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):

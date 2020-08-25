@@ -380,7 +380,7 @@ def test_dp_output_reduce():
 @pytest.mark.parametrize(["save_top_k", "save_last", "file_prefix", "expected_files"], [
     pytest.param(-1, False, '', {'epoch=4.ckpt', 'epoch=3.ckpt', 'epoch=2.ckpt', 'epoch=1.ckpt', 'epoch=0.ckpt'},
                  id="CASE K=-1  (all)"),
-    pytest.param(1, False, 'test_prefix_', {'test_prefix_epoch=4.ckpt'},
+    pytest.param(1, False, 'test_prefix', {'test_prefix-epoch=4.ckpt'},
                  id="CASE K=1 (2.5, epoch 4)"),
     pytest.param(2, False, '', {'epoch=4.ckpt', 'epoch=2.ckpt'},
                  id="CASE K=2 (2.5 epoch 4, 2.8 epoch 2)"),
@@ -413,8 +413,10 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
 
     file_lists = set(os.listdir(tmpdir))
 
-    assert len(file_lists) == len(expected_files), \
-        "Should save %i models when save_top_k=%i" % (len(expected_files), save_top_k)
+    assert len(file_lists) == len(expected_files), (
+        f"Should save {len(expected_files)} models "
+        f"when save_top_k={save_top_k} but found={file_lists}"
+    )
 
     # verify correct naming
     for fname in expected_files:
