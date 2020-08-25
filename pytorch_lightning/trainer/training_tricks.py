@@ -227,7 +227,7 @@ class TrainerTrainingTricksMixin(ABC):
 
     def __scale_batch_reset_params(self, model, steps_per_trial):
         self.auto_scale_batch_size = None  # prevent recursion
-        self.auto_lr_find = False # avoid lr find being called multiple times
+        self.auto_lr_find = False  # avoid lr find being called multiple times
         self.max_steps = steps_per_trial  # take few steps
         self.weights_summary = None  # not needed before full run
         self.logger = DummyLogger()
