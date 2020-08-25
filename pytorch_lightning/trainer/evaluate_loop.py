@@ -48,7 +48,10 @@ class EvaluationLoop(object):
         # make dataloader_idx arg in validation_step optional
         args = [batch, batch_idx]
 
-        if (test_mode and len(self.trainer.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):
+        multiple_val_loaders = (not test_mode and len(self.trainer.val_dataloaders) > 1)
+        multiple_test_loaders = (test_mode and len(self.trainer.test_dataloaders) > 1)
+
+        if multiple_test_loaders or multiple_val_loaders:
             args.append(dataloader_idx)
 
         return args
