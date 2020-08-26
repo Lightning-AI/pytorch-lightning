@@ -45,6 +45,12 @@ class EvaluationLoop(object):
 
         return False
 
+    def on_evaluation_start(self, *args, **kwargs):
+        if self.testing:
+            self.trainer.call_hook('on_test_start', *args, **kwargs)
+        else:
+            self.trainer.call_hook('on_validation_start', *args, **kwargs)
+
     def on_evaluation_end(self, *args, **kwargs):
         if self.testing:
             self.trainer.call_hook('on_test_end', *args, **kwargs)
