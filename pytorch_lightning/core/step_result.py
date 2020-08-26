@@ -20,7 +20,7 @@ import torch
 from torch import Tensor
 import os
 
-from pytorch_lightning.metrics.converters import _sync_ddp_if_available
+from pytorch_lightning.metrics.converters import sync_ddp_if_available
 
 
 class Result(Dict):
@@ -124,7 +124,7 @@ class Result(Dict):
 
         # sync across ddp
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
-            value = _sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
+            value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
         if 'meta' not in self:
             self.__setitem__('meta', {})
