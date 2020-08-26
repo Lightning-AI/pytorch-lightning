@@ -4,9 +4,9 @@ import pytest
 import torch
 
 import tests.base.develop_utils as tutils
-import tests.base.develop_pipelines as tpipes
 from tests.base import EvalModelTemplate
 from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric, TensorCollectionMetric
+from pytorch_lightning import Trainer
 
 
 class DummyTensorMetric(TensorMetric):
@@ -146,11 +146,9 @@ def test_metric(metric: Metric):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize("metric", [
-    DummyTensorMetric,
-    DummyNumpyMetric,
-])
-def test_model_pickable(tmpdir, metric: Metric):
+@pytest.mark.parametrize("distributed_backend", ['ddp', 'ddp_spawn'])
+@pytest.mark.parametrize("metric", [DummyTensorMetric, DummyNumpyMetric])
+def test_model_pickable(tmpdir, distributed_backend: str, metric: Metric):
     """Make sure that metrics are pickable by including into a model and running in multi-gpu mode"""
     tutils.set_random_master_port()
 
@@ -159,14 +157,18 @@ def test_model_pickable(tmpdir, metric: Metric):
         max_epochs=1,
         limit_train_batches=10,
         gpus=[0, 1],
-        distributed_backend='ddp_spawn',
+        distributed_backend=distributed_backend,
     )
 
     model = EvalModelTemplate()
     model.metric = metric()
     model.training_step = model.training_step__using_metrics
 
-    tpipes.run_model_test(trainer_options, model)
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'amp + ddp model failed to complete'
 
 
 @pytest.mark.parametrize("metric", [DummyTensorMetric(), DummyNumpyMetric()])
