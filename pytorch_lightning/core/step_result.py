@@ -501,7 +501,16 @@ class TrainResult(Result):
         Args:
             minimize: Metric currently being minimized.
             early_stop_on: Metric to early stop on.
+                Should be singleton tensor if combined with default
+                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
+                the specified value will be averaged across all steps.
             checkpoint_on: Metric to checkpoint on.
+                Should be singleton tensor if combined with default checkpoint callback.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
+                the specified value will be averaged across all steps.
             hiddens:
         """
 
@@ -656,7 +665,16 @@ class EvalResult(Result):
 
         Args:
             early_stop_on: Metric to early stop on.
+                Should be singleton tensor if combined with default
+                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
+                the specified value will be averaged across all steps.
             checkpoint_on: Metric to checkpoint on.
+                Should be singleton tensor if combined with default checkpoint callback.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
+                the specified value will be averaged across all steps.
             hiddens:
         """
 
