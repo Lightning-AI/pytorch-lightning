@@ -378,10 +378,6 @@ class TrainerEvaluationLoopMixin(ABC):
         self.evaluation_loop.log_epoch_metrics(eval_results)
         self.evaluation_loop.predictions.to_disk()
 
-        # log epoch level metrics
-        self.evaluation_loop.log_epoch_metrics(eval_results)
-        self.evaluation_loop.predictions.to_disk()
-
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
 
