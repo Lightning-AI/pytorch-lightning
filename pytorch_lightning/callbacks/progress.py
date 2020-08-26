@@ -155,13 +155,13 @@ class ProgressBarBase(Callback):
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._train_batch_idx += 1
 
-    def on_validation_epoch_start(self, trainer, pl_module):
+    def on_validation_start(self, trainer, pl_module):
         self._val_batch_idx = 0
 
     def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._val_batch_idx += 1
 
-    def on_test_epoch_start(self, trainer, pl_module):
+    def on_test_start(self, trainer, pl_module):
         self._test_batch_idx = 0
 
     def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
@@ -338,8 +338,8 @@ class ProgressBar(ProgressBarBase):
             self.main_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
 
-    def on_validation_epoch_start(self, trainer, pl_module):
-        super().on_validation_epoch_start(trainer, pl_module)
+    def on_validation_start(self, trainer, pl_module):
+        super().on_validation_start(trainer, pl_module)
         self.val_progress_bar = self.init_validation_tqdm()
         self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
@@ -358,8 +358,8 @@ class ProgressBar(ProgressBarBase):
         super().on_train_end(trainer, pl_module)
         self.main_progress_bar.close()
 
-    def on_test_epoch_start(self, trainer, pl_module):
-        super().on_test_epoch_start(trainer, pl_module)
+    def on_test_start(self, trainer, pl_module):
+        super().on_test_start(trainer, pl_module)
         self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
