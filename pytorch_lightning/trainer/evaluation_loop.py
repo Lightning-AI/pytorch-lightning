@@ -245,14 +245,11 @@ class TrainerEvaluationLoopMixin(ABC):
         # hook
         self.evaluation_loop.on_evaluation_start()
 
-        # ------------------------------
-        # ------------------------------
-        # ------------------------------
         # set up the eval loop
         self.evaluation_loop.setup(model, max_batches, dataloaders)
 
         # hook
-        # TODO: needs to move inside the loop but breaks early stopping
+        # TODO: should this be insider the dataloader loop?
         self.evaluation_loop.on_evaluation_epoch_start()
 
         # run validation/testing
@@ -299,10 +296,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # hook
         self.evaluation_loop.on_evaluation_epoch_end()
-
-        # ------------------------------
-        # ------------------------------
-        # ------------------------------
 
         # log the final eval loop metrics
         eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
