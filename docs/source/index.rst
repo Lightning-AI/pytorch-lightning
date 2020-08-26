@@ -57,6 +57,7 @@ PyTorch Lightning Documentation
    VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>
    Transformers Question Answering (SQuAD) <https://github.com/tshrjn/Finetune-QA/>
    Atlas: End-to-End 3D Scene Reconstruction from Posed Images <https://github.com/magicleap/atlas>
+   Self-Supervised Representation Learning (MoCo and BYOL) <https://github.com/untitled-ai/self_supervised>
 
 .. toctree::
    :maxdepth: 1
