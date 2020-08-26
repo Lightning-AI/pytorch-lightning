@@ -44,6 +44,9 @@ class DataParallelBackend(Accelerator):
         # init torch data parallel
         model = self.__init_torch_data_parallel(model)
 
+        # init torch data parallel
+        model = self.__init_torch_data_parallel(model)
+
         # hack forward to do autocast for the user
         self.model_autocast_original_forward = model.forward
 
