@@ -104,6 +104,17 @@ def test_error_if_no_input(tmpdir):
         model.to_onnx(file_path)
 
 
+def test_error_if_input_sample_is_not_tensor(tmpdir):
+    """Test that an exception is thrown when there is no input tensor"""
+    model = EvalModelTemplate()
+    model.example_input_array = None
+    file_path = os.path.join(tmpdir, "model.onnx")
+    input_sample = np.random.randn(1, 28 * 28)
+    with pytest.raises(ValueError, match=f'Received `input_sample` of type {type(input_sample)}. Expected type is '
+                                         f'`Tensor`'):
+        model.to_onnx(file_path, input_sample)
+
+
 def test_if_inference_output_is_valid(tmpdir):
     """Test that the output inferred from ONNX model is same as from PyTorch"""
     model = EvalModelTemplate()
