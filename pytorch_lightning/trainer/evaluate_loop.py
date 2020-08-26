@@ -13,7 +13,7 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
 
-    def get_evaluation_dataloaders(self):
+    def get_evaluation_dataloaders(self, max_batches=None):
         # select dataloaders
         model = self.trainer.get_model()
 
@@ -22,14 +22,17 @@ class EvaluationLoop(object):
             self.trainer.reset_test_dataloader(model)
 
             dataloaders = self.trainer.test_dataloaders
-            max_batches = self.trainer.num_test_batches
+            new_max_batches = self.trainer.num_test_batches
         else:
             # val
             if self.trainer.val_dataloaders is None:
                 self.trainer.reset_val_dataloader(model)
 
             dataloaders = self.trainer.val_dataloaders
-            max_batches = self.trainer.num_val_batches
+            new_max_batches = self.trainer.num_val_batches
+
+        if max_batches is None:
+            max_batches = new_max_batches
 
         return dataloaders, max_batches
 

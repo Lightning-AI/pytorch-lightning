@@ -1266,7 +1266,7 @@ class Trainer(
             self.running_sanity_check = True
             self.on_sanity_check_start()
 
-            eval_results = self._evaluate(model, self.val_dataloaders, self.num_sanity_val_batches, False)
+            _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
