@@ -1082,7 +1082,7 @@ class Trainer(
 
         elif self.use_single_gpu:
             self.accelerator_backend = GPUBackend(self)
-            model = self.accelerator_backend.setup(model)
+            self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
 
