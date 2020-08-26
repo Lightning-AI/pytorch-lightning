@@ -41,7 +41,7 @@ class TPUBackend(Accelerator):
         self.start_method = None
         self.mp_queue = None
 
-    def setup(self):
+    def setup(self, model):
         rank_zero_info(f'training on {self.trainer.tpu_cores} TPU cores')
 
         if not XLA_AVAILABLE:

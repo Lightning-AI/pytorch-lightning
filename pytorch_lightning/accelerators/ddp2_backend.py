@@ -43,7 +43,7 @@ class DDP2Backend(Accelerator):
         super().__init__(trainer)
         self.task_idx = None
 
-    def setup(self):
+    def setup(self, model):
         self._resolve_task_idx()
 
     def _resolve_task_idx(self):
