@@ -149,7 +149,7 @@ a comma separated list of GPU ids:
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
 
-    # DEFAULT (int) specifies how many GPUs to use
+    # DEFAULT (int) specifies how many GPUs to use per node
     Trainer(gpus=k)
 
     # Above is equivalent to
