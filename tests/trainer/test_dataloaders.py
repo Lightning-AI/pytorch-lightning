@@ -704,12 +704,12 @@ class DistribSamplerCallback(Callback):
         assert isinstance(train_sampler, DistributedSampler)
         assert train_sampler.shuffle
 
-    def on_validation_start(self, trainer, pl_module):
+    def on_validation_epoch_start(self, trainer, pl_module):
         val_sampler = trainer.val_dataloaders[0].sampler
         assert isinstance(val_sampler, DistributedSampler)
         assert not val_sampler.shuffle
 
-    def on_test_start(self, trainer, pl_module):
+    def on_test_epoch_start(self, trainer, pl_module):
         test_sampler = trainer.test_dataloaders[0].sampler
         assert isinstance(test_sampler, DistributedSampler)
         assert not test_sampler.shuffle
