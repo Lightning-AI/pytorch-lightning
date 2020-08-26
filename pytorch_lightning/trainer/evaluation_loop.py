@@ -390,9 +390,6 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.reload_dataloaders_every_epoch:
             self.evaluation_loop.reload_evaluation_dataloaders()
 
-        # TODO: deprecate
-        self.evaluation_loop.on_evaluation_end()
-
         return eval_loop_results, eval_results
 
     def __log_evaluation_epoch_metrics(self, eval_results, test_mode):

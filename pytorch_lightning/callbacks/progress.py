@@ -368,8 +368,8 @@ class ProgressBar(ProgressBarBase):
         if self.is_enabled and self.test_batch_idx % self.refresh_rate == 0:
             self.test_progress_bar.update(self.refresh_rate)
 
-    def on_test_end(self, trainer, pl_module):
-        super().on_test_end(trainer, pl_module)
+    def on_test__epoch_end(self, trainer, pl_module):
+        super().on_test_epoch_end(trainer, pl_module)
         self.test_progress_bar.close()
 
 

@@ -45,12 +45,6 @@ class EvaluationLoop(object):
 
         return False
 
-    def on_evaluation_end(self, *args, **kwargs):
-        if self.testing:
-            self.trainer.call_hook('on_test_end', *args, **kwargs)
-        else:
-            self.trainer.call_hook('on_validation_end', *args, **kwargs)
-
     def reload_evaluation_dataloaders(self):
         model = self.trainer.get_model()
         if self.testing:

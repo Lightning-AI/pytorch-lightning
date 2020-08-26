@@ -137,13 +137,5 @@ class Callback(abc.ABC):
         """Called when the pretrain routine ends."""
         pass
 
-    def on_validation_end(self, trainer, pl_module):
-        """Called when the validation loop ends."""
-        pass
-
-    def on_test_end(self, trainer, pl_module):
-        """Called when the test ends."""
-        pass
-
     def on_keyboard_interrupt(self, trainer, pl_module):
         """Called when the training is interrupted by KeyboardInterrupt."""
