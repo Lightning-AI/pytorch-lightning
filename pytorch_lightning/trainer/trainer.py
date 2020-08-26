@@ -1097,7 +1097,9 @@ class Trainer(
         self.call_hook('on_fit_end')
 
         # hook
-        self.call_hook('teardown', 'fit')
+        self.teardown('fit')
+        if self.is_function_implemented('teardown'):
+            model.teardown('fit')
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
