@@ -99,7 +99,8 @@ def test_error_if_no_input(tmpdir):
     model = EvalModelTemplate()
     model.example_input_array = None
     file_path = os.path.join(tmpdir, "model.onxx")
-    with pytest.raises(ValueError, match=r'`input_sample` and `example_input_array` tensors are both missing'):
+    with pytest.raises(ValueError, match=r'Could not export to ONNX since neither input_sample nor '
+                                         r'model.example_input_array attribute is set.'):
         model.to_onnx(file_path)
 
 
