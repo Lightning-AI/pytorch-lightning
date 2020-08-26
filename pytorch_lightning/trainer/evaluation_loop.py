@@ -335,19 +335,17 @@ class TrainerEvaluationLoopMixin(ABC):
         # set up the eval loop
         self.evaluation_loop.setup(model, max_batches, dataloaders)
 
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
         # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
+            # hook
+            self.evaluation_loop.on_evaluation_epoch_start()
+
+            # bookkeeping
             dl_outputs = []
-
-            # certain accelerators need to process the dataloader
             dataloader = self.accelerator_backend.process_dataloader(dataloader)
-
-            # each dataloader has a max num batches
             dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
+            # run a single validation/test epoch
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
                     continue
@@ -374,13 +372,18 @@ class TrainerEvaluationLoopMixin(ABC):
                 if output is not None:
                     dl_outputs.append(output)
 
+            # bookkeping
             self.evaluation_loop.outputs.append(dl_outputs)
+
+            # hook
+            self.evaluation_loop.on_evaluation_epoch_end()
 
         # lightning module method
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end(eval_results)
+        # todo: find the hook for these
+        self.evaluation_loop.log_epoch_metrics(eval_results)
+        self.evaluation_loop.predictions.to_disk()
 
         # enable train mode again
         model.train()
@@ -396,7 +399,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.reload_dataloaders_every_epoch:
             self.evaluation_loop.reload_evaluation_dataloaders()
 
-        # TODO: deprecate
+        # hook
         self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, eval_results
