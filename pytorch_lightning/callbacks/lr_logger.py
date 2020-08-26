@@ -68,7 +68,7 @@ class LearningRateLogger(Callback):
         self.lrs = None
         self.lr_sch_names = []
 
-    def on_train_start(self, trainer, pl_module):
+    def on_pretrain_routine_start(self, trainer, pl_module):
         """ Called before training, determines unique names for all lr
             schedulers in the case of multiple of the same type or in
             the case of multiple parameter groups
