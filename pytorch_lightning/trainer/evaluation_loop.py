@@ -299,6 +299,9 @@ class TrainerEvaluationLoopMixin(ABC):
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
         # hook
+        # todo: find the hook for these
+        self.evaluation_loop.log_epoch_metrics(eval_results)
+        self.evaluation_loop.predictions.to_disk()
         self.evaluation_loop.on_evaluation_epoch_end()
 
         # enable train mode again
