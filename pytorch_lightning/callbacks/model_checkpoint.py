@@ -331,7 +331,7 @@ class ModelCheckpoint(Callback):
             return
 
         # not in sanity check
-        # TODO: should we eanble it during?
+        # TODO: should we enable it during?
         if trainer.running_sanity_check:
             return
 
