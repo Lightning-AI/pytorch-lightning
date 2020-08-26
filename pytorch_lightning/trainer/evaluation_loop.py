@@ -298,6 +298,10 @@ class TrainerEvaluationLoopMixin(ABC):
         # lightning module method
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
+        # log epoch level metrics
+        self.evaluation_loop.log_epoch_metrics(eval_results)
+        self.evaluation_loop.predictions.to_disk()
+
         # hook
         self.evaluation_loop.on_evaluation_epoch_end(eval_results)
 
