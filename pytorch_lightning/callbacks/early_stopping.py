@@ -142,9 +142,6 @@ class EarlyStopping(Callback):
         self.patience = state_dict['patience']
 
     def on_validation_end(self, trainer, pl_module):
-        self._run_early_stopping_check(trainer, pl_module)
-
-    def on_validation_epoch_end(self, trainer, pl_module):
         val_es_key = 'val_early_stop_on'
         if trainer.callback_metrics.get(val_es_key) is not None:
             self.monitor = val_es_key
@@ -154,6 +151,8 @@ class EarlyStopping(Callback):
             self.strict = False
 
         self._validate_condition_metric(trainer.callback_metrics)
+
+        self._run_early_stopping_check(trainer, pl_module)
 
     def on_train_epoch_end(self, trainer, pl_module):
         # disable early stopping in train loop when there's a val loop
