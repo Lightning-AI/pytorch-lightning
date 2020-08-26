@@ -1718,7 +1718,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         else:
             raise ValueError('Could not export to ONNX since neither input_sample nor model.example_input_array '
                              'attribute is set.')
-
+        input_data = input_data.to(self.device)
         if 'example_outputs' not in kwargs:
             self.eval()
             kwargs['example_outputs'] = self(input_data)
