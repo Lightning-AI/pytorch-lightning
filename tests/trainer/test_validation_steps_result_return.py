@@ -42,7 +42,6 @@ def test_val_step_result_callbacks(tmpdir):
         early_stop_callback=True,
         row_log_interval=1,
         limit_train_batches=batches,
-        num_sanity_val_steps=0,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -90,7 +89,6 @@ def test_val_step_using_train_callbacks(tmpdir):
         max_epochs=epochs,
         early_stop_callback=True,
         row_log_interval=1,
-        num_sanity_val_steps=0,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -139,7 +137,6 @@ def test_val_step_only_epoch_metrics(tmpdir):
         max_epochs=epochs,
         row_log_interval=1,
         limit_train_batches=batches,
-        num_sanity_val_steps=0,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -200,7 +197,6 @@ def test_val_step_only_step_metrics(tmpdir):
         row_log_interval=1,
         limit_train_batches=batches,
         limit_val_batches=batches,
-        num_sanity_val_steps=0,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -278,7 +274,6 @@ def test_val_step_epoch_step_metrics(tmpdir):
         row_log_interval=1,
         limit_train_batches=batches,
         limit_val_batches=batches,
-        num_sanity_val_steps=0,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -353,7 +348,6 @@ def test_val_step_epoch_end_result(tmpdir):
         row_log_interval=1,
         limit_train_batches=batches,
         limit_val_batches=batches,
-        num_sanity_val_steps=0,
         weights_summary=None,
     )
     trainer.fit(model)
@@ -413,7 +407,6 @@ def test_val_step_full_loop_result_dp(tmpdir):
         max_epochs=epochs,
         early_stop_callback=True,
         row_log_interval=2,
-        num_sanity_val_steps=0,
         limit_train_batches=batches,
         weights_summary=None,
     )
@@ -469,7 +462,6 @@ def test_full_loop_result_cpu(tmpdir):
         early_stop_callback=True,
         row_log_interval=2,
         limit_train_batches=batches,
-        num_sanity_val_steps=0,
         weights_summary=None,
     )
 
