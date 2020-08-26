@@ -313,7 +313,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # TODO: deprecate
         model = self.get_model()
-        model.on_pre_performance_check()
 
         # select dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
