@@ -17,7 +17,7 @@ def test_model_saves_with_input_sample(tmpdir):
     trainer = Trainer(max_epochs=1)
     trainer.fit(model)
 
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     input_sample = torch.randn((1, 28 * 28))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
@@ -31,7 +31,7 @@ def test_model_saves_on_gpu(tmpdir):
     trainer = Trainer(gpus=1, max_epochs=1)
     trainer.fit(model)
 
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     input_sample = torch.randn((1, 28 * 28))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
@@ -44,7 +44,7 @@ def test_model_saves_with_example_output(tmpdir):
     trainer = Trainer(max_epochs=1)
     trainer.fit(model)
 
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     input_sample = torch.randn((1, 28 * 28))
     model.eval()
     example_outputs = model.forward(input_sample)
@@ -55,7 +55,7 @@ def test_model_saves_with_example_output(tmpdir):
 def test_model_saves_with_example_input_array(tmpdir):
     """Test that ONNX model saves with_example_input_array and size is greater than 3 MB"""
     model = EvalModelTemplate()
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)
     assert os.path.exists(file_path) is True
     assert os.path.getsize(file_path) > 3e+06
@@ -80,7 +80,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
 
     tpipes.run_model_test(trainer_options, model)
 
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path)
     assert os.path.exists(file_path) is True
 
@@ -88,7 +88,7 @@ def test_model_saves_on_multi_gpu(tmpdir):
 def test_verbose_param(tmpdir, capsys):
     """Test that output is present when verbose parameter is set"""
     model = EvalModelTemplate()
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, verbose=True)
     captured = capsys.readouterr()
     assert "graph(%" in captured.out
@@ -98,7 +98,7 @@ def test_error_if_no_input(tmpdir):
     """Test that an exception is thrown when there is no input tensor"""
     model = EvalModelTemplate()
     model.example_input_array = None
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     with pytest.raises(ValueError, match=r'Could not export to ONNX since neither input_sample nor '
                                          r'model.example_input_array attribute is set.'):
         model.to_onnx(file_path)
@@ -114,7 +114,7 @@ def test_if_inference_output_is_valid(tmpdir):
     with torch.no_grad():
         torch_out = model(model.example_input_array)
 
-    file_path = os.path.join(tmpdir, "model.onxx")
+    file_path = os.path.join(tmpdir, "model.onnx")
     model.to_onnx(file_path, model.example_input_array, export_params=True)
 
     ort_session = onnxruntime.InferenceSession(file_path)
