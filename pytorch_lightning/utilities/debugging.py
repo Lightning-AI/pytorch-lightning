@@ -39,7 +39,7 @@ class InternalDebugger(object):
 
     def __init__(self, trainer):
 
-        self.enabled = 'PL_DEV_DEBUG' in os.environ
+        self.enabled = os.environ.get('PL_DEV_DEBUG', '0') == '1'
         self.trainer = trainer
         self.logged_metrics = []
         self.pbar_added_metrics = []
