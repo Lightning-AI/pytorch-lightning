@@ -227,85 +227,7 @@ class TrainerEvaluationLoopMixin(ABC):
     def call_hook(self, hook_name, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def _evaluate(
-        self,
-        model: LightningModule,
-        dataloaders: List[DataLoader],
-        max_batches: Union[int, List[int]],
-        test_mode: bool = False,
-    ):
-        """Run evaluation code.
-
-        Args:
-            model: The model to evaluate.
-            dataloaders: A list of PyTorch dataloaders.
-            max_batches: An integer or list of integers with length of the number of dataloaders. Each
-                entry is the number of batches to process in the corresponding dataloader.
-            test_mode:
-        """
-
-        # enable eval mode + no grads
-        model.zero_grad()
-        model.eval()
-        torch.set_grad_enabled(False)
-
-        # set up the eval loop
-        self.evaluation_loop.setup(model, max_batches, dataloaders)
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_start()
-
-        # run validation/testing
-        for dataloader_idx, dataloader in enumerate(dataloaders):
-            dl_outputs = []
-
-            # certain accelerators need to process the dataloader
-            dataloader = self.accelerator_backend.process_dataloader(dataloader)
-
-            # each dataloader has a max num batches
-            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
-
-            for batch_idx, batch in enumerate(dataloader):
-                if batch is None:
-                    continue
-
-                # stop short when running on limited batches
-                if batch_idx >= dl_max_batches:
-                    break
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
-
-                # lightning module methods
-                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
-                output = self.evaluation_loop.evaluation_step_end(output)
-
-                # hook
-                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
-
-                # clean up
-                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
-                self.evaluation_loop.log_step_metrics(output, batch_idx)
-
-                # track epoch level metrics
-                if output is not None:
-                    dl_outputs.append(output)
-
-            self.evaluation_loop.outputs.append(dl_outputs)
-
-        # lightning module method
-        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
-
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end(eval_results)
-
-        # enable train mode again
-        model.train()
-        torch.set_grad_enabled(True)
-
-        return eval_results
-
-    def run_evaluation(self, test_mode: bool = False):
+    def run_evaluation(self, test_mode: bool = False, max_batches: List[int] = None):
         # set up the loop for val/test
         self.evaluation_loop.testing = test_mode
 
@@ -313,7 +235,7 @@ class TrainerEvaluationLoopMixin(ABC):
         model = self.get_model()
 
         # select dataloaders
-        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
 
         # enable disabling validation step with limit_val_batches = 0
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
