@@ -996,7 +996,7 @@ class Trainer(
         self.config_validator.verify_loop_configurations(model)
 
         # hook
-        self.call_hook('on_fit_start')
+        self.call_hook('on_fit_start', model)
 
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
