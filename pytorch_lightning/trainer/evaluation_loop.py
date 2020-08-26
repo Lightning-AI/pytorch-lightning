@@ -322,7 +322,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # TODO: deprecate
+        # hook
         self.evaluation_loop.on_evaluation_start()
 
         # ------------------------------
