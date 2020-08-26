@@ -98,6 +98,10 @@ setup(
     install_requires=load_requirements(),
     extras_require=extras,
 
+    package_data={
+        "pytorch_lightning": ["py.typed"]
+    },
+
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
         "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
