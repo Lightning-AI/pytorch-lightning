@@ -303,7 +303,7 @@ class TrainerEvaluationLoopMixin(ABC):
         self.evaluation_loop.predictions.to_disk()
 
         # hook
-        self.evaluation_loop.on_evaluation_epoch_end(eval_results)
+        self.evaluation_loop.on_evaluation_epoch_end()
 
         # enable train mode again
         model.train()
