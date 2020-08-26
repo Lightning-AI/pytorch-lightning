@@ -624,7 +624,7 @@ def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
     reason="IterableDataset with __len__ before 1.4 raises",
 )
 def test_warning_with_iterable_dataset_and_len(tmpdir):
-    """ Tests that a warning messages is shown when an IterableDataset defines `__len__`. """
+    """ Tests that a warning message is shown when an IterableDataset defines `__len__`. """
     model = EvalModelTemplate()
     original_dataset = model.train_dataloader().dataset
 
