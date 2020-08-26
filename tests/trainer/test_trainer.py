@@ -509,6 +509,7 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
+        num_sanity_val_steps=0,
         val_check_interval=1.,
     )
 
