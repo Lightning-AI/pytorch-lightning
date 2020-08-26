@@ -311,9 +311,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # enable eval mode + no grads
         model = self.get_model()
-        model.zero_grad()
-        model.eval()
-        torch.set_grad_enabled(False)
 
         # TODO: deprecate
         model.on_pre_performance_check()
@@ -328,6 +325,9 @@ class TrainerEvaluationLoopMixin(ABC):
         # ------------------------------
         # ------------------------------
         # ------------------------------
+        model.zero_grad()
+        model.eval()
+        torch.set_grad_enabled(False)
 
         # set up the eval loop
         self.evaluation_loop.setup(model, max_batches, dataloaders)
