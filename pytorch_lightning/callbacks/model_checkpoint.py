@@ -325,7 +325,7 @@ class ModelCheckpoint(Callback):
             rank_zero_warn(m)
 
     @rank_zero_only
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer, pl_module):
         # only run on main process
         if trainer.global_rank != 0:
             return

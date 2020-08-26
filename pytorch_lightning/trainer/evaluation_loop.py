@@ -295,8 +295,8 @@ class TrainerEvaluationLoopMixin(ABC):
         # lightning module method
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
-        # hook
-        self.evaluation_loop.on_evaluation_epoch_end(eval_results)
+        # log epoch level metrics
+        self.evaluation_loop.log_epoch_metrics(eval_results)
 
         # enable train mode again
         model.train()
@@ -314,6 +314,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # TODO: deprecate
         self.evaluation_loop.on_evaluation_end()
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end()
 
         return eval_loop_results, eval_results
 
