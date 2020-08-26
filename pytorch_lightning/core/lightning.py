@@ -1716,11 +1716,16 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         elif self.example_input_array is not None:
             input_data = self.example_input_array
         else:
-            raise ValueError('`input_sample` and `example_input_array` tensors are both missing.')
-
+            if input_sample is not None:
+                raise ValueError(f'Received `input_sample` of type {type(input_sample)}. Expected type is `Tensor`')
+            else:
+                raise ValueError('Could not export to ONNX since neither `input_sample` nor'
+                                 ' `model.example_input_array` attribute is set.')
+        input_data = input_data.to(self.device)
         if 'example_outputs' not in kwargs:
             self.eval()
-            kwargs['example_outputs'] = self(input_data)
+            with torch.no_grad():
+                kwargs['example_outputs'] = self(input_data)
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
