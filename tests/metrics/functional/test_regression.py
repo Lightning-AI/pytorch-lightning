@@ -1,8 +1,17 @@
 import numpy as np
 import pytest
 import torch
-from skimage.metrics import peak_signal_noise_ratio as ski_psnr
-from skimage.metrics import structural_similarity as ski_ssim
+from functools import partial
+from math import sqrt
+from skimage.metrics import (
+    peak_signal_noise_ratio as ski_psnr,
+    structural_similarity as ski_ssim
+)
+from sklearn.metrics import (
+    mean_absolute_error as mae_sk,
+    mean_squared_error as mse_sk,
+    mean_squared_log_error as msle_sk
+)
 
 from pytorch_lightning.metrics.functional import (
     mae,
@@ -12,6 +21,27 @@ from pytorch_lightning.metrics.functional import (
     rmsle,
     ssim
 )
+
+
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
+    pytest.param(mae_sk, mae, id='mean_absolute_error'),
+    pytest.param(mse_sk, mse, id='mean_squared_error'),
+    pytest.param(partial(mse_sk, squared=False), rmse, id='root_mean_squared_error'),
+    pytest.param(lambda x, y: sqrt(msle_sk(x, y)), rmsle, id='root_mean_squared_log_error')
+])
+def test_against_sklearn(sklearn_metric, torch_metric):
+    """Compare PL metrics to sklearn version."""
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # iterate over different label counts in predictions and target
+    pred = torch.rand(300, device=device)
+    target = torch.rand(300, device=device)
+
+    sk_score = sklearn_metric(target.cpu().detach().numpy(),
+                              pred.cpu().detach().numpy())
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    pl_score = torch_metric(pred, target)
+    assert torch.allclose(sk_score, pl_score)
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
@@ -45,8 +75,8 @@ def test_mae(pred, target, expected):
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([0., 1, 2, 3], [0., 1, 2, 3], 0.0),
-    pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.0207),
-    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 0.2841),
+    pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.1438),
+    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 0.5330),
 ])
 def test_rmsle(pred, target, expected):
     score = rmsle(torch.tensor(pred), torch.tensor(target))
