@@ -409,7 +409,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
         trainer.callback_metrics = {'val_loss': torch.tensor(loss)}
-        checkpoint_callback.on_validation_end(trainer, trainer.get_model())
+        checkpoint_callback.on_validation_epoch_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(tmpdir))
 
@@ -509,7 +509,6 @@ def test_resume_from_checkpoint_epoch_restored(monkeypatch, tmpdir, tmpdir_serve
         checkpoint_callback=ModelCheckpoint(tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
         early_stop_callback=False,
-        num_sanity_val_steps=0,
         val_check_interval=1.,
     )
 
