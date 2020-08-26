@@ -269,7 +269,7 @@ class ModelCheckpoint(Callback):
         return filepath
 
     @rank_zero_only
-    def on_train_start(self, trainer, pl_module):
+    def on_pretrain_routine_start(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
