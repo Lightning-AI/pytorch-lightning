@@ -1041,16 +1041,19 @@ class Trainer(
             self.accelerator_backend = DDP2Backend(self)
             self.accelerator_backend.setup()
             self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         elif use_slurm_ddp:
             self.accelerator_backend = DDPBackend(self)
             self.accelerator_backend.slurm_setup()
             self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         elif use_torchelastic_ddp:
             self.accelerator_backend = DDPBackend(self)
             self.accelerator_backend.torchelastic_setup()
             self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         # regular ddp using .spawn
         elif use_ddp_spawn:
@@ -1081,6 +1084,7 @@ class Trainer(
             self.accelerator_backend = GPUBackend(self)
             model = self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         elif self.use_tpu:
             self.accelerator_backend = TPUBackend(self)
@@ -1092,6 +1096,7 @@ class Trainer(
             self.accelerator_backend = CPUBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         # hook
         self.call_hook('on_fit_end')
