@@ -1040,26 +1040,26 @@ class Trainer(
         if self.use_ddp2:
             self.accelerator_backend = DDP2Backend(self)
             self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
 
         elif use_slurm_ddp:
             self.accelerator_backend = DDPBackend(self, mode='slurm_ddp')
             self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
 
         elif use_torchelastic_ddp:
             self.accelerator_backend = DDPBackend(self, mode='torchelastic_ddp')
             self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
 
         # regular ddp using .spawn
         elif use_ddp_spawn:
             self.accelerator_backend = DDPSpawnBackend(self, nprocs=self.num_processes)
             self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
 
         # ddp
@@ -1083,19 +1083,19 @@ class Trainer(
         elif self.use_single_gpu:
             self.accelerator_backend = GPUBackend(self)
             model = self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
 
         elif self.use_tpu:
             self.accelerator_backend = TPUBackend(self)
             self.accelerator_backend.setup(model)
-            self.accelerator_backend.train(model)
+            self.accelerator_backend.train()
             self.accelerator_backend.teardown(model)
 
         else:
             self.accelerator_backend = CPUBackend(self)
             self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            results = self.accelerator_backend.train()
             self.accelerator_backend.teardown()
 
         # hook

@@ -41,7 +41,11 @@ class DDPSpawnBackend(Accelerator):
         smp = mp.get_context('spawn')
         self.mp_queue = smp.SimpleQueue()
 
-    def train(self, model):
+        self.trainer.model = model
+
+    def train(self):
+        model = self.trainer.model
+
         # train in children process
         mp.spawn(self.ddp_train, nprocs=self.nprocs, args=(self.mp_queue, model,))
 

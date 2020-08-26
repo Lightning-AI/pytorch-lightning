@@ -57,13 +57,16 @@ class DDPBackend(Accelerator):
         elif self.mode == 'torchelastic_ddp':
             self.__torchelastic_setup()
 
+        self.trainer.model = model
+
     def __slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
 
     def __torchelastic_setup(self):
         self.task_idx = int(os.environ['LOCAL_RANK'])
 
-    def train(self, model):
+    def train(self):
+        model = self.trainer.model
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def spawn_ddp_children(self, model):
