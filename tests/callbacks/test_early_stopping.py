@@ -1,11 +1,12 @@
 from copy import deepcopy
+import os
 import pickle
 
 import cloudpickle
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
 
@@ -16,6 +17,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
+    os.environ['PL_DEV_DEBUG'] = '1'
+    seed_everything(1234)
 
     class EarlyStoppingTestStore(EarlyStopping):
         def __init__(self, *args, **kwargs):
@@ -38,20 +41,22 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     model = EvalModelTemplate()
     checkpoint_callback = ModelCheckpoint(save_top_k=1)
     early_stop_callback = EarlyStoppingTestStore()
+    epochs = 4
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
         early_stop_callback=early_stop_callback,
-        max_epochs=4,
+        max_epochs=epochs,
     )
     trainer.fit(model)
 
     checkpoint_filepath = checkpoint_callback.kth_best_model
     # ensure state is persisted properly
     checkpoint = torch.load(checkpoint_filepath)
-    # the checkpoint saves "epoch + 1"
-    early_stop_callback_state = early_stop_callback.saved_states[checkpoint['epoch'] - 1]
-    assert 4 == len(early_stop_callback.saved_states)
+
+    # pull the last checkpoint saved
+    early_stop_callback_state = early_stop_callback.saved_states[-1]
+    assert len(trainer.dev_debugger.early_stopping_history) == epochs
     assert checkpoint['early_stop_callback_state_dict'] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
