@@ -1716,7 +1716,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         elif self.example_input_array is not None:
             input_data = self.example_input_array
         else:
-            raise ValueError('`input_sample` and `example_input_array` tensors are both missing.')
+            raise ValueError('Could not export to ONNX since neither input_sample nor model.example_input_array '
+                             'attribute is set.')
 
         if 'example_outputs' not in kwargs:
             self.eval()
