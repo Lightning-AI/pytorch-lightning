@@ -250,18 +250,6 @@ class ModelHooks(Module):
         """
         # do something when the epoch ends
 
-    def on_pre_performance_check(self) -> None:
-        """
-        Called at the very beginning of the validation loop.
-        """
-        # do something before validation starts
-
-    def on_post_performance_check(self) -> None:
-        """
-        Called at the very end of the validation loop.
-        """
-        # do something before validation end
-
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """
         Called after optimizer.step() and before optimizer.zero_grad().
