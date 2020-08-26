@@ -140,7 +140,7 @@ def stat_scores_multiple_classes(
         reduction: str = 'none',
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calculates the number of true postive, false postive, true negative
+    Calculates the number of true positive, false positive, true negative
     and false negative for each class
 
     Args:
