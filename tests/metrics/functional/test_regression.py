@@ -22,11 +22,12 @@ from pytorch_lightning.metrics.functional import (
     ssim
 )
 
+
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
     pytest.param(mae_sk, mae, id='mean_absolute_error'),
     pytest.param(mse_sk, mse, id='mean_squared_error'),
     pytest.param(partial(mse_sk, squared=False), rmse, id='root_mean_squared_error'),
-    pytest.param(lambda x,y: sqrt(msle_sk(x,y)), rmsle, id='root_mean_squared_log_error')
+    pytest.param(lambda x, y: sqrt(msle_sk(x, y)), rmsle, id='root_mean_squared_log_error')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric):
     """Compare PL metrics to sklearn version."""
