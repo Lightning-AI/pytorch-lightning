@@ -142,6 +142,10 @@ class EarlyStopping(Callback):
         self.patience = state_dict['patience']
 
     def on_validation_end(self, trainer, pl_module):
+        # TODO: should we enable it during?
+        if trainer.running_sanity_check:
+            return
+
         val_es_key = 'val_early_stop_on'
         if trainer.callback_metrics.get(val_es_key) is not None:
             self.monitor = val_es_key
@@ -228,9 +232,3 @@ class EarlyStopping(Callback):
             stop = xm.mesh_reduce("stop_signal", stop, torch.cat)
             torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
             trainer.should_stop = int(stop.item()) == trainer.world_size
-
-    def on_train_end(self, trainer, pl_module):
-        if self.stopped_epoch > 0 and self.verbose > 0:
-            rank_zero_warn('Displayed epoch numbers by `EarlyStopping` start from "1" until v0.6.x,'
-                           ' but will start from "0" in v0.8.0.', DeprecationWarning)
-            log.info(f'Epoch {self.stopped_epoch + 1:05d}: early stopping triggered.')

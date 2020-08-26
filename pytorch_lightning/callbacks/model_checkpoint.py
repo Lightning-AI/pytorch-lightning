@@ -330,6 +330,11 @@ class ModelCheckpoint(Callback):
         if trainer.global_rank != 0:
             return
 
+        # not in sanity check
+        # TODO: should we eanble it during?
+        if trainer.running_sanity_check:
+            return
+
         # TODO: remove when dict results are deprecated
         self.__warn_deprecated_monitor_key()
 
