@@ -313,7 +313,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # TODO: deprecate
         model = self.get_model()
-        model.on_pre_performance_check()
 
         # select dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
@@ -322,7 +321,7 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # TODO: deprecate
+        # hook
         self.evaluation_loop.on_evaluation_start()
 
         # ------------------------------
@@ -392,9 +391,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # log the final eval loop metrics
         eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
-
-        # hook
-        model.on_post_performance_check()
 
         # user may want to reload every epoch
         if self.reload_dataloaders_every_epoch:
