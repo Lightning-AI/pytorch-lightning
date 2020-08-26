@@ -995,10 +995,8 @@ class Trainer(
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
 
-        # callbacks
-        self.on_fit_start(model)
-        if self.is_function_implemented('on_fit_start', model):
-            model.on_fit_start()
+        # hook
+        self.call_hook('on_fit_start')
 
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
@@ -1095,15 +1093,11 @@ class Trainer(
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train(model)
 
-        # on fit end callback
-        self.on_fit_end()
-        if self.is_function_implemented('on_fit_end'):
-            model.on_fit_end()
+        # hook
+        self.call_hook('on_fit_end')
 
-        # teardown callback
-        self.teardown('fit')
-        if self.is_function_implemented('teardown'):
-            model.teardown('fit')
+        # hook
+        self.call_hook('teardown', 'fit')
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
