@@ -8,7 +8,7 @@ class Accelerator(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def setup(self):
+    def setup(self, model):
         pass
 
     def teardown(self):

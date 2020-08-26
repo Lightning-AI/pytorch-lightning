@@ -49,7 +49,7 @@ class DDPBackend(Accelerator):
         self._has_spawned_children = False
         self.mode = mode
 
-    def setup(self):
+    def setup(self, model):
         if self.mode == 'ddp':
             pass
         elif self.mode == 'slurm_ddp':
