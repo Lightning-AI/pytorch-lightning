@@ -186,7 +186,9 @@ class TrainerEvaluationLoopMixin(ABC):
     on_validation_batch_end: Callable
     on_test_batch_start: Callable
     on_test_batch_end: Callable
+    on_validation_start: Callable
     on_validation_end: Callable
+    on_test_start: Callable
     on_test_end: Callable
     accelerator_backend: ...
     evaluation_loop: EvaluationLoop
@@ -309,8 +311,9 @@ class TrainerEvaluationLoopMixin(ABC):
         # set up the loop for val/test
         self.evaluation_loop.testing = test_mode
 
-        # enable eval mode + no grads
+        # TODO: deprecate
         model = self.get_model()
+        model.on_pre_performance_check()
 
         # select dataloaders
         dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders()
@@ -319,12 +322,13 @@ class TrainerEvaluationLoopMixin(ABC):
         if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
             return [], []
 
-        # hook
+        # TODO: deprecate
         self.evaluation_loop.on_evaluation_start()
 
         # ------------------------------
         # ------------------------------
         # ------------------------------
+        # enable eval mode + no grads
         model.zero_grad()
         model.eval()
         torch.set_grad_enabled(False)
@@ -388,6 +392,9 @@ class TrainerEvaluationLoopMixin(ABC):
 
         # log the final eval loop metrics
         eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
+
+        # hook
+        model.on_post_performance_check()
 
         # user may want to reload every epoch
         if self.reload_dataloaders_every_epoch:
