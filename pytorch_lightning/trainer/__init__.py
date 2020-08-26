@@ -411,10 +411,13 @@ early_stop_callback
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
-- ``True``: A default callback monitoring ``'val_loss'`` is created.
-   Will raise an error if ``'val_loss'`` is not found.
+- ``True``: A default callback monitoring ``'val_loss'`` (if dict is returned in validation loop) or
+   ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
+   Will raise an error if a dictionary is returned and ``'val_loss'`` is not found.
+   Will raise an error if a :class:`~pytorch_lightning.core.step_result.Result` is returned
+   and ``early_stopping_on`` was not specified.
 - ``False``: Early stopping will be disabled.
-- ``None``: The default callback monitoring ``'val_loss'`` is created.
+- ``None``: Same as, if ``True`` is specified.
 - Default: ``None``.
 
 .. testcode::
