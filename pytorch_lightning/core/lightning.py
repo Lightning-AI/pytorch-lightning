@@ -1711,7 +1711,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             True
         """
 
-        if input_sample is not None:
+        if isinstance(input_sample, Tensor):
             input_data = input_sample
         elif self.example_input_array is not None:
             input_data = self.example_input_array
