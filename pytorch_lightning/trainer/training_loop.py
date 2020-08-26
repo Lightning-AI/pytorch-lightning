@@ -270,7 +270,7 @@ class TrainerTrainLoopMixin(ABC):
     on_train_batch_end: Callable
     on_epoch_start: Callable
     on_epoch_end: Callable
-    on_validation_end: Callable
+    on_validation_epoch_end: Callable
     on_keyboard_interrupt: Callable
     on_train_epoch_start: Callable
     on_train_epoch_end: Callable
@@ -582,7 +582,7 @@ class TrainerTrainLoopMixin(ABC):
         should_activate = not self.is_overridden('validation_step') and not should_check_val
         if should_activate:
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-            [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
+            [c.on_validation_epoch_end(self, self.get_model()) for c in checkpoint_callbacks]
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0

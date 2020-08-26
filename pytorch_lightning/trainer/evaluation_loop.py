@@ -186,8 +186,6 @@ class TrainerEvaluationLoopMixin(ABC):
     on_validation_batch_end: Callable
     on_test_batch_start: Callable
     on_test_batch_end: Callable
-    on_validation_end: Callable
-    on_test_end: Callable
     accelerator_backend: ...
     evaluation_loop: EvaluationLoop
 

@@ -151,5 +151,5 @@ The following are best practices when using/designing callbacks.
 1. Callbacks should be isolated in their functionality.
 2. Your callback should not rely on the behavior of other callbacks in order to work properly.
 3. Do not manually call methods from the callback.
-4. Directly calling methods (eg. `on_validation_end`) is strongly discouraged.
+4. Directly calling methods (eg. `on_validation_epoch_end`) is strongly discouraged.
 5. Whenever possible, your callbacks should not depend on the order in which they are executed.

@@ -23,8 +23,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
             # cache the state for each epoch
             self.saved_states = []
 
-        def on_validation_end(self, trainer, pl_module):
-            super().on_validation_end(trainer, pl_module)
+        def on_validation_epoch_end(self, trainer, pl_module):
+            super().on_validation_epoch_end(trainer, pl_module)
             self.saved_states.append(deepcopy(self.state_dict()))
 
     class EarlyStoppingTestRestore(EarlyStopping):
@@ -73,7 +73,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
             self.count = 0
             self.expected_count = expected_count
 
-        def on_validation_end(self, trainer, pl_module):
+        def on_validation_epoch_end(self, trainer, pl_module):
             self.count += 1
 
         def on_train_end(self, trainer, pl_module):

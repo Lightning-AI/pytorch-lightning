@@ -141,7 +141,7 @@ class EarlyStopping(Callback):
         self.best_score = state_dict['best_score']
         self.patience = state_dict['patience']
 
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer, pl_module):
         self._run_early_stopping_check(trainer, pl_module)
 
     def on_validation_epoch_end(self, trainer, pl_module):

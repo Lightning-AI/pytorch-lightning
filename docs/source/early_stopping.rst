@@ -62,7 +62,7 @@ and change where it is called:
 
     class MyEarlyStopping(EarlyStopping):
 
-        def on_validation_end(self, trainer, pl_module):
+        def on_validation_epoch_end(self, trainer, pl_module):
             # override this to disable early stopping at the end of val loop
             pass
 
