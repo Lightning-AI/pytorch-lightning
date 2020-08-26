@@ -166,7 +166,7 @@ class RMSLE(Metric):
         >>> target = torch.tensor([0., 1, 2, 2])
         >>> metric = RMSLE()
         >>> metric(pred, target)
-        tensor(0.0207)
+        tensor(0.1438)
 
     """
 
