@@ -1057,10 +1057,10 @@ class Trainer(
 
         # regular ddp using .spawn
         elif use_ddp_spawn:
-            self.accelerator_backend = DDPSpawnBackend(self)
+            self.accelerator_backend = DDPSpawnBackend(self, nprocs=self.num_processes)
             self.accelerator_backend.setup()
-            self.accelerator_backend.train(model, nprocs=self.num_processes)
-            results = self.accelerator_backend.teardown(model)
+            results = self.accelerator_backend.train(model)
+            self.accelerator_backend.teardown()
 
         # ddp
         elif self.distributed_backend == 'ddp':
