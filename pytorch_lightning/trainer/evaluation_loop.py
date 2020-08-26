@@ -321,6 +321,9 @@ class TrainerEvaluationLoopMixin(ABC):
         return eval_loop_results, eval_results
 
     def __log_evaluation_epoch_metrics(self, eval_results, test_mode):
+        if self.running_sanity_check:
+            return
+
         eval_loop_results = []
         if eval_results is not None and len(eval_results) > 0:
 
