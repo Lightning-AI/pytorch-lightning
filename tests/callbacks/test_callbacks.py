@@ -32,6 +32,7 @@ def test_trainer_callback_system(tmpdir):
             self.on_train_batch_end_called = False
             self.on_validation_batch_start_called = False
             self.on_validation_batch_end_called = False
+            self.on_validation_epoch_end_called = False
             self.on_test_batch_start_called = False
             self.on_test_batch_end_called = False
             self.on_train_start_called = False
@@ -42,6 +43,7 @@ def test_trainer_callback_system(tmpdir):
             self.on_validation_end_called = False
             self.on_test_start_called = False
             self.on_test_end_called = False
+            self.on_test_epoch_end_called = False
 
         def setup(self, trainer, pl_module, stage: str):
             assert isinstance(trainer, Trainer)
@@ -139,6 +141,14 @@ def test_trainer_callback_system(tmpdir):
             _check_args(trainer, pl_module)
             self.on_validation_end_called = True
 
+        def on_validation_epoch_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_validation_epoch_end_called = True
+
+        def on_test_epoch_end(self, trainer, pl_module):
+            _check_args(trainer, pl_module)
+            self.on_test_epoch_end_called = True
+
         def on_test_start(self, trainer, pl_module):
             _check_args(trainer, pl_module)
             self.on_test_start_called = True
@@ -184,6 +194,8 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_validation_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
+    assert not test_callback.on_validation_epoch_end_called
+    assert not test_callback.on_test_epoch_end_called
 
     # fit model
     trainer = Trainer(**trainer_options)
@@ -213,8 +225,10 @@ def test_trainer_callback_system(tmpdir):
     assert not test_callback.on_pretrain_routine_end_called
     assert not test_callback.on_validation_start_called
     assert not test_callback.on_validation_end_called
+    assert not test_callback.on_validation_epoch_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
+    assert not test_callback.on_test_epoch_end_called
 
     trainer.fit(model)
 
@@ -240,10 +254,12 @@ def test_trainer_callback_system(tmpdir):
     assert test_callback.on_pretrain_routine_end_called
     assert test_callback.on_validation_start_called
     assert test_callback.on_validation_end_called
+    assert test_callback.on_validation_epoch_end_called
     assert not test_callback.on_test_batch_start_called
     assert not test_callback.on_test_batch_end_called
     assert not test_callback.on_test_start_called
     assert not test_callback.on_test_end_called
+    assert not test_callback.on_test_epoch_end_called
 
     # reset setup teardown callback
     test_callback.teardown_called = False
@@ -260,7 +276,9 @@ def test_trainer_callback_system(tmpdir):
     assert test_callback.on_test_batch_end_called
     assert test_callback.on_test_start_called
     assert test_callback.on_test_end_called
+    assert test_callback.on_test_epoch_end_called
     assert not test_callback.on_validation_start_called
     assert not test_callback.on_validation_end_called
+    assert not test_callback.on_validation_epoch_end_called
     assert not test_callback.on_validation_batch_end_called
     assert not test_callback.on_validation_batch_start_called

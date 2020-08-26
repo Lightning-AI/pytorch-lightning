@@ -299,7 +299,7 @@ class TrainerEvaluationLoopMixin(ABC):
         eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
         # hook
-        self.evaluation_loop.on_evaluation_epoch_end(eval_results)
+        self.evaluation_loop.on_evaluation_epoch_end()
 
         # enable train mode again
         model.train()
