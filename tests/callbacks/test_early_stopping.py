@@ -1,4 +1,3 @@
-import os
 from copy import deepcopy
 import pickle
 
@@ -24,8 +23,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
             # cache the state for each epoch
             self.saved_states = []
 
-        def on_validation_end(self, trainer, pl_module):
-            super().on_validation_end(trainer, pl_module)
+        def on_validation_epoch_end(self, trainer, pl_module):
+            super().on_validation_epoch_end(trainer, pl_module)
             self.saved_states.append(deepcopy(self.state_dict()))
 
     class EarlyStoppingTestRestore(EarlyStopping):
@@ -33,7 +32,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
             super().__init__()
             self.expected_state = expected_state
 
-        def on_validation_start(self, trainer, pl_module):
+        def on_train_start(self, trainer, pl_module):
             assert self.state_dict() == self.expected_state
 
     model = EvalModelTemplate()
@@ -51,8 +50,8 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     # ensure state is persisted properly
     checkpoint = torch.load(checkpoint_filepath)
     # the checkpoint saves "epoch + 1"
-    early_stop_callback_state = early_stop_callback.saved_states[checkpoint['epoch']]
-    assert 5 == len(early_stop_callback.saved_states)
+    early_stop_callback_state = early_stop_callback.saved_states[checkpoint['epoch'] - 1]
+    assert 4 == len(early_stop_callback.saved_states)
     assert checkpoint['early_stop_callback_state_dict'] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
@@ -66,43 +65,30 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     new_trainer.fit(model)
 
 
-def test_early_stopping_no_extraneous_invocations_no_sanity_check(tmpdir):
+def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
+    class EarlyStoppingTestInvocations(EarlyStopping):
+        def __init__(self, expected_count):
+            super().__init__()
+            self.count = 0
+            self.expected_count = expected_count
 
-    # enable internal debugging actions
-    os.environ['PL_DEV_DEBUG'] = '1'
+        def on_validation_epoch_end(self, trainer, pl_module):
+            self.count += 1
+
+        def on_train_end(self, trainer, pl_module):
+            assert self.count == self.expected_count
 
     model = EvalModelTemplate()
     expected_count = 4
+    early_stop_callback = EarlyStoppingTestInvocations(expected_count)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=True,
+        early_stop_callback=early_stop_callback,
         val_check_interval=1.0,
-        num_sanity_val_steps=0,
         max_epochs=expected_count,
     )
     trainer.fit(model)
-
-    assert len(trainer.dev_debugger.early_stopping_history) == expected_count
-
-
-def test_early_stopping_no_extraneous_invocations(tmpdir):
-    """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
-
-    # enable internal debugging actions
-    os.environ['PL_DEV_DEBUG'] = '1'
-
-    model = EvalModelTemplate()
-    epochs = 4
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        early_stop_callback=True,
-        val_check_interval=1.0,
-        max_epochs=epochs,
-    )
-    trainer.fit(model)
-
-    assert len(trainer.dev_debugger.early_stopping_history) == epochs + 1
 
 
 @pytest.mark.parametrize('loss_values, patience, expected_stop_epoch', [
