@@ -1721,7 +1721,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         input_data = input_data.to(self.device)
         if 'example_outputs' not in kwargs:
             self.eval()
-            kwargs['example_outputs'] = self(input_data)
+            with torch.no_grad():
+                kwargs['example_outputs'] = self(input_data)
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
