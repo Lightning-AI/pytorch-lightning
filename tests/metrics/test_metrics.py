@@ -148,7 +148,7 @@ def test_metric(metric: Metric):
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
 @pytest.mark.parametrize("metric", [
     DummyTensorMetric,
-    DummyNumpyMetric(),
+    DummyNumpyMetric,
 ])
 def test_model_pickable(tmpdir, metric: Metric):
     """Make sure that metrics are pickable by including into a model and running in multi-gpu mode"""
@@ -164,7 +164,7 @@ def test_model_pickable(tmpdir, metric: Metric):
 
     model = EvalModelTemplate()
     model.metric = metric()
-    model.training_step = model.training_step_using_metrics
+    model.training_step = model.training_step__using_metrics
 
     tpipes.run_model_test(trainer_options, model)
 

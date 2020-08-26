@@ -176,7 +176,7 @@ class TrainingStepVariations(ABC):
 
         return result
 
-    def training_step_using_metrics(self, batch, batch_idx, optimizer_idx=None):
+    def training_step__using_metrics(self, batch, batch_idx, optimizer_idx=None):
         """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch
