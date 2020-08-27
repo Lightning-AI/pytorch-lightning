@@ -11,14 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import torch
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities import AMPType
 
 
-class CPUBackend(object):
+class CPUBackend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
 
     def setup(self, model):
         # run through amp wrapper
@@ -34,7 +36,33 @@ class CPUBackend(object):
         self.trainer.optimizers = optimizers
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
+        self.trainer.model = model
 
-    def train(self, model):
+    def train(self):
+        model = self.trainer.model
         results = self.trainer.run_pretrain_routine(model)
         return results
+
+    def training_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model.training_step(*args)
+        else:
+            output = self.trainer.model.training_step(*args)
+        return output
+
+    def validation_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model.validation_step(*args)
+        else:
+            output = self.trainer.model.validation_step(*args)
+        return output
+
+    def test_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model.test_step(*args)
+        else:
+            output = self.trainer.model.test_step(*args)
+        return output

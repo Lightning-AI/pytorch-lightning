@@ -175,3 +175,20 @@ class TrainingStepVariations(ABC):
         setattr(result, f'{eval_name}_step_end_metric', reduced)
 
         return result
+
+    def training_step__using_metrics(self, batch, batch_idx, optimizer_idx=None):
+        """Lightning calls this inside the training loop"""
+        # forward pass
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self(x)
+
+        # calculate loss
+        loss_val = self.loss(y, y_hat)
+
+        # call metric
+        val = self.metric(x, y)
+
+        result = TrainResult(minimize=loss_val)
+        result.log('metric_val', val)
+        return result

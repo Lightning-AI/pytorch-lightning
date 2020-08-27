@@ -1,3 +1,4 @@
+import os
 from copy import deepcopy
 import pickle
 
@@ -41,6 +42,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
         early_stop_callback=early_stop_callback,
+        num_sanity_val_steps=0,
         max_epochs=4,
     )
     trainer.fit(model)
@@ -64,33 +66,21 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     new_trainer.fit(model)
 
 
-class EarlyStoppingTestInvocations(EarlyStopping):
-    # this class has to be defined outside the test function, otherwise we get pickle error
-    def __init__(self, expected_count):
-        super().__init__()
-        self.count = 0
-        self.expected_count = expected_count
-
-    def on_validation_end(self, trainer, pl_module):
-        self.count += 1
-
-    def on_train_end(self, trainer, pl_module):
-        assert self.count == self.expected_count
-
-
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
+    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     expected_count = 4
-    early_stop_callback = EarlyStoppingTestInvocations(expected_count)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=early_stop_callback,
+        early_stop_callback=True,
         val_check_interval=1.0,
         max_epochs=expected_count,
     )
     trainer.fit(model)
+
+    assert len(trainer.dev_debugger.early_stopping_history) == expected_count
 
 
 @pytest.mark.parametrize(

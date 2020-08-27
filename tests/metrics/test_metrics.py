@@ -1,8 +1,12 @@
+import os
 import numpy as np
 import pytest
 import torch
 
+import tests.base.develop_utils as tutils
+from tests.base import EvalModelTemplate
 from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric, TensorCollectionMetric
+from pytorch_lightning import Trainer
 
 
 class DummyTensorMetric(TensorMetric):
@@ -12,7 +16,7 @@ class DummyTensorMetric(TensorMetric):
     def forward(self, input1, input2):
         assert isinstance(input1, torch.Tensor)
         assert isinstance(input2, torch.Tensor)
-        return 1.
+        return torch.tensor([1.])
 
 
 class DummyNumpyMetric(NumpyMetric):
@@ -139,3 +143,46 @@ def test_metric(metric: Metric):
         metric.half()
         assert metric.dtype == torch.float16
         assert metric(input1, input2).dtype == torch.float16
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize("metric", [DummyTensorMetric, DummyNumpyMetric])
+def test_model_pickable(tmpdir, metric: Metric):
+    """Make sure that metrics are pickable by including into a model and running in multi-gpu mode"""
+    tutils.set_random_master_port()
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=10,
+        gpus=[0, 1],
+        distributed_backend='ddp_spawn',
+    )
+
+    model = EvalModelTemplate()
+    model.metric = metric()
+    model.training_step = model.training_step__using_metrics
+
+    trainer = Trainer(**trainer_options)
+    result = trainer.fit(model)
+
+    # correct result and ok accuracy
+    assert result == 1, 'ddp model failed to complete'
+
+
+@pytest.mark.parametrize("metric", [DummyTensorMetric(), DummyNumpyMetric()])
+def test_saving_pickable(tmpdir, metric: Metric):
+    """ Make sure that metrics are pickable by saving and loading them using torch """
+    x, y = torch.randn(10,), torch.randn(10,)
+    results_before_save = metric(x, y)
+
+    # save metric
+    save_path = os.path.join(tmpdir, 'save_test.ckpt')
+    torch.save(metric, save_path)
+
+    # load metric
+    new_metric = torch.load(save_path)
+    results_after_load = new_metric(x, y)
+
+    # Check metric value is the same
+    assert results_before_save == results_after_load

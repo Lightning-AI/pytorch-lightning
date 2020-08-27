@@ -16,14 +16,17 @@
         def val_dataloader():
             pass
 
+        def test_dataloader():
+            pass
+
 Child Modules
 -------------
 Research projects tend to test different approaches to the same dataset.
 This is very easy to do in Lightning with inheritance.
 
 For example, imagine we now want to train an Autoencoder to use as a feature extractor for MNIST images.
-Recall that `LitMNIST` already defines all the dataloading etc... The only things
-that change in the `Autoencoder` model are the init, forward, training, validation and test step.
+We are extending our Autoencoder from the `LitMNIST`-module which already defines all the dataloading.
+The only things that change in the `Autoencoder` model are the init, forward, training, validation and test step.
 
 .. testcode::
 
@@ -39,18 +42,18 @@ that change in the `Autoencoder` model are the init, forward, training, validati
             super().__init__()
             self.encoder = Encoder()
             self.decoder = Decoder()
+            self.metric = MSE()
 
         def forward(self, x):
-            generated = self.decoder(x)
-            return generated
-            
+            return self.encoder(x)
+
         def training_step(self, batch, batch_idx):
             x, _ = batch
 
-            representation = self.encoder(x)
-            x_hat = self(representation)
+            representation = self(x)
+            x_hat = self.decoder(representation)
 
-            loss = MSE(x, x_hat)
+            loss = self.metric(x, x_hat)
             return loss
 
         def validation_step(self, batch, batch_idx):
@@ -60,11 +63,11 @@ that change in the `Autoencoder` model are the init, forward, training, validati
             return self._shared_eval(batch, batch_idx, 'test')
 
         def _shared_eval(self, batch, batch_idx, prefix):
-            x, y = batch
-            representation = self.encoder(x)
-            x_hat = self(representation)
+            x, _ = batch
+            representation = self(x)
+            x_hat = self.decoder(representation)
 
-            loss = F.nll_loss(logits, y)
+            loss = self.metric(x, x_hat)
             result = pl.EvalResult()
             result.log(f'{prefix}_loss', loss)
             return result
@@ -78,7 +81,7 @@ and we can train this using the same trainer
     trainer = Trainer()
     trainer.fit(autoencoder)
 
-And remember that the forward method is to define the practical use of a LightningModule.
+And remember that the forward method should define the practical use of a LightningModule.
 In this case, we want to use the `AutoEncoder` to extract image representations
 
 .. code-block:: python

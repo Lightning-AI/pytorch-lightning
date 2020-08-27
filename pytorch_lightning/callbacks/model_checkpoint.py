@@ -269,7 +269,7 @@ class ModelCheckpoint(Callback):
         return filepath
 
     @rank_zero_only
-    def on_train_start(self, trainer, pl_module):
+    def on_pretrain_routine_start(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
@@ -318,7 +318,7 @@ class ModelCheckpoint(Callback):
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
             m = f"""
-                    When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the
+                    When using EvalResult(checkpoint_on=X) or TrainResult(checkpoint_on=X) the
                     'monitor' key of ModelCheckpoint has no effect.
                     Remove ModelCheckpoint(monitor='{self.monitor}) to fix')
                 """
@@ -328,6 +328,9 @@ class ModelCheckpoint(Callback):
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
         if trainer.global_rank != 0:
+            return
+
+        if trainer.running_sanity_check:
             return
 
         # TODO: remove when dict results are deprecated

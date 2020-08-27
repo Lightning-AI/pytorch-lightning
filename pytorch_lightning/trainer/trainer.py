@@ -23,7 +23,7 @@ import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend)
+    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend, HorovodBackend)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -54,6 +54,7 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import is_remote_path
+from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -377,6 +378,7 @@ class Trainer(
         self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
+        self.num_sanity_val_batches = []
         self.num_test_batches = []
         self.train_dataloader = None
         self.test_dataloaders = None
@@ -401,7 +403,7 @@ class Trainer(
         self.interrupted = False
         self.should_stop = False
         self.running_sanity_check = False
-        self.state = TrainerState.INITIALIZING
+        self._state = TrainerState.INITIALIZING
 
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
@@ -463,9 +465,9 @@ class Trainer(
         self.min_steps = min_steps
 
         if num_sanity_val_steps == -1:
-            self.num_sanity_val_steps = float("inf")
+            self.num_sanity_val_steps = float('inf')
         else:
-            self.num_sanity_val_steps = min(num_sanity_val_steps, limit_val_batches)
+            self.num_sanity_val_steps = num_sanity_val_steps
 
         self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
 
@@ -607,8 +609,15 @@ class Trainer(
         self.config_validator = ConfigValidator(self)
         self.accelerator_backend = None
 
+        # loops
+        self.evaluation_loop = EvaluationLoop(self)
+
         # Callback system
         self.on_init_end()
+
+    @property
+    def state(self) -> TrainerState:
+        return self._state
 
     @property
     def is_global_zero(self) -> bool:
@@ -972,32 +981,17 @@ class Trainer(
         if hasattr(model, 'hparams'):
             parsing.clean_namespace(model.hparams)
 
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloader, LightningDataModule):
-            datamodule = train_dataloader
-            train_dataloader = None
-
-        self.config_validator.enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
-
-        # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.__attach_datamodule(model, datamodule, 'fit')
+        # links data to the trainer
+        self.attach_data(model, train_dataloader, val_dataloaders, datamodule)
 
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
 
-        # callbacks
-        self.on_fit_start(model)
-        if self.is_function_implemented('on_fit_start', model):
-            model.on_fit_start()
+        # hook
+        self.call_hook('on_fit_start', model)
 
-        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
-        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
-        if self.can_prepare_data():
-            if self.datamodule is not None:
-                self.datamodule.prepare_data()
-            model.prepare_data()
-            self._is_data_prepared = True
+        # hook
+        self.prepare_data(model)
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
@@ -1014,9 +1008,51 @@ class Trainer(
         # set testing if set in environ
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
-        # -------------------
-        # determine ddp mode
-        # -------------------
+        # -------------------------
+        # TRAIN
+        # -------------------------
+        self.accelerator_backend = self.select_accelerator()
+        self.accelerator_backend.setup(model)
+        results = self.accelerator_backend.train()
+        self.accelerator_backend.teardown()
+
+        # -------------------------
+        # POST-Training
+        # -------------------------
+        # hook
+        self.call_hook('on_fit_end')
+
+        # hook
+        self.teardown('fit')
+        if self.is_function_implemented('teardown'):
+            model.teardown('fit')
+
+        # return 1 when finished
+        # used for testing or when we need to know that training succeeded
+        return results or 1
+
+    def prepare_data(self, model):
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+        if self.can_prepare_data():
+            if self.datamodule is not None:
+                self.datamodule.prepare_data()
+            model.prepare_data()
+            self._is_data_prepared = True
+
+    def attach_data(self, model, train_dataloader, val_dataloaders, datamodule):
+        # if a datamodule comes in as the second arg, then fix it for the user
+        if isinstance(train_dataloader, LightningDataModule):
+            datamodule = train_dataloader
+            train_dataloader = None
+
+        self.config_validator.enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
+
+        # set up the passed in dataloaders (if needed)
+        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
+        self.__attach_datamodule(model, datamodule, 'fit')
+
+    def select_accelerator(self):
         # SLURM ddp
         use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
 
@@ -1026,76 +1062,38 @@ class Trainer(
 
         use_ddp_spawn = self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']
 
-        # -------------------
-        # route training mode
-        # -------------------
-        # DDP2 (cluster only)
+        # choose the appropriate accelerator backend
         if self.use_ddp2:
-            self.accelerator_backend = DDP2Backend(self)
-            self.accelerator_backend.setup()
-            self.accelerator_backend.train(model)
+            accelerator_backend = DDP2Backend(self)
 
         elif use_slurm_ddp:
-            self.accelerator_backend = DDPBackend(self)
-            self.accelerator_backend.slurm_setup()
-            self.accelerator_backend.train(model)
+            accelerator_backend = DDPBackend(self, mode='slurm_ddp')
 
         elif use_torchelastic_ddp:
-            self.accelerator_backend = DDPBackend(self)
-            self.accelerator_backend.torchelastic_setup()
-            self.accelerator_backend.train(model)
+            accelerator_backend = DDPBackend(self, mode='torchelastic_ddp')
 
-        # regular ddp using .spawn
         elif use_ddp_spawn:
-            self.accelerator_backend = DDPSpawnBackend(self)
-            self.accelerator_backend.setup()
-            self.accelerator_backend.train(model, nprocs=self.num_processes)
-            results = self.accelerator_backend.teardown(model)
+            accelerator_backend = DDPSpawnBackend(self, nprocs=self.num_processes)
 
-        # ddp
         elif self.distributed_backend == 'ddp':
-            self.accelerator_backend = DDPBackend(self)
-            results = self.accelerator_backend.spawn_ddp_children(model)
+            accelerator_backend = DDPBackend(self, mode='ddp')
 
-        # dp
         elif self.use_dp:
-            self.accelerator_backend = DataParallelBackend(self)
-            self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train()
-            self.accelerator_backend.teardown()
+            accelerator_backend = DataParallelBackend(self)
 
         elif self.use_horovod:
-            results = self.horovod_train(model)
+            accelerator_backend = HorovodBackend(self)
 
         elif self.use_single_gpu:
-            self.accelerator_backend = GPUBackend(self)
-            model = self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            accelerator_backend = GPUBackend(self)
 
         elif self.use_tpu:
-            self.accelerator_backend = TPUBackend(self)
-            self.accelerator_backend.setup()
-            self.accelerator_backend.train(model)
-            self.accelerator_backend.teardown(model)
+            accelerator_backend = TPUBackend(self)
 
         else:
-            self.accelerator_backend = CPUBackend(self)
-            self.accelerator_backend.setup(model)
-            results = self.accelerator_backend.train(model)
+            accelerator_backend = CPUBackend(self)
 
-        # on fit end callback
-        self.on_fit_end()
-        if self.is_function_implemented('on_fit_end'):
-            model.on_fit_end()
-
-        # teardown callback
-        self.teardown('fit')
-        if self.is_function_implemented('teardown'):
-            model.teardown('fit')
-
-        # return 1 when finished
-        # used for testing or when we need to know that training succeeded
-        return results or 1
+        return accelerator_backend
 
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
@@ -1239,7 +1237,6 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
-
         using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
@@ -1247,14 +1244,16 @@ class Trainer(
         # to make sure program won't crash during val
         if should_sanity_check:
             self.reset_val_dataloader(ref_model)
+            self.num_sanity_val_batches = [
+                min(self.num_sanity_val_steps, val_batches) for val_batches in self.num_val_batches
+            ]
 
             # hook and callback
             self.running_sanity_check = True
             self.on_sanity_check_start()
 
-            num_loaders = len(self.val_dataloaders)
-            max_batches = [self.num_sanity_val_steps] * num_loaders
-            eval_results = self._evaluate(model, self.val_dataloaders, max_batches, False)
+            # run eval step
+            _, eval_results = self.run_evaluation(test_mode=False, max_batches=self.num_sanity_val_batches)
 
             # allow no returns from eval
             if eval_results is not None and len(eval_results) > 0:
@@ -1447,6 +1446,30 @@ class Trainer(
         assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
         self.amp_backend = None
         self._setup_amp_backend(amp_type)
+
+    def call_hook(self, hook_name, *args, **kwargs):
+        # always profile hooks
+        with self.profiler.profile(hook_name):
+
+            # first call trainer hook
+            if hasattr(self, hook_name):
+                trainer_hook = getattr(self, hook_name)
+                trainer_hook(*args, **kwargs)
+
+            # next call hook in lightningModule
+            output = None
+            if self.is_overridden(hook_name):
+                model_ref = self.get_model()
+                hook_fx = getattr(model_ref, hook_name)
+                output = hook_fx(*args, **kwargs)
+
+            # if the PL module doesn't have the hook then call the accelator
+            # used to auto-reduce things for the user with Results obj
+            elif hasattr(self.accelerator_backend, hook_name):
+                accelerator_hook = getattr(self.accelerator_backend, hook_name)
+                output = accelerator_hook(*args, **kwargs)
+
+            return output
 
 
 class _PatchDataLoader(object):

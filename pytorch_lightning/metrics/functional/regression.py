@@ -132,10 +132,10 @@ def rmsle(
         >>> x = torch.tensor([0., 1, 2, 3])
         >>> y = torch.tensor([0., 1, 2, 2])
         >>> rmsle(x, y)
-        tensor(0.0207)
+        tensor(0.1438)
 
     """
-    rmsle = mse(torch.log(pred + 1), torch.log(target + 1), reduction=reduction)
+    rmsle = rmse(torch.log(pred + 1), torch.log(target + 1), reduction=reduction)
     return rmsle
 
 

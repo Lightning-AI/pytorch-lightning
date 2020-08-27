@@ -1,10 +1,10 @@
 import os
 import platform
+from distutils.version import LooseVersion
 from unittest.mock import patch
 
 import pytest
 import torch
-from packaging.version import parse
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import IterableDataset, Subset
 from torch.utils.data.distributed import DistributedSampler
@@ -620,7 +620,7 @@ def test_warning_with_few_workers(mock, tmpdir, ckpt_path):
 
 
 @pytest.mark.xfail(
-    parse(torch.__version__) < parse("1.4.0"),
+    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
     reason="IterableDataset with __len__ before 1.4 raises",
 )
 def test_warning_with_iterable_dataset_and_len(tmpdir):

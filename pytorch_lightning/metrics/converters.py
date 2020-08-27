@@ -34,7 +34,7 @@ except ImportError:
     class ReduceOp:
         SUM = None
 
-    rank_zero_warn('Unsupported `ReduceOp` for distributed computing.')
+    rank_zero_warn('Unsupported `ReduceOp` for distributed computing')
 
 
 def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callable:
@@ -86,28 +86,30 @@ def _apply_to_outputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Calla
     return decorator_fn
 
 
-def _convert_to_tensor(data: Any) -> Any:
+def convert_to_tensor(data: Any, dtype=None, device=None) -> Any:
     """
     Maps all kind of collections and numbers to tensors.
 
     Args:
         data: the data to convert to tensor
+        dtype: data type to convert to
+        device: device to cast to
 
     Return:
         the converted data
     """
     if isinstance(data, numbers.Number):
-        return torch.tensor([data])
+        return torch.tensor([data], dtype=dtype, device=device)
     # is not array of object
     elif isinstance(data, np.ndarray) and np_str_obj_array_pattern.search(data.dtype.str) is None:
-        return torch.from_numpy(data)
+        return torch.from_numpy(data).to(device=device, dtype=dtype)
     elif isinstance(data, torch.Tensor):
-        return data
+        return data.to(device=device, dtype=dtype)
 
     raise TypeError(f"The given type ('{type(data).__name__}') cannot be converted to a tensor!")
 
 
-def _convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
+def convert_to_numpy(data: Union[torch.Tensor, np.ndarray, numbers.Number]) -> np.ndarray:
     """Convert all tensors and numpy arrays to numpy arrays.
 
     Args:
@@ -137,7 +139,7 @@ def _numpy_metric_input_conversion(func_to_decorate: Callable) -> Callable:
         Callable: the decorated function
     """
     return _apply_to_inputs(
-        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)(func_to_decorate)
+        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy)(func_to_decorate)
 
 
 def _tensor_metric_output_conversion(func_to_decorate: Callable) -> Callable:
@@ -150,7 +152,7 @@ def _tensor_metric_output_conversion(func_to_decorate: Callable) -> Callable:
     Return:
         Callable: the decorated function
     """
-    return _apply_to_outputs(_convert_to_tensor)(func_to_decorate)
+    return _apply_to_outputs(convert_to_tensor)(func_to_decorate)
 
 
 def _numpy_metric_conversion(func_to_decorate: Callable) -> Callable:
@@ -184,7 +186,7 @@ def _tensor_metric_input_conversion(func_to_decorate: Callable) -> Callable:
         Callable: the decorated function
     """
     return _apply_to_inputs(
-        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_tensor)(func_to_decorate)
+        apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor)(func_to_decorate)
 
 
 def _tensor_collection_metric_output_conversion(func_to_decorate: Callable) -> Callable:
@@ -198,7 +200,7 @@ def _tensor_collection_metric_output_conversion(func_to_decorate: Callable) -> C
         Callable: the decorated function
     """
     return _apply_to_outputs(apply_to_collection, (torch.Tensor, np.ndarray, numbers.Number),
-                             _convert_to_tensor)(func_to_decorate)
+                             convert_to_tensor)(func_to_decorate)
 
 
 def _tensor_metric_conversion(func_to_decorate: Callable) -> Callable:
@@ -238,10 +240,10 @@ def _tensor_collection_metric_conversion(func_to_decorate: Callable) -> Callable
     return _tensor_collection_metric_output_conversion(func_convert_inputs)
 
 
-def _sync_ddp_if_available(result: Union[torch.Tensor],
-                           group: Optional[Any] = None,
-                           reduce_op: Optional[ReduceOp] = None,
-                           ) -> torch.Tensor:
+def sync_ddp_if_available(result: Union[torch.Tensor],
+                          group: Optional[Any] = None,
+                          reduce_op: Optional[ReduceOp] = None
+                          ) -> torch.Tensor:
     """
     Function to reduce the tensors from several ddp processes to one master process
 
@@ -278,6 +280,38 @@ def _sync_ddp_if_available(result: Union[torch.Tensor],
     return result
 
 
+def gather_all_tensors_if_available(result: Union[torch.Tensor],
+                                    group: Optional[Any] = None):
+    """
+    Function to gather all tensors from several ddp processes onto a list that
+    is broadcasted to all processes
+
+    Args:
+        result: the value to sync
+        group: the process group to gather results from. Defaults to all processes (world)
+
+    Return:
+        gathered_result: list with size equal to the process group where
+            gathered_result[i] corresponds to result tensor from process i
+
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if group is None:
+            group = torch.distributed.group.WORLD
+
+        world_size = torch.distributed.get_world_size(group)
+
+        gathered_result = world_size * [torch.zeros_like(result)]
+
+        # sync and broadcast all
+        torch.distributed.barrier(group=group)
+        torch.distributed.all_gather(gathered_result, result, group)
+
+        result = gathered_result
+
+    return result
+
+
 def sync_ddp(group: Optional[Any] = None,
              reduce_op: Optional[ReduceOp] = None) -> Callable:
     """
@@ -294,7 +328,7 @@ def sync_ddp(group: Optional[Any] = None,
 
     def decorator_fn(func_to_decorate):
         return _apply_to_outputs(apply_to_collection, torch.Tensor,
-                                 _sync_ddp_if_available, group=group,
+                                 sync_ddp_if_available, group=group,
                                  reduce_op=reduce_op)(func_to_decorate)
 
     return decorator_fn

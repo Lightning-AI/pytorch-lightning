@@ -255,9 +255,10 @@ class TrainerTrainLoopMixin(ABC):
     terminate_on_nan: bool
     tpu_id: int
     interactive_ddp_procs: ...
-    state: TrainerState
+    _state: TrainerState
     amp_backend: AMPType
     on_tpu: bool
+    accelerator_backend: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -291,10 +292,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def transfer_batch_to_tpu(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def clip_gradients(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -324,6 +321,10 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def reset_val_dataloader(self, model):
+        """Warning: this is just empty shell for code implemented in other class."""
+
+    @abstractmethod
+    def call_hook(self, hook_name, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -421,19 +422,10 @@ class TrainerTrainLoopMixin(ABC):
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
-                self.state = TrainerState.INTERRUPTED
+                self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
 
                 self.run_training_teardown()
-
-    def prepare_train_loop_dataloader(self, train_dataloader):
-        # on TPU we have to wrap it under the ParallelLoader
-        if self.use_tpu:
-            device = xm.xla_device(self.tpu_id)
-            train_dataloader = xla_pl.ParallelLoader(train_dataloader, [device])
-            train_dataloader = train_dataloader.per_device_loader(device)
-
-        return train_dataloader
 
     def run_on_epoch_start_hook(self, model):
         # Epoch start events
@@ -463,7 +455,7 @@ class TrainerTrainLoopMixin(ABC):
         self.run_on_epoch_start_hook(model)
 
         # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.prepare_train_loop_dataloader(self.train_dataloader)
+        train_dataloader = self.accelerator_backend.process_dataloader(self.train_dataloader)
 
         # bookkeeping
         num_optimizers = len(self._get_optimizers_iterable())
@@ -1006,13 +998,9 @@ class TrainerTrainLoopMixin(ABC):
         # FORWARD (TRAINING STEP + TRAIN STEP END)
         # ---------------------------
         with self.profiler.profile('model_forward'):
-            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
-                with torch.cuda.amp.autocast():
-                    training_step_output = self.training_forward(split_batch, batch_idx,
-                                                                 opt_idx, hiddens)
-            else:
-                training_step_output = self.training_forward(split_batch, batch_idx, opt_idx,
-                                                             hiddens)
+            args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
+            training_step_output = self.accelerator_backend.training_step(args)
+            training_step_output = self.call_hook('training_step_end', training_step_output)
 
             # ----------------------------
             # PROCESS THE RESULT
@@ -1165,16 +1153,7 @@ class TrainerTrainLoopMixin(ABC):
             model.cpu()
             torch.cuda.empty_cache()
 
-    def training_forward(self, batch, batch_idx, opt_idx, hiddens):
-        """
-        Handle forward for each training case (distributed, single gpu, etc...)
-        :param batch:
-        :param batch_idx:
-        :return:
-        """
-        # ---------------
-        # FORWARD
-        # ---------------
+    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
         args = [batch, batch_idx]
 
@@ -1192,63 +1171,7 @@ class TrainerTrainLoopMixin(ABC):
         if self.truncated_bptt_steps is not None:
             args.append(hiddens)
 
-        # distributed forward
-        if self.use_ddp or self.use_ddp2 or self.use_dp:
-            output = self.model(*args)
-
-        # Horovod
-        elif self.use_horovod and self.on_gpu:
-            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
-            args[0] = batch
-            output = self.model.training_step(*args)
-
-        # single GPU forward
-        elif self.use_single_gpu:
-            gpu_id = 0
-            if isinstance(self.data_parallel_device_ids, list):
-                gpu_id = self.data_parallel_device_ids[0]
-
-            # Don't copy the batch since there is a single gpu that the batch could
-            # be referenced from and if there are multiple optimizers the batch will
-            # wind up copying it to the same device repeatedly.
-            batch = self.transfer_batch_to_gpu(batch, gpu_id)
-            args[0] = batch
-            output = self.model.training_step(*args)
-
-        # TPU support
-        elif self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
-            args[0] = batch
-            output = self.model.training_step(*args)
-
-        # CPU forward
-        else:
-            output = self.model.training_step(*args)
-
-        is_result_obj = isinstance(output, Result)
-
-        # allow any mode to define training_step_end
-        # do something will all the dp outputs (like softmax)
-        if self.is_overridden('training_step_end'):
-            model_ref = self.get_model()
-            with self.profiler.profile('training_step_end'):
-                # TODO: modify when using result obj
-                output = model_ref.training_step_end(output)
-
-        elif is_result_obj and (self.use_dp or self.use_ddp2):
-            output.dp_reduce()
-
-        # allow any mode to define training_end
-        # TODO: remove in 1.0.0
-        if self.is_overridden('training_end'):
-            model_ref = self.get_model()
-            with self.profiler.profile('training_end'):
-                output = model_ref.training_end(output)
-
-            rank_zero_warn('`training_end` was deprecated in 0.7.0 and will be removed 1.0.0.'
-                           ' Use training_epoch_end instead', DeprecationWarning)
-
-        return output
+        return args
 
     def update_learning_rates(self, interval: str, monitor_metrics=None):
         """Update learning rates.

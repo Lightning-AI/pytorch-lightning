@@ -140,7 +140,7 @@ def stat_scores_multiple_classes(
         reduction: str = 'none',
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calculates the number of true postive, false postive, true negative
+    Calculates the number of true positive, false positive, true negative
     and false negative for each class
 
     Args:
@@ -304,7 +304,7 @@ def confusion_matrix(
     """
     num_classes = get_num_classes(pred, target, None)
 
-    unique_labels = target.view(-1) * num_classes + pred.view(-1)
+    unique_labels = (target.view(-1) * num_classes + pred.view(-1)).to(torch.int)
 
     bins = torch.bincount(unique_labels, minlength=num_classes ** 2)
     cm = bins.reshape(num_classes, num_classes).squeeze().float()

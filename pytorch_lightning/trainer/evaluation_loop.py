@@ -132,9 +132,8 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
-from pytorch_lightning.core.step_result import Result, EvalResult
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.trainer.supporters import PredictionCollection
+from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -191,6 +190,8 @@ class TrainerEvaluationLoopMixin(ABC):
     on_validation_end: Callable
     on_test_start: Callable
     on_test_end: Callable
+    accelerator_backend: ...
+    evaluation_loop: EvaluationLoop
 
     @abstractmethod
     def copy_trainer_model_properties(self, *args):
@@ -202,10 +203,6 @@ class TrainerEvaluationLoopMixin(ABC):
 
     @abstractmethod
     def is_overridden(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def transfer_batch_to_tpu(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -228,79 +225,39 @@ class TrainerEvaluationLoopMixin(ABC):
     def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def __call_eval_loop_hook_start(self, test_mode):
-        """on_validation/test_epoch_start"""
-        self.__call_eval_loop_hook_evt(test_mode, 'start')
+    @abstractmethod
+    def call_hook(self, hook_name, *args, **kwargs):
+        """Warning: this is just empty shell for code implemented in other class."""
 
-    def __call_eval_loop_hook_end(self, test_mode):
-        """on_validation/test_epoch_end"""
-        self.__call_eval_loop_hook_evt(test_mode, 'end')
+    def run_evaluation(self, test_mode: bool = False, max_batches=None):
+        # bookkeeping
+        self.evaluation_loop.testing = test_mode
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
+            return [], []
 
-    def __call_eval_loop_hook_evt(self, test_mode, epoch_event):
+        # enable eval mode + no grads
         model = self.get_model()
-
-        # on_[train/validation]_epoch_start hook
-        hook_root_name = 'test' if test_mode else 'validation'
-        hook_name = f'on_{hook_root_name}_epoch_{epoch_event}'
-        with self.profiler.profile(hook_name):
-            # call hook
-            getattr(self, hook_name)()
-
-            # model hooks
-            if self.is_function_implemented(hook_name):
-                getattr(model, hook_name)()
-
-    def _evaluate(
-        self,
-        model: LightningModule,
-        dataloaders: List[DataLoader],
-        max_batches: Union[int, List[int]],
-        test_mode: bool = False,
-    ):
-        """Run evaluation code.
-
-        Args:
-            model: The model to evaluate.
-            dataloaders: A list of PyTorch dataloaders.
-            max_batches: An integer or list of integers with length of the number of dataloaders. Each
-                entry is the number of batches to process in the corresponding dataloader.
-            test_mode:
-        """
-        # enable eval mode
         model.zero_grad()
         model.eval()
-
-        # copy properties for forward overrides
-        self.copy_trainer_model_properties(model)
-
-        # disable gradients to save memory
         torch.set_grad_enabled(False)
 
-        # bookkeeping
-        outputs = []
-        predictions = PredictionCollection(self.global_rank, self.world_size)
+        # hook
+        self.evaluation_loop.on_evaluation_start()
 
-        # convert max_batches to list
-        if isinstance(max_batches, int):
-            max_batches = [max_batches] * len(dataloaders)
+        # set up the eval loop
+        self.evaluation_loop.setup(model, max_batches, dataloaders)
 
-        # --------------------------
-        # ON_EVAL_EPOCH_START hook
-        # --------------------------
-        self.__call_eval_loop_hook_start(test_mode)
+        # hook
+        # TODO: should this be insider the dataloader loop?
+        self.evaluation_loop.on_evaluation_epoch_start()
 
-        # run validation
+        # run validation/testing
         for dataloader_idx, dataloader in enumerate(dataloaders):
+            # bookkeeping
             dl_outputs = []
-
-            # on TPU we have to wrap it under the ParallelLoader
-            if self.use_tpu:
-                device = xm.xla_device(self.tpu_id)
-                dataloader = xla_pl.ParallelLoader(dataloader, [device])
-                dataloader = dataloader.per_device_loader(device)
-
-            # each dataloader has a max num batches
-            dl_max_batches = max_batches[dataloader_idx]
+            dataloader = self.accelerator_backend.process_dataloader(dataloader)
+            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
 
             for batch_idx, batch in enumerate(dataloader):
                 if batch is None:
@@ -310,301 +267,56 @@ class TrainerEvaluationLoopMixin(ABC):
                 if batch_idx >= dl_max_batches:
                     break
 
-                # callbacks
-                if test_mode:
-                    self.on_test_batch_start(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_test_batch_start'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_test_batch_start'):
-                            model_ref.on_test_batch_start(batch, batch_idx, dataloader_idx)
-                else:
-                    self.on_validation_batch_start(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_validation_batch_start'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_validation_batch_start'):
-                            model_ref.on_validation_batch_start(batch, batch_idx, dataloader_idx)
-                # -----------------
-                # RUN EVALUATION STEP
-                # -----------------
-                if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
-                    with torch.cuda.amp.autocast():
-                        output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
-                else:
-                    output = self.evaluation_forward(model, batch, batch_idx, dataloader_idx, test_mode)
+                # hook
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
 
-                is_result_obj = isinstance(output, Result)
+                # lightning module methods
+                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                output = self.evaluation_loop.evaluation_step_end(output)
 
-                # track batch size for weighted average
-                if is_result_obj:
-                    output.track_batch_size(len(batch))
+                # hook
+                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
 
-                # allow only EvalResult when using structured results (from val_step)
-                if is_result_obj and not isinstance(output, EvalResult):
-                    m = 'only EvalResults or dicts are allowed from validation_step'
-                    raise MisconfigurationException(m)
+                # clean up
+                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
+                self.evaluation_loop.log_step_metrics(output, batch_idx)
 
-                # ------------------
-                # EVAL STEP END
-                # ------------------
-                # on dp / ddp2 might still want to do something with the batch parts
-                eval_step_end_hook_name = 'test_step_end' if test_mode else 'validation_step_end'
-                if self.is_overridden(eval_step_end_hook_name):
-                    model_ref = self.get_model()
-                    with self.profiler.profile(eval_step_end_hook_name):
-                        eval_step_end = getattr(model_ref, eval_step_end_hook_name)
-                        output = eval_step_end(output)
-
-                elif is_result_obj and (self.use_dp or self.use_ddp2):
-                    # result auto reduce
-                    output.dp_reduce()
-
-                # callbacks (on __batch_end)
-                if test_mode:
-                    self.on_test_batch_end(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_test_batch_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_test_batch_end'):
-                            model_ref.on_test_batch_end(batch, batch_idx, dataloader_idx)
-                else:
-                    self.on_validation_batch_end(batch, batch_idx, dataloader_idx)
-                    if self.is_overridden('on_validation_batch_end'):
-                        model_ref = self.get_model()
-                        with self.profiler.profile('on_validation_batch_end'):
-                            model_ref.on_validation_batch_end(batch, batch_idx, dataloader_idx)
-
-                # track outputs for collation
+                # track epoch level metrics
                 if output is not None:
-
-                    # Add step predictions to prediction collection to write later
-                    do_write_predictions = is_result_obj and test_mode
-                    if do_write_predictions:
-                        predictions.add(output.pop('predictions', None))
-
                     dl_outputs.append(output)
 
-                self.__eval_add_step_metrics(output, batch_idx)
+            self.evaluation_loop.outputs.append(dl_outputs)
 
-                # track debug metrics
-                self.dev_debugger.track_eval_loss_history(test_mode, batch_idx, dataloader_idx, output)
+        # lightning module method
+        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
 
-            outputs.append(dl_outputs)
+        # bookkeeping
+        self.evaluation_loop.log_epoch_metrics(eval_results)
+        self.evaluation_loop.predictions.to_disk()
 
-        # ---------------------
-        # EVAL_EPOCH_END
-        # ---------------------
-        using_eval_result = len(outputs) > 0 and len(outputs[0]) > 0 and isinstance(outputs[0][0], EvalResult)
-        eval_results = self.__run_eval_epoch_end(test_mode, outputs, dataloaders, using_eval_result)
-
-        # log callback metrics
-        self.__update_callback_metrics(eval_results, using_eval_result)
-
-        # Write predictions to disk if they're available.
-        predictions.to_disk()
-
-        # enable train mode again
-        model.train()
-
-        # enable gradients to save memory
-        torch.set_grad_enabled(True)
-
-        # --------------------------
-        # ON_EVAL_EPOCH_END hook
-        # --------------------------
-        self.__call_eval_loop_hook_end(test_mode)
-
-        return eval_results
-
-    def __update_callback_metrics(self, eval_results, using_eval_result):
-        if using_eval_result:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    self.callback_metrics = eval_result.callback_metrics
-            else:
-                self.callback_metrics = eval_results.callback_metrics
-        else:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    # with a scalar return, auto set it to "val_loss" for callbacks
-                    if isinstance(eval_result, torch.Tensor):
-                        flat = {'val_loss': eval_result}
-                    else:
-                        flat = flatten_dict(eval_result)
-                    self.callback_metrics.update(flat)
-            else:
-                # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_results, torch.Tensor):
-                    flat = {'val_loss': eval_results}
-                else:
-                    flat = flatten_dict(eval_results)
-                self.callback_metrics.update(flat)
-
-    def __run_eval_epoch_end(self, test_mode, outputs, dataloaders, using_eval_result):
-        model = self.get_model()
-
-        # with a single dataloader don't pass an array
-        eval_results = outputs
-        if len(dataloaders) == 1:
-            eval_results = outputs[0]
-
-        user_reduced = False
-
-        if test_mode:
-            if self.is_overridden('test_end', model=model):
-                # TODO: remove in v1.0.0
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.test_end(eval_results)
-                user_reduced = True
-                rank_zero_warn(
-                    'Method `test_end` was deprecated in v0.7 and will be removed in v1.0.'
-                    ' Use `test_epoch_end` instead.',
-                    DeprecationWarning,
-                )
-
-            elif self.is_overridden('test_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.test_epoch_end(eval_results)
-                user_reduced = True
-
-        else:
-            if self.is_overridden('validation_end', model=model):
-                # TODO: remove in v1.0.0
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.validation_end(eval_results)
-                user_reduced = True
-                rank_zero_warn(
-                    'Method `validation_end` was deprecated in v0.7 and will be removed in v1.0.'
-                    ' Use `validation_epoch_end` instead.',
-                    DeprecationWarning,
-                )
-
-            elif self.is_overridden('validation_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
-                eval_results = model.validation_epoch_end(eval_results)
-                user_reduced = True
-
-        if using_eval_result and not user_reduced:
-            eval_results = self.__auto_reduce_result_objs(outputs)
-
-        if not isinstance(eval_results, list):
-            eval_results = [eval_results]
-
-        return eval_results
-
-    def __gather_epoch_end_eval_results(self, outputs):
-        eval_results = []
-        for epoch_output in outputs:
-            result = epoch_output[0].__class__.gather(epoch_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-
-            eval_results.append(result)
-
-        # with 1 dataloader don't pass in a list
-        if len(eval_results) == 1:
-            eval_results = eval_results[0]
-        return eval_results
-
-    def __eval_add_step_metrics(self, output, batch_idx):
-        # track step level metrics
-        if isinstance(output, EvalResult) and not self.running_sanity_check:
-            step_log_metrics = output.batch_log_metrics
-            step_pbar_metrics = output.batch_pbar_metrics
-
-            if len(step_log_metrics) > 0:
-                # make the metrics appear as a different line in the same graph
-                metrics_by_epoch = {}
-                for k, v in step_log_metrics.items():
-                    metrics_by_epoch[f'{k}/epoch_{self.current_epoch}'] = v
-
-                self.log_metrics(metrics_by_epoch, {}, step=batch_idx)
-
-            if len(step_pbar_metrics) > 0:
-                self.add_progress_bar_metrics(step_pbar_metrics)
-
-    def __auto_reduce_result_objs(self, outputs):
-        # outputs has a list of results per dataloader
-        eval_results = []
-        for dl_output in outputs:
-            result = dl_output[0]
-            result = result.__class__.reduce_on_epoch_end(dl_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-            eval_results.append(result)
-
-        return eval_results
-
-    def run_evaluation(self, test_mode: bool = False):
         # hook
-        model = self.get_model()
-        model.on_pre_performance_check()
-
-        # select dataloaders
-        if test_mode:
-            self.reset_test_dataloader(model)
-
-            dataloaders = self.test_dataloaders
-            max_batches = self.num_test_batches
-        else:
-            # val
-            if self.val_dataloaders is None:
-                self.reset_val_dataloader(model)
-
-            dataloaders = self.val_dataloaders
-            max_batches = self.num_val_batches
-
-        if dataloaders is None:
-            return [], []
-
-        # Validation/Test begin callbacks
-        if test_mode:
-            self.on_test_start()
-        else:
-            self.on_validation_start()
-
-        # enable disabling validation step with limit_val_batches = 0
-        should_skip = sum(max_batches) == 0
-        if should_skip:
-            return [], []
-
-        # run evaluation (val_step + val_step_end + val_epoch_end)
-        eval_results = self._evaluate(self.model, dataloaders, max_batches, test_mode)
+        self.evaluation_loop.on_evaluation_epoch_end()
 
         # log the final eval loop metrics
         eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
 
+        # user may want to reload every epoch
+        if self.reload_dataloaders_every_epoch:
+            self.evaluation_loop.reload_evaluation_dataloaders()
+
+        # enable train mode again
+        model.train()
+        torch.set_grad_enabled(True)
+
         # hook
-        model.on_post_performance_check()
-
-        # eventual dataset reloading
-        if test_mode:
-            if self.reload_dataloaders_every_epoch:
-                self.reset_test_dataloader(model)
-        else:
-            # val
-            if self.reload_dataloaders_every_epoch:
-                self.reset_val_dataloader(model)
-
-        # Validation/Test end callbacks
-        if test_mode:
-            self.on_test_end()
-        else:
-            self.on_validation_end()
+        self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, eval_results
 
     def __log_evaluation_epoch_metrics(self, eval_results, test_mode):
+        if self.running_sanity_check:
+            return
+
         eval_loop_results = []
         if eval_results is not None and len(eval_results) > 0:
 
@@ -648,42 +360,3 @@ class TrainerEvaluationLoopMixin(ABC):
                 print('-' * 80)
 
         return eval_loop_results
-
-    def evaluation_forward(self, model, batch, batch_idx, dataloader_idx, test_mode: bool = False):
-        # make dataloader_idx arg in validation_step optional
-        args = [batch, batch_idx]
-
-        if (test_mode and len(self.test_dataloaders) > 1) or (not test_mode and len(self.val_dataloaders) > 1):
-            args.append(dataloader_idx)
-
-        # handle DP, DDP forward
-        if self.use_ddp or self.use_dp or self.use_ddp2:
-            output = model(*args)
-            return output
-
-        # Horovod
-        if self.use_horovod and self.on_gpu:
-            batch = self.transfer_batch_to_gpu(batch, hvd.local_rank())
-            args[0] = batch
-
-        # single GPU data transfer
-        if self.use_single_gpu:
-            # for single GPU put inputs on gpu manually
-            root_gpu = 0
-            if isinstance(self.data_parallel_device_ids, list):
-                root_gpu = self.data_parallel_device_ids[0]
-            batch = self.transfer_batch_to_gpu(batch, root_gpu)
-            args[0] = batch
-
-        # TPU data  transfer
-        if self.use_tpu:
-            batch = self.transfer_batch_to_tpu(batch, self.tpu_id)
-            args[0] = batch
-
-        # CPU, TPU or gpu step
-        if test_mode:
-            output = model.test_step(*args)
-        else:
-            output = model.validation_step(*args)
-
-        return output

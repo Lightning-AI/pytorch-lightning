@@ -25,6 +25,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -40,23 +41,31 @@ except ImportError:
     amp = None
 
 
-class DDPBackend(object):
+class DDPBackend(Accelerator):
 
-    def __init__(self, trainer):
-        self.trainer = trainer
+    def __init__(self, trainer, mode: str = 'ddp'):
+        super().__init__(trainer)
         self.task_idx = None
         self._has_spawned_children = False
+        self.mode = mode
 
-    def slurm_setup(self):
+    def setup(self, model):
+        if self.mode == 'ddp':
+            self.__ddp_script_mode_setup()
+        elif self.mode == 'slurm_ddp':
+            self.__slurm_setup()
+        elif self.mode == 'torchelastic_ddp':
+            self.__torchelastic_setup()
+
+        self.trainer.model = model
+
+    def __slurm_setup(self):
         self.task_idx = int(os.environ['SLURM_LOCALID'])
 
-    def torchelastic_setup(self):
+    def __torchelastic_setup(self):
         self.task_idx = int(os.environ['LOCAL_RANK'])
 
-    def train(self, model):
-        self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
-
-    def spawn_ddp_children(self, model):
+    def __ddp_script_mode_setup(self):
         assert self.trainer.global_rank == 0
         self._check_can_spawn_children()
         self._has_spawned_children = True
@@ -119,11 +128,16 @@ class DDPBackend(object):
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
 
-        local_rank = 0
-        results = self.ddp_train(local_rank, mp_queue=None, model=model, is_master=True)
-        del os.environ['WORLD_SIZE']
+        self.task_idx = 0
 
-        return results
+    def train(self):
+        model = self.trainer.model
+        if self.mode == 'ddp':
+            results = self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model, is_master=True)
+            del os.environ['WORLD_SIZE']
+            return results
+        else:
+            self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
         """
@@ -234,6 +248,22 @@ class DDPBackend(object):
 
         if self.trainer.global_rank == 0 and self.trainer.distributed_backend not in ['ddp_spawn', 'ddp_cpu']:
             return results
+
+    def training_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model(*args)
+        else:
+            output = self.trainer.model(*args)
+        return output
+
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output
 
     def _check_can_spawn_children(self):
         if self._has_spawned_children:

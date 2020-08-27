@@ -139,9 +139,15 @@ class EarlyStopping(Callback):
         self.patience = checkpointed_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
+        if trainer.running_sanity_check:
+            return
+
         self._run_early_stopping_check(trainer, pl_module)
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        if trainer.running_sanity_check:
+            return
+
         val_es_key = 'val_early_stop_on'
         if trainer.callback_metrics.get(val_es_key) is not None:
             self.monitor = val_es_key
@@ -169,7 +175,7 @@ class EarlyStopping(Callback):
 
     def __warn_deprecated_monitor_key(self):
         using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
-        invalid_key = self.monitor not in ['val_loss', 'early_stop_on', 'val_early_step_on', 'loss']
+        invalid_key = self.monitor not in ['val_loss', 'early_stop_on', 'val_early_stop_on', 'loss']
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
             m = f"""

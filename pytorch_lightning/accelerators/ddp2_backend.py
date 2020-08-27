@@ -20,6 +20,8 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.core.step_result import Result
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -35,14 +37,16 @@ except ImportError:
     amp = None
 
 
-class DDP2Backend(object):
+class DDP2Backend(Accelerator):
 
     def __init__(self, trainer):
-        self.trainer = trainer
+        super().__init__(trainer)
         self.task_idx = None
 
-    def setup(self):
+    def setup(self, model):
         self._resolve_task_idx()
+
+        self.trainer.model = model
 
     def _resolve_task_idx(self):
         if self.trainer.is_slurm_managing_tasks:
@@ -55,7 +59,8 @@ class DDP2Backend(object):
                 m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
                 raise MisconfigurationException(m)
 
-    def train(self, model):
+    def train(self):
+        model = self.trainer.model
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
@@ -156,3 +161,34 @@ class DDP2Backend(object):
 
         # clean up memory
         torch.cuda.empty_cache()
+
+    def training_step(self, args):
+        if self.trainer.amp_backend == AMPType.NATIVE:
+            with torch.cuda.amp.autocast():
+                output = self.trainer.model(*args)
+        else:
+            output = self.trainer.model(*args)
+        return output
+
+    def validation_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def test_step(self, args):
+        output = self.training_step(args)
+        return output
+
+    def training_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def validation_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output
+
+    def test_step_end(self, output):
+        if isinstance(output, Result):
+            output.dp_reduce()
+        return output

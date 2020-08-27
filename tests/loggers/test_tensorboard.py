@@ -1,11 +1,11 @@
 import os
 from argparse import Namespace
+from distutils.version import LooseVersion
 
 import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
-from packaging import version
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -13,7 +13,7 @@ from tests.base import EvalModelTemplate
 
 
 @pytest.mark.skipif(
-    version.parse(torch.__version__) < version.parse("1.5.0"),
+    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
     reason="Minimal PT version is set to 1.5",
 )
 def test_tensorboard_hparams_reload(tmpdir):
@@ -125,7 +125,7 @@ def test_tensorboard_log_hyperparams(tmpdir):
 
 
 def test_tensorboard_log_hparams_and_metrics(tmpdir):
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
         "float": 0.3,
         "int": 1,
@@ -141,7 +141,7 @@ def test_tensorboard_log_hparams_and_metrics(tmpdir):
 
 
 def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, default_hp_metric=False)
     hparams = {
         "float": 0.3,
         "int": 1,
@@ -164,9 +164,9 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
         if array is passed externaly
     """
     model = EvalModelTemplate()
-    if example_input_array is None:
+    if example_input_array is not None:
         model.example_input_array = None
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, log_graph=True)
     logger.log_graph(model, example_input_array)
 
 
@@ -174,7 +174,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     """ test that log graph throws warning if model.example_input_array is None """
     model = EvalModelTemplate()
     model.example_input_array = None
-    logger = TensorBoardLogger(tmpdir)
+    logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
         match='Could not log computational graph since the `model.example_input_array`'

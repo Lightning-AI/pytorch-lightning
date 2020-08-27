@@ -907,12 +907,36 @@ def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     pytest.param(0.0),  # this should run no sanity checks
     pytest.param(1),
     pytest.param(1.0),
-    pytest.param(0.3),
+    pytest.param(0.5),
+    pytest.param(5),
 ])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
+    """ Test that the number of sanity check batches is clipped to limit_val_batches. """
+    model = EvalModelTemplate()
+    model.validation_step = model.validation_step__multiple_dataloaders
+    model.validation_epoch_end = model.validation_epoch_end__multiple_dataloaders
+    num_sanity_val_steps = 4
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=num_sanity_val_steps,
+        limit_val_batches=limit_val_batches,
+        max_steps=1,
+    )
+    assert trainer.num_sanity_val_steps == num_sanity_val_steps
+    val_dataloaders = model.val_dataloader__multiple_mixed_length()
+
+
+@pytest.mark.parametrize(['limit_val_batches'], [
+    pytest.param(0.0),  # this should run no sanity checks
+    pytest.param(1),
+    pytest.param(1.0),
+    pytest.param(0.3),
+])
+def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     """
-    Test that num_sanity_val_steps=-1 runs through all validation data once.
-    Makes sure this setting is independent of limit_val_batches.
+    Test that num_sanity_val_steps=-1 runs through all validation data once, and as many batches as
+    limited by "limit_val_batches" Trainer argument.
     """
     model = EvalModelTemplate()
     model.validation_step = model.validation_step__multiple_dataloaders
@@ -920,15 +944,11 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=-1,
-        limit_val_batches=limit_val_batches,  # should have no influence
+        limit_val_batches=limit_val_batches,
         max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float('inf')
     val_dataloaders = model.val_dataloader__multiple()
-
-    with patch.object(trainer, 'evaluation_forward', wraps=trainer.evaluation_forward) as mocked:
-        trainer.fit(model, val_dataloaders=val_dataloaders)
-        assert mocked.call_count == sum(len(dl) * (limit_val_batches > 0) for dl in val_dataloaders)
 
 
 @pytest.mark.parametrize("trainer_kwargs,expected", [

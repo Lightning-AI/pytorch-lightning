@@ -43,6 +43,8 @@ def _get_logger_args(logger_class, save_dir):
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     if logger_class == CometLogger:
         # prevent comet logger from trying to print at exit, since
         # pytest's stdout/stderr redirection breaks it
@@ -79,9 +81,16 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     trainer.test()
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
-    assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
-                                (0, ['epoch', 'train_some_val']),
-                                (1, ['epoch', 'test_acc', 'test_loss'])]
+    if logger_class == TensorBoardLogger:
+        assert log_metric_names == [(0, ['hp_metric']),
+                                    (0, ['epoch', 'val_acc', 'val_loss']),
+                                    (0, ['epoch', 'train_some_val']),
+                                    (0, ['hp_metric']),
+                                    (1, ['epoch', 'test_acc', 'test_loss'])]
+    else:
+        assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
+                                    (0, ['epoch', 'train_some_val']),
+                                    (1, ['epoch', 'test_acc', 'test_loss'])]
 
 
 @pytest.mark.parametrize("logger_class", [
