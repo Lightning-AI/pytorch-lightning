@@ -242,7 +242,7 @@ def test_configure_optimizer_from_dict(tmpdir):
     assert result == 1
 
 
-def test_configure_optimizer_with_frequency(tmpdir):
+def test_configure_optimizers_with_frequency(tmpdir):
     """
     Test that multiple optimizers work when corresponding frequency is set.
     """
