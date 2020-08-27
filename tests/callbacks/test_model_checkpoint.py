@@ -111,13 +111,15 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     assert 1 == result
 
 
-def test_model_checkpoint_format_checkpoint_name():
+def test_model_checkpoint__format_checkpoint_name():
     # Empty filename:
-    r = ModelCheckpoint._format_checkpoint_name('', 3, {}, prefix='test')
+    r = ModelCheckpoint._format_checkpoint_name('', 3, {})
+    assert r == 'epoch=3'
+    r = ModelCheckpoint._format_checkpoint_name(None, 3, {}, prefix='test')
     assert r == 'test-epoch=3'
     # No groups case:
-    r = ModelCheckpoint._format_checkpoint_name('no_groups', 3, {}, prefix='test')
-    assert r == 'test-no_groups'
+    r = ModelCheckpoint._format_checkpoint_name('ckpt', 3, {}, prefix='test')
+    assert r == 'test-ckpt'
     # No prefix
     r = ModelCheckpoint._format_checkpoint_name('{epoch:03d}-{acc}', 3, {'acc': 0.03})
     assert r == 'epoch=003-acc=0.03'
@@ -126,6 +128,25 @@ def test_model_checkpoint_format_checkpoint_name():
     r = ModelCheckpoint._format_checkpoint_name('{epoch},{acc:.5f}', 3, {'acc': 0.03}, prefix='test')
     assert r == 'test@epoch=3,acc=0.03000'
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '-'
+
+
+def test_model_checkpoint_format_checkpoint_name(tmpdir):
+    # no filepath set
+    r = ModelCheckpoint(filepath='').format_checkpoint_name(3, {}, ver=None)
+    assert r == f"{os.path.realpath('')}/epoch=3.ckpt"
+    # dir does not exist so it is used as filename
+    r = ModelCheckpoint(filepath=f"{tmpdir}/dir", prefix='test').format_checkpoint_name(3, {}, ver=None)
+    assert r == f"{tmpdir}/test-dir.ckpt"
+    # with trailing slash, same behaviour
+    r = ModelCheckpoint(filepath=f"{tmpdir}/dir/").format_checkpoint_name(3, {}, ver=None)
+    assert r == f"{tmpdir}/dir.ckpt"
+    # now, dir exists
+    os.mkdir(f"{tmpdir}/dir")
+    r = ModelCheckpoint(f"{tmpdir}/dir", prefix='test').format_checkpoint_name(3, {}, ver=None)
+    assert r == f"{tmpdir}/dir/test-epoch=3.ckpt"
+    # with ver
+    r = ModelCheckpoint(filepath=f"{tmpdir}/test", prefix='test').format_checkpoint_name(3, {}, ver=3)
+    assert r == f"{tmpdir}/test-test-v3.ckpt"
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):

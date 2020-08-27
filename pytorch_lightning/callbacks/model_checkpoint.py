@@ -127,7 +127,7 @@ class ModelCheckpoint(Callback):
             self._fs = get_filesystem("")  # will give local fileystem
         if save_top_k > 0 and filepath is not None and self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
             rank_zero_warn(
-                f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
+                f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0. "
                 "All files in this directory will be deleted when a checkpoint is saved!"
             )
         self._rank = 0
@@ -138,7 +138,7 @@ class ModelCheckpoint(Callback):
             self.dirpath, self.filename = None, None
         else:
             if self._fs.isdir(filepath):
-                self.dirpath, self.filename = filepath, "{epoch}"
+                self.dirpath, self.filename = filepath, None
             else:
                 if self._fs.protocol == "file":  # dont normalize remote paths
                     filepath = os.path.realpath(filepath)
@@ -225,19 +225,20 @@ class ModelCheckpoint(Callback):
 
     @classmethod
     def _format_checkpoint_name(cls, filename, epoch, metrics, prefix=""):
-        # check if user passed in keys to the string
-        groups = re.findall(r'(\{.*?)[:\}]', filename)
-        if not filename and not len(groups):
-            # default name
+        if not filename:
+            # filename is not set, use default name
             filename = f'epoch={epoch}'
         else:
-            metrics['epoch'] = epoch
-            for tmp in groups:
-                name = tmp[1:]
-                filename = filename.replace(tmp, name + '={' + name)
-                if name not in metrics:
-                    metrics[name] = 0
-            filename = filename.format(**metrics)
+            # check and parse user passed keys in the string
+            groups = re.findall(r'(\{.*?)[:\}]', filename)
+            if len(groups):
+                metrics['epoch'] = epoch
+                for tmp in groups:
+                    name = tmp[1:]
+                    filename = filename.replace(tmp, name + '={' + name)
+                    if name not in metrics:
+                        metrics[name] = 0
+                filename = filename.format(**metrics)
         return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
@@ -282,7 +283,7 @@ class ModelCheckpoint(Callback):
         if self.dirpath is not None:
             return  # short circuit
 
-        self.filename = '{epoch}'
+        self.filename = None
 
         if trainer.logger is not None:
             if trainer.weights_save_path != trainer.default_root_dir:
