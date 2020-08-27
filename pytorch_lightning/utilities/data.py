@@ -14,21 +14,13 @@
 
 from distutils.version import LooseVersion
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 
 from pytorch_lightning.utilities import rank_zero_warn
 
 
-try:
-    from torch.utils.data import IterableDataset
-    ITERABLE_DATASET_EXISTS = True
-except ImportError:
-    ITERABLE_DATASET_EXISTS = False
-
-
 def has_iterable_dataset(dataloader: DataLoader):
-    return ITERABLE_DATASET_EXISTS and hasattr(dataloader, 'dataset') \
-        and isinstance(dataloader.dataset, IterableDataset)
+    return hasattr(dataloader, 'dataset') and isinstance(dataloader.dataset, IterableDataset)
 
 
 def has_len(dataloader: DataLoader) -> bool:
