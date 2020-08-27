@@ -259,6 +259,7 @@ class TrainerTrainLoopMixin(ABC):
     amp_backend: AMPType
     on_tpu: bool
     accelerator_backend: ...
+    val_dataloaders: ...
 
     # Callback system
     callbacks: List[Callback]
@@ -355,7 +356,7 @@ class TrainerTrainLoopMixin(ABC):
         if not self.reload_dataloaders_every_epoch:
             self.reset_train_dataloader(model)
 
-        if model.val_dataloader is not None:
+        if self.val_dataloaders is None and not self.reload_dataloaders_every_epoch:
             self.reset_val_dataloader(model)
 
         # Train start events
