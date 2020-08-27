@@ -870,9 +870,9 @@ def test_dataloaders_load_only_once(tmpdir):
     )
     result = trainer.fit(model)
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 0
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    assert trainer.dev_debugger.count_dataloader_calls('val') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('test') == 0
+    assert trainer.dev_debugger.count_dataloader_calls('train') == 1
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
@@ -902,9 +902,9 @@ def test_dataloaders_load_only_once_val_interval(tmpdir):
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 10
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
+    assert trainer.dev_debugger.count_dataloader_calls('val') == 10
+    assert trainer.dev_debugger.count_dataloader_calls('test') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('train') == 3
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
@@ -942,10 +942,11 @@ def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
         max_epochs=3,
     )
     result = trainer.fit(model)
+    assert result
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 0
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    assert trainer.dev_debugger.count_dataloader_calls('val') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('test') == 0
+    assert trainer.dev_debugger.count_dataloader_calls('train') == 1
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
@@ -974,9 +975,9 @@ def test_dataloaders_load_every_epoch(tmpdir):
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
+    assert trainer.dev_debugger.count_dataloader_calls('val') == 4
+    assert trainer.dev_debugger.count_dataloader_calls('test') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('train') == 3
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
@@ -1012,9 +1013,9 @@ def test_dataloaders_load_every_epoch_no_sanity_check(tmpdir):
 
     trainer.test()
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
+    assert trainer.dev_debugger.count_dataloader_calls('val') == 3
+    assert trainer.dev_debugger.count_dataloader_calls('test') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('train') == 3
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
@@ -1053,9 +1054,9 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
     trainer.test(test_dataloaders=test_loader)
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 1
+    assert trainer.dev_debugger.count_dataloader_calls('val') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('test') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('train') == 1
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls
@@ -1090,9 +1091,9 @@ def test_dataloaders_load_every_epoch(tmpdir):
 
     trainer.test(test_dataloaders=test_loader)
 
-    assert len(trainer.dev_debugger.val_dataloader_calls) == 4
-    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
-    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
+    assert trainer.dev_debugger.count_dataloader_calls('val') == 4
+    assert trainer.dev_debugger.count_dataloader_calls('test') == 1
+    assert trainer.dev_debugger.count_dataloader_calls('train') == 3
 
     # verify the sequence
     calls = trainer.dev_debugger.dataloader_sequence_calls

@@ -50,9 +50,6 @@ class InternalDebugger(object):
         self.checkpoint_callback_history = []
         self.events = []
         self.saved_lr_scheduler_updates = []
-        self.train_dataloader_calls = []
-        self.val_dataloader_calls = []
-        self.test_dataloader_calls = []
         self.dataloader_sequence_calls = []
 
     def track_event(
@@ -104,12 +101,18 @@ class InternalDebugger(object):
         # track the sequence in case we need to verify the sequence
         self.dataloader_sequence_calls.append(values)
 
-        if 'train' in name:
-            self.train_dataloader_calls.append(values)
-        elif 'val' in name:
-            self.val_dataloader_calls.append(values)
-        elif 'test' in name:
-            self.test_dataloader_calls.append(values)
+    def filter_dataloader_calls(self, dataloader_name: str, strict: bool = False) -> list:
+        def _condition(name):
+            if strict and dataloader_name == name:
+                return True
+            elif not strict and name in dataloader_name:
+                return True
+            return False
+
+        return [call for call in self.dataloader_sequence_calls if _condition(call['name'])]
+
+    def count_dataloader_calls(self, dataloader_name: str, strict: bool = False) -> int:
+        return len(self.filter_dataloader_calls(dataloader_name, strict))
 
     @enabled_only
     def track_logged_metrics_history(self, scalar_metrics):
