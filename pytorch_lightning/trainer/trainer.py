@@ -1062,10 +1062,7 @@ class Trainer(
 
         use_ddp_spawn = self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']
 
-        # -------------------
-        # route training mode
-        # -------------------
-        # DDP2 (cluster only)
+        # choose the appropriate accelerator backend
         if self.use_ddp2:
             accelerator_backend = DDP2Backend(self)
 
@@ -1075,15 +1072,12 @@ class Trainer(
         elif use_torchelastic_ddp:
             accelerator_backend = DDPBackend(self, mode='torchelastic_ddp')
 
-        # regular ddp using .spawn
         elif use_ddp_spawn:
             accelerator_backend = DDPSpawnBackend(self, nprocs=self.num_processes)
 
-        # ddp
         elif self.distributed_backend == 'ddp':
             accelerator_backend = DDPBackend(self, mode='ddp')
 
-        # dp
         elif self.use_dp:
             accelerator_backend = DataParallelBackend(self)
 
