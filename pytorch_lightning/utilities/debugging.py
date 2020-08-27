@@ -50,6 +50,10 @@ class InternalDebugger(object):
         self.checkpoint_callback_history = []
         self.events = []
         self.saved_lr_scheduler_updates = []
+        self.train_dataloader_calls = []
+        self.val_dataloader_calls = []
+        self.test_dataloader_calls = []
+        self.dataloader_sequence_calls = []
 
     def track_event(
             self,
@@ -76,6 +80,36 @@ class InternalDebugger(object):
             elif not strict and evt_type in evt["event"]:
                 count += 1
         return count
+
+    @enabled_only
+    def track_load_dataloader_call(self, name, dataloaders):
+        loader_counts = len(dataloaders)
+
+        lengths = []
+        for dl in dataloaders:
+            try:
+                length = len(dl)
+            except Exception as e:
+                length = -1
+            lengths.append(length)
+
+        values = {
+            'global_step': self.trainer.global_step,
+            'epoch': self.trainer.current_epoch,
+            'num_loaders': loader_counts,
+            'lengths': lengths,
+            'name': name
+        }
+
+        # track the sequence in case we need to verify the sequence
+        self.dataloader_sequence_calls.append(values)
+
+        if 'train' in name:
+            self.train_dataloader_calls.append(values)
+        elif 'val' in name:
+            self.val_dataloader_calls.append(values)
+        elif 'test' in name:
+            self.test_dataloader_calls.append(values)
 
     @enabled_only
     def track_logged_metrics_history(self, scalar_metrics):

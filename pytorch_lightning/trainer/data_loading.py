@@ -26,6 +26,7 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.debugging import InternalDebugger
 
 try:
     from torch.utils.data import IterableDataset
@@ -110,6 +111,7 @@ class TrainerDataLoadingMixin(ABC):
     num_nodes: int
     num_processes: int
     distributed_backend: Optional[str]
+    dev_debugger: InternalDebugger
 
     @abstractmethod
     def is_overridden(self, *args):
@@ -204,6 +206,9 @@ class TrainerDataLoadingMixin(ABC):
         """
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
 
+        # debugging
+        self.dev_debugger.track_load_dataloader_call('train_dataloader', dataloaders=[self.train_dataloader])
+
         self.num_training_batches = 0
 
         # automatically add samplers
@@ -260,13 +265,17 @@ class TrainerDataLoadingMixin(ABC):
             Tuple (num_batches, dataloaders)
         """
         # use the training loader as val and test when overfitting
+        loader_name = f'{mode}_dataloader'
         if self.overfit_batches > 0:
-            dataloaders = self.request_dataloader(getattr(model, 'train_dataloader'))
-        else:
-            dataloaders = self.request_dataloader(getattr(model, f'{mode}_dataloader'))
+            loader_name = 'train_dataloader'
+
+        # load loaders
+        dataloaders = self.request_dataloader(getattr(model, loader_name))
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
+
+        self.dev_debugger.track_load_dataloader_call(loader_name, dataloaders=dataloaders)
 
         for loader_i in range(len(dataloaders)):
             loader = dataloaders[loader_i]

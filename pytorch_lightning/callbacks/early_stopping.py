@@ -151,6 +151,8 @@ class EarlyStopping(Callback):
         if trainer.running_sanity_check:
             return
 
+        self.__warn_deprecated_monitor_key()
+
         val_es_key = 'val_early_stop_on'
         if trainer.callback_metrics.get(val_es_key) is not None:
             self.monitor = val_es_key
@@ -193,8 +195,6 @@ class EarlyStopping(Callback):
 
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
-
-        self.__warn_deprecated_monitor_key()
 
         current = logs.get(self.monitor)
 
