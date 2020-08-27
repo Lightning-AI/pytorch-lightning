@@ -240,3 +240,20 @@ def test_configure_optimizer_from_dict(tmpdir):
     )
     result = trainer.fit(model)
     assert result == 1
+
+
+def test_configure_optimizer_with_frequency(tmpdir):
+    """
+    Test that multiple optimizers work when corresponding frequency is set.
+    """
+    model = EvalModelTemplate()
+    model.configure_optimizers = model.configure_optimizers__multiple_optimizers_frequency
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1
+    )
+    result = trainer.fit(model)
+    assert result
+
+    # maybe add more assertions to check if it's working as expected
