@@ -990,13 +990,8 @@ class Trainer(
         # hook
         self.call_hook('on_fit_start', model)
 
-        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
-        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
-        if self.can_prepare_data():
-            if self.datamodule is not None:
-                self.datamodule.prepare_data()
-            model.prepare_data()
-            self._is_data_prepared = True
+        # hook
+        self.prepare_data(model)
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
@@ -1036,6 +1031,15 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return results or 1
+
+    def prepare_data(self, model):
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+        if self.can_prepare_data():
+            if self.datamodule is not None:
+                self.datamodule.prepare_data()
+            model.prepare_data()
+            self._is_data_prepared = True
 
     def attach_data(self, model, train_dataloader, val_dataloaders):
         # if a datamodule comes in as the second arg, then fix it for the user
