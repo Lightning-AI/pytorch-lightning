@@ -982,7 +982,7 @@ class Trainer(
             parsing.clean_namespace(model.hparams)
 
         # links data to the trainer
-        self.attach_data(model, train_dataloader, val_dataloaders)
+        self.attach_data(model, train_dataloader, val_dataloaders, datamodule)
 
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
@@ -1041,7 +1041,7 @@ class Trainer(
             model.prepare_data()
             self._is_data_prepared = True
 
-    def attach_data(self, model, train_dataloader, val_dataloaders):
+    def attach_data(self, model, train_dataloader, val_dataloaders, datamodule):
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloader, LightningDataModule):
             datamodule = train_dataloader
