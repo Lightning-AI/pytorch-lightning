@@ -1064,8 +1064,10 @@ class Trainer(
 
         # ddp
         elif self.distributed_backend == 'ddp':
-            self.accelerator_backend = DDPBackend(self)
-            results = self.accelerator_backend.spawn_ddp_children(model)
+            self.accelerator_backend = DDPBackend(self, mode='ddp')
+            self.accelerator_backend.setup(model)
+            results = self.accelerator_backend.train()
+            self.accelerator_backend.teardown()
 
         # dp
         elif self.use_dp:
@@ -1089,7 +1091,7 @@ class Trainer(
         elif self.use_tpu:
             self.accelerator_backend = TPUBackend(self)
             self.accelerator_backend.setup(model)
-            self.accelerator_backend.train()
+            results = self.accelerator_backend.train()
             self.accelerator_backend.teardown(model)
 
         else:
