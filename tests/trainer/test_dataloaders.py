@@ -884,6 +884,50 @@ def test_dataloaders_load_only_once(tmpdir):
         assert call['name'] == expected
 
 
+def test_dataloaders_load_only_once_val_interval(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = EvalModelTemplate()
+
+    # logger file to get meta
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=10,
+        limit_val_batches=10,
+        val_check_interval=0.3,
+        reload_dataloaders_every_epoch=True,
+        max_epochs=3,
+    )
+    result = trainer.fit(model)
+
+    trainer.test()
+
+    assert len(trainer.dev_debugger.val_dataloader_calls) == 10
+    assert len(trainer.dev_debugger.test_dataloader_calls) == 1
+    assert len(trainer.dev_debugger.train_dataloader_calls) == 3
+
+    # verify the sequence
+    calls = trainer.dev_debugger.dataloader_sequence_calls
+    expected_sequence = [
+        'val_dataloader',
+        'train_dataloader',
+        'val_dataloader',
+        'val_dataloader',
+        'val_dataloader',
+        'train_dataloader',
+        'val_dataloader',
+        'val_dataloader',
+        'val_dataloader',
+        'train_dataloader',
+        'val_dataloader',
+        'val_dataloader',
+        'val_dataloader',
+        'test_dataloader'
+    ]
+    for call, expected in zip(calls, expected_sequence):
+        assert call['name'] == expected
+
+
 def test_dataloaders_load_only_once_no_sanity_check(tmpdir):
     os.environ['PL_DEV_DEBUG'] = '1'
 
