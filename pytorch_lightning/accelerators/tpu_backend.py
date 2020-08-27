@@ -56,7 +56,9 @@ class TPUBackend(Accelerator):
 
         self.trainer.model = model
 
-    def teardown(self, model):
+    def teardown(self):
+        model = self.trainer.model
+
         # restore main state with best weights
         best_path = self.mp_queue.get()
         results = self.mp_queue.get()

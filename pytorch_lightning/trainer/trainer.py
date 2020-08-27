@@ -1092,7 +1092,7 @@ class Trainer(
             self.accelerator_backend = TPUBackend(self)
             self.accelerator_backend.setup(model)
             results = self.accelerator_backend.train()
-            self.accelerator_backend.teardown(model)
+            self.accelerator_backend.teardown()
 
         else:
             self.accelerator_backend = CPUBackend(self)
