@@ -84,7 +84,14 @@ class InternalDebugger(object):
     @enabled_only
     def track_load_dataloader_call(self, name, dataloaders):
         loader_counts = len(dataloaders)
-        lengths = [len(x) for x in dataloaders]
+
+        lengths = []
+        for dl in dataloaders:
+            try:
+                length = len(dl)
+            except:
+                length = -1
+            lengths.append(length)
 
         values = {
             'global_step': self.trainer.global_step,
