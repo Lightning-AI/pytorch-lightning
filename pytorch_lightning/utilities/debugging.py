@@ -101,18 +101,11 @@ class InternalDebugger(object):
         # track the sequence in case we need to verify the sequence
         self.dataloader_sequence_calls.append(values)
 
-    def filter_dataloader_calls(self, dataloader_name: str, strict: bool = False) -> list:
-        def _condition(name):
-            if strict and dataloader_name == name:
-                return True
-            elif not strict and name in dataloader_name:
-                return True
-            return False
+    def filter_dataloader_calls(self, dataloader_name: str) -> list:
+        return [call for call in self.dataloader_sequence_calls if call['name'] in dataloader_name]
 
-        return [call for call in self.dataloader_sequence_calls if _condition(call['name'])]
-
-    def count_dataloader_calls(self, dataloader_name: str, strict: bool = False) -> int:
-        return len(self.filter_dataloader_calls(dataloader_name, strict))
+    def count_dataloader_calls(self, dataloader_name: str) -> int:
+        return len(self.filter_dataloader_calls(dataloader_name))
 
     @enabled_only
     def track_logged_metrics_history(self, scalar_metrics):
