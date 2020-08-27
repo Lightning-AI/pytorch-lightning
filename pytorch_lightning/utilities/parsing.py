@@ -14,11 +14,11 @@
 
 import inspect
 from argparse import Namespace
-from typing import Dict
+from typing import Dict, Union
 
 
-def str_to_bool(val):
-    """Convert a string representation of truth to true (1) or false (0).
+def str_to_bool(val: str) -> bool:
+    """Convert a string representation of truth to bool.
     Copied from the python implementation distutils.utils.strtobool
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
@@ -32,11 +32,27 @@ def str_to_bool(val):
     """
     val = val.lower()
     if val in ('y', 'yes', 't', 'true', 'on', '1'):
-        return 1
+        return True
     elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-        return 0
+        return False
     else:
         raise ValueError(f'invalid truth value {val}')
+
+
+def str_to_bool_or_str(val: str) -> Union[str, bool]:
+    """Possibly convert a string representation of truth to bool.
+    Returns the input otherwise
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.
+    """
+    lower = val.lower()
+    if lower in ('y', 'yes', 't', 'true', 'on', '1'):
+        return True
+    elif lower in ('n', 'no', 'f', 'false', 'off', '0'):
+        return False
+    else:
+        return val
 
 
 def clean_namespace(hparams):
