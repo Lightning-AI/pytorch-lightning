@@ -29,7 +29,7 @@ exclude *.svg
 recursive-include pytorch_lightning *.py
 
 # Include marker file for PEP 561
-include pytorch_lightning py.typed
+include pytorch_lightning/py.typed
 
 # include examples
 recursive-include pl_examples *.py *.md *.sh *.txt
