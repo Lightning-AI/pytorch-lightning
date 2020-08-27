@@ -46,9 +46,11 @@ class GPUBackend(Accelerator):
 
         if self.trainer.amp_backend == AMPType.APEX:
             model = self._setup_nvidia_apex(model)
-        return model
 
-    def train(self, model):
+        self.trainer.model = model
+
+    def train(self):
+        model = self.trainer.model
         results = self.trainer.run_pretrain_routine(model)
         return results
 

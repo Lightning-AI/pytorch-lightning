@@ -46,6 +46,8 @@ class DDP2Backend(Accelerator):
     def setup(self, model):
         self._resolve_task_idx()
 
+        self.trainer.model = model
+
     def _resolve_task_idx(self):
         if self.trainer.is_slurm_managing_tasks:
             self.task_idx = int(os.environ['SLURM_LOCALID'])
@@ -57,7 +59,8 @@ class DDP2Backend(Accelerator):
                 m = 'ddp2 only works in SLURM or via torchelastic with the WORLD_SIZE, LOCAL_RANK, GROUP_RANK flags'
                 raise MisconfigurationException(m)
 
-    def train(self, model):
+    def train(self):
+        model = self.trainer.model
         self.ddp_train(process_idx=self.task_idx, mp_queue=None, model=model)
 
     def ddp_train(self, process_idx, mp_queue, model, is_master=False, proc_offset=0):
