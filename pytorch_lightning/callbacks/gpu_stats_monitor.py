@@ -82,10 +82,28 @@ class GPUStatsMonitor(Callback):
             'fan_speed': fan_speed,
             'temperature': temperature
         })
+
+    def on_train_start(self, trainer, pl_module):
+        if not trainer.logger:
+            raise MisconfigurationException(
+                'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
+            )
+
+        if not trainer.on_gpu:
+            rank_zero_warn(
+                'You are using GPUStatsMonitor but are not running on GPU.'
+                ' Logged utilization will be independent from your model.', RuntimeWarning
+            )
+
+    def on_train_epoch_start(self, trainer, pl_module):
+        self.snap_intra_step_time = None
+        self.snap_inter_step_time = None
+
     @rank_zero_only
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if self._log_stats.gpu_utilization:
             self._log_usage(trainer)
+
         if self._log_stats.memory_utilization:
             self._log_memory(trainer)
 
@@ -122,22 +140,6 @@ class GPUStatsMonitor(Callback):
                 {'batch_time/intra_step (ms)': (time.time() - self.snap_intra_step_time) * 1000},
                 step=trainer.global_step
             )
-
-    def on_train_start(self, trainer, pl_module):
-        if not trainer.logger:
-            raise MisconfigurationException(
-                'Cannot use GPUStatsMonitor callback with Trainer that has no logger.'
-            )
-
-        if not trainer.on_gpu:
-            rank_zero_warn(
-                'You are using GPUStatsMonitor but are not running on GPU.'
-                ' Logged utilization will be independent from your model.', RuntimeWarning
-            )
-
-    def on_train_epoch_start(self, trainer, pl_module):
-        self.snap_intra_step_time = None
-        self.snap_inter_step_time = None
 
     @staticmethod
     def _get_gpu_stat(pitem: str, unit: str):
