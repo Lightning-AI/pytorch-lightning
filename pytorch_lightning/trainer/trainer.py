@@ -1095,7 +1095,6 @@ class Trainer(
 
         return accelerator_backend
 
-
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
         if self.datamodule is not None and self.is_overridden('prepare_data', self.datamodule):
