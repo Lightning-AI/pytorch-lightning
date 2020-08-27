@@ -1008,18 +1008,17 @@ class Trainer(
         # set testing if set in environ
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
 
-        # choose accelerator
+        # -------------------------
+        # TRAIN
+        # -------------------------
         self.accelerator_backend = self.select_accelerator()
-
-        # setup accelerator
         self.accelerator_backend.setup(model)
-
-        # train!
         results = self.accelerator_backend.train()
-
-        # teardown accelerator
         self.accelerator_backend.teardown()
 
+        # -------------------------
+        # POST-Training
+        # -------------------------
         # hook
         self.call_hook('on_fit_end')
 
