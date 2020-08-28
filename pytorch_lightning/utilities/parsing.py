@@ -20,31 +20,10 @@ from typing import Dict, Union
 from pytorch_lightning.utilities import rank_zero_warn
 
 
-def str_to_bool(val: str) -> bool:
-    """Convert a string representation of truth to bool.
-    Copied from the python implementation distutils.utils.strtobool
-
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
-    'val' is anything else.
-
-    >>> str_to_bool('YES')
-    1
-    >>> str_to_bool('FALSE')
-    0
-    """
-    val = val.lower()
-    if val in ('y', 'yes', 't', 'true', 'on', '1'):
-        return True
-    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-        return False
-    else:
-        raise ValueError(f'invalid truth value {val}')
-
-
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
     """Possibly convert a string representation of truth to bool.
-    Returns the input otherwise
+    Returns the input otherwise.
+    Based on the python implementation distutils.utils.strtobool
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.
@@ -56,6 +35,24 @@ def str_to_bool_or_str(val: str) -> Union[str, bool]:
         return False
     else:
         return val
+
+
+def str_to_bool(val: str) -> bool:
+    """Convert a string representation of truth to bool.
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+
+    >>> str_to_bool('YES')
+    True
+    >>> str_to_bool('FALSE')
+    False
+    """
+    val = str_to_bool_or_str(val)
+    if isinstance(val, bool):
+        return val
+    raise ValueError(f'invalid truth value {val}')
 
 
 def is_picklable(obj: object) -> bool:
