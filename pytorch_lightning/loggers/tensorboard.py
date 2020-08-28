@@ -240,7 +240,7 @@ class TensorBoardLogger(LightningLoggerBase):
         existing_versions = []
         for d in gfile.listdir(root_dir):
             if gfile.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
-                existing_versions.append(int(d.split("_")[1]))
+                existing_versions.append(int(d.split("_")[1].replace('/', '')))
 
         if len(existing_versions) == 0:
             return 0
