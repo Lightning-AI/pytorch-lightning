@@ -300,10 +300,6 @@ class TrainerEvaluationLoopMixin(ABC):
         # log the final eval loop metrics
         eval_loop_results = self.__log_evaluation_epoch_metrics(eval_results, test_mode)
 
-        # user may want to reload every epoch
-        if self.reload_dataloaders_every_epoch:
-            self.evaluation_loop.reload_evaluation_dataloaders()
-
         # enable train mode again
         model.train()
         torch.set_grad_enabled(True)
