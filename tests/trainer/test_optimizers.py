@@ -255,5 +255,3 @@ def test_configure_optimizers_with_frequency(tmpdir):
     )
     result = trainer.fit(model)
     assert result
-
-    # maybe add more assertions to check if it's working as expected
