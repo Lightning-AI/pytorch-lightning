@@ -426,3 +426,13 @@ class ModelCheckpoint(Callback):
         for cur_path in del_list:
             if cur_path != filepath:
                 self._del_model(cur_path)
+
+    def on_save_checkpoint(self, trainer, pl_module):
+        return {
+            'best_model_score': self.best_model_score,
+            'best_model_path': self.best_model_path,
+        }
+
+    def on_load_checkpoint(self, checkpointed_state):
+        self.best_model_score = checkpointed_state['best_model_score']
+        self.best_model_path = checkpointed_state['best_model_path']
