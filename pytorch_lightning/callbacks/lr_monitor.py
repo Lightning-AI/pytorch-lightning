@@ -15,7 +15,7 @@
 r"""
 
 Learning Rate Monitor
-====================
+=====================
 
 Monitor and logs learning rate for lr schedulers during training.
 
