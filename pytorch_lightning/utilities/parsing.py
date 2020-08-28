@@ -13,8 +13,11 @@
 # limitations under the License.
 
 import inspect
+import pickle
 from argparse import Namespace
 from typing import Dict, Union
+
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 def str_to_bool(val: str) -> bool:
@@ -55,26 +58,28 @@ def str_to_bool_or_str(val: str) -> Union[str, bool]:
         return val
 
 
+def is_picklable(obj: object) -> bool:
+    """Tests if an object can be pickled"""
+
+    try:
+        pickle.dumps(obj)
+        return True
+    except pickle.PicklingError:
+        return False
+
+
 def clean_namespace(hparams):
-    """Removes all functions from hparams so we can pickle."""
+    """Removes all unpicklable entries from hparams"""
 
+    hparams_dict = hparams
     if isinstance(hparams, Namespace):
-        del_attrs = []
-        for k in hparams.__dict__:
-            if callable(getattr(hparams, k)):
-                del_attrs.append(k)
+        hparams_dict = hparams.__dict__
 
-        for k in del_attrs:
-            delattr(hparams, k)
+    del_attrs = [k for k, v in hparams_dict.items() if not is_picklable(v)]
 
-    elif isinstance(hparams, dict):
-        del_attrs = []
-        for k, v in hparams.items():
-            if callable(v):
-                del_attrs.append(k)
-
-        for k in del_attrs:
-            del hparams[k]
+    for k in del_attrs:
+        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
+        del hparams_dict[k]
 
 
 def get_init_args(frame) -> dict:
