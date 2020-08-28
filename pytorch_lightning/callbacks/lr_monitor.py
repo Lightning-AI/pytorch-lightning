@@ -57,7 +57,7 @@ class LearningRateMonitor(Callback):
             lr_scheduler = {'scheduler': torch.optim.lr_schedulers.LambdaLR(optimizer, ...)
                             'name': 'my_logging_name'}
             return [optimizer], [lr_scheduler]
-    
+
     """
     def __init__(self, logging_interval: Optional[str] = None):
         if logging_interval not in (None, 'step', 'epoch'):
@@ -137,6 +137,7 @@ class LearningRateMonitor(Callback):
             else:
                 opt_name = 'lr-' + sch.optimizer.__class__.__name__
                 i, name = 1, opt_name
+
                 # Multiple schduler of the same type
                 while True:
                     if name not in names:
