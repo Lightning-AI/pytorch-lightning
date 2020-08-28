@@ -182,7 +182,7 @@ class EarlyStopping(Callback):
             m = f"""
                     When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the
                     'monitor' key of EarlyStopping has no effect.
-                    Remove EarlyStopping(monitor='{self.monitor}) to fix')
+                    Remove EarlyStopping(monitor='{self.monitor}') to fix')
                 """
             rank_zero_warn(m)
 

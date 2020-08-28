@@ -378,11 +378,11 @@ class ModelCheckpoint(Callback):
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose > 0:
-                log.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not in top {self.save_top_k}')
+                log.info(f'Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}')
 
         else:
             if self.verbose > 0:
-                log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
+                log.info(f'Epoch {epoch:d}: saving model to {filepath}')
 
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
             self._save_model(filepath, trainer, pl_module)
@@ -419,9 +419,9 @@ class ModelCheckpoint(Callback):
 
         if self.verbose > 0:
             log.info(
-                f'\nEpoch {epoch:05d}: {self.monitor} reached'
-                f' {current:0.5f} (best {self.best_model_score:0.5f}), saving model to'
-                f' {filepath} as top {self.save_top_k}')
+                f'Epoch {epoch:d}: {self.monitor} reached '
+                f'{current:0.5f} (best {self.best_model_score:0.5f}), '
+                f'saving model to {filepath} as top {self.save_top_k}')
         self._save_model(filepath, trainer, pl_module)
 
         for cur_path in del_list:
