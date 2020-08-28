@@ -676,7 +676,7 @@ class TrainerTrainLoopMixin(ABC):
         # --------------------------
         # add the metrics to the loggers
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
-            self.log_metrics(epoch_log_metrics, {})
+            self.log_metrics(epoch_log_metrics, {}, self.current_epoch)
 
         # add metrics to callbacks
         self.callback_metrics.update(epoch_callback_metrics)
