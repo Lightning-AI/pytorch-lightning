@@ -1746,10 +1746,10 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             ...
             ...     def forward(self, x):
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model = SimpleModel()
-            ...     torch.jit.save(model.to_torchscript(), tmpfile.name)
-            ...     os.path.isfile(tmpfile.name)
+            ...
+            >>> model = SimpleModel()
+            >>> torch.jit.save(model.to_torchscript(), "model.jit")
+            >>> os.path.isfile("model.jit")
             True
         """
         mode = self.training
