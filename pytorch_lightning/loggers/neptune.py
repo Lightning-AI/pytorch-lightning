@@ -185,7 +185,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.experiment_name = experiment_name
         self._kwargs = kwargs
         self._experiment_id = None
-        self._experiment = self._create_or_get_experiment()
+        self._experiment = None
 
         log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
 
