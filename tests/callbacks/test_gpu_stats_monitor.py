@@ -3,7 +3,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import GPUStatsMonitor
+from pytorch_lightning.callbacks import GpuUsageLogger, GPUStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -93,3 +93,10 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
 
     with pytest.warns(RuntimeWarning, match='not running on GPU. Logged utilization will be independent'):
         trainer.fit(model)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+def test_gpu_usage_logger_deprecated(tmpdir):
+    """ Test the deprecation warning for GpuUsageLogger. """
+    with pytest.warns(DeprecationWarning, match='is now `GPUStatsMonitor`'):
+        gpu_usage = GpuUsageLogger()
