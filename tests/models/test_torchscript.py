@@ -50,4 +50,3 @@ def test_torchscript_save_load(tmpdir, modelclass):
     output_file = str(tmpdir / "model.jit")
     torch.jit.save(script, output_file)
     torch.jit.load(output_file)
-

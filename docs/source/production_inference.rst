@@ -1,3 +1,17 @@
+.. testsetup:: *
+
+    import torch
+    from pytorch_lightning import LightningModule
+
+    class SimpleModel(LightningModule):
+
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
 .. _production-inference:
 
 Inference in Production
@@ -28,3 +42,19 @@ Once you have the exported model, you can run it on your ONNX runtime in the fol
     input_name = ort_session.get_inputs()[0].name
     ort_inputs = {input_name: np.random.randn(1, 64).astype(np.float32)}
     ort_outs = ort_session.run(None, ort_inputs)
+
+
+Exporting to TorchScript
+------------------------
+
+TorchScript allows you to serialize your models in a way that it can be loaded in non-Python environments.
+The LightningModule has a handy method :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`
+that returns a scripted module which you can save or directly use.
+
+.. testcode::
+
+    model = SimpleModel()
+    script = model.to_torchscript()
+
+    # save for use in production environment
+    torch.jit.save(script, "model.pt")
