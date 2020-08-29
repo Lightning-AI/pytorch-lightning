@@ -1,7 +1,9 @@
+import pytest
 import torch
 
 from pytorch_lightning import LightningModule
 from tests.base import EvalModelTemplate
+from tests.base.models import ParityModuleRNN, TestGAN
 
 
 class SimpleModel(LightningModule):
@@ -14,19 +16,46 @@ class SimpleModel(LightningModule):
         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
 
-def test_torchscript_save_load(tmpdir):
-    """ Test that scripted LightningModule behaves like the original. """
-    model = EvalModelTemplate()
+@pytest.mark.parametrize("modelclass", [
+    EvalModelTemplate,
+    ParityModuleRNN,
+    TestGAN,
+])
+def test_torchscript_input_output(modelclass):
+    """ Test that scripted LightningModule forward works. """
+    model = modelclass()
+    script = model.to_torchscript()
+    assert isinstance(script, torch.jit.ScriptModule)
+    model_output = model(model.example_input_array)
+    script_output = script(model.example_input_array)
+    assert torch.allclose(script_output, model_output)
+
+
+@pytest.mark.parametrize("modelclass", [
+    EvalModelTemplate,
+    ParityModuleRNN,
+    TestGAN,
+])
+def test_torchscript_properties(modelclass):
+    """ Test that scripted LightningModule has unnecessary methods removed. """
+    model = modelclass()
+    script = model.to_torchscript()
+    assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")
+    assert not hasattr(model, "learning_rate") or hasattr(script, "learning_rate")
+    assert not callable(getattr(script, "training_step", None))
+
+
+@pytest.mark.parametrize("modelclass", [
+    EvalModelTemplate,
+    ParityModuleRNN,
+    TestGAN,
+])
+def test_torchscript_save_load(tmpdir, modelclass):
+    """ Test that scripted LightningModules can be saved and loaded. """
+    model = modelclass()
     script = model.to_torchscript()
     assert isinstance(script, torch.jit.ScriptModule)
     output_file = str(tmpdir / "model.jit")
     torch.jit.save(script, output_file)
-    script = torch.jit.load(output_file)
-    # properties
-    assert script.batch_size == model.batch_size
-    assert script.learning_rate == model.learning_rate
-    assert not callable(getattr(script, "training_step", None))
-    # output matches
-    model_output = model(model.example_input_array)
-    script_output = script(model.example_input_array)
-    assert torch.allclose(script_output, model_output)
+    torch.jit.load(output_file)
+
