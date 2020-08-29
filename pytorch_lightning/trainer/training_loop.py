@@ -476,10 +476,8 @@ class TrainLoop:
                 self.accumulated_loss.append(opt_closure_result.loss)
 
                 # track all the outputs across all steps
-                if len(batch_outputs) == 1:
-                    batch_outputs[0].append(opt_closure_result.training_step_output_for_epoch_end)
-                else:
-                    batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+                batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
+                batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
 
                 # ------------------------------
                 # BACKWARD PASS
