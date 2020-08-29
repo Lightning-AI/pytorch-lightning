@@ -843,6 +843,6 @@ class EvalResult(Result):
 
 def weighted_mean(result, weights):
     weights = weights.to(result.device)
-    numerator = torch.dot(result.float(), weights.transpose(0, -1).float())
+    numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
     result = numerator / weights.sum().float()
     return result
