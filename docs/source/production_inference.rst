@@ -1,7 +1,7 @@
 .. testsetup:: *
 
     import torch
-    from pytorch_lightning import LightningModule
+    pytorch_lightning.core.lightning import LightningModule
 
     class SimpleModel(LightningModule):
 
