@@ -1730,9 +1730,14 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
-    def to_torchscript(self):
-        """Saves the model as a JIT module.
-            This can be overridden to support custom TorchScript module export
+    def to_torchscript(self) -> torch.jit.ScriptModule:
+        """
+        Compiles the model to a :class:`~torch.jit.ScriptModule`.
+        This can be overridden to support custom TorchScript module export.
+
+        Note:
+            Requires the implementation of the :meth:`LightningModule.forward` method.
+
         Example:
             >>> class SimpleModel(LightningModule):
             ...     def __init__(self):
