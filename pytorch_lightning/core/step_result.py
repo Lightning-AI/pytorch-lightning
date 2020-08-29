@@ -299,7 +299,7 @@ class Result(Dict):
     def __copy__(self):
         newone = type(self)()
         for k, v in self.items():
-            newone[k] = copy(v)
+            newone[k] = copy(v.detach())
         return newone
 
     @classmethod
