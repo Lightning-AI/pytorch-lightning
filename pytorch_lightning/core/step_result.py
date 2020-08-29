@@ -299,6 +299,8 @@ class Result(Dict):
     def __copy__(self):
         newone = type(self)()
         for k, v in self.items():
+            if isinstance(v, torch.Tensor):
+                v = v.detach()
             newone[k] = copy(v)
         return newone
 
