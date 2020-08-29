@@ -1753,7 +1753,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             True
         """
         mode = self.training
-        scripted_module = torch.jit.script(self.eval())
+        with torch.no_grad():
+            scripted_module = torch.jit.script(self.eval())
         self.training = mode
         return scripted_module
 
