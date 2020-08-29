@@ -1748,8 +1748,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
             ...
             >>> model = SimpleModel()
-            >>> torch.jit.save(model.to_torchscript(), "model.jit")
-            >>> os.path.isfile("model.jit")
+            >>> torch.jit.save(model.to_torchscript(), "model.pt")
+            >>> os.path.isfile("model.pt")
             True
         """
         mode = self.training

@@ -47,6 +47,6 @@ def test_torchscript_save_load(tmpdir, modelclass):
     model = modelclass()
     script = model.to_torchscript()
     assert isinstance(script, torch.jit.ScriptModule)
-    output_file = str(tmpdir / "model.jit")
+    output_file = str(tmpdir / "model.pt")
     torch.jit.save(script, output_file)
     torch.jit.load(output_file)
