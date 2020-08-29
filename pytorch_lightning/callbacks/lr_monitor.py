@@ -157,3 +157,10 @@ class LearningRateMonitor(Callback):
             self.lr_sch_names.append(name)
 
         return names
+
+
+class LearningRateLogger(LearningRateMonitor):
+    def __init__(self, *args, **kwargs):
+        rank_zero_warn("`LearningRateLogger` is now `LearningRateMonitor`"
+                       " and this will be removed in v0.10.0", DeprecationWarning)
+        super().__init__(*args, **kwargs)
