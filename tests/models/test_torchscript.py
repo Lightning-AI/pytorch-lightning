@@ -1,19 +1,9 @@
 import pytest
 import torch
 
-from pytorch_lightning import LightningModule
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.models import ParityModuleRNN, TestGAN
-
-
-class SimpleModel(LightningModule):
-
-    def __init__(self):
-        super().__init__()
-        self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-
-    def forward(self, x):
-        return torch.relu(self.l1(x.view(x.size(0), -1)))
 
 
 @pytest.mark.parametrize("modelclass", [
