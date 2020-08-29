@@ -184,6 +184,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return logits
 
         """
+        return super().forward(*args, **kwargs)
 
     def training_step(self, *args, **kwargs):
         r"""
@@ -1728,6 +1729,28 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 kwargs['example_outputs'] = self(input_data)
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
+
+    def to_torchscript(self):
+        """Saves the model as a JIT module.
+            This can be overridden to support custom TorchScript module export
+        Example:
+            >>> class SimpleModel(LightningModule):
+            ...     def __init__(self):
+            ...         super().__init__()
+            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+            ...
+            ...     def forward(self, x):
+            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+            ...     model = SimpleModel()
+            ...     torch.jit.save(model.to_torchscript(), tmpfile.name)
+            ...     os.path.isfile(tmpfile.name)
+            True
+        """
+        mode = self.training
+        scripted_module = torch.jit.script(self.eval())
+        self.training = mode
+        return scripted_module
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:
