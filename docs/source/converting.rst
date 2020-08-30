@@ -64,7 +64,7 @@ To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.
 
 .. testcode::
 
-    class LitModel(LightningModule):
+    class LitModel(pl.LightningModule):
 
         def validation_step(self, batch, batch_idx):
             x, y = batch
