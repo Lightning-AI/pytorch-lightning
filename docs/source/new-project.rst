@@ -17,7 +17,7 @@
 Lightning in 2 steps
 ####################
 
-**In this guide we'll show you how to organize your PyTorch code into Lightning in 3 simple steps.**
+**In this guide we'll show you how to organize your PyTorch code into Lightning in 2 steps.**
 
 Organizing your code with PyTorch Lightning makes your code:
 
@@ -139,28 +139,21 @@ More details in :ref:`lightning-module` docs.
 Step 2: Fit with a Trainer
 **************************
 
-.. code-block::
+First, define the data in whatever way you want. Lightning just needs a dataloader per split you might want.
 
-    # dataloaders
+.. code-block:: python
+
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-    train, val = random_split(dataset, [55000, 5000])
     train_loader = DataLoader(train)
-    val_loader = DataLoader(val)
+
+.. code-block:: python
 
     # init model
     model = LitModel()
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     trainer = pl.Trainer()
-    trainer.fit(model, train_loader, val_loader)
-
-.. note:: Lightning works with pure PyTorch DataLoaders
-
-.. code-block:: python
-
-    train_dataloader = DataLoader(...)
-    val_dataloader = DataLoader(...)
-    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.fit(model, train_loader)
 
 -----
 
