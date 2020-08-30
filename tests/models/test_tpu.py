@@ -1,5 +1,5 @@
 import os
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
 
 import pytest
 from torch.utils.data import DataLoader
@@ -21,9 +21,7 @@ try:
         q.put(device_type == 'TPU')
 
     queue = Queue()
-    p = Process(target=tpu_device_exists, args=(queue, ))
-    p.start()
-    p.join()
+    xmp.spawn(lambda rank, queue: tpu_device_exists(queue), (queue, ), nprocs=1, start_method='fork')
     TPU_AVAILABLE = queue.get()
 except ImportError:
     TPU_AVAILABLE = False
