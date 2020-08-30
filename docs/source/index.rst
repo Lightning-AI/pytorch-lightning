@@ -9,9 +9,16 @@ PyTorch Lightning Documentation
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Start Here
+   :caption: Getting started
 
    new-project
+   converting
+
+.. toctree::
+   :maxdepth: 1
+   :name: advanced
+   :caption: Advanced use
+
    introduction_guide
    performance
 

@@ -17,7 +17,7 @@
 Lightning in 2 steps
 ####################
 
-**In this guide we'll show you how to organize your PyTorch code into Lightning in 3 simple steps.**
+**In this guide we'll show you how to organize your PyTorch code into Lightning in 2 steps.**
 
 Organizing your code with PyTorch Lightning makes your code:
 
@@ -139,132 +139,53 @@ More details in :ref:`lightning-module` docs.
 Step 2: Fit with a Trainer
 **************************
 
-.. code-block::
+First, define the data in whatever way you want. Lightning just needs a dataloader per split you might want.
 
-    # dataloaders
+.. code-block:: python
+
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-    train, val = random_split(dataset, [55000, 5000])
     train_loader = DataLoader(train)
-    val_loader = DataLoader(val)
+
+.. code-block:: python
 
     # init model
     model = LitModel()
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     trainer = pl.Trainer()
-    trainer.fit(model, train_loader, val_loader)
-
-.. note:: Lightning works with pure PyTorch DataLoaders
-
-.. code-block:: python
-
-    train_dataloader = DataLoader(...)
-    val_dataloader = DataLoader(...)
-    trainer.fit(model, train_dataloader, val_dataloader)
+    trainer.fit(model, train_loader)
 
 -----
 
-**************************************
-How to organize PyTorch into Lightning
-**************************************
+***********
+Checkpoints
+***********
+Once you've trained, you can load the checkpoints as follows:
 
-To enable your code to work with Lightning, here's how to organize PyTorch into Lightning
+.. code-block:: python
 
-1. Move your computational code
-===============================
-Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
+    model = LitModel.load_from_checkpoint(path)
 
-.. code-block::
+The above checkpoint knows all the arguments needed to init the model and set the state dict.
+If you prefer to do it manually, here's the equivalent
 
-    class LitModel(pl.LightningModule):
+.. code-block:: python
 
-        def __init__(self):
-            super().__init__()
-            self.layer_1 = torch.nn.Linear(28 * 28, 128)
-            self.layer_2 = torch.nn.Linear(128, 10)
+    # load the ckpt
+    ckpt = torch.load('path/to/checkpoint.ckpt')
 
-        def forward(self, x):
-            x = x.view(x.size(0), -1)
-            x = self.layer_1(x)
-            x = F.relu(x)
-            x = self.layer_2(x)
-            return x
+    # equivalent to the above
+    model = LitModel()
+    model.load_state_dict(ckpt['state_dict'])
 
-2. Move the optimizer(s) and schedulers
-=======================================
-Move your optimizers to :func:`pytorch_lightning.core.LightningModule.configure_optimizers` hook. Make sure to use the hook parameters (self in this case).
+--------
 
-.. code-block::
-
-    class LitModel(pl.LightningModule):
-
-        def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-            return optimizer
-
-3. Find the train loop "meat"
-=============================
-Lightning automates most of the trining for you, the epoch and batch iterations, all you need to keep is the training step logic. This should go into :func:`pytorch_lightning.core.LightningModule.training_step` hook (make sure to use the hook parameters, self in this case):
-
-.. code-block::
-
-    class LitModel(pl.LightningModule):
-
-        def training_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            loss = F.cross_entropy(y_hat, y)
-            return loss
-
-4. Find the val loop "meat"
-===========================
-To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, self in this case).
-
-.. testcode::
-
-    class LitModel(LightningModule):
-
-        def validation_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            val_loss = F.cross_entropy(y_hat, y)
-            return val_loss
-
-.. note:: model.eval() and torch.no_grad() are called automatically for validation
-
-5. Find the test loop "meat"
-============================
-To add an (optional) test loop add logic to :func:`pytorch_lightning.core.LightningModule.test_step` hook (make sure to use the hook parameters, self in this case).
-
-.. code-block::
-
-    class LitModel(pl.LightningModule):
-
-        def test_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            loss = F.cross_entropy(y_hat, y)
-            return loss
-
-.. note:: model.eval() and torch.no_grad() are called automatically for testing.
-
-The test loop will not be used until you call.
-
-.. code-block::
-
-    trainer.test()
-
-.. note:: .test() loads the best checkpoint automatically
-
-6. Remove any .cuda() or to.device() calls
-==========================================
-Your :class:`~pytorch_lightning.core.LightningModule` can automatically run on any hardware!
-
+*****************
 Optional features
-=================
+*****************
 
-1. Wrap loss in a TrainResult/EvalResult
-----------------------------------------
+TrainResult/EvalResult
+======================
 Instead of returning the loss you can also use :class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`, plain Dict objects that give you options for logging on every step and/or at the end of the epoch.
 It also allows logging to the progress bar (by setting prog_bar=True). Read more in :ref:`result`.
 
@@ -292,8 +213,8 @@ It also allows logging to the progress bar (by setting prog_bar=True). Read more
             return result
 
             
-2. Override default callbacks
------------------------------
+Callbacks
+=========
 A :class:`~pytorch_lightning.core.LightningModule` handles advances cases by allowing you to override any critical part of training
 via :ref:`hooks` that are called on your :class:`~pytorch_lightning.core.LightningModule`.
 
@@ -423,49 +344,59 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change y
 
 .. code-block:: python
 
-  # train on 1024 CPUs across 128 machines
-    trainer = pl.Trainer(
-        num_processes=8,
-        num_nodes=128
-    )
+    # train on CPU
+    trainer = pl.Trainer()
 
-.. code-block:: python
+    # train on 8 CPUs
+    trainer = pl.Trainer(num_processes=8)
 
     # train on 1 GPU
     trainer = pl.Trainer(gpus=1)
 
-.. code-block:: python
+    # train on the ith GPU
+    trainer = pl.Trainer(gpus=[3])
 
-    # train on 256 GPUs
-    trainer = pl.Trainer(
-        gpus=8,
-        num_nodes=32
-    )
+    # train on multiple GPUs
+    trainer = pl.Trainer(gpus=3)
 
-.. code-block:: python
+    # train on multiple GPUs across nodes (32 gpus here)
+    trainer = pl.Trainer(gpus=4, num_nodes=8)
 
-    # Multi GPU with mixed precision
-    trainer = pl.Trainer(gpus=2, precision=16)
+    # train on gpu 1, 3, 5 (3 gpus total)
+    trainer = pl.Trainer(gpus=[1, 3, 5])
 
-.. code-block:: python
-
-    # Train on TPUs
+    # train on 8 GPU cores
     trainer = pl.Trainer(tpu_cores=8)
 
-Without changing a SINGLE line of your code, you can now do the following with the above code:
+------
+
+*********
+Debugging
+*********
+Lightning has many tools for debugging:
 
 .. code-block:: python
 
-    # train on TPUs using 16 bit precision with early stopping
-    # using only half the training data and checking validation every quarter of a training epoch
-    trainer = pl.Trainer(
-        tpu_cores=8,
-        precision=16,
-        early_stop_callback=True,
-        limit_train_batches=0.5,
-        val_check_interval=0.25
-    )
-    
+    # use only 10 train batches and 3 val batches
+    Trainer(limit_train_batches=10, limit_val_batches=3)
+
+    # overfit the same batch
+    Trainer(overfit_batches=1)
+
+    # unit test all the code (check every line)
+    Trainer(fast_dev_run=True)
+
+    # train only 20% of an epoch
+    Trainer(limit_train_batches=0.2)
+
+    # run validation every 20% of a training epoch
+    Trainer(val_check_interval=0.2)
+
+    # find bottlenecks
+    Trainer(profiler=True)
+
+    # ... and 20+ more tools
+
 **********
 Learn more
 **********
