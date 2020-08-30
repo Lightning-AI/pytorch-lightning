@@ -180,11 +180,12 @@ If you prefer to do it manually, here's the equivalent
 
 --------
 
+*****************
 Optional features
-=================
+*****************
 
-1. Wrap loss in a TrainResult/EvalResult
-----------------------------------------
+TrainResult/EvalResult
+======================
 Instead of returning the loss you can also use :class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`, plain Dict objects that give you options for logging on every step and/or at the end of the epoch.
 It also allows logging to the progress bar (by setting prog_bar=True). Read more in :ref:`result`.
 
@@ -212,8 +213,8 @@ It also allows logging to the progress bar (by setting prog_bar=True). Read more
             return result
 
             
-2. Override default callbacks
------------------------------
+Callbacks
+=========
 A :class:`~pytorch_lightning.core.LightningModule` handles advances cases by allowing you to override any critical part of training
 via :ref:`hooks` that are called on your :class:`~pytorch_lightning.core.LightningModule`.
 
