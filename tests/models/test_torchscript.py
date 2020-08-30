@@ -18,9 +18,23 @@ def test_torchscript_input_output(modelclass):
     model = modelclass()
     script = model.to_torchscript()
     assert isinstance(script, torch.jit.ScriptModule)
+    model.eval()
     model_output = model(model.example_input_array)
     script_output = script(model.example_input_array)
     assert torch.allclose(script_output, model_output)
+
+
+def test_torchscript_retain_training_state():
+    """ Test that torchscript export does not alter the training mode of original model. """
+    model = EvalModelTemplate()
+    model.train(True)
+    script = model.to_torchscript()
+    assert model.training
+    assert not script.training
+    model.train(False)
+    _ = model.to_torchscript()
+    assert not model.training
+    assert not script.training
 
 
 @pytest.mark.parametrize("modelclass", [
