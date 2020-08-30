@@ -21,162 +21,6 @@ We'll accomplish the following:
 
 --------------
 
-*********************
-Why PyTorch Lightning
-*********************
-
-a. Less boilerplate
-===================
-
-Research and production code starts with simple code, but quickly grows in complexity
-once you add gpu training, 16-bit, checkpointing, logging, etc...
-
-PyTorch Lightning implements these features for you and tests them rigorously to make sure you can
-instead focus on the research idea.
-
-Writing less engineering/bolierplate code means:
-
-- fewer bugs
-- faster iteration
-- faster prototyping
-
-b. More functionality
-=====================
-
-In PyTorch Lightning you leverage code written by hundreds of AI researchers,
-research engs and PhDs from the world's top AI labs,
-implementing all the latest best practices and SOTA features such as
-
-- GPU, Multi GPU, TPU training
-- Multi node training
-- Auto logging
-- ...
-- Gradient accumulation
-
-c. Less error prone
-===================
-
-Why re-invent the wheel?
-
-Use PyTorch Lightning to enjoy a deep learning structure that is rigorously tested (500+ tests)
-across CPUs/multi-GPUs/multi-TPUs on every pull-request.
-
-We promise our collective team of 20+ from the top labs has thought about training more than you :)
-
-d. Not a new library
-====================
-
-PyTorch Lightning is organized PyTorch - no need to learn a new framework.
-
-Switching your model to Lightning is straight forward - here's a 2-minute video on how to do it.
-
-.. raw:: html
-
-    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
-
-Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
-Defer the hardest parts to Lightning!
-
-----------------
-
-********************
-Lightning Philosophy
-********************
-Lightning structures your deep learning code in 4 parts:
-
-- Research code
-- Engineering code
-- Non-essential code
-- Data code
-
-Research code
-=============
-In the MNIST generation example, the research code
-would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
-
-.. code-block:: python
-
-    l1 = nn.Linear(...)
-    l2 = nn.Linear(...)
-    decoder = Decoder()
-
-    x1 = l1(x)
-    x2 = l2(x2)
-    out = decoder(features, x)
-
-    loss = perceptual_loss(x1, x2, x) + CE(out, x)
-    
-In Lightning, this code is organized into a :ref:`lightning-module`.
-
-Engineering code
-================
-
-The Engineering code is all the code related to training this system. Things such as early stopping, distribution
-over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across most projects.
-
-.. code-block:: python
-
-    model.cuda(0)
-    x = x.cuda(0)
-
-    distributed = DistributedParallel(model)
-
-    with gpu_zero:
-        download_data()
-
-    dist.barrier()
-    
-In Lightning, this code is abstracted out by the :ref:`trainer`.
-
-Non-essential code
-==================
-
-This is code that helps the research but isn't relevant to the research code. Some examples might be:
-
-1. Inspect gradients
-2. Log to tensorboard.
-
-|
-
-.. code-block:: python
-
-    # log samples
-    z = Q.rsample()
-    generated = decoder(z)
-    self.experiment.log('images', generated)
-    
-In Lightning this code is organized into :ref:`callbacks`.
-
-Data code
-=========
-Lightning uses standard PyTorch DataLoaders or anything that gives a batch of data.
-This code tends to end up getting messy with transforms, normalization constants and data splitting
-spread all over files.
-
-.. code-block:: python
-
-    # data
-    train = MNIST(...)
-    train, val = split(train, val)
-    test = MNIST(...)
-
-    # transforms
-    train_transforms = ...
-    val_transforms = ...
-    test_transforms = ...
-
-    # dataloader ...
-    # download with dist.barrier() for multi-gpu, etc...
-
-This code gets specially complicated once you start doing multi-gpu training or needing info about
-the data to build your models.
-
-In Lightning this code is organized inside a :ref:`data-modules`.
-
-.. note:: DataModules are optional but encouraged, otherwise you can use standard DataModules
-
-----------------
-
 **************************
 From MNIST to AutoEncoders
 **************************
@@ -213,8 +57,8 @@ The research
 The Model
 ---------
 
-The :class:`~pytorch_lightning.core.LightningModule` holds all the core research ingredients: 
- 
+The :class:`~pytorch_lightning.core.LightningModule` holds all the core research ingredients:
+
 - The model
 
 - The optimizers
@@ -319,7 +163,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
     Extracting ...
     Processing...
     Done!
-    
+
 You can use DataLoaders in 3 ways:
 
 1. Pass DataLoaders to .fit()
@@ -331,7 +175,7 @@ Pass in the dataloaders to the `.fit()` function.
     model = LitMNIST()
     trainer = Trainer()
     trainer.fit(model, mnist_train)
-    
+
 
 2. LightningModule DataLoaders
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -341,7 +185,7 @@ For fast research prototyping, it might be easier to link the model with the dat
 .. code-block:: python
 
     class LitMNIST(pl.LightningModule):
-        
+
         def train_dataloader(self):
             # transforms
             # prepare transforms standard to MNIST
@@ -351,7 +195,7 @@ For fast research prototyping, it might be easier to link the model with the dat
             mnist_train = MNIST(os.getcwd(), train=True, download=True)
             mnist_train = DataLoader(mnist_train, batch_size=64)
             return DataLoader(mnist_train)
-            
+
         def val_dataloader(self):
             transforms = ...
             return DataLoader(self.val, transforms)
@@ -359,7 +203,7 @@ For fast research prototyping, it might be easier to link the model with the dat
         def test_dataloader(self):
             transforms = ...
             return DataLoader(self.test, transforms)
-            
+
 DataLoaders are already in the model, no need to specify on .fit().
 
 .. code-block:: python
@@ -500,7 +344,7 @@ However, if you have multiple optimizers use the matching parameters
 
         def configure_optimizers(self):
             return Adam(self.generator(), lr=1e-3), Adam(self.discriminator(), lr=1e-3)
-            
+
 
 Training step
 -------------
@@ -1170,5 +1014,158 @@ And pass the callbacks into the trainer
 
 .. include:: transfer_learning.rst
 
+----------
 
+*********************
+Why PyTorch Lightning
+*********************
 
+a. Less boilerplate
+===================
+
+Research and production code starts with simple code, but quickly grows in complexity
+once you add gpu training, 16-bit, checkpointing, logging, etc...
+
+PyTorch Lightning implements these features for you and tests them rigorously to make sure you can
+instead focus on the research idea.
+
+Writing less engineering/bolierplate code means:
+
+- fewer bugs
+- faster iteration
+- faster prototyping
+
+b. More functionality
+=====================
+
+In PyTorch Lightning you leverage code written by hundreds of AI researchers,
+research engs and PhDs from the world's top AI labs,
+implementing all the latest best practices and SOTA features such as
+
+- GPU, Multi GPU, TPU training
+- Multi node training
+- Auto logging
+- ...
+- Gradient accumulation
+
+c. Less error prone
+===================
+
+Why re-invent the wheel?
+
+Use PyTorch Lightning to enjoy a deep learning structure that is rigorously tested (500+ tests)
+across CPUs/multi-GPUs/multi-TPUs on every pull-request.
+
+We promise our collective team of 20+ from the top labs has thought about training more than you :)
+
+d. Not a new library
+====================
+
+PyTorch Lightning is organized PyTorch - no need to learn a new framework.
+
+Switching your model to Lightning is straight forward - here's a 2-minute video on how to do it.
+
+.. raw:: html
+
+    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+
+Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
+Defer the hardest parts to Lightning!
+
+----------------
+
+********************
+Lightning Philosophy
+********************
+Lightning structures your deep learning code in 4 parts:
+
+- Research code
+- Engineering code
+- Non-essential code
+- Data code
+
+Research code
+=============
+In the MNIST generation example, the research code
+would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
+
+.. code-block:: python
+
+    l1 = nn.Linear(...)
+    l2 = nn.Linear(...)
+    decoder = Decoder()
+
+    x1 = l1(x)
+    x2 = l2(x2)
+    out = decoder(features, x)
+
+    loss = perceptual_loss(x1, x2, x) + CE(out, x)
+    
+In Lightning, this code is organized into a :ref:`lightning-module`.
+
+Engineering code
+================
+
+The Engineering code is all the code related to training this system. Things such as early stopping, distribution
+over GPUs, 16-bit precision, etc. This is normally code that is THE SAME across most projects.
+
+.. code-block:: python
+
+    model.cuda(0)
+    x = x.cuda(0)
+
+    distributed = DistributedParallel(model)
+
+    with gpu_zero:
+        download_data()
+
+    dist.barrier()
+    
+In Lightning, this code is abstracted out by the :ref:`trainer`.
+
+Non-essential code
+==================
+
+This is code that helps the research but isn't relevant to the research code. Some examples might be:
+
+1. Inspect gradients
+2. Log to tensorboard.
+
+|
+
+.. code-block:: python
+
+    # log samples
+    z = Q.rsample()
+    generated = decoder(z)
+    self.experiment.log('images', generated)
+    
+In Lightning this code is organized into :ref:`callbacks`.
+
+Data code
+=========
+Lightning uses standard PyTorch DataLoaders or anything that gives a batch of data.
+This code tends to end up getting messy with transforms, normalization constants and data splitting
+spread all over files.
+
+.. code-block:: python
+
+    # data
+    train = MNIST(...)
+    train, val = split(train, val)
+    test = MNIST(...)
+
+    # transforms
+    train_transforms = ...
+    val_transforms = ...
+    test_transforms = ...
+
+    # dataloader ...
+    # download with dist.barrier() for multi-gpu, etc...
+
+This code gets specially complicated once you start doing multi-gpu training or needing info about
+the data to build your models.
+
+In Lightning this code is organized inside a :ref:`data-modules`.
+
+.. note:: DataModules are optional but encouraged, otherwise you can use standard DataModules
