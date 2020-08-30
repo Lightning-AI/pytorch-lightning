@@ -14,7 +14,7 @@
 .. _3-steps:
 
 ####################
-Lightning in 3 steps
+Lightning in 2 steps
 ####################
 
 **In this guide we'll show you how to organize your PyTorch code into Lightning in 3 simple steps.**
@@ -42,12 +42,12 @@ Step 0: Install PyTorch Lightning
 *********************************
 
 
-You can install using `pip <https://pypi.org/project/pytorch-lightning/>`_ 
+You can install using `pip <https://pypi.org/project/pytorch-lightning/>`_
 
 .. code-block:: bash
 
     pip install pytorch-lightning
-    
+
 Or with `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ (see how to install conda `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_):
 
 .. code-block:: bash
@@ -92,11 +92,11 @@ Step 1: Define LightningModule
             x = F.relu(x)
             x = self.layer_2(x)
             return x
-            
+
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
- 
+
         def training_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
@@ -116,7 +116,7 @@ The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 
 A :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module` but with added functionality.
 It organizes your research code into :ref:`hooks`.
-            
+
 In the snippet above we override the basic hooks, but a full list of hooks to customize can be found under :ref:`hooks`.
 
 You can use your :class:`~pytorch_lightning.core.LightningModule` just like a PyTorch model.
@@ -129,14 +129,49 @@ You can use your :class:`~pytorch_lightning.core.LightningModule` just like a Py
     y_hat = model(x)
 
     model.anything_you_can_do_with_pytorch()
-    
+
 More details in :ref:`lightning-module` docs.
 
-Convert your PyTorch Module to Lightning
-========================================
+
+----------
+
+**************************
+Step 2: Fit with a Trainer
+**************************
+
+.. code-block::
+
+    # dataloaders
+    dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
+    train, val = random_split(dataset, [55000, 5000])
+    train_loader = DataLoader(train)
+    val_loader = DataLoader(val)
+
+    # init model
+    model = LitModel()
+
+    # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
+    trainer = pl.Trainer()
+    trainer.fit(model, train_loader, val_loader)
+
+.. note:: Lightning works with pure PyTorch DataLoaders
+
+.. code-block:: python
+
+    train_dataloader = DataLoader(...)
+    val_dataloader = DataLoader(...)
+    trainer.fit(model, train_dataloader, val_dataloader)
+
+-----
+
+**************************************
+How to organize PyTorch into Lightning
+**************************************
+
+To enable your code to work with Lightning, here's how to organize PyTorch into Lightning
 
 1. Move your computational code
--------------------------------
+===============================
 Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
 
 .. code-block::
@@ -154,9 +189,9 @@ Move the model architecture and forward pass to your :class:`~pytorch_lightning.
             x = F.relu(x)
             x = self.layer_2(x)
             return x
-            
+
 2. Move the optimizer(s) and schedulers
----------------------------------------
+=======================================
 Move your optimizers to :func:`pytorch_lightning.core.LightningModule.configure_optimizers` hook. Make sure to use the hook parameters (self in this case).
 
 .. code-block::
@@ -166,9 +201,9 @@ Move your optimizers to :func:`pytorch_lightning.core.LightningModule.configure_
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
-            
+
 3. Find the train loop "meat"
------------------------------
+=============================
 Lightning automates most of the trining for you, the epoch and batch iterations, all you need to keep is the training step logic. This should go into :func:`pytorch_lightning.core.LightningModule.training_step` hook (make sure to use the hook parameters, self in this case):
 
 .. code-block::
@@ -182,7 +217,7 @@ Lightning automates most of the trining for you, the epoch and batch iterations,
             return loss
 
 4. Find the val loop "meat"
----------------------------
+===========================
 To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, self in this case).
 
 .. testcode::
@@ -196,9 +231,9 @@ To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.
             return val_loss
 
 .. note:: model.eval() and torch.no_grad() are called automatically for validation
-            
+
 5. Find the test loop "meat"
------------------------------
+============================
 To add an (optional) test loop add logic to :func:`pytorch_lightning.core.LightningModule.test_step` hook (make sure to use the hook parameters, self in this case).
 
 .. code-block::
@@ -222,11 +257,12 @@ The test loop will not be used until you call.
 .. note:: .test() loads the best checkpoint automatically
 
 6. Remove any .cuda() or to.device() calls
-------------------------------------------
+==========================================
 Your :class:`~pytorch_lightning.core.LightningModule` can automatically run on any hardware!
 
 Optional features
 =================
+
 1. Wrap loss in a TrainResult/EvalResult
 ----------------------------------------
 Instead of returning the loss you can also use :class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`, plain Dict objects that give you options for logging on every step and/or at the end of the epoch.
@@ -305,45 +341,84 @@ And the lightning equivalent
             all_val_losses = validation_step_outputs.val_loss
             all_predictions = validation_step_outputs.predictions
 
-----------
+Datamodules
+===========
+DataLoader and data processing code tends to end up scattered around.
+Make your data code more reusable by organizing
+it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
 
-**********************************
-Step 2: Fit with Lightning Trainer
-**********************************
+.. code-block:: python
+
+  class MNISTDataModule(pl.LightningDataModule):
+
+        def __init__(self, batch_size=32):
+            super().__init__()
+            self.batch_size = batch_size
+
+        # When doing distributed training, Datamodules have two optional arguments for
+        # granular control over download/prepare/splitting data:
+
+        # OPTIONAL, called only on 1 GPU/machine
+        def prepare_data(self):
+            MNIST(os.getcwd(), train=True, download=True)
+            MNIST(os.getcwd(), train=False, download=True)
+
+        # OPTIONAL, called for every GPU/machine (assigning state is OK)
+        def setup(self, stage):
+            # transforms
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ])
+            # split dataset
+            if stage == 'fit':
+                mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
+                self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
+            if stage == 'test':
+                self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
+
+        # return the dataloader for each split
+        def train_dataloader(self):
+            mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
+            return mnist_train
+
+        def val_dataloader(self):
+            mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
+            return mnist_val
+
+        def test_dataloader(self):
+            mnist_test = DataLoader(self.mnist_test, batch_size=self.batch_size)
+            return mnist_test
+
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed to enable sharing and reusing data splits
+and transforms across different projects. It encapsulates all the steps needed to process data: downloading,
+tokenizing, processing etc.
+
+Now you can simply pass your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` to
+the :class:`~pytorch_lightning.trainer.Trainer`:
 
 .. code-block::
-
-    # dataloaders
-    dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-    train, val = random_split(dataset, [55000, 5000])
-    train_loader = DataLoader(train)
-    val_loader = DataLoader(val)
 
     # init model
     model = LitModel()
 
-    # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
+    # init data
+    dm = MNISTDataModule()
+
+    # train
     trainer = pl.Trainer()
-    trainer.fit(model, train_loader, val_loader)
+    trainer.fit(model, dm)
 
-Init :class:`~pytorch_lightning.core.LightningModule`, your PyTorch dataloaders, and then the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`.
-The :class:`~pytorch_lightning.trainer.Trainer` will automate:
+    # test
+    trainer.test(datamodule=dm)
 
-* The epoch iteration
-* The batch iteration
-* The calling of optimizer.step()
-* :ref:`weights-loading`
-* Logging to Tensorboard (see :ref:`loggers` options)
-* :ref:`multi-gpu-training` support
-* :ref:`tpu`
-* :ref:`16-bit` support
+DataModules are specifically useful for building models based on data. Read more on :ref:`data-modules`.
 
-All automated code is rigorously tested and benchmarked.
+----------
 
-Check out more flags in the :ref:`trainer` docs.
-
+********************
 Using CPUs/GPUs/TPUs
-====================
+********************
 It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
 
 .. code-block:: python
@@ -391,90 +466,6 @@ Without changing a SINGLE line of your code, you can now do the following with t
         val_check_interval=0.25
     )
     
-************************
-Step 3: Define Your Data
-************************
-Lightning works with pure PyTorch DataLoaders
-
-.. code-block:: python
-
-    train_dataloader = DataLoader(...)
-    val_dataloader = DataLoader(...)
-    trainer.fit(model, train_dataloader, val_dataloader)
-
-Optional: DataModule
-====================
-DataLoader and data processing code tends to end up scattered around.
-Make your data code more reusable by organizing
-it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
-
-.. code-block:: python
-
-  class MNISTDataModule(pl.LightningDataModule):
-
-        def __init__(self, batch_size=32):
-            super().__init__()
-            self.batch_size = batch_size
-        
-        # When doing distributed training, Datamodules have two optional arguments for
-        # granular control over download/prepare/splitting data: 
-
-        # OPTIONAL, called only on 1 GPU/machine
-        def prepare_data(self):
-            MNIST(os.getcwd(), train=True, download=True)
-            MNIST(os.getcwd(), train=False, download=True)
-
-        # OPTIONAL, called for every GPU/machine (assigning state is OK)
-        def setup(self, stage):
-            # transforms
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ])
-            # split dataset
-            if stage == 'fit':
-                mnist_train = MNIST(os.getcwd(), train=True, transform=transform)
-                self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
-            if stage == 'test':
-                self.mnist_test = MNIST(os.getcwd(), train=False, transform=transform)
-
-        # return the dataloader for each split
-        def train_dataloader(self):
-            mnist_train = DataLoader(self.mnist_train, batch_size=self.batch_size)
-            return mnist_train
-
-        def val_dataloader(self):
-            mnist_val = DataLoader(self.mnist_val, batch_size=self.batch_size)
-            return mnist_val
-        
-        def test_dataloader(self):
-            mnist_test = DataLoader(self.mnist_test, batch_size=self.batch_size)
-            return mnist_test
-
-:class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed to enable sharing and reusing data splits
-and transforms across different projects. It encapsulates all the steps needed to process data: downloading,
-tokenizing, processing etc.
-
-Now you can simply pass your :class:`~pytorch_lightning.core.datamodule.LightningDataModule` to
-the :class:`~pytorch_lightning.trainer.Trainer`:
-
-.. code-block::
-
-    # init model
-    model = LitModel()
-
-    # init data
-    dm = MNISTDataModule()
-
-    # train
-    trainer = pl.Trainer()
-    trainer.fit(model, dm)
-
-    # test
-    trainer.test(datamodule=dm)
-
-DataModules are specifically useful for building models based on data. Read more on :ref:`data-modules`.
-
 **********
 Learn more
 **********
