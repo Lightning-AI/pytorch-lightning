@@ -319,6 +319,11 @@ class ModelCheckpoint(Callback):
 
         return True
 
+    def _run_checkpoint_check(self, metrics):
+        if not self._validate_condition_metric(metrics):
+            return
+
+
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
@@ -334,9 +339,7 @@ class ModelCheckpoint(Callback):
         metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
 
-        if not self._validate_condition_metric(metrics):
-            return  # needed metric for checkpointing was not calculated
-
+        self._run_checkpoint_check(metrics)
         # support structured results
         if metrics.get('checkpoint_on') is not None:
             self.monitor = 'checkpoint_on'
