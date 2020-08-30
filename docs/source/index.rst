@@ -16,7 +16,7 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: start
+   :name: advanced
    :caption: Advanced use
 
    introduction_guide
