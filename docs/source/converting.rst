@@ -62,7 +62,7 @@ Lightning automates most of the trining for you, the epoch and batch iterations,
 ===========================
 To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, self in this case).
 
-.. testcode::
+.. code-block::
 
     class LitModel(pl.LightningModule):
 
