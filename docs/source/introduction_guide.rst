@@ -245,21 +245,13 @@ Let's first start with the model. In this case we'll design a 3-layer neural net
 
         # (b, 1, 28, 28) -> (b, 1*28*28)
         x = x.view(batch_size, -1)
-
-        # layer 1
         x = self.layer_1(x)
         x = torch.relu(x)
-
-        # layer 2
         x = self.layer_2(x)
         x = torch.relu(x)
-
-        # layer 3
         x = self.layer_3(x)
 
-        # probability distribution over labels
         x = torch.log_softmax(x, dim=1)
-
         return x
 
 Notice this is a :class:`~pytorch_lightning.core.LightningModule` instead of a `torch.nn.Module`. A LightningModule is
@@ -279,6 +271,18 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
 
     torch.Size([1, 10])
 
+
+Now we add the training_step which has all our training loop logic
+
+.. code-block:: python
+
+    class LitMNIST(LightningModule):
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            logits = self(x)
+            loss = F.nll_loss(logits, y)
+            return loss
 
 Data
 ----
