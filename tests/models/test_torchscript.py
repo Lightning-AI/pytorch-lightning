@@ -13,10 +13,6 @@ from tests.base.models import ParityModuleRNN, TestGAN
     ParityModuleRNN,
     TestGAN,
 ])
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
-    reason="requires torch >= 1.4",
-)
 def test_torchscript_input_output(modelclass):
     """ Test that scripted LightningModule forward works. """
     model = modelclass()
@@ -32,10 +28,6 @@ def test_torchscript_input_output(modelclass):
     ParityModuleRNN,
     TestGAN,
 ])
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
-    reason="requires torch >= 1.4",
-    )
 def test_torchscript_properties(modelclass):
     """ Test that scripted LightningModule has unnecessary methods removed. """
     model = modelclass()
@@ -53,9 +45,9 @@ def test_torchscript_properties(modelclass):
     TestGAN,
 ])
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4.0"),
-    reason="requires torch >= 1.4",
-    )
+    LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
+    reason="torch.save/load has bug loading script modules on torch <= 1.4",
+)
 def test_torchscript_save_load(tmpdir, modelclass):
     """ Test that scripted LightningModules can be saved and loaded. """
     model = modelclass()
