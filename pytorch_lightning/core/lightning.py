@@ -1732,8 +1732,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
     def to_torchscript(self) -> torch.jit.ScriptModule:
         """
-        Compiles the model to a :class:`~torch.jit.ScriptModule`.
-        This can be overridden to support custom TorchScript module export.
+        By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
+        If you would like to customize the modules that are scripted
+        or you want to use tracing you should override this method.
 
         Note:
             - Requires the implementation of the :meth:`LightningModule.forward` method.
