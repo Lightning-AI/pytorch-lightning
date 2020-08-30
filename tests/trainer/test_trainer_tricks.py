@@ -8,6 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import MNISTDataModule
 
 
 def test_num_training_batches(tmpdir):
@@ -230,11 +231,14 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
 
     model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
     model = model_class(**hparams)
+    model.datamodule = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
+    model.datamodule.setup()  # TODO: why do I have to call this myself?
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
     trainer.fit(model)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert before_batch_size != after_batch_size
+    assert model.datamodule.batch_size == after_batch_size
 
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):

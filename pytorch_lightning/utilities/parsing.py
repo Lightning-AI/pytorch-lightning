@@ -186,6 +186,8 @@ def lightning_hasattr(model, attribute):
             attr = attribute in model.hparams
         else:
             attr = hasattr(model.hparams, attribute)
+    elif hasattr(model.datamodule, attribute):
+        attr = True
     else:
         attr = False
 
@@ -204,9 +206,11 @@ def lightning_getattr(model, attribute):
             attr = model.hparams[attribute]
         else:
             attr = getattr(model.hparams, attribute)
+    elif hasattr(model.datamodule, attribute):
+        attr = getattr(model.datamodule, attribute)
     else:
-        raise ValueError(f'{attribute} is not stored in the model namespace'
-                         ' or the `hparams` namespace/dict.')
+        raise ValueError(f'{attribute} is neither stored in the model namespace'
+                         ' nor the `hparams` namespace/dict, nor the datamodule.')
     return attr
 
 
@@ -222,6 +226,8 @@ def lightning_setattr(model, attribute, value):
             model.hparams[attribute] = value
         else:
             setattr(model.hparams, attribute, value)
+    if hasattr(model.datamodule, attribute):
+        setattr(model.datamodule, attribute, value)
     else:
-        raise ValueError(f'{attribute} is not stored in the model namespace'
-                         ' or the `hparams` namespace/dict.')
+        raise ValueError(f'{attribute} is neither stored in the model namespace'
+                         ' nor the `hparams` namespace/dict, nor the datamodule.')
