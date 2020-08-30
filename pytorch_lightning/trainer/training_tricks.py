@@ -259,7 +259,9 @@ def _adjust_batch_size(trainer,
                        desc: str = None):
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
-        `model.hparams.batch_size` should exist.
+        `model.hparams.batch_size` should exist. Additionally there can be a
+        datamodule attached to either Trainer or model, in which case the attribute
+        also gets updated when present.
 
     Args:
         trainer: instance of pytorch_lightning.Trainer
