@@ -169,7 +169,7 @@ class TrainerTrainingTricksMixin(ABC):
                 f' If this is not the intended behavior, please remove either one.'
             )
 
-        if hasattr(model.train_dataloader(), 'patch_loader_code'):
+        if hasattr(model.train_dataloader, 'patch_loader_code'):
             raise MisconfigurationException('The batch scaling feature cannot be used with dataloaders'
                                             ' passed directly to `.fit()`. Please disable the feature or'
                                             ' incorporate the dataloader into the model.')
