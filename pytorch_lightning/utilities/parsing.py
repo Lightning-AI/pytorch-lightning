@@ -175,8 +175,8 @@ class AttributeDict(Dict):
 
 
 def lightning_hasattr(model, attribute):
-    """ Special hasattr for lightning. Checks for attribute in model namespace
-        and the old hparams namespace/dict """
+    """ Special hasattr for lightning. Checks for attribute in model namespace,
+        the old hparams namespace/dict, and the datamodule. """
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = True
@@ -195,8 +195,8 @@ def lightning_hasattr(model, attribute):
 
 
 def lightning_getattr(model, attribute):
-    """ Special getattr for lightning. Checks for attribute in model namespace
-        and the old hparams namespace/dict """
+    """ Special getattr for lightning. Checks for attribute in model namespace,
+        the old hparams namespace/dict, and the datamodule. """
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = getattr(model, attribute)
