@@ -43,27 +43,10 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: Community Examples
-   :caption: Community Examples
+   :name: Examples
+   :caption: Examples
 
-   Contextual Emotion Detection (DoubleDistilBert) <https://github.com/PyTorchLightning/emotion_transformer>
-   Cotatron: Transcription-Guided Speech Encoder <https://github.com/mindslab-ai/cotatron>
-   FasterRCNN object detection + Hydra <https://github.com/PyTorchLightning/wheat>
-   Hyperparameter optimization with Optuna <https://github.com/optuna/optuna/blob/master/examples/pytorch_lightning_simple.py>
-   Hyperparameter optimization with Ray Tune <https://docs.ray.io/en/master/tune/tutorials/tune-pytorch-lightning.html>
-   Image Inpainting using Partial Convolutions <https://github.com/ryanwongsa/Image-Inpainting>
-   MNIST on TPU <https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3#scrollTo=BHBz1_AnamN_>
-   NER (transformers, TPU) <https://colab.research.google.com/drive/1dBN-wwYUngLYVt985wGs_OKPlK_ANB9D>
-   NeuralTexture (CVPR) <https://github.com/PyTorchLightning/neuraltexture>
-   Recurrent Attentive Neural Process <https://github.com/PyTorchLightning/attentive-neural-processes>
-   Siamese Nets for One-shot Image Recognition <https://github.com/PyTorchLightning/Siamese-Neural-Networks>
-   Speech Transformers <https://github.com/PyTorchLightning/speech-transformer-pytorch_lightning>
-   Transformers transfer learning (Huggingface) <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>
-   Transformers text classification <https://github.com/ricardorei/lightning-text-classification>
-   VAE Library of over 18+ VAE flavors <https://github.com/AntixK/PyTorch-VAE>
-   Transformers Question Answering (SQuAD) <https://github.com/tshrjn/Finetune-QA/>
-   Atlas: End-to-End 3D Scene Reconstruction from Posed Images <https://github.com/magicleap/atlas>
-   Self-Supervised Representation Learning (MoCo and BYOL) <https://github.com/untitled-ai/self_supervised>
+
 
 .. toctree::
    :maxdepth: 1
