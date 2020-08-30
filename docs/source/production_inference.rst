@@ -1,17 +1,3 @@
-.. testsetup:: *
-
-    import torch
-    from pytorch_lightning.core.lightning import LightningModule
-
-    class SimpleModel(LightningModule):
-
-        def __init__(self):
-            super().__init__()
-            self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
-
 .. _production-inference:
 
 Inference in Production
@@ -51,7 +37,7 @@ TorchScript allows you to serialize your models in a way that it can be loaded i
 The LightningModule has a handy method :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`
 that returns a scripted module which you can save or directly use.
 
-.. testcode::
+.. code-block:: python
 
     model = SimpleModel()
     script = model.to_torchscript()
