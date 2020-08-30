@@ -13,7 +13,7 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
-from tests.base.models import TestGAN
+from tests.base.models import BasicGAN
 
 try:
     from horovod.common.util import nccl_built
@@ -145,7 +145,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_multi_optimizer(tmpdir):
-    model = TestGAN(**EvalModelTemplate.get_default_hparams())
+    model = BasicGAN(**EvalModelTemplate.get_default_hparams())
 
     # fit model
     trainer = Trainer(

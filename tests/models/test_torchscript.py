@@ -5,13 +5,13 @@ import torch
 
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
-from tests.base.models import ParityModuleRNN, TestGAN
+from tests.base.models import ParityModuleRNN, BasicGAN
 
 
 @pytest.mark.parametrize("modelclass", [
     EvalModelTemplate,
     ParityModuleRNN,
-    TestGAN,
+    BasicGAN,
 ])
 def test_torchscript_input_output(modelclass):
     """ Test that scripted LightningModule forward works. """
@@ -26,7 +26,7 @@ def test_torchscript_input_output(modelclass):
 @pytest.mark.parametrize("modelclass", [
     EvalModelTemplate,
     ParityModuleRNN,
-    TestGAN,
+    BasicGAN,
 ])
 def test_torchscript_properties(modelclass):
     """ Test that scripted LightningModule has unnecessary methods removed. """
@@ -42,7 +42,7 @@ def test_torchscript_properties(modelclass):
 @pytest.mark.parametrize("modelclass", [
     EvalModelTemplate,
     ParityModuleRNN,
-    TestGAN,
+    BasicGAN,
 ])
 @pytest.mark.skipif(
     LooseVersion(torch.__version__) < LooseVersion("1.5.0"),
