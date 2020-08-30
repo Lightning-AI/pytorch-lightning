@@ -344,49 +344,59 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change y
 
 .. code-block:: python
 
-  # train on 1024 CPUs across 128 machines
-    trainer = pl.Trainer(
-        num_processes=8,
-        num_nodes=128
-    )
+    # train on CPU
+    trainer = pl.Trainer()
 
-.. code-block:: python
+    # train on 8 CPUs
+    trainer = pl.Trainer(num_processes=8)
 
     # train on 1 GPU
     trainer = pl.Trainer(gpus=1)
 
-.. code-block:: python
+    # train on the ith GPU
+    trainer = pl.Trainer(gpus=[3])
 
-    # train on 256 GPUs
-    trainer = pl.Trainer(
-        gpus=8,
-        num_nodes=32
-    )
+    # train on multiple GPUs
+    trainer = pl.Trainer(gpus=3)
 
-.. code-block:: python
+    # train on multiple GPUs across nodes (32 gpus here)
+    trainer = pl.Trainer(gpus=4, num_nodes=8)
 
-    # Multi GPU with mixed precision
-    trainer = pl.Trainer(gpus=2, precision=16)
+    # train on gpu 1, 3, 5 (3 gpus total)
+    trainer = pl.Trainer(gpus=[1, 3, 5])
 
-.. code-block:: python
-
-    # Train on TPUs
+    # train on 8 GPU cores
     trainer = pl.Trainer(tpu_cores=8)
 
-Without changing a SINGLE line of your code, you can now do the following with the above code:
+------
+
+*********
+Debugging
+*********
+Lightning has many tools for debugging:
 
 .. code-block:: python
 
-    # train on TPUs using 16 bit precision with early stopping
-    # using only half the training data and checking validation every quarter of a training epoch
-    trainer = pl.Trainer(
-        tpu_cores=8,
-        precision=16,
-        early_stop_callback=True,
-        limit_train_batches=0.5,
-        val_check_interval=0.25
-    )
-    
+    # use only 10 train batches and 3 val batches
+    Trainer(limit_train_batches=10, limit_val_batches=3)
+
+    # overfit the same batch
+    Trainer(overfit_batches=1)
+
+    # unit test all the code (check every line)
+    Trainer(fast_dev_run=True)
+
+    # train only 20% of an epoch
+    Trainer(limit_train_batches=0.2)
+
+    # run validation every 20% of a training epoch
+    Trainer(val_check_interval=0.2)
+
+    # find bottlenecks
+    Trainer(profiler=True)
+
+    # ... and 20+ more tools
+
 **********
 Learn more
 **********
