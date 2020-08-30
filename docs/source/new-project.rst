@@ -102,9 +102,8 @@ Step 1: Define LightningModule
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
 
-            # optional logs
-            logs = {'train_loss': loss}
-            return {'loss': loss, 'log': logs}
+            # (log keyword is optional)
+            return {'loss': loss, 'log': {'train_loss': loss}}
 
 
 The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
