@@ -101,24 +101,10 @@ Step 1: Define LightningModule
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.TrainResult(loss)
-            return result
-            
-        def validation_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            loss = F.cross_entropy(y_hat, y)
-            result = pl.EvalResult(checkpoint_on=loss)
-            result.log('val_loss', loss)
-            return result
 
-        def test_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            loss = F.cross_entropy(y_hat, y)
-            result = pl.EvalResult()
-            result.log('test_loss', loss)
-            return result
+            # (log keyword is optional)
+            return {'loss': loss, 'log': {'train_loss': loss}}
+
 
 The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 
@@ -196,8 +182,8 @@ Lightning automates most of the trining for you, the epoch and batch iterations,
             return loss
 
 4. Find the val loop "meat"
------------------------------
-Lightning automates the validation (enabling gradients in the train loop and disabling in eval). To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, self in this case):
+---------------------------
+To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, self in this case).
 
 .. testcode::
 
@@ -208,10 +194,12 @@ Lightning automates the validation (enabling gradients in the train loop and dis
             y_hat = self(x)
             val_loss = F.cross_entropy(y_hat, y)
             return val_loss
+
+.. note:: model.eval() and torch.no_grad() are called automatically for validation
             
 5. Find the test loop "meat"
 -----------------------------
-You might also need an optional test loop. Add the following callback to your :class:`~pytorch_lightning.core.LightningModule`
+To add an (optional) test loop add logic to :func:`pytorch_lightning.core.LightningModule.test_step` hook (make sure to use the hook parameters, self in this case).
 
 .. code-block::
 
@@ -221,17 +209,25 @@ You might also need an optional test loop. Add the following callback to your :c
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            result = pl.EvalResult()
-            result.log('test_loss', loss)
-            return result
+            return loss
 
-.. note:: The test loop is not automated in Lightning. You will need to specifically call test (this is done so you don't use the test set by mistake).
+.. note:: model.eval() and torch.no_grad() are called automatically for testing.
+
+The test loop will not be used until you call.
+
+.. code-block::
+
+    trainer.test()
+
+.. note:: .test() loads the best checkpoint automatically
 
 6. Remove any .cuda() or to.device() calls
 ------------------------------------------
 Your :class:`~pytorch_lightning.core.LightningModule` can automatically run on any hardware!
 
-7. Wrap loss in a TrainResult/EvalResult
+Optional features
+=================
+1. Wrap loss in a TrainResult/EvalResult
 ----------------------------------------
 Instead of returning the loss you can also use :class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`, plain Dict objects that give you options for logging on every step and/or at the end of the epoch.
 It also allows logging to the progress bar (by setting prog_bar=True). Read more in :ref:`result`.
@@ -260,7 +256,7 @@ It also allows logging to the progress bar (by setting prog_bar=True). Read more
             return result
 
             
-8. Override default callbacks
+2. Override default callbacks
 -----------------------------
 A :class:`~pytorch_lightning.core.LightningModule` handles advances cases by allowing you to override any critical part of training
 via :ref:`hooks` that are called on your :class:`~pytorch_lightning.core.LightningModule`.
