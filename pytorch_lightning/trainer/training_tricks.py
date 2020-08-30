@@ -25,6 +25,7 @@ from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
@@ -158,6 +159,8 @@ class TrainerTrainingTricksMixin(ABC):
             max_trials: max number of increase in batch size done before
                algorithm is terminated
 
+            batch_arg_name: name of the argument that holds the batch size
+
         """
         if not lightning_hasattr(model, batch_arg_name):
             raise MisconfigurationException(
@@ -290,9 +293,14 @@ def _adjust_batch_size(trainer,
     return new_size
 
 
+def _is_valid_batch_size(current_size, dataloader):
+    return not has_len(dataloader) or current_size <= len(dataloader.dataset)
+
+
 def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
     """ Batch scaling mode where the size is doubled at each iteration until an
         OOM error is encountered. """
+    dataloader = model.train_dataloader()
     for _ in range(max_trials):
         garbage_collection_cuda()
         trainer.global_step = 0  # reset after each try
@@ -310,6 +318,10 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
                 break
             else:
                 raise  # some other error not memory related
+
+        if not _is_valid_batch_size(new_size, dataloader):
+            break
+
     return new_size
 
 
