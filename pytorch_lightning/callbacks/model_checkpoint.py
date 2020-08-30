@@ -320,9 +320,7 @@ class ModelCheckpoint(Callback):
         return True
 
     def _run_checkpoint_check(self, metrics):
-        if not self._validate_condition_metric(metrics):
-            return
-
+        self._validate_condition_metric(metrics)
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
