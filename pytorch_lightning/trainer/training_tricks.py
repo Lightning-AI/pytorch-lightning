@@ -15,7 +15,7 @@
 import math
 import os
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 from torch import Tensor
@@ -259,10 +259,11 @@ def _adjust_batch_size(trainer,
                        batch_arg_name: str = 'batch_size',
                        factor: float = 1.0,
                        value: Optional[int] = None,
-                       desc: str = None):
+                       desc: str = None) -> Tuple[int, bool]:
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist.
+        Additionally clips the batch size to the number of samples in the dataset.
 
     Args:
         trainer: instance of pytorch_lightning.Trainer
@@ -277,11 +278,13 @@ def _adjust_batch_size(trainer,
 
         desc: either `succeeded` or `failed`. Used purely for logging
 
+    Returns:
+        The new batch size for the next trial and a bool that signals whether the
+        new value is different than the previous batch size.
     """
     model = trainer.get_model()
     batch_size = lightning_getattr(model, batch_arg_name)
     if value:
-        lightning_setattr(model, batch_arg_name, value)
         new_size = value
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
@@ -289,8 +292,13 @@ def _adjust_batch_size(trainer,
         new_size = int(batch_size * factor)
         if desc:
             log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
-        lightning_setattr(model, batch_arg_name, new_size)
-    return new_size
+
+    if not _is_valid_batch_size(new_size, trainer.train_dataloader):
+        new_size = min(new_size, len(trainer.train_dataloader.dataset))
+
+    changed = new_size != batch_size
+    lightning_setattr(model, batch_arg_name, new_size)
+    return new_size, changed
 
 
 def _is_valid_batch_size(current_size, dataloader):
@@ -300,7 +308,6 @@ def _is_valid_batch_size(current_size, dataloader):
 def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
     """ Batch scaling mode where the size is doubled at each iteration until an
         OOM error is encountered. """
-    dataloader = model.train_dataloader()
     for _ in range(max_trials):
         garbage_collection_cuda()
         trainer.global_step = 0  # reset after each try
@@ -308,20 +315,19 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials):
             # Try fit
             trainer.fit(model)
             # Double in size
-            new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+            new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
-                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
                 break
             else:
                 raise  # some other error not memory related
 
-        if not _is_valid_batch_size(new_size, dataloader):
+        if not changed:
             break
-
     return new_size
 
 
@@ -346,9 +352,13 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
                 if high - low <= 1:
                     break
                 midval = (high + low) // 2
-                new_size = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='succeeded')
+                new_size, changed = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='succeeded')
             else:
-                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+                new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+
+            if not changed:
+                break
+
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
@@ -356,9 +366,10 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
                 garbage_collection_cuda()
                 high = new_size
                 midval = (high + low) // 2
-                new_size = _adjust_batch_size(trainer, value=midval, desc='failed')
+                new_size, _ = _adjust_batch_size(trainer, value=midval, desc='failed')
                 if high - low <= 1:
                     break
             else:
                 raise  # some other error not memory related
+
     return new_size

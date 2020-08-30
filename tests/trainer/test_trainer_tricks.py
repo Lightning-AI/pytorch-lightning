@@ -235,6 +235,7 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     trainer.fit(model)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert before_batch_size != after_batch_size
+    assert after_batch_size <= len(model.train_dataloader().dataset)
 
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
