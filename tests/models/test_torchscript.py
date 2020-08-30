@@ -36,7 +36,10 @@ def test_torchscript_properties(modelclass):
     assert not hasattr(script, "datamodule")
     assert not hasattr(model, "batch_size") or hasattr(script, "batch_size")
     assert not hasattr(model, "learning_rate") or hasattr(script, "learning_rate")
-    assert not callable(getattr(script, "training_step", None))
+
+    if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+        # only on torch >= 1.4 do these unused methods get removed
+        assert not callable(getattr(script, "training_step", None))
 
 
 @pytest.mark.parametrize("modelclass", [
