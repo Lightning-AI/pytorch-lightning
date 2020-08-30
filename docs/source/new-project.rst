@@ -144,7 +144,7 @@ First, define the data in whatever way you want. Lightning just needs a dataload
 .. code-block:: python
 
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-    train_loader = DataLoader(train)
+    train_loader = DataLoader(dataset)
 
 .. code-block:: python
 
