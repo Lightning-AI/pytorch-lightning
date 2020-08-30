@@ -17,16 +17,22 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 2
+   :name: pl_docs
+   :caption: Lightning API
+
+   lightning-module
+   trainer
+
+.. toctree::
+   :maxdepth: 2
    :name: docs
-   :caption: Python API
+   :caption: Optional extensions
 
    callbacks
-   lightning-module
    datamodules
    loggers
    metrics
    results
-   trainer
 
 .. toctree::
    :maxdepth: 1
