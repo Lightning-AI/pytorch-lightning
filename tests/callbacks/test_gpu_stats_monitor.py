@@ -91,7 +91,7 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
         gpus=None
     )
 
-    with pytest.warns(RuntimeWarning, match='not running on GPU. Logged utilization will be independent'):
+    with pytest.raises(MisconfigurationException, match='not running on GPU'):
         trainer.fit(model)
 
 

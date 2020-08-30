@@ -26,7 +26,7 @@ import subprocess
 import time
 
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 
@@ -104,9 +104,9 @@ class GPUStatsMonitor(Callback):
             )
 
         if not trainer.on_gpu:
-            rank_zero_warn(
-                'You are using GPUStatsMonitor but are not running on GPU.'
-                ' Logged utilization will be independent from your model.', RuntimeWarning
+            raise MisconfigurationException(
+                'You are using GPUStatsMonitor but are not running on GPU'
+                f' since gpus attribute in Trainer is set to {trainer.gpus}.'
             )
 
         self._gpu_ids = ','.join(map(str, trainer.data_parallel_device_ids))
@@ -152,7 +152,7 @@ class GPUStatsMonitor(Callback):
         format = 'csv,nounits,noheader'
 
         result = subprocess.run(
-            [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', f'--format={format}', f'-i={self._gpu_ids}'],
+            [shutil.which('nvidia-smi'), f'--query-gpu={gpu_query}', f'--format={format}', f'--id={self._gpu_ids}'],
             encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
