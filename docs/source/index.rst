@@ -46,7 +46,15 @@ PyTorch Lightning Documentation
    :name: Examples
    :caption: Examples
 
-
+   community_examples
+   Autoencoder <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#autoencoders>
+   BYOL <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol>
+   DQN <https://pytorch-lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#deep-q-network-dqn>
+   GAN <https://pytorch-lightning-bolts.readthedocs.io/en/latest/gans.html#basic-gan>
+   GPT-2 <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2>
+   Image-GPT <https://pytorch-lightning-bolts.readthedocs.io/en/latest/convolutional.html#image-gpt>
+   SimCLR <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr>
+   VAE <https://pytorch-lightning-bolts.readthedocs.io/en/latest/autoencoders.html#basic-vae>
 
 .. toctree::
    :maxdepth: 1
