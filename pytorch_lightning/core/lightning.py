@@ -1736,7 +1736,9 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         This can be overridden to support custom TorchScript module export.
 
         Note:
-            Requires the implementation of the :meth:`LightningModule.forward` method.
+            - Requires the implementation of the :meth:`LightningModule.forward` method.
+            - It is recommended that you install the latest version of PyTorch to use this feature without limitations.
+
 
         Example:
             >>> class SimpleModel(LightningModule):
