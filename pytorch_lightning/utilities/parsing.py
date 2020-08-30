@@ -216,18 +216,26 @@ def lightning_getattr(model, attribute):
 
 def lightning_setattr(model, attribute, value):
     """ Special setattr for lightning. Checks for attribute in model namespace
-        and the old hparams namespace/dict """
+        and the old hparams namespace/dict.
+        Will also set the attribute on datamodule, if it exists.
+    """
+    found = False
     # Check if attribute in model
     if hasattr(model, attribute):
         setattr(model, attribute, value)
+        found = True
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             model.hparams[attribute] = value
         else:
             setattr(model.hparams, attribute, value)
+        found = True
+    # Check if attribute in datamodule
     if hasattr(model.datamodule, attribute):
         setattr(model.datamodule, attribute, value)
-    else:
+        found = True
+
+    if not found:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
