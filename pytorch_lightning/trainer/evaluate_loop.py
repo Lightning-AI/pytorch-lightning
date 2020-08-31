@@ -170,52 +170,26 @@ class EvaluationLoop(object):
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
 
-        # with a single dataloader don't pass an array
-        outputs = self.outputs
-        eval_results = outputs
-        if num_dataloaders == 1:
-            eval_results = outputs[0]
+        # reduce on_epoch metrics
+        if using_eval_result:
+            eval_results = self.__auto_reduce_result_objs(self.outputs)
+        else:
+            eval_results = self.outputs
 
-        user_reduced = False
+        # with a single dataloader don't pass an array
+        if num_dataloaders == 1:
+            eval_results = eval_results[0]
 
         if self.testing:
             if self.trainer.is_overridden('test_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
                 eval_results = model.test_epoch_end(eval_results)
-                user_reduced = True
-
         else:
             if self.trainer.is_overridden('validation_epoch_end', model=model):
-                if using_eval_result:
-                    eval_results = self.__gather_epoch_end_eval_results(outputs)
-
                 eval_results = model.validation_epoch_end(eval_results)
-                user_reduced = True
-
-        if using_eval_result and not user_reduced:
-            eval_results = self.__auto_reduce_result_objs(outputs)
 
         if not isinstance(eval_results, list):
             eval_results = [eval_results]
 
-        return eval_results
-
-    def __gather_epoch_end_eval_results(self, outputs):
-        eval_results = []
-        for epoch_output in outputs:
-            result = epoch_output[0].__class__.gather(epoch_output)
-            if 'checkpoint_on' in result:
-                result.checkpoint_on = result.checkpoint_on.mean()
-            if 'early_stop_on' in result:
-                result.early_stop_on = result.early_stop_on.mean()
-
-            eval_results.append(result)
-
-        # with 1 dataloader don't pass in a list
-        if len(eval_results) == 1:
-            eval_results = eval_results[0]
         return eval_results
 
     def __auto_reduce_result_objs(self, outputs):
