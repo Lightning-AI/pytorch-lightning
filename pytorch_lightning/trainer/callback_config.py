@@ -41,6 +41,10 @@ class TrainerCallbackConfigMixin(ABC):
     def save_checkpoint(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def get_model(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def configure_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
             # when no val step is defined, use 'loss' otherwise 'val_loss'
