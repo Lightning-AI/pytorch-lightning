@@ -16,6 +16,7 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from typing import List, Union
 from torch.utils.data import DataLoader
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class DataConnector(object):
@@ -63,15 +64,15 @@ class DataConnector(object):
         if datamodule:
 
             # Override loader hooks
-            if self.trainer.is_overriden('train_dataloader', datamodule):
+            if is_overridden('train_dataloader', datamodule):
                 model.train_dataloader = datamodule.train_dataloader
-            if self.trainer.is_overriden('val_dataloader', datamodule):
+            if is_overridden('val_dataloader', datamodule):
                 model.val_dataloader = datamodule.val_dataloader
-            if self.trainer.is_overriden('test_dataloader', datamodule):
+            if is_overridden('test_dataloader', datamodule):
                 model.test_dataloader = datamodule.test_dataloader
 
             # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
-            if self.trainer.is_overriden('transfer_batch_to_device', datamodule):
+            if is_overridden('transfer_batch_to_device', datamodule):
                 model.transfer_batch_to_device = datamodule.transfer_batch_to_device
 
             self.datamodule = datamodule
