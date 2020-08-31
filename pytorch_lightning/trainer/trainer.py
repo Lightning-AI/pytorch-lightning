@@ -55,6 +55,7 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import is_remote_path
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
+from pytorch_lightning.trainer.data_connector import DataConnector
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -607,6 +608,7 @@ class Trainer(
         # tracks internal state for debugging
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
+        self.data_connector = DataConnector(self)
         self.accelerator_backend = None
 
         # loops
@@ -974,18 +976,8 @@ class Trainer(
         """
         results = None
 
-        # bind logger and other properties
-        self.copy_trainer_model_properties(model)
-
-        # clean hparams
-        if hasattr(model, 'hparams'):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
+        # setup data, etc...
+        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.call_hook('on_fit_start', model)
@@ -1031,6 +1023,20 @@ class Trainer(
         # used for testing or when we need to know that training succeeded
         return results or 1
 
+    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
+        # bind logger and other properties
+        self.copy_trainer_model_properties(model)
+
+        # clean hparams
+        if hasattr(model, 'hparams'):
+            parsing.clean_namespace(model.hparams)
+
+        # links data to the trainer
+        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
+
+        # check that model is configured correctly
+        self.config_validator.verify_loop_configurations(model)
+
     def prepare_data(self, model):
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
@@ -1039,18 +1045,6 @@ class Trainer(
                 self.datamodule.prepare_data()
             model.prepare_data()
             self._is_data_prepared = True
-
-    def attach_data(self, model, train_dataloader, val_dataloaders, datamodule):
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloader, LightningDataModule):
-            datamodule = train_dataloader
-            train_dataloader = None
-
-        self.config_validator.enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
-
-        # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.__attach_datamodule(model, datamodule, 'fit')
 
     def select_accelerator(self):
         # SLURM ddp
@@ -1104,40 +1098,6 @@ class Trainer(
             return self.local_rank == 0 and should_call_dm_prepare_data
         else:
             return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
-
-    def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
-        # when dataloader is passed via fit, patch the train_dataloader
-        # functions to overwrite with these implementations
-        if train_dataloader is not None:
-            model.train_dataloader = _PatchDataLoader(train_dataloader)
-
-        if val_dataloaders is not None:
-            model.val_dataloader = _PatchDataLoader(val_dataloaders)
-
-        if test_dataloaders is not None:
-            model.test_dataloader = _PatchDataLoader(test_dataloaders)
-
-    def __attach_datamodule(self, model, datamodule, stage):
-
-        # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
-        datamodule = datamodule or getattr(model, 'datamodule', None)
-
-        # If we have a datamodule, attach necessary hooks + dataloaders
-        if datamodule:
-
-            # Override loader hooks
-            if self.is_overridden('train_dataloader', datamodule):
-                model.train_dataloader = datamodule.train_dataloader
-            if self.is_overridden('val_dataloader', datamodule):
-                model.val_dataloader = datamodule.val_dataloader
-            if self.is_overridden('test_dataloader', datamodule):
-                model.test_dataloader = datamodule.test_dataloader
-
-            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
-            if self.is_overridden('transfer_batch_to_device', datamodule):
-                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
-
-            self.datamodule = datamodule
 
     def run_pretrain_routine(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
@@ -1348,7 +1308,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
+        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -1386,7 +1346,7 @@ class Trainer(
 
         # attach dataloaders
         if test_dataloaders is not None:
-            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         # run tests
         self.tested_ckpt_path = ckpt_path
@@ -1408,7 +1368,7 @@ class Trainer(
 
         # attach data
         if test_dataloaders is not None:
-            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         # run test
         # sets up testing so we short circuit to eval
@@ -1470,28 +1430,6 @@ class Trainer(
                 output = accelerator_hook(*args, **kwargs)
 
             return output
-
-
-class _PatchDataLoader(object):
-    r"""
-    Callable object for patching dataloaders passed into trainer.fit().
-    Use this class to override model.*_dataloader() and be pickle-compatible.
-
-    Args:
-        dataloader: Dataloader object to return when called.
-
-    """
-
-    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
-        self.dataloader = dataloader
-
-        # cannot pickle __code__ so cannot verify if PatchDataloader
-        # exists which shows dataloader methods have been overwritten.
-        # so, we hack it by using the string representation
-        self.patch_loader_code = str(self.__call__.__code__)
-
-    def __call__(self) -> Union[List[DataLoader], DataLoader]:
-        return self.dataloader
 
 
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
