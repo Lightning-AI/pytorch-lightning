@@ -110,7 +110,7 @@ can change it every batch if you want, or even monitor different metrics for eac
     def training_step(...):
         return loss
     def training_step(...):
-        return {'loss' loss}
+        return {'loss': loss}
 
 logging
 ^^^^^^^
