@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class TrainerCallbackConfigMixin(ABC):
@@ -42,7 +43,7 @@ class TrainerCallbackConfigMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def get_model(self, *args):
+    def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
     def configure_checkpoint_callback(self, checkpoint_callback):
