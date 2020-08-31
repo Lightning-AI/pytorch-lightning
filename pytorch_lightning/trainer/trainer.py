@@ -1118,7 +1118,7 @@ class Trainer(
         else:
             return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
 
-    def run_pretrain_routine(self, model: LightningModule):
+    def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
 
         Args:
@@ -1154,7 +1154,7 @@ class Trainer(
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
+            torch_xla.core.xla_model.rendezvous("pl.Trainer.setup_training")
 
         elif self.use_horovod:
             # wait for all processes to catch up

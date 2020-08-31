@@ -87,10 +87,6 @@ class TrainerDPMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def run_pretrain_routine(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def init_optimizers(self, *args) -> Tuple[List, List, List]:
         """Warning: this is just empty shell for code implemented in other class."""
 
