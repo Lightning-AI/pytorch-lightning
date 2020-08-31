@@ -1,5 +1,6 @@
 import functools
 import importlib
+from multiprocessing import Process, Queue
 
 TORCHXLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
 if TORCHXLA_AVAILABLE:
@@ -8,27 +9,22 @@ else:
     xm = None
 
 
+def inner_f(queue, func, **kwargs):
+    try:
+        queue.put(func(**kwargs))
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        queue.put(None)
+
+
 def pl_multi_process(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-
-        from multiprocessing import Process, Queue
-
         queue = Queue()
-
-        def inner_f():
-            try:
-                queue.put(func(**kwargs))
-            except Exception:
-                import traceback
-
-                traceback.print_exc()
-                queue.put(None)
-
-        proc = Process(target=inner_f, kwargs=kwargs)
+        proc = Process(target=inner_f, args=(queue, func,), kwargs=kwargs)
         proc.start()
         proc.join()
-
         return queue.get()
 
     return wrapper
