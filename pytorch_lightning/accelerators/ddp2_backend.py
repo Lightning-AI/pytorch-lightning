@@ -153,11 +153,8 @@ class DDP2Backend(Accelerator):
         # set up training routine
         self.trainer.setup_training(model)
 
-        # test or train
-        if self.trainer.testing:
-            results = self.trainer.run_test()
-        else:
-            results = self.trainer.train()
+        # train or test
+        results = self.trainer.train_or_test()
 
         # get original model
         model = self.trainer.get_model()

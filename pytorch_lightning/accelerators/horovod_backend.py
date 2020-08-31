@@ -108,11 +108,8 @@ class HorovodBackend(Accelerator):
             # set up training routine
             self.trainer.setup_training(self.trainer.model)
 
-            # test or train
-            if self.trainer.testing:
-                results = self.trainer.run_test()
-            else:
-                results = self.trainer.train()
+            # train or test
+            results = self.trainer.train_or_test()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
