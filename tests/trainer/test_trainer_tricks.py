@@ -246,7 +246,7 @@ def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True)
     expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
     with pytest.warns(UserWarning, match=expected_message):
-        trainer.fit(model)
+        trainer.tune(model)
 
 
 @pytest.mark.parametrize('scale_method', ['power', 'binsearch'])
@@ -288,7 +288,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model.dataloader(train=True))
 
     with pytest.raises(MisconfigurationException):
-        trainer.fit(model, **fit_options)
+        trainer.tune(model, **fit_options)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -303,7 +303,7 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
         gpus=1,
         precision=16
     )
-    trainer.fit(model)
+    trainer.tune(model)
     batch_size_after = model.batch_size
     assert trainer.amp_backend == AMPType.NATIVE
     assert trainer.scaler is not None
