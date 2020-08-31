@@ -11,6 +11,7 @@ class DeviceDtypeModuleMixin(Module):
         self._dtype = torch.get_default_dtype()
         self._device = torch.device('cpu')
 
+    @torch.jit.ignore
     @property
     def dtype(self) -> Union[str, torch.dtype]:
         return self._dtype
@@ -20,6 +21,7 @@ class DeviceDtypeModuleMixin(Module):
         # necessary to avoid infinite recursion
         raise RuntimeError('Cannot set the dtype explicitly. Please use module.to(new_dtype).')
 
+    @torch.jit.ignore
     @property
     def device(self) -> Union[str, torch.device]:
         return self._device

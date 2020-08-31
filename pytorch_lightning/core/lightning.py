@@ -76,6 +76,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         self._example_input_array = None
         self._datamodule = None
 
+    @torch.jit.ignore
     @property
     def example_input_array(self) -> Any:
         return self._example_input_array
@@ -84,6 +85,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def example_input_array(self, example: Any) -> None:
         self._example_input_array = example
 
+    @torch.jit.ignore
     @property
     def datamodule(self) -> Any:
         return self._datamodule
@@ -92,6 +94,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
     def datamodule(self, datamodule: Any) -> None:
         self._datamodule = datamodule
 
+    @torch.jit.ignore
     @property
     def on_gpu(self):
         """
@@ -1720,6 +1723,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
+    @torch.jit.ignore
     @property
     def hparams(self) -> Union[AttributeDict, str]:
         if not hasattr(self, '_hparams'):
