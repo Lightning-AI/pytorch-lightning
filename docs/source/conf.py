@@ -50,8 +50,11 @@ import pytorch_lightning  # noqa: E402
 # with open('readme.md', 'w') as fp:
 #     fp.write(readme)
 
+# copy all documents from GH templates like contribution guide
 for md in glob.glob(os.path.join(PATH_ROOT, '.github', '*.md')):
     shutil.copy(md, os.path.join(PATH_HERE, os.path.basename(md)))
+# copy also the changelog
+shutil.copy(os.path.join(PATH_ROOT, 'CHANGELOG.md'), os.path.join(PATH_HERE, 'CHANGELOG.md'))
 
 # -- Project information -----------------------------------------------------
 
