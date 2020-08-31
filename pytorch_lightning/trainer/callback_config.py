@@ -44,7 +44,7 @@ class TrainerCallbackConfigMixin(ABC):
     def configure_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
             # when no val step is defined, use 'loss' otherwise 'val_loss'
-            train_step_only = not is_overridden('validation_step')
+            train_step_only = not is_overridden('validation_step', self.get_model())
             monitor_key = 'loss' if train_step_only else 'val_loss'
             checkpoint_callback = ModelCheckpoint(
                 filepath=None,
