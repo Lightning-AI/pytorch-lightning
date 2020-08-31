@@ -1118,12 +1118,15 @@ class Trainer(
         else:
             return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
 
-    def run_pretrain_routine(self, model: LightningModule):
+    def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
 
         Args:
             model: The model to run sanity test on.
         """
+        # --------------------------
+        # Setup??
+        # --------------------------
         ref_model = model
         if self.data_parallel:
             ref_model = model.module
@@ -1151,7 +1154,7 @@ class Trainer(
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
+            torch_xla.core.xla_model.rendezvous("pl.Trainer.setup_training")
 
         elif self.use_horovod:
             # wait for all processes to catch up
@@ -1160,6 +1163,9 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
+        # --------------------------
+        # Pre-train
+        # --------------------------
         # on pretrain routine start
         self.on_pretrain_routine_start(ref_model)
         if self.is_function_implemented('on_pretrain_routine_start'):
@@ -1179,6 +1185,14 @@ class Trainer(
         # restore training and model before hpc is called
         self.restore_weights(model)
 
+        # on pretrain routine end
+        self.on_pretrain_routine_end(ref_model)
+        if self.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
+
+        # --------------------------
+        # if test
+        # --------------------------
         # when testing requested only run test and return
         if self.testing:
             # only load test dataloader for testing
@@ -1197,22 +1211,15 @@ class Trainer(
 
             return eval_loop_results
 
+        # --------------------------
+        # sanity
+        # --------------------------
         # run a few val batches before training starts
         self._run_sanity_check(ref_model, model)
 
-        # clear cache before training
-        if self.on_gpu and self.root_gpu is not None:
-            # use context because of:
-            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-            with torch.cuda.device(f'cuda:{self.root_gpu}'):
-                torch.cuda.empty_cache()
-
-        # on pretrain routine end
-        self.on_pretrain_routine_end(ref_model)
-        if self.is_function_implemented('on_pretrain_routine_end'):
-            ref_model.on_pretrain_routine_end()
-
-        # CORE TRAINING LOOP
+        # --------------------------
+        # TRAIN
+        # --------------------------
         self.train()
 
     def _run_sanity_check(self, ref_model, model):

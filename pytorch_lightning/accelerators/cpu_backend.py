@@ -40,7 +40,7 @@ class CPUBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        results = self.trainer.run_pretrain_routine(model)
+        results = self.trainer.setup_training(model)
         return results
 
     def training_step(self, args):

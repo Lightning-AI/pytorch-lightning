@@ -115,7 +115,7 @@ class TPUBackend(Accelerator):
         self.__setup_tpu_training(model, trainer)
 
         # Run the pretrain routine
-        results = trainer.run_pretrain_routine(model)
+        results = trainer.setup_training(model)
 
         # save weights at the end of training
         self.__save_end_of_training_weights(model, trainer)

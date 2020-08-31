@@ -235,7 +235,7 @@ class DDPBackend(Accelerator):
         model = model.configure_ddp(model, device_ids)
 
         # continue training routine
-        results = self.trainer.run_pretrain_routine(model)
+        results = self.trainer.setup_training(model)
 
         # get original model
         model = self.trainer.get_model()
