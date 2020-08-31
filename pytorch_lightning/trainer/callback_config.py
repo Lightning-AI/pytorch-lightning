@@ -18,6 +18,7 @@ from typing import List, Optional
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class TrainerCallbackConfigMixin(ABC):
@@ -40,14 +41,10 @@ class TrainerCallbackConfigMixin(ABC):
     def save_checkpoint(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    @abstractmethod
-    def is_overridden(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
     def configure_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
             # when no val step is defined, use 'loss' otherwise 'val_loss'
-            train_step_only = not self.is_overridden('validation_step')
+            train_step_only = not is_overridden('validation_step')
             monitor_key = 'loss' if train_step_only else 'val_loss'
             checkpoint_callback = ModelCheckpoint(
                 filepath=None,

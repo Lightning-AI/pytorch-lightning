@@ -3,6 +3,7 @@ from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import flatten_dict
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class EvaluationLoop(object):
@@ -179,7 +180,7 @@ class EvaluationLoop(object):
         user_reduced = False
 
         if self.testing:
-            if self.trainer.is_overridden('test_epoch_end', model=model):
+            if is_overridden('test_epoch_end', model=model):
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
@@ -187,7 +188,7 @@ class EvaluationLoop(object):
                 user_reduced = True
 
         else:
-            if self.trainer.is_overridden('validation_epoch_end', model=model):
+            if is_overridden('validation_epoch_end', model=model):
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
