@@ -1190,16 +1190,6 @@ class Trainer(
         if self.is_function_implemented('on_pretrain_routine_end'):
             ref_model.on_pretrain_routine_end()
 
-        # --------------------------
-        # if test
-        # --------------------------
-        # when testing requested only run test and return
-        if self.testing:
-            return self.run_test()
-
-        # train
-        self.train()
-
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
