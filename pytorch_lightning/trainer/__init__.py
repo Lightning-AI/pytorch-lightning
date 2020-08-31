@@ -213,7 +213,7 @@ auto_scale_batch_size
 Automatically tries to find the largest batch size that fits into memory,
 before any training.
 
-.. testcode::
+.. code-block::
 
     # default used by the Trainer (no scaling of batch size)
     trainer = Trainer(auto_scale_batch_size=None)
