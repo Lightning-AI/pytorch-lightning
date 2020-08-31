@@ -213,6 +213,7 @@ class TrainerTrainLoopMixin(ABC):
     max_epochs: int
     min_epochs: int
     on_gpu: bool
+    root_gpu: ...
     use_ddp: bool
     use_dp: bool
     use_ddp2: bool
@@ -330,14 +331,13 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     def train(self):
-        # add signal handlers for process kills
-        # def _signal_kill_handler(*args):
-        #     return TrainerTrainLoopMixin.run_training_teardown(self)
-        #
-        # orig_signal_handlers = {}
-        # for sig_name in SIGNAL_TERMINATE:
-        #     orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
-        #                                                    _signal_kill_handler)
+        # TODO: shrink
+        # clear cache before training
+        if self.on_gpu and self.root_gpu is not None:
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
 
         # get model
         model = self.get_model()
