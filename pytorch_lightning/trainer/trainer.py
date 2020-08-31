@@ -928,6 +928,36 @@ class Trainer(
             return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
 
+    def tune(
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        # TODO: temporary, need to decide if tune or separate object
+
+        # setup data, etc...
+        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+
+        # hook
+        self.call_hook('on_fit_start', model)
+
+        # hook
+        self.prepare_data(model)
+
+        # Run auto batch size scaling
+        if self.auto_scale_batch_size:
+            if isinstance(self.auto_scale_batch_size, bool):
+                self.auto_scale_batch_size = 'power'
+            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+            model.logger = self.logger  # reset logger binding
+
+        # Run learning rate finder:
+        if self.auto_lr_find:
+            self._run_lr_finder_internally(model)
+            model.logger = self.logger  # reset logger binding
+
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
@@ -985,18 +1015,6 @@ class Trainer(
 
         # hook
         self.prepare_data(model)
-
-        # Run auto batch size scaling
-        if self.auto_scale_batch_size:
-            if isinstance(self.auto_scale_batch_size, bool):
-                self.auto_scale_batch_size = 'power'
-            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
-            model.logger = self.logger  # reset logger binding
-
-        # Run learning rate finder:
-        if self.auto_lr_find:
-            self._run_lr_finder_internally(model)
-            model.logger = self.logger  # reset logger binding
 
         # set testing if set in environ
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
