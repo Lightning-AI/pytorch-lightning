@@ -204,7 +204,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     model = EvalModelTemplate(**hparams)
     before_batch_size = hparams.get('batch_size')
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg)
-    trainer.fit(model)
+    trainer.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
@@ -232,7 +232,7 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     model = model_class(**hparams)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
-    trainer.fit(model)
+    trainer.tune(model)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert before_batch_size != after_batch_size
 
