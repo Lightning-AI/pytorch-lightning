@@ -221,6 +221,9 @@ before any training.
     # run batch size scaling, result overrides hparams.batch_size
     trainer = Trainer(auto_scale_batch_size='binsearch')
 
+    # call tune to find the batch size
+    trainer.tune(model)
+
 auto_select_gpus
 ^^^^^^^^^^^^^^^^
 
@@ -241,10 +244,13 @@ auto_lr_find
 Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
 before any training, to find optimal initial learning rate.
 
-.. testcode::
+.. code_block:: python
 
     # default used by the Trainer (no learning rate finder)
     trainer = Trainer(auto_lr_find=False)
+
+    # call tune to find the lr
+    trainer.tune(model)
 
 Example::
 
