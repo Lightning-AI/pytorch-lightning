@@ -4,7 +4,7 @@
     from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _introduction-guide:
+.. _converting:
 
 **************************************
 How to organize PyTorch into Lightning
