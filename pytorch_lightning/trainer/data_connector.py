@@ -75,7 +75,7 @@ class DataConnector(object):
             if is_overridden('transfer_batch_to_device', datamodule):
                 model.transfer_batch_to_device = datamodule.transfer_batch_to_device
 
-            self.datamodule = datamodule
+            self.trainer.datamodule = datamodule
 
 
 class _PatchDataLoader(object):
