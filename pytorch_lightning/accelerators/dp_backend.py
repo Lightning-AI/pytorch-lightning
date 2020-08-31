@@ -96,7 +96,15 @@ class DataParallelBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        results = self.trainer.setup_training(model)
+        # set up training routine
+        self.trainer.setup_training(model)
+
+        # test or train
+        if self.trainer.testing:
+            results = self.trainer.run_test()
+        else:
+            results = self.trainer.train()
+
         return results
 
     def teardown(self):

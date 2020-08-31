@@ -105,11 +105,18 @@ class HorovodBackend(Accelerator):
                 # Synchronization will be performed explicitly following backward()
                 stack.enter_context(optimizer.skip_synchronize())
 
-            result = self.trainer.setup_training(self.trainer.model)
+            # set up training routine
+            self.trainer.setup_training(self.trainer.model)
+
+            # test or train
+            if self.trainer.testing:
+                results = self.trainer.run_test()
+            else:
+                results = self.trainer.train()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
-        return result
+        return results
 
     def teardown(self):
         pass

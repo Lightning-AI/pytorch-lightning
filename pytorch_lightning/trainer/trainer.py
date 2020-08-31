@@ -1195,34 +1195,29 @@ class Trainer(
         # --------------------------
         # when testing requested only run test and return
         if self.testing:
-            # only load test dataloader for testing
-            # self.reset_test_dataloader(ref_model)
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
+            return self.run_test()
 
-            if len(eval_loop_results) == 0:
-                return 1
-
-            # remove the tensors from the eval results
-            for i, result in enumerate(eval_loop_results):
-                if isinstance(result, dict):
-                    for k, v in result.items():
-                        if isinstance(v, torch.Tensor):
-                            result[k] = v.cpu().item()
-
-            return eval_loop_results
-
-        # --------------------------
-        # sanity
-        # --------------------------
-        # run a few val batches before training starts
-        self._run_sanity_check(ref_model, model)
-
-        # --------------------------
-        # TRAIN
-        # --------------------------
+        # train
         self.train()
 
-    def _run_sanity_check(self, ref_model, model):
+    def run_test(self):
+        # only load test dataloader for testing
+        # self.reset_test_dataloader(ref_model)
+        eval_loop_results, _ = self.run_evaluation(test_mode=True)
+
+        if len(eval_loop_results) == 0:
+            return 1
+
+        # remove the tensors from the eval results
+        for i, result in enumerate(eval_loop_results):
+            if isinstance(result, dict):
+                for k, v in result.items():
+                    if isinstance(v, torch.Tensor):
+                        result[k] = v.cpu().item()
+
+        return eval_loop_results
+
+    def run_sanity_check(self, ref_model, model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', self.get_model())
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 

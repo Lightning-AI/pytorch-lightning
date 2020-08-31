@@ -161,8 +161,14 @@ class DDPSpawnBackend(Accelerator):
         # allow user to configure ddp
         model = model.configure_ddp(model, device_ids)
 
-        # continue training routine
-        results = self.trainer.setup_training(model)
+        # set up training routine
+        self.trainer.setup_training(model)
+
+        # test or train
+        if self.trainer.testing:
+            results = self.trainer.run_test()
+        else:
+            results = self.trainer.train()
 
         # get original model
         model = self.trainer.get_model()
