@@ -31,6 +31,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.xla_device_utils import TPU_AVAILABLE
 
 
 class TrainLoop:

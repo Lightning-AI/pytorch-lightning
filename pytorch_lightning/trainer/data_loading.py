@@ -27,21 +27,16 @@ from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.model_utils import is_overridden
-
+from pytorch_lightning.utilities.xla_device_utils import TPU_AVAILABLE
 
 try:
     from apex import amp
 except ImportError:
     amp = None
 
-try:
+if TPU_AVAILABLE:
     import torch_xla
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 try:
     import horovod.torch as hvd
@@ -342,7 +337,7 @@ class TrainerDataLoadingMixin(ABC):
             torch_distrib.barrier()
 
         # data download/load on TPU
-        elif self.use_tpu and XLA_AVAILABLE:
+        elif self.use_tpu and TPU_AVAILABLE:
             # all processes wait until data download has happened
             torch_xla.core.xla_model.rendezvous('pl.TrainerDataLoadingMixin.get_dataloaders')
 

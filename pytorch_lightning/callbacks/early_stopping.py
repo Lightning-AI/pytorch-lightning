@@ -25,17 +25,16 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.xla_device_utils import TPU_AVAILABLE
 import os
+
 
 torch_inf = torch.tensor(np.Inf)
 
-try:
-    import torch_xla
+if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
+    import torch_xla
+
 
 
 class EarlyStopping(Callback):
@@ -186,7 +185,7 @@ class EarlyStopping(Callback):
         if not isinstance(current, torch.Tensor):
             current = torch.tensor(current, device=pl_module.device)
 
-        if trainer.use_tpu and XLA_AVAILABLE:
+        if trainer.use_tpu and TPU_AVAILABLE:
             current = current.cpu()
 
         if self.monitor_op(current - self.min_delta, self.best_score):

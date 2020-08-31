@@ -7,26 +7,13 @@ from torch.utils.data import DataLoader
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.xla_device_utils import TPU_AVAILABLE
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
 
-try:
+if TPU_AVAILABLE:
     import torch_xla
-    import torch_xla.distributed.xla_multiprocessing as xmp
-
-    def tpu_device_exists(q):
-        device = torch_xla.core.xla_model.xla_device()
-        device_type = torch_xla.core.xla_model.xla_device_hw(device)
-        q.put(device_type == 'TPU')
-
-    queue = Queue()
-    p = Process(target=tpu_device_exists, args=(queue, ))
-    p.start()
-    p.join()
-    TPU_AVAILABLE = queue.get()
-except ImportError:
-    TPU_AVAILABLE = False
 
 
 _LARGER_DATASET = TrialMNIST(download=True, num_samples=2000, digits=(0, 1, 2, 5, 8))
@@ -222,7 +209,6 @@ def test_tpu_misconfiguration():
         Trainer(tpu_cores=[1, 8])
 
 
-# @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
 @pytest.mark.skipif(TPU_AVAILABLE, reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available"""
