@@ -9,6 +9,7 @@ from pytorch_lightning import LightningDataModule, Trainer, seed_everything
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 def test_can_prepare_data(tmpdir):
@@ -348,7 +349,7 @@ def test_dm_transfer_batch_to_device(tmpdir):
     trainer = Trainer()
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
-    if trainer.is_overridden('transfer_batch_to_device', dm):
+    if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
     batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)

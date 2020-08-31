@@ -56,6 +56,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import is_remote_path
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -902,7 +903,7 @@ class Trainer(
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        val_loop_enabled = self.is_overridden('validation_step') and self.limit_val_batches > 0
+        val_loop_enabled = is_overridden('validation_step', self.get_model()) and self.limit_val_batches > 0
         return val_loop_enabled or self.fast_dev_run
 
     @property
@@ -1091,7 +1092,7 @@ class Trainer(
 
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
-        if self.datamodule is not None and self.is_overridden('prepare_data', self.datamodule):
+        if self.datamodule is not None and is_overridden('prepare_data', self.datamodule):
             should_call_dm_prepare_data = not self.datamodule.has_prepared_data
 
         if self.prepare_data_per_node:
@@ -1197,7 +1198,7 @@ class Trainer(
         self.train()
 
     def _run_sanity_check(self, ref_model, model):
-        using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')
+        using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', self.get_model())
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
@@ -1418,8 +1419,8 @@ class Trainer(
 
             # next call hook in lightningModule
             output = None
-            if self.is_overridden(hook_name):
-                model_ref = self.get_model()
+            model_ref = self.get_model()
+            if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
