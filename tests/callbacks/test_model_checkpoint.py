@@ -163,7 +163,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     trainer.fit(model)
     last_filename = model_checkpoint._format_checkpoint_name(ModelCheckpoint.CHECKPOINT_NAME_LAST, num_epochs - 1, {})
     path_last_epoch = model_checkpoint.format_checkpoint_name(num_epochs - 1, {})  # epoch=3.ckpt
-    path_last = str(tmpdir / f'{last_filename}{ModelCheckpoint.CHECKPOINT_SUFFIX}')  # last-epoch=3.ckpt
+    path_last = str(tmpdir / f'{last_filename}.ckpt')  # last-epoch=3.ckpt
     assert path_last_epoch != path_last
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
