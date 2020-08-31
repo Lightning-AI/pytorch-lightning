@@ -370,7 +370,7 @@ class TrainerIOMixin(ABC):
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # add arguments to the checkpoint
-            checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
+            checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
             if OMEGACONF_AVAILABLE:
                 if isinstance(model.hparams, Container):
                     checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
