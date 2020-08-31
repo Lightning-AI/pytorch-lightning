@@ -15,6 +15,7 @@
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class ConfigValidator(object):
@@ -41,7 +42,7 @@ class ConfigValidator(object):
         # -----------------------------------
         # verify model has a training step
         # -----------------------------------
-        has_training_step = self.trainer.is_overridden('training_step', model)
+        has_training_step = is_overridden('training_step', model)
         if not has_training_step:
             raise MisconfigurationException(
                 'No `training_step()` method defined. Lightning `Trainer` expects as minimum a'
@@ -51,7 +52,7 @@ class ConfigValidator(object):
         # -----------------------------------
         # verify model has a train dataloader
         # -----------------------------------
-        has_train_dataloader = self.trainer.is_overridden('train_dataloader', model)
+        has_train_dataloader = is_overridden('train_dataloader', model)
         if not has_train_dataloader:
             raise MisconfigurationException(
                 'No `train_dataloader()` method defined. Lightning `Trainer` expects as minimum a'
@@ -61,7 +62,7 @@ class ConfigValidator(object):
         # -----------------------------------
         # verify model has optimizer
         # -----------------------------------
-        has_optimizers = self.trainer.is_overridden('configure_optimizers', model)
+        has_optimizers = is_overridden('configure_optimizers', model)
         if not has_optimizers:
             raise MisconfigurationException(
                 'No `configure_optimizers()` method defined. Lightning `Trainer` expects as minimum a'
@@ -76,8 +77,8 @@ class ConfigValidator(object):
         if eval_loop_name == 'validation':
             loader_name = 'val_dataloader'
 
-        has_loader = self.trainer.is_overridden(loader_name, model)
-        has_step = self.trainer.is_overridden(step_name, model)
+        has_loader = is_overridden(loader_name, model)
+        has_step = is_overridden(step_name, model)
 
         if has_loader and not has_step:
             rank_zero_warn(
