@@ -1014,7 +1014,7 @@ class Trainer(
         self.call_hook('on_fit_start', model)
 
         # hook
-        self.prepare_data(model)
+        self.data_connector.prepare_data(model)
 
         # set testing if set in environ
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
