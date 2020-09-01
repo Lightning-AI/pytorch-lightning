@@ -37,10 +37,10 @@ from pytorch_lightning.metrics.functional.classification import (
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
     pytest.param(sk_accuracy, accuracy, id='accuracy'),
-    pytest.param(partial(sk_precision, average='macro'), precision, id='precision'),
-    pytest.param(partial(sk_recall, average='macro'), recall, id='recall'),
-    pytest.param(partial(sk_f1_score, average='macro'), f1_score, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2), id='fbeta_score'),
+    pytest.param(partial(sk_precision, average='micro'), precision, id='precision'),
+    pytest.param(partial(sk_recall, average='micro'), recall, id='recall'),
+    pytest.param(partial(sk_f1_score, average='micro'), f1_score, id='f1_score'),
+    pytest.param(partial(sk_fbeta_score, average='micro', beta=2), partial(fbeta_score, beta=2), id='fbeta_score'),
     pytest.param(sk_confusion_matrix, confusion_matrix, id='confusion_matrix')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric):
@@ -57,6 +57,27 @@ def test_against_sklearn(sklearn_metric, torch_metric):
         sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
         pl_score = torch_metric(pred, target)
         assert torch.allclose(sk_score, pl_score)
+
+
+@pytest.mark.parametrize('class_reduction', ['micro', 'macro', 'weighted'])
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
+    pytest.param(sk_precision, precision, id='precision'),
+    pytest.param(sk_recall, recall, id='recall'),
+    pytest.param(sk_f1_score, f1_score, id='f1_score'),
+    pytest.param(partial(sk_fbeta_score, beta=2), partial(fbeta_score, beta=2), id='fbeta_score')
+])
+def test_different_reduction_against_sklearn(class_reduction, sklearn_metric, torch_metric):
+    """ Test metrics where the class_reduction parameter have a correponding
+        value in sklearn """
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    pred = torch.randint(10, (300,), device=device)
+    target = torch.randint(10, (300,), device=device)
+    sk_score = sklearn_metric(target.cpu().detach().numpy(),
+                              pred.cpu().detach().numpy(),
+                              average=class_reduction)
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    pl_score = torch_metric(pred, target, class_reduction=class_reduction)
+    assert torch.allclose(sk_score, pl_score)
 
 
 def test_onehot():
@@ -147,14 +168,14 @@ def test_multilabel_accuracy():
     y1 = torch.tensor([[0, 1, 1], [1, 0, 1]])
     y2 = torch.tensor([[0, 0, 1], [1, 0, 1]])
 
-    assert torch.allclose(accuracy(y1, y2, reduction='none'), torch.tensor([2 / 3, 1.]))
-    assert torch.allclose(accuracy(y1, y1, reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, y2, reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, torch.logical_not(y2), reduction='none'), torch.tensor([0., 0.]))
-    assert torch.allclose(accuracy(y1, torch.logical_not(y1), reduction='none'), torch.tensor([0., 0.]))
+    assert torch.allclose(accuracy(y1, y2, class_reduction='none'), torch.tensor([2 / 3, 1.]))
+    assert torch.allclose(accuracy(y1, y1, class_reduction='none'), torch.tensor([1., 1.]))
+    assert torch.allclose(accuracy(y2, y2, class_reduction='none'), torch.tensor([1., 1.]))
+    assert torch.allclose(accuracy(y2, torch.logical_not(y2), class_reduction='none'), torch.tensor([0., 0.]))
+    assert torch.allclose(accuracy(y1, torch.logical_not(y1), class_reduction='none'), torch.tensor([0., 0.]))
 
     with pytest.raises(RuntimeError):
-        accuracy(y2, torch.zeros_like(y2), reduction='none')
+        accuracy(y2, torch.zeros_like(y2), class_reduction='none')
 
 
 def test_accuracy():
@@ -188,8 +209,8 @@ def test_confusion_matrix():
     pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5])
 ])
 def test_precision_recall(pred, target, expected_prec, expected_rec):
-    prec = precision(pred, target, reduction='none')
-    rec = recall(pred, target, reduction='none')
+    prec = precision(pred, target, class_reduction='none')
+    rec = recall(pred, target, class_reduction='none')
 
     assert torch.allclose(torch.tensor(expected_prec).to(prec), prec)
     assert torch.allclose(torch.tensor(expected_rec).to(rec), rec)
@@ -201,10 +222,10 @@ def test_precision_recall(pred, target, expected_prec, expected_rec):
     pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 2, [0.5, 0.5]),
 ])
 def test_fbeta_score(pred, target, beta, exp_score):
-    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, reduction='none')
+    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
-    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, reduction='none')
+    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
 
@@ -214,10 +235,10 @@ def test_fbeta_score(pred, target, beta, exp_score):
     pytest.param([1., 0., 1., 0.], [1., 0., 1., 0.], [1.0, 1.0]),
 ])
 def test_f1_score(pred, target, exp_score):
-    score = f1_score(torch.tensor(pred), torch.tensor(target), reduction='none')
+    score = f1_score(torch.tensor(pred), torch.tensor(target), class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
-    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), reduction='none')
+    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
 

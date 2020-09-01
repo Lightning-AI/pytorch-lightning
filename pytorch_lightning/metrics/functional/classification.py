@@ -4,7 +4,7 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from torch.nn import functional as F
 
-from pytorch_lightning.metrics.functional.reduction import reduce
+from pytorch_lightning.metrics.functional.reduction import reduce, class_reduce
 from pytorch_lightning.utilities import FLOAT16_EPSILON, rank_zero_warn
 
 
@@ -232,14 +232,14 @@ def stat_scores_multiple_classes(
             tns /= num_classes
             sups /= num_classes
 
-    return tps, fps, tns, fns, sups
+    return tps.float(), fps.float(), tns.float(), fns.float(), sups.float()
 
 
 def accuracy(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction='elementwise_mean',
+        class_reduction: str = 'micro'
 ) -> torch.Tensor:
     """
     Computes the accuracy classification score
@@ -270,9 +270,9 @@ def accuracy(
         raise RuntimeError("cannot infer num_classes when target is all zero")
 
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(
-        pred=pred, target=target, num_classes=num_classes, reduction=reduction)
+        pred=pred, target=target, num_classes=num_classes)
 
-    return tps / sups
+    return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
 
 def confusion_matrix(
@@ -319,7 +319,7 @@ def precision_recall(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro'
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes precision and recall for different thresholds
@@ -352,23 +352,16 @@ def precision_recall(
     fps = fps.to(torch.float)
     fns = fns.to(torch.float)
 
-    precision = tps / (tps + fps)
-    recall = tps / (tps + fns)
-
-    # solution by justus, see https://discuss.pytorch.org/t/how-to-set-nan-in-tensor-to-0/3918/9
-    precision[precision != precision] = 0
-    recall[recall != recall] = 0
-
-    precision = reduce(precision, reduction=reduction)
-    recall = reduce(recall, reduction=reduction)
-    return precision, recall
+    precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
+    recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
+    return precision, recall, sups
 
 
 def precision(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes precision score.
@@ -396,14 +389,14 @@ def precision(
 
     """
     return precision_recall(pred=pred, target=target,
-                            num_classes=num_classes, reduction=reduction)[0]
+                            num_classes=num_classes, class_reduction=class_reduction)[0]
 
 
 def recall(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes recall score.
@@ -430,7 +423,7 @@ def recall(
         tensor(0.6250)
     """
     return precision_recall(pred=pred, target=target,
-                            num_classes=num_classes, reduction=reduction)[1]
+                            num_classes=num_classes, class_reduction=class_reduction)[1]
 
 
 def fbeta_score(
@@ -438,7 +431,7 @@ def fbeta_score(
         target: torch.Tensor,
         beta: float,
         num_classes: Optional[int] = None,
-        reduction: str = 'elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes the F-beta score which is a weighted harmonic mean of precision and recall.
@@ -470,25 +463,25 @@ def fbeta_score(
         >>> fbeta_score(x, y, 0.2)
         tensor(0.7407)
     """
-    prec, rec = precision_recall(pred=pred, target=target,
-                                 num_classes=num_classes,
-                                 reduction='none')
+    # We need to differentiate at which point to do class reduction
+    intermidiate_reduction = 'none' if class_reduction != "micro" else 'micro'
 
-    nom = (1 + beta ** 2) * prec * rec
+    prec, rec, sups = precision_recall(pred=pred, target=target,
+                                           num_classes=num_classes,
+                                           class_reduction=intermidiate_reduction)
+    num = (1 + beta ** 2) * prec * rec
     denom = ((beta ** 2) * prec + rec)
-    fbeta = nom / denom
-
-    # drop NaN after zero division
-    fbeta[fbeta != fbeta] = 0
-
-    return reduce(fbeta, reduction=reduction)
+    if intermidiate_reduction == 'micro':
+        return num / denom
+    else:
+        return class_reduce(num, denom, sups, class_reduction=class_reduction)
 
 
 def f1_score(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        reduction='elementwise_mean',
+        class_reduction: str = 'micro',
 ) -> torch.Tensor:
     """
     Computes the F1-score (a.k.a F-measure), which is the harmonic mean of the precision and recall.
@@ -516,7 +509,7 @@ def f1_score(
         tensor(0.6667)
     """
     return fbeta_score(pred=pred, target=target, beta=1.,
-                       num_classes=num_classes, reduction=reduction)
+                       num_classes=num_classes, class_reduction=class_reduction)
 
 
 def _binary_clf_curve(
