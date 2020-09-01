@@ -23,26 +23,26 @@ def test_can_prepare_data(tmpdir):
     # local rank = 0   (True)
     trainer.prepare_data_per_node = True
     trainer.local_rank = 0
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
     # local rank = 1   (False)
     trainer.local_rank = 1
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
     trainer.prepare_data_per_node = False
     trainer.node_rank = 0
     trainer.local_rank = 0
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
     # global rank = 1   (False)
     trainer.node_rank = 1
     trainer.local_rank = 0
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
     trainer.node_rank = 0
     trainer.local_rank = 1
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
 
     # 2 dm
     # prepar per node = True
@@ -54,17 +54,17 @@ def test_can_prepare_data(tmpdir):
     # has been called
     # False
     dm._has_prepared_data = True
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
 
     # has not been called
     # True
     dm._has_prepared_data = False
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
     # is_overridden prepare data = False
     # True
     dm.prepare_data = None
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
 
 def test_base_datamodule(tmpdir):
