@@ -330,7 +330,13 @@ class TrainerTrainLoopMixin(ABC):
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def run_sanity_check(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def train(self):
+        self.run_sanity_check(self.get_model())
+
         # TODO: shrink
         # clear cache before training
         if self.on_gpu and self.root_gpu is not None:
