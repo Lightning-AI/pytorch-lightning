@@ -45,4 +45,4 @@ that returns a scripted module which you can save or directly use.
     # save for use in production environment
     torch.jit.save(script, "model.pt")
 
-It is recommended that you install the latest version of PyTorch to use this feature without limitations.
+It is recommended that you install the latest supported version of PyTorch to use this feature without limitations.
