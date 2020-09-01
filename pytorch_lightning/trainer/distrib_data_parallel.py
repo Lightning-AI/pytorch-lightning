@@ -389,7 +389,7 @@ class TrainerDDPMixin(ABC):
         if self.checkpoint_callback is not None:
             best_model_path = self.checkpoint_callback.best_model_path
 
-        if self.global_rank == 0 and mp_queue is not None:
+        if self.global_rank == 0 and mp_queue is not None and results is not None:
             rank_zero_warn('cleaning up ddp environment...')
             # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
