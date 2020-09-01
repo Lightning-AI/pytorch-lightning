@@ -3,10 +3,10 @@ import os
 
 
 class AcceleratorConnector:
-    
+
     def __init__(self, trainer):
         self.trainer = trainer
-    
+
     def select_accelerator(self):
         # SLURM ddp
         use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
