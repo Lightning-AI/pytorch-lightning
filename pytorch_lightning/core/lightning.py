@@ -23,7 +23,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.distributed as torch_distrib
-from torch import Tensor
+from torch import Tensor, ScriptModule
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
@@ -1730,11 +1730,12 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
-    def to_torchscript(self) -> torch.jit.ScriptModule:
+    def to_torchscript(self) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
-        If you would like to customize the modules that are scripted
-        or you want to use tracing you should override this method.
+        If you would like to customize the modules that are scripted or you want to use tracing
+        you should override this method. In case you want to return multiple modules, we
+        recommend using dictionary.
 
         Note:
             - Requires the implementation of the :meth:`LightningModule.forward` method.
