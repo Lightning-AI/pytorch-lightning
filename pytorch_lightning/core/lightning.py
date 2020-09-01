@@ -1735,12 +1735,13 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
         If you would like to customize the modules that are scripted or you want to use tracing
         you should override this method. In case you want to return multiple modules, we
-        recommend using dictionary.
+        recommend using a dictionary.
 
         Note:
             - Requires the implementation of the :meth:`LightningModule.forward` method.
-            - It is recommended that you install the latest supported version of PyTorch to use this feature without limitations.
-
+            - It is recommended that you install the latest supported version of PyTorch
+              to use this feature without limitations. See also the :mod:`torch.jit`
+              documentation for supported features.
 
         Example:
             >>> class SimpleModel(LightningModule):
