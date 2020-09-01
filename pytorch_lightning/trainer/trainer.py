@@ -22,8 +22,6 @@ import torch
 import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.accelerators import (
-    GPUBackend, TPUBackend, CPUBackend, DDPSpawnBackend, DataParallelBackend, DDPBackend, DDP2Backend, HorovodBackend)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
@@ -1055,49 +1053,6 @@ class Trainer(
 
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
-
-    def select_accelerator(self):
-        # SLURM ddp
-        use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
-
-        # torchelastic or general non_slurm ddp
-        te_flags_passed = 'WORLD_SIZE' in os.environ and ('GROUP_RANK' in os.environ or 'NODE_RANK' in os.environ)
-        use_torchelastic_ddp = self.use_ddp and te_flags_passed
-
-        use_ddp_spawn = self.use_ddp and self.distributed_backend in ['ddp_cpu', 'ddp_spawn']
-
-        # choose the appropriate accelerator backend
-        if self.use_ddp2:
-            accelerator_backend = DDP2Backend(self)
-
-        elif use_slurm_ddp:
-            accelerator_backend = DDPBackend(self, mode='slurm_ddp')
-
-        elif use_torchelastic_ddp:
-            accelerator_backend = DDPBackend(self, mode='torchelastic_ddp')
-
-        elif use_ddp_spawn:
-            accelerator_backend = DDPSpawnBackend(self, nprocs=self.num_processes)
-
-        elif self.distributed_backend == 'ddp':
-            accelerator_backend = DDPBackend(self, mode='ddp')
-
-        elif self.use_dp:
-            accelerator_backend = DataParallelBackend(self)
-
-        elif self.use_horovod:
-            accelerator_backend = HorovodBackend(self)
-
-        elif self.use_single_gpu:
-            accelerator_backend = GPUBackend(self)
-
-        elif self.use_tpu:
-            accelerator_backend = TPUBackend(self)
-
-        else:
-            accelerator_backend = CPUBackend(self)
-
-        return accelerator_backend
 
     def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
