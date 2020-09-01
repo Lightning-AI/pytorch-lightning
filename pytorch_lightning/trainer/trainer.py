@@ -54,6 +54,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import is_remote_path
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
+from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
@@ -608,6 +610,7 @@ class Trainer(
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
+        self.accelerator_connector = AcceleratorConnector(self)
         self.accelerator_backend = None
 
         # loops
@@ -1020,7 +1023,7 @@ class Trainer(
         # -------------------------
         # TRAIN
         # -------------------------
-        self.accelerator_backend = self.select_accelerator()
+        self.accelerator_backend = self.accelerator_connector.select_accelerator()
         self.accelerator_backend.setup(model)
         results = self.accelerator_backend.train()
         self.accelerator_backend.teardown()
