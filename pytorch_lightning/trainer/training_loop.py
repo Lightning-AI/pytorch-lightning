@@ -761,7 +761,7 @@ class TrainerTrainLoopMixin(ABC):
         using_results_obj = False
 
         # track all outputs across time and num of optimizers
-        batch_outputs = [[] for i in range(len(self._get_optimizers_iterable()))]
+        batch_outputs = [[] for i in range(len(self.train_loop.get_optimizers_iterable()))]
 
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
@@ -787,7 +787,7 @@ class TrainerTrainLoopMixin(ABC):
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
-            for opt_idx, optimizer in self._get_optimizers_iterable():
+            for opt_idx, optimizer in self.train_loop.get_optimizers_iterable():
                 # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
                 if len(self.optimizers) > 1:
@@ -1062,18 +1062,6 @@ class TrainerTrainLoopMixin(ABC):
         )
         return result
 
-    def _get_optimizers_iterable(self):
-        if not self.optimizer_frequencies:
-            # call training_step once per optimizer
-            return list(enumerate(self.optimizers))
-
-        optimizer_freq_cumsum = np.cumsum(self.optimizer_frequencies)
-        optimizers_loop_length = optimizer_freq_cumsum[-1]
-        current_place_in_loop = self.total_batch_idx % optimizers_loop_length
-
-        # find optimzier index by looking for the first {item > current_place} in the cumsum list
-        opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
-        return [(opt_idx, self.optimizers[opt_idx])]
 
     # @atexit.register
     def run_training_teardown(self):

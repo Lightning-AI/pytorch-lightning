@@ -12,7 +12,7 @@ class TrainLoop:
 
     @property
     def num_optimizers(self):
-        num_optimizers = len(self._get_optimizers_iterable())
+        num_optimizers = len(self.get_optimizers_iterable())
         return num_optimizers
 
     def on_train_epoch_start(self):
@@ -27,7 +27,7 @@ class TrainLoop:
         self.early_stopping_accumulator = Accumulator()
         self.checkpoint_accumulator = Accumulator()
 
-    def _get_optimizers_iterable(self):
+    def get_optimizers_iterable(self):
         if not self.trainer.optimizer_frequencies:
             # call training_step once per optimizer
             return list(enumerate(self.trainer.optimizers))
