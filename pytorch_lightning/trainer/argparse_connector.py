@@ -28,6 +28,7 @@ class ArgparseClass(object):
             (argument name, set with argument types, argument default value).
 
         Examples:
+            >>> from pytorch_lightning import Trainer
             >>> args = Trainer.get_init_arguments_and_types()
             >>> import pprint
             >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
@@ -79,6 +80,7 @@ class ArgparseClass(object):
         Examples:
             >>> import argparse
             >>> import pprint
+            >>> from pytorch_lightning import Trainer
             >>> parser = argparse.ArgumentParser()
             >>> parser = Trainer.add_argparse_args(parser)
             >>> args = parser.parse_args([])
@@ -122,6 +124,7 @@ class ArgparseClass(object):
                 These must be valid Trainer arguments.
 
         Example:
+            >>> from pytorch_lightning import Trainer
             >>> parser = ArgumentParser(add_help=False)
             >>> parser = Trainer.add_argparse_args(parser)
             >>> parser.add_argument('--my_custom_arg', default='something')  # doctest: +SKIP
