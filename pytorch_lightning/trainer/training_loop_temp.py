@@ -28,6 +28,9 @@ class TrainLoop:
         self.checkpoint_accumulator = Accumulator()
 
     def get_optimizers_iterable(self):
+        """
+        Generates an iterable with (idx, optimizer) for each optimizer.
+        """
         if not self.trainer.optimizer_frequencies:
             # call training_step once per optimizer
             return list(enumerate(self.trainer.optimizers))
