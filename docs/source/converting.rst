@@ -16,9 +16,9 @@ To enable your code to work with Lightning, here's how to organize PyTorch into 
 ===============================
 Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.LightningModule`.
 
-.. code-block::
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def __init__(self):
             super().__init__()
@@ -36,9 +36,9 @@ Move the model architecture and forward pass to your :class:`~pytorch_lightning.
 =======================================
 Move your optimizers to :func:`pytorch_lightning.core.LightningModule.configure_optimizers` hook. Make sure to use the hook parameters (self in this case).
 
-.. code-block::
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -48,9 +48,9 @@ Move your optimizers to :func:`pytorch_lightning.core.LightningModule.configure_
 =============================
 Lightning automates most of the trining for you, the epoch and batch iterations, all you need to keep is the training step logic. This should go into :func:`pytorch_lightning.core.LightningModule.training_step` hook (make sure to use the hook parameters, self in this case):
 
-.. code-block::
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def training_step(self, batch, batch_idx):
             x, y = batch
@@ -62,9 +62,9 @@ Lightning automates most of the trining for you, the epoch and batch iterations,
 ===========================
 To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.LightningModule.validation_step` hook (make sure to use the hook parameters, self in this case).
 
-.. code-block::
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def validation_step(self, batch, batch_idx):
             x, y = batch
@@ -78,9 +78,9 @@ To add an (optional) validation loop add logic to :func:`pytorch_lightning.core.
 ============================
 To add an (optional) test loop add logic to :func:`pytorch_lightning.core.LightningModule.test_step` hook (make sure to use the hook parameters, self in this case).
 
-.. code-block::
+.. testcode::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(LightningModule):
 
         def test_step(self, batch, batch_idx):
             x, y = batch
