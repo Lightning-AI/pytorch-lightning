@@ -113,7 +113,7 @@ class ArgparseClass(object):
         return argparse_utils.parse_argparser(cls, arg_parser)
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
         """
         Create an instance from CLI arguments.
 
