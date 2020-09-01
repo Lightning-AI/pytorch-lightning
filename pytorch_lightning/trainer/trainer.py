@@ -944,7 +944,7 @@ class Trainer(
         self.call_hook('on_fit_start', model)
 
         # hook
-        self.prepare_data(model)
+        self.data_connector.prepare_data(model)
 
         # Run auto batch size scaling
         if self.auto_scale_batch_size:
@@ -1056,15 +1056,6 @@ class Trainer(
         # check that model is configured correctly
         self.config_validator.verify_loop_configurations(model)
 
-    def prepare_data(self, model):
-        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
-        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
-        if self.can_prepare_data():
-            if self.datamodule is not None:
-                self.datamodule.prepare_data()
-            model.prepare_data()
-            self._is_data_prepared = True
-
     def select_accelerator(self):
         # SLURM ddp
         use_slurm_ddp = self.use_ddp and self.is_slurm_managing_tasks
@@ -1107,16 +1098,6 @@ class Trainer(
             accelerator_backend = CPUBackend(self)
 
         return accelerator_backend
-
-    def can_prepare_data(self):
-        should_call_dm_prepare_data = True
-        if self.datamodule is not None and is_overridden('prepare_data', self.datamodule):
-            should_call_dm_prepare_data = not self.datamodule.has_prepared_data
-
-        if self.prepare_data_per_node:
-            return self.local_rank == 0 and should_call_dm_prepare_data
-        else:
-            return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
 
     def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
