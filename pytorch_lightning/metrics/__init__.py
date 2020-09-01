@@ -8,10 +8,10 @@ from pytorch_lightning.metrics.classification import (
     ROC,
     AUROC,
     DiceCoefficient,
-    MulticlassPrecisionRecall,
+    MulticlassPrecisionRecallCurve,
     MulticlassROC,
     Precision,
-    PrecisionRecall,
+    PrecisionRecallCurve,
     IoU,
 )
 from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
@@ -27,7 +27,6 @@ from pytorch_lightning.metrics.regression import (
 )
 from pytorch_lightning.metrics.sklearns import (
     AUC,
-    PrecisionRecallCurve,
     SklearnMetric,
 )
 
@@ -40,10 +39,9 @@ __classification_metrics = [
     "DiceCoefficient",
     "F1",
     "FBeta",
-    "MulticlassPrecisionRecall",
+    "MulticlassPrecisionRecallCurve",
     "MulticlassROC",
     "Precision",
-    "PrecisionRecall",
     "PrecisionRecallCurve",
     "ROC",
     "Recall",
