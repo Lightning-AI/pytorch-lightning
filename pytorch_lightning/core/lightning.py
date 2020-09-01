@@ -1738,7 +1738,8 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         recommend using a dictionary.
 
         Note:
-            - Requires the implementation of the :meth:`LightningModule.forward` method.
+            - Requires the implementation of the
+              :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
               to use this feature without limitations. See also the :mod:`torch.jit`
