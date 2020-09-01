@@ -182,6 +182,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 
 try:
     from apex import amp
@@ -262,6 +263,7 @@ class TrainerTrainLoopMixin(ABC):
     on_tpu: bool
     accelerator_backend: ...
     val_dataloaders: ...
+    train_loop: TrainLoop
 
     # Callback system
     callbacks: List[Callback]
@@ -427,44 +429,19 @@ class TrainerTrainLoopMixin(ABC):
 
                 self.run_training_teardown()
 
-    def run_on_epoch_start_hook(self, model):
-        # Epoch start events
-        with self.profiler.profile('on_epoch_start'):
-            # callbacks
-            self.on_epoch_start()
-
-            # model hooks
-            if self.is_function_implemented('on_epoch_start'):
-                model.on_epoch_start()
-
-        # Epoch start events
-        with self.profiler.profile('on_train_epoch_start'):
-            # callbacks
-            self.on_train_epoch_start()
-
-            # model hooks
-            if self.is_function_implemented('on_train_epoch_start'):
-                model.on_train_epoch_start()
-
     def run_training_epoch(self):
 
         # get model
         model = self.get_model()
 
-        # Epoch start events
-        self.run_on_epoch_start_hook(model)
+        # hook
+        self.train_loop.on_train_epoch_start()
 
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.accelerator_backend.process_dataloader(self.train_dataloader)
 
-        # bookkeeping
-        num_optimizers = len(self._get_optimizers_iterable())
-        epoch_output = [[] for _ in range(num_optimizers)]
-        should_check_val = False
-
-        # structured result accumulators for callbacks
-        early_stopping_accumulator = Accumulator()
-        checkpoint_accumulator = Accumulator()
+        # track epoch output
+        epoch_output = [[] for _ in range(self.train_loop.num_optimizers)]
 
         # run epoch
         for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
@@ -486,8 +463,8 @@ class TrainerTrainLoopMixin(ABC):
             # otherwise we will build up unnecessary memory
             epoch_end_outputs = self.process_train_step_outputs(
                 batch_output.training_step_output_for_epoch_end,
-                early_stopping_accumulator,
-                checkpoint_accumulator
+                self.train_loop.early_stopping_accumulator,
+                self.train_loop.checkpoint_accumulator
             )
 
             # track the outputs to reduce at the end of the epoch
@@ -539,10 +516,15 @@ class TrainerTrainLoopMixin(ABC):
         self.sync_horovod()
 
         # process epoch outputs
-        self.run_training_epoch_end(epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers)
+        self.run_training_epoch_end(
+            epoch_output,
+            self.train_loop.checkpoint_accumulator,
+            self.train_loop.early_stopping_accumulator,
+            self.train_loop.num_optimizers
+        )
 
         # checkpoint callback
-        self.check_checkpoint_callback(should_check_val)
+        self.check_checkpoint_callback(self.train_loop.should_check_val)
 
         # epoch end hook
         self.run_on_epoch_end_hook(model)
@@ -779,7 +761,7 @@ class TrainerTrainLoopMixin(ABC):
         using_results_obj = False
 
         # track all outputs across time and num of optimizers
-        batch_outputs = [[] for i in range(len(self._get_optimizers_iterable()))]
+        batch_outputs = [[] for i in range(len(self.train_loop.get_optimizers_iterable()))]
 
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
@@ -805,7 +787,7 @@ class TrainerTrainLoopMixin(ABC):
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
-            for opt_idx, optimizer in self._get_optimizers_iterable():
+            for opt_idx, optimizer in self.train_loop.get_optimizers_iterable():
                 # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
                 if len(self.optimizers) > 1:
@@ -1080,18 +1062,6 @@ class TrainerTrainLoopMixin(ABC):
         )
         return result
 
-    def _get_optimizers_iterable(self):
-        if not self.optimizer_frequencies:
-            # call training_step once per optimizer
-            return list(enumerate(self.optimizers))
-
-        optimizer_freq_cumsum = np.cumsum(self.optimizer_frequencies)
-        optimizers_loop_length = optimizer_freq_cumsum[-1]
-        current_place_in_loop = self.total_batch_idx % optimizers_loop_length
-
-        # find optimzier index by looking for the first {item > current_place} in the cumsum list
-        opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
-        return [(opt_idx, self.optimizers[opt_idx])]
 
     # @atexit.register
     def run_training_teardown(self):

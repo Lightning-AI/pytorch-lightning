@@ -55,6 +55,7 @@ from pytorch_lightning.utilities.cloud_io import is_remote_path
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -615,6 +616,7 @@ class Trainer(
 
         # loops
         self.evaluation_loop = EvaluationLoop(self)
+        self.train_loop = TrainLoop(self)
 
         # Callback system
         self.on_init_end()
