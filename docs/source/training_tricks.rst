@@ -57,6 +57,9 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     # Autoscale batch size 
     trainer = Trainer(auto_scale_batch_size=None|'power'|'binsearch')
 
+    # find the batch size
+    trainer.tune(model)
+
 Currently, this feature supports two modes `'power'` scaling and `'binsearch'`
 scaling. In `'power'` scaling, starting from a batch size of 1 keeps doubling 
 the batch size until an out-of-memory (OOM) error is encountered. Setting the 

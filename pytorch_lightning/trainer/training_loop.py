@@ -181,6 +181,7 @@ from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 try:
     from apex import amp
@@ -212,6 +213,7 @@ class TrainerTrainLoopMixin(ABC):
     max_epochs: int
     min_epochs: int
     on_gpu: bool
+    root_gpu: ...
     use_ddp: bool
     use_dp: bool
     use_ddp2: bool
@@ -301,10 +303,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_overridden(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def add_progress_bar_metrics(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -332,15 +330,20 @@ class TrainerTrainLoopMixin(ABC):
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
+    @abstractmethod
+    def run_sanity_check(self, *args):
+        """Warning: this is just empty shell for code implemented in other class."""
+
     def train(self):
-        # add signal handlers for process kills
-        # def _signal_kill_handler(*args):
-        #     return TrainerTrainLoopMixin.run_training_teardown(self)
-        #
-        # orig_signal_handlers = {}
-        # for sig_name in SIGNAL_TERMINATE:
-        #     orig_signal_handlers[sig_name] = signal.signal(getattr(signal, sig_name),
-        #                                                    _signal_kill_handler)
+        self.run_sanity_check(self.get_model())
+
+        # TODO: shrink
+        # clear cache before training
+        if self.on_gpu and self.root_gpu is not None:
+            # use context because of:
+            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
+            with torch.cuda.device(f'cuda:{self.root_gpu}'):
+                torch.cuda.empty_cache()
 
         # get model
         model = self.get_model()
@@ -572,7 +575,7 @@ class TrainerTrainLoopMixin(ABC):
             auto_reduce_tng_result = isinstance(sample_output, Result) and sample_output.should_reduce_on_epoch_end
 
             # only track when a) it needs to be autoreduced OR b) the user wants to manually reduce on epoch end
-            if self.is_overridden('training_epoch_end', model=self.get_model()) or auto_reduce_tng_result:
+            if is_overridden('training_epoch_end', model=self.get_model()) or auto_reduce_tng_result:
                 epoch_end_outputs.append(optimizer_idx_outputs)
 
         return epoch_end_outputs
@@ -580,7 +583,7 @@ class TrainerTrainLoopMixin(ABC):
     def check_checkpoint_callback(self, should_check_val):
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
-        should_activate = not self.is_overridden('validation_step') and not should_check_val
+        should_activate = not is_overridden('validation_step', self.get_model()) and not should_check_val
         if should_activate:
             checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
@@ -642,7 +645,7 @@ class TrainerTrainLoopMixin(ABC):
         # --------------------------
         # EPOCH END STEP IF DEFINED
         # --------------------------
-        if self.is_overridden('training_epoch_end', model=model):
+        if is_overridden('training_epoch_end', model=model):
             self.global_step += 1
 
             if is_result_obj:

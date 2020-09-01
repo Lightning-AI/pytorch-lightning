@@ -299,6 +299,8 @@ class Result(Dict):
     def __copy__(self):
         newone = type(self)()
         for k, v in self.items():
+            if isinstance(v, torch.Tensor):
+                v = v.detach()
             newone[k] = copy(v)
         return newone
 
@@ -843,6 +845,6 @@ class EvalResult(Result):
 
 def weighted_mean(result, weights):
     weights = weights.to(result.device)
-    numerator = torch.dot(result.float(), weights.t().float())
+    numerator = torch.dot(result.float(), weights.transpose(-1, 0).float())
     result = numerator / weights.sum().float()
     return result

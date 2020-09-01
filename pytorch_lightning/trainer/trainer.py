@@ -55,6 +55,8 @@ from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import is_remote_path
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
+from pytorch_lightning.trainer.data_connector import DataConnector
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
@@ -607,6 +609,7 @@ class Trainer(
         # tracks internal state for debugging
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
+        self.data_connector = DataConnector(self)
         self.accelerator_backend = None
 
         # loops
@@ -761,13 +764,13 @@ class Trainer(
                 continue
             arg_kwargs = {}
             if bool in arg_types:
-                arg_kwargs.update(nargs="?")
+                arg_kwargs.update(nargs="?", const=True)
                 # if the only arg type is bool
                 if len(arg_types) == 1:
-                    # redefine the type for ArgParser needed
-                    def use_type(x):
-                        return bool(parsing.str_to_bool(x))
-
+                    use_type = parsing.str_to_bool
+                # if only two args (str, bool)
+                elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
+                    use_type = parsing.str_to_bool_or_str
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]
@@ -900,7 +903,7 @@ class Trainer(
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        val_loop_enabled = self.is_overridden('validation_step') and self.limit_val_batches > 0
+        val_loop_enabled = is_overridden('validation_step', self.get_model()) and self.limit_val_batches > 0
         return val_loop_enabled or self.fast_dev_run
 
     @property
@@ -924,6 +927,36 @@ class Trainer(
             # it is a remote uri, use as is
             return self._weights_save_path
         return os.path.normpath(self._weights_save_path)
+
+    def tune(
+        self,
+        model: LightningModule,
+        train_dataloader: Optional[DataLoader] = None,
+        val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+        datamodule: Optional[LightningDataModule] = None,
+    ):
+        # TODO: temporary, need to decide if tune or separate object
+
+        # setup data, etc...
+        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+
+        # hook
+        self.call_hook('on_fit_start', model)
+
+        # hook
+        self.prepare_data(model)
+
+        # Run auto batch size scaling
+        if self.auto_scale_batch_size:
+            if isinstance(self.auto_scale_batch_size, bool):
+                self.auto_scale_batch_size = 'power'
+            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+            model.logger = self.logger  # reset logger binding
+
+        # Run learning rate finder:
+        if self.auto_lr_find:
+            self._run_lr_finder_internally(model)
+            model.logger = self.logger  # reset logger binding
 
     # -----------------------------
     # MODEL TRAINING
@@ -974,36 +1007,14 @@ class Trainer(
         """
         results = None
 
-        # bind logger and other properties
-        self.copy_trainer_model_properties(model)
-
-        # clean hparams
-        if hasattr(model, 'hparams'):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
+        # setup data, etc...
+        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.call_hook('on_fit_start', model)
 
         # hook
         self.prepare_data(model)
-
-        # Run auto batch size scaling
-        if self.auto_scale_batch_size:
-            if isinstance(self.auto_scale_batch_size, bool):
-                self.auto_scale_batch_size = 'power'
-            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
-            model.logger = self.logger  # reset logger binding
-
-        # Run learning rate finder:
-        if self.auto_lr_find:
-            self._run_lr_finder_internally(model)
-            model.logger = self.logger  # reset logger binding
 
         # set testing if set in environ
         self.testing = os.environ.get('PL_TESTING_MODE', self.testing)
@@ -1031,6 +1042,20 @@ class Trainer(
         # used for testing or when we need to know that training succeeded
         return results or 1
 
+    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
+        # bind logger and other properties
+        self.copy_trainer_model_properties(model)
+
+        # clean hparams
+        if hasattr(model, 'hparams'):
+            parsing.clean_namespace(model.hparams)
+
+        # links data to the trainer
+        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
+
+        # check that model is configured correctly
+        self.config_validator.verify_loop_configurations(model)
+
     def prepare_data(self, model):
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0
@@ -1039,18 +1064,6 @@ class Trainer(
                 self.datamodule.prepare_data()
             model.prepare_data()
             self._is_data_prepared = True
-
-    def attach_data(self, model, train_dataloader, val_dataloaders, datamodule):
-        # if a datamodule comes in as the second arg, then fix it for the user
-        if isinstance(train_dataloader, LightningDataModule):
-            datamodule = train_dataloader
-            train_dataloader = None
-
-        self.config_validator.enforce_datamodule_dataloader_override(train_dataloader, val_dataloaders, datamodule)
-
-        # set up the passed in dataloaders (if needed)
-        self.__attach_dataloaders(model, train_dataloader, val_dataloaders)
-        self.__attach_datamodule(model, datamodule, 'fit')
 
     def select_accelerator(self):
         # SLURM ddp
@@ -1097,7 +1110,7 @@ class Trainer(
 
     def can_prepare_data(self):
         should_call_dm_prepare_data = True
-        if self.datamodule is not None and self.is_overridden('prepare_data', self.datamodule):
+        if self.datamodule is not None and is_overridden('prepare_data', self.datamodule):
             should_call_dm_prepare_data = not self.datamodule.has_prepared_data
 
         if self.prepare_data_per_node:
@@ -1105,46 +1118,15 @@ class Trainer(
         else:
             return self.node_rank == 0 and self.local_rank == 0 and should_call_dm_prepare_data
 
-    def __attach_dataloaders(self, model, train_dataloader=None, val_dataloaders=None, test_dataloaders=None):
-        # when dataloader is passed via fit, patch the train_dataloader
-        # functions to overwrite with these implementations
-        if train_dataloader is not None:
-            model.train_dataloader = _PatchDataLoader(train_dataloader)
-
-        if val_dataloaders is not None:
-            model.val_dataloader = _PatchDataLoader(val_dataloaders)
-
-        if test_dataloaders is not None:
-            model.test_dataloader = _PatchDataLoader(test_dataloaders)
-
-    def __attach_datamodule(self, model, datamodule, stage):
-
-        # We use datamodule if it's been provided on .fit or .test, otherwise we check model for it
-        datamodule = datamodule or getattr(model, 'datamodule', None)
-
-        # If we have a datamodule, attach necessary hooks + dataloaders
-        if datamodule:
-
-            # Override loader hooks
-            if self.is_overridden('train_dataloader', datamodule):
-                model.train_dataloader = datamodule.train_dataloader
-            if self.is_overridden('val_dataloader', datamodule):
-                model.val_dataloader = datamodule.val_dataloader
-            if self.is_overridden('test_dataloader', datamodule):
-                model.test_dataloader = datamodule.test_dataloader
-
-            # Override transfer_batch_to_device if dataset-specific to_device logic has been defined in datamodule
-            if self.is_overridden('transfer_batch_to_device', datamodule):
-                model.transfer_batch_to_device = datamodule.transfer_batch_to_device
-
-            self.datamodule = datamodule
-
-    def run_pretrain_routine(self, model: LightningModule):
+    def setup_training(self, model: LightningModule):
         """Sanity check a few things before starting actual training.
 
         Args:
             model: The model to run sanity test on.
         """
+        # --------------------------
+        # Setup??
+        # --------------------------
         ref_model = model
         if self.data_parallel:
             ref_model = model.module
@@ -1172,7 +1154,7 @@ class Trainer(
         # wait for all models to restore weights
         if self.on_tpu and XLA_AVAILABLE:
             # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.Trainer.run_pretrain_routine")
+            torch_xla.core.xla_model.rendezvous("pl.Trainer.setup_training")
 
         elif self.use_horovod:
             # wait for all processes to catch up
@@ -1181,6 +1163,9 @@ class Trainer(
         # register auto-resubmit when on SLURM
         self.register_slurm_signal_handlers()
 
+        # --------------------------
+        # Pre-train
+        # --------------------------
         # on pretrain routine start
         self.on_pretrain_routine_start(ref_model)
         if self.is_function_implemented('on_pretrain_routine_start'):
@@ -1200,44 +1185,37 @@ class Trainer(
         # restore training and model before hpc is called
         self.restore_weights(model)
 
-        # when testing requested only run test and return
-        if self.testing:
-            # only load test dataloader for testing
-            # self.reset_test_dataloader(ref_model)
-            eval_loop_results, _ = self.run_evaluation(test_mode=True)
-
-            if len(eval_loop_results) == 0:
-                return 1
-
-            # remove the tensors from the eval results
-            for i, result in enumerate(eval_loop_results):
-                if isinstance(result, dict):
-                    for k, v in result.items():
-                        if isinstance(v, torch.Tensor):
-                            result[k] = v.cpu().item()
-
-            return eval_loop_results
-
-        # run a few val batches before training starts
-        self._run_sanity_check(ref_model, model)
-
-        # clear cache before training
-        if self.on_gpu and self.root_gpu is not None:
-            # use context because of:
-            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-            with torch.cuda.device(f'cuda:{self.root_gpu}'):
-                torch.cuda.empty_cache()
-
         # on pretrain routine end
         self.on_pretrain_routine_end(ref_model)
         if self.is_function_implemented('on_pretrain_routine_end'):
             ref_model.on_pretrain_routine_end()
 
-        # CORE TRAINING LOOP
-        self.train()
+    def run_test(self):
+        # only load test dataloader for testing
+        # self.reset_test_dataloader(ref_model)
+        eval_loop_results, _ = self.run_evaluation(test_mode=True)
 
-    def _run_sanity_check(self, ref_model, model):
-        using_val_step = ref_model.val_dataloader is not None and self.is_overridden('validation_step')
+        if len(eval_loop_results) == 0:
+            return 1
+
+        # remove the tensors from the eval results
+        for i, result in enumerate(eval_loop_results):
+            if isinstance(result, dict):
+                for k, v in result.items():
+                    if isinstance(v, torch.Tensor):
+                        result[k] = v.cpu().item()
+
+        return eval_loop_results
+
+    def train_or_test(self):
+        if self.testing:
+            results = self.run_test()
+        else:
+            results = self.train()
+        return results
+
+    def run_sanity_check(self, ref_model):
+        using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
 
         # run tiny validation (if validation defined)
@@ -1348,7 +1326,7 @@ class Trainer(
             )
 
         # Attach datamodule to get setup/prepare_data added to model before the call to it below
-        self.__attach_datamodule(model or self.get_model(), datamodule, 'test')
+        self.data_connector.attach_datamodule(model or self.get_model(), datamodule, 'test')
 
         if model is not None:
             results = self.__test_given_model(model, test_dataloaders)
@@ -1386,7 +1364,7 @@ class Trainer(
 
         # attach dataloaders
         if test_dataloaders is not None:
-            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         # run tests
         self.tested_ckpt_path = ckpt_path
@@ -1408,7 +1386,7 @@ class Trainer(
 
         # attach data
         if test_dataloaders is not None:
-            self.__attach_dataloaders(model, test_dataloaders=test_dataloaders)
+            self.data_connector.attach_dataloaders(model, test_dataloaders=test_dataloaders)
 
         # run test
         # sets up testing so we short circuit to eval
@@ -1458,8 +1436,8 @@ class Trainer(
 
             # next call hook in lightningModule
             output = None
-            if self.is_overridden(hook_name):
-                model_ref = self.get_model()
+            model_ref = self.get_model()
+            if is_overridden(hook_name, model_ref):
                 hook_fx = getattr(model_ref, hook_name)
                 output = hook_fx(*args, **kwargs)
 
@@ -1470,28 +1448,6 @@ class Trainer(
                 output = accelerator_hook(*args, **kwargs)
 
             return output
-
-
-class _PatchDataLoader(object):
-    r"""
-    Callable object for patching dataloaders passed into trainer.fit().
-    Use this class to override model.*_dataloader() and be pickle-compatible.
-
-    Args:
-        dataloader: Dataloader object to return when called.
-
-    """
-
-    def __init__(self, dataloader: Union[List[DataLoader], DataLoader]):
-        self.dataloader = dataloader
-
-        # cannot pickle __code__ so cannot verify if PatchDataloader
-        # exists which shows dataloader methods have been overwritten.
-        # so, we hack it by using the string representation
-        self.patch_loader_code = str(self.__call__.__code__)
-
-    def __call__(self) -> Union[List[DataLoader], DataLoader]:
-        return self.dataloader
 
 
 def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
