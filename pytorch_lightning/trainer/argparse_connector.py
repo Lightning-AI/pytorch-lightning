@@ -131,4 +131,4 @@ class ArgparseClass(object):
             >>> args = Trainer.parse_argparser(parser.parse_args(""))
             >>> trainer = Trainer.from_argparse_args(args, logger=False)
         """
-        return argparse_utils.from_argparse_args(cls, args)
+        return argparse_utils.from_argparse_args(cls, args, **kwargs)
