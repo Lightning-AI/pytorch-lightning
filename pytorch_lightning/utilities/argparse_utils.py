@@ -128,6 +128,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
         modified_args[k] = v
     return Namespace(**modified_args)
 
+
 def _gpus_allowed_type(x) -> Union[int, str]:
     if ',' in x:
         return str(x)
