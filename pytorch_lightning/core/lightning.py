@@ -1739,7 +1739,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         Note:
             - Requires the implementation of the :meth:`LightningModule.forward` method.
-            - It is recommended that you install the latest version of PyTorch to use this feature without limitations.
+            - It is recommended that you install the latest supported version of PyTorch to use this feature without limitations.
 
 
         Example:
