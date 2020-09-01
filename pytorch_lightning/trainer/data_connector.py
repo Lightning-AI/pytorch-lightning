@@ -24,6 +24,25 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
+    def prepare_data(self, model):
+        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+        if self.can_prepare_data():
+            if self.trainer.datamodule is not None:
+                self.trainer.datamodule.prepare_data()
+            model.prepare_data()
+            self.trainer._is_data_prepared = True
+
+    def can_prepare_data(self):
+        should_call_dm_prepare_data = True
+        if self.trainer.datamodule is not None and is_overridden('prepare_data', self.trainer.datamodule):
+            should_call_dm_prepare_data = not self.trainer.datamodule.has_prepared_data
+
+        if self.trainer.prepare_data_per_node:
+            return self.trainer.local_rank == 0 and should_call_dm_prepare_data
+        else:
+            return self.trainer.node_rank == 0 and self.trainer.local_rank == 0 and should_call_dm_prepare_data
+
     def attach_data(self, model, train_dataloader, val_dataloaders, datamodule):
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloader, LightningDataModule):
