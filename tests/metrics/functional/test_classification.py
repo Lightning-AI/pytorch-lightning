@@ -4,6 +4,7 @@ import pytest
 import torch
 from sklearn.metrics import (
     accuracy_score as sk_accuracy,
+    jaccard_score as sk_jaccard_score,
     precision_score as sk_precision,
     recall_score as sk_recall,
     f1_score as sk_f1_score,
@@ -37,6 +38,7 @@ from pytorch_lightning.metrics.functional.classification import (
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
     pytest.param(sk_accuracy, accuracy, id='accuracy'),
+    pytest.param(partial(sk_jaccard_score, average='micro'), iou, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, id='recall'),
     pytest.param(partial(sk_f1_score, average='micro'), f1_score, id='f1_score'),
@@ -382,6 +384,9 @@ def test_iou(half_ones, reduction, remove_bg, expected):
     assert torch.allclose(iou_val, expected, atol=1e-9)
 
 
+# TODO: When the jaccard_score of the sklearn version we use accepts `zero_division` (see
+#       https://github.com/scikit-learn/scikit-learn/pull/17866), consider adding a test here against our
+#       `not_present_score`.
 @pytest.mark.parametrize(['pred', 'target', 'not_present_score', 'num_classes', 'remove_bg', 'expected'], [
     # Note that -1 is used as the not_present_score in almost all tests here to distinguish it from the range of valid
     # scores the function can return ([0., 1.] range, inclusive).
