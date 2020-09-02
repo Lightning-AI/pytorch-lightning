@@ -24,6 +24,25 @@ class DataConnector(object):
     def __init__(self, trainer):
         self.trainer = trainer
 
+    def get_profiled_train_dataloader(self, train_dataloader):
+        profiled_dl = self.trainer.profiler.profile_iterable(
+            enumerate(self._with_is_last(train_dataloader)),
+            "get_train_batch"
+        )
+        return profiled_dl
+
+    def _with_is_last(self, iterable):
+        """Pass through values from the given iterable with an added boolean indicating if this is the last item.
+        See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_"""
+        it = iter(iterable)
+        last = next(it)
+        for val in it:
+            # yield last and has next
+            yield last, False
+            last = val
+        # yield last, no longer has next
+        yield last, True
+
     def prepare_data(self, model):
         # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
         # or in the case where each node needs to do its own manipulation in which case just local_rank=0

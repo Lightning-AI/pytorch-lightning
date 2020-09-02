@@ -183,6 +183,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
+from pytorch_lightning.trainer.data_connector import DataConnector
 
 try:
     from apex import amp
@@ -264,6 +265,7 @@ class TrainerTrainLoopMixin(ABC):
     accelerator_backend: ...
     val_dataloaders: ...
     train_loop: TrainLoop
+    data_connector: DataConnector
 
     # Callback system
     callbacks: List[Callback]
@@ -443,10 +445,10 @@ class TrainerTrainLoopMixin(ABC):
         # track epoch output
         epoch_output = [[] for _ in range(self.train_loop.num_optimizers)]
 
-        # run epoch
-        for batch_idx, (batch, is_last_batch) in self.profiler.profile_iterable(
-                enumerate(_with_is_last(train_dataloader)), "get_train_batch"
-        ):
+        # enable profiling for the dataloader
+        train_dataloader = self.data_connector.get_profiled_train_dataloader(train_dataloader)
+        dataloader_idx = 0
+        for batch_idx, (batch, is_last_batch) in train_dataloader:
             # stop epoch if we limited the number of training batches
             if batch_idx >= self.num_training_batches:
                 break
@@ -457,7 +459,7 @@ class TrainerTrainLoopMixin(ABC):
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
-            batch_output = self.run_training_batch(batch, batch_idx)
+            batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
@@ -467,12 +469,8 @@ class TrainerTrainLoopMixin(ABC):
                 self.train_loop.checkpoint_accumulator
             )
 
-            # track the outputs to reduce at the end of the epoch
-            for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
-                # with 1 step (no tbptt) don't use a sequence at epoch end
-                if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
-                    opt_outputs = opt_outputs[0]
-                epoch_output[opt_idx].append(opt_outputs)
+            # hook
+            self.train_loop.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
             # when returning -1 from train_step, we end epoch early
             self.should_stop = batch_output.signal == -1
@@ -748,7 +746,7 @@ class TrainerTrainLoopMixin(ABC):
 
         return should_check_val
 
-    def run_training_batch(self, batch, batch_idx):
+    def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
         grad_norm_dic = {}
 
@@ -767,7 +765,6 @@ class TrainerTrainLoopMixin(ABC):
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
 
         # hook
-        dataloader_idx = 0
         response = self.call_hook('on_batch_start')
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
@@ -858,12 +855,6 @@ class TrainerTrainLoopMixin(ABC):
 
                     # reset for next set of accumulated grads
                     self.batch_loss_value.reset()
-
-        # hook
-        self.call_hook('on_batch_end')
-
-        # hook
-        self.call_hook('on_train_batch_end', batch, batch_idx, dataloader_idx)
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
@@ -1186,16 +1177,3 @@ class TrainerTrainLoopMixin(ABC):
                             scheduler_idx,
                             old_lr, new_lr
                         )
-
-
-def _with_is_last(iterable):
-    """Pass through values from the given iterable with an added boolean indicating if this is the last item.
-    See `https://stackoverflow.com/a/1630350 <https://stackoverflow.com/a/1630350>`_"""
-    it = iter(iterable)
-    last = next(it)
-    for val in it:
-        # yield last and has next
-        yield last, False
-        last = val
-    # yield last, no longer has next
-    yield last, True

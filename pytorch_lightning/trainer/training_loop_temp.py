@@ -1,5 +1,6 @@
 from pytorch_lightning.trainer.supporters import Accumulator
 import numpy as np
+from pytorch_lightning.core.step_result import Result
 
 
 class TrainLoop:
@@ -26,6 +27,23 @@ class TrainLoop:
         # structured result accumulators for callbacks
         self.early_stopping_accumulator = Accumulator()
         self.checkpoint_accumulator = Accumulator()
+
+    def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
+        # figure out what to track for epoch end
+        self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
+
+        # hook
+        self.trainer.call_hook('on_batch_end')
+        self.trainer.call_hook('on_train_batch_end', batch, batch_idx, dataloader_idx)
+
+    def track_epoch_end_reduce_metrics(self, epoch_output, epoch_end_outputs):
+        # track the outputs to reduce at the end of the epoch
+        for opt_idx, opt_outputs in enumerate(epoch_end_outputs):
+            # with 1 step (no tbptt) don't use a sequence at epoch end
+            if isinstance(opt_outputs, list) and len(opt_outputs) == 1 and not isinstance(opt_outputs[0], Result):
+                opt_outputs = opt_outputs[0]
+            epoch_output[opt_idx].append(opt_outputs)
+
 
     def get_optimizers_iterable(self):
         """
