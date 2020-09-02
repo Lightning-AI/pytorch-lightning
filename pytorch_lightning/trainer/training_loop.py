@@ -459,7 +459,7 @@ class TrainerTrainLoopMixin(ABC):
             # ------------------------------------
             # TRAINING_STEP + TRAINING_STEP_END
             # ------------------------------------
-            batch_output = self.run_training_batch(batch, batch_idx)
+            batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
             # only track outputs when user implements training_epoch_end
             # otherwise we will build up unnecessary memory
