@@ -40,9 +40,13 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         * input_convert: pre-forward hook that takes care of input conversion
         * output_convert: post-forward hook that takes care of output convertion
-        * ddp_sync: implementation of ddp sync, default is gather all
-        * aggregate: implement how values should be aggregated
+        * ddp_reduce: implementation of ddp sync + aggregation, default is ddp_sync + aggregate
         * compute: post-ddp sync for additional metric computations
+
+    ``ddp_reduce`` by default calls the following methods, which can also be overwritten if necessary.
+
+        * ddp_sync: implements how values should be synced across ddp-processes. Defaults to gather all.
+        * aggregate: implement how values should be aggregated (defaults to mean).
 
     Call order
 
