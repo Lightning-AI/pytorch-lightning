@@ -13,81 +13,31 @@
 # limitations under the License.
 
 import io
-import platform
-import os
 from distutils.version import LooseVersion
 from typing import Union
 from pathlib import Path
 from urllib.parse import urlparse
 import torch
+import fsspec
 
-import tensorboard
-from pytorch_lightning import _logger as log
-
-# we want this for tf.io.gfile, which if tf is installed gives full tf,
-# otherwise gives a pruned down version which works for some file backends but
-# not all
-from tensorboard.compat import tf
-
-gfile = tf.io.gfile
 
 pathlike = Union[Path, str]
 
-# older version of tensorboard had buggy gfile compatibility layers
-# only support remote cloud paths if newer
-
 
 def load(path_or_url: str, map_location=None):
-    if urlparse(path_or_url).scheme == '' or Path(path_or_url).drive:  # no scheme or with a drive letter
+    if urlparse(path_or_url).scheme == "" or Path(path_or_url).drive:  # no scheme or with a drive letter
         return torch.load(path_or_url, map_location=map_location)
     return torch.hub.load_state_dict_from_url(path_or_url, map_location=map_location)
 
 
-def is_remote_path(path: pathlike):
-    """Determine if a path is a local path or a remote path like s3://bucket/path
-
-    This should catch paths like s3:// hdfs:// and gcs://
-    """
-    return "://" in str(path)
-
-
-def modern_gfile():
-    """Check the version number of tensorboard.
-
-    Cheking to see if it has the gfile compatibility layers needed for remote
-    file operations
-    """
-    tb_version = LooseVersion(tensorboard.version.VERSION)
-    modern_gfile = tb_version >= LooseVersion("2.0")
-    return modern_gfile
-
-
-def cloud_open(path: pathlike, mode: str, newline: str = None):
-    if platform.system() == "Windows":
-        log.debug(
-            "gfile does not handle newlines correctly on windows so remote files are not"
-            " supported falling back to normal local file open."
-        )
-        return open(path, mode, newline=newline)
-    if not modern_gfile():
-        log.debug(
-            "tenosrboard.compat gfile does not work on older versions "
-            "of tensorboard for remote files, using normal local file open."
-        )
-        return open(path, mode, newline=newline)
-    try:
-        return gfile.GFile(path, mode)
-    except NotImplementedError as e:
-        # minimal dependencies are installed and only local files will work
-        return open(path, mode, newline=newline)
-
-
-def makedirs(path: pathlike):
-    if hasattr(gfile, "makedirs") and modern_gfile():
-        if not gfile.exists(str(path)):
-            return gfile.makedirs(str(path))
-    # otherwise minimal dependencies are installed and only local files will work
-    return os.makedirs(path, exist_ok=True)
+def get_filesystem(path: pathlike):
+    path = str(path)
+    if "://" in path:
+        # use the fileystem from the protocol specified
+        return fsspec.filesystem(path.split(":")[0])
+    else:
+        # use local filesystem
+        return fsspec.filesystem("file")
 
 
 def atomic_save(checkpoint, filepath: str):
@@ -108,5 +58,5 @@ def atomic_save(checkpoint, filepath: str):
         torch.save(checkpoint, bytesbuffer, _use_new_zipfile_serialization=False)
     else:
         torch.save(checkpoint, bytesbuffer)
-    with cloud_open(filepath, 'wb') as f:
+    with fsspec.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())
