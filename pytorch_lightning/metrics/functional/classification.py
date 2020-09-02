@@ -1009,15 +1009,19 @@ def iou(
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
 
     scores = torch.zeros(num_classes - min_class_idx, device=pred.device, dtype=torch.float32)
-    for class_idx in range(min_class_idx, num_classes):
-        # If this class is not present in either the pred or the target, then use the not_present_score for this class.
-        if not (target == class_idx).any() and not (pred == class_idx).any():
-            scores[class_idx - min_class_idx] = not_present_score
-            continue
 
+    for class_idx in range(min_class_idx, num_classes):
         tp = tps[class_idx]
         fp = fps[class_idx]
         fn = fns[class_idx]
+        sup = sups[class_idx]
+
+        # If this class is not present in either the target (no support) or the pred (no true or false positives), then
+        # use the not_present_score for this class.
+        if sup + tp + fp == 0:
+            scores[class_idx - min_class_idx] = not_present_score
+            continue
+
         denom = tp + fp + fn
         score = tp.to(torch.float) / denom
         scores[class_idx - min_class_idx] = score
