@@ -209,7 +209,7 @@ def test_logger_reset_correctly(tmpdir, extra_params):
         **extra_params,
     )
     logger1 = trainer.logger
-    trainer.fit(model)
+    trainer.tune(model)
     logger2 = trainer.logger
     logger3 = model.logger
 

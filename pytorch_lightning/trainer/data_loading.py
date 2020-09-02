@@ -26,6 +26,7 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.debugging import InternalDebugger
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 try:
@@ -77,10 +78,6 @@ class TrainerDataLoadingMixin(ABC):
     num_processes: int
     distributed_backend: Optional[str]
     dev_debugger: InternalDebugger
-
-    @abstractmethod
-    def is_overridden(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         on_windows = platform.system() == 'Windows'
@@ -305,8 +302,8 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        has_loader = self.is_overridden('val_dataloader', model)
-        has_step = self.is_overridden('validation_step', model)
+        has_loader = is_overridden('val_dataloader', model)
+        has_step = is_overridden('validation_step', model)
         if has_loader and has_step:
             self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
@@ -316,8 +313,8 @@ class TrainerDataLoadingMixin(ABC):
         Args:
             model: The current `LightningModule`
         """
-        has_loader = self.is_overridden('test_dataloader', model)
-        has_step = self.is_overridden('test_step', model)
+        has_loader = is_overridden('test_dataloader', model)
+        has_step = is_overridden('test_step', model)
         if has_loader and has_step:
             self.num_test_batches, self.test_dataloaders =\
                 self._reset_eval_dataloader(model, 'test')

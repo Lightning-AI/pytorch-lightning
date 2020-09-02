@@ -167,8 +167,8 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
 
 ---------------
 
-LightningModule API
--------------------
+LightningDataModule API
+-----------------------
 To define a DataModule define 5 methods:
 
 - prepare_data (how to download(), tokenize, etc...)
