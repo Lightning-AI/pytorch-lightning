@@ -21,7 +21,7 @@ from torch import nn
 import numpy as np
 
 from pytorch_lightning.metrics.converters import (
-    sync_ddp_if_available, gather_all_tensors_if_available,
+    gather_all_tensors_if_available,
     convert_to_tensor, convert_to_numpy)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
@@ -46,7 +46,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     Call order
 
-        input_convert -> forward -> output_convert -> ddp_sync -> aggregate -> compute
+        input_convert -> forward -> output_convert -> ddp_reduce (per default being ddp_sync -> aggregate) -> compute
 
     """
 
@@ -61,11 +61,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self._dtype = torch.get_default_dtype()
         self._device = torch.device('cpu')
 
+        self._step_vals = []
+
         # Register hooks
         self.register_forward_pre_hook(self.input_convert)
         self.register_forward_hook(self.output_convert)
-        self.register_forward_hook(self.ddp_sync)
-        self.register_forward_hook(self.aggregate)
+        self.register_forward_hook(self.ddp_reduce)
         self.register_forward_hook(self.compute)
 
     @staticmethod
@@ -106,10 +107,29 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         return output
 
-    @staticmethod
-    def ddp_sync(self, data: Any, output: Any):
+    def ddp_sync(self, tensor: Any):
         """
-        Implement how the outputs from forward should be synced
+        Implement how the outputs from forward should be synced 
+        (per default just gathers all of them and adds them to self._step_vals)
+
+        Args:
+            tensor: tensor to sync
+
+        Returns:
+            synced output
+
+        """
+        gathered_tensors = apply_to_collection(tensor, torch.Tensor, gather_all_tensors_if_available,
+                                   self.reduce_group, self.reduce_op)
+
+        self._step_vals.append(gathered_tensors)
+
+        return gathered_tensors
+
+    @staticmethod
+    def ddp_reduce(self, data: Any, output: Any):
+        """
+        Implement how the outputs from forward should be synced and reduced across nodes
 
         Args:
             data: input to forward method
@@ -119,27 +139,26 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             synced output
 
         """
-        return output
+        synced = self.ddp_sync(output)
+        return self.aggregate(synced)
 
-    @staticmethod
-    def aggregate(self, data: Any, output: Any):
+    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
         """
         Implement aggregation of values on the same device
 
         Args:
-            data: input to forward method
-            output: output from the `ddp_sync` hook
+            tensors: the values to be aggregated
 
         Returns:
             aggregated values
 
         """
-        return output
+        return torch.cat(tensors).mean()
 
     @staticmethod
     def compute(self, data: Any, output: Any):
         """
-        Implement additionally metric computations to be done after the ddp sync
+        Implement additionally metric computations to be done after the aggregation
 
         Args:
             data: input to forward method
@@ -150,6 +169,15 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         """
         return output
+
+    @property
+    def aggregated(self) -> torch.Tensor:
+        aggr = self.aggregate(*self._step_vals)
+        self.reset()
+        return self.compute(self, None, aggr)
+
+    def reset(self):
+        self._step_vals = []
 
 
 class TensorMetric(Metric):
@@ -186,11 +214,7 @@ class TensorMetric(Metric):
     def output_convert(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, convert_to_tensor,
                                    self.dtype, self.device)
-
-    @staticmethod
-    def ddp_sync(self, data: Any, output: Any):
-        return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
-                                   self.reduce_group, self.reduce_op)
+        
 
 
 class TensorCollectionMetric(Metric):
@@ -240,11 +264,6 @@ class TensorCollectionMetric(Metric):
                                    convert_to_tensor,
                                    self.dtype, self.device)
 
-    @staticmethod
-    def ddp_sync(self, data: Any, output: Any):
-        return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
-                                   self.reduce_group, self.reduce_op)
-
 
 class NumpyMetric(Metric):
     """
@@ -282,8 +301,3 @@ class NumpyMetric(Metric):
                                    (torch.Tensor, np.ndarray, numbers.Number),
                                    convert_to_tensor,
                                    self.dtype, self.device)
-
-    @staticmethod
-    def ddp_sync(self, data: Any, output: Any):
-        return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
-                                   self.reduce_group, self.reduce_op)
