@@ -177,6 +177,8 @@ class AttributeDict(Dict):
 def lightning_hasattr(model, attribute):
     """ Special hasattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
+    trainer = model.trainer
+
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = True
@@ -188,6 +190,8 @@ def lightning_hasattr(model, attribute):
             attr = hasattr(model.hparams, attribute)
     elif hasattr(model.datamodule, attribute):
         attr = True
+    elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        attr = getattr(trainer.datamodule, attribute)
     else:
         attr = False
 
@@ -197,6 +201,8 @@ def lightning_hasattr(model, attribute):
 def lightning_getattr(model, attribute):
     """ Special getattr for lightning. Checks for attribute in model namespace,
         the old hparams namespace/dict, and the datamodule. """
+    trainer = model.trainer
+
     # Check if attribute in model
     if hasattr(model, attribute):
         attr = getattr(model, attribute)
@@ -208,6 +214,8 @@ def lightning_getattr(model, attribute):
             attr = getattr(model.hparams, attribute)
     elif hasattr(model.datamodule, attribute):
         attr = getattr(model.datamodule, attribute)
+    elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        attr = getattr(trainer.datamodule, attribute)
     else:
         raise ValueError(f'{attribute} is neither stored in the model namespace'
                          ' nor the `hparams` namespace/dict, nor the datamodule.')
@@ -219,29 +227,26 @@ def lightning_setattr(model, attribute, value):
         and the old hparams namespace/dict.
         Will also set the attribute on datamodule, if it exists.
     """
-    found = False
+    if not lightning_hasattr(model, attribute):
+        raise ValueError(f'{attribute} is neither stored in the model namespace'
+                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+
     trainer = model.trainer
 
     # Check if attribute in model
     if hasattr(model, attribute):
         setattr(model, attribute, value)
-        found = True
+
     # Check if attribute in model.hparams, either namespace or dict
     elif hasattr(model, 'hparams'):
         if isinstance(model.hparams, dict):
             model.hparams[attribute] = value
         else:
             setattr(model.hparams, attribute, value)
-        found = True
+
     # Check if attribute in datamodule
     if hasattr(model.datamodule, attribute):
         setattr(model.datamodule, attribute, value)
-        found = True
 
     if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         setattr(trainer.datamodule, attribute, value)
-        found = True
-
-    if not found:
-        raise ValueError(f'{attribute} is neither stored in the model namespace'
-                         ' nor the `hparams` namespace/dict, nor the datamodule.')
