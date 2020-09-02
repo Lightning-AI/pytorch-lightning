@@ -341,33 +341,16 @@ class TrainerTrainLoopMixin(ABC):
     def train(self):
         self.run_sanity_check(self.get_model())
 
-        # TODO: shrink
-        # clear cache before training
-        if self.on_gpu and self.root_gpu is not None:
-            # use context because of:
-            # https://discuss.pytorch.org/t/out-of-memory-when-i-use-torch-cuda-empty-cache/57898
-            with torch.cuda.device(f'cuda:{self.root_gpu}'):
-                torch.cuda.empty_cache()
-
-        # get model
-        model = self.get_model()
-
         # enable train mode
+        model = self.get_model()
         model.train()
-
-        # enable gradients
         torch.set_grad_enabled(True)
 
-        # load data
-        # if reload_dataloaders_every_epoch, this is moved to the epoch loop
-        if not self.reload_dataloaders_every_epoch:
-            self.reset_train_dataloader(model)
-
-        if self.val_dataloaders is None and not self.reload_dataloaders_every_epoch:
-            self.reset_val_dataloader(model)
+        # reload data when needed
+        self.train_loop.reset_train_val_dataloaders(model)
 
         # hook
-        self.call_hook('on_train_start')
+        self.train_loop.on_train_start()
 
         try:
             # run all epochs
@@ -399,7 +382,9 @@ class TrainerTrainLoopMixin(ABC):
                 self.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
-                    self.run_training_teardown()
+
+                    # hook
+                    self.train_loop.on_train_end()
                     return
 
                 # update LR schedulers
@@ -411,14 +396,15 @@ class TrainerTrainLoopMixin(ABC):
 
                 if self.should_stop:
                     if (met_min_epochs and met_min_steps):
-                        self.run_training_teardown()
+                        self.train_loop.on_train_end()
                         return
                     else:
                         log.info('Trainer was signaled to stop but required minimum epochs'
                                  f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
                                  ' not been met. Training will continue...')
 
-            self.run_training_teardown()
+            # hook
+            self.train_loop.on_train_end()
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
@@ -429,7 +415,8 @@ class TrainerTrainLoopMixin(ABC):
                 self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
 
-                self.run_training_teardown()
+                # hook
+                self.train_loop.on_train_end()
 
     def run_training_epoch(self):
 
@@ -1052,47 +1039,6 @@ class TrainerTrainLoopMixin(ABC):
             hiddens=training_step_output.hiddens,
         )
         return result
-
-
-    # @atexit.register
-    def run_training_teardown(self):
-        if hasattr(self, '_teardown_already_run') and self._teardown_already_run:
-            return
-
-        self._teardown_already_run = True
-
-        # Save latest checkpoint
-        log.info('Saving latest checkpoint..')
-        self.check_checkpoint_callback(should_check_val=False)
-
-        # Train end events
-        with self.profiler.profile('on_train_end'):
-            # callbacks
-            self.on_train_end()
-            # model hooks
-            if self.is_function_implemented('on_train_end'):
-                self.get_model().on_train_end()
-
-        if self.logger is not None:
-            self.logger.finalize("success")
-
-        # summarize profile results
-        if self.global_rank == 0:
-            self.profiler.describe()
-
-        if self.global_rank == 0:
-            for proc in self.interactive_ddp_procs:
-                subprocess.Popen.kill(proc)
-
-        # clean up dist group
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.destroy_process_group()
-
-        # clear mem
-        if self.on_gpu:
-            model = self.get_model()
-            model.cpu()
-            torch.cuda.empty_cache()
 
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
         # enable not needing to add opt_idx to training_step
