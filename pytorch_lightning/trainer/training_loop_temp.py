@@ -77,7 +77,7 @@ class TrainLoop:
         should_activate = not is_overridden('validation_step', model) and not should_check_val
         if should_activate:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
-            [c.on_validation_end(self, model) for c in checkpoint_callbacks]
+            [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
     def on_train_epoch_start(self):
         # hook
