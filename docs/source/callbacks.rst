@@ -104,9 +104,9 @@ Lightning has a few built-in callbacks.
 .. automodule:: pytorch_lightning.callbacks.gpu_stats_monitor
     :noindex:
     :exclude-members:
-        _get_gpu_stat,
-        _log_gpu,
-        _log_memory
+        _get_gpu_stats,
+        _get_gpu_stat_keys,
+        _get_gpu_device_stat_keys,
 
 ----------------
 
