@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
+from ast import Num
 from typing import Any, Optional
 import numbers
 
@@ -21,8 +22,11 @@ from torch import nn
 import numpy as np
 
 from pytorch_lightning.metrics.converters import (
+    at_least_1d,
     gather_all_tensors_if_available,
-    convert_to_tensor, convert_to_numpy)
+    convert_to_tensor,
+    convert_to_numpy,
+)
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
@@ -54,16 +58,20 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None):
         """
         Args:
             name: the metric's name
+            reduce_group: the process group for DDP reduces (only needed for DDP training).
+                Defaults to all processes (world)
 
         """
         super().__init__()
         self.name = name
         self._dtype = torch.get_default_dtype()
-        self._device = torch.device('cpu')
+        self._device = torch.device("cpu")
+
+        self.reduce_group = reduce_group
 
         self._step_vals = []
 
@@ -109,11 +117,11 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         Returns:
             casted outputs
         """
-        return output
+        return apply_to_collection(output, (torch.Tensor, np.ndarray), at_least_1d)
 
     def ddp_sync(self, tensor: Any):
         """
-        Implement how the outputs from forward should be synced 
+        Implement how the outputs from forward should be synced
         (per default just gathers all of them and adds them to self._step_vals)
 
         Args:
@@ -123,8 +131,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             synced output
 
         """
-        gathered_tensors = apply_to_collection(tensor, torch.Tensor, gather_all_tensors_if_available,
-                                   self.reduce_group, self.reduce_op)
+        gathered_tensors = apply_to_collection(tensor, torch.Tensor, gather_all_tensors_if_available, self.reduce_group)
 
         self._step_vals.append(gathered_tensors)
 
@@ -191,9 +198,7 @@ class TensorMetric(Metric):
     Already handles DDP sync and input/output conversions.
     """
 
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -203,22 +208,20 @@ class TensorMetric(Metric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__(name)
-        self.reduce_group = reduce_group
+        super().__init__(name, reduce_group)
         self.reduce_op = reduce_op
 
     @staticmethod
     def input_convert(self, data: Any):
-        return apply_to_collection(data,
-                                   (torch.Tensor, np.ndarray, numbers.Number),
-                                   convert_to_tensor,
-                                   self.dtype, self.device)
+        data = apply_to_collection(
+            data, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
+        )
+        return super(TensorMetric, self).input_convert(self, data)
 
     @staticmethod
     def output_convert(self, data: Any, output: Any):
-        return apply_to_collection(output, torch.Tensor, convert_to_tensor,
-                                   self.dtype, self.device)
-        
+        output = apply_to_collection(output, torch.Tensor, convert_to_tensor, self.dtype, self.device)
+        return super(TensorMetric, self).output_convert(self, data, output)
 
 
 class TensorCollectionMetric(Metric):
@@ -238,9 +241,7 @@ class TensorCollectionMetric(Metric):
 
     """
 
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -250,23 +251,22 @@ class TensorCollectionMetric(Metric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__(name)
-        self.reduce_group = reduce_group
+        super().__init__(name, reduce_group)
         self.reduce_op = reduce_op
 
     @staticmethod
     def input_convert(self, data: Any):
-        return apply_to_collection(data,
-                                   (torch.Tensor, np.ndarray, numbers.Number),
-                                   convert_to_tensor,
-                                   self.dtype, self.device)
+        data = apply_to_collection(
+            data, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
+        )
+        return super(TensorCollectionMetric, self).input_convert(self, data)
 
     @staticmethod
     def output_convert(self, data: Any, output: Any):
-        return apply_to_collection(output,
-                                   (torch.Tensor, np.ndarray, numbers.Number),
-                                   convert_to_tensor,
-                                   self.dtype, self.device)
+        output = apply_to_collection(
+            output, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
+        )
+        return super(TensorCollectionMetric, self).output_convert(self, data, output)
 
 
 class NumpyMetric(Metric):
@@ -277,9 +277,7 @@ class NumpyMetric(Metric):
     Already handles DDP sync and input/output conversions.
     """
 
-    def __init__(self, name: str,
-                 reduce_group: Optional[Any] = None,
-                 reduce_op: Optional[Any] = None):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
         """
 
         Args:
@@ -289,19 +287,18 @@ class NumpyMetric(Metric):
             reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
                 Defaults to sum.
         """
-        super().__init__(name)
-        self.reduce_group = reduce_group
+        super().__init__(name, reduce_group)
         self.reduce_op = reduce_op
 
     @staticmethod
     def input_convert(self, data: Any):
-        return apply_to_collection(data,
-                                   (torch.Tensor, np.ndarray, numbers.Number),
-                                   convert_to_numpy)
+        data = apply_to_collection(data, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy)
+        return super(NumpyMetric, self).input_convert(self, data)
 
     @staticmethod
     def output_convert(self, data: Any, output: Any):
-        return apply_to_collection(output,
-                                   (torch.Tensor, np.ndarray, numbers.Number),
-                                   convert_to_tensor,
-                                   self.dtype, self.device)
+        output = apply_to_collection(
+            output, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
+        )
+
+        return super(NumpyMetric, self).output_convert(self, data, output)
