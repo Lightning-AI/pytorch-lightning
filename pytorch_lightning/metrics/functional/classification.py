@@ -250,11 +250,11 @@ def accuracy(
         num_classes: number of classes
         class_reduction: reduction method that effects the scoring for multiclass problems.
             Availble methods (default is 'micro'):
-            'micro': calculate metrics globally 
+            'micro': calculate metrics globally
             'macro': calculate metrics for each label, and find their unweighted mean.
             'weighted': calculate metrics for each label, and find their unweighted mean.
             'none': returns calculated metric per class
-    
+
     Return:
          A Tensor with the accuracy score.
 
@@ -330,7 +330,7 @@ def precision_recall(
         num_classes: number of classes
         class_reduction: reduction method that effects the scoring for multiclass problems.
             Availble methods (default is 'micro'):
-            'micro': calculate metrics globally 
+            'micro': calculate metrics globally
             'macro': calculate metrics for each label, and find their unweighted mean.
             'weighted': calculate metrics for each label, and find their unweighted mean.
             'none': returns calculated metric per class
@@ -372,7 +372,7 @@ def precision(
         num_classes: number of classes
         class_reduction: reduction method that effects the scoring for multiclass problems.
             Availble methods (default is 'micro'):
-            'micro': calculate metrics globally 
+            'micro': calculate metrics globally
             'macro': calculate metrics for each label, and find their unweighted mean.
             'weighted': calculate metrics for each label, and find their unweighted mean.
             'none': returns calculated metric per class
@@ -407,7 +407,7 @@ def recall(
         num_classes: number of classes
         class_reduction: reduction method that effects the scoring for multiclass problems.
             Availble methods (default is 'micro'):
-            'micro': calculate metrics globally 
+            'micro': calculate metrics globally
             'macro': calculate metrics for each label, and find their unweighted mean.
             'weighted': calculate metrics for each label, and find their unweighted mean.
             'none': returns calculated metric per class
@@ -448,7 +448,7 @@ def fbeta_score(
         num_classes: number of classes
         class_reduction: reduction method that effects the scoring for multiclass problems.
             Availble methods (default is 'micro'):
-            'micro': calculate metrics globally 
+            'micro': calculate metrics globally
             'macro': calculate metrics for each label, and find their unweighted mean.
             'weighted': calculate metrics for each label, and find their unweighted mean.
             'none': returns calculated metric per class
@@ -467,8 +467,8 @@ def fbeta_score(
     intermidiate_reduction = 'none' if class_reduction != "micro" else 'micro'
 
     prec, rec, sups = precision_recall(pred=pred, target=target,
-                                           num_classes=num_classes,
-                                           class_reduction=intermidiate_reduction)
+                                       num_classes=num_classes,
+                                       class_reduction=intermidiate_reduction)
     num = (1 + beta ** 2) * prec * rec
     denom = ((beta ** 2) * prec + rec)
     if intermidiate_reduction == 'micro':
@@ -493,7 +493,7 @@ def f1_score(
         num_classes: number of classes
         class_reduction: reduction method that effects the scoring for multiclass problems.
             Availble methods (default is 'micro'):
-            'micro': calculate metrics globally 
+            'micro': calculate metrics globally
             'macro': calculate metrics for each label, and find their unweighted mean.
             'weighted': calculate metrics for each label, and find their unweighted mean.
             'none': returns calculated metric per class
