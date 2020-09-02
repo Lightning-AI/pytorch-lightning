@@ -234,7 +234,7 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     datamodule = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
-    trainer.tune(model)
+    trainer.tune(model, datamodule)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert before_batch_size != after_batch_size
     assert datamodule.batch_size == after_batch_size
