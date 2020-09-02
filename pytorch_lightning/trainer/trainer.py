@@ -233,7 +233,7 @@ class Trainer(
 
             num_nodes: number of GPU nodes for distributed training.
 
-            gpus: Which GPUs to train on.
+            gpus: number of gpus to train on (int) or which GPUs to train on (list or str) applied per node
 
             auto_select_gpus:
 
