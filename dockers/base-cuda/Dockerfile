@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 COPY ./tests/install_AMP.sh install_AMP.sh
+COPY ./requirements/base.txt requirements.txt 
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-tests.txt
 COPY ./requirements/examples.txt requirements-examples.txt
@@ -47,7 +48,7 @@ RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${COND
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b -p /root/conda && \
     rm ~/miniconda.sh && \
-    /root/conda/bin/conda install -y python=$PYTHON_VERSION && \
+    /root/conda/bin/conda install -y python=$PYTHON_VERSION pip && \
     /root/conda/bin/conda install -y pytorch=$PYTORCH_VERSION torchvision cudatoolkit=$CUDA_VERSION -c $PYTORCH_CHANNEL && \
     /root/conda/bin/conda clean -ya
 
@@ -59,7 +60,7 @@ RUN \
     # Install AMP
     bash install_AMP.sh && \
     # Install all requirements
-    # pip install -r requirements.txt && \
+    pip install -r requirements.txt --upgrade-strategy only-if-needed && \
     # HOROVOD_BUILD_ARCH_FLAGS="-mfma" && \
     pip install -r requirements-extra.txt && \
     # pip install -r requirements-examples.txt && \
@@ -71,4 +72,5 @@ RUN \
     apt-get clean && \
     rm -rf /root/.cache && \
     # Show what we have
+    pip --version && \
     pip list
