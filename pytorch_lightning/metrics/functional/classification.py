@@ -248,15 +248,15 @@ def accuracy(
         pred: predicted labels
         target: ground truth labels
         num_classes: number of classes
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
-
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
-
+        class_reduction: reduction method that effects the scoring for multiclass problems.
+            Availble methods (default is 'micro'):
+            'micro': calculate metrics globally 
+            'macro': calculate metrics for each label, and find their unweighted mean.
+            'weighted': calculate metrics for each label, and find their unweighted mean.
+            'none': returns calculated metric per class
+    
     Return:
-         A Tensor with the classification score.
+         A Tensor with the accuracy score.
 
     Example:
 
@@ -328,12 +328,12 @@ def precision_recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
-
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+        class_reduction: reduction method that effects the scoring for multiclass problems.
+            Availble methods (default is 'micro'):
+            'micro': calculate metrics globally 
+            'macro': calculate metrics for each label, and find their unweighted mean.
+            'weighted': calculate metrics for each label, and find their unweighted mean.
+            'none': returns calculated metric per class
 
     Return:
         Tensor with precision and recall
@@ -370,12 +370,12 @@ def precision(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
-
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+        class_reduction: reduction method that effects the scoring for multiclass problems.
+            Availble methods (default is 'micro'):
+            'micro': calculate metrics globally 
+            'macro': calculate metrics for each label, and find their unweighted mean.
+            'weighted': calculate metrics for each label, and find their unweighted mean.
+            'none': returns calculated metric per class
 
     Return:
         Tensor with precision.
@@ -405,12 +405,12 @@ def recall(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
-
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+        class_reduction: reduction method that effects the scoring for multiclass problems.
+            Availble methods (default is 'micro'):
+            'micro': calculate metrics globally 
+            'macro': calculate metrics for each label, and find their unweighted mean.
+            'weighted': calculate metrics for each label, and find their unweighted mean.
+            'none': returns calculated metric per class
 
     Return:
         Tensor with recall.
@@ -446,12 +446,12 @@ def fbeta_score(
             beta = 0: only precision
             beta -> inf: only recall
         num_classes: number of classes
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
-
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements.
+        class_reduction: reduction method that effects the scoring for multiclass problems.
+            Availble methods (default is 'micro'):
+            'micro': calculate metrics globally 
+            'macro': calculate metrics for each label, and find their unweighted mean.
+            'weighted': calculate metrics for each label, and find their unweighted mean.
+            'none': returns calculated metric per class
 
     Return:
         Tensor with the value of F-score. It is a value between 0-1.
@@ -491,12 +491,12 @@ def f1_score(
         pred: estimated probabilities
         target: ground-truth labels
         num_classes: number of classes
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
-
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements.
+        class_reduction: reduction method that effects the scoring for multiclass problems.
+            Availble methods (default is 'micro'):
+            'micro': calculate metrics globally 
+            'macro': calculate metrics for each label, and find their unweighted mean.
+            'weighted': calculate metrics for each label, and find their unweighted mean.
+            'none': returns calculated metric per class
 
     Return:
          Tensor containing F1-score
