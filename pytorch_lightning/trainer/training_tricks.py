@@ -283,8 +283,6 @@ def _adjust_batch_size(trainer,
     if desc:
         log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
     lightning_setattr(model, batch_arg_name, new_size)
-    if trainer.datamodule is not None and hasattr(trainer.datamodule, batch_arg_name):
-        setattr(trainer.datamodule, batch_arg_name, new_size)
     return new_size
 
 

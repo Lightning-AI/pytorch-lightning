@@ -220,6 +220,8 @@ def lightning_setattr(model, attribute, value):
         Will also set the attribute on datamodule, if it exists.
     """
     found = False
+    trainer = model.trainer
+
     # Check if attribute in model
     if hasattr(model, attribute):
         setattr(model, attribute, value)
@@ -234,6 +236,10 @@ def lightning_setattr(model, attribute, value):
     # Check if attribute in datamodule
     if hasattr(model.datamodule, attribute):
         setattr(model.datamodule, attribute, value)
+        found = True
+
+    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        setattr(trainer.datamodule, attribute, value)
         found = True
 
     if not found:
