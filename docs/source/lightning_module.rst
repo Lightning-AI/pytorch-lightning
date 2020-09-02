@@ -901,6 +901,8 @@ use_amp
 ~~~~~~~
 True if using amp
 
+------------
+
 use_ddp
 ~~~~~~~
 True if using ddp
