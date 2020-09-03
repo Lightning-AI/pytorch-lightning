@@ -311,9 +311,9 @@ class ModelCheckpoint(Callback):
         invalid_key = self.monitor not in ['val_loss', 'checkpoint_on', 'loss', 'val_checkpoint_on']
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
-            rank_zero_warn(f"When using EvalResult(checkpoint_on=X) or TrainResult(checkpoint_on=X)"
-                 " the 'monitor' key of ModelCheckpoint has no effect."
-                 f" Remove ModelCheckpoint(monitor='{self.monitor}') to fix")
+            rank_zero_warn(f"When using `EvalResult(checkpoint_on=X)` or `TrainResult(checkpoint_on=X)`"
+                 " the 'monitor' key of `ModelCheckpoint` has no effect."
+                 f" Remove `ModelCheckpoint(monitor='{self.monitor}')` to fix")
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
