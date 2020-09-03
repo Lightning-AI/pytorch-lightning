@@ -312,10 +312,9 @@ class ModelCheckpoint(Callback):
         invalid_key = self.monitor not in ['val_loss', 'checkpoint_on', 'loss', 'val_checkpoint_on']
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
-            m = (f"When using EvalResult(checkpoint_on=X) or TrainResult(checkpoint_on=X) "
-                 "the 'monitor' key of ModelCheckpoint has no effect. "
-                 f"Remove ModelCheckpoint(monitor='{self.monitor}') to fix")
-            rank_zero_warn(m)
+            rank_zero_warn(f"When using EvalResult(checkpoint_on=X) or TrainResult(checkpoint_on=X)"
+                 " the 'monitor' key of ModelCheckpoint has no effect."
+                 f" Remove ModelCheckpoint(monitor='{self.monitor}') to fix")
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
@@ -416,9 +415,9 @@ class ModelCheckpoint(Callback):
 
         if self.verbose > 0:
             log.info(
-                f'Epoch {epoch:d}: {self.monitor} reached '
-                f'{current:0.5f} (best {self.best_model_score:0.5f}), '
-                f'saving model to {filepath} as top {self.save_top_k}')
+                f'Epoch {epoch:d}: {self.monitor} reached'
+                f' {current:0.5f} (best {self.best_model_score:0.5f}),'
+                f' saving model to {filepath} as top {self.save_top_k}')
         self._save_model(filepath, trainer, pl_module)
 
         for cur_path in del_list:
