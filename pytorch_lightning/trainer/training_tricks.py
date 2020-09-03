@@ -298,6 +298,13 @@ def _adjust_batch_size(trainer,
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
     return new_size, changed
+
+
+def _is_valid_batch_size(current_size, dataloader):
+    return not has_len(dataloader) or current_size <= len(dataloader)
+
+
+def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **fit_kwargs):
     """ Batch scaling mode where the size is doubled at each iteration until an
         OOM error is encountered. """
     for _ in range(max_trials):
