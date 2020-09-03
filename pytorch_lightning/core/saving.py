@@ -19,13 +19,15 @@ import os
 from argparse import Namespace
 from typing import Union, Dict, Any, Optional, Callable, MutableMapping
 
+import fsspec
 import torch
 import yaml
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import rank_zero_warn, AttributeDict
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.cloud_io import gfile, cloud_open
+from pytorch_lightning.utilities.cloud_io import get_filesystem
+
 
 PRIMITIVE_TYPES = (bool, int, float, str)
 ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
@@ -290,11 +292,12 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     True
     >>> os.remove(path_csv)
     """
-    if not gfile.exists(tags_csv):
+    fs = get_filesystem(tags_csv)
+    if not fs.exists(tags_csv):
         rank_zero_warn(f"Missing Tags: {tags_csv}.", RuntimeWarning)
         return {}
 
-    with cloud_open(tags_csv, "r", newline="") as fp:
+    with fs.open(tags_csv, "r", newline="") as fp:
         csv_reader = csv.reader(fp, delimiter=",")
         tags = {row[0]: convert(row[1]) for row in list(csv_reader)[1:]}
 
@@ -302,13 +305,14 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
 
 
 def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> None:
-    if not gfile.isdir(os.path.dirname(tags_csv)):
+    fs = get_filesystem(tags_csv)
+    if not fs.isdir(os.path.dirname(tags_csv)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(tags_csv)}.")
 
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
 
-    with cloud_open(tags_csv, "w", newline="") as fp:
+    with fs.open(tags_csv, "w", newline="") as fp:
         fieldnames = ["key", "value"]
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writerow({"key": "key", "value": "value"})
@@ -327,11 +331,12 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
     True
     >>> os.remove(path_yaml)
     """
-    if not gfile.exists(config_yaml):
+    fs = get_filesystem(config_yaml)
+    if not fs.exists(config_yaml):
         rank_zero_warn(f"Missing Tags: {config_yaml}.", RuntimeWarning)
         return {}
 
-    with cloud_open(config_yaml, "r") as fp:
+    with fs.open(config_yaml, "r") as fp:
         tags = yaml.load(fp)
 
     return tags
@@ -343,7 +348,8 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
         config_yaml: path to new YAML file
         hparams: parameters to be saved
     """
-    if not gfile.isdir(os.path.dirname(config_yaml)):
+    fs = get_filesystem(config_yaml)
+    if not fs.isdir(os.path.dirname(config_yaml)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(config_yaml)}.")
 
     # convert Namespace or AD to dict
@@ -364,7 +370,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace]) -> None:
 
     # saving the standard way
     assert isinstance(hparams, dict)
-    with cloud_open(config_yaml, 'w', newline='') as fp:
+    with fs.open(config_yaml, "w", newline="") as fp:
         yaml.dump(hparams, fp)
 
 

@@ -770,6 +770,12 @@ to_onnx
 .. autofunction:: pytorch_lightning.core.lightning.LightningModule.to_onnx
     :noindex:
 
+to_torchscript
+~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.to_torchscript
+    :noindex:
+
 unfreeze
 ~~~~~~~~
 

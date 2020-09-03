@@ -30,7 +30,7 @@ import torch
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
-from pytorch_lightning.utilities.cloud_io import gfile, makedirs, is_remote_path
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class ModelCheckpoint(Callback):
@@ -119,9 +119,11 @@ class ModelCheckpoint(Callback):
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
-        if(filepath):
-            filepath = str(filepath)  # the tests pass in a py.path.local but we want a str
-        if save_top_k > 0 and filepath is not None and gfile.isdir(filepath) and len(gfile.listdir(filepath)) > 0:
+        if filepath:
+            self._fs = get_filesystem(filepath)
+        else:
+            self._fs = get_filesystem("")  # will give local fileystem
+        if save_top_k > 0 and filepath is not None and self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
             rank_zero_warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
@@ -133,13 +135,13 @@ class ModelCheckpoint(Callback):
         if filepath is None:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
         else:
-            if gfile.isdir(filepath):
-                self.dirpath, self.filename = filepath, '{epoch}'
+            if self._fs.isdir(filepath):
+                self.dirpath, self.filename = filepath, "{epoch}"
             else:
-                if not is_remote_path(filepath):  # dont normalize remote paths
+                if self._fs.protocol == "file":  # dont normalize remote paths
                     filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
-            makedirs(self.dirpath)  # calls with exist_ok
+            self._fs.makedirs(self.dirpath, exist_ok=True)
         self.save_last = save_last
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
@@ -182,19 +184,8 @@ class ModelCheckpoint(Callback):
         return self.kth_best_model_path
 
     def _del_model(self, filepath):
-        if gfile.exists(filepath):
-            try:
-                # in compat mode, remove is not implemented so if running this
-                # against an actual remove file system and the correct remote
-                # dependencies exist then this will work fine.
-                gfile.remove(filepath)
-            except AttributeError:
-                if is_remote_path(filepath):
-                    log.warning("Unable to remove stale checkpoints due to running gfile in compatibility mode."
-                                " Please install tensorflow to run gfile in full mode"
-                                " if writing checkpoints to remote locations")
-                else:
-                    os.remove(filepath)
+        if self._fs.exists(filepath):
+            self._fs.rm(filepath)
 
     def _save_model(self, filepath, trainer, pl_module):
 
@@ -202,8 +193,7 @@ class ModelCheckpoint(Callback):
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        if not gfile.exists(os.path.dirname(filepath)):
-            makedirs(os.path.dirname(filepath))
+        self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the model
         if self.save_function is not None:
@@ -308,9 +298,8 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-        if not gfile.exists(self.dirpath):
-            makedirs(self.dirpath)
+        assert trainer.global_rank == 0, "tried to make a checkpoint from non global_rank=0"
+        self._fs.makedirs(self.dirpath, exist_ok=True)
 
     def __warn_deprecated_monitor_key(self):
         using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
@@ -359,7 +348,7 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics = trainer.logged_metrics
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
-        while gfile.exists(filepath):
+        while self._fs.exists(filepath):
             filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1

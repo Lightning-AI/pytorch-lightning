@@ -120,7 +120,7 @@ Lightning has a few built-in callbacks.
 
 ----------------
 
-.. automodule:: pytorch_lightning.callbacks.lr_logger
+.. automodule:: pytorch_lightning.callbacks.lr_monitor
     :noindex:
     :exclude-members:
         _extract_lr,

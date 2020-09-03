@@ -8,6 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import MNISTDataModule
 
 
 def test_num_training_batches(tmpdir):
@@ -204,7 +205,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     model = EvalModelTemplate(**hparams)
     before_batch_size = hparams.get('batch_size')
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg)
-    trainer.fit(model)
+    trainer.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
@@ -228,14 +229,22 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
             del self.batch_size
             return dataloader
 
+    datamodule_model = MNISTDataModule(data_dir=tmpdir, batch_size=111)  # this datamodule should get ignored!
+    datamodule_fit = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
+
     model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
     model = model_class(**hparams)
+    model.datamodule = datamodule_model  # unused when another module gets passed to .tune() / .fit()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
-    trainer.fit(model)
+    trainer.tune(model, datamodule_fit)
+    assert trainer.datamodule == datamodule_fit
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert before_batch_size != after_batch_size
     assert after_batch_size <= len(model.train_dataloader().dataset)
+    assert datamodule_fit.batch_size == after_batch_size
+    # should be left unchanged, since it was not passed to .tune()
+    assert datamodule_model.batch_size == 111
 
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
@@ -247,7 +256,7 @@ def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True)
     expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
     with pytest.warns(UserWarning, match=expected_message):
-        trainer.fit(model)
+        trainer.tune(model)
 
 
 @pytest.mark.parametrize('scale_method', ['power', 'binsearch'])
@@ -289,7 +298,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model.dataloader(train=True))
 
     with pytest.raises(MisconfigurationException):
-        trainer.fit(model, **fit_options)
+        trainer.tune(model, **fit_options)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
@@ -304,7 +313,7 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
         gpus=1,
         precision=16
     )
-    trainer.fit(model)
+    trainer.tune(model)
     batch_size_after = model.batch_size
     assert trainer.amp_backend == AMPType.NATIVE
     assert trainer.scaler is not None

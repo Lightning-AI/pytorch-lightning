@@ -31,7 +31,7 @@ def test_training_step_scalar(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
@@ -68,7 +68,7 @@ def training_step_scalar_with_step_end(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
@@ -115,7 +115,7 @@ def test_full_training_loop_scalar(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)
@@ -158,7 +158,7 @@ def test_train_step_epoch_end_scalar(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 0 and isinstance(out.batch_log_metrics, dict)
     assert len(out.grad_norm_dic) == 0 and isinstance(out.grad_norm_dic, dict)

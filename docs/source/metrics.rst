@@ -170,10 +170,10 @@ FBeta
 .. autoclass:: pytorch_lightning.metrics.classification.FBeta
     :noindex:
 
-PrecisionRecall
-^^^^^^^^^^^^^^^
+PrecisionRecallCurve
+^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecall
+.. autoclass:: pytorch_lightning.metrics.classification.PrecisionRecallCurve
     :noindex:
 
 Precision
@@ -212,10 +212,10 @@ MulticlassROC
 .. autoclass:: pytorch_lightning.metrics.classification.MulticlassROC
     :noindex:
 
-MulticlassPrecisionRecall
-^^^^^^^^^^^^^^^^^^^^^^^^^
+MulticlassPrecisionRecallCurve
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecall
+.. autoclass:: pytorch_lightning.metrics.classification.MulticlassPrecisionRecallCurve
     :noindex:
 
 IoU
@@ -581,31 +581,31 @@ MeanAbsoluteError (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanAbsoluteError
     :noindex:
-    
+
 MeanSquaredError (sk)
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredError
     :noindex:
-    
+
 MeanSquaredLogError (sk)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanSquaredLogError
     :noindex:
-    
+
 MedianAbsoluteError (sk)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MedianAbsoluteError
     :noindex:
-    
+
 R2Score (sk)
 ^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.R2Score
     :noindex:
-    
+
 MeanPoissonDeviance (sk)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -617,10 +617,10 @@ MeanGammaDeviance (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanGammaDeviance
     :noindex:
-    
+
 MeanTweedieDeviance (sk)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanTweedieDeviance
     :noindex:
-    
+

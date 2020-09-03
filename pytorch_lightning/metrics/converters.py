@@ -301,7 +301,7 @@ def gather_all_tensors_if_available(result: Union[torch.Tensor],
 
         world_size = torch.distributed.get_world_size(group)
 
-        gathered_result = world_size * [torch.zeros_like(result)]
+        gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
 
         # sync and broadcast all
         torch.distributed.barrier(group=group)

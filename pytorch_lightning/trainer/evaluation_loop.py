@@ -202,10 +202,6 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_overridden(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def transfer_batch_to_gpu(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 

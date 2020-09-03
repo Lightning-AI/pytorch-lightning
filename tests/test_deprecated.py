@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import LearningRateLogger
 from tests.base import EvalModelTemplate
 
 
@@ -13,6 +14,11 @@ def _soft_unimport_module(str_module):
     # once the module is imported  e.g with parsing with pytest it lives in memory
     if str_module in sys.modules:
         del sys.modules[str_module]
+
+
+def test_tbd_remove_in_v0_11_0_trainer():
+    with pytest.deprecated_call(match='will be removed in v0.11.0'):
+        lr_logger = LearningRateLogger()
 
 
 def test_tbd_remove_in_v0_10_0_trainer():
