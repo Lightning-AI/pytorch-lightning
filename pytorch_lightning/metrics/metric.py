@@ -198,19 +198,6 @@ class TensorMetric(Metric):
     Already handles DDP sync and input/output conversions.
     """
 
-    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
-        """
-
-        Args:
-            name: the metric's name
-            reduce_group: the process group for DDP reduces (only needed for DDP training).
-                Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
-        """
-        super().__init__(name, reduce_group)
-        self.reduce_op = reduce_op
-
     @staticmethod
     def input_convert(self, data: Any):
         data = apply_to_collection(
@@ -241,19 +228,6 @@ class TensorCollectionMetric(Metric):
 
     """
 
-    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
-        """
-
-        Args:
-            name: the metric's name
-            reduce_group: the process group for DDP reduces (only needed for DDP training).
-                Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
-        """
-        super().__init__(name, reduce_group)
-        self.reduce_op = reduce_op
-
     @staticmethod
     def input_convert(self, data: Any):
         data = apply_to_collection(
@@ -276,19 +250,6 @@ class NumpyMetric(Metric):
     be casted to tensors if necessary.
     Already handles DDP sync and input/output conversions.
     """
-
-    def __init__(self, name: str, reduce_group: Optional[Any] = None, reduce_op: Optional[Any] = None):
-        """
-
-        Args:
-            name: the metric's name
-            reduce_group: the process group for DDP reduces (only needed for DDP training).
-                Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
-        """
-        super().__init__(name, reduce_group)
-        self.reduce_op = reduce_op
 
     @staticmethod
     def input_convert(self, data: Any):
