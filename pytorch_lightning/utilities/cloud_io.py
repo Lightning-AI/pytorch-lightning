@@ -34,7 +34,7 @@ def get_filesystem(path: pathlike):
     path = str(path)
     if "://" in path:
         # use the fileystem from the protocol specified
-        return fsspec.filesystem(path.split(":")[0])
+        return fsspec.filesystem(path.split(":", 1)[0])
     else:
         # use local filesystem
         return fsspec.filesystem("file")
