@@ -188,8 +188,7 @@ def lightning_hasattr(model, attribute):
             attr = attribute in model.hparams
         else:
             attr = hasattr(model.hparams, attribute)
-    elif hasattr(model.datamodule, attribute):
-        attr = True
+    # Check if attribute in datamodule (datamodule gets registerd in Trainer)
     elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         attr = getattr(trainer.datamodule, attribute)
     else:
@@ -212,8 +211,8 @@ def lightning_getattr(model, attribute):
             attr = model.hparams[attribute]
         else:
             attr = getattr(model.hparams, attribute)
-    elif hasattr(model.datamodule, attribute):
-        attr = getattr(model.datamodule, attribute)
+
+    # Check if attribute in datamodule (datamodule gets registerd in Trainer)
     elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         attr = getattr(trainer.datamodule, attribute)
     else:
@@ -244,9 +243,6 @@ def lightning_setattr(model, attribute, value):
         else:
             setattr(model.hparams, attribute, value)
 
-    # Check if attribute in datamodule
-    if hasattr(model.datamodule, attribute):
-        setattr(model.datamodule, attribute, value)
-
+    # Check if attribute in datamodule (datamodule gets registerd in Trainer)
     if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         setattr(trainer.datamodule, attribute, value)
