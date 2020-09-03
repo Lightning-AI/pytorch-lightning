@@ -137,17 +137,17 @@ def test_early_stopping_no_val_step(tmpdir):
     model.validation_step = None
     model.val_dataloader = None
 
-    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1)
+    stopping = EarlyStopping(monitor='my_train_metric', min_delta=0.1, patience=0)
     trainer = Trainer(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,
         overfit_batches=0.20,
-        max_epochs=2,
+        max_epochs=10,
     )
     result = trainer.fit(model)
 
     assert result == 1, 'training failed to complete'
-    assert trainer.current_epoch < trainer.max_epochs
+    assert trainer.current_epoch < trainer.max_epochs - 1
 
 
 def test_early_stopping_functionality(tmpdir):
