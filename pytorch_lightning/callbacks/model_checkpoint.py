@@ -120,10 +120,7 @@ class ModelCheckpoint(Callback):
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
-        if filepath:
-            self._fs = get_filesystem(filepath)
-        else:
-            self._fs = get_filesystem("")  # will give local fileystem
+        self._fs = get_filesystem(filepath if filepath is not None else "")
         if save_top_k > 0 and filepath is not None and self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
             rank_zero_warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0. "
@@ -135,6 +132,8 @@ class ModelCheckpoint(Callback):
         self.verbose = verbose
         if filepath is None:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
+        elif filepath == "":  # uses CWD as the dirpath
+            self.dirpath, self.filename = os.path.realpath(filepath), None
         else:
             if self._fs.isdir(filepath):
                 self.dirpath, self.filename = filepath, None
@@ -388,7 +387,8 @@ class ModelCheckpoint(Callback):
                 self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
             )
             filepath = os.path.join(self.dirpath, f'{filename}.ckpt')
-            self._del_model(self.last_model_path)
+            if self.last_model_path:
+                self._del_model(self.last_model_path)
             self._save_model(filepath, trainer, pl_module)
             self.last_model_path = filepath
 
