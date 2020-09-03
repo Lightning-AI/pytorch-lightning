@@ -35,7 +35,7 @@ def test_torchscript_device(device):
     assert next(script.parameters()).device == device
     script_output = script(model.example_input_array.to(device))
     assert script_output.device == device
-    
+
 
 def test_torchscript_retain_training_state():
     """ Test that torchscript export does not alter the training mode of original model. """
