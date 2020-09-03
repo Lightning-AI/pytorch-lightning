@@ -104,9 +104,9 @@ class EarlyStopping(Callback):
 
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
-        error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                     f' which is not available. Either add `{self.monitor}` to the return of '
-                     f' validation_epoch end or modify your EarlyStopping callback to use any of the '
+        error_msg = (f'Early stopping conditioned on metric `{self.monitor}` '
+                     f'which is not available. Either add `{self.monitor}` to the return of '
+                     'validation_epoch_end or modify your EarlyStopping callback to use any of the '
                      f'following: `{"`, `".join(list(logs.keys()))}`')
 
         if monitor_val is None:
@@ -179,11 +179,9 @@ class EarlyStopping(Callback):
         invalid_key = self.monitor not in ['val_loss', 'early_stop_on', 'val_early_stop_on', 'loss']
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
-            m = f"""
-                    When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) the
-                    'monitor' key of EarlyStopping has no effect.
-                    Remove EarlyStopping(monitor='{self.monitor}') to fix')
-                """
+            m = (f"When using EvalResult(early_stop_on=X) or TrainResult(early_stop_on=X) "
+                 "the 'monitor' key of EarlyStopping has no effect. "
+                 f"Remove EarlyStopping(monitor='{self.monitor}') to fix")
             rank_zero_warn(m)
 
     def _run_early_stopping_check(self, trainer, pl_module):
