@@ -79,10 +79,9 @@ def test_torchscript_properties(modelclass):
     reason="torch.save/load has bug loading script modules on torch <= 1.4",
 )
 def test_torchscript_save_load(tmpdir, modelclass):
-    """ Test that scripted LightningModules can be saved and loaded. """
+    """ Test that scripted LightningModules is correctly saved and can be loaded. """
     model = modelclass()
-    script = model.to_torchscript()
-    assert isinstance(script, torch.jit.ScriptModule)
     output_file = str(tmpdir / "model.pt")
-    torch.jit.save(script, output_file)
-    torch.jit.load(output_file)
+    script = model.to_torchscript(file_path=output_file)
+    loaded_script = torch.jit.load(output_file)
+    assert torch.allclose(next(script.parameters()), next(loaded_script.parameters()))
