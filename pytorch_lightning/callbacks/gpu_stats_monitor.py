@@ -117,33 +117,28 @@ class GPUStatsMonitor(Callback):
 
     @rank_zero_only
     def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        gpu_stat_keys = []
-        gpu_stat_keys.extend(self._get_gpu_stat_keys())
-
+        gpu_stat_keys = self._get_gpu_stat_keys()
         gpu_stats = self._get_gpu_stats(gpu_stat_keys)
 
         if self._log_stats.inter_step_time and self._snap_inter_step_time:
             # First log at beginning of second step
-            gpu_stats['batch_time/inter_step2 (ms)'] = (time.time() - self._snap_inter_step_time) * 1000
-
-        trainer.logger.log_metrics(gpu_stats, step=trainer.global_step)
+            gpu_stats['batch_time/inter_step (ms)'] = (time.time() - self._snap_inter_step_time) * 1000
 
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
+        trainer.logger.log_metrics(gpu_stats, step=trainer.global_step)
+
     @rank_zero_only
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-        gpu_stat_keys = []
-        gpu_stat_keys.extend(self._get_gpu_stat_keys())
-        gpu_stat_keys.extend(self._get_gpu_device_stat_keys())
-
+        gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
+        gpu_stats = self._get_gpu_stats(gpu_stat_keys)
+        
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
-        gpu_stats = self._get_gpu_stats(gpu_stat_keys)
-
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
-            gpu_stats['batch_time/intra_step2 (ms)'] = (time.time() - self._snap_intra_step_time) * 1000
+            gpu_stats['batch_time/intra_step (ms)'] = (time.time() - self._snap_intra_step_time) * 1000
 
         trainer.logger.log_metrics(gpu_stats, step=trainer.global_step)
 
