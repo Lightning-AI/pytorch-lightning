@@ -292,7 +292,8 @@ def sync_ddp_if_available(
 
     return result
 
-def at_least_1d(tensor: Union[np.ndarray, torch.Tensor]) ->  Union[np.ndarray, torch.Tensor]:
+
+def at_least_1d(tensor: Union[np.ndarray, torch.Tensor]) -> Union[np.ndarray, torch.Tensor]:
     """Makes sure the tensor is at least of 1d shape
 
     Args:
@@ -302,7 +303,9 @@ def at_least_1d(tensor: Union[np.ndarray, torch.Tensor]) ->  Union[np.ndarray, t
         the optionally reshaped tensor
     """
     if tensor.shape == ():
-        tensor = tensor.reshape(1,)
+        tensor = tensor.reshape(
+            1,
+        )
     return tensor
 
 

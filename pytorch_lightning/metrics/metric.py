@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from ast import Num
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional, Sequence, Union
 import numbers
 
 import torch
@@ -241,6 +240,24 @@ class TensorCollectionMetric(Metric):
             output, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
         )
         return super(TensorCollectionMetric, self).output_convert(self, data, output)
+
+    def aggregate(self, *tensors: torch.Tensor) -> Union[torch.Tensor, Dict[str, torch.Tensor], Sequence[torch.Tensor]]:
+        """Properly aggregate sequences of tensors and dicts of tensors
+
+        Raises:
+            TypeError: Unknown type
+
+        Returns:
+            the aggregated results
+        """
+        if isinstance(tensors[0], Mapping):
+            return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
+        elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
+            return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
+        elif isinstance(tensors[0], torch.Tensor):
+            return torch.stack(tensors).mean(0)
+        else:
+            raise TypeError
 
 
 class NumpyMetric(Metric):

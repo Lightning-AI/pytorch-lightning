@@ -131,6 +131,14 @@ class ConfusionMatrix(TensorMetric):
         """
         return confusion_matrix(pred=pred, target=target, normalize=self.normalize)
 
+    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+        return torch.stack(tensors).mean(0)
+
 
 class PrecisionRecallCurve(TensorCollectionMetric):
     """
@@ -619,6 +627,15 @@ class MulticlassROC(TensorCollectionMetric):
         """
         return multiclass_roc(pred=pred, target=target, sample_weight=sample_weight, num_classes=self.num_classes)
 
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+
+        return tuple([tuple([torch.stack(tmps).mean(0) for tmps in zip(*_tensors)]) for _tensors in zip(*tensors)])
+
 
 class MulticlassPrecisionRecallCurve(TensorCollectionMetric):
     """Computes the multiclass PR Curve
@@ -678,6 +695,15 @@ class MulticlassPrecisionRecallCurve(TensorCollectionMetric):
         return multiclass_precision_recall_curve(
             pred=pred, target=target, sample_weight=sample_weight, num_classes=self.num_classes
         )
+
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+
+        return tuple([tuple([torch.stack(tmps).mean(0) for tmps in zip(*_tensors)]) for _tensors in zip(*tensors)])
 
 
 class DiceCoefficient(TensorMetric):

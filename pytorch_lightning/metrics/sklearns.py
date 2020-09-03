@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -390,6 +390,9 @@ class ConfusionMatrix(SklearnMetric):
 
         """
         return super().forward(y_pred=y_pred, y_true=y_true)
+
+    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
+        return torch.stack(tensors).mean(0)
 
 
 class DCG(SklearnMetric):
@@ -1031,6 +1034,15 @@ class PrecisionRecallCurve(SklearnMetric):
         # Will be fixed in native implementation
         return np.array(super().forward(probas_pred=probas_pred, y_true=y_true, sample_weight=sample_weight)[:2])
 
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+        print(tensors)
+        return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
+
 
 class ROC(SklearnMetric):
     """
@@ -1101,6 +1113,15 @@ class ROC(SklearnMetric):
 
         """
         return np.array(super().forward(y_score=y_score, y_true=y_true, sample_weight=sample_weight)[:2])
+
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+
+        return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
 
 
 class AUROC(SklearnMetric):
