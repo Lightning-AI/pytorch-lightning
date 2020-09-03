@@ -25,8 +25,8 @@ def test_torchscript_input_output(modelclass):
 
 
 @pytest.mark.parametrize("device", [
-    torch.device('cpu'),
-    torch.device('cuda', 0)
+    torch.device("cpu"),
+    torch.device("cuda", 0)
 ])
 def test_torchscript_device(device):
     """ Test that scripted module is on the correct device. """
