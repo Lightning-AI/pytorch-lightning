@@ -283,3 +283,30 @@ def check_call_order():
         "ddp_sync",
         "aggregate",
     ]
+
+    metric = DummyMetric()
+    _ = metric(torch.tensor([2.0]), torch.tensor([1.0]))
+    _ = metric(torch.tensor([3.0]), torch.tensor([0.0]))
+
+    aggregated = metric.aggregated
+
+    assert torch.allclose(aggregated, torch.tensor(2.0))
+
+    assert metric.call_history == [
+        "init",
+        "input_convert",
+        "forward",
+        "output_convert",
+        "ddp_reduce",
+        "ddp_sync",
+        "aggregate",
+        "input_convert",
+        "forward",
+        "output_convert",
+        "ddp_reduce",
+        "ddp_sync",
+        "aggregate",
+        "aggregated",
+        "aggregate",
+        "reset",
+    ]
