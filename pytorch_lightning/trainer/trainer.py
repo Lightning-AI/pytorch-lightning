@@ -953,7 +953,13 @@ class Trainer(
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
                 self.auto_scale_batch_size = 'power'
-            self.scale_batch_size(model, mode=self.auto_scale_batch_size)
+            self.scale_batch_size(
+                model,
+                mode=self.auto_scale_batch_size,
+                train_dataloader=train_dataloader,
+                val_dataloaders=val_dataloaders,
+                datamodule=datamodule,
+            )
             model.logger = self.logger  # reset logger binding
 
         # Run learning rate finder:
