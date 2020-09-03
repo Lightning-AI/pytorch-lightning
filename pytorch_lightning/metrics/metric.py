@@ -211,6 +211,9 @@ class TensorMetric(Metric):
         return super(TensorMetric, self).output_convert(self, data, output)
 
 
+def my_func(dummy = ()):
+    pass
+
 class TensorCollectionMetric(Metric):
     """
     Base class for metric implementation operating directly on tensors.
