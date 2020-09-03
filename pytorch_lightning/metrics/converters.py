@@ -24,7 +24,6 @@ from typing import Any, Callable, Optional, Union
 
 import numpy as np
 import torch
-from torch.distributed.distributed_c10d import reduce_op
 from torch.utils.data._utils.collate import np_str_obj_array_pattern
 
 from pytorch_lightning.utilities import rank_zero_warn
