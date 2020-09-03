@@ -6,6 +6,7 @@ import pytest
 import torch
 import yaml
 from omegaconf import OmegaConf
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -39,9 +40,18 @@ def test_tensorboard_hparams_reload(tmpdir):
     event_acc = EventAccumulator(folder_path)
     event_acc.Reload()
     
-    hparams_data = b'\x12\x84\x01"\x0b\n\tdrop_prob"\x0c\n\nbatch_size"\r\n\x0bin_features"' \
-                   b'\x0f\n\rlearning_rate"\x10\n\x0eoptimizer_name"\x0b\n\tdata_root"\x0e\n' \
-                   b'\x0cout_features"\x0c\n\nhidden_dim"\x04\n\x02b1"\x04\n\x02b2'
+    hparams_data = b'\x12\x93\x01"' \
+                   b'\x0b\n\tdrop_prob"' \
+                   b'\x0c\n\nbatch_size"' \
+                   b'\r\n\x0bin_features"' \
+                   b'\x0f\n\rlearning_rate"' \
+                   b'\x10\n\x0eoptimizer_name"' \
+                   b'\x0b\n\tdata_root"' \
+                   b'\x0e\n\x0cout_features"' \
+                   b'\x0c\n\nhidden_dim"' \
+                   b'\x04\n\x02b1"' \
+                   b'\x04\n\x02b2*' \
+                   b'\r\n\x0b\x12\thp_metric'
     
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.plugin_name == 'hparams'
     assert event_acc.summary_metadata['_hparams_/experiment'].plugin_data.content == hparams_data
