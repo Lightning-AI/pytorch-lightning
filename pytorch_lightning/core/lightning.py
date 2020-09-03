@@ -1730,7 +1730,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
-    def to_torchscript(self, file_path: str = None, **kwargs) -> Union[ScriptModule, Dict[str, ScriptModule]]:
+    def to_torchscript(self, file_path: Optional[str] = None, **kwargs) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
         If you would like to customize the modules that are scripted or you want to use tracing
