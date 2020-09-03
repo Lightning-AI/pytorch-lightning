@@ -51,7 +51,7 @@ from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.cloud_io import is_remote_path
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
@@ -915,10 +915,9 @@ class Trainer(
         The default location to save artifacts of loggers, checkpoints etc.
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
         """
-        if is_remote_path(self._default_root_dir):
-            # it is a remote uri, use as is
-            return self._default_root_dir
-        return os.path.normpath(self._default_root_dir)
+        if get_filesystem(self._default_root_dir).protocol == "file":
+            return os.path.normpath(self._default_root_dir)
+        return self._default_root_dir
 
     @property
     def weights_save_path(self) -> str:
@@ -926,10 +925,9 @@ class Trainer(
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
         """
-        if is_remote_path(self._weights_save_path):
-            # it is a remote uri, use as is
-            return self._weights_save_path
-        return os.path.normpath(self._weights_save_path)
+        if get_filesystem(self._weights_save_path).protocol == "file":
+            return os.path.normpath(self._weights_save_path)
+        return self._weights_save_path
 
     def tune(
         self,

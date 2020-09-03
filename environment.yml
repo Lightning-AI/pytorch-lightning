@@ -31,6 +31,7 @@ dependencies:
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
+    - fsspec>=0.8.0
     - nvidia-apex
 
     # For dev and testing
