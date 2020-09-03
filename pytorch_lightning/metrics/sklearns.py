@@ -1040,7 +1040,6 @@ class PrecisionRecallCurve(SklearnMetric):
         Returns:
             the aggregated results
         """
-        print(tensors)
         return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
 
 
