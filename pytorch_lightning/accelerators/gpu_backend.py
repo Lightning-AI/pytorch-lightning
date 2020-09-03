@@ -51,7 +51,13 @@ class GPUBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        results = self.trainer.run_pretrain_routine(model)
+
+        # set up training routine
+        self.trainer.setup_training(model)
+
+        # train or test
+        results = self.trainer.train_or_test()
+
         return results
 
     def training_step(self, args):

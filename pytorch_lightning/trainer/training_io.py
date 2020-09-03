@@ -114,9 +114,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.overrides.data_parallel import LightningDataParallel, LightningDistributedDataParallel
 from pytorch_lightning.utilities import AMPType, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save, gfile
+from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
-from pytorch_lightning.utilities.cloud_io import makedirs
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 try:
@@ -370,10 +369,12 @@ class TrainerIOMixin(ABC):
             if hasattr(model, '_hparams_name'):
                 checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # add arguments to the checkpoint
-            checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
             if OMEGACONF_AVAILABLE:
+                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
                 if isinstance(model.hparams, Container):
                     checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+            else:
+                checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
@@ -389,8 +390,9 @@ class TrainerIOMixin(ABC):
 
         # look for hpc weights
         folderpath = str(self.weights_save_path)
-        if gfile.exists(folderpath):
-            files = gfile.listdir(folderpath)
+        fs = get_filesystem(folderpath)
+        if fs.exists(folderpath):
+            files = [os.path.basename(f) for f in fs.ls(folderpath)]
             hpc_weight_paths = [x for x in files if 'hpc_ckpt' in x]
 
             # if hpc weights exist restore model
@@ -461,16 +463,15 @@ class TrainerIOMixin(ABC):
     def hpc_save(self, folderpath: str, logger):
         # make sure the checkpoint folder exists
         folderpath = str(folderpath)  # because the tests pass a path object
-        if not gfile.exists(folderpath):
-            makedirs(folderpath)
+        fs = get_filesystem(folderpath)
+        fs.makedirs(folderpath, exist_ok=True)
 
         # save logger to make sure we get all the metrics
         logger.save()
 
         ckpt_number = self.max_ckpt_in_folder(folderpath) + 1
 
-        if not gfile.exists(folderpath):
-            makedirs(folderpath)
+        fs.makedirs(folderpath, exist_ok=True)
         filepath = os.path.join(folderpath, f'hpc_ckpt_{ckpt_number}.ckpt')
 
         # give model a chance to do something on hpc_save
@@ -523,7 +524,8 @@ class TrainerIOMixin(ABC):
         log.info(f'restored hpc model from: {filepath}')
 
     def max_ckpt_in_folder(self, path, name_key='ckpt_'):
-        files = gfile.listdir(str(path))
+        fs = get_filesystem(path)
+        files = [os.path.basename(f) for f in fs.ls(path)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return 0

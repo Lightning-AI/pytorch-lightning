@@ -8,7 +8,7 @@ import torch
 from pytorch_lightning.metrics.classification import (
     Accuracy,
     ConfusionMatrix,
-    PrecisionRecall,
+    PrecisionRecallCurve,
     Precision,
     Recall,
     AveragePrecision,
@@ -17,7 +17,7 @@ from pytorch_lightning.metrics.classification import (
     F1,
     ROC,
     MulticlassROC,
-    MulticlassPrecisionRecall,
+    MulticlassPrecisionRecallCurve,
     DiceCoefficient,
     IoU,
 )
@@ -53,7 +53,7 @@ def test_confusion_matrix(normalize):
 def test_precision_recall(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
 
-    pr_curve = PrecisionRecall(pos_label=pos_label)
+    pr_curve = PrecisionRecallCurve(pos_label=pos_label)
     assert pr_curve.name == 'precision_recall_curve'
 
     pr = pr_curve(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
@@ -180,7 +180,7 @@ def test_multiclass_pr(num_classes):
                          [0.05, 0.05, 0.05, 0.85]])
     target = torch.tensor([0, 1, 3, 2])
 
-    multi_pr = MulticlassPrecisionRecall(num_classes=num_classes)
+    multi_pr = MulticlassPrecisionRecallCurve(num_classes=num_classes)
     assert multi_pr.name == 'multiclass_precision_recall_curve'
 
     pr = multi_pr(pred, target)
