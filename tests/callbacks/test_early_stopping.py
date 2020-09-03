@@ -168,3 +168,27 @@ def test_early_stopping_functionality(tmpdir):
     )
     trainer.fit(model)
     assert trainer.current_epoch == 5, 'early_stopping failed'
+
+
+def test_early_stopping_functionality_arbitrary_key(tmpdir):
+    """
+    Tests whether early stopping works with a
+    custom key and dictionary results on val step.
+    """
+
+    class CurrentModel(EvalModelTemplate):
+        def validation_epoch_end(self, outputs):
+            losses = [8, 4, 2, 3, 4, 5, 8, 10]
+            val_loss = losses[self.current_epoch]
+            return {'jiraffe': torch.tensor(val_loss)}
+
+    model = CurrentModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=EarlyStopping(monitor='jiraffe'),
+        overfit_batches=0.20,
+        max_epochs=20,
+    )
+    trainer.fit(model)
+    assert trainer.current_epoch == 5, 'early_stopping failed'
