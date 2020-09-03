@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, Union, List
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader
 
-from pytorch_lightning.utilities import move_data_to_device, AMPType
+from pytorch_lightning.utilities import move_data_to_device, AMPType, rank_zero_warn
 
 try:
     from apex import amp
@@ -318,6 +319,214 @@ class ModelHooks(Module):
             scaled_loss = amp.scale_loss(unscaled_loss, optimizer)
 
         return scaled_loss
+
+
+class DataHooks(Module):
+
+    def prepare_data(self) -> None:
+        """
+        Use this to download and prepare data.
+
+        .. warning:: DO NOT set state to the model (use `setup` instead)
+            since this is NOT called on every GPU in DDP/TPU
+
+        Example::
+
+            def prepare_data(self):
+                # good
+                download_data()
+                tokenize()
+                etc()
+
+                # bad
+                self.split = data_split
+                self.some_state = some_other_state()
+
+        In DDP prepare_data can be called in two ways (using Trainer(prepare_data_per_node)):
+
+        1. Once per node. This is the default and is only called on LOCAL_RANK=0.
+        2. Once in total. Only called on GLOBAL_RANK=0.
+
+        Example::
+
+            # DEFAULT
+            # called once per node on LOCAL_RANK=0 of that node
+            Trainer(prepare_data_per_node=True)
+
+            # call on GLOBAL_RANK=0 (great for shared file systems)
+            Trainer(prepare_data_per_node=False)
+
+        This is called before requesting the dataloaders:
+
+        .. code-block:: python
+
+            model.prepare_data()
+                if ddp/tpu: init()
+            model.setup(stage)
+            model.train_dataloader()
+            model.val_dataloader()
+            model.test_dataloader()
+        """
+
+    def train_dataloader(self) -> DataLoader:
+        """
+        Implement a PyTorch DataLoader for training.
+
+        Return:
+            Single PyTorch :class:`~torch.utils.data.DataLoader`.
+
+        The dataloader you return will not be called every epoch unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+
+        For data processing use the following pattern:
+
+            - download in :meth:`prepare_data`
+            - process and split in :meth:`setup`
+
+        However, the above are only necessary for distributed processing.
+
+        .. warning:: do not assign state in prepare_data
+
+        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+        - ...
+        - :meth:`prepare_data`
+        - :meth:`setup`
+        - :meth:`train_dataloader`
+
+        Note:
+            Lightning adds the correct sampler for distributed and arbitrary hardware.
+            There is no need to set it yourself.
+
+        Example:
+            .. code-block:: python
+
+                def train_dataloader(self):
+                    transform = transforms.Compose([transforms.ToTensor(),
+                                                    transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform,
+                                    download=True)
+                    loader = torch.utils.data.DataLoader(
+                        dataset=dataset,
+                        batch_size=self.batch_size,
+                        shuffle=True
+                    )
+                    return loader
+
+        """
+        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
+
+    def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        r"""
+        Implement one or multiple PyTorch DataLoaders for testing.
+
+        The dataloader you return will not be called every epoch unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+
+        For data processing use the following pattern:
+
+            - download in :meth:`prepare_data`
+            - process and split in :meth:`setup`
+
+        However, the above are only necessary for distributed processing.
+
+        .. warning:: do not assign state in prepare_data
+
+
+        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+        - ...
+        - :meth:`prepare_data`
+        - :meth:`setup`
+        - :meth:`train_dataloader`
+        - :meth:`val_dataloader`
+        - :meth:`test_dataloader`
+
+        Note:
+            Lightning adds the correct sampler for distributed and arbitrary hardware.
+            There is no need to set it yourself.
+
+        Return:
+            Single or multiple PyTorch DataLoaders.
+
+        Example:
+            .. code-block:: python
+
+                def test_dataloader(self):
+                    transform = transforms.Compose([transforms.ToTensor(),
+                                                    transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform,
+                                    download=True)
+                    loader = torch.utils.data.DataLoader(
+                        dataset=dataset,
+                        batch_size=self.batch_size,
+                        shuffle=False
+                    )
+
+                    return loader
+
+                # can also return multiple dataloaders
+                def test_dataloader(self):
+                    return [loader_a, loader_b, ..., loader_n]
+
+        Note:
+            If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
+            this method.
+
+        Note:
+            In the case where you return multiple test dataloaders, the :meth:`test_step`
+            will have an argument ``dataloader_idx`` which matches the order here.
+        """
+
+    def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
+        r"""
+        Implement one or multiple PyTorch DataLoaders for validation.
+
+        The dataloader you return will not be called every epoch unless you set
+        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
+
+        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
+
+        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
+        - ...
+        - :meth:`prepare_data`
+        - :meth:`train_dataloader`
+        - :meth:`val_dataloader`
+        - :meth:`test_dataloader`
+
+        Note:
+            Lightning adds the correct sampler for distributed and arbitrary hardware
+            There is no need to set it yourself.
+
+        Return:
+            Single or multiple PyTorch DataLoaders.
+
+        Examples:
+            .. code-block:: python
+
+                def val_dataloader(self):
+                    transform = transforms.Compose([transforms.ToTensor(),
+                                                    transforms.Normalize((0.5,), (1.0,))])
+                    dataset = MNIST(root='/path/to/mnist/', train=False,
+                                    transform=transform, download=True)
+                    loader = torch.utils.data.DataLoader(
+                        dataset=dataset,
+                        batch_size=self.batch_size,
+                        shuffle=False
+                    )
+
+                    return loader
+
+                # can also return multiple dataloaders
+                def val_dataloader(self):
+                    return [loader_a, loader_b, ..., loader_n]
+
+        Note:
+            If you don't need a validation dataset and a :meth:`validation_step`, you don't need to
+            implement this method.
+
+        Note:
+            In the case where you return multiple validation dataloaders, the :meth:`validation_step`
+            will have an argument ``dataloader_idx`` which matches the order here.
+        """
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         """
