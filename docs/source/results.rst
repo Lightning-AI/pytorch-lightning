@@ -80,6 +80,10 @@ The `TrainResult` basic usage is this:
 
 minimize
 ^^^^^^^^
+When using TrainResult, the metric that needs to be minimized is passed to this
+argument. Internally, the tensor is verified to contain gradients and `.backward()`
+is called on it.
+
 .. code-block:: python
 
     def training_step(...):
@@ -106,7 +110,7 @@ can change it every batch if you want, or even monitor different metrics for eac
     def training_step(...):
         return loss
     def training_step(...):
-        return {'loss' loss}
+        return {'loss': loss}
 
 logging
 ^^^^^^^

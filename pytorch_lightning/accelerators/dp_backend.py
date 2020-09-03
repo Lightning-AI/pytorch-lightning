@@ -47,15 +47,15 @@ class DataParallelBackend(Accelerator):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
+        # init torch data parallel
+        model = self.__init_torch_data_parallel(model)
+
         # hack forward to do autocast for the user
         self.model_autocast_original_forward = model.forward
 
         # init half precision
         if self.trainer.amp_backend:
             model = self.__init_half_precision(model)
-
-        # init torch data parallel
-        model = self.__init_torch_data_parallel(model)
 
         self.trainer.model = model
 
@@ -96,7 +96,12 @@ class DataParallelBackend(Accelerator):
 
     def train(self):
         model = self.trainer.model
-        results = self.trainer.run_pretrain_routine(model)
+        # set up training routine
+        self.trainer.setup_training(model)
+
+        # train or test
+        results = self.trainer.train_or_test()
+
         return results
 
     def teardown(self):

@@ -138,7 +138,7 @@ class ConfusionMatrix(TensorMetric):
                                 normalize=self.normalize)
 
 
-class PrecisionRecall(TensorCollectionMetric):
+class PrecisionRecallCurve(TensorCollectionMetric):
     """
     Computes the precision recall curve
 
@@ -146,7 +146,7 @@ class PrecisionRecall(TensorCollectionMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = PrecisionRecall()
+        >>> metric = PrecisionRecallCurve()
         >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
         (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
          tensor([1., 0., 0., 0.]),
@@ -648,7 +648,7 @@ class MulticlassROC(TensorCollectionMetric):
                               num_classes=self.num_classes)
 
 
-class MulticlassPrecisionRecall(TensorCollectionMetric):
+class MulticlassPrecisionRecallCurve(TensorCollectionMetric):
     """Computes the multiclass PR Curve
 
     Example:
@@ -658,7 +658,7 @@ class MulticlassPrecisionRecall(TensorCollectionMetric):
         ...                     [0.05, 0.05, 0.85, 0.05],
         ...                     [0.05, 0.05, 0.05, 0.85]])
         >>> target = torch.tensor([0, 1, 3, 2])
-        >>> metric = MulticlassPrecisionRecall()
+        >>> metric = MulticlassPrecisionRecallCurve()
         >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
         ((tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),
          (tensor([1., 1.]), tensor([1., 0.]), tensor([0.8500])),

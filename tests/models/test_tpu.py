@@ -4,7 +4,7 @@ import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
@@ -241,3 +241,36 @@ def test_exception_when_no_tpu_found(tmpdir):
 def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
     assert Trainer(tpu_cores=tpu_cores).distributed_backend == 'tpu'
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_result_obj_on_tpu(tmpdir):
+    seed_everything(1234)
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    batches = 5
+    epochs = 2
+
+    model = EvalModelTemplate()
+    model.training_step = model.training_step_result_obj
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_result_obj
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    model.test_step = model.test_step_result_obj
+    model.test_step_end = None
+    model.test_epoch_end = None
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=epochs,
+        early_stop_callback=True,
+        row_log_interval=2,
+        limit_train_batches=batches,
+        weights_summary=None,
+        tpu_cores=8
+    )
+
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)

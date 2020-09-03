@@ -9,7 +9,7 @@ Trainer
    :members: fit, test
    :noindex:
    :exclude-members:
-        run_pretrain_routine,
+        setup_training,
         _abc_impl,
         set_random_port,
         _Trainer__set_root_gpu,

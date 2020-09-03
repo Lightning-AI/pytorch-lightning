@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml, load_hparams_from_yaml
-from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities import AttributeDict, is_picklable
 from tests.base import EvalModelTemplate, TrialMNIST
 
 
@@ -282,7 +282,7 @@ def test_collect_init_arguments(tmpdir, cls):
     assert model.hparams.batch_size == 179
 
     if isinstance(model, AggSubClassEvalModel):
-        assert isinstance(model.hparams.my_loss, torch.nn.CrossEntropyLoss)
+        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     if isinstance(model, DictConfSubClassEvalModel):
         assert isinstance(model.hparams.dict_conf, Container)
@@ -411,6 +411,23 @@ def test_hparams_pickle(tmpdir):
     assert ad == pickle.loads(pkl)
     pkl = cloudpickle.dumps(ad)
     assert ad == pickle.loads(pkl)
+
+
+class UnpickleableArgsEvalModel(EvalModelTemplate):
+    """ A model that has an attribute that cannot be pickled. """
+
+    def __init__(self, foo='bar', pickle_me=(lambda x: x + 1), **kwargs):
+        super().__init__(**kwargs)
+        assert not is_picklable(pickle_me)
+        self.save_hyperparameters()
+
+
+def test_hparams_pickle_warning(tmpdir):
+    model = UnpickleableArgsEvalModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    with pytest.warns(UserWarning, match="attribute 'pickle_me' removed from hparams because it cannot be pickled"):
+        trainer.fit(model)
+    assert 'pickle_me' not in model.hparams
 
 
 def test_hparams_save_yaml(tmpdir):

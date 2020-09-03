@@ -155,3 +155,12 @@ class Callback(abc.ABC):
 
     def on_keyboard_interrupt(self, trainer, pl_module):
         """Called when the training is interrupted by KeyboardInterrupt."""
+        pass
+
+    def on_save_checkpoint(self, trainer, pl_module):
+        """Called when saving a model checkpoint, use to persist state."""
+        pass
+
+    def on_load_checkpoint(self, checkpointed_state):
+        """Called when loading a model checkpoint, use to reload state."""
+        pass

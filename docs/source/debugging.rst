@@ -66,8 +66,8 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
     # use only 1% of training data (and use the same training dataloader (with shuffle off) in val and test)
     trainer = Trainer(overfit_batches=0.01)
 
-    # or overfit a number of batches
-    trainer = Trainer(overfit_batches=0.01)
+    # similar, but with a fixed 10 batches no matter the size of the dataset
+    trainer = Trainer(overfit_batches=10)
 
 With this flag, the train, val, and test sets will all be the same train set. We will also replace the sampler
 in the training set to turn off shuffle for you.

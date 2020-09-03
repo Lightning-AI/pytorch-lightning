@@ -101,7 +101,7 @@ Lightning has a few built-in callbacks.
 
 ----------------
 
-.. automodule:: pytorch_lightning.callbacks.gpu_usage_logger
+.. automodule:: pytorch_lightning.callbacks.gpu_stats_monitor
     :noindex:
     :exclude-members:
         _get_gpu_stat,
@@ -143,6 +143,18 @@ Lightning has a few built-in callbacks.
    :exclude-members:
 
 ----------
+
+Persisting State
+----------------
+
+Some callbacks require internal state in order to function properly. You can optionally
+choose to persist your callback's state as part of model checkpoint files using the callback hooks
+:meth:`~pytorch_lightning.callbacks.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.Callback.on_load_checkpoint`.
+However, you must follow two constraints:
+
+1. Your returned state must be able to be pickled.
+2. You can only use one instance of that class in the Trainer callbacks list. We don't support persisting state for multiple callbacks of the same class.
+
 
 Best Practices
 --------------

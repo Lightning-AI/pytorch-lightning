@@ -9,6 +9,7 @@ from pytorch_lightning import LightningDataModule, Trainer, seed_everything
 from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 def test_can_prepare_data(tmpdir):
@@ -22,26 +23,26 @@ def test_can_prepare_data(tmpdir):
     # local rank = 0   (True)
     trainer.prepare_data_per_node = True
     trainer.local_rank = 0
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
     # local rank = 1   (False)
     trainer.local_rank = 1
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
     trainer.prepare_data_per_node = False
     trainer.node_rank = 0
     trainer.local_rank = 0
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
     # global rank = 1   (False)
     trainer.node_rank = 1
     trainer.local_rank = 0
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
     trainer.node_rank = 0
     trainer.local_rank = 1
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
 
     # 2 dm
     # prepar per node = True
@@ -53,17 +54,17 @@ def test_can_prepare_data(tmpdir):
     # has been called
     # False
     dm._has_prepared_data = True
-    assert not trainer.can_prepare_data()
+    assert not trainer.data_connector.can_prepare_data()
 
     # has not been called
     # True
     dm._has_prepared_data = False
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
     # is_overridden prepare data = False
     # True
     dm.prepare_data = None
-    assert trainer.can_prepare_data()
+    assert trainer.data_connector.can_prepare_data()
 
 
 def test_base_datamodule(tmpdir):
@@ -348,7 +349,7 @@ def test_dm_transfer_batch_to_device(tmpdir):
     trainer = Trainer()
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
-    if trainer.is_overridden('transfer_batch_to_device', dm):
+    if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
     batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)

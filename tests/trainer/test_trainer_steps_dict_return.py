@@ -30,7 +30,7 @@ def test_training_step_dict(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert out.batch_log_metrics['log_acc1'] == 12.0
     assert out.batch_log_metrics['log_acc2'] == 7.0
@@ -76,7 +76,7 @@ def training_step_with_step_end(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert out.batch_log_metrics['log_acc1'] == 14.0
     assert out.batch_log_metrics['log_acc2'] == 9.0
@@ -117,7 +117,7 @@ def test_full_training_loop_dict(tmpdir):
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert out.batch_log_metrics['log_acc1'] == 14.0
     assert out.batch_log_metrics['log_acc2'] == 9.0
@@ -204,7 +204,7 @@ def test_train_step_epoch_end(tmpdir):
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
 
-    out = trainer.run_training_batch(batch, batch_idx)
+    out = trainer.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert out.batch_log_metrics['log_acc1'] == 12.0
     assert out.batch_log_metrics['log_acc2'] == 7.0

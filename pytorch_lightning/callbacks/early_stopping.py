@@ -19,8 +19,6 @@ Early Stopping
 Monitor a validation metric and stop training when it stops improving.
 
 """
-from copy import deepcopy
-
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -126,7 +124,7 @@ class EarlyStopping(Callback):
     def monitor_op(self):
         return self.mode_dict[self.mode]
 
-    def state_dict(self):
+    def on_save_checkpoint(self, trainer, pl_module):
         return {
             'wait_count': self.wait_count,
             'stopped_epoch': self.stopped_epoch,
@@ -134,12 +132,11 @@ class EarlyStopping(Callback):
             'patience': self.patience
         }
 
-    def load_state_dict(self, state_dict):
-        state_dict = deepcopy(state_dict)
-        self.wait_count = state_dict['wait_count']
-        self.stopped_epoch = state_dict['stopped_epoch']
-        self.best_score = state_dict['best_score']
-        self.patience = state_dict['patience']
+    def on_load_checkpoint(self, checkpointed_state):
+        self.wait_count = checkpointed_state['wait_count']
+        self.stopped_epoch = checkpointed_state['stopped_epoch']
+        self.best_score = checkpointed_state['best_score']
+        self.patience = checkpointed_state['patience']
 
     def on_validation_end(self, trainer, pl_module):
         if trainer.running_sanity_check:
@@ -150,6 +147,8 @@ class EarlyStopping(Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         if trainer.running_sanity_check:
             return
+
+        self.__warn_deprecated_monitor_key()
 
         val_es_key = 'val_early_stop_on'
         if trainer.callback_metrics.get(val_es_key) is not None:
@@ -194,8 +193,6 @@ class EarlyStopping(Callback):
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
 
-        self.__warn_deprecated_monitor_key()
-
         current = logs.get(self.monitor)
 
         # when in dev debugging
@@ -232,7 +229,7 @@ class EarlyStopping(Callback):
 
         if trainer.use_tpu:
             stop = torch.tensor(int(trainer.should_stop), device=pl_module.device, dtype=torch.int32)
-            stop = xm.mesh_reduce("stop_signal", stop, torch.cat)
+            stop = xm.mesh_reduce("stop_signal", stop, sum)
             torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
             trainer.should_stop = int(stop.item()) == trainer.world_size
 

@@ -3,6 +3,7 @@ from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import flatten_dict
+from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class EvaluationLoop(object):
@@ -25,7 +26,9 @@ class EvaluationLoop(object):
             new_max_batches = self.trainer.num_test_batches
         else:
             # val
-            if self.trainer.val_dataloaders is None:
+            in_sanity_check = self.trainer.running_sanity_check
+            should_reload_every_epoch = self.trainer.reload_dataloaders_every_epoch
+            if (self.trainer.val_dataloaders is None or should_reload_every_epoch) and not in_sanity_check:
                 self.trainer.reset_val_dataloader(model)
 
             dataloaders = self.trainer.val_dataloaders
@@ -177,7 +180,7 @@ class EvaluationLoop(object):
         user_reduced = False
 
         if self.testing:
-            if self.trainer.is_overridden('test_epoch_end', model=model):
+            if is_overridden('test_epoch_end', model=model):
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
@@ -185,7 +188,7 @@ class EvaluationLoop(object):
                 user_reduced = True
 
         else:
-            if self.trainer.is_overridden('validation_epoch_end', model=model):
+            if is_overridden('validation_epoch_end', model=model):
                 if using_eval_result:
                     eval_results = self.__gather_epoch_end_eval_results(outputs)
 
