@@ -963,9 +963,9 @@ def dice_score(
 def iou(
         pred: torch.Tensor,
         target: torch.Tensor,
+        ignore_index: Optional[int] = None,
         not_present_score: float = 1.0,
         num_classes: Optional[int] = None,
-        remove_bg: bool = False,
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
     """
@@ -974,12 +974,12 @@ def iou(
     Args:
         pred: Tensor containing predictions
         target: Tensor containing targets
+        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
+            to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
+            range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
+            index is ignored, and all classes are used.
         not_present_score: score to use for a class, if no instance of that class was present in either pred or target
         num_classes: Optionally specify the number of classes
-        remove_bg: Flag to state whether a background class has been included
-            within input parameters. If true, will remove background class. If
-            false, return IoU over all classes
-            Assumes that background is '0' class in input tensor
         reduction: a method to reduce metric score over labels (default: takes the mean)
             Available reduction methods:
 
@@ -1002,15 +1002,15 @@ def iou(
     """
     num_classes = get_num_classes(pred=pred, target=target, num_classes=num_classes)
 
-    # Determine minimum class index we will be evaluating. If using the background, then this is 0; otherwise, if
-    # removing background, use 1.
-    min_class_idx = 1 if remove_bg else 0
-
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred, target, num_classes)
 
-    scores = torch.zeros(num_classes - min_class_idx, device=pred.device, dtype=torch.float32)
+    scores = torch.zeros(num_classes, device=pred.device, dtype=torch.float32)
 
-    for class_idx in range(min_class_idx, num_classes):
+    for class_idx in range(num_classes):
+        # Skip this class if its index is being ignored.
+        if class_idx == ignore_index:
+            continue
+
         tp = tps[class_idx]
         fp = fps[class_idx]
         fn = fns[class_idx]
@@ -1019,11 +1019,18 @@ def iou(
         # If this class is not present in either the target (no support) or the pred (no true or false positives), then
         # use the not_present_score for this class.
         if sup + tp + fp == 0:
-            scores[class_idx - min_class_idx] = not_present_score
+            scores[class_idx] = not_present_score
             continue
 
         denom = tp + fp + fn
         score = tp.to(torch.float) / denom
-        scores[class_idx - min_class_idx] = score
+        scores[class_idx] = score
+
+    # Remove the ignored class index from the scores.
+    if ignore_index is not None and ignore_index >= 0 and ignore_index < num_classes:
+        scores = torch.cat([
+            scores[:ignore_index],
+            scores[ignore_index + 1:],
+        ])
 
     return reduce(scores, reduction=reduction)
