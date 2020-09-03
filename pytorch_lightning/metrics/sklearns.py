@@ -102,7 +102,7 @@ class Accuracy(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Accuracy()
         >>> metric(y_pred, y_true)
-        tensor([0.7500])
+        tensor(0.7500)
 
     """
 
@@ -155,7 +155,7 @@ class AUC(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = AUC()
         >>> metric(y_pred, y_true)
-        tensor([4.])
+        tensor(4.)
     """
 
     def __init__(
@@ -249,7 +249,7 @@ class BalancedAccuracy(SklearnMetric):
         >>> y_true = torch.tensor([0, 0, 1, 1])
         >>> metric = BalancedAccuracy()
         >>> metric(y_pred, y_true)
-        tensor([0.7500])
+        tensor(0.7500)
 
     """
 
@@ -298,7 +298,7 @@ class CohenKappaScore(SklearnMetric):
         >>> y_true = torch.tensor([2, 2, 2, 1])
         >>> metric = CohenKappaScore()
         >>> metric(y_pred, y_true)
-        tensor([-0.3333])
+        tensor(-0.3333)
 
     """
 
@@ -404,7 +404,7 @@ class DCG(SklearnMetric):
         >>> y_true = torch.tensor([[10, 0, 0, 1, 5]])
         >>> metric = DCG()
         >>> metric(y_score, y_true)
-        tensor([9.4995])
+        tensor(9.4995)
     """
 
     def __init__(
@@ -467,7 +467,7 @@ class F1(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = F1()
         >>> metric(y_pred, y_true)
-        tensor([0.6667])
+        tensor(0.6667)
 
     References
         - [1] `Wikipedia entry for the F1-score
@@ -551,7 +551,7 @@ class FBeta(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = FBeta(beta=0.25)
         >>> metric(y_pred, y_true)
-        tensor([0.7361])
+        tensor(0.7361)
 
     References:
         - [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
@@ -638,7 +638,7 @@ class Hamming(SklearnMetric):
         >>> y_true = torch.tensor([1, 1, 2, 3])
         >>> metric = Hamming()
         >>> metric(y_pred, y_true)
-        tensor([0.2500])
+        tensor(0.2500)
 
     """
 
@@ -685,7 +685,7 @@ class Hinge(SklearnMetric):
         >>> y_true = torch.tensor([1, 1, 0, 0])
         >>> metric = Hinge()
         >>> metric(pred_decision, y_true)
-        tensor([1.6300])
+        tensor(1.6300)
 
     """
 
@@ -733,7 +733,7 @@ class Jaccard(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 1])
         >>> metric = Jaccard()
         >>> metric(y_pred, y_true)
-        tensor([0.3333])
+        tensor(0.3333)
 
     """
 
@@ -817,7 +817,7 @@ class Precision(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Precision()
         >>> metric(y_pred, y_true)
-        tensor([0.7500])
+        tensor(0.7500)
 
     """
 
@@ -901,7 +901,7 @@ class Recall(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Recall()
         >>> metric(y_pred, y_true)
-        tensor([0.6250])
+        tensor(0.6250)
 
     """
 
@@ -1173,7 +1173,7 @@ class ExplainedVariance(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = ExplainedVariance()
         >>> metric(y_pred, y_true)
-        tensor([0.9572])
+        tensor(0.9572)
     """
 
     def __init__(
@@ -1225,7 +1225,7 @@ class MeanAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.5000])
+        tensor(0.5000)
 
     """
 
@@ -1273,10 +1273,10 @@ class MeanSquaredError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanSquaredError()
         >>> metric(y_pred, y_true)
-        tensor([0.3750])
+        tensor(0.3750)
         >>> metric = MeanSquaredError(squared=True)
         >>> metric(y_pred, y_true)
-        tensor([0.6124])
+        tensor(0.6124)
 
     """
 
@@ -1335,7 +1335,7 @@ class MeanSquaredLogError(SklearnMetric):
         >>> y_true = torch.tensor([3, 5, 2.5, 7])
         >>> metric = MeanSquaredLogError()
         >>> metric(y_pred, y_true)
-        tensor([0.0397])
+        tensor(0.0397)
     """
 
     def __init__(
@@ -1387,7 +1387,7 @@ class MedianAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MedianAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.5000])
+        tensor(0.5000)
     """
 
     def __init__(
@@ -1433,7 +1433,7 @@ class R2Score(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = R2Score()
         >>> metric(y_pred, y_true)
-        tensor([0.9486])
+        tensor(0.9486)
     """
 
     def __init__(
@@ -1485,7 +1485,7 @@ class MeanPoissonDeviance(SklearnMetric):
         >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
         >>> metric = MeanPoissonDeviance()
         >>> metric(y_pred, y_true)
-        tensor([0.9034])
+        tensor(0.9034)
     """
 
     def __init__(
@@ -1533,7 +1533,7 @@ class MeanGammaDeviance(SklearnMetric):
         >>> y_true = torch.tensor([2, 0.5, 1, 4])
         >>> metric = MeanGammaDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.0569])
+        tensor(1.0569)
     """
 
     def __init__(
@@ -1581,7 +1581,7 @@ class MeanTweedieDeviance(SklearnMetric):
         >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
         >>> metric = MeanTweedieDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.8125])
+        tensor(1.8125)
     """
 
     def __init__(

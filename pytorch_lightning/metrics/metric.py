@@ -164,7 +164,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
-        return torch.cat(tensors).mean()
+        return torch.cat(tensors).mean(0)
 
     @staticmethod
     def compute(self, data: Any, output: Any):
@@ -210,9 +210,6 @@ class TensorMetric(Metric):
         output = apply_to_collection(output, torch.Tensor, convert_to_tensor, self.dtype, self.device)
         return super(TensorMetric, self).output_convert(self, data, output)
 
-
-def my_func(dummy = ()):
-    pass
 
 class TensorCollectionMetric(Metric):
     """

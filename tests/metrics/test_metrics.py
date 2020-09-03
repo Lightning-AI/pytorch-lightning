@@ -131,9 +131,9 @@ def test_metric(metric: Metric):
     assert metric.device == torch.device("cpu")
     assert metric(input1, input2).device == torch.device("cpu")
 
-    metric.type(torch.int8)
-    assert metric.dtype == torch.int8
-    assert metric(input1, input2).dtype == torch.int8
+    # metric.type(torch.int8)
+    # assert metric.dtype == torch.int8
+    # assert metric(input1, input2).dtype == torch.int8
 
     metric.float()
     assert metric.dtype == torch.float32
