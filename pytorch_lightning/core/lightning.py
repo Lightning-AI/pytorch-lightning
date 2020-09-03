@@ -1730,12 +1730,16 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
 
-    def to_torchscript(self) -> Union[ScriptModule, Dict[str, ScriptModule]]:
+    def to_torchscript(self, file_path: str, **kwargs) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """
         By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
         If you would like to customize the modules that are scripted or you want to use tracing
         you should override this method. In case you want to return multiple modules, we
         recommend using a dictionary.
+
+        Args:
+            file_path: Path where to save the torchscript. Default: None (no file saved).
+            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.save` function.
 
         Note:
             - Requires the implementation of the
@@ -1758,11 +1762,20 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
             True
+
+        Return:
+            This LightningModule as a torchscript, regardless of whether file_path is
+            defined or not.
         """
+
         mode = self.training
         with torch.no_grad():
-            scripted_module = torch.jit.script(self.eval())
+            scripted_module = torch.jit.script(self.eval(), **kwargs)
         self.train(mode)
+
+        if file_path is not None:
+            torch.jit.save(scripted_module, file_path)
+
         return scripted_module
 
     @property
