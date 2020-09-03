@@ -16,7 +16,6 @@ from typing import Any, Union, List
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
@@ -28,7 +27,7 @@ except ImportError:
     amp = None
 
 
-class ModelHooks(Module):
+class ModelHooks:
 
     def setup(self, stage: str):
         """
@@ -321,7 +320,7 @@ class ModelHooks(Module):
         return scaled_loss
 
 
-class DataHooks(Module):
+class DataHooks:
 
     def prepare_data(self) -> None:
         """
