@@ -161,7 +161,7 @@ class TrainerTrainingTricksMixin(ABC):
 
             batch_arg_name: name of the attribute that stores the batch size.
 
-            **fit_kwargs: remaining arguments to be passed to .fit() when, e.g., dataloader
+            **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
                 or datamodule.
         """
         if not lightning_hasattr(model, batch_arg_name):
@@ -265,7 +265,7 @@ def _adjust_batch_size(trainer,
     """ Function for adjusting the batch size. It is expected that the user
         has provided a model that has a hparam field called `batch_size` i.e.
         `model.hparams.batch_size` should exist. Additionally there can be a
-        datamodule attached to either Trainer or model, in which case the attribute
+        datamodule attached to either Trainer or model, in that case the attribute
         also gets updated when present.
 
     Args:
