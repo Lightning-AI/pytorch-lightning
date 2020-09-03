@@ -147,13 +147,10 @@ class PrecisionRecall(TensorCollectionMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = PrecisionRecall()
-        >>> prec, recall, thr = metric(pred, target)
-        >>> prec
-        tensor([0.3333, 0.0000, 0.0000, 1.0000])
-        >>> recall
-        tensor([1., 0., 0., 0.])
-        >>> thr
-        tensor([1., 2., 3.])
+        >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
+         tensor([1., 0., 0., 0.]),
+         tensor([1., 2., 3.]))
 
     """
 
@@ -207,7 +204,7 @@ class Precision(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = Precision(num_classes=4)
+        >>> metric = Precision(num_classes=4, class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.7500)
 
@@ -264,7 +261,7 @@ class Recall(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = Recall()
         >>> metric(pred, target)
-        tensor(0.6250)
+        tensor(0.7500)
 
     """
 
@@ -428,7 +425,7 @@ class FBeta(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = FBeta(0.25)
+        >>> metric = FBeta(0.25, class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.7361)
     """
@@ -486,7 +483,7 @@ class F1(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = F1()
+        >>> metric = F1(class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.6667)
     """
@@ -541,13 +538,10 @@ class ROC(TensorCollectionMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = ROC()
-        >>> fps, tps, thresholds = metric(pred, target)
-        >>> fps
-        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
-        >>> tps
-        tensor([0., 0., 0., 1., 1.])
-        >>> thresholds
-        tensor([4., 3., 2., 1., 0.])
+        >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
+         tensor([0., 0., 0., 1., 1.]),
+         tensor([4., 3., 2., 1., 0.]))
 
     """
 

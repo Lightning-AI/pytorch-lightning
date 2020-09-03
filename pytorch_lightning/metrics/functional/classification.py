@@ -319,7 +319,8 @@ def precision_recall(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        class_reduction: str = 'micro'
+        class_reduction: str = 'micro',
+        return_support: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes precision and recall for different thresholds
@@ -334,6 +335,7 @@ def precision_recall(
             'macro': calculate metrics for each label, and find their unweighted mean.
             'weighted': calculate metrics for each label, and find their unweighted mean.
             'none': returns calculated metric per class
+        return_support: returns the support for each class, need for fbeta/f1 calculations
 
     Return:
         Tensor with precision and recall
@@ -341,20 +343,19 @@ def precision_recall(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
-        >>> precision_recall(x, y)
-        (tensor(0.7500), tensor(0.6250))
+        >>> y = torch.tensor([0, 2, 2, 2])
+        >>> precision_recall(x, y, class_reduction='macro')
+        (tensor(0.5000), tensor(0.3333))
 
     """
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
 
-    tps = tps.to(torch.float)
-    fps = fps.to(torch.float)
-    fns = fns.to(torch.float)
-
     precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
     recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
-    return precision, recall, sups
+    if return_support:
+        return precision, recall, sups
+    else:
+        return precision, recall
 
 
 def precision(
@@ -420,7 +421,7 @@ def recall(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> recall(x, y)
-        tensor(0.6250)
+        tensor(0.7500)
     """
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, class_reduction=class_reduction)[1]
@@ -461,18 +462,19 @@ def fbeta_score(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> fbeta_score(x, y, 0.2)
-        tensor(0.7407)
+        tensor(0.7500)
     """
     # We need to differentiate at which point to do class reduction
     intermidiate_reduction = 'none' if class_reduction != "micro" else 'micro'
 
     prec, rec, sups = precision_recall(pred=pred, target=target,
                                        num_classes=num_classes,
-                                       class_reduction=intermidiate_reduction)
+                                       class_reduction=intermidiate_reduction,
+                                       return_support=True)
     num = (1 + beta ** 2) * prec * rec
     denom = ((beta ** 2) * prec + rec)
     if intermidiate_reduction == 'micro':
-        return num / denom
+        return torch.sum(num) / torch.sum(denom)
     else:
         return class_reduce(num, denom, sups, class_reduction=class_reduction)
 
@@ -506,7 +508,7 @@ def f1_score(
         >>> x = torch.tensor([0, 1, 2, 3])
         >>> y = torch.tensor([0, 1, 2, 2])
         >>> f1_score(x, y)
-        tensor(0.6667)
+        tensor(0.7500)
     """
     return fbeta_score(pred=pred, target=target, beta=1.,
                        num_classes=num_classes, class_reduction=class_reduction)
