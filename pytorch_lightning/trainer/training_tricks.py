@@ -159,6 +159,10 @@ class TrainerTrainingTricksMixin(ABC):
             max_trials: max number of increase in batch size done before
                algorithm is terminated
 
+            batch_arg_name: name of the attribute that stores the batch size.
+
+            **fit_kwargs: remaining arguments to be passed to .fit() when, e.g., dataloader
+                or datamodule.
         """
         if not lightning_hasattr(model, batch_arg_name):
             raise MisconfigurationException(
