@@ -23,7 +23,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.distributed as torch_distrib
-from torch import Tensor
+from torch import Tensor, ScriptModule
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
@@ -184,6 +184,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                     return logits
 
         """
+        return super().forward(*args, **kwargs)
 
     def training_step(self, *args, **kwargs):
         r"""
@@ -1728,6 +1729,54 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 kwargs['example_outputs'] = self(input_data)
 
         torch.onnx.export(self, input_data, file_path, **kwargs)
+
+    def to_torchscript(self, file_path: Optional[str] = None, **kwargs) -> Union[ScriptModule, Dict[str, ScriptModule]]:
+        """
+        By default compiles the whole model to a :class:`~torch.jit.ScriptModule`.
+        If you would like to customize the modules that are scripted or you want to use tracing
+        you should override this method. In case you want to return multiple modules, we
+        recommend using a dictionary.
+
+        Args:
+            file_path: Path where to save the torchscript. Default: None (no file saved).
+            **kwargs: Additional arguments that will be passed to the :func:`torch.jit.save` function.
+
+        Note:
+            - Requires the implementation of the
+              :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method.
+            - The exported script will be set to evaluation mode.
+            - It is recommended that you install the latest supported version of PyTorch
+              to use this feature without limitations. See also the :mod:`torch.jit`
+              documentation for supported features.
+
+        Example:
+            >>> class SimpleModel(LightningModule):
+            ...     def __init__(self):
+            ...         super().__init__()
+            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+            ...
+            ...     def forward(self, x):
+            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+            ...
+            >>> model = SimpleModel()
+            >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
+            >>> os.path.isfile("model.pt")  # doctest: +SKIP
+            True
+
+        Return:
+            This LightningModule as a torchscript, regardless of whether file_path is
+            defined or not.
+        """
+
+        mode = self.training
+        with torch.no_grad():
+            scripted_module = torch.jit.script(self.eval(), **kwargs)
+        self.train(mode)
+
+        if file_path is not None:
+            torch.jit.save(scripted_module, file_path)
+
+        return scripted_module
 
     @property
     def hparams(self) -> Union[AttributeDict, str]:
