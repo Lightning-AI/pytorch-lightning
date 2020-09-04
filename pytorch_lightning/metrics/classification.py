@@ -64,7 +64,6 @@ class Accuracy(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(name="accuracy", reduce_group=reduce_group)
         self.num_classes = num_classes
@@ -110,7 +109,6 @@ class ConfusionMatrix(TensorMetric):
         Args:
             normalize: whether to compute a normalized confusion matrix
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="confusion_matrix",
@@ -168,7 +166,6 @@ class PrecisionRecallCurve(TensorCollectionMetric):
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="precision_recall_curve",
@@ -228,7 +225,6 @@ class Precision(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="precision",
@@ -280,7 +276,6 @@ class Recall(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="recall",
@@ -327,7 +322,6 @@ class AveragePrecision(TensorMetric):
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="AP",
@@ -376,7 +370,6 @@ class AUROC(TensorMetric):
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="auroc",
@@ -433,7 +426,6 @@ class FBeta(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for DDP reduction
         """
         super().__init__(
             name="fbeta",
@@ -489,7 +481,6 @@ class F1(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="f1",
@@ -541,7 +532,6 @@ class ROC(TensorCollectionMetric):
         Args:
             pos_label: positive label indicator
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="roc",
@@ -598,7 +588,6 @@ class MulticlassROC(TensorCollectionMetric):
         Args:
             num_classes: number of classes
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="multiclass_roc",
@@ -664,7 +653,6 @@ class MulticlassPrecisionRecallCurve(TensorCollectionMetric):
         Args:
             num_classes: number of classes
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
 
         """
         super().__init__(
@@ -741,7 +729,6 @@ class DiceCoefficient(TensorMetric):
                 - none: pass array
                 - sum: add elements
             reduce_group: the process group to reduce metric results from DDP
-            reduce_op: the operation to perform for ddp reduction
         """
         super().__init__(
             name="dice",

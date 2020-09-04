@@ -53,8 +53,6 @@ class SklearnMetric(NumpyMetric):
             metric_name: the metric name to import and compute from scikit-learn.metrics
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
             **kwargs: additonal keyword arguments (will be forwarded to metric call)
         """
         super().__init__(
@@ -117,8 +115,6 @@ class Accuracy(SklearnMetric):
                 Otherwise, return the fraction of correctly classified samples.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__(metric_name="accuracy_score", reduce_group=reduce_group, normalize=normalize)
 
@@ -166,8 +162,6 @@ class AUC(SklearnMetric):
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
 
         super().__init__(metric_name="auc", reduce_group=reduce_group)
@@ -213,8 +207,6 @@ class AveragePrecision(SklearnMetric):
 
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("average_precision_score", reduce_group=reduce_group, average=average)
 
@@ -264,8 +256,6 @@ class BalancedAccuracy(SklearnMetric):
                 corresponds to 0 and perfect performance corresponds to 1
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("balanced_accuracy_score", reduce_group=reduce_group, adjusted=adjusted)
 
@@ -319,8 +309,6 @@ class CohenKappaScore(SklearnMetric):
                 and ``quadratic`` means quadratic weighted
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("cohen_kappa_score", reduce_group=reduce_group, labels=labels, weights=weights)
 
@@ -374,8 +362,6 @@ class ConfusionMatrix(SklearnMetric):
                 in ``y_true`` or ``y_pred`` are used in sorted order.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("confusion_matrix", reduce_group=reduce_group, labels=labels)
 
@@ -424,8 +410,6 @@ class DCG(SklearnMetric):
             ignore_ties: If ``True``, assume there are no ties in y_score for efficiency gains
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("dcg_score", reduce_group=reduce_group, k=k, log_base=log_base, ignore_ties=ignore_ties)
 
@@ -516,8 +500,6 @@ class F1(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("f1_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average)
 
@@ -604,8 +586,6 @@ class FBeta(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__(
             "fbeta_score", reduce_group=reduce_group, beta=beta, labels=labels, pos_label=pos_label, average=average
@@ -653,8 +633,6 @@ class Hamming(SklearnMetric):
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
 
         """
         super().__init__("hamming_loss", reduce_group=reduce_group)
@@ -702,8 +680,6 @@ class Hinge(SklearnMetric):
             labels: Integer array of labels.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("hinge_loss", reduce_group=reduce_group, labels=labels)
 
@@ -779,8 +755,6 @@ class Jaccard(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__(
             "jaccard_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average
@@ -863,8 +837,6 @@ class Precision(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__(
             "precision_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average
@@ -947,8 +919,6 @@ class Recall(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("recall_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average)
 
@@ -1001,8 +971,6 @@ class PrecisionRecallCurve(SklearnMetric):
             pos_label: The class to report if ``average='binary'``.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("precision_recall_curve", reduce_group=reduce_group, pos_label=pos_label)
 
@@ -1080,8 +1048,6 @@ class ROC(SklearnMetric):
             pos_labels: The class to report if ``average='binary'``.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("roc_curve", reduce_group=reduce_group, pos_label=pos_label)
 
@@ -1156,8 +1122,6 @@ class AUROC(SklearnMetric):
 
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("roc_auc_score", reduce_group=reduce_group, average=average)
 
@@ -1208,8 +1172,6 @@ class ExplainedVariance(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("explained_variance_score", reduce_group=reduce_group, multioutput=multioutput)
 
@@ -1261,8 +1223,6 @@ class MeanAbsoluteError(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("mean_absolute_error", reduce_group=reduce_group, multioutput=multioutput)
 
@@ -1314,8 +1274,6 @@ class MeanSquaredError(SklearnMetric):
             squared: if ``True`` returns the mse value else the rmse value
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("mean_squared_error", reduce_group=reduce_group, multioutput=multioutput)
         self.squared = squared
@@ -1370,8 +1328,6 @@ class MeanSquaredLogError(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("mean_squared_log_error", reduce_group=reduce_group, multioutput=multioutput)
 
@@ -1422,8 +1378,6 @@ class MedianAbsoluteError(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("median_absolute_error", reduce_group=reduce_group, multioutput=multioutput)
 
@@ -1468,8 +1422,6 @@ class R2Score(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("r2_score", reduce_group=reduce_group, multioutput=multioutput)
 
@@ -1516,8 +1468,6 @@ class MeanPoissonDeviance(SklearnMetric):
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("mean_poisson_deviance", reduce_group=reduce_group)
 
@@ -1564,8 +1514,6 @@ class MeanGammaDeviance(SklearnMetric):
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("mean_gamma_deviance", reduce_group=reduce_group)
 
@@ -1624,8 +1572,6 @@ class MeanTweedieDeviance(SklearnMetric):
 
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
         super().__init__("mean_tweedie_deviance", reduce_group=reduce_group, power=power)
 
