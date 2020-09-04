@@ -49,15 +49,17 @@ def class_reduce(num: torch.Tensor,
     valid_reduction = ('micro', 'macro', 'weighted', 'none')
     if class_reduction == 'micro':
         return torch.sum(num) / torch.sum(denom)
+
+    # For the rest we need to take care of instances where the denom can be 0
+    # for some classes which will produce nans for that class
+    fraction = num / denom
+    fraction[fraction != fraction] = 0
+    if class_reduction == 'macro':
+        return torch.mean(fraction)
+    if class_reduction == 'weighted':
+        return torch.sum(fraction * (weights / torch.sum(weights)))
+    if class_reduction == 'none':
+        return fraction
     else:
-        fraction = num / denom
-        fraction[fraction != fraction] = 0
-        if class_reduction == 'macro':
-            return torch.mean(fraction)
-        elif class_reduction == 'weighted':
-            return torch.sum(fraction * (weights / torch.sum(weights)))
-        elif class_reduction == 'none':
-            return fraction
-        else:
-            raise ValueError(f'Reduction parameter {class_reduction} unknown.'
-                             f'Choose between one of these: {valid_reduction}')
+        raise ValueError(f'Reduction parameter {class_reduction} unknown.'
+                         f'Choose between one of these: {valid_reduction}')

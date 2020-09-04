@@ -355,8 +355,7 @@ def precision_recall(
     recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
     if return_support:
         return precision, recall, sups
-    else:
-        return precision, recall
+    return precision, recall
 
 
 def precision(
@@ -476,8 +475,7 @@ def fbeta_score(
     denom = ((beta ** 2) * prec + rec)
     if intermidiate_reduction == 'micro':
         return torch.sum(num) / torch.sum(denom)
-    else:
-        return class_reduce(num, denom, sups, class_reduction=class_reduction)
+    return class_reduce(num, denom, sups, class_reduction=class_reduction)
 
 
 def f1_score(
