@@ -38,15 +38,6 @@ except ImportError:
 
     rank_zero_warn("Unsupported `ReduceOp` for distributed computing")
 
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.core.functions as xf
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
 
 def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callable:
     """
