@@ -358,7 +358,7 @@ def test_iou(half_ones, reduction, remove_bg, expected):
     assert torch.allclose(iou_val, expected, atol=1e-9)
 
 
-@pytest.mark.parametrize('metric', [auroc, precision_recall_curve, roc])
+@pytest.mark.parametrize('metric', [auroc])
 def test_error_on_multiclass_input(metric):
     """ check that these metrics gives an error if they are used for multiclass problems  """
     pred = torch.randint(0,10,(100,))
