@@ -85,14 +85,14 @@ For example, here step optimizer A every 2 batches and optimizer B every 4 batch
 
 .. testcode::
 
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         optimizer.step()
 
     def optimizer_zero_grad(self, current_epoch, batch_idx, optimizer, opt_idx):
       optimizer.zero_grad()
 
     # Alternating schedule for optimizer steps (ie: GANs)
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # update generator opt every 2 steps
         if optimizer_i == 0:
             if batch_nb % 2 == 0 :
@@ -113,7 +113,7 @@ Here we add a learning-rate warm up
 .. testcode::
 
     # learning rate warm-up
-    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_i, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
+    def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure=None, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # warm up lr
         if self.trainer.global_step < 500:
             lr_scale = min(1., float(self.trainer.global_step + 1) / 500.)
