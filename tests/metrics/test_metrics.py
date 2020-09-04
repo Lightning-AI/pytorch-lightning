@@ -232,6 +232,11 @@ def check_call_order():
             self.call_history.append("aggregated")
             return super().aggregated
 
+        @staticmethod
+        def compute(self, data: Any, output: Any):
+            self.call_history.append("compute")
+            return super(DummyMetric, self).compute(self, data, output)
+
     metric = DummyMetric()
     assert metric.call_history == ["init"]
     result = metric(torch.tensor([2.0]), torch.tensor([1.0]))
