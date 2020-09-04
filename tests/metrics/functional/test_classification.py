@@ -48,7 +48,7 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(sk_confusion_matrix, confusion_matrix, False, id='confusion_matrix'),
     pytest.param(sk_roc_curve, roc, True, id='roc'),
     pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
-    pytest.param(sk_roc_auc_score, auroc, True, id='aurocc')
+    pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric, binary):
     """Compare PL metrics to sklearn version."""

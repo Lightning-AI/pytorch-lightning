@@ -858,9 +858,9 @@ def auroc(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> y = torch.tensor([0, 1, 1, 0])
         >>> auroc(x, y)
-        tensor(0.3333)
+        tensor(0.5000)
     """
     if any(target > 1):
         raise ValueError('AUROC metric is meant for binary classification, but'
