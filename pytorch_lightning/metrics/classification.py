@@ -32,7 +32,7 @@ from pytorch_lightning.metrics.functional.classification import (
     recall,
     roc,
 )
-from pytorch_lightning.metrics.metric import TensorCollectionMetric, TensorMetric
+from pytorch_lightning.metrics.metric import TensorMetric
 
 
 class Accuracy(TensorMetric):
@@ -138,7 +138,7 @@ class ConfusionMatrix(TensorMetric):
         return torch.stack(tensors).mean(0)
 
 
-class PrecisionRecallCurve(TensorCollectionMetric):
+class PrecisionRecallCurve(TensorMetric):
     """
     Computes the precision recall curve
 
@@ -504,7 +504,7 @@ class F1(TensorMetric):
         return f1_score(pred=pred, target=target, num_classes=self.num_classes, reduction=self.reduction)
 
 
-class ROC(TensorCollectionMetric):
+class ROC(TensorMetric):
     """
     Computes the Receiver Operator Characteristic (ROC)
 
@@ -559,7 +559,7 @@ class ROC(TensorCollectionMetric):
         return roc(pred=pred, target=target, sample_weight=sample_weight, pos_label=self.pos_label)
 
 
-class MulticlassROC(TensorCollectionMetric):
+class MulticlassROC(TensorMetric):
     """
     Computes the multiclass ROC
 
@@ -626,7 +626,7 @@ class MulticlassROC(TensorCollectionMetric):
         return tuple([tuple([torch.stack(tmps).mean(0) for tmps in zip(*_tensors)]) for _tensors in zip(*tensors)])
 
 
-class MulticlassPrecisionRecallCurve(TensorCollectionMetric):
+class MulticlassPrecisionRecallCurve(TensorMetric):
     """Computes the multiclass PR Curve
 
     Example:
