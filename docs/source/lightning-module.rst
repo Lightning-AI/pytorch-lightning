@@ -1239,5 +1239,5 @@ teardown
 transfer_batch_to_device
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.transfer_batch_to_device
+.. autofunction:: pytorch_lightning.core.hooks.DataHooks.transfer_batch_to_device
     :noindex:
