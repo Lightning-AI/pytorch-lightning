@@ -29,24 +29,21 @@ def class_reduce(num: torch.Tensor,
                  weights: torch.Tensor,
                  class_reduction: str = 'none') -> torch.Tensor:
     """
-    Function used to reduce classification metrics of the form
-        num / denom * weights
+    Function used to reduce classification metrics of the form `num / denom * weights`
     For example for calculating standard accuracy the num would be number of
     true positives pr class, denom would be the support pr class, and weights
-    would be a tensor of 1s.
+    would be a tensor of 1s
 
     Args:
         num: numerator tensor
         decom: denomerator tensor
         weights: weights for each class
-        reduction: string specifying the reduction method
-            'micro': Calculate metrics globally by counting the total true positives,
-                false negatives and false positives.
-            'macro': Calculate metrics for each label, and find their unweighted mean.
-                This does not take label imbalance into account.
-            'weighted': Calculate metrics for each label, and find their average
-                weighted by support
-            'none': Calculates and return metric for each label
+        class_reduction: reduction method for multiclass problems
+
+            - ``'micro'``: calculate metrics globally (default)
+            - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'none'``: returns calculated metric per class
 
     """
     valid_reduction = ('micro', 'macro', 'weighted', 'none')

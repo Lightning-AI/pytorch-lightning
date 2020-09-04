@@ -59,12 +59,13 @@ class Accuracy(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            class_reduction: reduction method that effects the scoring for multiclass problems.
-                Availble methods (default is 'micro'):
-                    'micro': calculate metrics globally
-                    'macro': calculate metrics for each label, and find their unweighted mean.
-                    'weighted': calculate metrics for each label, and find their unweighted mean.
-                    'none': returns calculated metric per class
+            class_reduction: reduction method for multiclass problems
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
         """
@@ -220,12 +221,13 @@ class Precision(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            class_reduction: reduction method that effects the scoring for multiclass problems.
-                Availble methods (default is 'micro'):
-                    'micro': calculate metrics globally
-                    'macro': calculate metrics for each label, and find their unweighted mean.
-                    'weighted': calculate metrics for each label, and find their unweighted mean.
-                    'none': returns calculated metric per class
+            class_reduction: reduction method for multiclass problems
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
         """
@@ -275,12 +277,13 @@ class Recall(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            class_reduction: reduction method that effects the scoring for multiclass problems.
-                Availble methods (default is 'micro'):
-                    'micro': calculate metrics globally
-                    'macro': calculate metrics for each label, and find their unweighted mean.
-                    'weighted': calculate metrics for each label, and find their unweighted mean.
-                    'none': returns calculated metric per class
+            class_reduction: reduction method for multiclass problems
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
         """
@@ -442,11 +445,13 @@ class FBeta(TensorMetric):
         Args:
             beta: determines the weight of recall in the combined score.
             num_classes: number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: reduction method for multiclass problems
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for DDP reduction
         """
@@ -498,11 +503,13 @@ class F1(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: reduction method for multiclass problems
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
         """
