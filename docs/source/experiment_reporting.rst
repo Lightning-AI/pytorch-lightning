@@ -43,7 +43,6 @@ which is the default logger in Lightning.
 .. seealso::
     :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
-
 ----------
 
 Log metrics
