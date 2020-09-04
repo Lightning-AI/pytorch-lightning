@@ -43,7 +43,8 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(partial(sk_precision, average='macro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='macro'), recall, False, id='recall'),
     pytest.param(partial(sk_f1_score, average='macro'), f1_score, False, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2), False, id='fbeta_score'),
+    pytest.param(partial(sk_fbeta_score, average='macro', beta=2),
+                 partial(fbeta_score, beta=2), False, id='fbeta_score'),
     pytest.param(sk_confusion_matrix, confusion_matrix, False, id='confusion_matrix'),
     pytest.param(sk_roc_curve, roc, True, id='roc'),
     pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
@@ -361,8 +362,8 @@ def test_iou(half_ones, reduction, remove_bg, expected):
 @pytest.mark.parametrize('metric', [auroc])
 def test_error_on_multiclass_input(metric):
     """ check that these metrics gives an error if they are used for multiclass problems  """
-    pred = torch.randint(0,10,(100,))
-    target = torch.randint(0,10,(100,))
+    pred = torch.randint(0, 10, (100, ))
+    target = torch.randint(0, 10, (100, ))
     with pytest.raises(ValueError):
         _ = metric(pred, target)
 
