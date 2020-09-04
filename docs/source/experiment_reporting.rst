@@ -28,8 +28,8 @@ It may slow training down to log every single batch. Trainer has an option to lo
 Control log writing frequency
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Writing to a logger  can be expensive. In Lightning you can set the interval at which you
-want to log using this trainer flag.
+Writing to a logger can be expensive. In Lightning you can set the interval at which you
+want to save logs to the filesystem using this trainer flag.
 
 .. testcode::
 
@@ -38,6 +38,11 @@ want to log using this trainer flag.
 
 .. seealso::
     :class:`~pytorch_lightning.trainer.trainer.Trainer`
+
+Note: Unlike the `row_log_interval`, this argument does not apply to all loggers.
+The example shown here works with :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`,
+which is the default logger in Lightning.
+
 
 ----------
 
