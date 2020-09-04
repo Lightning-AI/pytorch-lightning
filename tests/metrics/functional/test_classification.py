@@ -9,6 +9,9 @@ from sklearn.metrics import (
     f1_score as sk_f1_score,
     fbeta_score as sk_fbeta_score,
     confusion_matrix as sk_confusion_matrix,
+    roc_curve as sk_roc_curve,
+    roc_auc_score as sk_roc_auc_score,
+    precision_recall_curve as sk_precision_recall_curve
 )
 
 from pytorch_lightning import seed_everything
@@ -35,28 +38,42 @@ from pytorch_lightning.metrics.functional.classification import (
 )
 
 
-@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
-    pytest.param(sk_accuracy, accuracy, id='accuracy'),
-    pytest.param(partial(sk_precision, average='macro'), precision, id='precision'),
-    pytest.param(partial(sk_recall, average='macro'), recall, id='recall'),
-    pytest.param(partial(sk_f1_score, average='macro'), f1_score, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2), id='fbeta_score'),
-    pytest.param(sk_confusion_matrix, confusion_matrix, id='confusion_matrix')
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'binary'], [
+    pytest.param(sk_accuracy, accuracy, False, id='accuracy'),
+    pytest.param(partial(sk_precision, average='macro'), precision, False, id='precision'),
+    pytest.param(partial(sk_recall, average='macro'), recall, False, id='recall'),
+    pytest.param(partial(sk_f1_score, average='macro'), f1_score, False, id='f1_score'),
+    pytest.param(partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2), False, id='fbeta_score'),
+    pytest.param(sk_confusion_matrix, confusion_matrix, False, id='confusion_matrix'),
+    pytest.param(sk_roc_curve, roc, True, id='roc'),
+    pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
+    pytest.param(sk_roc_auc_score, auroc, True, id='aurocc')
 ])
-def test_against_sklearn(sklearn_metric, torch_metric):
+def test_against_sklearn(sklearn_metric, torch_metric, binary):
     """Compare PL metrics to sklearn version."""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    # iterate over different label counts in predictions and target
-    for n_cls_pred, n_cls_target in [(10, 10), (5, 10), (10, 5)]:
+    # for metrics with binary=False, we try out different combinations of number
+    # of labels in pred and target
+    # for metrics with binary=True, target is always binary and pred will be
+    # (unnormalized) class probabilities
+    class_comb = [(5, 2)] if binary else [(10, 10), (5, 10), (10, 5)]
+    for n_cls_pred, n_cls_target in class_comb:
         pred = torch.randint(n_cls_pred, (300,), device=device)
         target = torch.randint(n_cls_target, (300,), device=device)
 
         sk_score = sklearn_metric(target.cpu().detach().numpy(),
                                   pred.cpu().detach().numpy())
-        sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
         pl_score = torch_metric(pred, target)
-        assert torch.allclose(sk_score, pl_score)
+
+        # if multi output
+        if isinstance(sk_score, tuple):
+            sk_score = [torch.tensor(sk_s.copy(), dtype=torch.float, device=device) for sk_s in sk_score]
+            for sk_s, pl_s in zip(sk_score, pl_score):
+                assert torch.allclose(sk_s, pl_s.float())
+        else:
+            sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+            assert torch.allclose(sk_score, pl_score)
 
 
 def test_onehot():
@@ -340,6 +357,14 @@ def test_iou(half_ones, reduction, remove_bg, expected):
     iou_val = iou(pred, target, remove_bg=remove_bg, reduction=reduction)
     assert torch.allclose(iou_val, expected, atol=1e-9)
 
+
+@pytest.mark.parametrize('metric', [auroc, precision_recall_curve, roc])
+def test_error_on_multiclass_input(metric):
+    """ check that these metrics gives an error if they are used for multiclass problems  """
+    pred = torch.randint(0,10,(100,))
+    target = torch.randint(0,10,(100,))
+    with pytest.raises(ValueError):
+        _ = metric(pred, target)
 
 # example data taken from
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py
