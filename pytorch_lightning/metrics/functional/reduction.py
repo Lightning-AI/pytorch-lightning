@@ -60,6 +60,6 @@ def class_reduce(num: torch.Tensor,
         return torch.sum(fraction * (weights / torch.sum(weights)))
     if class_reduction == 'none':
         return fraction
-    else:
-        raise ValueError(f'Reduction parameter {class_reduction} unknown.'
-                         f'Choose between one of these: {valid_reduction}')
+
+    raise ValueError(f'Reduction parameter {class_reduction} unknown.'
+                     f'Choose between one of these: {valid_reduction}')
