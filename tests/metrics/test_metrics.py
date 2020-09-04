@@ -6,7 +6,7 @@ import torch
 
 import tests.base.develop_utils as tutils
 from tests.base import EvalModelTemplate
-from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric, TensorCollectionMetric
+from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
 from pytorch_lightning import Trainer
 
 
@@ -30,7 +30,7 @@ class DummyNumpyMetric(NumpyMetric):
         return 1.0
 
 
-class DummyTensorCollectionMetric(TensorCollectionMetric):
+class DummyTensorCollectionMetric(TensorMetric):
     def __init__(self):
         super().__init__("dummy")
 
