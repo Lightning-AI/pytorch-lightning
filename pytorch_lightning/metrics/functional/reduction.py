@@ -56,9 +56,9 @@ def class_reduce(num: torch.Tensor,
     fraction[fraction != fraction] = 0
     if class_reduction == 'macro':
         return torch.mean(fraction)
-    if class_reduction == 'weighted':
+    elif class_reduction == 'weighted':
         return torch.sum(fraction * (weights / torch.sum(weights)))
-    if class_reduction == 'none':
+    elif class_reduction == 'none':
         return fraction
 
     raise ValueError(f'Reduction parameter {class_reduction} unknown.'
