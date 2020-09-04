@@ -206,58 +206,35 @@ class TensorMetric(Metric):
 
     @staticmethod
     def output_convert(self, data: Any, output: Any):
-        output = apply_to_collection(output, torch.Tensor, convert_to_tensor, self.dtype, self.device)
-        return super(TensorMetric, self).output_convert(self, data, output)
 
-
-class TensorCollectionMetric(Metric):
-    """
-    Base class for metric implementation operating directly on tensors.
-    All inputs will be casted to tensors if necessary. Outputs won't be casted.
-    Already handles DDP sync and input conversions.
-
-    This class differs from :class:`TensorMetric`, as it assumes all outputs to
-    be collections of tensors and does not explicitly convert them. This is
-    necessary, since some collections (like for ROC, Precision-Recall Curve etc.)
-    cannot be converted to tensors at the highest level.
-    All numpy arrays and numbers occuring in these outputs will still be converted.
-
-    Use this class as a baseclass, whenever you want to ensure inputs are
-    tensors and outputs cannot be converted to tensors automatically
-
-    """
-
-    @staticmethod
-    def input_convert(self, data: Any):
-        data = apply_to_collection(
-            data, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
-        )
-        return super(TensorCollectionMetric, self).input_convert(self, data)
-
-    @staticmethod
-    def output_convert(self, data: Any, output: Any):
         output = apply_to_collection(
             output, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
         )
-        return super(TensorCollectionMetric, self).output_convert(self, data, output)
+        return super(TensorMetric, self).output_convert(self, data, output)
 
-    def aggregate(self, *tensors: torch.Tensor) -> Union[torch.Tensor, Dict[str, torch.Tensor], Sequence[torch.Tensor]]:
-        """Properly aggregate sequences of tensors and dicts of tensors
+    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
+        """
+        Implement aggregation of values on the same device
 
-        Raises:
-            TypeError: Unknown type
+        Args:
+            tensors: the values to be aggregated
 
         Returns:
-            the aggregated results
+            aggregated values
+
         """
-        if isinstance(tensors[0], Mapping):
-            return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
-        elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
-            return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
-        elif isinstance(tensors[0], torch.Tensor):
-            return torch.stack(tensors).mean(0)
-        else:
-            raise TypeError
+
+        try:
+            return super().aggregate(*tensors)
+        except (ValueError, TypeError):
+            if isinstance(tensors[0], Mapping):
+                return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
+            elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
+                return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
+            elif isinstance(tensors[0], torch.Tensor):
+                return torch.stack(tensors).mean(0)
+            else:
+                raise TypeError
 
 
 class NumpyMetric(Metric):
