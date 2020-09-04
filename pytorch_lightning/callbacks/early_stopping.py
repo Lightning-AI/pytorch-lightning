@@ -85,7 +85,9 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
         self.mode = mode
         self.warned_result_obj = False
-        self.using_train_result = True
+        # Indicates, if eval results are used as basis for early stopping
+        # It is set to False initially and overwritten, if eval results have been validated
+        self.based_on_eval_results = False
 
         if mode not in self.mode_dict:
             if self.verbose > 0:
@@ -158,13 +160,13 @@ class EarlyStopping(Callback):
         if val_es_key in trainer.logger_connector.callback_metrics:
             self.strict = False
 
-        self._validate_condition_metric(trainer.logger_connector.callback_metrics)
-        # turn off early stopping in on_train_epoch_end
-        self.using_train_result = False
+        if self._validate_condition_metric(trainer.logger_connector.callback_metrics):
+            # turn off early stopping in on_train_epoch_end
+            self.based_on_eval_results = True
 
     def on_train_epoch_end(self, trainer, pl_module):
         # disable early stopping in train loop when there's a val loop
-        if not self.using_train_result:
+        if self.based_on_eval_results:
             return
 
         # early stopping can also work in the train loop when there is no val loop
