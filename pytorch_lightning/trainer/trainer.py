@@ -59,7 +59,9 @@ from pytorch_lightning.trainer import docstrings
 from pytorch_lightning.trainer.properties import TrainerProperties
 
 # warnings to ignore in trainer
-from pytorch_lightning.utilities.xla_device_utils import TPU_AVAILABLE
+from pytorch_lightning.utilities.xla_device_utils import tpu_device_exists
+
+TPU_AVAILABLE = tpu_device_exists()
 
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'

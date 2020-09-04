@@ -19,14 +19,17 @@ import torch
 import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
-from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import AMPType, rank_zero_info, rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.xla_device_utils import TPU_AVAILABLE
+from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.xla_device_utils import tpu_device_exists
+
+TPU_AVAILABLE = tpu_device_exists()
 
 if TPU_AVAILABLE:
+    import torch_xla
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as xla_pl
     import torch_xla.distributed.xla_multiprocessing as xmp

@@ -7,10 +7,12 @@ from torch.utils.data import DataLoader
 import tests.base.develop_pipelines as tpipes
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.xla_device_utils import TPU_AVAILABLE
+from pytorch_lightning.utilities.xla_device_utils import tpu_device_exists
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
 from tests.base.develop_utils import pl_multi_process_test
+
+TPU_AVAILABLE = tpu_device_exists()
 
 if TPU_AVAILABLE:
     import torch_xla
