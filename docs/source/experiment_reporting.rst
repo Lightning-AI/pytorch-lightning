@@ -36,12 +36,12 @@ want to save logs to the filesystem using this trainer flag.
     k = 100
     trainer = Trainer(log_save_interval=k)
 
-.. seealso::
-    :class:`~pytorch_lightning.trainer.trainer.Trainer`
-
-Note: Unlike the `row_log_interval`, this argument does not apply to all loggers.
+Unlike the `row_log_interval`, this argument does not apply to all loggers.
 The example shown here works with :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`,
 which is the default logger in Lightning.
+
+.. seealso::
+    :class:`~pytorch_lightning.trainer.trainer.Trainer`
 
 
 ----------
