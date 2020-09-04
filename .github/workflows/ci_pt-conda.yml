@@ -23,12 +23,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup pyTorch nightly channel
+    - name: Setup PyTorch nightly channel
       if: matrix.pytorch-version == 1.7
       run: |
         python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', 'pytorch-nightly', 1) ; open(fname, 'w').write(req)"
 
-    - name: Setup pyTorch
+    - name: Setup PyTorch
       run: |
         python -c "fname = 'environment.yml' ; req = open(fname).read().replace('torch>=1.3', 'torch=${{ matrix.pytorch-version }}') ; open(fname, 'w').write(req)"
         cat environment.yml
