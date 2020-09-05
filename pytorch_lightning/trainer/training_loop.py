@@ -941,7 +941,7 @@ class TrainerTrainLoopMixin(ABC):
         self.train_loop.backward(result, optimizer, opt_idx)
 
         # hook
-        self.train_loop.on_after_backward(result.training_step_output, batch_idx, result.untouched_loss)
+        self.train_loop.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
         return result
 
