@@ -934,73 +934,15 @@ class TrainerTrainLoopMixin(ABC):
         """
         wrap the forward step in a closure so second order methods work
         """
-        # ---------------------------
-        # FORWARD (TRAINING STEP + TRAIN STEP END)
-        # ---------------------------
-        with self.profiler.profile('model_forward'):
-            args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
-            training_step_output = self.accelerator_backend.training_step(args)
-            training_step_output = self.call_hook('training_step_end', training_step_output)
-
-            # ----------------------------
-            # PROCESS THE RESULT
-            # ----------------------------
-            # format and reduce outputs accordingly
-            training_step_output_for_epoch_end = training_step_output
-            is_result_obj = isinstance(training_step_output, Result)
-
-            # track batch size for weighted average
-            if is_result_obj:
-                training_step_output.track_batch_size(len(split_batch))
-
-            # don't allow EvalResult in the training_step
-            if isinstance(training_step_output, EvalResult):
-                raise MisconfigurationException('training_step cannot return EvalResult, '
-                                                'use a dict or TrainResult instead')
-
-            # handle regular dicts
-            if not is_result_obj:
-                training_step_output = self.process_output(training_step_output, train=True)
-
-                training_step_output = AttributeDict(
-                    batch_loss=training_step_output[0],
-                    pbar_on_batch_end=training_step_output[1],
-                    log_metrics=training_step_output[2],
-                    callback_metrics=training_step_output[3],
-                    hiddens=training_step_output[4],
-                )
-
-            # if the user decides to finally reduce things in epoch_end, save raw output without graphs
-            if isinstance(training_step_output_for_epoch_end, torch.Tensor):
-                training_step_output_for_epoch_end = training_step_output_for_epoch_end.detach()
-            elif is_result_obj:
-                training_step_output_for_epoch_end = copy(training_step_output)
-                training_step_output_for_epoch_end.detach()
-            else:
-                training_step_output_for_epoch_end = recursive_detach(training_step_output_for_epoch_end)
-
-        # accumulate loss
-        # (if accumulate_grad_batches = 1 no effect)
-        closure_loss = training_step_output.minimize if is_result_obj else training_step_output.batch_loss
-        closure_loss = closure_loss / self.accumulate_grad_batches
-
-        # the loss will get scaled for amp. avoid any modifications to it
-        untouched_loss = closure_loss.detach().clone()
+        # lightning module hook
+        result = self.train_loop.training_step(split_batch, batch_idx, opt_idx, hiddens)
 
         # backward pass
-        with self.profiler.profile('model_backward'):
-            closure_loss = self.accelerator_backend.backward(closure_loss, optimizer, opt_idx)
+        self.train_loop.backward(result, optimizer, opt_idx)
 
         # hook
-        self.train_loop.on_after_backward(training_step_output, batch_idx, untouched_loss)
+        self.train_loop.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
-        # result
-        result = AttributeDict(
-            loss=untouched_loss,
-            training_step_output=training_step_output,
-            training_step_output_for_epoch_end=training_step_output_for_epoch_end,
-            hiddens=training_step_output.hiddens,
-        )
         return result
 
     def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
