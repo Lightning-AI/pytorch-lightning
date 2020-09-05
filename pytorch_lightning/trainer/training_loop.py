@@ -854,50 +854,14 @@ class TrainerTrainLoopMixin(ABC):
         )
         return result
 
-    def run_batch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
-        # ------------------
-        # GRAD NORMS
-        # ------------------
-        # track gradient norms when requested
-        grad_norm_dic = {}
-        if batch_idx % self.row_log_interval == 0:
-            if float(self.track_grad_norm) > 0:
-                model = self.get_model()
-                grad_norm_dic = model.grad_norm(
-                    self.track_grad_norm)
+    def run_run_batch_backward_passbatch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
+        # hook
+        grad_norm_dic = self.accelerator_backend.on_before_backward(batch_idx, optimizer)
 
-        # training trick
-        self.accelerator_backend.clip_gradients(optimizer)
-
-        # ------------------
-        # .STEP + ZERO_GRAD
-        # ------------------
-        self.call_optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
+        # optimizer step (TODO: decouple zero grad)
+        self.train_loop.optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
 
         return grad_norm_dic
-
-    def call_optimizer_step(self, optimizer, opt_idx, batch_idx, split_batch):
-        # calls .step(), .zero_grad()
-        # override function to modify this behavior
-        model = self.get_model()
-
-        with self.profiler.profile('optimizer_step'):
-            lambda_closure = lambda: self.optimizer_closure(
-                split_batch,
-                batch_idx,
-                opt_idx,
-                optimizer,
-                self.hiddens,
-            ).loss
-
-            # optimizer step lightningModule hook
-            self.accelerator_backend.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure)
-
-            # hook
-            model.on_before_zero_grad(optimizer)
-
-            # clear gradients
-            self.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
     def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
