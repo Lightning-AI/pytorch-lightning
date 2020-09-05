@@ -898,37 +898,14 @@ class TrainerTrainLoopMixin(ABC):
                 self.hiddens,
             ).loss
 
-            # apply TPU optimizer
-            if self.use_tpu and XLA_AVAILABLE:
-                model.optimizer_step(self.current_epoch, batch_idx,
-                                     optimizer, opt_idx, lambda_closure, on_tpu=True)
+            # optimizer step lightningModule hook
+            self.accelerator_backend.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure)
 
-            # for LBFGS do something a bit different
-            elif isinstance(optimizer, torch.optim.LBFGS):
-
-                # native amp + lbfgs is a no go right now
-                if self.amp_backend == AMPType.NATIVE:
-                    raise MisconfigurationException(
-                        'native PyTorch amp and lbfgs are not compatible.'
-                        ' To request, please file a Github issue in PyTorch and tag @mcarilli')
-                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
-                                     using_lbfgs=True)
-
-            # when using 16-bit
-            else:
-                native_amp = self.amp_backend == AMPType.NATIVE
-                model.optimizer_step(self.current_epoch, batch_idx, optimizer, opt_idx, lambda_closure,
-                                     using_native_amp=native_amp)
-
-            # in native 16-bit we need to update scaler after optimizer step
-            if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
-                self.scaler.update()
-
-            # model hook
+            # hook
             model.on_before_zero_grad(optimizer)
 
             # clear gradients
-            model.optimizer_zero_grad(self.current_epoch, batch_idx, optimizer, opt_idx)
+            self.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
     def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
