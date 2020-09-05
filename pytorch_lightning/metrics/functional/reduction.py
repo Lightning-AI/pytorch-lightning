@@ -31,12 +31,12 @@ def class_reduce(num: torch.Tensor,
     """
     Function used to reduce classification metrics of the form `num / denom * weights`
     For example for calculating standard accuracy the num would be number of
-    true positives pr class, denom would be the support pr class, and weights
+    true positives per class, denom would be the support pr class, and weights
     would be a tensor of 1s
 
     Args:
         num: numerator tensor
-        decom: denomerator tensor
+        decom: denominator tensor
         weights: weights for each class
         class_reduction: reduction method for multiclass problems
 
