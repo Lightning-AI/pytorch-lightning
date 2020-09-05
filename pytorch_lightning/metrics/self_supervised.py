@@ -29,7 +29,7 @@ class EmbeddingSimilarity(TensorMetric):
     def __init__(self,
                  similarity: str = 'cosine',
                  zero_diagonal: bool = True,
-                 reduction: str = 'elementwise_mean',
+                 reduction: str = 'mean',
                  reduce_group: Any = None):
         """ Computes similarity between embeddings
 
@@ -42,10 +42,10 @@ class EmbeddingSimilarity(TensorMetric):
                         [0.9759, 0.9759, 0.0000]])
 
             Args:
-                batch: tensor with embeddings (batch, dim)
                 similarity: 'dot' or 'cosine'
                 reduction: 'none', 'sum', 'mean' (all along dim -1)
                 zero_diagonal: if True, the diagonals are set to zero
+                reduce_group: the process group to reduce metric results from DDP
 
         Return:
             A square matrix (batch, batch) with the similarity scores between all elements
@@ -58,8 +58,16 @@ class EmbeddingSimilarity(TensorMetric):
         self.reduction = self.reduction
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
-        """
 
+        """
+        Actual metric computation
+
+        Args:
+            batch: tensor containing embeddings with shape (batch_size, dim)
+
+        Return:
+            A square matrix (batch, batch) with the similarity scores between all elements
+            If sum or mean are used, then returns (b, 1) with the reduced value for each row
         """
         return embedding_similarity(batch,
                                     similarity=self.similarity,
