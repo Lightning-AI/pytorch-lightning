@@ -193,8 +193,7 @@ For fast research prototyping, it might be easier to link the model with the dat
                                           transforms.Normalize((0.1307,), (0.3081,))])
             # data
             mnist_train = MNIST(os.getcwd(), train=True, download=True)
-            mnist_train = DataLoader(mnist_train, batch_size=64)
-            return DataLoader(mnist_train)
+            return DataLoader(mnist_train, batch_size=64)
 
         def val_dataloader(self):
             transforms = ...
