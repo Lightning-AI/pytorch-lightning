@@ -220,3 +220,14 @@ class TPUBackend(Accelerator):
         log.info(f'INIT TPU local core: {trainer.tpu_local_core_rank},'
                  f' global rank: {trainer.tpu_global_core_rank}'
                  f' with XLA_USE_BF16={os.environ.get("XLA_USE_BF16")}')
+
+    def backward(self, closure_loss, optimizer, opt_idx):
+        model_ref = self.trainer.get_model()
+
+        # do backward pass
+        model_ref.backward(self, closure_loss, optimizer, opt_idx)
+
+        # detach after backward
+        closure_loss = closure_loss.detach()
+
+        return closure_loss

@@ -988,36 +988,16 @@ class TrainerTrainLoopMixin(ABC):
         untouched_loss = closure_loss.detach().clone()
 
         # backward pass
-        model_ref = self.get_model()
         with self.profiler.profile('model_backward'):
-            # scale loss for 16 bit
-            if self.precision == 16 and not self.on_tpu:
-                closure_loss = model_ref.amp_scale_loss(closure_loss, optimizer, opt_idx, amp_backend=self.amp_backend)
+            closure_loss = self.accelerator_backend.backward(closure_loss, optimizer, opt_idx)
 
-                # enter amp context
-                if self.amp_backend == AMPType.APEX:
-                    self.dev_debugger.track_event('AMP', str(AMPType.APEX))
-                    context = closure_loss
-                    closure_loss = closure_loss.__enter__()
-
-            # do backward pass
-            model_ref.backward(self, closure_loss, optimizer, opt_idx)
-
-            # exit amp context
-            if self.precision == 16 and self.amp_backend == AMPType.APEX and not self.on_tpu:
-                a, b, c = None, None, None
-                error = context.__exit__(a, b, c)
-                if error:
-                    rank_zero_warn(a, b, c)
-                    raise Exception('apex unscale error')
-
-            # once backward has been applied, release graph
-            closure_loss = closure_loss.detach()
-
-            if is_result_obj:
-                training_step_output.detach()
-            else:
-                training_step_output.batch_loss = training_step_output.batch_loss.detach()
+        # --------------------
+        # ON AFTER BACKWARD TODO
+        # --------------------
+        if is_result_obj:
+            training_step_output.detach()
+        else:
+            training_step_output.batch_loss = training_step_output.batch_loss.detach()
 
         if self.use_horovod:
             # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
