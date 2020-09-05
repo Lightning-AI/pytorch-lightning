@@ -854,7 +854,7 @@ class TrainerTrainLoopMixin(ABC):
         )
         return result
 
-    def run_run_batch_backward_passbatch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
+    def run_batch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
         # hook
         grad_norm_dic = self.accelerator_backend.on_before_backward(batch_idx, optimizer)
 

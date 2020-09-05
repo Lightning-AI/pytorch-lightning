@@ -243,7 +243,6 @@ class TrainLoop:
 
         # clip gradients
         self.trainer.accelerator_backend.clip_gradients(optimizer)
-
         return grad_norm_dic
 
     def _track_gradient_norm(self, batch_idx):
