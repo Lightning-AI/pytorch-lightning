@@ -991,27 +991,10 @@ class TrainerTrainLoopMixin(ABC):
         with self.profiler.profile('model_backward'):
             closure_loss = self.accelerator_backend.backward(closure_loss, optimizer, opt_idx)
 
-        # --------------------
-        # ON AFTER BACKWARD TODO
-        # --------------------
-        if is_result_obj:
-            training_step_output.detach()
-        else:
-            training_step_output.batch_loss = training_step_output.batch_loss.detach()
+        # hook
+        self.train_loop.on_after_backward(training_step_output, batch_idx, untouched_loss)
 
-        if self.use_horovod:
-            # Synchronize Horovod to ensure gradient manipulations (e.g., loss scaling) are valid
-            optimizer.synchronize()
-
-        # insert after step hook
-        if self.is_function_implemented('on_after_backward'):
-            model_ref = self.get_model()
-            with self.profiler.profile('on_after_backward'):
-                model_ref.on_after_backward()
-
-        # when in dev debugging track the losses
-        self.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
-
+        # result
         result = AttributeDict(
             loss=untouched_loss,
             training_step_output=training_step_output,
