@@ -213,3 +213,43 @@ class TrainLoop:
             hiddens=training_step_output.hiddens,
         )
         return result
+
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, split_batch):
+        # calls .step(), .zero_grad()
+        # override function to modify this behavior
+        model = self.trainer.get_model()
+
+        with self.trainer.profiler.profile('optimizer_step'):
+            lambda_closure = lambda: self.trainer.optimizer_closure(
+                split_batch,
+                batch_idx,
+                opt_idx,
+                optimizer,
+                self.trainer.hiddens,
+            ).loss
+
+            # optimizer step lightningModule hook
+            self.trainer.accelerator_backend.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure)
+
+            # hook
+            model.on_before_zero_grad(optimizer)
+
+            # clear gradients
+            self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+
+    def on_before_backward(self, batch_idx, optimizer):
+        # track gradient norms
+        grad_norm_dic = self._track_gradient_norm(batch_idx)
+
+        # clip gradients
+        self.trainer.accelerator_backend.clip_gradients(optimizer)
+        return grad_norm_dic
+
+    def _track_gradient_norm(self, batch_idx):
+        grad_norm_dic = {}
+        if batch_idx % self.trainer.row_log_interval == 0:
+            if float(self.trainer.track_grad_norm) > 0:
+                model = self.trainer.get_model()
+                grad_norm_dic = model.grad_norm(
+                    self.trainer.track_grad_norm)
+        return grad_norm_dic
