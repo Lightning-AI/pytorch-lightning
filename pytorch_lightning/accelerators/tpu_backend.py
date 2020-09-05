@@ -231,3 +231,17 @@ class TPUBackend(Accelerator):
         closure_loss = closure_loss.detach()
 
         return closure_loss
+
+    def optimizer_step(self, optimizer, batch_idx, opt_idx, lambda_closure):
+        model_ref = self.trainer.get_model()
+        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
+
+        # model hook
+        model_ref.optimizer_step(
+            self.trainer.current_epoch,
+            batch_idx, optimizer,
+            opt_idx,
+            lambda_closure,
+            on_tpu=True,
+            using_lbfgs=is_lbfgs
+        )
