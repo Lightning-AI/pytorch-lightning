@@ -60,7 +60,7 @@ __sequence_metrics = ["BLEUScore"]
 __selfsuper_metrics = ["EmbeddingSimilarity"]
 
 __all__ = __regression_metrics \
-        + __classification_metrics \
-        + __selfsuper_metrics \
-        + __sequence_metrics \
-        + ["SklearnMetric"]
+    + __classification_metrics \
+    + __selfsuper_metrics \
+    + __sequence_metrics \
+    + ["SklearnMetric"]

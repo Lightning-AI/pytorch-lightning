@@ -4,13 +4,14 @@ from sklearn.metrics import pairwise
 
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
 
+
 @pytest.mark.parametrize('similarity', ['cosine', 'dot'])
 @pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
 def test_against_sklearn(similarity, reduction):
     """Compare PL metrics to sklearn version."""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    batch = torch.randn(5, 10, device=device) # 100 samples in 10 dimensions
+    batch = torch.randn(5, 10, device=device)  # 100 samples in 10 dimensions
 
     pl_dist = embedding_similarity(batch, similarity=similarity,
                                    reduction=reduction, zero_diagonal=False)
@@ -21,9 +22,9 @@ def test_against_sklearn(similarity, reduction):
                        'dot': pairwise.linear_kernel}[similarity]
 
         dist = metric_func(batch, batch)
-        if reduction=='mean':
+        if reduction == 'mean':
             return dist.mean(axis=-1)
-        if reduction=='sum':
+        if reduction == 'sum':
             return dist.sum(axis=-1)
         return dist
 
@@ -32,4 +33,3 @@ def test_against_sklearn(similarity, reduction):
     sk_dist = torch.tensor(sk_dist, dtype=torch.float, device=device)
 
     assert torch.allclose(sk_dist, pl_dist)
-

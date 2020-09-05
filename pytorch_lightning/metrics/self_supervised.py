@@ -19,11 +19,13 @@ import torch
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
 from pytorch_lightning.metrics.metric import TensorMetric
 
+
 class EmbeddingSimilarity(TensorMetric):
     """
 
 
     """
+
     def __init__(self,
                  similarity: str = 'cosine',
                  zero_diagonal: bool = True,
