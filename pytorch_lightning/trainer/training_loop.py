@@ -938,8 +938,7 @@ class TrainerTrainLoopMixin(ABC):
         result = self.train_loop.training_step(split_batch, batch_idx, opt_idx, hiddens)
 
         # backward pass
-        with self.profiler.profile('model_backward'):
-            result.closure_loss = self.accelerator_backend.backward(result.closure_loss, optimizer, opt_idx)
+        self.train_loop.backward(result, optimizer, opt_idx)
 
         # hook
         self.train_loop.on_after_backward(result.training_step_output, batch_idx, result.untouched_loss)
