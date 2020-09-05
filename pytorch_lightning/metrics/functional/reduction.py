@@ -1,5 +1,5 @@
 import torch
-
+from pytorch_lightning.metrics.functional.reduction import reduce
 
 def reduce(to_reduce: torch.Tensor, reduction: str) -> torch.Tensor:
     """

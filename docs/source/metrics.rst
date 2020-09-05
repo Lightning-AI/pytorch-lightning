@@ -158,6 +158,11 @@ DiceCoefficient
 .. autoclass:: pytorch_lightning.metrics.classification.DiceCoefficient
     :noindex:
 
+EmbeddingSimilarity
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.self_supervised.EmbeddingSimilarity
+
 F1
 ^^
 

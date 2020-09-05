@@ -37,13 +37,10 @@ def embedding_similarity(
     if zero_diagonal:
         sqr_mtx = sqr_mtx.fill_diagonal_(0)
 
-    if reduction == 'mean':
+    if reduction == 'elementwise_mean':
         sqr_mtx = sqr_mtx.mean(dim=-1)
 
+    if reduction == 'sum':
+        sqr_mtx = sqr_mtx.sum(dim=-1)
+
     return sqr_mtx
-
-
-if __name__ == '__main__':
-    a = torch.rand(3, 5)
-
-    print(embedding_similarity(a, 'cosine'))
