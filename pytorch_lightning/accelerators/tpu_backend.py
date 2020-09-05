@@ -19,7 +19,7 @@ import torch.multiprocessing as mp
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.base_backend import Accelerator
 
@@ -245,3 +245,8 @@ class TPUBackend(Accelerator):
             on_tpu=True,
             using_lbfgs=is_lbfgs
         )
+
+    def clip_gradients(self, optimizer):
+        # apply clip gradients
+        # TODO: separate TPU case from here
+        self._clip_gradients(optimizer)
