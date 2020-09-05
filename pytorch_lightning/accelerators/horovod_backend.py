@@ -158,3 +158,7 @@ class HorovodBackend(Accelerator):
         else:
             output = self.trainer.model.test_step(*args)
         return output
+
+    def backward(self, closure_loss, optimizer, opt_idx):
+        super().backward(closure_loss, optimizer, opt_idx)
+        optimizer.synchronize()

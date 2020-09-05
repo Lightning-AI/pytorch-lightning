@@ -91,7 +91,6 @@ class TrainLoop:
         self.early_stopping_accumulator = Accumulator()
         self.checkpoint_accumulator = Accumulator()
 
-
     def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
         # figure out what to track for epoch end
         self.track_epoch_end_reduce_metrics(epoch_output, epoch_end_outputs)
@@ -115,7 +114,6 @@ class TrainLoop:
                 opt_outputs = opt_outputs[0]
             epoch_output[opt_idx].append(opt_outputs)
 
-
     def get_optimizers_iterable(self):
         """
         Generates an iterable with (idx, optimizer) for each optimizer.
@@ -131,3 +129,17 @@ class TrainLoop:
         # find optimzier index by looking for the first {item > current_place} in the cumsum list
         opt_idx = np.argmax(optimizer_freq_cumsum > current_place_in_loop)
         return [(opt_idx, self.trainer.optimizers[opt_idx])]
+
+    def on_after_backward(self, training_step_output, batch_idx, untouched_loss):
+        is_result_obj = isinstance(training_step_output, Result)
+
+        if is_result_obj:
+            training_step_output.detach()
+        else:
+            training_step_output.batch_loss = training_step_output.batch_loss.detach()
+
+        # insert after step hook
+        self.trainer.call_hook('on_after_backward')
+
+        # when in dev debugging track the losses
+        self.trainer.dev_debugger.track_train_loss_history(batch_idx, untouched_loss.detach())
