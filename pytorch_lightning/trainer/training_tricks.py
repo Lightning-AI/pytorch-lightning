@@ -42,12 +42,9 @@ class TrainerTrainingTricksMixin(ABC):
 
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    gradient_clip_val: ...
-    precision: int
     default_root_dir: str
     progress_bar_callback: ...
     on_gpu: bool
-    amp_backend: AMPType
 
     @abstractmethod
     def get_model(self) -> LightningModule:
@@ -64,37 +61,6 @@ class TrainerTrainingTricksMixin(ABC):
     @abstractmethod
     def fit(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
-
-    def clip_gradients(self, optimizer):
-
-        # this code is a modification of torch.nn.utils.clip_grad_norm_
-        # with TPU support based on https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md
-        if self.gradient_clip_val <= 0:
-            return
-        model = self.get_model()
-        if self.amp_backend == AMPType.APEX:
-            parameters = amp.master_params(optimizer)
-        else:
-            parameters = model.parameters()
-        max_norm = float(self.gradient_clip_val)
-        norm_type = float(2.0)
-        if isinstance(parameters, torch.Tensor):
-            parameters = [parameters]
-        parameters = list(filter(lambda p: p.grad is not None, parameters))
-        if norm_type == math.inf:
-            total_norm = max(p.grad.data.abs().max() for p in parameters)
-        else:
-            device = parameters[0].device
-            out = torch.empty(len(parameters), device=device)
-            for i, p in enumerate(parameters):
-                torch.norm(p.grad.data.to(device), norm_type, out=out[i])
-            total_norm = torch.norm(out, norm_type)
-
-        eps = EPSILON_FP16 if self.precision == 16 else EPSILON
-        clip_coef = torch.tensor(max_norm, device=device) / (total_norm + eps)
-        clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
-        for p in parameters:
-            p.grad.data.mul_(clip_coef.to(p.grad.data.device))
 
     def print_nan_gradients(self) -> None:
         model = self.get_model()

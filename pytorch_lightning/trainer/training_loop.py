@@ -299,10 +299,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def clip_gradients(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def detect_nan_tensors(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -870,12 +866,8 @@ class TrainerTrainLoopMixin(ABC):
                 grad_norm_dic = model.grad_norm(
                     self.track_grad_norm)
 
-        # ------------------
-        # CLIP GRADS
-        # ------------------
-        if self.amp_backend == AMPType.NATIVE and not self.use_tpu:
-            self.scaler.unscale_(optimizer)
-        self.clip_gradients(optimizer)
+        # training trick
+        self.accelerator_backend.clip_gradients(optimizer)
 
         # ------------------
         # .STEP + ZERO_GRAD
