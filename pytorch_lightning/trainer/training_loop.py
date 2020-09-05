@@ -829,9 +829,17 @@ class TrainerTrainLoopMixin(ABC):
                 # gradient update with accumulated gradients
                 if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
                         or (self.batch_idx + 1) == self.num_training_batches):
+                    # hook
+                    grad_norm_dic = self.train_loop.on_before_backward(batch_idx, optimizer)
 
-                    # backward
-                    grad_norm_dic = self.run_batch_backward_pass(split_batch, batch_idx, opt_idx, optimizer)
+                    # optimizer step
+                    self.train_loop.optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
+
+                    # hook
+                    self.train_loop.on_before_zero_grad(optimizer)
+
+                    # clear gradients
+                    self.train_loop.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                     # calculate running loss for display
                     self.running_loss.append(self.batch_loss_value.mean() * self.accumulate_grad_batches)
@@ -853,21 +861,6 @@ class TrainerTrainLoopMixin(ABC):
             training_step_output_for_epoch_end=batch_outputs
         )
         return result
-
-    def run_batch_backward_pass(self, split_batch, batch_idx, opt_idx, optimizer):
-        # hook
-        grad_norm_dic = self.train_loop.on_before_backward(batch_idx, optimizer)
-
-        # optimizer step
-        self.train_loop.optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
-
-        # hook
-        self.train_loop.on_before_zero_grad(optimizer)
-
-        # clear gradients
-        self.train_loop.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
-
-        return grad_norm_dic
 
     def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
