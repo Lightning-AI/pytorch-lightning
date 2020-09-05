@@ -935,7 +935,7 @@ class TrainerTrainLoopMixin(ABC):
         wrap the forward step in a closure so second order methods work
         """
         # lightning module hook
-        result = self.train_loop.training_step(split_batch, batch_idx, opt_idx, optimizer, hiddens)
+        result = self.train_loop.training_step(split_batch, batch_idx, opt_idx, hiddens)
 
         # backward pass
         with self.profiler.profile('model_backward'):
