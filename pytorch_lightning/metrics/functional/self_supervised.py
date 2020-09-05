@@ -37,7 +37,7 @@ def embedding_similarity(
     if zero_diagonal:
         sqr_mtx = sqr_mtx.fill_diagonal_(0)
 
-    if reduction == 'elementwise_mean':
+    if reduction == 'mean':
         sqr_mtx = sqr_mtx.mean(dim=-1)
 
     if reduction == 'sum':
