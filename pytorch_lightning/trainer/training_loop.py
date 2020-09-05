@@ -858,8 +858,14 @@ class TrainerTrainLoopMixin(ABC):
         # hook
         grad_norm_dic = self.train_loop.on_before_backward(batch_idx, optimizer)
 
-        # optimizer step (TODO: decouple zero grad)
+        # optimizer step
         self.train_loop.optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
+
+        # hook
+        self.train_loop.on_before_zero_grad(optimizer)
+
+        # clear gradients
+        self.train_loop.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
         return grad_norm_dic
 
