@@ -795,7 +795,7 @@ class TrainerTrainLoopMixin(ABC):
                 # track hiddens
                 self.hiddens = opt_closure_result.hiddens
 
-                if using_results_obj:
+                if isinstance(opt_closure_result.training_step_output, Result):
                     opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
                 # -----------------
 
