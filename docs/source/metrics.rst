@@ -162,7 +162,7 @@ EmbeddingSimilarity
 ^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.self_supervised.EmbeddingSimilarity
-    :noindex
+    :noindex:
     
 F1
 ^^
