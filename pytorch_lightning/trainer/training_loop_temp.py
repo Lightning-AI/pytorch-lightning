@@ -98,7 +98,7 @@ class TrainLoop:
         self.trainer.current_epoch = epoch
 
         # changing gradient according accumulation_scheduler
-        self.trainer.accumulation_scheduler.on_epoch_start(self, self.trainer.get_model())
+        self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
 
         # stores accumulated grad fractions per batch
         self.trainer.batch_loss_value = TensorRunningAccum(
