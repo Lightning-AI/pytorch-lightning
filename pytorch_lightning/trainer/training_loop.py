@@ -666,7 +666,7 @@ class TrainerTrainLoopMixin(ABC):
                     self.detect_nan_tensors(opt_closure_result.loss)
 
                 # track total loss for logging (avoid mem leaks)
-                self.train_loop.batch_loss_value.append(opt_closure_result.loss)
+                self.train_loop.accumulated_loss.append(opt_closure_result.loss)
 
                 # track all the outputs across all steps
                 batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
@@ -696,10 +696,10 @@ class TrainerTrainLoopMixin(ABC):
                     self.train_loop.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                     # calculate running loss for display
-                    self.running_loss.append(self.train_loop.batch_loss_value.mean() * self.accumulate_grad_batches)
+                    self.running_loss.append(self.train_loop.accumulated_loss.mean() * self.accumulate_grad_batches)
 
                     # reset for next set of accumulated grads
-                    self.train_loop.batch_loss_value.reset()
+                    self.train_loop.accumulated_loss.reset()
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
