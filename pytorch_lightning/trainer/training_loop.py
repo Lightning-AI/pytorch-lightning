@@ -176,10 +176,8 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
@@ -279,7 +277,6 @@ class TrainerTrainLoopMixin(ABC):
     on_epoch_end: Callable
     on_validation_end: Callable
     on_keyboard_interrupt: Callable
-    on_train_epoch_start: Callable
     on_train_epoch_end: Callable
 
     @abstractmethod
@@ -351,30 +348,15 @@ class TrainerTrainLoopMixin(ABC):
         try:
             # run all epochs
             for epoch in range(self.current_epoch, self.max_epochs):
+
                 # reset train dataloader
                 if self.reload_dataloaders_every_epoch:
                     self.reset_train_dataloader(model)
-                # set seed for distributed sampler (enables shuffling for each epoch)
-                if (self.use_ddp or self.use_horovod or self.on_tpu) \
-                        and hasattr(self.train_dataloader, 'sampler') \
-                        and hasattr(self.train_dataloader.sampler, 'set_epoch'):
-                    self.train_dataloader.sampler.set_epoch(epoch)
 
-                # update training progress in trainer and model
-                model.current_epoch = epoch
-                self.current_epoch = epoch
+                # hook
+                self.train_loop.on_train_epoch_start(epoch)
 
-                # changing gradient according accumulation_scheduler
-                self.accumulation_scheduler.on_epoch_start(self, self.get_model())
-
-                # stores accumulated grad fractions per batch
-                self.batch_loss_value = TensorRunningAccum(
-                    window_length=self.accumulate_grad_batches
-                )
-
-                # -----------------
-                # RUN TNG EPOCH
-                # -----------------
+                # run train epoch
                 self.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
@@ -418,9 +400,6 @@ class TrainerTrainLoopMixin(ABC):
 
         # get model
         model = self.get_model()
-
-        # hook
-        self.train_loop.on_train_epoch_start()
 
         # modify dataloader if needed (ddp, etc...)
         train_dataloader = self.accelerator_backend.process_dataloader(self.train_dataloader)
