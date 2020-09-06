@@ -162,7 +162,8 @@ EmbeddingSimilarity
 ^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: pytorch_lightning.metrics.self_supervised.EmbeddingSimilarity
-
+    :noindex
+    
 F1
 ^^
 
@@ -634,4 +635,3 @@ MeanTweedieDeviance (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanTweedieDeviance
     :noindex:
-
