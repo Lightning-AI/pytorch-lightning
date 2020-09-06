@@ -182,6 +182,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
+from pytorch_lightning.utilities.debugging import InternalDebugger
 
 try:
     from apex import amp
@@ -237,6 +238,7 @@ class TrainerTrainLoopMixin(ABC):
     accelerator_backend: ...
     train_loop: TrainLoop
     data_connector: DataConnector
+    dev_debugger: InternalDebugger
 
     # Callback system
     callbacks: List[Callback]
@@ -664,7 +666,7 @@ class TrainerTrainLoopMixin(ABC):
                     self.detect_nan_tensors(opt_closure_result.loss)
 
                 # track total loss for logging (avoid mem leaks)
-                self.batch_loss_value.append(opt_closure_result.loss)
+                self.train_loop.batch_loss_value.append(opt_closure_result.loss)
 
                 # track all the outputs across all steps
                 batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
@@ -694,10 +696,10 @@ class TrainerTrainLoopMixin(ABC):
                     self.train_loop.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                     # calculate running loss for display
-                    self.running_loss.append(self.batch_loss_value.mean() * self.accumulate_grad_batches)
+                    self.running_loss.append(self.train_loop.batch_loss_value.mean() * self.accumulate_grad_batches)
 
                     # reset for next set of accumulated grads
-                    self.batch_loss_value.reset()
+                    self.train_loop.batch_loss_value.reset()
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}
