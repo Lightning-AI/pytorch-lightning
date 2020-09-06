@@ -3,6 +3,7 @@ import importlib
 from multiprocessing import Process, Queue
 
 TORCHXLA_AVAILABLE = importlib.util.find_spec("torch_xla") is not None
+TPU_AVAILABLE = None
 if TORCHXLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
 else:
@@ -47,4 +48,7 @@ def is_device_tpu():
 
 
 def tpu_device_exists():
-    return pl_multi_process(is_device_tpu)()
+    global TPU_AVAILABLE
+    if TPU_AVAILABLE is None:
+        TPU_AVAILABLE = pl_multi_process(is_device_tpu)()
+    return TPU_AVAILABLE
