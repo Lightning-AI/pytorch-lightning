@@ -791,13 +791,8 @@ class TrainerTrainLoopMixin(ABC):
                 # log metrics
                 self.train_loop.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
 
-                # -----------------
                 # track hiddens
-                self.hiddens = opt_closure_result.hiddens
-
-                if isinstance(opt_closure_result.training_step_output, Result):
-                    opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
-                # -----------------
+                self.hiddens = self.train_loop.process_hiddens(opt_closure_result)
 
                 # check if loss or model weights are nan
                 if self.terminate_on_nan:
