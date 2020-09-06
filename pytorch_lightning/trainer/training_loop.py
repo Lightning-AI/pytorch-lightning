@@ -210,73 +210,41 @@ SIGNAL_TERMINATE = ('SIGTERM', 'SIGSEGV', 'SIGINT')
 class TrainerTrainLoopMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    max_epochs: int
-    min_epochs: int
     on_gpu: bool
-    root_gpu: ...
-    use_ddp: bool
-    use_dp: bool
-    use_ddp2: bool
     use_horovod: bool
-    use_single_gpu: bool
-    use_tpu: bool
-    data_parallel_device_ids: ...
     check_val_every_n_epoch: ...
     num_training_batches: int
     val_check_batch: ...
-    disable_validation: bool
     fast_dev_run: ...
-    accumulation_scheduler: ...
     lr_schedulers: ...
-    early_stop_callback: ...
     callback_metrics: ...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
-    testing: bool
     log_save_interval: float
-    global_rank: int
     row_log_interval: float
     truncated_bptt_steps: ...
     optimizers: ...
-    optimizer_frequencies: ...
     accumulate_grad_batches: int
-    track_grad_norm: ...
     model: LightningModule
-    interrupted: bool
     running_loss: ...
-    progress_bar_dict: ...
-    reduce_lr_on_plateau_scheduler: ...
     profiler: ...
     batch_idx: int
-    precision: ...
     train_dataloader: DataLoader
-    reload_dataloaders_every_epoch: bool
     max_steps: int
-    min_steps: int
     total_batch_idx: int
     terminate_on_nan: bool
-    tpu_id: int
-    interactive_ddp_procs: ...
     _state: TrainerState
-    amp_backend: AMPType
-    on_tpu: bool
     accelerator_backend: ...
-    val_dataloaders: ...
     train_loop: TrainLoop
     data_connector: DataConnector
 
     # Callback system
     callbacks: List[Callback]
-    on_train_start: Callable
-    on_train_end: Callable
     on_batch_start: Callable
-    on_batch_end: Callable
     on_train_batch_start: Callable
     on_train_batch_end: Callable
-    on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
-    on_keyboard_interrupt: Callable
     on_train_epoch_end: Callable
 
     @abstractmethod
@@ -289,10 +257,6 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def run_evaluation(self, *args, **kwargs):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def transfer_batch_to_gpu(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -312,89 +276,12 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def reset_train_dataloader(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def reset_val_dataloader(self, model):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def call_hook(self, hook_name, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def run_sanity_check(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    def train(self):
-        self.run_sanity_check(self.get_model())
-
-        # enable train mode
-        model = self.get_model()
-        model.train()
-        torch.set_grad_enabled(True)
-
-        # reload data when needed
-        self.train_loop.reset_train_val_dataloaders(model)
-
-        # hook
-        self.train_loop.on_train_start()
-
-        try:
-            # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
-
-                # reset train dataloader
-                if self.reload_dataloaders_every_epoch:
-                    self.reset_train_dataloader(model)
-
-                # hook
-                self.train_loop.on_train_epoch_start(epoch)
-
-                # run train epoch
-                self.run_training_epoch()
-
-                if self.max_steps and self.max_steps <= self.global_step:
-
-                    # hook
-                    self.train_loop.on_train_end()
-                    return
-
-                # update LR schedulers
-                self.update_learning_rates(interval='epoch')
-
-                # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1
-                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-
-                if self.should_stop:
-                    if (met_min_epochs and met_min_steps):
-                        self.train_loop.on_train_end()
-                        return
-                    else:
-                        log.info('Trainer was signaled to stop but required minimum epochs'
-                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                                 ' not been met. Training will continue...')
-
-            # hook
-            self.train_loop.on_train_end()
-
-        except KeyboardInterrupt:
-            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-
-            # user could press ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.interrupted = True
-                self._state = TrainerState.INTERRUPTED
-                self.on_keyboard_interrupt()
-
-                # hook
-                self.train_loop.on_train_end()
 
     def run_training_epoch(self):
 
