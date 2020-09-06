@@ -56,6 +56,7 @@ from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
+from pytorch_lightning import _logger as log
 
 from pytorch_lightning.utilities.model_utils import is_overridden
 

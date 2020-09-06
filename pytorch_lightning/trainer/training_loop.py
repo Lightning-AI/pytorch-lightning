@@ -169,7 +169,6 @@ import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 from copy import deepcopy
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
