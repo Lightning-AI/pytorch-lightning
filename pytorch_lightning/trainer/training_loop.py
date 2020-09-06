@@ -224,14 +224,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def is_function_implemented(self, *args, **kwargs):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def run_evaluation(self, *args, **kwargs):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def detect_nan_tensors(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -254,96 +246,6 @@ class TrainerTrainLoopMixin(ABC):
     @abstractmethod
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
-
-    def run_training_epoch(self):
-
-        # get model
-        model = self.get_model()
-
-        # modify dataloader if needed (ddp, etc...)
-        train_dataloader = self.accelerator_backend.process_dataloader(self.train_dataloader)
-
-        # track epoch output
-        epoch_output = [[] for _ in range(self.train_loop.num_optimizers)]
-
-        # enable profiling for the dataloader
-        train_dataloader = self.data_connector.get_profiled_train_dataloader(train_dataloader)
-        dataloader_idx = 0
-        for batch_idx, (batch, is_last_batch) in train_dataloader:
-            # stop epoch if we limited the number of training batches
-            if batch_idx >= self.num_training_batches:
-                break
-
-            self.batch_idx = batch_idx
-            model.global_step = self.global_step
-
-            # ------------------------------------
-            # TRAINING_STEP + TRAINING_STEP_END
-            # ------------------------------------
-            batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
-
-            # only track outputs when user implements training_epoch_end
-            # otherwise we will build up unnecessary memory
-            epoch_end_outputs = self.process_train_step_outputs(
-                batch_output.training_step_output_for_epoch_end,
-                self.train_loop.early_stopping_accumulator,
-                self.train_loop.checkpoint_accumulator
-            )
-
-            # hook
-            self.train_loop.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
-
-            # when returning -1 from train_step, we end epoch early
-            self.should_stop = batch_output.signal == -1
-
-            # -----------------------------------------
-            # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
-            # -----------------------------------------
-            should_check_val = self.should_check_val(batch_idx, is_last_batch)
-            if should_check_val:
-                self.run_evaluation(test_mode=False)
-
-            # -----------------------------------------
-            # SAVE LOGGERS (ie: Tensorboard, etc...)
-            # -----------------------------------------
-            self.save_loggers_in_training_loop(batch_idx)
-
-            # -----------------------------------------
-            # SAVE METRICS TO LOGGERS
-            # -----------------------------------------
-            self.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
-
-            # update LR schedulers
-            monitor_metrics = deepcopy(self.callback_metrics)
-            monitor_metrics.update(batch_output.batch_log_metrics)
-            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
-
-            # progress global step according to grads progress
-            self.increment_accumulated_grad_global_step()
-
-            # max steps reached, end training
-            if self.max_steps is not None and self.max_steps == self.global_step:
-                break
-
-            # end epoch early
-            # stop when the flag is changed or we've gone past the amount
-            # requested in the batches
-            if self.should_stop:
-                break
-
-        # process epoch outputs
-        self.run_training_epoch_end(
-            epoch_output,
-            self.train_loop.checkpoint_accumulator,
-            self.train_loop.early_stopping_accumulator,
-            self.train_loop.num_optimizers
-        )
-
-        # checkpoint callback
-        self.check_checkpoint_callback(self.train_loop.should_check_val)
-
-        # epoch end hook
-        self.run_on_epoch_end_hook()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
