@@ -162,3 +162,6 @@ class HorovodBackend(Accelerator):
     def backward(self, closure_loss, optimizer, opt_idx):
         super().backward(closure_loss, optimizer, opt_idx)
         optimizer.synchronize()
+
+    def on_train_epoch_end(self):
+        hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)

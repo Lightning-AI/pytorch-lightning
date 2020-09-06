@@ -149,3 +149,6 @@ class Accelerator(object):
         clip_coef = torch.min(clip_coef, torch.ones_like(clip_coef))
         for p in parameters:
             p.grad.data.mul_(clip_coef.to(p.grad.data.device))
+
+    def on_train_epoch_end(self):
+        pass

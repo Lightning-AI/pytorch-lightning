@@ -157,126 +157,66 @@ in your model.
     trainer = Trainer(terminate_on_nan=True)
 
 """
-import subprocess
 from abc import ABC, abstractmethod
-from copy import copy
 from typing import Callable
 from typing import Union, List
 
-import numpy as np
-import torch
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 from copy import deepcopy
 
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
-try:
-    import torch_xla.distributed.parallel_loader as xla_pl
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
-# constant which signals should be catched for graceful trainer shutdown
-SIGNAL_TERMINATE = ('SIGTERM', 'SIGSEGV', 'SIGINT')
+from pytorch_lightning.utilities.debugging import InternalDebugger
 
 
 class TrainerTrainLoopMixin(ABC):
     # this is just a summary on variables used in this abstract class,
     #  the proper values/initialisation should be done in child class
-    max_epochs: int
-    min_epochs: int
     on_gpu: bool
-    root_gpu: ...
-    use_ddp: bool
-    use_dp: bool
-    use_ddp2: bool
     use_horovod: bool
-    use_single_gpu: bool
-    use_tpu: bool
-    data_parallel_device_ids: ...
     check_val_every_n_epoch: ...
     num_training_batches: int
     val_check_batch: ...
-    disable_validation: bool
     fast_dev_run: ...
-    accumulation_scheduler: ...
     lr_schedulers: ...
-    early_stop_callback: ...
     callback_metrics: ...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
-    testing: bool
     log_save_interval: float
-    global_rank: int
     row_log_interval: float
     truncated_bptt_steps: ...
     optimizers: ...
-    optimizer_frequencies: ...
     accumulate_grad_batches: int
-    track_grad_norm: ...
     model: LightningModule
-    interrupted: bool
     running_loss: ...
-    progress_bar_dict: ...
-    reduce_lr_on_plateau_scheduler: ...
     profiler: ...
     batch_idx: int
-    precision: ...
     train_dataloader: DataLoader
-    reload_dataloaders_every_epoch: bool
     max_steps: int
-    min_steps: int
     total_batch_idx: int
     terminate_on_nan: bool
-    tpu_id: int
-    interactive_ddp_procs: ...
     _state: TrainerState
-    amp_backend: AMPType
-    on_tpu: bool
     accelerator_backend: ...
-    val_dataloaders: ...
     train_loop: TrainLoop
     data_connector: DataConnector
+    dev_debugger: InternalDebugger
 
     # Callback system
     callbacks: List[Callback]
-    on_train_start: Callable
-    on_train_end: Callable
     on_batch_start: Callable
-    on_batch_end: Callable
     on_train_batch_start: Callable
     on_train_batch_end: Callable
-    on_epoch_start: Callable
     on_epoch_end: Callable
     on_validation_end: Callable
-    on_keyboard_interrupt: Callable
     on_train_epoch_end: Callable
 
     @abstractmethod
@@ -289,10 +229,6 @@ class TrainerTrainLoopMixin(ABC):
 
     @abstractmethod
     def run_evaluation(self, *args, **kwargs):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def transfer_batch_to_gpu(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
@@ -312,89 +248,12 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def reset_train_dataloader(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def reset_val_dataloader(self, model):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def call_hook(self, hook_name, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
     def has_arg(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def run_sanity_check(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    def train(self):
-        self.run_sanity_check(self.get_model())
-
-        # enable train mode
-        model = self.get_model()
-        model.train()
-        torch.set_grad_enabled(True)
-
-        # reload data when needed
-        self.train_loop.reset_train_val_dataloaders(model)
-
-        # hook
-        self.train_loop.on_train_start()
-
-        try:
-            # run all epochs
-            for epoch in range(self.current_epoch, self.max_epochs):
-
-                # reset train dataloader
-                if self.reload_dataloaders_every_epoch:
-                    self.reset_train_dataloader(model)
-
-                # hook
-                self.train_loop.on_train_epoch_start(epoch)
-
-                # run train epoch
-                self.run_training_epoch()
-
-                if self.max_steps and self.max_steps <= self.global_step:
-
-                    # hook
-                    self.train_loop.on_train_end()
-                    return
-
-                # update LR schedulers
-                self.update_learning_rates(interval='epoch')
-
-                # early stopping
-                met_min_epochs = epoch >= self.min_epochs - 1
-                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
-
-                if self.should_stop:
-                    if (met_min_epochs and met_min_steps):
-                        self.train_loop.on_train_end()
-                        return
-                    else:
-                        log.info('Trainer was signaled to stop but required minimum epochs'
-                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
-                                 ' not been met. Training will continue...')
-
-            # hook
-            self.train_loop.on_train_end()
-
-        except KeyboardInterrupt:
-            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-
-            # user could press ctrl+c many times... only shutdown once
-            if not self.interrupted:
-                self.interrupted = True
-                self._state = TrainerState.INTERRUPTED
-                self.on_keyboard_interrupt()
-
-                # hook
-                self.train_loop.on_train_end()
 
     def run_training_epoch(self):
 
@@ -472,9 +331,6 @@ class TrainerTrainLoopMixin(ABC):
             if self.should_stop:
                 break
 
-        # let ddp devices catch up when using horovod
-        self.sync_horovod()
-
         # process epoch outputs
         self.run_training_epoch_end(
             epoch_output,
@@ -487,7 +343,7 @@ class TrainerTrainLoopMixin(ABC):
         self.check_checkpoint_callback(self.train_loop.should_check_val)
 
         # epoch end hook
-        self.run_on_epoch_end_hook(model)
+        self.run_on_epoch_end_hook()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
@@ -532,21 +388,9 @@ class TrainerTrainLoopMixin(ABC):
             # update lr
             self.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self, model):
-        with self.profiler.profile('on_epoch_end'):
-            # callbacks
-            self.on_epoch_end()
-            # model hooks
-            if self.is_function_implemented('on_epoch_end'):
-                model.on_epoch_end()
-
-        with self.profiler.profile('on_train_epoch_end'):
-            # callbacks
-            self.on_train_epoch_end()
-
-            # model hooks
-            if self.is_function_implemented('on_train_epoch_end'):
-                model.on_train_epoch_end()
+    def run_on_epoch_end_hook(self):
+        self.call_hook('on_epoch_end')
+        self.call_hook('on_train_epoch_end')
 
     def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
@@ -669,10 +513,6 @@ class TrainerTrainLoopMixin(ABC):
 
         return gathered_epoch_outputs
 
-    def sync_horovod(self):
-        if self.use_horovod:
-            hvd.join(hvd.local_rank() if self.on_gpu else -1)
-
     def increment_accumulated_grad_global_step(self):
         # progress global step according to grads progress
         if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
@@ -777,7 +617,7 @@ class TrainerTrainLoopMixin(ABC):
                     self.detect_nan_tensors(opt_closure_result.loss)
 
                 # track total loss for logging (avoid mem leaks)
-                self.batch_loss_value.append(opt_closure_result.loss)
+                self.train_loop.accumulated_loss.append(opt_closure_result.loss)
 
                 # track all the outputs across all steps
                 batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
@@ -807,10 +647,10 @@ class TrainerTrainLoopMixin(ABC):
                     self.train_loop.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                     # calculate running loss for display
-                    self.running_loss.append(self.batch_loss_value.mean() * self.accumulate_grad_batches)
+                    self.running_loss.append(self.train_loop.accumulated_loss.mean() * self.accumulate_grad_batches)
 
                     # reset for next set of accumulated grads
-                    self.batch_loss_value.reset()
+                    self.train_loop.accumulated_loss.reset()
 
         # collapse all metrics into one dict
         batch_log_metrics = {k: v for d in batch_log_metrics for k, v in d.items()}

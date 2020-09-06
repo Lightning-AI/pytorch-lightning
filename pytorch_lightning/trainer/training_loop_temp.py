@@ -20,6 +20,7 @@ class TrainLoop:
         self.should_check_val = False
         self.early_stopping_accumulator = None
         self.checkpoint_accumulator = None
+        self.accumulated_loss = None
         self._teardown_already_run = False
 
     @property
@@ -100,7 +101,7 @@ class TrainLoop:
         self.trainer.accumulation_scheduler.on_epoch_start(self.trainer, self.trainer.get_model())
 
         # stores accumulated grad fractions per batch
-        self.trainer.batch_loss_value = TensorRunningAccum(
+        self.accumulated_loss = TensorRunningAccum(
             window_length=self.trainer.accumulate_grad_batches
         )
 
