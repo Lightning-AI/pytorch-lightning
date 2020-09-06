@@ -34,8 +34,6 @@ def pl_multi_process(func):
 def fetch_xla_device_type(device):
     if xm is not None:
         return xm.xla_device_hw(device)
-    else:
-        return None
 
 
 def is_device_tpu():
@@ -43,8 +41,6 @@ def is_device_tpu():
         device = xm.xla_device()
         device_type = fetch_xla_device_type(device)
         return device_type == "TPU"
-    else:
-        return False
 
 
 def tpu_device_exists():
