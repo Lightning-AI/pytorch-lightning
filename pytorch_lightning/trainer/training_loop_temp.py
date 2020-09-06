@@ -217,7 +217,6 @@ class TrainLoop:
     def optimizer_step(self, optimizer, opt_idx, batch_idx, split_batch):
         # calls .step(), .zero_grad()
         # override function to modify this behavior
-        model = self.trainer.get_model()
 
         with self.trainer.profiler.profile('optimizer_step'):
             lambda_closure = lambda: self.trainer.optimizer_closure(
@@ -231,11 +230,12 @@ class TrainLoop:
             # optimizer step lightningModule hook
             self.trainer.accelerator_backend.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure)
 
-            # hook
-            model.on_before_zero_grad(optimizer)
+    def on_before_zero_grad(self, optimizer):
+        model = self.trainer.get_model()
+        model.on_before_zero_grad(optimizer)
 
-            # clear gradients
-            self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
+    def optimizer_zero_grad(self, batch_idx, optimizer, opt_idx):
+        self.trainer.accelerator_backend.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
     def on_before_backward(self, batch_idx, optimizer):
         # track gradient norms
