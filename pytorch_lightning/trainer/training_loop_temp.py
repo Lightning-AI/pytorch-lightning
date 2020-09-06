@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.distributed as torch_distrib
 from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.trainer.supporters import Accumulator
+from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.memory import recursive_detach
@@ -83,10 +83,27 @@ class TrainLoop:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
-    def on_train_epoch_start(self):
-        # hook
-        self.trainer.call_hook('on_epoch_start')
-        self.trainer.call_hook('on_train_epoch_start')
+    def on_train_epoch_start(self, epoch):
+        model = self.trainer.get_model()
+
+        # set seed for distributed sampler (enables shuffling for each epoch)
+        # TODO: move to accelerators
+        if (self.trainer.use_ddp or self.trainer.use_horovod or self.trainer.on_tpu) \
+                and hasattr(self.trainer.train_dataloader, 'sampler') \
+                and hasattr(self.trainer.train_dataloader.sampler, 'set_epoch'):
+            self.trainer.train_dataloader.sampler.set_epoch(epoch)
+
+        # update training progress in trainer and model
+        model.current_epoch = epoch
+        self.trainer.current_epoch = epoch
+
+        # changing gradient according accumulation_scheduler
+        self.trainer.accumulation_scheduler.on_epoch_start(self, self.trainer.get_model())
+
+        # stores accumulated grad fractions per batch
+        self.trainer.batch_loss_value = TensorRunningAccum(
+            window_length=self.trainer.accumulate_grad_batches
+        )
 
         # bookkeeping
         self.should_check_val = False
@@ -94,6 +111,10 @@ class TrainLoop:
         # structured result accumulators for callbacks
         self.early_stopping_accumulator = Accumulator()
         self.checkpoint_accumulator = Accumulator()
+
+        # hook
+        self.trainer.call_hook('on_epoch_start')
+        self.trainer.call_hook('on_train_epoch_start')
 
     def on_train_batch_end(self, epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx):
         # figure out what to track for epoch end
