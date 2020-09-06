@@ -214,21 +214,11 @@ class TrainLoop:
         )
         return result
 
-    def optimizer_step(self, optimizer, opt_idx, batch_idx, split_batch):
-        # calls .step(), .zero_grad()
-        # override function to modify this behavior
-
+    def optimizer_step(self, optimizer, opt_idx, batch_idx, train_step_and_backward_closure):
         with self.trainer.profiler.profile('optimizer_step'):
-            lambda_closure = lambda: self.trainer.optimizer_closure(
-                split_batch,
-                batch_idx,
-                opt_idx,
-                optimizer,
-                self.trainer.hiddens,
-            ).loss
-
             # optimizer step lightningModule hook
-            self.trainer.accelerator_backend.optimizer_step(optimizer, batch_idx, opt_idx, lambda_closure)
+            self.trainer.accelerator_backend.optimizer_step(optimizer, batch_idx, opt_idx,
+                                                            train_step_and_backward_closure)
 
     def on_before_zero_grad(self, optimizer):
         model = self.trainer.get_model()
@@ -280,3 +270,11 @@ class TrainLoop:
         if isinstance(opt_closure_result.training_step_output, Result):
             opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
         return hiddens
+
+    def tbptt_split_batch(self, batch):
+        splits = [batch]
+        if self.trainer.truncated_bptt_steps is not None:
+            model_ref = self.trainer.get_model()
+            with self.trainer.profiler.profile('tbptt_split_batch'):
+                splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
+        return splits
