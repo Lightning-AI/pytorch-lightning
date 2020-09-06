@@ -1162,7 +1162,7 @@ class Trainer(
                 self.train_loop.on_train_epoch_start(epoch)
 
                 # run train epoch
-                self.run_training_epoch()
+                self.train_loop.run_training_epoch()
 
                 if self.max_steps and self.max_steps <= self.global_step:
 

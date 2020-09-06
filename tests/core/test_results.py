@@ -133,7 +133,7 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
 
     prediction_file = Path('predictions.pt')
 
-    model = EvalModelTemplate()
+    model = EvalModelTemplate(learning_rate=0.002)
     model.test_option = option
     model.prediction_file = prediction_file.as_posix()
     model.test_step = model.test_step_result_preds

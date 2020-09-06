@@ -10,7 +10,7 @@ from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.parsing import AttributeDict
-from copy import copy
+from copy import copy, deepcopy
 
 
 class TrainLoop:
@@ -299,3 +299,93 @@ class TrainLoop:
             with self.trainer.profiler.profile('tbptt_split_batch'):
                 splits = model_ref.tbptt_split_batch(batch, self.trainer.truncated_bptt_steps)
         return splits
+
+    def run_training_epoch(self):
+
+        # get model
+        model = self.trainer.get_model()
+
+        # modify dataloader if needed (ddp, etc...)
+        train_dataloader = self.trainer.accelerator_backend.process_dataloader(self.trainer.train_dataloader)
+
+        # track epoch output
+        epoch_output = [[] for _ in range(self.num_optimizers)]
+
+        # enable profiling for the dataloader
+        train_dataloader = self.trainer.data_connector.get_profiled_train_dataloader(train_dataloader)
+        dataloader_idx = 0
+        for batch_idx, (batch, is_last_batch) in train_dataloader:
+            # stop epoch if we limited the number of training batches
+            if batch_idx >= self.trainer.num_training_batches:
+                break
+
+            self.trainer.batch_idx = batch_idx
+            model.global_step = self.trainer.global_step
+
+            # ------------------------------------
+            # TRAINING_STEP + TRAINING_STEP_END
+            # ------------------------------------
+            batch_output = self.trainer.run_training_batch(batch, batch_idx, dataloader_idx)
+
+            # only track outputs when user implements training_epoch_end
+            # otherwise we will build up unnecessary memory
+            epoch_end_outputs = self.trainer.process_train_step_outputs(
+                batch_output.training_step_output_for_epoch_end,
+                self.early_stopping_accumulator,
+                self.checkpoint_accumulator
+            )
+
+            # hook
+            self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
+
+            # when returning -1 from train_step, we end epoch early
+            self.trainer.should_stop = batch_output.signal == -1
+
+            # -----------------------------------------
+            # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
+            # -----------------------------------------
+            should_check_val = self.trainer.should_check_val(batch_idx, is_last_batch)
+            if should_check_val:
+                self.trainer.run_evaluation(test_mode=False)
+
+            # -----------------------------------------
+            # SAVE LOGGERS (ie: Tensorboard, etc...)
+            # -----------------------------------------
+            self.trainer.save_loggers_in_training_loop(batch_idx)
+
+            # -----------------------------------------
+            # SAVE METRICS TO LOGGERS
+            # -----------------------------------------
+            self.trainer.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+
+            # update LR schedulers
+            monitor_metrics = deepcopy(self.trainer.callback_metrics)
+            monitor_metrics.update(batch_output.batch_log_metrics)
+            self.trainer.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+
+            # progress global step according to grads progress
+            self.trainer.increment_accumulated_grad_global_step()
+
+            # max steps reached, end training
+            if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step:
+                break
+
+            # end epoch early
+            # stop when the flag is changed or we've gone past the amount
+            # requested in the batches
+            if self.trainer.should_stop:
+                break
+
+        # process epoch outputs
+        self.trainer.run_training_epoch_end(
+            epoch_output,
+            self.checkpoint_accumulator,
+            self.early_stopping_accumulator,
+            self.num_optimizers
+        )
+
+        # checkpoint callback
+        self.check_checkpoint_callback(self.should_check_val)
+
+        # epoch end hook
+        self.trainer.run_on_epoch_end_hook()
