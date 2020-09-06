@@ -331,9 +331,6 @@ class TrainerTrainLoopMixin(ABC):
             if self.should_stop:
                 break
 
-        # let ddp devices catch up when using horovod
-        self.sync_horovod()
-
         # process epoch outputs
         self.run_training_epoch_end(
             epoch_output,
@@ -346,7 +343,7 @@ class TrainerTrainLoopMixin(ABC):
         self.check_checkpoint_callback(self.train_loop.should_check_val)
 
         # epoch end hook
-        self.run_on_epoch_end_hook(model)
+        self.run_on_epoch_end_hook()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
@@ -391,21 +388,9 @@ class TrainerTrainLoopMixin(ABC):
             # update lr
             self.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
-    def run_on_epoch_end_hook(self, model):
-        with self.profiler.profile('on_epoch_end'):
-            # callbacks
-            self.on_epoch_end()
-            # model hooks
-            if self.is_function_implemented('on_epoch_end'):
-                model.on_epoch_end()
-
-        with self.profiler.profile('on_train_epoch_end'):
-            # callbacks
-            self.on_train_epoch_end()
-
-            # model hooks
-            if self.is_function_implemented('on_train_epoch_end'):
-                model.on_train_epoch_end()
+    def run_on_epoch_end_hook(self):
+        self.call_hook('on_epoch_end')
+        self.call_hook('on_train_epoch_end')
 
     def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
@@ -527,10 +512,6 @@ class TrainerTrainLoopMixin(ABC):
             gathered_epoch_outputs.append(gathered_opt_output)
 
         return gathered_epoch_outputs
-
-    def sync_horovod(self):
-        if self.use_horovod:
-            hvd.join(hvd.local_rank() if self.on_gpu else -1)
 
     def increment_accumulated_grad_global_step(self):
         # progress global step according to grads progress
