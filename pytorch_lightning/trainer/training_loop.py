@@ -157,54 +157,25 @@ in your model.
     trainer = Trainer(terminate_on_nan=True)
 
 """
-import subprocess
 from abc import ABC, abstractmethod
-from copy import copy
 from typing import Callable
 from typing import Union, List
 
-import numpy as np
-import torch
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 from copy import deepcopy
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import rank_zero_warn, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.utilities.debugging import InternalDebugger
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
-try:
-    import torch_xla.distributed.parallel_loader as xla_pl
-    import torch_xla.core.xla_model as xm
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
-# constant which signals should be catched for graceful trainer shutdown
-SIGNAL_TERMINATE = ('SIGTERM', 'SIGSEGV', 'SIGINT')
 
 
 class TrainerTrainLoopMixin(ABC):
