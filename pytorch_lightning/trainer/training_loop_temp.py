@@ -87,9 +87,10 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # set seed for distributed sampler (enables shuffling for each epoch)
-        has_sampler = hasattr(self.trainer.train_dataloader, 'sampler')
-        if has_sampler and hasattr(self.trainer.train_dataloader.sampler, 'set_epoch'):
+        try:
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
+        except Exception:
+            pass
 
         # update training progress in trainer and model
         model.current_epoch = epoch
