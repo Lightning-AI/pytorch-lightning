@@ -739,10 +739,12 @@ class TrainerTrainLoopMixin(ABC):
         # track metrics to log
         batch_log_metrics = []
 
+        # bookkeeping
         using_results_obj = False
+        self.hiddens = None
 
         # track all outputs across time and num of optimizers
-        batch_outputs = [[] for i in range(len(self.train_loop.get_optimizers_iterable()))]
+        batch_outputs = [[] for _ in range(len(self.train_loop.get_optimizers_iterable()))]
 
         if batch is None:
             return AttributeDict(signal=0, grad_norm_dic=grad_norm_dic)
@@ -757,16 +759,13 @@ class TrainerTrainLoopMixin(ABC):
         if response == -1:
             return AttributeDict(signal=-1, grad_norm_dic=grad_norm_dic)
 
-        splits = [batch]
-        if self.truncated_bptt_steps is not None:
-            model_ref = self.get_model()
-            with self.profiler.profile('tbptt_split_batch'):
-                splits = model_ref.tbptt_split_batch(batch, self.truncated_bptt_steps)
+        # lightning module hook
+        splits = self.train_loop.tbptt_split_batch(batch)
 
-        self.hiddens = None
         for split_idx, split_batch in enumerate(splits):
             self.split_idx = split_idx
 
+            # loop over optimizers
             for opt_idx, optimizer in self.train_loop.get_optimizers_iterable():
                 # make sure only the gradients of the current optimizer's parameters are calculated
                 # in the training step to prevent dangling gradients in multiple-optimizer setup.
@@ -780,7 +779,7 @@ class TrainerTrainLoopMixin(ABC):
                 # -------------------
                 # calculate loss (train step + train step end)
                 # -------------------
-                opt_closure_result = self.optimizer_closure(
+                opt_closure_result = self.training_step_and_backward(
                     split_batch,
                     batch_idx,
                     opt_idx,
@@ -808,13 +807,19 @@ class TrainerTrainLoopMixin(ABC):
                 # BACKWARD PASS
                 # ------------------------------
                 # gradient update with accumulated gradients
-                if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
-                        or (self.batch_idx + 1) == self.num_training_batches):
+                accumulation_done = (self.batch_idx + 1) % self.accumulate_grad_batches == 0
+                is_final_batch = (self.batch_idx + 1) == self.num_training_batches
+                if accumulation_done or is_final_batch:
                     # hook
                     grad_norm_dic = self.train_loop.on_before_backward(batch_idx, optimizer)
 
+                    # wrap forward + backward pass in closure for 2nd order optimizers
+                    train_step_and_backward_closure = lambda: self.training_step_and_backward(
+                        split_batch, batch_idx, opt_idx, optimizer, self.hiddens,
+                    ).loss
+
                     # optimizer step
-                    self.train_loop.optimizer_step(optimizer, opt_idx, batch_idx, split_batch)
+                    self.train_loop.optimizer_step(optimizer, opt_idx, batch_idx, train_step_and_backward_closure)
 
                     # hook
                     self.train_loop.on_before_zero_grad(optimizer)
@@ -843,7 +848,7 @@ class TrainerTrainLoopMixin(ABC):
         )
         return result
 
-    def optimizer_closure(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
+    def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
         """
         wrap the forward step in a closure so second order methods work
         """
