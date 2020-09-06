@@ -789,7 +789,7 @@ class TrainerTrainLoopMixin(ABC):
                 )
 
                 # log metrics
-                self.train_loop.log_training_step_metrics(opt_closure_result, batch_callback_metrics)
+                self.train_loop.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
 
                 # -----------------
                 # track hiddens

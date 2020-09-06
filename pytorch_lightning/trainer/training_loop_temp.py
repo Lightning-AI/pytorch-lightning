@@ -254,7 +254,7 @@ class TrainLoop:
                     self.trainer.track_grad_norm)
         return grad_norm_dic
 
-    def log_training_step_metrics(self, opt_closure_result, batch_callback_metrics):
+    def log_training_step_metrics(self, opt_closure_result, batch_callback_metrics, batch_log_metrics):
         # track callback metrics
         callback_metrics = opt_closure_result.training_step_output.callback_metrics
         batch_callback_metrics.append(callback_metrics)
@@ -269,7 +269,7 @@ class TrainLoop:
             step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
 
         # track batch log metrics
-        self.trainer.batch_log_metrics.append(metrics_to_log)
+        batch_log_metrics.append(metrics_to_log)
 
         # track progress bar metrics
         if len(step_pbar_metrics) > 0:
