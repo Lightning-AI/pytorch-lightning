@@ -87,10 +87,8 @@ class TrainLoop:
         model = self.trainer.get_model()
 
         # set seed for distributed sampler (enables shuffling for each epoch)
-        # TODO: move to accelerators
-        if (self.trainer.use_ddp or self.trainer.use_horovod or self.trainer.on_tpu) \
-                and hasattr(self.trainer.train_dataloader, 'sampler') \
-                and hasattr(self.trainer.train_dataloader.sampler, 'set_epoch'):
+        has_sampler = hasattr(self.trainer.train_dataloader, 'sampler')
+        if has_sampler and hasattr(self.trainer.train_dataloader.sampler, 'set_epoch'):
             self.trainer.train_dataloader.sampler.set_epoch(epoch)
 
         # update training progress in trainer and model
