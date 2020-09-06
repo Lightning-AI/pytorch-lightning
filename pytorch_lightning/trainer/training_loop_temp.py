@@ -253,3 +253,30 @@ class TrainLoop:
                 grad_norm_dic = model.grad_norm(
                     self.trainer.track_grad_norm)
         return grad_norm_dic
+
+    def log_training_step_metrics(self, opt_closure_result, batch_callback_metrics, batch_log_metrics):
+        # track callback metrics
+        callback_metrics = opt_closure_result.training_step_output.callback_metrics
+        batch_callback_metrics.append(callback_metrics)
+
+        # decide which metrics to log (results vs dict return)
+        using_results_obj = isinstance(opt_closure_result.training_step_output, Result)
+        if using_results_obj:
+            metrics_to_log = opt_closure_result.training_step_output.batch_log_metrics
+            step_pbar_metrics = opt_closure_result.training_step_output.batch_pbar_metrics
+        else:
+            metrics_to_log = opt_closure_result.training_step_output.log_metrics
+            step_pbar_metrics = opt_closure_result.training_step_output.pbar_on_batch_end
+
+        # track batch log metrics
+        batch_log_metrics.append(metrics_to_log)
+
+        # track progress bar metrics
+        if len(step_pbar_metrics) > 0:
+            self.trainer.add_progress_bar_metrics(step_pbar_metrics)
+
+    def process_hiddens(self, opt_closure_result):
+        hiddens = opt_closure_result.hiddens
+        if isinstance(opt_closure_result.training_step_output, Result):
+            opt_closure_result.training_step_output_for_epoch_end.drop_hiddens()
+        return hiddens
