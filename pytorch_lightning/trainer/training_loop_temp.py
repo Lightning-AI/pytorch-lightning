@@ -176,7 +176,7 @@ class TrainLoop:
 
     def training_step(self, split_batch, batch_idx, opt_idx, hiddens):
         with self.trainer.profiler.profile('model_forward'):
-            args = self.trainer.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
+            args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
 
@@ -344,7 +344,7 @@ class TrainLoop:
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
             # -----------------------------------------
-            should_check_val = self.trainer.should_check_val(batch_idx, is_last_batch)
+            should_check_val = self.should_check_val_fx(batch_idx, is_last_batch)
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
 
@@ -361,10 +361,10 @@ class TrainLoop:
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.callback_metrics)
             monitor_metrics.update(batch_output.batch_log_metrics)
-            self.trainer.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # progress global step according to grads progress
-            self.trainer.increment_accumulated_grad_global_step()
+            self.increment_accumulated_grad_global_step()
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step:
@@ -388,4 +388,52 @@ class TrainLoop:
         self.check_checkpoint_callback(self.should_check_val)
 
         # epoch end hook
-        self.trainer.run_on_epoch_end_hook()
+        self.run_on_epoch_end_hook()
+
+    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
+        if ((self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+                or (self.trainer.batch_idx + 1) == self.trainer.num_training_batches):
+            # update lr
+            self.trainer.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
+
+    def run_on_epoch_end_hook(self):
+        self.trainer.call_hook('on_epoch_end')
+        self.trainer.call_hook('on_train_epoch_end')
+
+    def increment_accumulated_grad_global_step(self):
+        # progress global step according to grads progress
+        if ((self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+                or (self.trainer.batch_idx + 1) == self.trainer.num_training_batches):
+            self.trainer.global_step += 1
+        self.trainer.total_batch_idx += 1
+
+    def should_check_val_fx(self, batch_idx, is_last_batch):
+        # decide if we should run validation
+        is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+        can_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        can_check_val = self.trainer.enable_validation and can_check_epoch
+        should_check_val = is_val_check_batch or self.trainer.should_stop
+        is_last_batch_for_infinite_dataset = (is_last_batch and self.trainer.val_check_batch == float('inf'))
+        should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
+
+        return should_check_val
+
+    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
+        # enable not needing to add opt_idx to training_step
+        args = [batch, batch_idx]
+
+        if len(self.trainer.optimizers) > 1:
+            if self.trainer.has_arg('training_step', 'optimizer_idx'):
+                args.append(opt_idx)
+            else:
+                num_opts = len(self.trainer.optimizers)
+                raise ValueError(
+                    f'Your LightningModule defines {num_opts} optimizers but '
+                    f'training_step is missing the "optimizer_idx" argument.'
+                )
+
+        # pass hiddens if using tbptt
+        if self.trainer.truncated_bptt_steps is not None:
+            args.append(hiddens)
+
+        return args
