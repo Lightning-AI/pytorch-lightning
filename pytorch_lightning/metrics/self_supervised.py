@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any
 
 import torch
 
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
 from pytorch_lightning.metrics.metric import TensorMetric
+
+
+__all__ = ['EmbeddingSimilarity']
 
 
 class EmbeddingSimilarity(TensorMetric):
@@ -31,21 +34,22 @@ class EmbeddingSimilarity(TensorMetric):
                  zero_diagonal: bool = True,
                  reduction: str = 'mean',
                  reduce_group: Any = None):
-        """ Computes similarity between embeddings
+        """
+        Computes similarity between embeddings
 
-            Example:
+        Example:
 
-                >>> embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
-                >>> embedding_similarity(embeddings)
-                tensor([[0.0000, 1.0000, 0.9759],
-                        [1.0000, 0.0000, 0.9759],
-                        [0.9759, 0.9759, 0.0000]])
+            >>> embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
+            >>> embedding_similarity(embeddings)
+            tensor([[0.0000, 1.0000, 0.9759],
+                    [1.0000, 0.0000, 0.9759],
+                    [0.9759, 0.9759, 0.0000]])
 
-            Args:
-                similarity: 'dot' or 'cosine'
-                reduction: 'none', 'sum', 'mean' (all along dim -1)
-                zero_diagonal: if True, the diagonals are set to zero
-                reduce_group: the process group to reduce metric results from DDP
+        Args:
+            similarity: 'dot' or 'cosine'
+            reduction: 'none', 'sum', 'mean' (all along dim -1)
+            zero_diagonal: if True, the diagonals are set to zero
+            reduce_group: the process group to reduce metric results from DDP
 
         Return:
             A square matrix (batch, batch) with the similarity scores between all elements
@@ -58,7 +62,6 @@ class EmbeddingSimilarity(TensorMetric):
         self.reduction = self.reduction
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
-
         """
         Actual metric computation
 
