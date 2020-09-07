@@ -30,5 +30,3 @@ class Tuner:
         return scale_batch_size(
             self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
         )
-
-
