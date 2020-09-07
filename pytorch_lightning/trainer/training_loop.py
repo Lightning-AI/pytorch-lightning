@@ -162,9 +162,6 @@ from typing import Callable
 from typing import Union, List
 
 from torch.utils.data import DataLoader
-from copy import deepcopy
-
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
@@ -243,10 +240,6 @@ class TrainerTrainLoopMixin(ABC):
     def call_hook(self, hook_name, *args, **kwargs):
         """Warning: this is just empty shell for code implemented in other class."""
 
-    @abstractmethod
-    def has_arg(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
         Figure out what needs to be tracked/logged at the end of the epoch
@@ -275,24 +268,6 @@ class TrainerTrainLoopMixin(ABC):
                 epoch_end_outputs.append(optimizer_idx_outputs)
 
         return epoch_end_outputs
-
-    def check_checkpoint_callback(self, should_check_val):
-        # when no val loop is present or fast-dev-run still need to call checkpoints
-        # TODO bake this logic into the checkpoint callback
-        should_activate = not is_overridden('validation_step', self.get_model()) and not should_check_val
-        if should_activate:
-            checkpoint_callbacks = [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
-            [c.on_validation_end(self, self.get_model()) for c in checkpoint_callbacks]
-
-    def update_train_loop_lr_schedulers(self, monitor_metrics=None):
-        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
-                or (self.batch_idx + 1) == self.num_training_batches):
-            # update lr
-            self.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
-
-    def run_on_epoch_end_hook(self):
-        self.call_hook('on_epoch_end')
-        self.call_hook('on_train_epoch_end')
 
     def run_training_epoch_end(self, epoch_output, checkpoint_accumulator, early_stopping_accumulator, num_optimizers):
         # epoch output is a list. Each item in that list has all the outputs per optimizer
@@ -415,13 +390,6 @@ class TrainerTrainLoopMixin(ABC):
 
         return gathered_epoch_outputs
 
-    def increment_accumulated_grad_global_step(self):
-        # progress global step according to grads progress
-        if ((self.batch_idx + 1) % self.accumulate_grad_batches == 0
-                or (self.batch_idx + 1) == self.num_training_batches):
-            self.global_step += 1
-        self.total_batch_idx += 1
-
     def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
         # when metrics should be logged
         should_log_metrics = (batch_idx + 1) % self.row_log_interval == 0 or self.should_stop
@@ -438,17 +406,6 @@ class TrainerTrainLoopMixin(ABC):
         if should_save_log or self.fast_dev_run:
             if self.is_global_zero and self.logger is not None:
                 self.logger.save()
-
-    def should_check_val(self, batch_idx, is_last_batch):
-        # decide if we should run validation
-        is_val_check_batch = (batch_idx + 1) % self.val_check_batch == 0
-        can_check_epoch = (self.current_epoch + 1) % self.check_val_every_n_epoch == 0
-        can_check_val = self.enable_validation and can_check_epoch
-        should_check_val = is_val_check_batch or self.should_stop
-        is_last_batch_for_infinite_dataset = (is_last_batch and self.val_check_batch == float('inf'))
-        should_check_val = can_check_val and (should_check_val or is_last_batch_for_infinite_dataset)
-
-        return should_check_val
 
     def run_training_batch(self, batch, batch_idx, dataloader_idx):
         # track grad norms
@@ -583,26 +540,6 @@ class TrainerTrainLoopMixin(ABC):
         self.train_loop.on_after_backward(result.training_step_output, batch_idx, result.loss)
 
         return result
-
-    def build_train_args(self, batch, batch_idx, opt_idx, hiddens):
-        # enable not needing to add opt_idx to training_step
-        args = [batch, batch_idx]
-
-        if len(self.optimizers) > 1:
-            if self.has_arg('training_step', 'optimizer_idx'):
-                args.append(opt_idx)
-            else:
-                num_opts = len(self.optimizers)
-                raise ValueError(
-                    f'Your LightningModule defines {num_opts} optimizers but '
-                    f'training_step is missing the "optimizer_idx" argument.'
-                )
-
-        # pass hiddens if using tbptt
-        if self.truncated_bptt_steps is not None:
-            args.append(hiddens)
-
-        return args
 
     def update_learning_rates(self, interval: str, monitor_metrics=None):
         """Update learning rates.
