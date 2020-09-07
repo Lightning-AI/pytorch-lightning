@@ -25,35 +25,30 @@ __all__ = ['EmbeddingSimilarity']
 
 class EmbeddingSimilarity(TensorMetric):
     """
+    Computes similarity between embeddings
 
+    Example:
+        >>> embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
+        >>> embedding_similarity(embeddings)
+        tensor([[0.0000, 1.0000, 0.9759],
+                [1.0000, 0.0000, 0.9759],
+                [0.9759, 0.9759, 0.0000]])
 
     """
-
-    def __init__(self,
-                 similarity: str = 'cosine',
-                 zero_diagonal: bool = True,
-                 reduction: str = 'mean',
-                 reduce_group: Any = None):
+    def __init__(
+            self,
+            similarity: str = 'cosine',
+            zero_diagonal: bool = True,
+            reduction: str = 'mean',
+            reduce_group: Any = None
+    ):
         """
-        Computes similarity between embeddings
-
-        Example:
-
-            >>> embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
-            >>> embedding_similarity(embeddings)
-            tensor([[0.0000, 1.0000, 0.9759],
-                    [1.0000, 0.0000, 0.9759],
-                    [0.9759, 0.9759, 0.0000]])
-
         Args:
             similarity: 'dot' or 'cosine'
             reduction: 'none', 'sum', 'mean' (all along dim -1)
             zero_diagonal: if True, the diagonals are set to zero
             reduce_group: the process group to reduce metric results from DDP
 
-        Return:
-            A square matrix (batch, batch) with the similarity scores between all elements
-            If sum or mean are used, then returns (b, 1) with the reduced value for each row
         """
         super().__init__(name='embedding_similarity',
                          reduce_group=reduce_group)
