@@ -27,6 +27,16 @@ from pytorch_lightning.metrics.functional.regression import (
 from pytorch_lightning.metrics.metric import Metric
 
 
+__all__ = [
+    "MAE",
+    "MSE",
+    "PSNR",
+    "RMSE",
+    "RMSLE",
+    "SSIM"
+]
+
+
 class MSE(Metric):
     """
     Computes the mean squared loss.

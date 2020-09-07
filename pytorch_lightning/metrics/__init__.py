@@ -1,66 +1,14 @@
-from pytorch_lightning.metrics.classification import (
-    Accuracy,
-    AveragePrecision,
-    ConfusionMatrix,
-    F1,
-    FBeta,
-    Recall,
-    ROC,
-    AUROC,
-    DiceCoefficient,
-    MulticlassPrecisionRecallCurve,
-    MulticlassROC,
-    Precision,
-    PrecisionRecallCurve,
-    IoU,
-)
 from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
-from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
-from pytorch_lightning.metrics.nlp import BLEUScore
-from pytorch_lightning.metrics.self_supervised import EmbeddingSimilarity
-from pytorch_lightning.metrics.regression import (
-    MAE,
-    MSE,
-    PSNR,
-    RMSE,
-    RMSLE,
-    SSIM
-)
-from pytorch_lightning.metrics.sklearns import (
-    AUC,
-    SklearnMetric,
-)
+from pytorch_lightning.metrics.metric import __all__ as __base_metrics
+from pytorch_lightning.metrics.classification import __all__ as __classification_metrics
+from pytorch_lightning.metrics.nlp import __all__ as __nlp_metrics
+from pytorch_lightning.metrics.regression import __all__ as __regression_metrics
+from pytorch_lightning.metrics.self_supervised import __all__ as __selfsupervised_metrics
 
-__classification_metrics = [
-    "AUC",
-    "AUROC",
-    "Accuracy",
-    "AveragePrecision",
-    "ConfusionMatrix",
-    "DiceCoefficient",
-    "F1",
-    "FBeta",
-    "MulticlassPrecisionRecallCurve",
-    "MulticlassROC",
-    "Precision",
-    "PrecisionRecallCurve",
-    "ROC",
-    "Recall",
-    "IoU",
-]
-__regression_metrics = [
-    "MAE",
-    "MSE",
-    "PSNR",
-    "RMSE",
-    "RMSLE",
-    "SSIM"
-]
-__sequence_metrics = ["BLEUScore"]
-__selfsuper_metrics = ["EmbeddingSimilarity"]
 
-__all__ = __regression_metrics \
-    + __classification_metrics \
-    + __selfsuper_metrics \
-    + __sequence_metrics \
-    + ["SklearnMetric"]
+__all__ = __classification_metrics \
+    + __base_metrics \
+    + __nlp_metrics \
+    + __regression_metrics \
+    + __selfsupervised_metrics
+
