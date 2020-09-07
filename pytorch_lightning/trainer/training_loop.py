@@ -186,7 +186,7 @@ class TrainerTrainLoopMixin(ABC):
         # --------------------------
         # add the metrics to the loggers
         if epoch_log_metrics and len(epoch_log_metrics) > 0:
-            self.log_metrics(epoch_log_metrics, {})
+            self.logger_connector.log_metrics(epoch_log_metrics, {})
 
         # add metrics to callbacks
         self.logger_connector.callback_metrics.update(epoch_callback_metrics)
@@ -246,7 +246,7 @@ class TrainerTrainLoopMixin(ABC):
             metrics = batch_output.batch_log_metrics
             grad_norm_dic = batch_output.grad_norm_dic
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.log_metrics(metrics, grad_norm_dic)
+                self.logger_connector.log_metrics(metrics, grad_norm_dic)
 
     def save_loggers_in_training_loop(self, batch_idx):
         # when loggers should save to disk

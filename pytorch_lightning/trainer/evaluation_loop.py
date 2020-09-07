@@ -337,7 +337,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 self.add_progress_bar_metrics(prog_bar_metrics)
 
                 # log metrics
-                self.log_metrics(log_metrics, {})
+                self.logger_connector.log_metrics(log_metrics, {})
 
                 # track metrics for callbacks
                 self.logger_connector.callback_metrics.update(callback_metrics)
