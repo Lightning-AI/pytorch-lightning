@@ -325,7 +325,7 @@ class ModelCheckpoint(Callback):
         # TODO: remove when dict results are deprecated
         self.__warn_deprecated_monitor_key()
 
-        metrics = trainer.callback_metrics
+        metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
 
         # support structured results

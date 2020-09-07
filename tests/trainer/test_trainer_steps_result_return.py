@@ -57,7 +57,7 @@ def test_training_step_result_log_step_only(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # make sure pbar metrics are correct ang log metrics did not leak
     for batch_idx in range(batches):
@@ -133,7 +133,7 @@ def test_training_step_result_log_epoch_only(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # make sure pbar metrics are correct ang log metrics did not leak
     for epoch_idx in range(epochs):
@@ -233,7 +233,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # -------------------------------
     # VERIFY PBAR METRICS
@@ -351,7 +351,7 @@ def test_training_step_epoch_end_result(tmpdir):
     assert 'log_acc2' not in trainer.progress_bar_metrics
 
     # make sure callback metrics didn't change
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # -----------------------------------------
     # make sure training outputs what is expected

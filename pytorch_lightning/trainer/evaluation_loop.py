@@ -134,6 +134,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities import rank_zero_warn, flatten_dict, AMPType
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
+from pytorch_lightning.trainer.logger_connector import LoggerConnector
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl
@@ -180,6 +181,7 @@ class TrainerEvaluationLoopMixin(ABC):
     verbose_test: bool
     running_sanity_check: bool
     amp_backend: AMPType
+    logger_connector: LoggerConnector
 
     # Callback system
     on_validation_batch_start: Callable
@@ -338,7 +340,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 self.log_metrics(log_metrics, {})
 
                 # track metrics for callbacks
-                self.callback_metrics.update(callback_metrics)
+                self.logger_connector.callback_metrics.update(callback_metrics)
 
                 if len(dataloader_result_metrics) > 0:
                     eval_loop_results.append(dataloader_result_metrics)
