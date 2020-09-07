@@ -212,10 +212,6 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def log_metrics(self, *args, **kwargs):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def reset_test_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
