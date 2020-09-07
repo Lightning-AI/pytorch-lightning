@@ -76,7 +76,6 @@ jobs:
       - name: Publish Master to Docker
         # publish master
         uses: docker/build-push-action@v1.1.0
-        if: github.event_name == 'push'
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -103,7 +102,6 @@ jobs:
       - name: Publish Master to Docker
         # publish master
         uses: docker/build-push-action@v1.1.0
-        if: github.event_name == 'push'
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}

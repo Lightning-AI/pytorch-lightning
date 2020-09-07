@@ -1,9 +1,7 @@
 name: PyTorch & Conda
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:
-  # Trigger the workflow on push or pull request,
-  # but only for the master branch
+on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
     branches:
       - master

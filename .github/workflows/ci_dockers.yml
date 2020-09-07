@@ -1,0 +1,83 @@
+name: CI build Docker
+# https://www.docker.com/blog/first-docker-github-action-is-here
+# https://github.com/docker/build-push-action
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  # Trigger the workflow on push or pull request, but only for the master branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-Conda:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [3.7]
+        pytorch_version: [1.6]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Build Docker
+        # publish master
+        uses: docker/build-push-action@v1.1.0
+        with:
+          dockerfile: dockers/conda/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          push: false
+        timeout-minutes: 40
+
+  build-XLA:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [3.6, 3.7]
+        xla_version: ["nightly"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Build Docker
+        # publish master
+        uses: docker/build-push-action@v1.1.0
+        with:
+          dockerfile: dockers/base-xla/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
+          push: false
+        timeout-minutes: 35
+
+  build-cuda:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [3.7]
+        pytorch_version: [1.6.0]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Publish Master to Docker
+        # publish master
+        uses: docker/build-push-action@v1.1.0
+        if: github.event_name == 'push'
+        with:
+          dockerfile: dockers/base-cuda/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          push: false
+        timeout-minutes: 40
