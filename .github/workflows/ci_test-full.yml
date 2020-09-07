@@ -66,7 +66,7 @@ jobs:
       run: |
         python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
         python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/devel.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/test.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow

@@ -50,7 +50,7 @@ jobs:
           dockerfile: dockers/base-xla/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
           push: false
-        timeout-minutes: 35
+        timeout-minutes: 40
 
   build-cuda:
     runs-on: ubuntu-20.04
