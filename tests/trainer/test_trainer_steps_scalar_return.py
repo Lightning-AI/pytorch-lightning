@@ -111,7 +111,7 @@ def test_full_training_loop_scalar(tmpdir):
 
     # assert epoch end metrics were added
     assert len(trainer.logger_connector.callback_metrics) == 0
-    assert len(trainer.progress_bar_metrics) == 0
+    assert len(trainer.loggger_connector.progress_bar_metrics) == 0
 
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
@@ -155,7 +155,7 @@ def test_train_step_epoch_end_scalar(tmpdir):
 
     # assert epoch end metrics were added
     assert len(trainer.logger_connector.callback_metrics) == 0
-    assert len(trainer.progress_bar_metrics) == 0
+    assert len(trainer.loggger_connector.progress_bar_metrics) == 0
 
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):

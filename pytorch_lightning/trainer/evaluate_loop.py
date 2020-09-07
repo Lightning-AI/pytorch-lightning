@@ -279,4 +279,4 @@ class EvaluationLoop(object):
                 self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
-                self.trainer.add_progress_bar_metrics(step_pbar_metrics)
+                self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)

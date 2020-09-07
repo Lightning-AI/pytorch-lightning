@@ -61,9 +61,9 @@ def test_training_step_result_log_step_only(tmpdir):
 
     # make sure pbar metrics are correct ang log metrics did not leak
     for batch_idx in range(batches):
-        assert trainer.progress_bar_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11
-        assert trainer.progress_bar_metrics[f'step_pbar_acc3_b{batch_idx}'] == 13
-        assert f'step_log_acc2_b{batch_idx}' not in trainer.progress_bar_metrics
+        assert trainer.loggger_connector.progress_bar_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11
+        assert trainer.loggger_connector.progress_bar_metrics[f'step_pbar_acc3_b{batch_idx}'] == 13
+        assert f'step_log_acc2_b{batch_idx}' not in trainer.loggger_connector.progress_bar_metrics
 
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
@@ -137,9 +137,9 @@ def test_training_step_result_log_epoch_only(tmpdir):
 
     # make sure pbar metrics are correct ang log metrics did not leak
     for epoch_idx in range(epochs):
-        assert trainer.progress_bar_metrics[f'epoch_log_and_pbar_acc1_e{epoch_idx}'] == 14
-        assert trainer.progress_bar_metrics[f'epoch_pbar_acc3_e{epoch_idx}'] == 16
-        assert f'epoch_log_acc2_e{epoch_idx}' not in trainer.progress_bar_metrics
+        assert trainer.loggger_connector.progress_bar_metrics[f'epoch_log_and_pbar_acc1_e{epoch_idx}'] == 14
+        assert trainer.loggger_connector.progress_bar_metrics[f'epoch_pbar_acc3_e{epoch_idx}'] == 16
+        assert f'epoch_log_acc2_e{epoch_idx}' not in trainer.loggger_connector.progress_bar_metrics
 
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
@@ -342,13 +342,13 @@ def test_training_step_epoch_end_result(tmpdir):
     logged_pbar = trainer.dev_debugger.pbar_added_metrics
     assert len(logged_pbar) == (epochs * batches) + epochs
 
-    assert trainer.progress_bar_metrics['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
-    assert trainer.progress_bar_metrics['step_step_epoch_log_and_pbar_acc1'] == 7.0
-    assert trainer.progress_bar_metrics['epoch_step_epoch_pbar_acc3'] == 504.0
-    assert trainer.progress_bar_metrics['epoch_epoch_end_pbar_acc'] == 1213.0
-    assert trainer.progress_bar_metrics['epoch_epoch_end_log_pbar_acc'] == 1214.0
-    assert 'epoch_end_log_acc' not in trainer.progress_bar_metrics
-    assert 'log_acc2' not in trainer.progress_bar_metrics
+    assert trainer.loggger_connector.progress_bar_metrics['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
+    assert trainer.loggger_connector.progress_bar_metrics['step_step_epoch_log_and_pbar_acc1'] == 7.0
+    assert trainer.loggger_connector.progress_bar_metrics['epoch_step_epoch_pbar_acc3'] == 504.0
+    assert trainer.loggger_connector.progress_bar_metrics['epoch_epoch_end_pbar_acc'] == 1213.0
+    assert trainer.loggger_connector.progress_bar_metrics['epoch_epoch_end_log_pbar_acc'] == 1214.0
+    assert 'epoch_end_log_acc' not in trainer.loggger_connector.progress_bar_metrics
+    assert 'log_acc2' not in trainer.loggger_connector.progress_bar_metrics
 
     # make sure callback metrics didn't change
     assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171

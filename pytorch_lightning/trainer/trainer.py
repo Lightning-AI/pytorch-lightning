@@ -379,7 +379,6 @@ class Trainer(
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
-        self.progress_bar_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
         self.num_sanity_val_batches = []
@@ -907,7 +906,7 @@ class Trainer(
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
         ref_model = self.model if not self.data_parallel else self.model.module
-        return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
+        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
 
     @property
     def disable_validation(self) -> bool:

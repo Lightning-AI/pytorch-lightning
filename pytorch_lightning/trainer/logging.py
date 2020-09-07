@@ -30,7 +30,6 @@ class TrainerLoggingMixin(ABC):
     on_gpu: bool
     log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
-    progress_bar_metrics: ...
     global_step: int
     global_rank: int
     use_dp: bool
@@ -55,15 +54,6 @@ class TrainerLoggingMixin(ABC):
                 self.logger = LoggerCollection(logger)
             else:
                 self.logger = logger
-
-    def add_progress_bar_metrics(self, metrics):
-        for k, v in metrics.items():
-            if isinstance(v, torch.Tensor):
-                v = v.item()
-
-            self.progress_bar_metrics[k] = v
-
-        self.dev_debugger.track_pbar_metrics_history(metrics)
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}

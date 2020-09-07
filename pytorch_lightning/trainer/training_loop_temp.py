@@ -298,7 +298,7 @@ class TrainLoop:
 
         # track progress bar metrics
         if len(step_pbar_metrics) > 0:
-            self.trainer.add_progress_bar_metrics(step_pbar_metrics)
+            self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)
 
     def process_hiddens(self, opt_closure_result):
         hiddens = opt_closure_result.hiddens
