@@ -391,8 +391,10 @@ class TrainLoop:
         self.run_on_epoch_end_hook()
 
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
-        if ((self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
-                or (self.trainer.batch_idx + 1) == self.trainer.num_training_batches):
+        num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+        num_training_batches_reached = (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+
+        if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
             self.trainer.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
@@ -401,9 +403,11 @@ class TrainLoop:
         self.trainer.call_hook('on_train_epoch_end')
 
     def increment_accumulated_grad_global_step(self):
+        num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
+        num_training_batches_reached = (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
+
         # progress global step according to grads progress
-        if ((self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
-                or (self.trainer.batch_idx + 1) == self.trainer.num_training_batches):
+        if num_accumulated_batches_reached or num_training_batches_reached:
             self.trainer.global_step += 1
         self.trainer.total_batch_idx += 1
 
