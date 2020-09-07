@@ -442,7 +442,7 @@ def test_full_loop_result_cpu(tmpdir):
     seed_everything(1234)
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    batches = 5
+    batches = 10
     epochs = 2
 
     model = EvalModelTemplate()
@@ -477,3 +477,7 @@ def test_full_loop_result_cpu(tmpdir):
     assert len(results) == 2
     assert 'val_early_stop_on' not in results
     assert 'val_checkpoint_on' not in results
+
+    results2 = trainer.test()[0]
+    for k, v in results.items():
+        assert results2[k] == v
