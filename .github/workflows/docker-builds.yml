@@ -24,9 +24,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
 
       - name: Publish Master to Docker
         # publish master
@@ -69,9 +66,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
 
       - name: Publish Master to Docker
         # publish master
@@ -95,9 +89,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
 
       - name: Publish Master to Docker
         # publish master
