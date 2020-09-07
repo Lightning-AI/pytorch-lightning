@@ -90,12 +90,12 @@ Let's first start with the model. In this case we'll design a 3-layer neural net
         # (b, 1, 28, 28) -> (b, 1*28*28)
         x = x.view(batch_size, -1)
         x = self.layer_1(x)
-        x = torch.relu(x)
+        x = F.relu(x)
         x = self.layer_2(x)
-        x = torch.relu(x)
+        x = F.relu(x)
         x = self.layer_3(x)
 
-        x = torch.log_softmax(x, dim=1)
+        x = F.log_softmax(x, dim=1)
         return x
 
 Notice this is a :class:`~pytorch_lightning.core.LightningModule` instead of a `torch.nn.Module`. A LightningModule is
@@ -104,7 +104,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
 .. testcode::
 
     net = LitMNIST()
-    x = torch.Tensor(1, 1, 28, 28)
+    x = torch.randn(1, 1, 28, 28)
     out = net(x)
 
 .. rst-class:: sphx-glr-script-out
@@ -118,7 +118,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
 
 Now we add the training_step which has all our training loop logic
 
-.. code-block:: python
+.. testcode:: python
 
     class LitMNIST(LightningModule):
 
@@ -197,11 +197,13 @@ For fast research prototyping, it might be easier to link the model with the dat
 
         def val_dataloader(self):
             transforms = ...
-            return DataLoader(self.val, transforms)
+            mnist_val = ...
+            return DataLoader(mnist_val, batch_size=64)
 
         def test_dataloader(self):
             transforms = ...
-            return DataLoader(self.test, transforms)
+            mnist_test = ...
+            return DataLoader(mnist_test, batch_size=64)
 
 DataLoaders are already in the model, no need to specify on .fit().
 
@@ -240,7 +242,7 @@ In this case, it's better to group the full definition of a dataset into a `Data
 
         def setup(self):
             # called on every GPU
-            vocab = load_vocab
+            vocab = load_vocab()
             self.vocab_size = len(vocab)
 
             self.train, self.val, self.test = load_datasets()
@@ -248,15 +250,15 @@ In this case, it's better to group the full definition of a dataset into a `Data
 
         def train_dataloader(self):
             transforms = ...
-            return DataLoader(self.train, transforms)
+            return DataLoader(self.train, batch_size=64)
 
         def val_dataloader(self):
             transforms = ...
-            return DataLoader(self.val, transforms)
+            return DataLoader(self.val, batch_size=64)
 
         def test_dataloader(self):
             transforms = ...
-            return DataLoader(self.test, transforms)
+            return DataLoader(self.test, batch_size=64)
 
 Using DataModules allows easier sharing of full dataset definitions.
 
@@ -464,11 +466,11 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             batch_size, channels, width, height = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_2(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_3(x)
-            x = torch.log_softmax(x, dim=1)
+            x = F.log_softmax(x, dim=1)
             return x
 
         def training_step(self, batch, batch_idx):
@@ -730,7 +732,7 @@ Under the hood, Lightning does the following:
             loss = loss(y_hat, x)               # validation_step
             outputs.append({'val_loss': loss})  # validation_step
 
-        full_loss = outputs.mean()              # validation_epoch_end
+        total_loss = outputs.mean()             # validation_epoch_end
 
 Optional methods
 ^^^^^^^^^^^^^^^^
@@ -816,7 +818,7 @@ and use it for prediction.
 .. code-block:: python
 
     model = LitMNIST.load_from_checkpoint(PATH)
-    x = torch.Tensor(1, 1, 28, 28)
+    x = torch.randn(1, 1, 28, 28)
     out = model(x)
 
 On the surface, it looks like `forward` and `training_step` are similar. Generally, we want to make sure that
@@ -831,11 +833,11 @@ within it.
             batch_size, channels, width, height = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_2(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_3(x)
-            x = torch.log_softmax(x, dim=1)
+            x = F.log_softmax(x, dim=1)
             return x
 
         def training_step(self, batch, batch_idx):
@@ -860,16 +862,16 @@ In this case, we've set this LightningModel to predict logits. But we could also
             batch_size, channels, width, height = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
-            x1 = torch.relu(x)
+            x1 = F.relu(x)
             x = self.layer_2(x1)
-            x2 = torch.relu(x)
+            x2 = F.relu(x)
             x3 = self.layer_3(x2)
             return [x, x1, x2, x3]
 
         def training_step(self, batch, batch_idx):
             x, y = batch
             out, l1_feats, l2_feats, l3_feats = self(x)
-            logits = torch.log_softmax(out, dim=1)
+            logits = F.log_softmax(out, dim=1)
             ce_loss = F.nll_loss(logits, y)
             loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
             return loss
