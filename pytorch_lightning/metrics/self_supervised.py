@@ -49,9 +49,12 @@ class EmbeddingSimilarity(TensorMetric):
         """
         super().__init__(name='embedding_similarity',
                          reduce_group=reduce_group)
+        assert similarity in ('dot', 'cosine')
         self.similarity = similarity
+        isinstance(zero_diagonal, bool)
         self.zero_diagonal = zero_diagonal
-        self.reduction = self.reduction
+        asser reduction in ('none', 'sum', 'mean')
+        self.reduction = reduction
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
         """
