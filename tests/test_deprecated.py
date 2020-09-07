@@ -112,7 +112,7 @@ class ModelVer0_7(EvalModelTemplate):
 #     with pytest.deprecated_call(match='will be removed in v1.0. Use `test_epoch_end` instead'):
 #         trainer = Trainer(logger=False)
 #         trainer.test(model)
-#     assert trainer.callback_metrics == {'test_loss': torch.tensor(0.6)}
+#     assert trainer.logger_connector.callback_metrics == {'test_loss': torch.tensor(0.6)}
 #
 #     with pytest.deprecated_call(match='will be removed in v1.0. Use `validation_epoch_end` instead'):
 #         trainer = Trainer(logger=False)
@@ -125,7 +125,7 @@ class ModelVer0_7(EvalModelTemplate):
 #     with pytest.deprecated_call(match='will be removed in v1.0. Use `test_epoch_end` instead'):
 #         trainer = Trainer(logger=False)
 #         trainer.test(model)
-#     assert trainer.callback_metrics == {'test_loss': torch.tensor(0.7)}
+#     assert trainer.logger_connector.callback_metrics == {'test_loss': torch.tensor(0.7)}
 #
 #     with pytest.deprecated_call(match='will be removed in v1.0. Use `validation_epoch_end` instead'):
 #         trainer = Trainer(logger=False)

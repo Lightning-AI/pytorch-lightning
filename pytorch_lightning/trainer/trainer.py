@@ -55,6 +55,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning import _logger as log
@@ -379,7 +380,6 @@ class Trainer(
         self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
         self.progress_bar_metrics = {}
-        self.callback_metrics = {}
         self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
@@ -615,6 +615,7 @@ class Trainer(
         self.data_connector = DataConnector(self)
         self.lr_scheduler_connector = LRSchedulerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
+        self.logger_connector = LoggerConnector(self)
         self.accelerator_backend = None
 
         # loops
@@ -623,6 +624,14 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def callback_metrics(self):
+        return self.logger_connector.callback_metrics
+
+    @callback_metrics.setter
+    def callback_metrics(self, x):
+        self.logger_connector.callback_metrics = x
 
     @property
     def state(self) -> TrainerState:
@@ -1256,7 +1265,7 @@ class Trainer(
                     callback_metrics = eval_results.callback_metrics
                 else:
                     _, _, _, callback_metrics, _ = self.process_output(eval_results)
-                self.callback_metrics = callback_metrics
+                self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
             self.running_sanity_check = False

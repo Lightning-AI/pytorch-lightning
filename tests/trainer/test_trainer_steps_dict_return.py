@@ -112,7 +112,7 @@ def test_full_training_loop_dict(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert trainer.callback_metrics['epoch_end_log_1'] == 178
+    assert trainer.logger_connector.callback_metrics['epoch_end_log_1'] == 178
     assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
@@ -199,7 +199,7 @@ def test_train_step_epoch_end(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert trainer.callback_metrics['epoch_end_log_1'] == 178
+    assert trainer.logger_connector.callback_metrics['epoch_end_log_1'] == 178
     assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected

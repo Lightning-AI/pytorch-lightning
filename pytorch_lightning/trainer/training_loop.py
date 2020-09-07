@@ -24,6 +24,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
+from pytorch_lightning.trainer.logger_connector import LoggerConnector
 
 
 class TrainerTrainLoopMixin(ABC):
@@ -52,6 +53,7 @@ class TrainerTrainLoopMixin(ABC):
     accelerator_backend: ...
     train_loop: TrainLoop
     data_connector: DataConnector
+    logger_connector: LoggerConnector
 
     # Callback system
     callbacks: List[Callback]
@@ -187,7 +189,7 @@ class TrainerTrainLoopMixin(ABC):
             self.log_metrics(epoch_log_metrics, {})
 
         # add metrics to callbacks
-        self.callback_metrics.update(epoch_callback_metrics)
+        self.logger_connector.callback_metrics.update(epoch_callback_metrics)
 
         # add metrics to progress_bar
         if len(epoch_progress_bar_metrics) > 0:
@@ -362,7 +364,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # track all metrics for callbacks
         if not using_results_obj:
-            self.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
+            self.logger_connector.callback_metrics.update({k: v for d in batch_callback_metrics for k, v in d.items()})
 
         result = AttributeDict(
             signal=0,

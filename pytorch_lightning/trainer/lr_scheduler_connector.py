@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -29,10 +43,10 @@ class LRSchedulerConnector:
                     if monitor_metrics is not None:
                         monitor_val = monitor_metrics.get(monitor_key)
                     else:
-                        monitor_val = self.trainer.callback_metrics.get(monitor_key)
+                        monitor_val = self.trainer.logger_connector.callback_metrics.get(monitor_key)
 
                     if monitor_val is None:
-                        avail_metrics = ','.join(list(self.trainer.callback_metrics.keys()))
+                        avail_metrics = ','.join(list(self.trainer.logger_connector.callback_metrics.keys()))
                         raise MisconfigurationException(
                             f'ReduceLROnPlateau conditioned on metric {monitor_key}'
                             f' which is not available. Available metrics are: {avail_metrics}.'
