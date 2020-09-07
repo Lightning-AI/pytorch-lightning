@@ -33,21 +33,14 @@ class EmbeddingSimilarity(TensorMetric):
    
      """
 
-    def __init__(self,
-                 similarity: str = 'cosine',
-                 zero_diagonal: bool = True,
-                 reduction: str = 'mean',
-                 reduce_group: Any = None):
-        """ Computes similarity between embeddings
-
-            Example:
-
-                >>> embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
-                >>> embedding_similarity(embeddings)
-                tensor([[0.0000, 1.0000, 0.9759],
-                        [1.0000, 0.0000, 0.9759],
-                        [0.9759, 0.9759, 0.0000]])
-
+    def __init__(
+            self,
+            similarity: str = 'cosine',
+            zero_diagonal: bool = True,
+            reduction: str = 'mean',
+            reduce_group: Any = None
+    ):
+        """
             Args:
                 similarity: 'dot' or 'cosine'
                 reduction: 'none', 'sum', 'mean' (all along dim -1)
