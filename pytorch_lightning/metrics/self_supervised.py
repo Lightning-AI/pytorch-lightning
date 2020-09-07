@@ -22,9 +22,16 @@ from pytorch_lightning.metrics.metric import TensorMetric
 
 class EmbeddingSimilarity(TensorMetric):
     """
+    Computes similarity between embeddings
 
-
-    """
+    Example:
+        >>> embeddings = torch.tensor([[1., 2., 3., 4.], [1., 2., 3., 4.], [4., 5., 6., 7.]])
+        >>> embedding_similarity(embeddings)
+        tensor([[0.0000, 1.0000, 0.9759],
+                [1.0000, 0.0000, 0.9759],
+                [0.9759, 0.9759, 0.0000]])
+   
+     """
 
     def __init__(self,
                  similarity: str = 'cosine',
