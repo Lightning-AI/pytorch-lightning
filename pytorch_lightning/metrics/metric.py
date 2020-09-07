@@ -27,8 +27,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
 
-__all__ = ["Metric", "TensorMetric", "NumpyMetric"]
-
 class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
     """
     Abstract base class for metric implementation.
@@ -289,3 +287,6 @@ class NumpyMetric(Metric):
     def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
+
+
+__all__ = ["Metric", "TensorMetric", "NumpyMetric"]

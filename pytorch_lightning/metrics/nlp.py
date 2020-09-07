@@ -18,9 +18,6 @@ from pytorch_lightning.metrics.functional.nlp import bleu_score
 from pytorch_lightning.metrics.metric import Metric
 
 
-__all__ = ["BLEUScore"]
-
-
 class BLEUScore(Metric):
     """
     Calculate BLEU score of machine translated text with one or more references.
@@ -61,3 +58,6 @@ class BLEUScore(Metric):
             n_gram=self.n_gram,
             smooth=self.smooth,
         ).to(self.device, self.dtype)
+
+
+__all__ = ["BLEUScore"]

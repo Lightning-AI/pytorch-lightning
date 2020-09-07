@@ -20,9 +20,6 @@ from pytorch_lightning.metrics.functional.self_supervised import embedding_simil
 from pytorch_lightning.metrics.metric import TensorMetric
 
 
-__all__ = ['EmbeddingSimilarity']
-
-
 class EmbeddingSimilarity(TensorMetric):
     """
     Computes similarity between embeddings
@@ -71,3 +68,6 @@ class EmbeddingSimilarity(TensorMetric):
                                     similarity=self.similarity,
                                     zero_diagonal=self.zero_diagonal,
                                     reduction=self.reduction)
+
+
+__all__ = ['EmbeddingSimilarity']
