@@ -208,10 +208,6 @@ class TrainerEvaluationLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def add_progress_bar_metrics(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def reset_test_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -330,7 +326,7 @@ class TrainerEvaluationLoopMixin(ABC):
                 dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
 
                 # add metrics to prog bar
-                self.add_progress_bar_metrics(prog_bar_metrics)
+                self.logger_connector.add_progress_bar_metrics(prog_bar_metrics)
 
                 # log metrics
                 self.logger_connector.log_metrics(log_metrics, {})

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
 from pytorch_lightning.core import memory
 
 
@@ -20,6 +21,7 @@ class LoggerConnector:
         self.trainer = trainer
         self.callback_metrics = {}
         self.logged_metrics = {}
+        self.progress_bar_metrics = {}
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
@@ -58,3 +60,12 @@ class LoggerConnector:
             # track the logged metrics
             self.logged_metrics = scalar_metrics
             self.trainer.dev_debugger.track_logged_metrics_history(scalar_metrics)
+
+    def add_progress_bar_metrics(self, metrics):
+        for k, v in metrics.items():
+            if isinstance(v, torch.Tensor):
+                v = v.item()
+
+            self.progress_bar_metrics[k] = v
+
+        self.trainer.dev_debugger.track_pbar_metrics_history(metrics)

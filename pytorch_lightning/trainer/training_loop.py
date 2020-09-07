@@ -73,10 +73,6 @@ class TrainerTrainLoopMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def add_progress_bar_metrics(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def process_output(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
@@ -189,7 +185,7 @@ class TrainerTrainLoopMixin(ABC):
 
         # add metrics to progress_bar
         if len(epoch_progress_bar_metrics) > 0:
-            self.add_progress_bar_metrics(epoch_progress_bar_metrics)
+            self.logger_connector.add_progress_bar_metrics(epoch_progress_bar_metrics)
 
     def __auto_reduce_results_on_epoch_end(self, epoch_output):
         epoch_log_metrics = {}
