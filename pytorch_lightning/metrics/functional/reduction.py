@@ -42,7 +42,7 @@ def class_reduce(num: torch.Tensor,
 
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
 
     """

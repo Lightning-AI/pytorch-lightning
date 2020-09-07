@@ -63,7 +63,7 @@ class Accuracy(TensorMetric):
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
                 - ``'none'``: returns calculated metric per class
 
             reduce_group: the process group to reduce metric results from DDP
@@ -225,7 +225,7 @@ class Precision(TensorMetric):
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
                 - ``'none'``: returns calculated metric per class
 
             reduce_group: the process group to reduce metric results from DDP
@@ -281,7 +281,7 @@ class Recall(TensorMetric):
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
                 - ``'none'``: returns calculated metric per class
 
             reduce_group: the process group to reduce metric results from DDP
@@ -449,7 +449,7 @@ class FBeta(TensorMetric):
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
                 - ``'none'``: returns calculated metric per class
 
             reduce_group: the process group to reduce metric results from DDP
@@ -507,7 +507,7 @@ class F1(TensorMetric):
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-                - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
                 - ``'none'``: returns calculated metric per class
 
             reduce_group: the process group to reduce metric results from DDP

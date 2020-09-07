@@ -252,7 +252,7 @@ def accuracy(
 
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
 
     Return:
@@ -333,7 +333,7 @@ def precision_recall(
 
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
 
         return_support: returns the support for each class, need for fbeta/f1 calculations
@@ -375,7 +375,7 @@ def precision(
 
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
 
     Return:
@@ -410,7 +410,7 @@ def recall(
 
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
 
     Return:
@@ -451,7 +451,7 @@ def fbeta_score(
 
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
 
     Return:
@@ -496,7 +496,7 @@ def f1_score(
 
             - ``'micro'``: calculate metrics globally (default)
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
-            - ``'weighted'``: calculate metrics for each label, and find their unweighted mean.
+            - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
 
     Return:
