@@ -148,8 +148,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
                                   transforms.Normalize((0.1307,), (0.3081,))])
 
     # data
-    mnist_train = MNIST(os.getcwd(), train=True, download=True,
-                        transform=transform)
+    mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
     mnist_train = DataLoader(mnist_train, batch_size=64)
 
 .. testoutput::
@@ -193,8 +192,7 @@ For fast research prototyping, it might be easier to link the model with the dat
             transform=transforms.Compose([transforms.ToTensor(),
                                           transforms.Normalize((0.1307,), (0.3081,))])
             # data
-            mnist_train = MNIST(os.getcwd(), train=True, download=True,
-                                transform=transform)
+            mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
             return DataLoader(mnist_train, batch_size=64)
 
         def val_dataloader(self):
