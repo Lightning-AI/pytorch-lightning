@@ -53,7 +53,6 @@ class TrainerTrainLoopMixin(ABC):
     train_loop: TrainLoop
     data_connector: DataConnector
 
-    # Callback system
     callbacks: List[Callback]
     on_batch_start: Callable
     on_train_batch_start: Callable
