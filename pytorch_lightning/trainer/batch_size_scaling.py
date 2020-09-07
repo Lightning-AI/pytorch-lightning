@@ -13,7 +13,6 @@
 # limitations under the License
 import os
 from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -23,7 +22,7 @@ from pytorch_lightning import _logger as log
 from typing import Optional
 
 
-def scale_batch_size(trainer: Trainer,
+def scale_batch_size(trainer,
                      model: LightningModule,
                      mode: str = 'power',
                      steps_per_trial: int = 3,
