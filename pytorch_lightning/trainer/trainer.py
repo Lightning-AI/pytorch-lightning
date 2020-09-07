@@ -59,7 +59,7 @@ from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning import _logger as log
-
+from pytorch_lightning.trainer.tuning import Tuner
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
@@ -614,6 +614,7 @@ class Trainer(
         self.lr_scheduler_connector = LRSchedulerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
+        self.tuner = Tuner(self)
         self.accelerator_backend = None
 
         # loops
@@ -961,7 +962,7 @@ class Trainer(
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
                 self.auto_scale_batch_size = 'power'
-            self.scale_batch_size(
+            self.tuner.scale_batch_size(
                 model,
                 mode=self.auto_scale_batch_size,
                 train_dataloader=train_dataloader,
