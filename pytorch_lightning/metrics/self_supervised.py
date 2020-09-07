@@ -53,7 +53,7 @@ class EmbeddingSimilarity(TensorMetric):
         self.similarity = similarity
         isinstance(zero_diagonal, bool)
         self.zero_diagonal = zero_diagonal
-        asser reduction in ('none', 'sum', 'mean')
+        assert reduction in ('none', 'sum', 'mean')
         self.reduction = reduction
 
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
