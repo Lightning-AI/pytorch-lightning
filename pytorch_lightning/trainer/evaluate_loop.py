@@ -276,7 +276,7 @@ class EvaluationLoop(object):
                 for k, v in step_log_metrics.items():
                     metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
 
-                self.trainer.log_metrics(metrics_by_epoch, {}, step=batch_idx)
+                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
                 self.trainer.add_progress_bar_metrics(step_pbar_metrics)
