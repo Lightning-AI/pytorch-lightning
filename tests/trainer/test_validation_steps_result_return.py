@@ -111,7 +111,7 @@ def test_val_step_using_train_callbacks(tmpdir):
     assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171 + 50
 
     # did not request any metrics to log (except the metrics saying which epoch we are on)
-    assert len(trainer.loggger_connector.progress_bar_metrics) == 0
+    assert len(trainer.logger_connector.progress_bar_metrics) == 0
     assert len(trainer.dev_debugger.logged_metrics) == expected_epochs
 
 
