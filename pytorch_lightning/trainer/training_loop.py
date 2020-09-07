@@ -27,8 +27,6 @@ from pytorch_lightning.trainer.data_connector import DataConnector
 
 
 class TrainerTrainLoopMixin(ABC):
-    # this is just a summary on variables used in this abstract class,
-    #  the proper values/initialisation should be done in child class
     on_gpu: bool
     use_horovod: bool
     check_val_every_n_epoch: ...
