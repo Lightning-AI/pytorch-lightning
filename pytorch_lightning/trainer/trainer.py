@@ -55,6 +55,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning import _logger as log
 
@@ -612,6 +613,7 @@ class Trainer(
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
+        self.lr_scheduler_connector = LRSchedulerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
         self.accelerator_backend = None
 
@@ -1171,7 +1173,7 @@ class Trainer(
                     return
 
                 # update LR schedulers
-                self.update_learning_rates(interval='epoch')
+                self.lr_scheduler_connector.update_learning_rates(interval='epoch')
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1

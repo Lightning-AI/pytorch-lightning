@@ -167,7 +167,6 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
@@ -197,15 +196,12 @@ class TrainerTrainLoopMixin(ABC):
     running_loss: ...
     profiler: ...
     batch_idx: int
-    train_dataloader: DataLoader
     max_steps: int
-    total_batch_idx: int
     terminate_on_nan: bool
     _state: TrainerState
     accelerator_backend: ...
     train_loop: TrainLoop
     data_connector: DataConnector
-    dev_debugger: InternalDebugger
 
     # Callback system
     callbacks: List[Callback]
@@ -457,7 +453,7 @@ class TrainerTrainLoopMixin(ABC):
                 # -------------------
                 # calculate loss (train step + train step end)
                 # -------------------
-                opt_closure_result = self.training_step_and_backward(
+                opt_closure_result = self.train_loop.training_step_and_backward(
                     split_batch,
                     batch_idx,
                     opt_idx,
@@ -492,7 +488,7 @@ class TrainerTrainLoopMixin(ABC):
                     grad_norm_dic = self.train_loop.on_before_backward(batch_idx, optimizer)
 
                     # wrap forward + backward pass in closure for 2nd order optimizers
-                    train_step_and_backward_closure = lambda: self.training_step_and_backward(
+                    train_step_and_backward_closure = lambda: self.train_loop.training_step_and_backward(
                         split_batch, batch_idx, opt_idx, optimizer, self.hiddens,
                     ).loss
 
@@ -525,82 +521,3 @@ class TrainerTrainLoopMixin(ABC):
             training_step_output_for_epoch_end=batch_outputs
         )
         return result
-
-    def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
-        """
-        wrap the forward step in a closure so second order methods work
-        """
-        # lightning module hook
-        result = self.train_loop.training_step(split_batch, batch_idx, opt_idx, hiddens)
-
-        # backward pass
-        self.train_loop.backward(result, optimizer, opt_idx)
-
-        # hook
-        self.train_loop.on_after_backward(result.training_step_output, batch_idx, result.loss)
-
-        return result
-
-    def update_learning_rates(self, interval: str, monitor_metrics=None):
-        """Update learning rates.
-
-        Args:
-            interval: either 'epoch' or 'step'.
-            monitor_metrics: dict of possible values to monitor
-        """
-        if not self.lr_schedulers:
-            return
-
-        for scheduler_idx, lr_scheduler in enumerate(self.lr_schedulers):
-            current_idx = self.batch_idx if interval == 'step' else self.current_epoch
-            current_idx += 1  # account for both batch and epoch starts from 0
-            # Take step if call to update_learning_rates matches the interval key and
-            # the current step modulo the schedulers frequency is zero
-            if lr_scheduler['interval'] == interval and current_idx % lr_scheduler['frequency'] == 0:
-                # If instance of ReduceLROnPlateau, we need to pass validation loss
-                if lr_scheduler['reduce_on_plateau']:
-                    monitor_key = lr_scheduler['monitor']
-
-                    if monitor_metrics is not None:
-                        monitor_val = monitor_metrics.get(monitor_key)
-                    else:
-                        monitor_val = self.callback_metrics.get(monitor_key)
-
-                    if monitor_val is None:
-                        avail_metrics = ','.join(list(self.callback_metrics.keys()))
-                        raise MisconfigurationException(
-                            f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                            f' which is not available. Available metrics are: {avail_metrics}.'
-                            ' Condition can be set using `monitor` key in lr scheduler dict'
-                        )
-                    if self.dev_debugger.enabled:
-                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-
-                    # update LR
-                    lr_scheduler['scheduler'].step(monitor_val)
-
-                    if self.dev_debugger.enabled:
-                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-                        self.dev_debugger.track_lr_schedulers_update(
-                            self.batch_idx,
-                            interval,
-                            scheduler_idx,
-                            old_lr,
-                            new_lr,
-                            monitor_key,
-                        )
-                else:
-                    if self.dev_debugger.enabled:
-                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-
-                    # update LR
-                    lr_scheduler['scheduler'].step()
-
-                    if self.dev_debugger.enabled:
-                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-                        self.dev_debugger.track_lr_schedulers_update(
-                            self.batch_idx,
-                            interval,
-                            scheduler_idx,
-                            old_lr, new_lr
-                        )

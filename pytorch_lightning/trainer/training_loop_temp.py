@@ -390,13 +390,28 @@ class TrainLoop:
         # epoch end hook
         self.run_on_epoch_end_hook()
 
+    def training_step_and_backward(self, split_batch, batch_idx, opt_idx, optimizer, hiddens):
+        """
+        wrap the forward step in a closure so second order methods work
+        """
+        # lightning module hook
+        result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
+
+        # backward pass
+        self.backward(result, optimizer, opt_idx)
+
+        # hook
+        self.on_after_backward(result.training_step_output, batch_idx, result.loss)
+
+        return result
+
     def update_train_loop_lr_schedulers(self, monitor_metrics=None):
         num_accumulated_batches_reached = (self.trainer.batch_idx + 1) % self.trainer.accumulate_grad_batches == 0
         num_training_batches_reached = (self.trainer.batch_idx + 1) == self.trainer.num_training_batches
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
-            self.trainer.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
+            self.trainer.lr_scheduler_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self):
         self.trainer.call_hook('on_epoch_end')
