@@ -29,6 +29,13 @@ from pytorch_lightning.overrides.data_parallel import (
 )
 from pytorch_lightning.utilities import move_data_to_device, AMPType
 
+try:
+    import horovod.torch as hvd
+except (ModuleNotFoundError, ImportError):
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
+
 
 class TrainerDPMixin(ABC):
 
