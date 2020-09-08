@@ -807,7 +807,7 @@ class IoU(TensorMetric):
     def __init__(
             self,
             ignore_index: Optional[int] = None,
-            not_present_score: float = 1.0,
+            not_present_score: float = 0.0,
             num_classes: Optional[int] = None,
             reduction: str = "elementwise_mean",
     ):
@@ -819,7 +819,7 @@ class IoU(TensorMetric):
                 By default, no index is ignored, and all classes are used.
             not_present_score: score to use for an individual class, if no instances of the class index were present in
                 `y_pred` AND no instances of the class index were present in `y_true`. By default, assign a score of
-                1.0 for this class if not present.
+                0.0 for this class if not present.
 
                 Ex: if we have the following input:
 
