@@ -196,6 +196,8 @@ def _tpu_cores_valid(tpu_cores):
         is_valid_tpu_core_choice = has_1_tpu_idx and is_valid_tpu_idx
         return is_valid_tpu_core_choice
 
+    return False
+
 
 def _parse_tpu_cores_str(tpu_cores):
     if tpu_cores in ('1', '8'):
