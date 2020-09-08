@@ -100,7 +100,6 @@ class Trainer(
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerEvaluationLoopMixin,
-    TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_10,
