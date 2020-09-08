@@ -73,6 +73,7 @@ class Accuracy(TensorMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
         self.num_classes = num_classes
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
         self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -238,6 +239,7 @@ class Precision(TensorMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
         self.num_classes = num_classes
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
         self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -295,6 +297,7 @@ class Recall(TensorMetric):
                          reduce_op=reduce_op)
 
         self.num_classes = num_classes
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
         self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -464,6 +467,7 @@ class FBeta(TensorMetric):
 
         self.beta = beta
         self.num_classes = num_classes
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
         self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -521,6 +525,7 @@ class F1(TensorMetric):
                          reduce_op=reduce_op)
 
         self.num_classes = num_classes
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
         self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:

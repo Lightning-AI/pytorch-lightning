@@ -272,6 +272,7 @@ def accuracy(
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(
         pred=pred, target=target, num_classes=num_classes)
 
+    assert class_reduction in ('micro', 'macro', 'weighted', 'none')
     return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
 
@@ -351,6 +352,7 @@ def precision_recall(
     """
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(pred=pred, target=target, num_classes=num_classes)
 
+    assert class_reduction in ('micro', 'macro', 'weighted', 'none')
     precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
     recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
     if return_support:
@@ -389,6 +391,7 @@ def precision(
         tensor(0.7500)
 
     """
+    assert class_reduction in ('micro', 'macro', 'weighted', 'none')
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, class_reduction=class_reduction)[0]
 
@@ -423,6 +426,7 @@ def recall(
         >>> recall(x, y)
         tensor(0.7500)
     """
+    assert class_reduction in ('micro', 'macro', 'weighted', 'none')
     return precision_recall(pred=pred, target=target,
                             num_classes=num_classes, class_reduction=class_reduction)[1]
 
@@ -464,6 +468,7 @@ def fbeta_score(
         >>> fbeta_score(x, y, 0.2)
         tensor(0.7500)
     """
+    assert class_reduction in ('micro', 'macro', 'weighted', 'none')
     # We need to differentiate at which point to do class reduction
     intermidiate_reduction = 'none' if class_reduction != "micro" else 'micro'
 
@@ -509,6 +514,7 @@ def f1_score(
         >>> f1_score(x, y)
         tensor(0.7500)
     """
+    assert class_reduction in ('micro', 'macro', 'weighted', 'none')
     return fbeta_score(pred=pred, target=target, beta=1.,
                        num_classes=num_classes, class_reduction=class_reduction)
 
