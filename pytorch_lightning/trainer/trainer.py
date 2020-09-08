@@ -55,8 +55,11 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
-
+from pytorch_lightning import _logger as log
+from pytorch_lightning.trainer.tuning import Tuner
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
@@ -376,9 +379,6 @@ class Trainer(
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
-        self.progress_bar_metrics = {}
-        self.callback_metrics = {}
-        self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
         self.num_sanity_val_batches = []
@@ -611,7 +611,10 @@ class Trainer(
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
+        self.lr_scheduler_connector = LRSchedulerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
+        self.logger_connector = LoggerConnector(self)
+        self.tuner = Tuner(self)
         self.accelerator_backend = None
 
         # loops
@@ -620,6 +623,14 @@ class Trainer(
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def callback_metrics(self):
+        return self.logger_connector.callback_metrics
+
+    @callback_metrics.setter
+    def callback_metrics(self, x):
+        self.logger_connector.callback_metrics = x
 
     @property
     def state(self) -> TrainerState:
@@ -896,7 +907,7 @@ class Trainer(
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
         ref_model = self.model if not self.data_parallel else self.model.module
-        return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
+        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
 
     @property
     def disable_validation(self) -> bool:
@@ -951,7 +962,7 @@ class Trainer(
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
                 self.auto_scale_batch_size = 'power'
-            self.scale_batch_size(
+            self.tuner.scale_batch_size(
                 model,
                 mode=self.auto_scale_batch_size,
                 train_dataloader=train_dataloader,
@@ -1135,6 +1146,71 @@ class Trainer(
         if self.is_function_implemented('on_pretrain_routine_end'):
             ref_model.on_pretrain_routine_end()
 
+    def train(self):
+        self.run_sanity_check(self.get_model())
+
+        # enable train mode
+        model = self.get_model()
+        model.train()
+        torch.set_grad_enabled(True)
+
+        # reload data when needed
+        self.train_loop.reset_train_val_dataloaders(model)
+
+        # hook
+        self.train_loop.on_train_start()
+
+        try:
+            # run all epochs
+            for epoch in range(self.current_epoch, self.max_epochs):
+
+                # reset train dataloader
+                if self.reload_dataloaders_every_epoch:
+                    self.reset_train_dataloader(model)
+
+                # hook
+                self.train_loop.on_train_epoch_start(epoch)
+
+                # run train epoch
+                self.train_loop.run_training_epoch()
+
+                if self.max_steps and self.max_steps <= self.global_step:
+
+                    # hook
+                    self.train_loop.on_train_end()
+                    return
+
+                # update LR schedulers
+                self.lr_scheduler_connector.update_learning_rates(interval='epoch')
+
+                # early stopping
+                met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+
+                if self.should_stop:
+                    if (met_min_epochs and met_min_steps):
+                        self.train_loop.on_train_end()
+                        return
+                    else:
+                        log.info('Trainer was signaled to stop but required minimum epochs'
+                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                                 ' not been met. Training will continue...')
+
+            # hook
+            self.train_loop.on_train_end()
+
+        except KeyboardInterrupt:
+            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
+
+            # user could press ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.interrupted = True
+                self._state = TrainerState.INTERRUPTED
+                self.on_keyboard_interrupt()
+
+                # hook
+                self.train_loop.on_train_end()
+
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
@@ -1188,7 +1264,7 @@ class Trainer(
                     callback_metrics = eval_results.callback_metrics
                 else:
                     _, _, _, callback_metrics, _ = self.process_output(eval_results)
-                self.callback_metrics = callback_metrics
+                self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
             self.running_sanity_check = False

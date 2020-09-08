@@ -325,7 +325,7 @@ class ModelCheckpoint(Callback):
         # TODO: remove when dict results are deprecated
         self.__warn_deprecated_monitor_key()
 
-        metrics = trainer.callback_metrics
+        metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
 
         # support structured results
@@ -345,7 +345,7 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
-        ckpt_name_metrics = trainer.logged_metrics
+        ckpt_name_metrics = trainer.logger_connector.logged_metrics
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):

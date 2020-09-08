@@ -315,6 +315,12 @@ dice_score (F)
 .. autofunction:: pytorch_lightning.metrics.functional.dice_score
     :noindex:
 
+embedding_similarity (F)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.embedding_similarity
+    :noindex:
+
 f1_score (F)
 ^^^^^^^^^^^^
 

@@ -148,9 +148,9 @@ class EvaluationLoop(object):
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
-                    self.trainer.callback_metrics = eval_result.callback_metrics
+                    self.trainer.logger_connector.callback_metrics = eval_result.callback_metrics
             else:
-                self.trainer.callback_metrics = eval_results.callback_metrics
+                self.trainer.logger_connector.callback_metrics = eval_results.callback_metrics
         else:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
@@ -159,14 +159,14 @@ class EvaluationLoop(object):
                         flat = {'val_loss': eval_result}
                     else:
                         flat = flatten_dict(eval_result)
-                    self.trainer.callback_metrics.update(flat)
+                    self.trainer.logger_connector.callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
                 if isinstance(eval_results, torch.Tensor):
                     flat = {'val_loss': eval_results}
                 else:
                     flat = flatten_dict(eval_results)
-                self.trainer.callback_metrics.update(flat)
+                self.trainer.logger_connector.callback_metrics.update(flat)
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
@@ -276,7 +276,7 @@ class EvaluationLoop(object):
                 for k, v in step_log_metrics.items():
                     metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
 
-                self.trainer.log_metrics(metrics_by_epoch, {}, step=batch_idx)
+                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
-                self.trainer.add_progress_bar_metrics(step_pbar_metrics)
+                self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)

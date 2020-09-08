@@ -68,7 +68,7 @@ def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelT
 
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     # this model should get 0.80+ acc
-    acc = trainer.callback_metrics[key]
+    acc = trainer.logger_connector.callback_metrics[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 

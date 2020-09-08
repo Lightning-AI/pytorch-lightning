@@ -47,7 +47,8 @@ def test_training_step_dict(tmpdir):
     assert pbar_metrics['pbar_acc2'] == 19.0
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
@@ -111,8 +112,8 @@ def test_full_training_loop_dict(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert trainer.callback_metrics['epoch_end_log_1'] == 178
-    assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
+    assert trainer.logger_connector.callback_metrics['epoch_end_log_1'] == 178
+    assert trainer.logger_connector.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))
@@ -198,8 +199,8 @@ def test_train_step_epoch_end(tmpdir):
     assert model.training_epoch_end_called
 
     # assert epoch end metrics were added
-    assert trainer.callback_metrics['epoch_end_log_1'] == 178
-    assert trainer.progress_bar_metrics['epoch_end_pbar_1'] == 234
+    assert trainer.logger_connector.callback_metrics['epoch_end_log_1'] == 178
+    assert trainer.logger_connector.progress_bar_metrics['epoch_end_pbar_1'] == 234
 
     # make sure training outputs what is expected
     batch_idx, batch = 0, next(iter(model.train_dataloader()))

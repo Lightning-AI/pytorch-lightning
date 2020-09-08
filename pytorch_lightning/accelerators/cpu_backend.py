@@ -14,7 +14,7 @@
 import torch
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.utilities import AMPType
+from pytorch_lightning.utilities import AMPType, rank_zero_warn
 
 
 class CPUBackend(Accelerator):
