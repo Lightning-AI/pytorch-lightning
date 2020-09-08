@@ -1,8 +1,6 @@
-import torch
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 
@@ -145,28 +143,7 @@ class EvaluationLoop(object):
 
     def log_epoch_metrics(self, eval_results):
         using_eval_result = self.is_using_eval_results()
-        if using_eval_result:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    self.trainer.logger_connector.callback_metrics = eval_result.callback_metrics
-            else:
-                self.trainer.logger_connector.callback_metrics = eval_results.callback_metrics
-        else:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    # with a scalar return, auto set it to "val_loss" for callbacks
-                    if isinstance(eval_result, torch.Tensor):
-                        flat = {'val_loss': eval_result}
-                    else:
-                        flat = flatten_dict(eval_result)
-                    self.trainer.logger_connector.callback_metrics.update(flat)
-            else:
-                # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_results, torch.Tensor):
-                    flat = {'val_loss': eval_results}
-                else:
-                    flat = flatten_dict(eval_results)
-                self.trainer.logger_connector.callback_metrics.update(flat)
+        self.trainer.logger_connector.on_evaluation_epoch_end(eval_results, using_eval_result)
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()

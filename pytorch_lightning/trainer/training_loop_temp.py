@@ -370,7 +370,7 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
@@ -391,7 +391,7 @@ class TrainLoop:
                 break
 
         # process epoch outputs
-        self.trainer.run_training_epoch_end(
+        self.trainer.logger_connector.on_train_epoch_end(
             epoch_output,
             self.checkpoint_accumulator,
             self.early_stopping_accumulator,
