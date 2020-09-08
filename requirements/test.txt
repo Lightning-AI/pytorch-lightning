@@ -12,5 +12,4 @@ black>=20.8b1
 pre-commit>=1.0
 
 cloudpickle>=1.2
-nltk >=3.3
-tensorboard>=2.2.0
+nltk>=3.3
