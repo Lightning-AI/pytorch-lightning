@@ -391,7 +391,7 @@ class TrainLoop:
                 break
 
         # process epoch outputs
-        self.trainer.run_training_epoch_end(
+        self.trainer.logger_connector.on_train_epoch_end(
             epoch_output,
             self.checkpoint_accumulator,
             self.early_stopping_accumulator,
