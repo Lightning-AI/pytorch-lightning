@@ -148,10 +148,13 @@ class PrecisionRecallCurve(TensorCollectionMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = PrecisionRecallCurve()
-        >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
-        (tensor([0.3333, 0.0000, 0.0000, 1.0000]),
-         tensor([1., 0., 0., 0.]),
-         tensor([1., 2., 3.]))
+        >>> prec, recall, thr = metric(pred, target)
+        >>> prec
+        tensor([0.3333, 0.0000, 0.0000, 1.0000])
+        >>> recall
+        tensor([1., 0., 0., 0.])
+        >>> thr
+        tensor([1., 2., 3.]))
 
     """
 
