@@ -57,6 +57,7 @@ from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
+from pytorch_lightning.trainer.result_connector import ResultConnector
 from pytorch_lightning.trainer.training_loop_temp import TrainLoop
 from pytorch_lightning import _logger as log
 from pytorch_lightning.trainer.tuning import Tuner
@@ -614,6 +615,7 @@ class Trainer(
         self.lr_scheduler_connector = LRSchedulerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
+        self.result_connector = ResultConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
 
