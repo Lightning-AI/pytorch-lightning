@@ -373,6 +373,20 @@ class Trainer(
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
+        # tracks internal state for debugging
+        self.dev_debugger = InternalDebugger(self)
+        self.config_validator = ConfigValidator(self)
+        self.data_connector = DataConnector(self)
+        self.lr_scheduler_connector = LRSchedulerConnector(self)
+        self.accelerator_connector = AcceleratorConnector(self)
+        self.logger_connector = LoggerConnector(self)
+        self.tuner = Tuner(self)
+        self.accelerator_backend = None
+
+        # loops
+        self.evaluation_loop = EvaluationLoop(self)
+        self.train_loop = TrainLoop(self)
+
         # training bookeeping
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
@@ -604,20 +618,6 @@ class Trainer(
         self.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
-
-        # tracks internal state for debugging
-        self.dev_debugger = InternalDebugger(self)
-        self.config_validator = ConfigValidator(self)
-        self.data_connector = DataConnector(self)
-        self.lr_scheduler_connector = LRSchedulerConnector(self)
-        self.accelerator_connector = AcceleratorConnector(self)
-        self.logger_connector = LoggerConnector(self)
-        self.tuner = Tuner(self)
-        self.accelerator_backend = None
-
-        # loops
-        self.evaluation_loop = EvaluationLoop(self)
-        self.train_loop = TrainLoop(self)
 
         # Callback system
         self.on_init_end()
