@@ -154,7 +154,7 @@ class PrecisionRecallCurve(TensorCollectionMetric):
         >>> recall
         tensor([1., 0., 0., 0.])
         >>> thr
-        tensor([1., 2., 3.]))
+        tensor([1., 2., 3.])
 
     """
 
