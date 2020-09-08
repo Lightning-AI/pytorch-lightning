@@ -36,8 +36,8 @@ from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import (TrainerDPMixin, _parse_gpu_ids, _parse_tpu_cores,
-                                                     determine_root_gpu_device, pick_multiple_gpus)
+from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.trainer.distrib_parts import (TrainerDPMixin)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
@@ -56,9 +56,9 @@ from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
-from pytorch_lightning.trainer.training_loop_temp import TrainLoop
+from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning import _logger as log
-from pytorch_lightning.trainer.tuning import Tuner
+from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
@@ -373,6 +373,20 @@ class Trainer(
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
+        # tracks internal state for debugging
+        self.dev_debugger = InternalDebugger(self)
+        self.config_validator = ConfigValidator(self)
+        self.data_connector = DataConnector(self)
+        self.lr_scheduler_connector = LRSchedulerConnector(self)
+        self.accelerator_connector = AcceleratorConnector(self)
+        self.logger_connector = LoggerConnector(self)
+        self.tuner = Tuner(self)
+        self.accelerator_backend = None
+
+        # loops
+        self.evaluation_loop = EvaluationLoop(self)
+        self.train_loop = TrainLoop(self)
+
         # training bookeeping
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
@@ -449,7 +463,7 @@ class Trainer(
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
-        self.tpu_cores = _parse_tpu_cores(tpu_cores)
+        self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
 
         self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
@@ -507,12 +521,12 @@ class Trainer(
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = pick_multiple_gpus(gpus)
+            self.gpus = self.tuner.pick_multiple_gpus(gpus)
         else:
             self.gpus = gpus
 
-        self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
-        self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
+        self.data_parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
+        self.root_gpu = device_parser.determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
 
         self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False
@@ -604,20 +618,6 @@ class Trainer(
         self.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
-
-        # tracks internal state for debugging
-        self.dev_debugger = InternalDebugger(self)
-        self.config_validator = ConfigValidator(self)
-        self.data_connector = DataConnector(self)
-        self.lr_scheduler_connector = LRSchedulerConnector(self)
-        self.accelerator_connector = AcceleratorConnector(self)
-        self.logger_connector = LoggerConnector(self)
-        self.tuner = Tuner(self)
-        self.accelerator_backend = None
-
-        # loops
-        self.evaluation_loop = EvaluationLoop(self)
-        self.train_loop = TrainLoop(self)
 
         # Callback system
         self.on_init_end()

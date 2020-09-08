@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.trainer.batch_size_scaling import scale_batch_size
+from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 
 
 class Tuner:
@@ -30,3 +31,6 @@ class Tuner:
         return scale_batch_size(
             self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
         )
+
+    def pick_multiple_gpus(self, num_gpus: int):
+        return pick_multiple_gpus(num_gpus)
