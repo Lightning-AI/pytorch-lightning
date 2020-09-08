@@ -46,7 +46,6 @@ from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
-from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
@@ -101,7 +100,6 @@ class Trainer(
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerEvaluationLoopMixin,
-    TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_10,
