@@ -140,3 +140,4 @@ Indices and tables
    api/pytorch_lightning.profiler
    api/pytorch_lightning.trainer
    api/pytorch_lightning.utilities
+   api/pytorch_lightning.tuner
