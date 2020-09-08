@@ -185,7 +185,7 @@ def _check_data_type(device_ids: Any) -> None:
 
 def _tpu_cores_valid(tpu_cores):
     # allow 1 or 8 cores
-    if tpu_cores in (1, 8 , None):
+    if tpu_cores in (1, 8, None):
         return True
 
     # allow picking 1 of 8 indexes
