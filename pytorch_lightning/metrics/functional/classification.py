@@ -1037,6 +1037,9 @@ def iou(
             continue
 
         denom = tp + fp + fn
+        # Note that we do not need to worry about division-by-zero here since we know (sup + tp + fp != 0) from above,
+        # which means ((tp+fn) + tp + fp != 0), which means (2tp + fp + fn != 0). Since all vars are non-negative, we
+        # can conclude (tp + fp + fn > 0), meaning the denominator is non-zero for each class.
         score = tp.to(torch.float) / denom
         scores[class_idx] = score
 
