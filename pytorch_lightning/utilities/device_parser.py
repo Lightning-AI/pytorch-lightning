@@ -189,12 +189,12 @@ def _tpu_cores_valid(tpu_cores):
         return True
 
     # allow picking 1 of 8 indexes
-    is_tpu_list = isinstance(tpu_cores, (list, tuple, set))
-    has_1_tpu_idx = len(tpu_cores) == 1
-    is_valid_tpu_idx = tpu_cores[0] in range(1, 9)
+    if isinstance(tpu_cores, (list, tuple, set)):
+        has_1_tpu_idx = len(tpu_cores) == 1
+        is_valid_tpu_idx = tpu_cores[0] in range(1, 9)
 
-    is_valid_tpu_core_choice = is_tpu_list and has_1_tpu_idx and is_valid_tpu_idx
-    return is_valid_tpu_core_choice
+        is_valid_tpu_core_choice = has_1_tpu_idx and is_valid_tpu_idx
+        return is_valid_tpu_core_choice
 
 
 def _parse_tpu_cores_str(tpu_cores):
