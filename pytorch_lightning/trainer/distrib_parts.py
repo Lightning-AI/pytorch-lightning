@@ -130,23 +130,6 @@ class TrainerDPMixin(ABC):
             m.global_rank = self.global_rank
             m.local_rank = self.local_rank
 
-    def transfer_batch_to_gpu(self, batch: Any, gpu_id: Optional[int] = None):
-        """
-        Transfers the data to the GPU.
-
-        Args:
-            batch: A tensor or collection of tensors.
-            gpu_id: The id of the GPU device. If omitted, the first available GPU is chosen.
-
-        Return:
-            the tensor on the GPU device.
-
-        See Also:
-            - :func:`~pytorch_lightning.utilities.apply_func.move_data_to_device`
-        """
-        device = torch.device('cuda', gpu_id)
-        return self.__transfer_batch_to_device(batch, device)
-
     def __transfer_batch_to_device(self, batch: Any, device: torch.device):
         model = self.get_model()
         if model is not None:
