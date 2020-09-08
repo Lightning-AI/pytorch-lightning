@@ -43,7 +43,7 @@ There are two ways to enable the EarlyStopping callback:
     :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
     the `early_stop_on` metric, specified in the initialization of the
     :class:`~pytorch_lightning.core.step_result.Result` object is used
-    and raise an error if it was not specified.
+    and display a warning if it was not specified.
 
     .. testcode::
 
