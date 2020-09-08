@@ -38,7 +38,7 @@ from pytorch_lightning.metrics.functional.classification import (
 )
 
 
-@pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'binary'], [
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric', 'only_binary'], [
     pytest.param(sk_accuracy, accuracy, False, id='accuracy'),
     pytest.param(partial(sk_precision, average='macro'), precision, False, id='precision'),
     pytest.param(partial(sk_recall, average='macro'), recall, False, id='recall'),
@@ -50,15 +50,15 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
 ])
-def test_against_sklearn(sklearn_metric, torch_metric, binary):
+def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
     """Compare PL metrics to sklearn version."""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    # for metrics with binary=False, we try out different combinations of number
-    # of labels in pred and target
-    # for metrics with binary=True, target is always binary and pred will be
+    # for metrics with only_binary=False, we try out different combinations of number
+    # of labels in pred and target (also test binary)
+    # for metrics with only_binary=True, target is always binary and pred will be
     # (unnormalized) class probabilities
-    class_comb = [(5, 2)] if binary else [(10, 10), (5, 10), (10, 5)]
+    class_comb = [(5, 2)] if only_binary else [(10, 10), (5, 10), (10, 5), (2, 2)]
     for n_cls_pred, n_cls_target in class_comb:
         pred = torch.randint(n_cls_pred, (300,), device=device)
         target = torch.randint(n_cls_target, (300,), device=device)
