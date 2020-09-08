@@ -109,16 +109,6 @@ class TrainerTrainLoopMixin(ABC):
 
         return epoch_end_outputs
 
-    def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
-        # when metrics should be logged
-        should_log_metrics = (batch_idx + 1) % self.row_log_interval == 0 or self.should_stop
-        if should_log_metrics or self.fast_dev_run:
-            # logs user requested information to logger
-            metrics = batch_output.batch_log_metrics
-            grad_norm_dic = batch_output.grad_norm_dic
-            if len(metrics) > 0 or len(grad_norm_dic) > 0:
-                self.logger_connector.log_metrics(metrics, grad_norm_dic)
-
     def save_loggers_in_training_loop(self, batch_idx):
         # when loggers should save to disk
         should_save_log = (batch_idx + 1) % self.log_save_interval == 0 or self.should_stop

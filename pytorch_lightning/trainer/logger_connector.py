@@ -225,3 +225,13 @@ class LoggerConnector:
             gathered_epoch_outputs.append(gathered_opt_output)
 
         return gathered_epoch_outputs
+
+    def save_train_loop_metrics_to_loggers(self, batch_idx, batch_output):
+        # when metrics should be logged
+        should_log_metrics = (batch_idx + 1) % self.trainer.row_log_interval == 0 or self.trainer.should_stop
+        if should_log_metrics or self.trainer.fast_dev_run:
+            # logs user requested information to logger
+            metrics = batch_output.batch_log_metrics
+            grad_norm_dic = batch_output.grad_norm_dic
+            if len(metrics) > 0 or len(grad_norm_dic) > 0:
+                self.log_metrics(metrics, grad_norm_dic)

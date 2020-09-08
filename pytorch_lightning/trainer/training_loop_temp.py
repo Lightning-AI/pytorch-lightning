@@ -370,7 +370,7 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
