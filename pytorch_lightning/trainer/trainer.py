@@ -52,7 +52,7 @@ from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.argparse_connector import ArgparseConnector
+from pytorch_lightning.utilities import argparse_utils
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
 from pytorch_lightning.trainer.model_connector import ModelConnector
@@ -90,7 +90,6 @@ else:
 
 
 class Trainer(
-    ArgparseConnector,
     TrainerIOMixin,
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
@@ -181,6 +180,7 @@ class Trainer(
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
+        self.argparse_connector = ArgparseConnector(self)
         self.initializer = Initializer(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
@@ -478,6 +478,14 @@ class Trainer(
             if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
                 depr_arg_names.extend(val)
         return depr_arg_names
+
+    @classmethod
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
+        return argparse_utils.from_argparse_args(cls, args, **kwargs)
+
+    @classmethod
+    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+        return argparse_utils.parse_argparser(cls, arg_parser)
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:

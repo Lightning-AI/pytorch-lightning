@@ -40,9 +40,6 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 
-from pytorch_lightning import Trainer
-trainer = Trainer()
-trainer.fit()
 
 class TrainerLRFinderMixin(ABC):
 
