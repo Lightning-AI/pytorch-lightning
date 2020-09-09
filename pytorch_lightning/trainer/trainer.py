@@ -29,7 +29,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -58,6 +57,7 @@ from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnecto
 from pytorch_lightning.trainer.model_connector import ModelConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
+from pytorch_lightning.trainer.initializer import Initializer
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
@@ -92,7 +92,6 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerAMPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
@@ -378,6 +377,7 @@ class Trainer(
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
+        self.initializer = Initializer(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
 
@@ -613,12 +613,16 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp(amp_backend)
+        self.initializer.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def use_amp(self) -> bool:
+        return self.precision == 16
 
     @property
     def callback_metrics(self):
@@ -1495,15 +1499,6 @@ class Trainer(
 
         return results
 
-    def barrier(self, name):
-        if self.use_ddp or self.use_ddp2:
-            pass
-            # torch_distrib.barrier()
-
-        if self.on_tpu and XLA_AVAILABLE:
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
-
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
         stage_name = 'test' if self.testing else 'fit'
@@ -1513,11 +1508,6 @@ class Trainer(
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
         model.setup(stage_name)
-
-    def init_amp(self, amp_type: str):
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-        self.amp_backend = None
-        self._setup_amp_backend(amp_type)
 
     def call_hook(self, hook_name, *args, **kwargs):
         # always profile hooks
