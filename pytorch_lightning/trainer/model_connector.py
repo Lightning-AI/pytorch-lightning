@@ -36,7 +36,7 @@ class ModelConnector:
             ref_model = model
 
         for m in [model, ref_model]:
-            m.trainer = self
+            m.trainer = self.trainer
             m.logger = self.trainer.logger
             m.use_dp = self.trainer.use_dp
             m.use_ddp2 = self.trainer.use_ddp2
