@@ -49,12 +49,12 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
+from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
+from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
-from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.model_connector import ModelConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
@@ -1283,7 +1283,6 @@ class Trainer(
         self.evaluation_loop.on_evaluation_end()
 
         return eval_loop_results, eval_results
-
 
     def run_test(self):
         # only load test dataloader for testing
