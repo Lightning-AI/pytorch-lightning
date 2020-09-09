@@ -3,7 +3,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Union, List, Tuple, Any
 
 
-def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
+def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     """
     Create an instance from CLI arguments.
 
