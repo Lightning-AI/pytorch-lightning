@@ -6,7 +6,7 @@ import cloudpickle
 import pytest
 import torch
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, TrainResult
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
 
@@ -150,6 +150,31 @@ def test_early_stopping_no_val_step(tmpdir):
     assert trainer.current_epoch < trainer.max_epochs
 
 
+def test_early_stopping_training_epoch_end(tmpdir):
+    """ Test that early stopping works if a structured result is returned in training_epoch_end. """
+
+    class CurrentModel(EvalModelTemplate):
+        def training_epoch_end(self, outputs):
+            super().training_epoch_end(outputs)
+            early_stop_metrics = [8, 4, 2, 3, 4, 5, 8, 10]
+            current_metric = torch.tensor(early_stop_metrics[self.current_epoch])
+            result = TrainResult(early_stop_on=current_metric)
+            return result
+
+    model = CurrentModel()
+    model.validation_step = None
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=True,
+        overfit_batches=0.20,
+        max_epochs=8,
+    )
+    trainer.fit(model)
+    assert trainer.current_epoch == 5, 'early_stopping failed'
+
+
 def test_early_stopping_functionality(tmpdir):
 
     class CurrentModel(EvalModelTemplate):
@@ -164,7 +189,7 @@ def test_early_stopping_functionality(tmpdir):
         default_root_dir=tmpdir,
         early_stop_callback=True,
         overfit_batches=0.20,
-        max_epochs=20,
+        max_epochs=8,
     )
     trainer.fit(model)
     assert trainer.current_epoch == 5, 'early_stopping failed'
