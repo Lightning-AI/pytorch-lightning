@@ -94,7 +94,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
           None),
          ...
     """
-    trainer_default_params = inspect.signature(cls).parameters
+    trainer_default_params = inspect.signature(cls.__init__).parameters
     name_type_default = []
     for arg in trainer_default_params:
         arg_type = trainer_default_params[arg].annotation
