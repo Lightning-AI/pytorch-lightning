@@ -16,7 +16,7 @@
 # Usage: `conda env update -f environment.yml`
 
 name:
-    pl-env
+    lightning
 
 channels:
     - conda-forge
