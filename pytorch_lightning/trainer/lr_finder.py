@@ -32,7 +32,7 @@ if importlib.util.find_spec('ipywidgets') is not None:
 else:
     from tqdm import tqdm
 
-
+from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers.base import DummyLogger
