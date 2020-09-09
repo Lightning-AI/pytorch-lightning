@@ -9,9 +9,9 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
 
     Args:
         args: The parser or namespace to take arguments from. Only known arguments will be
-            parsed and passed to the :class:`Trainer`.
+            parsed and passed to the class.
         **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
-            These must be valid Trainer arguments.
+            These must be valid arguments.
 
     Example:
         >>> from pytorch_lightning import Trainer
@@ -25,12 +25,13 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
         args = cls.parse_argparser(args)
     params = vars(args)
 
-    # we only want to pass in valid Trainer args, the rest may be user specific
+    # we only want to pass in valid class args, the rest may be user specific
+    # we traverse the complete class hierarchy using Python's MRO
     valid_kwargs = inspect.signature(cls.__init__).parameters
-    trainer_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
-    trainer_kwargs.update(**kwargs)
+    cls_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
+    cls_kwargs.update(**kwargs)
 
-    return cls(**trainer_kwargs)
+    return cls(**cls_kwargs)
 
 
 def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
@@ -61,7 +62,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
 
 
 def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
-    r"""Scans the Trainer signature and returns argument names, types and default values.
+    r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
         List with tuples of 3 values:
@@ -94,11 +95,11 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
           None),
          ...
     """
-    trainer_default_params = inspect.signature(cls.__init__).parameters
+    cls_default_params = inspect.signature(cls.__init__).parameters
     name_type_default = []
-    for arg in trainer_default_params:
-        arg_type = trainer_default_params[arg].annotation
-        arg_default = trainer_default_params[arg].default
+    for arg in cls_default_params:
+        arg_type = cls_default_params[arg].annotation
+        arg_default = cls_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
         except AttributeError:

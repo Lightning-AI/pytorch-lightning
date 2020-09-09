@@ -22,7 +22,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.hooks import DataHooks
-from pytorch_lightning.utilities import parsing, rank_zero_only
+from pytorch_lightning.utilities import parsing, rank_zero_only, argparse_utils
 
 
 class _DataModuleWrapper(type):
@@ -239,6 +239,10 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
         pass
 
     @classmethod
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'LightningDataModule':
+        return argparse_utils.from_argparse_args(cls, args, **kwargs)
+
+    @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
         r"""Extends existing argparse by default `LightningDataModule` attributes.
         """
@@ -253,7 +257,7 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
-            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
+            at for at in argparse_utils.get_init_arguments_and_types(cls) if at[0] not in depr_arg_names
         ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
@@ -287,53 +291,3 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
             )
 
         return parser
-
-    @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
-        """
-        Create an instance from CLI arguments.
-
-        Args:
-            args: The parser or namespace to take arguments from. Only known arguments will be
-             parsed and passed to the :class:`LightningDataModule`.
-            **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
-             These must be valid DataModule arguments.
-
-        Example::
-
-            parser = ArgumentParser(add_help=False)
-            parser = LightningDataModule.add_argparse_args(parser)
-            module = LightningDataModule.from_argparse_args(args)
-
-        """
-        if isinstance(args, ArgumentParser):
-            args = cls.parse_argparser(args)
-        params = vars(args)
-
-        # we only want to pass in valid DataModule args, the rest may be user specific
-        valid_kwargs = inspect.signature(cls.__init__).parameters
-        datamodule_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
-        datamodule_kwargs.update(**kwargs)
-
-        return cls(**datamodule_kwargs)
-
-    @classmethod
-    def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
-        r"""Scans the DataModule signature and returns argument names, types and default values.
-        Returns:
-            List with tuples of 3 values:
-            (argument name, set with argument types, argument default value).
-        """
-        datamodule_default_params = inspect.signature(cls.__init__).parameters
-        name_type_default = []
-        for arg in datamodule_default_params:
-            arg_type = datamodule_default_params[arg].annotation
-            arg_default = datamodule_default_params[arg].default
-            try:
-                arg_types = tuple(arg_type.__args__)
-            except AttributeError:
-                arg_types = (arg_type,)
-
-            name_type_default.append((arg, arg_types, arg_default))
-
-        return name_type_default
