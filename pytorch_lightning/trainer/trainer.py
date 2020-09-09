@@ -94,7 +94,6 @@ class Trainer(
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerAMPMixin,
-    TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
