@@ -27,7 +27,9 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
 
     # we only want to pass in valid class args, the rest may be user specific
     # we traverse the complete class hierarchy using Python's MRO
-    valid_kwargs = inspect.signature(cls.__init__).parameters
+    valid_kwargs = {}
+    for cur_cls in cls.mro():
+        valid_kwargs.update(inspect.signature(cur_cls.__init__).parameters)
     cls_kwargs = dict((name, params[name]) for name in valid_kwargs if name in params)
     cls_kwargs.update(**kwargs)
 

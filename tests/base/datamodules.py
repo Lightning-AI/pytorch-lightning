@@ -40,6 +40,13 @@ class TrialMNISTDataModule(LightningDataModule):
         return DataLoader(self.mnist_test, batch_size=32)
 
 
+class TrialMNISTDataModuleSubclass(TrialMNISTDataModule):
+
+    def __init__(self, foo: str = 'bar', **kwargs):
+        super().__init__(**kwargs)
+        self.foo = foo
+
+
 class MNISTDataModule(LightningDataModule):
     def __init__(
         self, data_dir: str = './', batch_size: int = 32, dist_sampler: bool = False

@@ -7,7 +7,7 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer, seed_everything
 from tests.base import EvalModelTemplate
-from tests.base.datamodules import TrialMNISTDataModule
+from tests.base.datamodules import TrialMNISTDataModule, TrialMNISTDataModuleSubclass
 from tests.base.develop_utils import reset_seed
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.accelerators.gpu_backend import GPUBackend
@@ -141,11 +141,28 @@ def test_dm_add_argparse_args(tmpdir):
     assert args.data_dir == './my_data'
 
 
+def test_dm_subclass_add_argparse_args(tmpdir):
+    parser = ArgumentParser()
+    parser = TrialMNISTDataModuleSubclass.add_argparse_args(parser)
+    args = parser.parse_args(['--data_dir', './my_data', '--foo', 'foo'])
+    assert args.data_dir == './my_data'
+    assert args.foo == 'foo'
+
+
 def test_dm_init_from_argparse_args(tmpdir):
     parser = ArgumentParser()
     parser = TrialMNISTDataModule.add_argparse_args(parser)
     args = parser.parse_args(['--data_dir', './my_data'])
     dm = TrialMNISTDataModule.from_argparse_args(args)
+    dm.prepare_data()
+    dm.setup()
+
+
+def test_dm_subclass_init_from_argparse_args(tmpdir):
+    parser = ArgumentParser()
+    parser = TrialMNISTDataModuleSubclass.add_argparse_args(parser)
+    args = parser.parse_args(['--data_dir', './my_data', '--foo', 'foo'])
+    dm = TrialMNISTDataModuleSubclass.from_argparse_args(args)
     dm.prepare_data()
     dm.setup()
 

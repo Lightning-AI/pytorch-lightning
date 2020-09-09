@@ -244,9 +244,23 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        r"""Extends existing argparse by default `LightningDataModule` attributes.
+        r"""Extends existing argparse by default attributes from hierarchy of classes up to `LightningDataModule`.
         """
         parser = ArgumentParser(parents=[parent_parser], add_help=False,)
+        datamodule_cls = cls
+        while True:
+            parser = datamodule_cls._add_class_argparse_args(datamodule_cls, parser)
+
+            if datamodule_cls == LightningDataModule:
+                break
+            datamodule_cls = datamodule_cls.__bases__[0]
+
+        return parser
+
+    @staticmethod
+    def _add_class_argparse_args(cls, parser: ArgumentParser) -> ArgumentParser:
+        r"""Extends existing argparse by default attributes from the `LightningDataModule`'s `cls` subclass.
+        """
         added_args = [x.dest for x in parser._actions]
 
         blacklist = ['kwargs']
