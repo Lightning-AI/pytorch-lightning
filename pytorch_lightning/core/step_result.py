@@ -507,7 +507,7 @@ class TrainResult(Result):
                 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
                 the specified value will be averaged across all steps.
             checkpoint_on: Metric to checkpoint on.
-                Should be a one elemen tensor if combined with default checkpoint callback.
+                Should be a one element tensor if combined with default checkpoint callback.
                 If this result is returned by
                 :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
                 the specified value will be averaged across all steps.
