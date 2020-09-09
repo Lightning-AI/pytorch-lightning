@@ -180,7 +180,6 @@ class Trainer(
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
-        self.argparse_connector = ArgparseConnector(self)
         self.initializer = Initializer(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
