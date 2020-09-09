@@ -37,7 +37,6 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.trainer.distrib_parts import (TrainerDPMixin)
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
@@ -57,6 +56,7 @@ from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConn
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
 from pytorch_lightning.trainer.training_loop import TrainLoop
+from pytorch_lightning.trainer.model_connector import ModelConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities.model_utils import is_overridden
@@ -380,6 +380,7 @@ class Trainer(
         self.lr_scheduler_connector = LRSchedulerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
+        self.model_connector = ModelConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
 
@@ -1060,7 +1061,7 @@ class Trainer(
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # bind logger and other properties
-        self.copy_trainer_model_properties(model)
+        self.model_connector.copy_trainer_model_properties(model)
 
         # clean hparams
         if hasattr(model, 'hparams'):
@@ -1089,7 +1090,7 @@ class Trainer(
         ref_model.trainer = self
 
         # set local properties on the model
-        self.copy_trainer_model_properties(ref_model)
+        self.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:

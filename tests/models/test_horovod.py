@@ -205,7 +205,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     num_workers = 8
     init_lr = hparams.get('learning_rate') * num_workers
 
-    with patch('pytorch_lightning.trainer.distrib_parts.hvd.size') as mock_hvd_size:
+    with patch('pytorch_lightning.accelerators.horovod_backend.hvd.size') as mock_hvd_size:
         mock_hvd_size.return_value = 8
 
         # fit model
