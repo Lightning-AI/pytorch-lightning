@@ -55,6 +55,13 @@ def scale_batch_size(trainer,
            algorithm is terminated
 
         batch_arg_name: name of the attribute that stores the batch size.
+            It is expected that the user has provided a model or datamodule that has a hyperparameter
+            with that name. We will look for this attribute name in the following places
+
+            - `model`
+            - `model.hparams`
+            - `model.datamodule`
+            - `trainer.datamodule` (the datamodule passed to the tune method)
 
         **fit_kwargs: remaining arguments to be passed to .fit(), e.g., dataloader
             or datamodule.
@@ -165,16 +172,19 @@ def _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials, **f
             # Try fit
             trainer.fit(model, **fit_kwargs)
             # Double in size
-            new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+            new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
                 garbage_collection_cuda()
-                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
+                new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc='failed')
                 break
             else:
                 raise  # some other error not memory related
+
+        if not changed:
+            break
     return new_size
 
 
@@ -199,9 +209,13 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
                 if high - low <= 1:
                     break
                 midval = (high + low) // 2
-                new_size = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='succeeded')
+                new_size, changed = _adjust_batch_size(trainer, batch_arg_name, value=midval, desc='succeeded')
             else:
-                new_size = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+                new_size, changed = _adjust_batch_size(trainer, batch_arg_name, factor=2.0, desc='succeeded')
+
+            if not changed:
+                break
+
         except RuntimeError as exception:
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
@@ -209,29 +223,27 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
                 garbage_collection_cuda()
                 high = new_size
                 midval = (high + low) // 2
-                new_size = _adjust_batch_size(trainer, value=midval, desc='failed')
+                new_size, _ = _adjust_batch_size(trainer, value=midval, desc='failed')
                 if high - low <= 1:
                     break
             else:
                 raise  # some other error not memory related
+
     return new_size
+
 
 
 def _adjust_batch_size(trainer,
                        batch_arg_name: str = 'batch_size',
                        factor: float = 1.0,
                        value: Optional[int] = None,
-                       desc: str = None):
-    """ Function for adjusting the batch size. It is expected that the user
-        has provided a model that has a hparam field called `batch_size` i.e.
-        `model.hparams.batch_size` should exist. Additionally there can be a
-        datamodule attached to either Trainer or model, in that case the attribute
-        also gets updated when present.
+                       desc: str = None) -> Tuple[int, bool]:
+    """ Helper function for adjusting the batch size.
 
     Args:
         trainer: instance of pytorch_lightning.Trainer
 
-        batch_arg_name: field where batch_size is stored in `model.hparams`
+        batch_arg_name: name of the field where batch_size is stored.
 
         factor: value which the old batch size is multiplied by to get the
             new batch size
@@ -241,11 +253,23 @@ def _adjust_batch_size(trainer,
 
         desc: either `succeeded` or `failed`. Used purely for logging
 
+    Returns:
+        The new batch size for the next trial and a bool that signals whether the
+        new value is different than the previous batch size.
     """
     model = trainer.get_model()
     batch_size = lightning_getattr(model, batch_arg_name)
     new_size = value if value is not None else int(batch_size * factor)
     if desc:
         log.info(f'Batch size {batch_size} {desc}, trying batch size {new_size}')
+
+    if not _is_valid_batch_size(new_size, trainer.train_dataloader):
+        new_size = min(new_size, len(trainer.train_dataloader.dataset))
+
+    changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
-    return new_size
+    return new_size, changed
+
+
+def _is_valid_batch_size(current_size, dataloader):
+    return not has_len(dataloader) or current_size <= len(dataloader)
