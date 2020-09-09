@@ -139,6 +139,7 @@ class CometLogger(LightningLoggerBase):
         elif api_key is not None:
             self.mode = "online"
             self.api_key = api_key
+            self._save_dir = None
         elif save_dir is not None:
             self.mode = "offline"
             self._save_dir = save_dir
