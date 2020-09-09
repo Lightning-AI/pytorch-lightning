@@ -38,7 +38,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
     types_default = {
-        arg: (arg_types, arg_default) for arg, arg_types, arg_default in cls.get_init_arguments_and_types()
+        arg: (arg_types, arg_default) for arg, arg_types, arg_default in get_init_arguments_and_types(cls)
     }
 
     modified_args = {}
