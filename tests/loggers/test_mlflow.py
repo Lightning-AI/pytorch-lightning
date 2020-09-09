@@ -43,6 +43,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / 'checkpoints')
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
 
+
 def test_mlflow_experiment_id_retrieved_once(tmpdir):
     logger = MLFlowLogger('test', save_dir=tmpdir)
     get_experiment_name = logger._mlflow_client.get_experiment_by_name
