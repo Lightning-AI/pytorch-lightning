@@ -141,9 +141,14 @@ class EvaluationLoop(object):
         eval_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
         return eval_results
 
-    def log_epoch_metrics(self, eval_results):
+    def log_epoch_metrics(self, eval_results, test_mode):
         using_eval_result = self.is_using_eval_results()
-        self.trainer.logger_connector.on_evaluation_epoch_end(eval_results, using_eval_result)
+        eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
+            eval_results,
+            using_eval_result,
+            test_mode
+        )
+        return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
