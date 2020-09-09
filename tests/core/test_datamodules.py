@@ -10,6 +10,7 @@ from tests.base import EvalModelTemplate
 from tests.base.datamodules import TrialMNISTDataModule
 from tests.base.develop_utils import reset_seed
 from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 
 
 def test_can_prepare_data(tmpdir):
@@ -346,13 +347,14 @@ def test_dm_transfer_batch_to_device(tmpdir):
     dm = CurrentTestDM()
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer()
+    trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
     if is_overridden('transfer_batch_to_device', dm):
         model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    batch_gpu = trainer.transfer_batch_to_gpu(batch, 0)
+    trainer.accelerator_backend = GPUBackend(trainer)
+    batch_gpu = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     expected = torch.device('cuda', 0)
     assert dm.hook_called
     assert batch_gpu.samples.device == batch_gpu.targets.device == expected

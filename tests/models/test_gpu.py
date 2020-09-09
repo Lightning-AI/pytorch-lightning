@@ -18,6 +18,9 @@ from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.models.data.ddp import train_test_variations
+from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.accelerators.cpu_backend import CPUBackend
+
 
 PRETEND_N_OF_GPUS = 16
 
@@ -335,35 +338,36 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
-    trainer = Trainer()
+    trainer = Trainer(gpus=1)
+    trainer.accelerator_backend = GPUBackend(trainer)
 
     # batch is just a tensor
     batch = torch.rand(2, 3)
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch.device.index == 0 and batch.type() == 'torch.cuda.FloatTensor'
 
     # tensor list
     batch = [torch.rand(2, 3), torch.rand(2, 3)]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch[0].device.index == 0 and batch[0].type() == 'torch.cuda.FloatTensor'
     assert batch[1].device.index == 0 and batch[1].type() == 'torch.cuda.FloatTensor'
 
     # tensor list of lists
     batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
     assert batch[0][1].device.index == 0 and batch[0][1].type() == 'torch.cuda.FloatTensor'
 
     # tensor dict
     batch = [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)}]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch[0]['a'].device.index == 0 and batch[0]['a'].type() == 'torch.cuda.FloatTensor'
     assert batch[0]['b'].device.index == 0 and batch[0]['b'].type() == 'torch.cuda.FloatTensor'
 
     # tuple of tensor list and list of tensor dict
     batch = ([torch.rand(2, 3) for _ in range(2)],
              [{'a': torch.rand(2, 3), 'b': torch.rand(2, 3)} for _ in range(2)])
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch[0][0].device.index == 0 and batch[0][0].type() == 'torch.cuda.FloatTensor'
 
     assert batch[1][0]['a'].device.index == 0
@@ -375,7 +379,7 @@ def test_single_gpu_batch_parse():
     # namedtuple of tensor
     BatchType = namedtuple('BatchType', ['a', 'b'])
     batch = [BatchType(a=torch.rand(2, 3), b=torch.rand(2, 3)) for _ in range(2)]
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
     assert batch[0].a.device.index == 0
     assert batch[0].a.type() == 'torch.cuda.FloatTensor'
 
@@ -388,7 +392,7 @@ def test_single_gpu_batch_parse():
             self.a = self.a.to(*args, **kwargs)
             return self
 
-    batch = trainer.transfer_batch_to_gpu(CustomBatchType())
+    batch = trainer.accelerator_backend.batch_to_device(CustomBatchType(), torch.device('cuda:0'))
     assert batch.a.type() == 'torch.cuda.FloatTensor'
 
     # torchtext.data.Batch
@@ -415,7 +419,7 @@ def test_single_gpu_batch_parse():
     label_field.build_vocab(dataset)
 
     batch = Batch(data=examples, dataset=dataset)
-    batch = trainer.transfer_batch_to_gpu(batch, 0)
+    batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
 
     assert batch.text.type() == 'torch.cuda.LongTensor'
     assert batch.label.type() == 'torch.cuda.LongTensor'
@@ -425,10 +429,11 @@ def test_single_gpu_batch_parse():
 def test_non_blocking():
     """ Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects. """
     trainer = Trainer()
+    trainer.accelerator_backend = GPUBackend(trainer)
 
     batch = torch.zeros(2, 3)
     with patch.object(batch, 'to', wraps=batch.to) as mocked:
-        trainer.transfer_batch_to_gpu(batch, 0)
+        batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
         mocked.assert_called_with(torch.device('cuda', 0), non_blocking=True)
 
     class BatchObject(object):
@@ -438,5 +443,5 @@ def test_non_blocking():
 
     batch = BatchObject()
     with patch.object(batch, 'to', wraps=batch.to) as mocked:
-        trainer.transfer_batch_to_gpu(batch, 0)
+        batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
         mocked.assert_called_with(torch.device('cuda', 0))
