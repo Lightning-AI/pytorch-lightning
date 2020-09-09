@@ -19,6 +19,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.models.data.ddp import train_test_variations
 from pytorch_lightning.accelerators.gpu_backend import GPUBackend
+from pytorch_lightning.accelerators.cpu_backend import CPUBackend
+
 
 PRETEND_N_OF_GPUS = 16
 
@@ -390,7 +392,7 @@ def test_single_gpu_batch_parse():
             self.a = self.a.to(*args, **kwargs)
             return self
 
-    batch = trainer.accelerator_backend.batch_to_device(CustomBatchType(), torch.device('cpu'))
+    batch = trainer.accelerator_backend.batch_to_device(CustomBatchType(), torch.device('cuda:0'))
     assert batch.a.type() == 'torch.cuda.FloatTensor'
 
     # torchtext.data.Batch
