@@ -38,7 +38,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
     types_default = {
-        arg: (arg_types, arg_default) for arg, arg_types, arg_default in cls.__get_init_arguments_and_types()
+        arg: (arg_types, arg_default) for arg, arg_types, arg_default in cls.get_init_arguments_and_types()
     }
 
     modified_args = {}
@@ -60,7 +60,7 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     return Namespace(**modified_args)
 
 
-def __get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the Trainer signature and returns argument names, types and default values.
 
     Returns:
@@ -69,7 +69,7 @@ def __get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
 
     Examples:
         >>> from pytorch_lightning import Trainer
-        >>> args = __get_init_arguments_and_types(Trainer)
+        >>> args = get_init_arguments_and_types(Trainer)
         >>> import pprint
         >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         [('accumulate_grad_batches',

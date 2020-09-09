@@ -533,7 +533,7 @@ class Trainer(
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
-            at for at in cls.get_init_arguments_and_types() if at[0] not in depr_arg_names
+            at for at in argparse_utils.get_init_arguments_and_types(cls) if at[0] not in depr_arg_names
         ):
             arg_types = [at for at in allowed_types if at in arg_types]
             if not arg_types:
