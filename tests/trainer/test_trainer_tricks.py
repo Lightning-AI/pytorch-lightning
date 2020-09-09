@@ -153,7 +153,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = deepcopy(model.state_dict())
 
-    trainer.scale_batch_size(model, max_trials=5)
+    trainer.tuner.scale_batch_size(model, max_trials=5)
 
     after_state_dict = model.state_dict()
 
@@ -186,7 +186,7 @@ def test_trainer_reset_correctly(tmpdir):
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
 
-    trainer.scale_batch_size(model, max_trials=5)
+    trainer.tuner.scale_batch_size(model, max_trials=5)
 
     attributes_after = {}
     for ca in changed_attributes:
@@ -274,7 +274,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
         max_epochs=1,
     )
 
-    after_batch_size = trainer.scale_batch_size(model, mode=scale_method, max_trials=5)
+    after_batch_size = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
     model.batch_size = after_batch_size
     trainer.fit(model)
 

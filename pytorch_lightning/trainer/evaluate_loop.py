@@ -1,8 +1,6 @@
-import torch
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 
@@ -77,7 +75,7 @@ class EvaluationLoop(object):
 
     def setup(self, model, max_batches, dataloaders):
         # copy properties for forward overrides
-        self.trainer.copy_trainer_model_properties(model)
+        self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # bookkeeping
         self.outputs = []
@@ -143,30 +141,14 @@ class EvaluationLoop(object):
         eval_results = self.__run_eval_epoch_end(num_dataloaders, using_eval_result)
         return eval_results
 
-    def log_epoch_metrics(self, eval_results):
+    def log_epoch_metrics(self, eval_results, test_mode):
         using_eval_result = self.is_using_eval_results()
-        if using_eval_result:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    self.trainer.callback_metrics = eval_result.callback_metrics
-            else:
-                self.trainer.callback_metrics = eval_results.callback_metrics
-        else:
-            if isinstance(eval_results, list):
-                for eval_result in eval_results:
-                    # with a scalar return, auto set it to "val_loss" for callbacks
-                    if isinstance(eval_result, torch.Tensor):
-                        flat = {'val_loss': eval_result}
-                    else:
-                        flat = flatten_dict(eval_result)
-                    self.trainer.callback_metrics.update(flat)
-            else:
-                # with a scalar return, auto set it to "val_loss" for callbacks
-                if isinstance(eval_results, torch.Tensor):
-                    flat = {'val_loss': eval_results}
-                else:
-                    flat = flatten_dict(eval_results)
-                self.trainer.callback_metrics.update(flat)
+        eval_loop_results = self.trainer.logger_connector.on_evaluation_epoch_end(
+            eval_results,
+            using_eval_result,
+            test_mode
+        )
+        return eval_loop_results
 
     def __run_eval_epoch_end(self, num_dataloaders, using_eval_result):
         model = self.trainer.get_model()
@@ -276,7 +258,7 @@ class EvaluationLoop(object):
                 for k, v in step_log_metrics.items():
                     metrics_by_epoch[f'{k}/epoch_{self.trainer.current_epoch}'] = v
 
-                self.trainer.log_metrics(metrics_by_epoch, {}, step=batch_idx)
+                self.trainer.logger_connector.log_metrics(metrics_by_epoch, {}, step=batch_idx)
 
             if len(step_pbar_metrics) > 0:
-                self.trainer.add_progress_bar_metrics(step_pbar_metrics)
+                self.trainer.logger_connector.add_progress_bar_metrics(step_pbar_metrics)

@@ -36,8 +36,7 @@ from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.trainer.distrib_parts import (TrainerDPMixin, _parse_gpu_ids, _parse_tpu_cores,
-                                                     determine_root_gpu_device, pick_multiple_gpus)
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
@@ -46,7 +45,6 @@ from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
-from pytorch_lightning.trainer.training_loop import TrainerTrainLoopMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
 from pytorch_lightning.utilities.debugging import InternalDebugger
@@ -55,8 +53,12 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.training_loop_temp import TrainLoop
-
+from pytorch_lightning.trainer.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
+from pytorch_lightning.trainer.training_loop import TrainLoop
+from pytorch_lightning.trainer.model_connector import ModelConnector
+from pytorch_lightning import _logger as log
+from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
@@ -92,13 +94,11 @@ class Trainer(
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
     TrainerAMPMixin,
-    TrainerDPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerEvaluationLoopMixin,
-    TrainerTrainLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_10,
@@ -372,13 +372,25 @@ class Trainer(
         if 'LOCAL_RANK' in os.environ:
             rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
 
+        # tracks internal state for debugging
+        self.dev_debugger = InternalDebugger(self)
+        self.config_validator = ConfigValidator(self)
+        self.data_connector = DataConnector(self)
+        self.lr_scheduler_connector = LRSchedulerConnector(self)
+        self.accelerator_connector = AcceleratorConnector(self)
+        self.logger_connector = LoggerConnector(self)
+        self.model_connector = ModelConnector(self)
+        self.tuner = Tuner(self)
+        self.accelerator_backend = None
+
+        # loops
+        self.evaluation_loop = EvaluationLoop(self)
+        self.train_loop = TrainLoop(self)
+
         # training bookeeping
         self.total_batch_idx = 0
         self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
-        self.progress_bar_metrics = {}
-        self.callback_metrics = {}
-        self.logged_metrics = {}
         self.num_training_batches = 0
         self.num_val_batches = []
         self.num_sanity_val_batches = []
@@ -451,7 +463,7 @@ class Trainer(
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
-        self.tpu_cores = _parse_tpu_cores(tpu_cores)
+        self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
 
         self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
@@ -509,12 +521,12 @@ class Trainer(
 
         # for gpus allow int, string and gpu list
         if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = pick_multiple_gpus(gpus)
+            self.gpus = self.tuner.pick_multiple_gpus(gpus)
         else:
             self.gpus = gpus
 
-        self.data_parallel_device_ids = _parse_gpu_ids(self.gpus)
-        self.root_gpu = determine_root_gpu_device(self.data_parallel_device_ids)
+        self.data_parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
+        self.root_gpu = device_parser.determine_root_gpu_device(self.data_parallel_device_ids)
         self.root_device = torch.device("cpu")
 
         self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False
@@ -607,19 +619,16 @@ class Trainer(
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
-        # tracks internal state for debugging
-        self.dev_debugger = InternalDebugger(self)
-        self.config_validator = ConfigValidator(self)
-        self.data_connector = DataConnector(self)
-        self.accelerator_connector = AcceleratorConnector(self)
-        self.accelerator_backend = None
-
-        # loops
-        self.evaluation_loop = EvaluationLoop(self)
-        self.train_loop = TrainLoop(self)
-
         # Callback system
         self.on_init_end()
+
+    @property
+    def callback_metrics(self):
+        return self.logger_connector.callback_metrics
+
+    @callback_metrics.setter
+    def callback_metrics(self, x):
+        self.logger_connector.callback_metrics = x
 
     @property
     def state(self) -> TrainerState:
@@ -896,7 +905,7 @@ class Trainer(
     def progress_bar_dict(self) -> dict:
         """ Read-only for progress bar metrics. """
         ref_model = self.model if not self.data_parallel else self.model.module
-        return dict(**ref_model.get_progress_bar_dict(), **self.progress_bar_metrics)
+        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
 
     @property
     def disable_validation(self) -> bool:
@@ -951,7 +960,7 @@ class Trainer(
         if self.auto_scale_batch_size:
             if isinstance(self.auto_scale_batch_size, bool):
                 self.auto_scale_batch_size = 'power'
-            self.scale_batch_size(
+            self.tuner.scale_batch_size(
                 model,
                 mode=self.auto_scale_batch_size,
                 train_dataloader=train_dataloader,
@@ -1051,7 +1060,7 @@ class Trainer(
 
     def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
         # bind logger and other properties
-        self.copy_trainer_model_properties(model)
+        self.model_connector.copy_trainer_model_properties(model)
 
         # clean hparams
         if hasattr(model, 'hparams'):
@@ -1080,7 +1089,7 @@ class Trainer(
         ref_model.trainer = self
 
         # set local properties on the model
-        self.copy_trainer_model_properties(ref_model)
+        self.model_connector.copy_trainer_model_properties(ref_model)
 
         # init amp. Must be done here instead of __init__ to allow ddp to work
         if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
@@ -1135,6 +1144,71 @@ class Trainer(
         if self.is_function_implemented('on_pretrain_routine_end'):
             ref_model.on_pretrain_routine_end()
 
+    def train(self):
+        self.run_sanity_check(self.get_model())
+
+        # enable train mode
+        model = self.get_model()
+        model.train()
+        torch.set_grad_enabled(True)
+
+        # reload data when needed
+        self.train_loop.reset_train_val_dataloaders(model)
+
+        # hook
+        self.train_loop.on_train_start()
+
+        try:
+            # run all epochs
+            for epoch in range(self.current_epoch, self.max_epochs):
+
+                # reset train dataloader
+                if self.reload_dataloaders_every_epoch:
+                    self.reset_train_dataloader(model)
+
+                # hook
+                self.train_loop.on_train_epoch_start(epoch)
+
+                # run train epoch
+                self.train_loop.run_training_epoch()
+
+                if self.max_steps and self.max_steps <= self.global_step:
+
+                    # hook
+                    self.train_loop.on_train_end()
+                    return
+
+                # update LR schedulers
+                self.lr_scheduler_connector.update_learning_rates(interval='epoch')
+
+                # early stopping
+                met_min_epochs = epoch >= self.min_epochs - 1
+                met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+
+                if self.should_stop:
+                    if (met_min_epochs and met_min_steps):
+                        self.train_loop.on_train_end()
+                        return
+                    else:
+                        log.info('Trainer was signaled to stop but required minimum epochs'
+                                 f' ({self.min_epochs}) or minimum steps ({self.min_steps}) has'
+                                 ' not been met. Training will continue...')
+
+            # hook
+            self.train_loop.on_train_end()
+
+        except KeyboardInterrupt:
+            rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
+
+            # user could press ctrl+c many times... only shutdown once
+            if not self.interrupted:
+                self.interrupted = True
+                self._state = TrainerState.INTERRUPTED
+                self.on_keyboard_interrupt()
+
+                # hook
+                self.train_loop.on_train_end()
+
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
@@ -1188,7 +1262,7 @@ class Trainer(
                     callback_metrics = eval_results.callback_metrics
                 else:
                     _, _, _, callback_metrics, _ = self.process_output(eval_results)
-                self.callback_metrics = callback_metrics
+                self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
             self.running_sanity_check = False

@@ -72,11 +72,6 @@ class HorovodBackend(Accelerator):
             if isinstance(scheduler, _LRScheduler):
                 scheduler.base_lrs = [lr * hvd.size() for lr in scheduler.base_lrs]
 
-        if self.trainer.amp_backend:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.trainer.optimizers = optimizers
-            self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
-
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
         hvd.broadcast_parameters(model.state_dict(), root_rank=0)
         for optimizer in self.trainer.optimizers:
@@ -91,6 +86,11 @@ class HorovodBackend(Accelerator):
             hvd.DistributedOptimizer(optimizer, named_parameters=filter_named_parameters(model, optimizer))
             for optimizer in self.trainer.optimizers
         ]
+
+        if self.trainer.amp_backend == AMPType.APEX:
+            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
+            self.trainer.optimizers = optimizers
+            self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
@@ -158,3 +158,10 @@ class HorovodBackend(Accelerator):
         else:
             output = self.trainer.model.test_step(*args)
         return output
+
+    def backward(self, closure_loss, optimizer, opt_idx):
+        super().backward(closure_loss, optimizer, opt_idx)
+        optimizer.synchronize()
+
+    def on_train_epoch_end(self):
+        hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)

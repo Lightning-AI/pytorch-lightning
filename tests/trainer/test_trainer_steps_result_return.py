@@ -57,19 +57,19 @@ def test_training_step_result_log_step_only(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # make sure pbar metrics are correct ang log metrics did not leak
     for batch_idx in range(batches):
-        assert trainer.progress_bar_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11
-        assert trainer.progress_bar_metrics[f'step_pbar_acc3_b{batch_idx}'] == 13
-        assert f'step_log_acc2_b{batch_idx}' not in trainer.progress_bar_metrics
+        assert trainer.logger_connector.progress_bar_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11
+        assert trainer.logger_connector.progress_bar_metrics[f'step_pbar_acc3_b{batch_idx}'] == 13
+        assert f'step_log_acc2_b{batch_idx}' not in trainer.logger_connector.progress_bar_metrics
 
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert out.batch_log_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11.0
     assert out.batch_log_metrics[f'step_log_acc2_b{batch_idx}'] == 12.0
@@ -84,7 +84,8 @@ def test_training_step_result_log_step_only(tmpdir):
     assert f'step_log_acc2_b{batch_idx}' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
@@ -132,19 +133,19 @@ def test_training_step_result_log_epoch_only(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # make sure pbar metrics are correct ang log metrics did not leak
     for epoch_idx in range(epochs):
-        assert trainer.progress_bar_metrics[f'epoch_log_and_pbar_acc1_e{epoch_idx}'] == 14
-        assert trainer.progress_bar_metrics[f'epoch_pbar_acc3_e{epoch_idx}'] == 16
-        assert f'epoch_log_acc2_e{epoch_idx}' not in trainer.progress_bar_metrics
+        assert trainer.logger_connector.progress_bar_metrics[f'epoch_log_and_pbar_acc1_e{epoch_idx}'] == 14
+        assert trainer.logger_connector.progress_bar_metrics[f'epoch_pbar_acc3_e{epoch_idx}'] == 16
+        assert f'epoch_log_acc2_e{epoch_idx}' not in trainer.logger_connector.progress_bar_metrics
 
     # make sure training outputs what is expected
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 0
 
@@ -158,7 +159,8 @@ def test_training_step_result_log_epoch_only(tmpdir):
     assert f'epoch_log_acc2_e{trainer.current_epoch}' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
@@ -231,7 +233,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
         assert len(logged_metrics) == 4
 
     # make sure we are using the correct metrics for callbacks
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # -------------------------------
     # VERIFY PBAR METRICS
@@ -277,7 +279,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 2
 
@@ -293,7 +295,8 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     assert 'epoch_step_epoch_log_acc2' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
@@ -339,16 +342,16 @@ def test_training_step_epoch_end_result(tmpdir):
     logged_pbar = trainer.dev_debugger.pbar_added_metrics
     assert len(logged_pbar) == (epochs * batches) + epochs
 
-    assert trainer.progress_bar_metrics['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
-    assert trainer.progress_bar_metrics['step_step_epoch_log_and_pbar_acc1'] == 7.0
-    assert trainer.progress_bar_metrics['epoch_step_epoch_pbar_acc3'] == 504.0
-    assert trainer.progress_bar_metrics['epoch_epoch_end_pbar_acc'] == 1213.0
-    assert trainer.progress_bar_metrics['epoch_epoch_end_log_pbar_acc'] == 1214.0
-    assert 'epoch_end_log_acc' not in trainer.progress_bar_metrics
-    assert 'log_acc2' not in trainer.progress_bar_metrics
+    assert trainer.logger_connector.progress_bar_metrics['epoch_step_epoch_log_and_pbar_acc1'] == 210.0
+    assert trainer.logger_connector.progress_bar_metrics['step_step_epoch_log_and_pbar_acc1'] == 7.0
+    assert trainer.logger_connector.progress_bar_metrics['epoch_step_epoch_pbar_acc3'] == 504.0
+    assert trainer.logger_connector.progress_bar_metrics['epoch_epoch_end_pbar_acc'] == 1213.0
+    assert trainer.logger_connector.progress_bar_metrics['epoch_epoch_end_log_pbar_acc'] == 1214.0
+    assert 'epoch_end_log_acc' not in trainer.logger_connector.progress_bar_metrics
+    assert 'log_acc2' not in trainer.logger_connector.progress_bar_metrics
 
     # make sure callback metrics didn't change
-    assert trainer.callback_metrics['checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] == 171
 
     # -----------------------------------------
     # make sure training outputs what is expected
@@ -356,7 +359,7 @@ def test_training_step_epoch_end_result(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 2
 
@@ -372,7 +375,8 @@ def test_training_step_epoch_end_result(tmpdir):
     assert 'epoch_step_epoch_log_acc2' in train_step_out
 
     # make sure the optimizer closure returns the correct things
-    opt_closure_result = trainer.optimizer_closure(batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
+    opt_closure_result = trainer.train_loop.training_step_and_backward(
+        batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 

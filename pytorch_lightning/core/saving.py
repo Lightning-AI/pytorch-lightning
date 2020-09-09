@@ -337,7 +337,7 @@ def load_hparams_from_yaml(config_yaml: str) -> Dict[str, Any]:
         return {}
 
     with fs.open(config_yaml, "r") as fp:
-        tags = yaml.load(fp)
+        tags = yaml.full_load(fp)
 
     return tags
 

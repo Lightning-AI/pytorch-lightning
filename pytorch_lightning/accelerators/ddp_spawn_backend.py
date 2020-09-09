@@ -141,7 +141,7 @@ class DDPSpawnBackend(Accelerator):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # set model properties before going into wrapper
-        self.trainer.copy_trainer_model_properties(model)
+        self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # AMP -
         # run through amp wrapper before going to distributed DP
