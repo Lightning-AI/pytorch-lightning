@@ -18,6 +18,7 @@ from pytorch_lightning.trainer.distrib_parts import _parse_gpu_ids, determine_ro
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.models.data.ddp import train_test_variations
+from pytorch_lightning.accelerators.gpu_backend import GPUBackend
 
 PRETEND_N_OF_GPUS = 16
 
@@ -335,7 +336,8 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_single_gpu_batch_parse():
-    trainer = Trainer(gpus=0)
+    trainer = Trainer(gpus=1)
+    trainer.accelerator_backend = GPUBackend(trainer)
 
     # batch is just a tensor
     batch = torch.rand(2, 3)
