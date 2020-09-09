@@ -196,19 +196,7 @@ class TrainerEvaluationLoopMixin(ABC):
     evaluation_loop: EvaluationLoop
 
     @abstractmethod
-    def copy_trainer_model_properties(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def get_model(self) -> LightningModule:
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def reset_test_dataloader(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def reset_val_dataloader(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod

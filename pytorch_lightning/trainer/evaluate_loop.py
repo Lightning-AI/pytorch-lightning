@@ -75,7 +75,7 @@ class EvaluationLoop(object):
 
     def setup(self, model, max_batches, dataloaders):
         # copy properties for forward overrides
-        self.trainer.copy_trainer_model_properties(model)
+        self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # bookkeeping
         self.outputs = []
