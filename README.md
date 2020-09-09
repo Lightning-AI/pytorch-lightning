@@ -201,19 +201,19 @@ trainer.fit(model, DataLoader(train), DataLoader(val))
 #### And without changing a single line of code, you could run on GPUs
 ```python
 # 8 GPUs
-trainer = Trainer(max_epochs=1, gpus=8)
+trainer = pl.Trainer(max_epochs=1, gpus=8)
 
 # 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+trainer = pl.Trainer(max_epochs=1, gpus=8, num_nodes=32)
 ```
 
 Or TPUs
 ```python
 # Distributes TPU core training
-trainer = Trainer(tpu_cores=8)
+trainer = pl.Trainer(tpu_cores=8)
 
 # Single TPU core training
-trainer = Trainer(tpu_cores=[1])
+trainer = pl.Trainer(tpu_cores=[1])
 ```
 
 ---
