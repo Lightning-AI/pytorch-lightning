@@ -116,7 +116,7 @@ setup(
         'Topic :: Scientific/Engineering :: Image Recognition',
         'Topic :: Scientific/Engineering :: Information Analysis',
         # Pick your license as you wish
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
