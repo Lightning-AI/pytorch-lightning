@@ -32,7 +32,7 @@ jobs:
             os: macOS-10.15
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 25
+    timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
