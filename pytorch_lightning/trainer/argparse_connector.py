@@ -17,6 +17,7 @@ class ArgparseConnector(object):
                 These must be valid Trainer arguments.
 
         Example:
+            >>> from pytorch_lightning import Trainer
             >>> parser = ArgumentParser(add_help=False)
             >>> parser = Trainer.add_argparse_args(parser)
             >>> parser.add_argument('--my_custom_arg', default='something')  # doctest: +SKIP
@@ -70,6 +71,7 @@ class ArgparseConnector(object):
             (argument name, set with argument types, argument default value).
 
         Examples:
+            >>> from pytorch_lightning import Trainer
             >>> args = Trainer.get_init_arguments_and_types()
             >>> import pprint
             >>> pprint.pprint(sorted(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
