@@ -37,7 +37,6 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -98,7 +97,6 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerEvaluationLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_10,
@@ -1208,6 +1206,84 @@ class Trainer(
 
                 # hook
                 self.train_loop.on_train_end()
+
+    def run_evaluation(self, test_mode: bool = False, max_batches=None):
+        # bookkeeping
+        self.evaluation_loop.testing = test_mode
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
+            return [], []
+
+        # enable eval mode + no grads
+        model = self.get_model()
+        model.zero_grad()
+        model.eval()
+        torch.set_grad_enabled(False)
+
+        # hook
+        self.evaluation_loop.on_evaluation_start()
+
+        # set up the eval loop
+        self.evaluation_loop.setup(model, max_batches, dataloaders)
+
+        # hook
+        # TODO: should this be insider the dataloader loop?
+        self.evaluation_loop.on_evaluation_epoch_start()
+
+        # run validation/testing
+        for dataloader_idx, dataloader in enumerate(dataloaders):
+            # bookkeeping
+            dl_outputs = []
+            dataloader = self.accelerator_backend.process_dataloader(dataloader)
+            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+
+            for batch_idx, batch in enumerate(dataloader):
+                if batch is None:
+                    continue
+
+                # stop short when running on limited batches
+                if batch_idx >= dl_max_batches:
+                    break
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+
+                # lightning module methods
+                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                output = self.evaluation_loop.evaluation_step_end(output)
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
+
+                # clean up
+                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
+                self.evaluation_loop.log_step_metrics(output, batch_idx)
+
+                # track epoch level metrics
+                if output is not None:
+                    dl_outputs.append(output)
+
+            self.evaluation_loop.outputs.append(dl_outputs)
+
+        # lightning module method
+        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
+
+        # bookkeeping
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics(eval_results, test_mode)
+        self.evaluation_loop.predictions.to_disk()
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end()
+
+        # enable train mode again
+        model.train()
+        torch.set_grad_enabled(True)
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
+
+        return eval_loop_results, eval_results
+
 
     def run_test(self):
         # only load test dataloader for testing
