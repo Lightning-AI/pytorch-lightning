@@ -13,13 +13,14 @@
 # limitations under the License
 import os
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_getattr, lightning_setattr
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import is_oom_error, garbage_collection_cuda
 from pytorch_lightning.loggers.base import DummyLogger
 from pytorch_lightning import _logger as log
-from typing import Optional
+from typing import Optional, Tuple
 
 
 def scale_batch_size(trainer,
@@ -230,7 +231,6 @@ def _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials,
                 raise  # some other error not memory related
 
     return new_size
-
 
 
 def _adjust_batch_size(trainer,
