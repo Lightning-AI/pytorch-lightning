@@ -87,7 +87,7 @@ class TrainerProperties(ABC):
         return depr_arg_names
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
         return argparse_utils.from_argparse_args(cls, args, **kwargs)
 
     @classmethod
