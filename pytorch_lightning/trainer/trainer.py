@@ -87,6 +87,7 @@ else:
 
 
 class Trainer(
+    TrainerProperties,
     TrainerIOMixin,
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
@@ -98,7 +99,6 @@ class Trainer(
     TrainerCallbackConfigMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_10,
-    TrainerProperties,
 ):
     def __init__(
         self,
