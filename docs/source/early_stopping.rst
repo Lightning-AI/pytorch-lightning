@@ -36,7 +36,7 @@ There are two ways to enable the EarlyStopping callback:
     If a dict is returned by
     :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`,
     the callback will look for `val_loss` in the dict
-    and raise an error if `val_loss` is not present.
+    and display a warning if `val_loss` is not present.
     Otherwise, if a :class:`~pytorch_lightning.core.step_result.Result` is returned by
     :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`,
     :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` or
