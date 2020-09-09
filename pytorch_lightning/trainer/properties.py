@@ -127,7 +127,8 @@ class TrainerProperties(ABC):
     @property
     def enable_validation(self) -> bool:
         """ Check if we should run validation during training. """
-        val_loop_enabled = is_overridden('validation_step', self.model_connector.get_model()) and self.limit_val_batches > 0
+        model_ref = self.model_connector.get_model()
+        val_loop_enabled = is_overridden('validation_step', model_ref) and self.limit_val_batches > 0
         return val_loop_enabled or self.fast_dev_run
 
     @property
