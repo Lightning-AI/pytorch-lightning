@@ -29,7 +29,6 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.auto_mix_precision import TrainerAMPMixin
 from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
@@ -37,7 +36,6 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.trainer.evaluation_loop import TrainerEvaluationLoopMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -50,15 +48,16 @@ from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only,
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.trainer.evaluate_loop import EvaluationLoop
+from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
+from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
-from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.trainer.model_connector import ModelConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
+from pytorch_lightning.trainer.initializer import Initializer
 from pytorch_lightning.utilities.model_utils import is_overridden
 
 # warnings to ignore in trainer
@@ -93,12 +92,10 @@ class Trainer(
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerAMPMixin,
     TrainerDDPMixin,
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerEvaluationLoopMixin,
     TrainerCallbackConfigMixin,
     TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_10,
@@ -380,6 +377,7 @@ class Trainer(
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
+        self.initializer = Initializer(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
 
@@ -615,12 +613,16 @@ class Trainer(
         self.scaler = None
 
         self.amp_level = amp_level
-        self.init_amp(amp_backend)
+        self.initializer.init_amp(amp_backend)
 
         self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
 
         # Callback system
         self.on_init_end()
+
+    @property
+    def use_amp(self) -> bool:
+        return self.precision == 16
 
     @property
     def callback_metrics(self):
@@ -1209,6 +1211,83 @@ class Trainer(
                 # hook
                 self.train_loop.on_train_end()
 
+    def run_evaluation(self, test_mode: bool = False, max_batches=None):
+        # bookkeeping
+        self.evaluation_loop.testing = test_mode
+        dataloaders, max_batches = self.evaluation_loop.get_evaluation_dataloaders(max_batches)
+        if self.evaluation_loop.should_skip_evaluation(dataloaders, max_batches):
+            return [], []
+
+        # enable eval mode + no grads
+        model = self.get_model()
+        model.zero_grad()
+        model.eval()
+        torch.set_grad_enabled(False)
+
+        # hook
+        self.evaluation_loop.on_evaluation_start()
+
+        # set up the eval loop
+        self.evaluation_loop.setup(model, max_batches, dataloaders)
+
+        # hook
+        # TODO: should this be insider the dataloader loop?
+        self.evaluation_loop.on_evaluation_epoch_start()
+
+        # run validation/testing
+        for dataloader_idx, dataloader in enumerate(dataloaders):
+            # bookkeeping
+            dl_outputs = []
+            dataloader = self.accelerator_backend.process_dataloader(dataloader)
+            dl_max_batches = self.evaluation_loop.max_batches[dataloader_idx]
+
+            for batch_idx, batch in enumerate(dataloader):
+                if batch is None:
+                    continue
+
+                # stop short when running on limited batches
+                if batch_idx >= dl_max_batches:
+                    break
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_start(batch, batch_idx, dataloader_idx)
+
+                # lightning module methods
+                output = self.evaluation_loop.evaluation_step(test_mode, batch, batch_idx, dataloader_idx)
+                output = self.evaluation_loop.evaluation_step_end(output)
+
+                # hook
+                self.evaluation_loop.on_evaluation_batch_end(batch, batch_idx, dataloader_idx)
+
+                # clean up
+                self.evaluation_loop.evaluation_batch_end_cleanup(output, batch_idx, dataloader_idx)
+                self.evaluation_loop.log_step_metrics(output, batch_idx)
+
+                # track epoch level metrics
+                if output is not None:
+                    dl_outputs.append(output)
+
+            self.evaluation_loop.outputs.append(dl_outputs)
+
+        # lightning module method
+        eval_results = self.evaluation_loop.evaluation_epoch_end(num_dataloaders=len(dataloaders))
+
+        # bookkeeping
+        eval_loop_results = self.evaluation_loop.log_epoch_metrics(eval_results, test_mode)
+        self.evaluation_loop.predictions.to_disk()
+
+        # hook
+        self.evaluation_loop.on_evaluation_epoch_end()
+
+        # enable train mode again
+        model.train()
+        torch.set_grad_enabled(True)
+
+        # hook
+        self.evaluation_loop.on_evaluation_end()
+
+        return eval_loop_results, eval_results
+
     def run_test(self):
         # only load test dataloader for testing
         # self.reset_test_dataloader(ref_model)
@@ -1420,15 +1499,6 @@ class Trainer(
 
         return results
 
-    def barrier(self, name):
-        if self.use_ddp or self.use_ddp2:
-            pass
-            # torch_distrib.barrier()
-
-        if self.on_tpu and XLA_AVAILABLE:
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous(f'pl.Trainer.{name}')
-
     def call_setup_hook(self, model):
         # call setup after the ddp process has connected
         stage_name = 'test' if self.testing else 'fit'
@@ -1438,11 +1508,6 @@ class Trainer(
                 self.datamodule.setup(stage_name)
         self.setup(stage_name)
         model.setup(stage_name)
-
-    def init_amp(self, amp_type: str):
-        assert self.precision in (16, 32), 'only 32 or 16 bit precision supported'
-        self.amp_backend = None
-        self._setup_amp_backend(amp_type)
 
     def call_hook(self, hook_name, *args, **kwargs):
         # always profile hooks
