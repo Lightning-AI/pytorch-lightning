@@ -98,6 +98,7 @@ class TrainerLRFinderMixin(ABC):
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
             val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
+            datamodule: Optional[LightningDataModule] = None,
             min_lr: float = 1e-8,
             max_lr: float = 1,
             num_training: int = 100,
@@ -199,7 +200,8 @@ class TrainerLRFinderMixin(ABC):
         # Fit, lr & loss logged in callback
         self.fit(model,
                  train_dataloader=train_dataloader,
-                 val_dataloaders=val_dataloaders)
+                 val_dataloaders=val_dataloaders,
+                 datamodule=datamodule)
 
         # Prompt if we stopped early
         if self.global_step != num_training:
