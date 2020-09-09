@@ -346,7 +346,7 @@ def test_dm_transfer_batch_to_device(tmpdir):
     dm = CurrentTestDM()
     batch = CustomBatch((torch.zeros(5, 28), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer()
+    trainer = Trainer(gpus=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     trainer.get_model = MagicMock(return_value=model)
     if is_overridden('transfer_batch_to_device', dm):
