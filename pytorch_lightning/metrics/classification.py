@@ -807,7 +807,7 @@ class IoU(TensorMetric):
     def __init__(
             self,
             ignore_index: Optional[int] = None,
-            not_present_score: float = 0.0,
+            absent_score: float = 0.0,
             num_classes: Optional[int] = None,
             reduction: str = "elementwise_mean",
     ):
@@ -817,19 +817,19 @@ class IoU(TensorMetric):
                 contribute to the returned score, regardless of reduction method. Has no effect if given an int that is
                 not in the range [0, num_classes-1], where num_classes is either given or derived from pred and target.
                 By default, no index is ignored, and all classes are used.
-            not_present_score: score to use for an individual class, if no instances of the class index were present in
+            absent_score: score to use for an individual class, if no instances of the class index were present in
                 `y_pred` AND no instances of the class index were present in `y_true`. By default, assign a score of
-                0.0 for this class if not present.
+                0.0 for this class if absent.
 
                 Ex: if we have the following input:
 
                 - 3 classes
                 - `y_pred` is [0, 0]
                 - `y_true` is [0, 2]
-                - `not_present_score` is 1.0
+                - `absent_score` is 1.0
 
                 Then class 0 would get a score of 1 / 2, and class 2 would get a score of 0 / 1. However, class 1 is not
-                actually present in either `y_pred` or `y_true`, so it falls back to the `not_present_score` (1.0 in
+                actually present in either `y_pred` or `y_true`, so it falls back to the `absent_score` (1.0 in
                 this example). These 3 scores are then reduced according to the `reduction` method in the same way as if
                 class 1 were present and received an empirical score.
             num_classes: Optionally specify the number of classes
@@ -842,7 +842,7 @@ class IoU(TensorMetric):
         """
         super().__init__(name="iou")
         self.ignore_index = ignore_index
-        self.not_present_score = not_present_score
+        self.absent_score = absent_score
         self.num_classes = num_classes
         self.reduction = reduction
 
@@ -854,7 +854,7 @@ class IoU(TensorMetric):
             pred=y_pred,
             target=y_true,
             ignore_index=self.ignore_index,
-            not_present_score=self.not_present_score,
+            absent_score=self.absent_score,
             num_classes=self.num_classes,
             reduction=self.reduction,
         )

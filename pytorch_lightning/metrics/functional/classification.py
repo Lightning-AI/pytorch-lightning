@@ -964,7 +964,7 @@ def iou(
         pred: torch.Tensor,
         target: torch.Tensor,
         ignore_index: Optional[int] = None,
-        not_present_score: float = 0.0,
+        absent_score: float = 0.0,
         num_classes: Optional[int] = None,
         reduction: str = 'elementwise_mean',
 ) -> torch.Tensor:
@@ -978,19 +978,19 @@ def iou(
             to the returned score, regardless of reduction method. Has no effect if given an int that is not in the
             range [0, num_classes-1], where num_classes is either given or derived from pred and target. By default, no
             index is ignored, and all classes are used.
-        not_present_score: score to use for an individual class, if no instances of the class index were present in
+        absent_score: score to use for an individual class, if no instances of the class index were present in
             `pred` AND no instances of the class index were present in `target`. By default, assign a score of 0.0 for
-            this class if not present.
+            this class if absent.
 
             Ex: if we have the following input:
 
             - 3 classes
             - `pred` is [0, 0]
             - `target` is [0, 2]
-            - `not_present_score` is 1.0
+            - `absent_score` is 1.0
 
             Then class 0 would get a score of 1 / 2, and class 2 would get a score of 0 / 1. However, class 1 is not
-            actually present in either `pred` or `target`, so it falls back to the `not_present_score` (1.0 in
+            actually present in either `pred` or `target`, so it falls back to the `absent_score` (1.0 in
             this example). These 3 scores are then reduced according to the `reduction` method in the same way as if
             class 1 were present and received an empirical score.
         num_classes: Optionally specify the number of classes
@@ -1030,10 +1030,10 @@ def iou(
         fn = fns[class_idx]
         sup = sups[class_idx]
 
-        # If this class is not present in the target (no support) AND not present in the pred (no true or false
-        # positives), then use the not_present_score for this class.
+        # If this class is absent in the target (no support) AND absent in the pred (no true or false
+        # positives), then use the absent_score for this class.
         if sup + tp + fp == 0:
-            scores[class_idx] = not_present_score
+            scores[class_idx] = absent_score
             continue
 
         denom = tp + fp + fn
