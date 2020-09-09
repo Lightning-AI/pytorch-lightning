@@ -211,6 +211,7 @@ class LoggerConnector:
             if isinstance(epoch_output, Result):
                 epoch_log_metrics = epoch_output.epoch_log_metrics
                 epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
+                epoch_callback_metrics = epoch_output.get_callback_metrics()
             else:
                 _processed_outputs = self.trainer.process_output(epoch_output)
                 epoch_progress_bar_metrics = _processed_outputs[1]
