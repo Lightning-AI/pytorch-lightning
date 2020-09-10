@@ -10,6 +10,23 @@ natural language processing (NLP), and text-to-speech (TTS) applications and res
 
 .. note:: Every NeMo model is a LightningModule that comes equipped with all supporting infrastructure for training and reproducibility.
 
+Installing NeMo
+^^^^^^^^^^^^^^^
+
+Installing the latest NeMo release is a simple pip install.
+
+.. code-block:: bash
+
+    pip install nemo_toolkit[all]
+
+To install a specific branch from GitHub:
+
+.. code-block:: bash
+
+    python -m pip install git+https://github.com/NVIDIA/NeMo.git@{BRANCH}#egg=nemo_toolkit[nlp]
+
+.. note:: Replace {BRANCH} with the specific branch name from GitHub.
+
 Example: Speech to Text (ASR)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -23,7 +40,26 @@ Train Convolutional ASR models with NeMo and PyTorch Lightning.
 
 .. note:: NeMo models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
 
-Transcribe audio with QuartzNet pretrained on 1000's of hours of audio.
+Training NeMo models with PyTorch Lightning and Hydra is simple from the command line.
+
+.. code-block:: bash
+
+    python examples/asr/speech_to_text.py --config-name=quartznet_15x5 \
+    model.train_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-train-all.json \
+    model.validation_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-dev-other.json \
+    trainer.gpus=4 trainer.max_epochs=128 model.train_ds.batch_size=64 \
+    +trainer.precision=16 \
+    +model.validation_ds.num_workers=16 \
+    +model.train_ds.num_workers=16
+
+Optionally launch Tensorboard to view training results
+
+.. code-block:: bash
+
+    tensorboard --bind_all --logdir nemo_experiments
+
+
+Transcribe audio with QuartzNet pretrained on 7000+ hours of audio.
 
 .. code-block:: python
 
