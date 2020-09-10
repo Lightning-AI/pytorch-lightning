@@ -47,7 +47,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     )
     trainer.fit(model)
 
-    checkpoint_filepath = checkpoint_callback.kth_best_model
+    checkpoint_filepath = checkpoint_callback.kth_best_model_path
     # ensure state is persisted properly
     checkpoint = torch.load(checkpoint_filepath)
     # the checkpoint saves "epoch + 1"

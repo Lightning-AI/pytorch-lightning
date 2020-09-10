@@ -29,7 +29,7 @@ from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
+from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -78,7 +78,6 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerDeprecatedAPITillVer0_10,
 ):
     def __init__(
         self,
@@ -130,9 +129,6 @@ class Trainer(
         prepare_data_per_node: bool = True,
         amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
-        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
     ):
         super().__init__()
@@ -227,9 +223,6 @@ class Trainer(
         # init debugging flags
         self.debugging_connector.on_init_start(
             overfit_pct,
-            val_percent_check,
-            test_percent_check,
-            train_percent_check,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,

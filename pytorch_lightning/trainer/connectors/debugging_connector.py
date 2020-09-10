@@ -25,9 +25,6 @@ class DebuggingConnector:
     def on_init_start(
             self,
             overfit_pct,
-            val_percent_check,
-            test_percent_check,
-            train_percent_check,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
@@ -46,43 +43,6 @@ class DebuggingConnector:
             rank_zero_info(
                 'Running in fast_dev_run mode: will run a full train,' ' val and test loop using a single batch'
             )
-
-        # how much of the data to use
-        # TODO: remove in 0.10.0
-        if overfit_pct is not None:
-            rank_zero_warn(
-                "Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            overfit_batches = overfit_pct
-
-        # TODO: remove in 0.10.0
-        if val_percent_check is not None:
-            rank_zero_warn(
-                "Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            limit_val_batches = val_percent_check
-
-        # TODO: remove in 0.10.0
-        if test_percent_check is not None:
-            rank_zero_warn(
-                "Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            limit_test_batches = test_percent_check
-
-        # TODO: remove in 0.10.0
-        if train_percent_check is not None:
-            rank_zero_warn(
-                "Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            limit_train_batches = train_percent_check
 
         self.trainer.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
         self.trainer.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')

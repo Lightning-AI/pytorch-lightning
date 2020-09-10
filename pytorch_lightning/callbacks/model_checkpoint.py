@@ -171,18 +171,6 @@ class ModelCheckpoint(Callback):
 
         self.kth_value, self.mode = mode_dict[mode]
 
-    @property
-    def best(self):
-        rank_zero_warn("Attribute `best` has been renamed to `best_model_score` since v0.8.0"
-                       " and will be removed in v0.10.0", DeprecationWarning)
-        return self.best_model_score
-
-    @property
-    def kth_best_model(self):
-        rank_zero_warn("Attribute `kth_best_model` has been renamed to `kth_best_model_path` since v0.8.0"
-                       " and will be removed in v0.10.0", DeprecationWarning)
-        return self.kth_best_model_path
-
     def _del_model(self, filepath):
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
