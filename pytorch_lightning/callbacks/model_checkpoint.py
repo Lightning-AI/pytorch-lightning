@@ -225,18 +225,17 @@ class ModelCheckpoint(Callback):
     def _format_checkpoint_name(cls, filename, epoch, metrics, prefix=""):
         if not filename:
             # filename is not set, use default name
-            filename = f'epoch={epoch}'
-        else:
-            # check and parse user passed keys in the string
-            groups = re.findall(r'(\{.*?)[:\}]', filename)
-            if len(groups):
-                metrics['epoch'] = epoch
-                for tmp in groups:
-                    name = tmp[1:]
-                    filename = filename.replace(tmp, name + '={' + name)
-                    if name not in metrics:
-                        metrics[name] = 0
-                filename = filename.format(**metrics)
+            filename = '{epoch}'
+        # check and parse user passed keys in the string
+        groups = re.findall(r'(\{.*?)[:\}]', filename)
+        if groups:
+            metrics['epoch'] = epoch
+            for group in groups:
+                name = group[1:]
+                filename = filename.replace(group, name + '={' + name)
+                if name not in metrics:
+                    metrics[name] = 0
+            filename = filename.format(**metrics)
         return cls.CHECKPOINT_JOIN_CHAR.join([txt for txt in (prefix, filename) if txt])
 
     def format_checkpoint_name(self, epoch, metrics, ver=None):
@@ -259,9 +258,9 @@ class ModelCheckpoint(Callback):
             'missing=0.ckpt'
         """
         filename = self._format_checkpoint_name(self.filename, epoch, metrics, prefix=self.prefix)
-        str_ver = f'v{ver}' if ver is not None else ''
-        joint_filename = self.CHECKPOINT_JOIN_CHAR.join([txt for txt in (filename, str_ver) if txt])
-        return os.path.join(self.dirpath, f'{joint_filename}.ckpt')
+        if ver is not None:
+            filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f'v{ver}'))
+        return os.path.join(self.dirpath, f'{filename}.ckpt')
 
     @rank_zero_only
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -311,9 +310,11 @@ class ModelCheckpoint(Callback):
         invalid_key = self.monitor not in ['val_loss', 'checkpoint_on', 'loss', 'val_checkpoint_on']
         if using_result_obj and not self.warned_result_obj and invalid_key:
             self.warned_result_obj = True
-            rank_zero_warn(f"When using `EvalResult(checkpoint_on=X)` or `TrainResult(checkpoint_on=X)`"
-                 " the 'monitor' key of `ModelCheckpoint` has no effect."
-                 f" Remove `ModelCheckpoint(monitor='{self.monitor}')` to fix")
+            rank_zero_warn(
+                f"When using `EvalResult(checkpoint_on=X)` or `TrainResult(checkpoint_on=X)`"
+                " the 'monitor' key of `ModelCheckpoint` has no effect."
+                f" Remove `ModelCheckpoint(monitor='{self.monitor}')` to fix."
+            )
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
