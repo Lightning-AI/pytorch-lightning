@@ -202,6 +202,7 @@ def __lr_finder_dump_params(trainer, model):
         'configure_optimizers': model.configure_optimizers,
     }
 
+
 def __lr_finder_restore_params(trainer, model):
     trainer.auto_lr_find = trainer.__dumped_params['auto_lr_find']
     trainer.logger = trainer.__dumped_params['logger']
