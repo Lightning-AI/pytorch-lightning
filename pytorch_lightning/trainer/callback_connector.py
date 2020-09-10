@@ -21,7 +21,7 @@ class CallbackConnector:
 
         # configure early stop callback
         # creates a default one if none passed in
-        early_stop_callback = self.trainer.configure_early_stopping(early_stop_callback)
+        early_stop_callback = self.configure_early_stopping(early_stop_callback)
         if early_stop_callback:
             self.trainer.callbacks.append(early_stop_callback)
 
