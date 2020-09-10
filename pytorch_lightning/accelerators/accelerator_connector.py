@@ -2,7 +2,7 @@ from pytorch_lightning import accelerators
 import os
 import torch
 from pytorch_lightning.utilities import device_parser
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
 
 class AcceleratorConnector:
@@ -21,8 +21,22 @@ class AcceleratorConnector:
             log_gpu_memory,
             sync_batchnorm,
             benchmark,
-            replace_sampler_ddp
+            replace_sampler_ddp,
+            deterministic
     ):
+        self.trainer.deterministic = deterministic
+        torch.backends.cudnn.deterministic = self.trainer.deterministic
+        if self.trainer.deterministic:
+            # fixing non-deterministic part of horovod
+            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
+
+        # init the default rank if exists
+        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
+        # this way we only show it on rank 0
+        if 'LOCAL_RANK' in os.environ:
+            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
+
         # benchmarking
         self.trainer.benchmark = benchmark
         torch.backends.cudnn.benchmark = self.trainer.benchmark

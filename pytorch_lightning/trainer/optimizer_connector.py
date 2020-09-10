@@ -15,10 +15,15 @@
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class LRSchedulerConnector:
+class OptimizerConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
+
+    def on_trainer_init(self):
+        self.trainer.lr_schedulers = []
+        self.trainer.optimizers = None
+        self.trainer.optimizer_frequencies = []
 
     def update_learning_rates(self, interval: str, monitor_metrics=None):
         """Update learning rates.
@@ -52,14 +57,12 @@ class LRSchedulerConnector:
                             f' which is not available. Available metrics are: {avail_metrics}.'
                             ' Condition can be set using `monitor` key in lr scheduler dict'
                         )
-                    if self.trainer.dev_debugger.enabled:
-                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-
                     # update LR
+                    old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                     lr_scheduler['scheduler'].step(monitor_val)
+                    new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
                     if self.trainer.dev_debugger.enabled:
-                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                         self.trainer.dev_debugger.track_lr_schedulers_update(
                             self.trainer.batch_idx,
                             interval,
@@ -69,14 +72,12 @@ class LRSchedulerConnector:
                             monitor_key,
                         )
                 else:
-                    if self.trainer.dev_debugger.enabled:
-                        old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
-
                     # update LR
+                    old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                     lr_scheduler['scheduler'].step()
+                    new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
 
                     if self.trainer.dev_debugger.enabled:
-                        new_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                         self.trainer.dev_debugger.track_lr_schedulers_update(
                             self.trainer.batch_idx,
                             interval,
