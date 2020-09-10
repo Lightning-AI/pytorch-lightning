@@ -1,9 +1,9 @@
-coverage
+coverage>=5.0
 codecov>=2.1
-pytest>=3.0.5
+pytest>=5.0
 pytest-cov
 pytest-flake8
-flake8
+flake8>=3.6
 flake8-black
 check-manifest
 twine==1.13.0
