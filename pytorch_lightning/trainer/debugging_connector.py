@@ -35,6 +35,7 @@ class DebuggingConnector:
             overfit_batches,
             fast_dev_run
     ):
+
         self.trainer.fast_dev_run = fast_dev_run
         if self.trainer.fast_dev_run:
             limit_train_batches = 1

@@ -39,22 +39,6 @@ class TrainerLoggingMixin(ABC):
     num_gpus: int
     logged_metrics: ...
 
-    def configure_logger(self, logger):
-        if logger is True:
-            # default logger
-            self.logger = TensorBoardLogger(
-                save_dir=self.default_root_dir,
-                version=self.slurm_job_id,
-                name='lightning_logs'
-            )
-        elif logger is False:
-            self.logger = None
-        else:
-            if isinstance(logger, Iterable):
-                self.logger = LoggerCollection(logger)
-            else:
-                self.logger = logger
-
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
         for k, v in metrics.items():

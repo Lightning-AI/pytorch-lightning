@@ -13,10 +13,12 @@
 # limitations under the License.
 import torch
 from pytorch_lightning.core import memory
+from pytorch_lightning.loggers import TensorBoardLogger, LoggerCollection
 from pytorch_lightning.utilities import flatten_dict
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pprint import pprint
+from typing import Iterable
 
 
 class LoggerConnector:
@@ -26,6 +28,28 @@ class LoggerConnector:
         self.callback_metrics = {}
         self.logged_metrics = {}
         self.progress_bar_metrics = {}
+
+    def on_trainer_init(self, logger, log_save_interval, row_log_interval):
+        # logging
+        self.configure_logger(logger)
+        self.trainer.log_save_interval = log_save_interval
+        self.trainer.row_log_interval = row_log_interval
+
+    def configure_logger(self, logger):
+        if logger is True:
+            # default logger
+            self.trainer.logger = TensorBoardLogger(
+                save_dir=self.trainer.default_root_dir,
+                version=self.trainer.slurm_job_id,
+                name='lightning_logs'
+            )
+        elif logger is False:
+            self.trainer.logger = None
+        else:
+            if isinstance(logger, Iterable):
+                self.trainer.logger = LoggerCollection(logger)
+            else:
+                self.trainer.logger = logger
 
     def log_metrics(self, metrics, grad_norm_dic, step=None):
         """Logs the metric dict passed in.
