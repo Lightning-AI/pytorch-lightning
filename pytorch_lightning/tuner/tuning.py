@@ -13,6 +13,8 @@
 # limitations under the License.
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.tuner.lr_finder import _run_lr_finder_internally
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class Tuner:
@@ -31,6 +33,9 @@ class Tuner:
         return scale_batch_size(
             self.trainer, model, mode, steps_per_trial, init_val, max_trials, batch_arg_name, **fit_kwargs
         )
+
+    def internal_find_lr(self, trainer, model: LightningModule):
+        return _run_lr_finder_internally(trainer, model)
 
     def pick_multiple_gpus(self, num_gpus: int):
         return pick_multiple_gpus(num_gpus)

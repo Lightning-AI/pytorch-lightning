@@ -35,7 +35,6 @@ from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
@@ -97,7 +96,6 @@ class Trainer(
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
     TrainerCallbackConfigMixin,
-    TrainerLRFinderMixin,
     TrainerDeprecatedAPITillVer0_10,
 ):
     def __init__(
@@ -454,7 +452,7 @@ class Trainer(
 
         # Run learning rate finder:
         if self.auto_lr_find:
-            self._run_lr_finder_internally(model)
+            self.tuner.internal_find_lr(self, model)
             model.logger = self.logger  # reset logger binding
 
     # -----------------------------
