@@ -88,7 +88,7 @@ class DebuggingConnector:
         self.trainer.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
         self.trainer.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
         self.trainer.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
-        self.trainer.determine_data_use_amount(self.trainer.overfit_batches)
+        self.determine_data_use_amount(self.trainer.overfit_batches)
 
     def determine_data_use_amount(self, overfit_batches: float) -> None:
         """Use less data for debugging purposes"""
