@@ -37,7 +37,7 @@ class Tuner:
         )
 
     def lr_find(
-            trainer,
+            self,
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
             val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
@@ -48,7 +48,7 @@ class Tuner:
             early_stop_threshold: float = 4.0,
     ):
         return lr_find(
-            trainer,
+            self.trainer,
             model,
             train_dataloader,
             val_dataloaders,
