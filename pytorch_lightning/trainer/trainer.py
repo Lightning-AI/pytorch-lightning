@@ -38,7 +38,6 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
@@ -219,6 +218,9 @@ class Trainer(
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
 
+        # -------------------------------
+        # CALLBACK INITS
+        # -------------------------------
         # init callbacks
         self.callbacks = callbacks or []
 
@@ -259,59 +261,18 @@ class Trainer(
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
-        # ------------------------------
-        # ------------------------------
-        self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        self.on_tpu = self.tpu_cores is not None
+        # init accelerator related flags
+        self.accelerator_connector.on_trainer_init(
+            num_processes,
+            tpu_cores,
+            distributed_backend,
+            auto_select_gpus,
+            gpus
+        )
 
-        self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
-
-        if num_processes != 1 and distributed_backend != "ddp_cpu":
-            rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
-        self.num_processes = num_processes
-
-        # override with environment flag
-        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
-
-        # for gpus allow int, string and gpu list
-        if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = self.tuner.pick_multiple_gpus(gpus)
-        else:
-            self.gpus = gpus
-
-        self.data_parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
-        self.root_gpu = device_parser.determine_root_gpu_device(self.data_parallel_device_ids)
-        self.root_device = torch.device("cpu")
-
-        self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False
-
-        # tpu state flags
-        self.use_tpu = False
-        self.tpu_local_core_rank = None
-        self.tpu_global_core_rank = None
-
-        # distributed backend choice
-        self.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend)
-
-        # override dist backend when using tpus
-        if self.on_tpu:
-            self.distributed_backend = 'tpu'
-            self.init_tpu()
-
-        # init flags for SLURM+DDP to work
-        self.world_size = 1
-        self.interactive_ddp_procs = []
-        self.configure_slurm_ddp(self.num_nodes)
-        self.node_rank = self.determine_ddp_node_rank()
-        self.local_rank = self.determine_local_rank()
-        self.global_rank = 0
-
-        # NVIDIA setup
-        self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
-        # ------------------------------
-        # ------------------------------
-
+        # -------------------
+        # CONTINUE
+        # -------------------
         self.weights_summary = weights_summary
 
         self.max_epochs = max_epochs
