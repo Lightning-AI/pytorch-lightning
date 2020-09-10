@@ -293,9 +293,7 @@ def at_least_1d(tensor: Union[np.ndarray, torch.Tensor]) -> Union[np.ndarray, to
         the optionally reshaped tensor
     """
     if tensor.shape == ():
-        tensor = tensor.reshape(
-            1,
-        )
+        tensor = tensor.reshape(1, )
     return tensor
 
 
