@@ -166,8 +166,8 @@ def lr_find(
 
     # Fit, lr & loss logged in callback
     trainer.fit(model,
-             train_dataloader=train_dataloader,
-             val_dataloaders=val_dataloaders)
+                train_dataloader=train_dataloader,
+                val_dataloaders=val_dataloaders)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
