@@ -177,6 +177,7 @@ class Trainer(
         self.precision_connector = PrecisionConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
+
         self.tuner = Tuner(self)
         self.accelerator_backend = None
 
