@@ -76,12 +76,3 @@ class TrainerTrainingTricksMixin(ABC):
                     f'Detected nan and/or inf values in `{name}`.'
                     ' Check your forward pass for numerically unstable operations.'
                 )
-
-    def configure_accumulated_gradients(self, accumulate_grad_batches):
-        if isinstance(accumulate_grad_batches, dict):
-            self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
-        elif isinstance(accumulate_grad_batches, int):
-            schedule = {0: accumulate_grad_batches}
-            self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
-        else:
-            raise TypeError("Gradient accumulation supports only int and dict types")

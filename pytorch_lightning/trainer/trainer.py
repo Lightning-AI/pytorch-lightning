@@ -46,6 +46,7 @@ from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
+from pytorch_lightning.trainer.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.model_connector import ModelConnector
 from pytorch_lightning.trainer.debugging_connector import DebuggingConnector
@@ -177,6 +178,7 @@ class Trainer(
         self.precision_connector = PrecisionConnector(self)
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
+        self.training_tricks_connector = TrainingTricksConnector(self)
 
         self.tuner = Tuner(self)
         self.accelerator_backend = None
@@ -203,6 +205,7 @@ class Trainer(
         self.tested_ckpt_path = None
 
         # training state
+        self.weights_summary = weights_summary
         self.model = None
         self.datamodule = None
         self.testing = False
@@ -217,26 +220,30 @@ class Trainer(
         self.running_sanity_check = False
         self._state = TrainerState.INITIALIZING
 
-        self._default_root_dir = default_root_dir or os.getcwd()
-        self._weights_save_path = weights_save_path or self._default_root_dir
-
         # init callbacks
         self.callback_connector.on_trainer_init(
             callbacks,
             early_stop_callback,
             checkpoint_callback,
             progress_bar_refresh_rate,
-            process_position
+            process_position,
+            default_root_dir,
+            weights_save_path,
         )
 
+        # init data flags
+        self.data_connector.on_trainer_init(check_val_every_n_epoch, reload_dataloaders_every_epoch)
+
+        # hook
         self.on_init_start()
 
-        self.gradient_clip_val = gradient_clip_val
-        self.check_val_every_n_epoch = check_val_every_n_epoch
-
-        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
-            raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
-        self.track_grad_norm = float(track_grad_norm)
+        # init training tricks
+        self.training_tricks_connector.on_trainer_init(
+            gradient_clip_val,
+            track_grad_norm,
+            accumulate_grad_batches,
+            truncated_bptt_steps
+        )
 
         # init accelerator related flags
         self.accelerator_connector.on_trainer_init(
@@ -248,25 +255,16 @@ class Trainer(
             num_nodes,
             log_gpu_memory,
             sync_batchnorm,
-            benchmark
+            benchmark,
+            replace_sampler_ddp
         )
-
-        # -------------------
-        # CONTINUE
-        # -------------------
-        self.weights_summary = weights_summary
 
         # init train loop related flags
         self.train_loop.on_init_start(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
 
-        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
-
         self.auto_lr_find = auto_lr_find
         self.auto_scale_batch_size = auto_scale_batch_size
-        self._is_data_prepared = False
-        self.replace_sampler_ddp = replace_sampler_ddp
 
-        self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
         self.terminate_on_nan = terminate_on_nan
         self.shown_warnings = set()
@@ -276,14 +274,8 @@ class Trainer(
             profiler = SimpleProfiler()
         self.profiler = profiler or PassThroughProfiler()
 
-        # accumulated grads
-        self.accumulate_grad_batches = accumulate_grad_batches
-        self.configure_accumulated_gradients(accumulate_grad_batches)
-
-        # logging
-        self.configure_logger(logger)
-        self.log_save_interval = log_save_interval
-        self.row_log_interval = row_log_interval
+        # init logger flags
+        self.logger_connector.on_trainer_init(logger, log_save_interval, row_log_interval)
 
         # init debugging flags
         self.debugging_connector.on_init_start(

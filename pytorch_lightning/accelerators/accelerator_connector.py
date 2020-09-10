@@ -20,7 +20,8 @@ class AcceleratorConnector:
             num_nodes,
             log_gpu_memory,
             sync_batchnorm,
-            benchmark
+            benchmark,
+            replace_sampler_ddp
     ):
         # benchmarking
         self.trainer.benchmark = benchmark
@@ -83,6 +84,8 @@ class AcceleratorConnector:
         self.trainer.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
 
         self.trainer.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+
+        self.trainer.replace_sampler_ddp = replace_sampler_ddp
 
     def select_accelerator(self):
         # SLURM ddp
