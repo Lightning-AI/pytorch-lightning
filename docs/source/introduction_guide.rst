@@ -297,7 +297,7 @@ When your models need to know about the data, it's best to process the data befo
 
 An alternative to using a DataModule is to defer initialization of the models modules to the `setup` method of your LightningModule as follows:
 
-.. code-block:: python
+.. testcode::
 
     class LitMNIST(LightningModule):
 
