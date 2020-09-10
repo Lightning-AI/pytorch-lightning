@@ -82,6 +82,8 @@ class AcceleratorConnector:
         # NVIDIA setup
         self.trainer.set_nvidia_flags(self.trainer.is_slurm_managing_tasks, self.trainer.data_parallel_device_ids)
 
+        self.trainer.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+
     def select_accelerator(self):
         # SLURM ddp
         use_slurm_ddp = self.trainer.use_ddp and self.trainer.is_slurm_managing_tasks
