@@ -376,7 +376,7 @@ class _LRCallback(Callback):
         if self.progress_bar:
             self.progress_bar.update()
 
-        current_loss = trainer.running_loss.last().item()
+        current_loss = trainer.train_loop.running_loss.last().item()
         current_step = trainer.global_step + 1  # remove the +1 in 1.0
 
         # Avg loss (loss with momentum) + smoothing
@@ -445,7 +445,7 @@ class _LRCallback(Callback):
         if self.progress_bar:
             self.progress_bar.update()
 
-        current_loss = trainer.running_loss.last().item()
+        current_loss = trainer.train_loop.running_loss.last().item()
         current_step = trainer.global_step + 1  # remove the +1 in 1.0
 
         # Avg loss (loss with momentum) + smoothing

@@ -36,6 +36,7 @@ class TrainLoop:
         self.checkpoint_accumulator = None
         self.accumulated_loss = None
         self._teardown_already_run = False
+        self.running_loss = TensorRunningAccum(window_length=20)
 
     @property
     def num_optimizers(self):
@@ -503,7 +504,7 @@ class TrainLoop:
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                     # calculate running loss for display
-                    self.trainer.running_loss.append(
+                    self.running_loss.append(
                         self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches
                     )
 

@@ -186,7 +186,6 @@ class Trainer(
 
         # training bookeeping
         self.total_batch_idx = 0
-        self.running_loss = TensorRunningAccum(window_length=20)
         self.batch_idx = 0
         self.num_training_batches = 0
         self.num_val_batches = []
@@ -260,6 +259,8 @@ class Trainer(
             raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
         self.track_grad_norm = float(track_grad_norm)
 
+        # ------------------------------
+        # ------------------------------
         self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         self.on_tpu = self.tpu_cores is not None
 
@@ -268,6 +269,48 @@ class Trainer(
         if num_processes != 1 and distributed_backend != "ddp_cpu":
             rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
         self.num_processes = num_processes
+
+        # override with environment flag
+        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+
+        # for gpus allow int, string and gpu list
+        if auto_select_gpus and isinstance(gpus, int):
+            self.gpus = self.tuner.pick_multiple_gpus(gpus)
+        else:
+            self.gpus = gpus
+
+        self.data_parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
+        self.root_gpu = device_parser.determine_root_gpu_device(self.data_parallel_device_ids)
+        self.root_device = torch.device("cpu")
+
+        self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False
+
+        # tpu state flags
+        self.use_tpu = False
+        self.tpu_local_core_rank = None
+        self.tpu_global_core_rank = None
+
+        # distributed backend choice
+        self.distributed_backend = distributed_backend
+        self.set_distributed_mode(distributed_backend)
+
+        # override dist backend when using tpus
+        if self.on_tpu:
+            self.distributed_backend = 'tpu'
+            self.init_tpu()
+
+        # init flags for SLURM+DDP to work
+        self.world_size = 1
+        self.interactive_ddp_procs = []
+        self.configure_slurm_ddp(self.num_nodes)
+        self.node_rank = self.determine_ddp_node_rank()
+        self.local_rank = self.determine_local_rank()
+        self.global_rank = 0
+
+        # NVIDIA setup
+        self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
+        # ------------------------------
+        # ------------------------------
 
         self.weights_summary = weights_summary
 
@@ -312,46 +355,6 @@ class Trainer(
         # accumulated grads
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
-
-        # override with environment flag
-        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
-
-        # for gpus allow int, string and gpu list
-        if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = self.tuner.pick_multiple_gpus(gpus)
-        else:
-            self.gpus = gpus
-
-        self.data_parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
-        self.root_gpu = device_parser.determine_root_gpu_device(self.data_parallel_device_ids)
-        self.root_device = torch.device("cpu")
-
-        self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False
-
-        # tpu state flags
-        self.use_tpu = False
-        self.tpu_local_core_rank = None
-        self.tpu_global_core_rank = None
-
-        # distributed backend choice
-        self.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend)
-
-        # override dist backend when using tpus
-        if self.on_tpu:
-            self.distributed_backend = 'tpu'
-            self.init_tpu()
-
-        # init flags for SLURM+DDP to work
-        self.world_size = 1
-        self.interactive_ddp_procs = []
-        self.configure_slurm_ddp(self.num_nodes)
-        self.node_rank = self.determine_ddp_node_rank()
-        self.local_rank = self.determine_local_rank()
-        self.global_rank = 0
-
-        # NVIDIA setup
-        self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
 
         self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
