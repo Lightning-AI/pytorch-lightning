@@ -157,6 +157,7 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 import pytorch_lightning as pl
+from pytorch_lightning import Trainer
 ```
 
 ```python
@@ -194,13 +195,15 @@ dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
 train, val = random_split(dataset, [55000, 5000])
 
 model = LitClassifier()
-trainer = pl.Trainer()
+trainer = Trainer()
 trainer.fit(model, DataLoader(train), DataLoader(val))
 ```
 
 #### And without changing a single line of code, you could run on GPUs
 ```python
 # 8 GPUs
+
+
 trainer = Trainer(max_epochs=1, gpus=8)
 
 # 256 GPUs
