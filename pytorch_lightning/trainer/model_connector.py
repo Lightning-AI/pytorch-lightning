@@ -50,3 +50,8 @@ class ModelConnector:
             m.precision = self.trainer.precision
             m.global_rank = self.trainer.global_rank
             m.local_rank = self.trainer.local_rank
+
+    def get_model(self):
+        is_dp_module = isinstance(self.trainer.model, (LightningDistributedDataParallel, LightningDataParallel))
+        model = self.trainer.model.module if is_dp_module else self.trainer.model
+        return model
