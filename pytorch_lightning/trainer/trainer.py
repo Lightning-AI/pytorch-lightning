@@ -273,9 +273,6 @@ class Trainer(
         self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
-        self.call_hook('on_fit_start', model)
-
-        # hook
         self.data_connector.prepare_data(model)
 
         # Run auto batch size scaling
