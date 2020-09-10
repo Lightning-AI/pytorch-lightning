@@ -44,13 +44,18 @@ Training NeMo models with PyTorch Lightning and Hydra is simple from the command
 
 .. code-block:: bash
 
-    python examples/asr/speech_to_text.py --config-name=quartznet_15x5 \
-    model.train_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-train-all.json \
-    model.validation_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-dev-other.json \
-    trainer.gpus=4 trainer.max_epochs=128 model.train_ds.batch_size=64 \
-    +trainer.precision=16 \
-    +model.validation_ds.num_workers=16 \
-    +model.train_ds.num_workers=16
+    python NeMo/examples/asr/speech_to_text.py --config-name=quartznet_15x5 \
+        trainer.gpus=4 \
+        trainer.max_epochs=128 \
+        +trainer.precision=16 \
+        +trainer.amp_level=O1 \
+        model.train_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-train-all.json \
+        model.validation_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-dev-other.json \
+        model.train_ds.batch_size=64 \
+        +model.validation_ds.num_workers=16 \
+        +model.train_ds.num_workers=16
+
+.. note:: Training NeMo ASR models can take days/weeks so it is highly recommended to use multiple GPUs and multiple nodes with the PyTorch Lightning Trainer.
 
 Optionally launch Tensorboard to view training results
 
@@ -69,3 +74,14 @@ Transcribe audio with QuartzNet pretrained on 7000+ hours of audio.
 
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
+
+Example: Voice Activity Detection (VAD)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Train a MatchboxNet model with a modified decoder head for recognizing speakers.
+
+.. code-block:: python
+
+    trainer = Trainer(**cfg.trainer)
+    speaker_model = EncDecSpeakerLabelModel(cfg=cfg.model, trainer=trainer)
+    trainer.fit(speaker_model)
