@@ -178,12 +178,6 @@ class Trainer(
         self.model = None
         self.shown_warnings = set()
 
-        # hook
-        self.on_init_start()
-
-        # init optimizer + lr scheduler related flags
-        self.optimizer_connector.on_trainer_init()
-
         # init callbacks
         self.callback_connector.on_trainer_init(
             callbacks,
@@ -195,6 +189,12 @@ class Trainer(
             weights_save_path,
             resume_from_checkpoint
         )
+
+        # hook
+        self.on_init_start()
+
+        # init optimizer + lr scheduler related flags
+        self.optimizer_connector.on_trainer_init()
 
         # init data flags
         self.data_connector.on_trainer_init(

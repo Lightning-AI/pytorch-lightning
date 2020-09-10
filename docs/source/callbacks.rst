@@ -48,6 +48,7 @@ Example:
 
 .. testoutput::
 
+    Starting to init trainer!
     trainer is init now
 
 We successfully extended functionality without polluting our super clean
