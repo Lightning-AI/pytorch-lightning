@@ -257,27 +257,3 @@ class NumpyMetric(Metric):
         )
 
         return super(NumpyMetric, self).output_convert(self, data, output)
-    
-    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
-        """
-        Implement aggregation of values on the same device
-
-        Args:
-            tensors: the values to be aggregated
-
-        Returns:
-            aggregated values
-
-        """
-
-        try:
-            return super().aggregate(*tensors)
-        except (ValueError, TypeError):
-            if isinstance(tensors[0], Mapping):
-                return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
-            elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
-                return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
-            elif isinstance(tensors[0], torch.Tensor):
-                return torch.stack(tensors).mean(0)
-            else:
-                raise TypeError
