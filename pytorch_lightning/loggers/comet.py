@@ -231,7 +231,7 @@ class CometLogger(LightningLoggerBase):
 
         metrics_without_epoch = metrics.copy()
         epoch = metrics_without_epoch.pop('epoch', None)
-        
+
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     def reset_experiment(self):
