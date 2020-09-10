@@ -38,6 +38,17 @@ class TrainLoop:
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
 
+    def on_init_start(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps):
+        self.trainer.max_epochs = max_epochs
+        self.trainer.min_epochs = min_epochs
+        self.trainer.max_steps = max_steps
+        self.trainer.min_steps = min_steps
+
+        if num_sanity_val_steps == -1:
+            self.trainer.num_sanity_val_steps = float('inf')
+        else:
+            self.trainer.num_sanity_val_steps = num_sanity_val_steps
+
     @property
     def num_optimizers(self):
         num_optimizers = len(self.get_optimizers_iterable())

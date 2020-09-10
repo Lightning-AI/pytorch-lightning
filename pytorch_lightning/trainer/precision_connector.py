@@ -11,15 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, rank_zero_warn, AMPType
 
 
-class Initializer:
+class PrecisionConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
+
+    def on_trainer_init(self, precision, amp_level, amp_backend):
+        # AMP init
+        # These are the only lines needed after v0.8.0
+        # we wrap the user's forward with autocast and give it back at the end of fit
+        self.trainer.autocast_original_forward = None
+        self.trainer.precision = precision
+        self.trainer.scaler = None
+
+        self.trainer.amp_level = amp_level
+        self.init_amp(amp_backend)
 
     def init_amp(self, amp_type: str):
         assert self.trainer.precision in (16, 32), 'only 32 or 16 bit precision supported'
