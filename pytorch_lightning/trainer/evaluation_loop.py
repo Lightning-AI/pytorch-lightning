@@ -26,6 +26,21 @@ class EvaluationLoop(object):
         self.predictions = None
         self.max_batches = None
 
+    def on_trainer_init(self):
+        self.trainer.num_val_batches = []
+        self.trainer.num_sanity_val_batches = []
+        self.trainer.num_test_batches = []
+        self.trainer.test_dataloaders = None
+        self.trainer.val_dataloaders = None
+        self.trainer.running_sanity_check = False
+        self.trainer.testing = False
+
+        # when .test() is called, it sets this
+        self.trainer.tested_ckpt_path = None
+
+        # when true, prints test results
+        self.trainer.verbose_test = True
+
     def get_evaluation_dataloaders(self, max_batches):
         # select dataloaders
         model = self.trainer.get_model()

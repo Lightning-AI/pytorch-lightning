@@ -25,6 +25,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.parsing import AttributeDict
 from copy import copy, deepcopy
+from pytorch_lightning.trainer.states import TrainerState
 
 
 class TrainLoop:
@@ -38,7 +39,18 @@ class TrainLoop:
         self._teardown_already_run = False
         self.running_loss = TensorRunningAccum(window_length=20)
 
-    def on_init_start(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps):
+    def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps):
+        self.trainer.global_step = 0
+        self.trainer.current_epoch = 0
+        self.trainer.interrupted = False
+        self.trainer.should_stop = False
+        self.trainer._state = TrainerState.INITIALIZING
+
+        self.trainer.total_batch_idx = 0
+        self.trainer.batch_idx = 0
+        self.trainer.num_training_batches = 0
+        self.trainer.train_dataloader = None
+
         self.trainer.max_epochs = max_epochs
         self.trainer.min_epochs = min_epochs
         self.trainer.max_steps = max_steps
@@ -560,7 +572,7 @@ class TrainLoop:
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
-            self.trainer.lr_scheduler_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
+            self.trainer.optimizer_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self):
         self.trainer.call_hook('on_epoch_end')

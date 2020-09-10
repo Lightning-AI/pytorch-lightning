@@ -24,6 +24,10 @@ class Tuner:
     def __init__(self, trainer):
         self.trainer = trainer
 
+    def on_trainer_init(self, auto_lr_find, auto_scale_batch_size):
+        self.trainer.auto_lr_find = auto_lr_find
+        self.trainer.auto_scale_batch_size = auto_scale_batch_size
+
     def scale_batch_size(self,
                          model,
                          mode: str = 'power',

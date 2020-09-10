@@ -15,10 +15,15 @@
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
-class LRSchedulerConnector:
+class OptimizerConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
+
+    def on_trainer_init(self):
+        self.trainer.lr_schedulers = []
+        self.trainer.optimizers = None
+        self.trainer.optimizer_frequencies = []
 
     def update_learning_rates(self, interval: str, monitor_metrics=None):
         """Update learning rates.

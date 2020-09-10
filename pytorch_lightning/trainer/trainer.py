@@ -45,7 +45,7 @@ from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
+from pytorch_lightning.trainer.optimizer_connector import OptimizerConnector
 from pytorch_lightning.trainer.training_trick_connector import TrainingTricksConnector
 from pytorch_lightning.trainer.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.model_connector import ModelConnector
@@ -53,6 +53,7 @@ from pytorch_lightning.trainer.debugging_connector import DebuggingConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.trainer.precision_connector import PrecisionConnector
+from pytorch_lightning.trainer.profiler_connector import ProfilerConnector
 from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer import docstrings
@@ -154,24 +155,11 @@ class Trainer(
     ):
         super().__init__()
 
-        self.deterministic = deterministic
-        torch.backends.cudnn.deterministic = self.deterministic
-        if self.deterministic:
-            # fixing non-deterministic part of horovod
-            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
-            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
-        # init the default rank if exists
-        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
-        # this way we only show it on rank 0
-        if 'LOCAL_RANK' in os.environ:
-            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
-
-        # tracks internal state for debugging
+        # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
-        self.lr_scheduler_connector = LRSchedulerConnector(self)
+        self.optimizer_connector = OptimizerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
@@ -179,46 +167,22 @@ class Trainer(
         self.callback_connector = CallbackConnector(self)
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
-
+        self.profile_connector = ProfilerConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
-
-        # loops
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self)
-
-        # training bookeeping
-        self.total_batch_idx = 0
-        self.batch_idx = 0
-        self.num_training_batches = 0
-        self.num_val_batches = []
-        self.num_sanity_val_batches = []
-        self.num_test_batches = []
-        self.train_dataloader = None
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-
-        # when true, prints test results
-        self.verbose_test = True
-
-        # when .test() is called, it sets this
-        self.tested_ckpt_path = None
 
         # training state
         self.weights_summary = weights_summary
         self.model = None
-        self.datamodule = None
-        self.testing = False
-        self.prepare_data_per_node = prepare_data_per_node
-        self.lr_schedulers = []
-        self.optimizers = None
-        self.optimizer_frequencies = []
-        self.global_step = 0
-        self.current_epoch = 0
-        self.interrupted = False
-        self.should_stop = False
-        self.running_sanity_check = False
-        self._state = TrainerState.INITIALIZING
+        self.shown_warnings = set()
+
+        # hook
+        self.on_init_start()
+
+        # init optimizer + lr scheduler related flags
+        self.optimizer_connector.on_trainer_init()
 
         # init callbacks
         self.callback_connector.on_trainer_init(
@@ -229,20 +193,23 @@ class Trainer(
             process_position,
             default_root_dir,
             weights_save_path,
+            resume_from_checkpoint
         )
 
         # init data flags
-        self.data_connector.on_trainer_init(check_val_every_n_epoch, reload_dataloaders_every_epoch)
-
-        # hook
-        self.on_init_start()
+        self.data_connector.on_trainer_init(
+            check_val_every_n_epoch,
+            reload_dataloaders_every_epoch,
+            prepare_data_per_node
+        )
 
         # init training tricks
         self.training_tricks_connector.on_trainer_init(
             gradient_clip_val,
             track_grad_norm,
             accumulate_grad_batches,
-            truncated_bptt_steps
+            truncated_bptt_steps,
+            terminate_on_nan
         )
 
         # init accelerator related flags
@@ -256,23 +223,19 @@ class Trainer(
             log_gpu_memory,
             sync_batchnorm,
             benchmark,
-            replace_sampler_ddp
+            replace_sampler_ddp,
+            deterministic
         )
 
         # init train loop related flags
-        self.train_loop.on_init_start(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+        self.train_loop.on_trainer_init(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+        self.evaluation_loop.on_trainer_init()
 
-        self.auto_lr_find = auto_lr_find
-        self.auto_scale_batch_size = auto_scale_batch_size
-
-        self.resume_from_checkpoint = resume_from_checkpoint
-        self.terminate_on_nan = terminate_on_nan
-        self.shown_warnings = set()
+        # configure tuner
+        self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
-        if profiler is True:
-            profiler = SimpleProfiler()
-        self.profiler = profiler or PassThroughProfiler()
+        self.profile_connector.on_trainer_init(profiler)
 
         # init logger flags
         self.logger_connector.on_trainer_init(logger, log_save_interval, row_log_interval)
@@ -502,7 +465,7 @@ class Trainer(
                     return
 
                 # update LR schedulers
-                self.lr_scheduler_connector.update_learning_rates(interval='epoch')
+                self.optimizer_connector.update_learning_rates(interval='epoch')
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
