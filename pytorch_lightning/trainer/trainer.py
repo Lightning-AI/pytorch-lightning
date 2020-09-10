@@ -27,13 +27,11 @@ from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -49,6 +47,7 @@ from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.trainer.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
+from pytorch_lightning.trainer.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.model_connector import ModelConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
@@ -94,7 +93,6 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerCallbackConfigMixin,
     TrainerDeprecatedAPITillVer0_10,
 ):
     def __init__(
@@ -176,6 +174,7 @@ class Trainer(
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
         self.initializer = Initializer(self)
+        self.callback_connector = CallbackConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
 
@@ -218,41 +217,16 @@ class Trainer(
         self._default_root_dir = default_root_dir or os.getcwd()
         self._weights_save_path = weights_save_path or self._default_root_dir
 
-        # -------------------------------
-        # CALLBACK INITS
-        # -------------------------------
         # init callbacks
-        self.callbacks = callbacks or []
-
-        # configure early stop callback
-        # creates a default one if none passed in
-        early_stop_callback = self.configure_early_stopping(early_stop_callback)
-        if early_stop_callback:
-            self.callbacks.append(early_stop_callback)
-
-        # configure checkpoint callback
-        # it is important that this is the last callback to run
-        # pass through the required args to figure out defaults
-        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
-        if checkpoint_callback:
-            self.callbacks.append(checkpoint_callback)
-
-        # TODO refactor codebase (tests) to not directly reach into these callbacks
-        self.checkpoint_callback = checkpoint_callback
-        self.early_stop_callback = early_stop_callback
+        self.callback_connector.on_trainer_init(
+            callbacks,
+            early_stop_callback,
+            checkpoint_callback,
+            progress_bar_refresh_rate,
+            process_position
+        )
 
         self.on_init_start()
-
-        # benchmarking
-        self.benchmark = benchmark
-        torch.backends.cudnn.benchmark = self.benchmark
-
-        # Transfer params
-        self.num_nodes = num_nodes
-        self.log_gpu_memory = log_gpu_memory
-
-        # sync-bn backend
-        self.sync_batchnorm = sync_batchnorm
 
         self.gradient_clip_val = gradient_clip_val
         self.check_val_every_n_epoch = check_val_every_n_epoch
@@ -267,7 +241,11 @@ class Trainer(
             tpu_cores,
             distributed_backend,
             auto_select_gpus,
-            gpus
+            gpus,
+            num_nodes,
+            log_gpu_memory,
+            sync_batchnorm,
+            benchmark
         )
 
         # -------------------
@@ -316,8 +294,6 @@ class Trainer(
         # accumulated grads
         self.accumulate_grad_batches = accumulate_grad_batches
         self.configure_accumulated_gradients(accumulate_grad_batches)
-
-        self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
 
         # logging
         self.configure_logger(logger)

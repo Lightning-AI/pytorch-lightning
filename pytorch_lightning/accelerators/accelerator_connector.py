@@ -10,7 +10,29 @@ class AcceleratorConnector:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def on_trainer_init(self, num_processes, tpu_cores, distributed_backend, auto_select_gpus, gpus):
+    def on_trainer_init(
+            self,
+            num_processes,
+            tpu_cores,
+            distributed_backend,
+            auto_select_gpus,
+            gpus,
+            num_nodes,
+            log_gpu_memory,
+            sync_batchnorm,
+            benchmark
+    ):
+        # benchmarking
+        self.trainer.benchmark = benchmark
+        torch.backends.cudnn.benchmark = self.trainer.benchmark
+
+        # Transfer params
+        self.trainer.num_nodes = num_nodes
+        self.trainer.log_gpu_memory = log_gpu_memory
+
+        # sync-bn backend
+        self.trainer.sync_batchnorm = sync_batchnorm
+
         self.trainer.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         self.trainer.on_tpu = self.trainer.tpu_cores is not None
 
