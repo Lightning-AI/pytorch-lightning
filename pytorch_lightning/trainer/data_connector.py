@@ -27,6 +27,7 @@ class DataConnector(object):
     def on_trainer_init(self, check_val_every_n_epoch, reload_dataloaders_every_epoch):
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
         self.trainer.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
+        self.trainer._is_data_prepared = False
 
     def get_profiled_train_dataloader(self, train_dataloader):
         profiled_dl = self.trainer.profiler.profile_iterable(

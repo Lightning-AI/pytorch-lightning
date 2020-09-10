@@ -220,16 +220,15 @@ class Trainer(
         self.running_sanity_check = False
         self._state = TrainerState.INITIALIZING
 
-        self._default_root_dir = default_root_dir or os.getcwd()
-        self._weights_save_path = weights_save_path or self._default_root_dir
-
         # init callbacks
         self.callback_connector.on_trainer_init(
             callbacks,
             early_stop_callback,
             checkpoint_callback,
             progress_bar_refresh_rate,
-            process_position
+            process_position,
+            default_root_dir,
+            weights_save_path,
         )
 
         # init data flags
@@ -239,7 +238,12 @@ class Trainer(
         self.on_init_start()
 
         # init training tricks
-        self.training_tricks_connector.on_trainer_init(gradient_clip_val, track_grad_norm, accumulate_grad_batches)
+        self.training_tricks_connector.on_trainer_init(
+            gradient_clip_val,
+            track_grad_norm,
+            accumulate_grad_batches,
+            truncated_bptt_steps
+        )
 
         # init accelerator related flags
         self.accelerator_connector.on_trainer_init(
@@ -260,9 +264,7 @@ class Trainer(
 
         self.auto_lr_find = auto_lr_find
         self.auto_scale_batch_size = auto_scale_batch_size
-        self._is_data_prepared = False
 
-        self.truncated_bptt_steps = truncated_bptt_steps
         self.resume_from_checkpoint = resume_from_checkpoint
         self.terminate_on_nan = terminate_on_nan
         self.shown_warnings = set()
