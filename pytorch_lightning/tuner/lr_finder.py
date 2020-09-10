@@ -131,8 +131,8 @@ def lr_find(
 
     # Use special lr logger callback
     trainer.callbacks = [_LRCallback(num_training,
-                                  early_stop_threshold,
-                                  progress_bar_refresh_rate=1)]
+                                     early_stop_threshold,
+                                     progress_bar_refresh_rate=1)]
 
     # No logging
     trainer.logger = DummyLogger()
