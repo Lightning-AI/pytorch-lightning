@@ -295,9 +295,9 @@ When your models need to know about the data, it's best to process the data befo
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
 
-|An alternative to using a DataModule is to defer initialization of the models modules to the `setup` method of your LightningModule as follows:
+An alternative to using a DataModule is to defer initialization of the models modules to the `setup` method of your LightningModule as follows:
 
-.. testcode::
+.. code-block:: python
 
     class LitMNIST(LightningModule):
 
