@@ -289,13 +289,13 @@ When your models need to know about the data, it's best to process the data befo
     dm.setup()
 
     model = LitModel(out_features=dm.num_classes, img_width=dm.img_width, img_height=dm.img_height)
-    trainer.fit(model)
+    trainer.fit(model, dm)
 
 
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
 
-|
+|An alternative to using a DataModule is to defer initialization of the models modules to the `setup` method of your LightningModule as follows:
 
 .. testcode::
 
