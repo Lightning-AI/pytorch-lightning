@@ -86,8 +86,8 @@ COPY ./requirements/examples.txt requirements-examples.txt
 # install dependencies
 RUN \
     # Install all requirements
-    pip install -r requirements-tests.txt && \
-    pip install -r requirements-examples.txt && \
+    pip install -r requirements-tests.txt --upgrade-strategy only-if-needed --user && \
+    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed --user && \
     rm requirements* && \
     # Cleaning
     apt-get autoremove -y && \
