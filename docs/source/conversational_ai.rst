@@ -22,7 +22,8 @@ research and applications. This includes
 - data preprocessing/postprocessing
 - data augmentors
 - optimizers and schedulers
-- tokenizers, language models
+- tokenizers
+- language models
 
 NeMo uses Hydra for configuring both NeMo models and the PyTorch Lightning Trainer.
 Depending on the domain and application, many different AI libraries will have to be configured
@@ -55,8 +56,7 @@ To install a specific branch from GitHub:
 Example: Speech to Text (ASR)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Everything needed to train Convolutional ASR models with NeMo, PyTorch Lightning, and Hydra is 
-included with NeMo.
+Everything needed to train Convolutional ASR models is included with NeMo.
 
 Configurations are in .yaml files included with NeMo/examples
 
@@ -85,19 +85,22 @@ Configurations are in .yaml files included with NeMo/examples
             stride: [1]
             dilation: [1]
             dropout: *dropout
-    # an all other configuration, data, optimizer, etc
-
-
+            ...
+    # all other configuration, data, optimizer, etc
+    ...
 
 .. code-block:: python
 
-    trainer = Trainer(**cfg.trainer)
-    asr_model = EncDecCTCModel(cfg.model, trainer)
-    trainer.fit(asr_model)
+    @hydra.main(config_name="config")
+    def main(cfg):
+        trainer = Trainer(**cfg.trainer)
+        asr_model = EncDecCTCModel(cfg.model, trainer)
+        trainer.fit(asr_model)
 
 .. note:: NeMo models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
 
-Training NeMo models with PyTorch Lightning and Hydra is simple from the command line.
+Hydra makes it so that every aspect of the NeMo model, 
+including the PyTorch Lightning Trainer can be modified from the command line.
 
 .. code-block:: bash
 
@@ -131,14 +134,3 @@ Transcribe audio with QuartzNet pretrained on 7000+ hours of audio.
 
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
-
-Example: Voice Activity Detection (VAD)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Train a MatchboxNet model with a modified decoder head for recognizing speakers.
-
-.. code-block:: python
-
-    trainer = Trainer(**cfg.trainer)
-    speaker_model = EncDecSpeakerLabelModel(cfg=cfg.model, trainer=trainer)
-    trainer.fit(speaker_model)
