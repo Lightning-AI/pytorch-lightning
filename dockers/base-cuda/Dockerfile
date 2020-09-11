@@ -1,19 +1,18 @@
 # Existing images:
-# --build-arg TORCH_VERSION=1.6.0 --build-arg CUDA_VERSION=10.1
-# --build-arg TORCH_VERSION=1.5 --build-arg CUDA_VERSION=10.1
-# --build-arg TORCH_VERSION=1.4 --build-arg CUDA_VERSION=10.1
-# --build-arg TORCH_VERSION=1.3 --build-arg CUDA_VERSION=10.1
-# --build-arg TORCH_VERSION=1.2 --build-arg CUDA_VERSION=10.0
-# --build-arg TORCH_VERSION=1.1.0 --build-arg CUDA_VERSION=10.0 --build-arg CUDNN_VERSION=7.5
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.7 --build-arg PYTORCH_CHANNEL=pytorch-nightly --build-arg CUDA_VERSION=10.1
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.6 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.5 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
+# --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.3 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
 
 ARG CUDNN_VERSION=7
 ARG CUDA_VERSION=10.1
 
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
 
-ARG PYTHON_VERSION
-ARG PYTORCH_VERSION
-ARG PYTORCH_CHANNEL
+ARG PYTHON_VERSION=3.7
+ARG PYTORCH_VERSION=1.6
+ARG PYTORCH_CHANNEL=pytorch
 ARG CONDA_VERSION=4.7.12
 
 SHELL ["/bin/bash", "-c"]

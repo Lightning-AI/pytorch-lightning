@@ -24,7 +24,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Setup PyTorch nightly channel
-      if: matrix.pytorch-version == 1.7
+      if: matrix.pytorch-version >= 1.7
       run: |
         python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', 'pytorch-nightly', 1) ; open(fname, 'w').write(req)"
 

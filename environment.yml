@@ -24,7 +24,6 @@ channels:
 
 dependencies:
     #- python=3.7.6
-    - cpuonly
     - pip>=20.0.2
     - numpy>=1.16.4
     - pytorch>=1.3
