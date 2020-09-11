@@ -158,6 +158,12 @@ DiceCoefficient
 .. autoclass:: pytorch_lightning.metrics.classification.DiceCoefficient
     :noindex:
 
+EmbeddingSimilarity
+^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: pytorch_lightning.metrics.self_supervised.EmbeddingSimilarity
+    :noindex:
+    
 F1
 ^^
 
@@ -313,6 +319,12 @@ dice_score (F)
 ^^^^^^^^^^^^^^
 
 .. autofunction:: pytorch_lightning.metrics.functional.dice_score
+    :noindex:
+
+embedding_similarity (F)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autofunction:: pytorch_lightning.metrics.functional.embedding_similarity
     :noindex:
 
 f1_score (F)
@@ -623,4 +635,3 @@ MeanTweedieDeviance (sk)
 
 .. autofunction:: pytorch_lightning.metrics.sklearns.MeanTweedieDeviance
     :noindex:
-

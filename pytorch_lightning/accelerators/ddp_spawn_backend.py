@@ -20,6 +20,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 from pytorch_lightning.accelerators.base_backend import Accelerator
+import torch.distributed as torch_distrib
 
 try:
     from apex import amp
@@ -141,7 +142,7 @@ class DDPSpawnBackend(Accelerator):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # set model properties before going into wrapper
-        self.trainer.copy_trainer_model_properties(model)
+        self.trainer.model_connector.copy_trainer_model_properties(model)
 
         # AMP -
         # run through amp wrapper before going to distributed DP
@@ -162,10 +163,10 @@ class DDPSpawnBackend(Accelerator):
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
-        self.trainer.setup_training(model)
+        self.trainer.train_loop.setup_training(model)
 
         # train or test
-        results = self.trainer.train_or_test()
+        results = self.train_or_test()
 
         # get original model
         model = self.trainer.get_model()
@@ -191,3 +192,6 @@ class DDPSpawnBackend(Accelerator):
     def test_step(self, args):
         output = self.training_step(args)
         return output
+
+    def barrier(self, name: str = None):
+        torch_distrib.barrier()

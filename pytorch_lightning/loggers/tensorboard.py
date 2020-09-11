@@ -30,7 +30,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
-from pytorch_lightning.utilities.cloud_io import gfile, makedirs
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.core.lightning import LightningModule
 
 try:
@@ -87,6 +87,7 @@ class TensorBoardLogger(LightningLoggerBase):
         self._version = version
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
+        self._fs = get_filesystem(save_dir)
 
         self._experiment = None
         self.hparams = {}
@@ -136,8 +137,8 @@ class TensorBoardLogger(LightningLoggerBase):
             return self._experiment
 
         assert rank_zero_only.rank == 0, 'tried to init log dirs in non global_rank=0'
-        if self.root_dir and not gfile.exists(str(self.root_dir)):
-            makedirs(self.root_dir)
+        if self.root_dir:
+            self._fs.makedirs(self.root_dir, exist_ok=True)
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
@@ -207,7 +208,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def save(self) -> None:
         super().save()
         dir_path = self.log_dir
-        if not gfile.isdir(dir_path):
+        if not self._fs.isdir(dir_path):
             dir_path = self.save_dir
 
         # prepare the file path
@@ -233,16 +234,16 @@ class TensorBoardLogger(LightningLoggerBase):
     def _get_next_version(self):
         root_dir = os.path.join(self.save_dir, self.name)
 
-        if not gfile.isdir(root_dir):
+        if not self._fs.isdir(root_dir):
             log.warning('Missing logger folder: %s', root_dir)
             return 0
 
         existing_versions = []
-        for d in gfile.listdir(root_dir):
-            if gfile.isdir(os.path.join(root_dir, d)) and d.startswith("version_"):
-                dir_ver = d.split("_")[1].replace('/', '')
+        for d in self._fs.ls(root_dir):
+            bn = os.path.basename(d)
+            if self._fs.isdir(d) and bn.startswith("version_"):
+                dir_ver = bn.split("_")[1].replace('/', '')
                 existing_versions.append(int(dir_ver))
-
         if len(existing_versions) == 0:
             return 0
 

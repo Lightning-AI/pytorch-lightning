@@ -28,3 +28,21 @@ Once you have the exported model, you can run it on your ONNX runtime in the fol
     input_name = ort_session.get_inputs()[0].name
     ort_inputs = {input_name: np.random.randn(1, 64).astype(np.float32)}
     ort_outs = ort_session.run(None, ort_inputs)
+
+
+Exporting to TorchScript
+------------------------
+
+TorchScript allows you to serialize your models in a way that it can be loaded in non-Python environments.
+The LightningModule has a handy method :meth:`~pytorch_lightning.core.lightning.LightningModule.to_torchscript`
+that returns a scripted module which you can save or directly use.
+
+.. code-block:: python
+
+    model = SimpleModel()
+    script = model.to_torchscript()
+
+    # save for use in production environment
+    torch.jit.save(script, "model.pt")
+
+It is recommended that you install the latest supported version of PyTorch to use this feature without limitations.

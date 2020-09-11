@@ -8,6 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import MNISTDataModule
 
 
 def test_num_training_batches(tmpdir):
@@ -152,7 +153,7 @@ def test_model_reset_correctly(tmpdir):
 
     before_state_dict = deepcopy(model.state_dict())
 
-    trainer.scale_batch_size(model, max_trials=5)
+    trainer.tuner.scale_batch_size(model, max_trials=5)
 
     after_state_dict = model.state_dict()
 
@@ -185,7 +186,7 @@ def test_trainer_reset_correctly(tmpdir):
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
 
-    trainer.scale_batch_size(model, max_trials=5)
+    trainer.tuner.scale_batch_size(model, max_trials=5)
 
     attributes_after = {}
     for ca in changed_attributes:
@@ -228,13 +229,22 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
             del self.batch_size
             return dataloader
 
+    datamodule_model = MNISTDataModule(data_dir=tmpdir, batch_size=111)  # this datamodule should get ignored!
+    datamodule_fit = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
+
     model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
     model = model_class(**hparams)
+    model.datamodule = datamodule_model  # unused when another module gets passed to .tune() / .fit()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
-    trainer.tune(model)
+    trainer.tune(model, datamodule_fit)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
+    assert trainer.datamodule == datamodule_fit
     assert before_batch_size != after_batch_size
+    assert after_batch_size <= len(trainer.train_dataloader.dataset)
+    assert datamodule_fit.batch_size == after_batch_size
+    # should be left unchanged, since it was not passed to .tune()
+    assert datamodule_model.batch_size == 111
 
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
@@ -264,7 +274,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
         max_epochs=1,
     )
 
-    after_batch_size = trainer.scale_batch_size(model, mode=scale_method, max_trials=5)
+    after_batch_size = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
     model.batch_size = after_batch_size
     trainer.fit(model)
 

@@ -280,6 +280,7 @@ def confusion_matrix(
         pred: torch.Tensor,
         target: torch.Tensor,
         normalize: bool = False,
+        num_classes: Optional[int] = None
 ) -> torch.Tensor:
     """
     Computes the confusion matrix C where each entry C_{i,j} is the number of observations
@@ -289,6 +290,7 @@ def confusion_matrix(
         pred: estimated targets
         target: ground truth labels
         normalize: normalizes confusion matrix
+        num_classes: number of classes
 
     Return:
         Tensor, confusion matrix C [num_classes, num_classes ]
@@ -303,7 +305,7 @@ def confusion_matrix(
                 [0., 0., 1., 0.],
                 [0., 0., 0., 1.]])
     """
-    num_classes = get_num_classes(pred, target, None)
+    num_classes = get_num_classes(pred, target, num_classes)
 
     unique_labels = (target.view(-1) * num_classes + pred.view(-1)).to(torch.int)
 

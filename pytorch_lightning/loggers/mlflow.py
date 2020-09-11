@@ -109,15 +109,15 @@ class MLFlowLogger(LightningLoggerBase):
             self.logger.experiment.some_mlflow_function()
 
         """
-        expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
+        if self._experiment_id is None:
+            expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
+            if expt is not None:
+                self._experiment_id = expt.experiment_id
+            else:
+                log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
+                self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
 
-        if expt:
-            self._experiment_id = expt.experiment_id
-        else:
-            log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
-            self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
-
-        if not self._run_id:
+        if self._run_id is None:
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
             self._run_id = run.info.run_id
         return self._mlflow_client
