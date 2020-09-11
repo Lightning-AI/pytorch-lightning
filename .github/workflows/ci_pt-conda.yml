@@ -26,7 +26,7 @@ jobs:
     - name: Setup PyTorch nightly channel
       if: matrix.pytorch-version >= 1.7
       run: |
-        # NOTE: this requires thet the channel is prensted in the yaml berore packages
+        # NOTE: this requires that the channel is presented in the yaml before packages
         python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', 'pytorch-nightly', 1) ; open(fname, 'w').write(req)"
 
     - name: Setup PyTorch version
