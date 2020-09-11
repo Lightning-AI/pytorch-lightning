@@ -345,10 +345,3 @@ class TrainerDataLoadingMixin(ABC):
             hvd.join()
 
         return dataloader
-
-    def determine_data_use_amount(self, overfit_batches: float) -> None:
-        """Use less data for debugging purposes"""
-        if overfit_batches > 0:
-            self.limit_train_batches = overfit_batches
-            self.limit_val_batches = overfit_batches
-            self.limit_test_batches = overfit_batches

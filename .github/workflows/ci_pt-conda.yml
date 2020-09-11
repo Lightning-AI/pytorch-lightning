@@ -1,9 +1,7 @@
 name: PyTorch & Conda
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:
-  # Trigger the workflow on push or pull request,
-  # but only for the master branch
+on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
     branches:
       - master
@@ -65,7 +63,7 @@ jobs:
           conda-version: 4.7.12
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yml
-          activate-environment: pl-env
+          activate-environment: lightning
           use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
     - name: Reinstall Horovod if necessary
@@ -90,8 +88,10 @@ jobs:
       run: |
         conda info
         conda list
+        pip install --requirement requirements/test.txt
+        pip list
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        python -m pytest pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        python -m pytest pytorch_lightning tests -v --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         # coverage report
       shell: bash -l {0}
 

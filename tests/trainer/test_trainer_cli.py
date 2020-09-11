@@ -9,6 +9,7 @@ import torch
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities import argparse_utils
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -59,7 +60,7 @@ def test_add_argparse_args_redefined(cli_args):
 
 def test_get_init_arguments_and_types():
     """Asserts a correctness of the `get_init_arguments_and_types` Trainer classmethod."""
-    args = Trainer.get_init_arguments_and_types()
+    args = argparse_utils.get_init_arguments_and_types(Trainer)
     parameters = inspect.signature(Trainer).parameters
     assert len(parameters) == len(args)
     for arg in args:

@@ -59,10 +59,10 @@ def test_val_step_result_callbacks(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 2
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 22
+    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171 + 22
 
     # did not request any metrics to log (except the metrics saying which epoch we are on)
-    assert len(trainer.progress_bar_metrics) == 0
+    assert len(trainer.logger_connector.progress_bar_metrics) == 0
     assert len(trainer.dev_debugger.logged_metrics) == 5
 
 
@@ -108,10 +108,10 @@ def test_val_step_using_train_callbacks(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 2
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171 + 50
+    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171 + 50
 
     # did not request any metrics to log (except the metrics saying which epoch we are on)
-    assert len(trainer.progress_bar_metrics) == 0
+    assert len(trainer.logger_connector.progress_bar_metrics) == 0
     assert len(trainer.dev_debugger.logged_metrics) == expected_epochs
 
 
@@ -171,7 +171,7 @@ def test_val_step_only_epoch_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
 
 
 def test_val_step_only_step_metrics(tmpdir):
@@ -248,7 +248,7 @@ def test_val_step_only_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
 
 
 def test_val_step_epoch_step_metrics(tmpdir):
@@ -323,7 +323,7 @@ def test_val_step_epoch_step_metrics(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
 
 
 def test_val_step_epoch_end_result(tmpdir):
@@ -378,7 +378,7 @@ def test_val_step_epoch_end_result(tmpdir):
     assert len(trainer.dev_debugger.checkpoint_callback_history) == 1
 
     # make sure the last known metric is correct
-    assert trainer.callback_metrics['val_checkpoint_on'] == 171
+    assert trainer.logger_connector.callback_metrics['val_checkpoint_on'] == 171
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
@@ -442,7 +442,7 @@ def test_full_loop_result_cpu(tmpdir):
     seed_everything(1234)
     os.environ['PL_DEV_DEBUG'] = '1'
 
-    batches = 5
+    batches = 10
     epochs = 2
 
     model = EvalModelTemplate()
@@ -477,3 +477,7 @@ def test_full_loop_result_cpu(tmpdir):
     assert len(results) == 2
     assert 'val_early_stop_on' not in results
     assert 'val_checkpoint_on' not in results
+
+    results2 = trainer.test()[0]
+    for k, v in results.items():
+        assert results2[k] == v
