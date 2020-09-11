@@ -25,7 +25,8 @@ ENV HOROVOD_WITHOUT_MXNET=1
 ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
 ENV PATH="$PATH:/root/.local/bin"
-ENV MAKEFLAGS="-j$(nproc)"
+# TODO: uncomment in horovod next release, https://github.com/horovod/horovod/pull/2239
+# ENV MAKEFLAGS="-j$(nproc)"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
