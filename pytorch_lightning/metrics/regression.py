@@ -305,13 +305,3 @@ class SSIM(Metric):
             A Tensor with SSIM score.
         """
         return ssim(pred, target, self.kernel_size, self.sigma, self.reduction, self.data_range, self.k1, self.k2)
-
-
-__all__ = [
-    "MAE",
-    "MSE",
-    "PSNR",
-    "RMSE",
-    "RMSLE",
-    "SSIM"
-]

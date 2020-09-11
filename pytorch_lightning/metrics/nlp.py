@@ -58,6 +58,3 @@ class BLEUScore(Metric):
             n_gram=self.n_gram,
             smooth=self.smooth,
         ).to(self.device, self.dtype)
-
-
-__all__ = ["BLEUScore"]

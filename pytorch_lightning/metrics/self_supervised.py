@@ -71,6 +71,3 @@ class EmbeddingSimilarity(TensorMetric):
                                     similarity=self.similarity,
                                     zero_diagonal=self.zero_diagonal,
                                     reduction=self.reduction)
-
-
-__all__ = ['EmbeddingSimilarity']

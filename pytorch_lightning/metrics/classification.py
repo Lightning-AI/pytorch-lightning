@@ -823,21 +823,3 @@ class IoU(TensorMetric):
         Actual metric calculation.
         """
         return iou(y_pred, y_true, remove_bg=self.remove_bg, reduction=self.reduction)
-
-
-__all__ = [
-    "AUROC",
-    "Accuracy",
-    "AveragePrecision",
-    "ConfusionMatrix",
-    "DiceCoefficient",
-    "F1",
-    "FBeta",
-    "MulticlassPrecisionRecallCurve",
-    "MulticlassROC",
-    "Precision",
-    "PrecisionRecallCurve",
-    "ROC",
-    "Recall",
-    "IoU",
-]

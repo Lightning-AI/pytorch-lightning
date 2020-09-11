@@ -287,6 +287,3 @@ class NumpyMetric(Metric):
     def ddp_sync(self, data: Any, output: Any):
         return apply_to_collection(output, torch.Tensor, sync_ddp_if_available,
                                    self.reduce_group, self.reduce_op)
-
-
-__all__ = ["Metric", "TensorMetric", "NumpyMetric"]
