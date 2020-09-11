@@ -69,7 +69,7 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
     conda install pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
     conda env update --file environment.yml && \
     # NOTE: this requires that the channel is presented in the yaml before packages
-    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)"
+    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
     rm environment.yml && \
 
 # Disable cache
