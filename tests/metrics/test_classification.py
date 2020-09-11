@@ -38,9 +38,13 @@ def test_accuracy(num_classes):
     assert isinstance(result, torch.Tensor)
 
 
-@pytest.mark.parametrize('normalize', [False, True])
-def test_confusion_matrix(normalize):
-    conf_matrix = ConfusionMatrix(normalize=normalize)
+@pytest.mark.parametrize(['normalize', 'num_classes'], [
+    pytest.param(False, None),
+    pytest.param(True, None),
+    pytest.param(False, 3)
+])
+def test_confusion_matrix(normalize, num_classes):
+    conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
     assert conf_matrix.name == 'confusion_matrix'
 
     target = (torch.arange(120) % 3).view(-1, 1)

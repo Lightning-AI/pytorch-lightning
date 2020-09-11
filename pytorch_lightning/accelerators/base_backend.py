@@ -26,6 +26,16 @@ class Accelerator(object):
     def teardown(self):
         pass
 
+    def barrier(self, name: str = None):
+        pass
+
+    def train_or_test(self):
+        if self.trainer.testing:
+            results = self.trainer.run_test()
+        else:
+            results = self.trainer.train()
+        return results
+
     def batch_to_device(self, batch: Any, device: torch.device):
         model = self.trainer.get_model()
         if model is not None:

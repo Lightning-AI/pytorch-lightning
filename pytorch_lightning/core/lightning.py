@@ -409,7 +409,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple val datasets used)
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -493,7 +493,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -561,7 +561,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
@@ -619,7 +619,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple test datasets used).
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -694,7 +694,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -763,7 +763,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
@@ -1323,7 +1323,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.running_loss.mean()
+        running_train_loss = self.trainer.train_loop.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
         tqdm_dict = {'loss': '{:.3f}'.format(avg_training_loss)}
 

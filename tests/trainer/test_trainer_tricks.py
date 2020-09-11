@@ -238,9 +238,10 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
     trainer.tune(model, datamodule_fit)
-    assert trainer.datamodule == datamodule_fit
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
+    assert trainer.datamodule == datamodule_fit
     assert before_batch_size != after_batch_size
+    assert after_batch_size <= len(trainer.train_dataloader.dataset)
     assert datamodule_fit.batch_size == after_batch_size
     # should be left unchanged, since it was not passed to .tune()
     assert datamodule_model.batch_size == 111

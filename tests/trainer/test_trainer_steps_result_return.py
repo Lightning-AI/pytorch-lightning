@@ -69,7 +69,7 @@ def test_training_step_result_log_step_only(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert out.batch_log_metrics[f'step_log_and_pbar_acc1_b{batch_idx}'] == 11.0
     assert out.batch_log_metrics[f'step_log_acc2_b{batch_idx}'] == 12.0
@@ -145,7 +145,7 @@ def test_training_step_result_log_epoch_only(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 0
 
@@ -279,7 +279,7 @@ def test_training_step_result_log_step_and_epoch(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 2
 
@@ -359,7 +359,7 @@ def test_training_step_epoch_end_result(tmpdir):
     for batch_idx, batch in enumerate(model.train_dataloader()):
         break
 
-    out = trainer.run_training_batch(batch, batch_idx, 0)
+    out = trainer.train_loop.run_training_batch(batch, batch_idx, 0)
     assert out.signal == 0
     assert len(out.batch_log_metrics) == 2
 

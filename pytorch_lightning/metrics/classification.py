@@ -107,12 +107,14 @@ class ConfusionMatrix(TensorMetric):
 
     def __init__(
             self,
+            num_classes: Optional[int] = None,
             normalize: bool = False,
             reduce_group: Any = None,
             reduce_op: Any = None,
     ):
         """
         Args:
+            num_classes: number of classes
             normalize: whether to compute a normalized confusion matrix
             reduce_group: the process group to reduce metric results from DDP
             reduce_op: the operation to perform for ddp reduction
@@ -121,6 +123,7 @@ class ConfusionMatrix(TensorMetric):
                          reduce_group=reduce_group,
                          reduce_op=reduce_op)
         self.normalize = normalize
+        self.num_classes = num_classes
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -134,7 +137,8 @@ class ConfusionMatrix(TensorMetric):
             A Tensor with the confusion matrix.
         """
         return confusion_matrix(pred=pred, target=target,
-                                normalize=self.normalize)
+                                normalize=self.normalize,
+                                num_classes=self.num_classes)
 
 
 class PrecisionRecallCurve(TensorCollectionMetric):

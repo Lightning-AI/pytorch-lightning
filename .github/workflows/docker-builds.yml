@@ -24,9 +24,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
 
       - name: Publish Master to Docker
         # publish master
@@ -69,14 +66,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
 
       - name: Publish Master to Docker
         # publish master
         uses: docker/build-push-action@v1.1.0
-        if: github.event_name == 'push'
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -96,14 +89,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
 
       - name: Publish Master to Docker
         # publish master
         uses: docker/build-push-action@v1.1.0
-        if: github.event_name == 'push'
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}

@@ -1,9 +1,7 @@
 name: CI complete testing
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:
-  # Trigger the workflow on push or pull request,
-  # but only for the master branch
+on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
     branches:
       - master
@@ -32,7 +30,7 @@ jobs:
             os: macOS-10.15
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 25
+    timeout-minutes: 35  # TODO: the macOS is taking too long, probably caching did not work...
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -68,7 +66,7 @@ jobs:
       run: |
         python -c "fname = 'requirements/base.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
         python -c "fname = 'requirements/extra.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
-        python -c "fname = 'requirements/devel.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
+        python -c "fname = 'requirements/test.txt' ; req = open(fname).read().replace('>=', '==') ; open(fname, 'w').write(req)"
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -116,7 +114,7 @@ jobs:
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=0 --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
