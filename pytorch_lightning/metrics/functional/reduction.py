@@ -62,4 +62,4 @@ def class_reduce(num: torch.Tensor,
         return fraction
 
     raise ValueError(f'Reduction parameter {class_reduction} unknown.'
-                     f'Choose between one of these: {valid_reduction}')
+                     f' Choose between one of these: {valid_reduction}')
