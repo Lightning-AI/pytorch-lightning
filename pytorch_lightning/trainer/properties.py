@@ -44,6 +44,22 @@ class TrainerProperties(ABC):
         self.logger_connector.callback_metrics = x
 
     @property
+    def logged_metrics(self):
+        return self.logger_connector.logged_metrics
+
+    @logged_metrics.setter
+    def logged_metrics(self, x):
+        self.logger_connector.logged_metrics = x
+
+    @property
+    def progress_bar_metrics(self):
+        return self.logger_connector.progress_bar_metrics
+
+    @progress_bar_metrics.setter
+    def progress_bar_metrics(self, x):
+        self.logger_connector.progress_bar_metrics = x
+
+    @property
     def state(self) -> TrainerState:
         return self._state
 
