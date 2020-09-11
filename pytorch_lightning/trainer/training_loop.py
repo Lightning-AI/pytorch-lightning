@@ -19,14 +19,13 @@ import torch.distributed as torch_distrib
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.parsing import AttributeDict
 from copy import copy, deepcopy
 from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import parsing, AMPType
+from pytorch_lightning.utilities import parsing, AMPType, rank_zero_info
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 
@@ -164,7 +163,7 @@ class TrainLoop:
         self._teardown_already_run = True
 
         # Save latest checkpoint
-        log.info('Saving latest checkpoint..')
+        rank_zero_info('Saving latest checkpoint...')
         self.check_checkpoint_callback(should_check_val=False)
 
         # hook
