@@ -164,4 +164,4 @@ class Accelerator(object):
         pass
 
     def early_stopping_should_stop(self, pl_module):
-        pass
+        return self.trainer.should_stop
