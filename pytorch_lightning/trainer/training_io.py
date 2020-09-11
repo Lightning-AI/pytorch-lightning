@@ -117,27 +117,13 @@ from pytorch_lightning.utilities import AMPType, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
+from pytorch_lightning.accelerators.base_backend import Accelerator
 
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 try:
     from apex import amp
 except ImportError:
     amp = None
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
 
 try:
     from omegaconf import Container
@@ -171,6 +157,7 @@ class TrainerIOMixin(ABC):
     scaler: ...
     use_tpu: bool
     amp_backend: AMPType
+    accelerator_backend: Accelerator
 
     def get_model(self):
         is_dp_module = isinstance(self.model, (LightningDistributedDataParallel, LightningDataParallel))
@@ -202,19 +189,8 @@ class TrainerIOMixin(ABC):
             if self.resume_from_checkpoint is not None:
                 self.restore(self.resume_from_checkpoint, on_gpu=self.on_gpu)
 
-        # wait for all models to restore weights
-        if self.use_ddp or self.use_ddp2:
-            # wait for all processes to catch up
-            torch_distrib.barrier()
-
-        # wait for all models to restore weights
-        if self.on_tpu and XLA_AVAILABLE:
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.TrainerIOMixin.restore_weights")
-
-        elif self.use_horovod:
-            # wait for all processes to catch up
-            hvd.join()
+        # wait for all to catch up
+        self.accelerator_backend.barrier('TrainerIOMixin.restore_weights')
 
         # clear cache after restore
         if self.on_gpu:

@@ -253,3 +253,10 @@ class TPUBackend(Accelerator):
 
     def barrier(self, name: str = None):
         torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")
+
+    def early_stopping_should_stop(self, pl_module):
+        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device, dtype=torch.int32)
+        stop = xm.mesh_reduce("stop_signal", stop, sum)
+        torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
+        should_stop = int(stop.item()) == self.trainer.world_size
+        return should_stop

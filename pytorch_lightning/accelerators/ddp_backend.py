@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 from pytorch_lightning.accelerators.base_backend import Accelerator
 import torch.distributed as torch_distrib
+import torch.distributed as dist
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -278,3 +279,10 @@ class DDPBackend(Accelerator):
 
     def barrier(self, name: str = None):
         torch_distrib.barrier()
+
+    def early_stopping_should_stop(self, pl_module):
+        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
+        dist.all_reduce(stop, op=dist.reduce_op.SUM)
+        dist.barrier()
+        should_stop = stop == self.trainer.world_size
+        return should_stop

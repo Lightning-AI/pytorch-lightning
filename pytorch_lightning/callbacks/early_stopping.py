@@ -21,7 +21,6 @@ Monitor a validation metric and stop training when it stops improving.
 """
 import numpy as np
 import torch
-import torch.distributed as dist
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -216,22 +215,8 @@ class EarlyStopping(Callback):
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        self._stop_distributed_training(trainer, pl_module)
-
-    def _stop_distributed_training(self, trainer, pl_module):
-
-        # in ddp make sure all processes stop when one is flagged
-        if trainer.use_ddp or trainer.use_ddp2:
-            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
-            dist.all_reduce(stop, op=dist.reduce_op.SUM)
-            dist.barrier()
-            trainer.should_stop = stop == trainer.world_size
-
-        if trainer.use_tpu:
-            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device, dtype=torch.int32)
-            stop = xm.mesh_reduce("stop_signal", stop, sum)
-            torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
-            trainer.should_stop = int(stop.item()) == trainer.world_size
+        should_stop = trainer.accelerator_backend.early_stopping_should_stop(pl_module)
+        trainer.should_stop = should_stop
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:

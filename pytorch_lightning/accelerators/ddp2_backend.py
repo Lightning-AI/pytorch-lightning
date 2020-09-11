@@ -23,6 +23,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.accelerators.base_backend import Accelerator
 import torch.distributed as torch_distrib
+import torch.distributed as dist
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -199,3 +200,10 @@ class DDP2Backend(Accelerator):
 
     def barrier(self, name: str = None):
         torch_distrib.barrier()
+
+    def early_stopping_should_stop(self, pl_module):
+        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
+        dist.all_reduce(stop, op=dist.reduce_op.SUM)
+        dist.barrier()
+        should_stop = stop == self.trainer.world_size
+        return should_stop
