@@ -168,10 +168,9 @@ def test_datamodule_parameter(tmpdir):
         max_epochs=2,
     )
 
-    lrfinder = trainer.lr_find(model, mode='linear')
+    lrfinder = trainer.tuner.lr_find(model, datamodule=dm)
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
-    trainer.tune(model)
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
