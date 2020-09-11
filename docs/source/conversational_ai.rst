@@ -56,7 +56,18 @@ To install a specific branch from GitHub:
 Example: Speech to Text (ASR)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Everything needed to train Convolutional ASR models is included with NeMo.
+Everything needed to train Convolutional ASR models is included with NeMo. 
+NeMo supports multiple Speech Recognition architectures, including Jasper 
+and QuartzNet. These models can be trained from scratch on custom datasets or 
+pretrained checkpoints trained on thousands of hour of audio can be restored for
+immediate use.
+
+Some typical ASR tasks are included with NeMo:
+
+- Audio transcription
+- Speech Commands
+- Voice Activity Detection
+- Byte Pair/Word Piece Training
 
 Configurations are in .yaml files included with NeMo/examples
 
@@ -72,7 +83,7 @@ Configurations are in .yaml files included with NeMo/examples
         ...
     # configure the ASR model
     encoder:
-        cls: nemo.collections.asr.modules.ConvASREncoder
+        _target_: nemo.collections.asr.modules.ConvASREncoder
         params:
         feat_in: *n_mels
         activation: relu
