@@ -71,7 +71,7 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VE
     conda clean -ya && \
     rm environment.yml && \
     # Disable cache
-    conda install "pip>20.1" && \
+    conda install "pip>20.1" -y && \
     pip config set global.cache-dir false
 
 ENV PATH ${WORKDIR}/miniconda/envs/${CONDA_ENV}/bin:$PATH
