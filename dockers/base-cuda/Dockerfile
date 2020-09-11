@@ -36,7 +36,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && \
     # Cleaning
+    apt-get autoremove -y && \
     apt-get clean && \
+    rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
 # add non-root user
@@ -60,19 +62,19 @@ ENV PATH="${WORKDIR}/miniconda/bin:$PATH"
 ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/lib:$LD_LIBRARY_PATH"
 ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 
-COPY --chown=flash environment.yml environment.yml
-
 # conda init
 RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
     conda env update --file environment.yml && \
+    conda clean -ya && \
     rm environment.yml && \
     # Disable cache
     conda install "pip>20.1" && \
     pip config set global.cache-dir false
 
+ENV PATH ${WORKDIR}/miniconda/envs/${CONDA_ENV}/bin:$PATH
 ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 # if you want this environment to be the default one, uncomment the following line:
 ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
@@ -80,16 +82,18 @@ ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 COPY ./requirements/test.txt requirements-tests.txt
 COPY ./requirements/examples.txt requirements-examples.txt
 
-# install dependencies
 RUN \
+    echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
+    source ~/.bashrc && \
     # Install all requirements
-    pip install -r requirements-tests.txt --upgrade-strategy only-if-needed --user && \
-    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed --user && \
+    pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
+    pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
     rm requirements* && \
-    # Cleaning
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /root/.cache && \
     # Show what we have
     pip --version && \
+    conda info && \
+    conda list && \
     pip list
+
+CMD ["bin/bash"]
