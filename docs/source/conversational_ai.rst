@@ -31,6 +31,10 @@ and do all the configuration from .yaml or the Hydra CLI.
 
 .. note:: Every NeMo model has an example configuration and run script that contains all configuration needed for training.
 
+The end result of using NeMo, Pytorch Lightning, and Hydra is that
+NeMo models all have the same look and feel so that is easy to do Conversational AI research
+across multiple domains and all NeMo models are fully compatible with the PyTorch ecosystem.
+
 Installing NeMo
 ^^^^^^^^^^^^^^^
 
@@ -51,7 +55,39 @@ To install a specific branch from GitHub:
 Example: Speech to Text (ASR)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Train Convolutional ASR models with NeMo and PyTorch Lightning.
+Everything needed to train Convolutional ASR models with NeMo, PyTorch Lightning, and Hydra is 
+included with NeMo.
+
+Configurations are in .yaml files included with NeMo/examples
+
+.. code-block:: yaml
+
+    # configure the PyTorch Lightning Trainer
+    trainer:
+        gpus: 0 # number of gpus
+        max_epochs: 5
+        max_steps: null # computed at runtime if not set
+        num_nodes: 1
+        distributed_backend: ddp
+        ...
+    # configure the ASR model
+    encoder:
+        cls: nemo.collections.asr.modules.ConvASREncoder
+        params:
+        feat_in: *n_mels
+        activation: relu
+        conv_mask: true
+
+        jasper:
+            - filters: 128
+            repeat: 1
+            kernel: [11]
+            stride: [1]
+            dilation: [1]
+            dropout: *dropout
+    # an all other configuration, data, optimizer, etc
+
+
 
 .. code-block:: python
 
