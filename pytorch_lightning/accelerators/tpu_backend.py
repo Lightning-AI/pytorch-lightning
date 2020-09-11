@@ -115,10 +115,10 @@ class TPUBackend(Accelerator):
         self.__setup_tpu_training(model, trainer)
 
         # set up training routine
-        self.trainer.setup_training(model)
+        self.trainer.train_loop.setup_training(model)
 
         # train or test
-        results = self.trainer.train_or_test()
+        results = self.train_or_test()
 
         # save weights at the end of training
         self.__save_end_of_training_weights(model, trainer)
@@ -250,3 +250,6 @@ class TPUBackend(Accelerator):
         # apply clip gradients
         # TODO: separate TPU case from here
         self._clip_gradients(optimizer)
+
+    def barrier(self, name: str = None):
+        torch_xla.core.xla_model.rendezvous(f"pl.Trainer.{name}")

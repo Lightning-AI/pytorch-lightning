@@ -270,7 +270,7 @@ class Trainer(
         # TODO: temporary, need to decide if tune or separate object
 
         # setup data, etc...
-        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+        self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.data_connector.prepare_data(model)
@@ -304,10 +304,8 @@ class Trainer(
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
-        results = None
-
         # setup data, etc...
-        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+        self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.call_hook('on_fit_start', model)
@@ -340,92 +338,6 @@ class Trainer(
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
         return results or 1
-
-    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
-        # bind logger and other properties
-        self.model_connector.copy_trainer_model_properties(model)
-
-        # clean hparams
-        if hasattr(model, 'hparams'):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
-
-    def setup_training(self, model: LightningModule):
-        """Sanity check a few things before starting actual training.
-
-        Args:
-            model: The model to run sanity test on.
-        """
-        # --------------------------
-        # Setup??
-        # --------------------------
-        ref_model = model
-        if self.data_parallel:
-            ref_model = model.module
-
-        # give model convenience properties
-        ref_model.trainer = self
-
-        # set local properties on the model
-        self.model_connector.copy_trainer_model_properties(ref_model)
-
-        # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
-            self.scaler = torch.cuda.amp.GradScaler()
-
-        # log hyper-parameters
-        if self.logger is not None:
-            # save exp to get started
-            self.logger.log_hyperparams(ref_model.hparams)
-            self.logger.log_graph(ref_model)
-            self.logger.save()
-
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.barrier()
-
-        # wait for all models to restore weights
-        if self.on_tpu and XLA_AVAILABLE:
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.Trainer.setup_training")
-
-        elif self.use_horovod:
-            # wait for all processes to catch up
-            hvd.join()
-
-        # register auto-resubmit when on SLURM
-        self.register_slurm_signal_handlers()
-
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        # on pretrain routine start
-        self.on_pretrain_routine_start(ref_model)
-        if self.is_function_implemented('on_pretrain_routine_start'):
-            ref_model.on_pretrain_routine_start()
-
-        # print model summary
-        if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
-
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.model = model
-
-        # restore training and model before hpc is called
-        self.restore_weights(model)
-
-        # on pretrain routine end
-        self.on_pretrain_routine_end(ref_model)
-        if self.is_function_implemented('on_pretrain_routine_end'):
-            ref_model.on_pretrain_routine_end()
 
     def train(self):
         self.run_sanity_check(self.get_model())
@@ -585,13 +497,6 @@ class Trainer(
                         result[k] = v.cpu().item()
 
         return eval_loop_results
-
-    def train_or_test(self):
-        if self.testing:
-            results = self.run_test()
-        else:
-            results = self.train()
-        return results
 
     def run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
@@ -759,6 +664,7 @@ class Trainer(
                 output = accelerator_hook(*args, **kwargs)
 
             return output
+
 
 # add docstrings
 Trainer.__init__.__doc__ = docstrings.trainer.init

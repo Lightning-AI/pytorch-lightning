@@ -26,6 +26,25 @@ from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.parsing import AttributeDict
 from copy import copy, deepcopy
 from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import parsing, AMPType
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
+
+try:
+    import torch_xla
+    import torch_xla.core.xla_model as xm
+    import torch_xla.distributed.xla_multiprocessing as xmp
+except ImportError:
+    XLA_AVAILABLE = False
+else:
+    XLA_AVAILABLE = True
+
+try:
+    import horovod.torch as hvd
+except (ModuleNotFoundError, ImportError):
+    HOROVOD_AVAILABLE = False
+else:
+    HOROVOD_AVAILABLE = True
 
 
 class TrainLoop:
@@ -76,6 +95,83 @@ class TrainLoop:
 
         # hook
         self.trainer.call_hook('on_train_start')
+
+    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
+        # bind logger and other properties
+        self.trainer.model_connector.copy_trainer_model_properties(model)
+
+        # clean hparams
+        if hasattr(model, 'hparams'):
+            parsing.clean_namespace(model.hparams)
+
+        # links data to the trainer
+        self.trainer.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
+
+        # check that model is configured correctly
+        self.trainer.config_validator.verify_loop_configurations(model)
+
+    def setup_training(self, model: LightningModule):
+        """Sanity check a few things before starting actual training.
+
+        Args:
+            model: The model to run sanity test on.
+        """
+        # --------------------------
+        # Setup??
+        # --------------------------
+        ref_model = model
+        if self.trainer.data_parallel:
+            ref_model = model.module
+
+        # give model convenience properties
+        ref_model.trainer = self.trainer
+
+        # set local properties on the model
+        self.trainer.model_connector.copy_trainer_model_properties(ref_model)
+
+        # init amp. Must be done here instead of __init__ to allow ddp to work
+        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
+            self.trainer.scaler = torch.cuda.amp.GradScaler()
+
+        # log hyper-parameters
+        if self.trainer.logger is not None:
+            # save exp to get started
+            self.trainer.logger.log_hyperparams(ref_model.hparams)
+            self.trainer.logger.log_graph(ref_model)
+            self.trainer.logger.save()
+
+        # wait for all to join if on distributed
+        self.trainer.accelerator_backend.barrier('setup_training')
+
+        # register auto-resubmit when on SLURM
+        self.trainer.register_slurm_signal_handlers()
+
+        # --------------------------
+        # Pre-train
+        # --------------------------
+        # on pretrain routine start
+        self.trainer.on_pretrain_routine_start(ref_model)
+        if self.trainer.is_function_implemented('on_pretrain_routine_start'):
+            ref_model.on_pretrain_routine_start()
+
+        # print model summary
+        if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.testing:
+            if self.trainer.weights_summary in ModelSummary.MODES:
+                ref_model.summarize(mode=self.trainer.weights_summary)
+            else:
+                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        self.trainer.model = model
+
+        # restore training and model before hpc is called
+        self.trainer.restore_weights(model)
+
+        # on pretrain routine end
+        self.trainer.on_pretrain_routine_end(ref_model)
+        if self.trainer.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
 
     def on_train_end(self):
         if self._teardown_already_run:

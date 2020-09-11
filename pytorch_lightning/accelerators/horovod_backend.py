@@ -106,10 +106,10 @@ class HorovodBackend(Accelerator):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self.trainer.setup_training(self.trainer.model)
+            self.trainer.train_loop.setup_training(self.trainer.model)
 
             # train or test
-            results = self.trainer.train_or_test()
+            results = self.train_or_test()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
@@ -165,3 +165,6 @@ class HorovodBackend(Accelerator):
 
     def on_train_epoch_end(self):
         hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
+
+    def barrier(self, name: str = None):
+        hvd.join()

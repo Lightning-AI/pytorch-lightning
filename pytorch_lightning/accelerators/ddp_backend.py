@@ -26,6 +26,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
 from pytorch_lightning.accelerators.base_backend import Accelerator
+import torch.distributed as torch_distrib
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -235,10 +236,10 @@ class DDPBackend(Accelerator):
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
-        self.trainer.setup_training(model)
+        self.trainer.train_loop.setup_training(model)
 
         # train or test
-        results = self.trainer.train_or_test()
+        results = self.train_or_test()
 
         # get original model
         model = self.trainer.get_model()
@@ -274,3 +275,6 @@ class DDPBackend(Accelerator):
                 "You tried to run `.fit` or `.test` multiple times in the same script."
                 " This is not supported in DDP mode, switch to `distributed_backend='ddp_spawn'` instead."
             )
+
+    def barrier(self, name: str = None):
+        torch_distrib.barrier()
