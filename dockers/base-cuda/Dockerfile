@@ -29,43 +29,63 @@ ENV PATH="$PATH:/root/.local/bin"
 # ENV MAKEFLAGS="-j$(nproc)"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    git \
-    curl \
-    ca-certificates && \
+        build-essential \
+        cmake \
+        git \
+        curl \
+        ca-certificates \
+    && \
+# Cleaning
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./tests/install_AMP.sh install_AMP.sh
-COPY ./requirements/base.txt requirements.txt
-COPY ./requirements/extra.txt requirements-extra.txt
+# add non-root user
+RUN useradd --create-home --shell /bin/bash flash
+
+USER flash
+ENV CONDA_ENV=lightning
+ENV WORKDIR=/home/flash
+WORKDIR $WORKDIR
+
+COPY --chown=flash environment.yml environment.yml
+
+# install conda and python
+RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh  && \
+    chmod +x ~/miniconda.sh && \
+    ~/miniconda.sh -b -p ${WORKDIR}/miniconda && \
+    rm ~/miniconda.sh
+
+# add conda to path
+ENV PATH="${WORKDIR}/miniconda/bin:$PATH"
+ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/lib:$LD_LIBRARY_PATH"
+ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
+
+COPY --chown=flash environment.yml environment.yml
+
+# conda init
+RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
+    conda init bash && \
+    # conda install -y python=$PYTHON_VERSION && \
+    conda install pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
+    conda env update --file environment.yml && \
+    rm environment.yml && \
+
+# Disable cache
+    conda install "pip>20.1" && \
+    pip config set global.cache-dir false
+
+ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
+# if you want this environment to be the default one, uncomment the following line:
+ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
+
 COPY ./requirements/test.txt requirements-tests.txt
 COPY ./requirements/examples.txt requirements-examples.txt
 
-# install conda and python
-RUN curl -o ~/miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-${CONDA_VERSION}-Linux-x86_64.sh && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b -p /root/conda && \
-    rm ~/miniconda.sh && \
-    /root/conda/bin/conda install -y python=$PYTHON_VERSION && \
-    /root/conda/bin/conda install -y pytorch=$PYTORCH_VERSION torchvision cudatoolkit=$CUDA_VERSION -c $PYTORCH_CHANNEL && \
-    /root/conda/bin/conda clean -ya
-
-# add conda to path
-ENV PATH /root/conda/bin:$PATH
-
 # install dependencies
 RUN \
-    # Install AMP
-    bash install_AMP.sh && \
     # Install all requirements
-    pip install -r requirements.txt --upgrade-strategy only-if-needed && \
-    # HOROVOD_BUILD_ARCH_FLAGS="-mfma" && \
-    pip install -r requirements-extra.txt && \
-    # pip install -r requirements-examples.txt && \
     pip install -r requirements-tests.txt && \
-    rm install_AMP.sh && \
+    pip install -r requirements-examples.txt && \
     rm requirements* && \
     # Cleaning
     apt-get autoremove -y && \
