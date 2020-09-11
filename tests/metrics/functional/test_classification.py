@@ -187,6 +187,9 @@ def test_confusion_matrix():
     cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
     assert torch.allclose(cm, torch.tensor([[5., 0., 0.], [0., 0., 0.], [0., 0., 0.]]))
 
+    cm = confusion_matrix(pred, target, normalize=True, num_classes=3)
+    assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [0., 0., 0.], [0., 0., 0.]]))
+
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
     pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5]),

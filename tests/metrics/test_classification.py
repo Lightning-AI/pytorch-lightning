@@ -41,7 +41,8 @@ def test_accuracy(num_classes):
 @pytest.mark.parametrize(['normalize', 'num_classes'], [
     pytest.param(False, None),
     pytest.param(True, None),
-    pytest.param(False, 3)
+    pytest.param(False, 3),
+    pytest.param(True, 3)
 ])
 def test_confusion_matrix(normalize, num_classes):
     conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
@@ -50,7 +51,7 @@ def test_confusion_matrix(normalize, num_classes):
     target = (torch.arange(120) % 3).view(-1, 1)
     pred = target.clone()
     cm = conf_matrix(pred, target)
-    assert isinstance(cm, torch.Tensor)
+    assert isinstance(cm, torch.Tensor) and cm[cm.isnan()].nelement() == 0
 
 
 @pytest.mark.parametrize('pos_label', [1, 2.])

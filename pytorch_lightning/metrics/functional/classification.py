@@ -313,6 +313,10 @@ def confusion_matrix(
 
     if normalize:
         cm = cm / cm.sum(-1)
+        nan_elements = cm[cm.isnan()].nelement()
+        if nan_elements != 0:
+            cm[cm.isnan()] = 0
+            rank_zero_warn(f'You have {nan_elements} nan values at confusion matrix replaced with zeros.')
 
     return cm
 
