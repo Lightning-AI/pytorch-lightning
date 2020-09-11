@@ -29,13 +29,13 @@ ENV PATH="$PATH:/root/.local/bin"
 # ENV MAKEFLAGS="-j$(nproc)"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        cmake \
-        git \
-        curl \
-        ca-certificates \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    ca-certificates \
     && \
-# Cleaning
+    # Cleaning
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -63,16 +63,13 @@ ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 COPY --chown=flash environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
+RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
     conda init bash && \
-    # conda install -y python=$PYTHON_VERSION && \
-    conda install pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
-    conda env update --file environment.yml && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
+    conda env update --file environment.yml && \
     rm environment.yml && \
-
-# Disable cache
+    # Disable cache
     conda install "pip>20.1" && \
     pip config set global.cache-dir false
 
