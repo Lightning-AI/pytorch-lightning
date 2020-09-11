@@ -98,12 +98,12 @@ class TrainerLRFinderMixin(ABC):
             model: LightningModule,
             train_dataloader: Optional[DataLoader] = None,
             val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
-            datamodule: Optional[LightningDataModule] = None,
             min_lr: float = 1e-8,
             max_lr: float = 1,
             num_training: int = 100,
             mode: str = 'exponential',
             early_stop_threshold: float = 4.0,
+            datamodule: Optional[LightningDataModule] = None,
     ):
         r"""
         lr_find enables the user to do a range test of good initial learning rates,
