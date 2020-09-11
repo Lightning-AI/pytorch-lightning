@@ -100,6 +100,8 @@ Configurations are in .yaml files included with NeMo/examples
     # all other configuration, data, optimizer, etc
     ...
 
+The example speech-to-text script is just:
+
 .. code-block:: python
 
     @hydra.main(config_name="config")
@@ -145,3 +147,68 @@ Transcribe audio with QuartzNet pretrained on 7000+ hours of audio.
 
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
+
+Any aspect of ASR training or model architecture design can easily be customized
+since every NeMo model is a Lightning Module.
+
+.. code-block:: python
+
+    class EncDecCTCModel(ASRModel):
+        """Base class for encoder decoder CTC-based models."""
+    ...
+        @typecheck()
+        def forward(self, input_signal, input_signal_length):
+            processed_signal, processed_signal_len = self.preprocessor(
+                input_signal=input_signal, length=input_signal_length,
+            )
+            # Spec augment is not applied during evaluation/testing
+            if self.spec_augmentation is not None and self.training:
+                processed_signal = self.spec_augmentation(input_spec=processed_signal)
+            encoded, encoded_len = self.encoder(audio_signal=processed_signal, length=processed_signal_len)
+            log_probs = self.decoder(encoder_output=encoded)
+            greedy_predictions = log_probs.argmax(dim=-1, keepdim=False)
+            return log_probs, encoded_len, greedy_predictions
+    
+        # PTL-specific methods
+        def training_step(self, batch, batch_nb):
+            audio_signal, audio_signal_len, transcript, transcript_len = batch
+            log_probs, encoded_len, predictions = self.forward(
+                input_signal=audio_signal, input_signal_length=audio_signal_len
+            )
+            loss_value = self.loss(
+                log_probs=log_probs, targets=transcript, input_lengths=encoded_len, target_lengths=transcript_len
+            )
+            wer_num, wer_denom = self._wer(predictions, transcript, transcript_len)
+            tensorboard_logs = {
+                'train_loss': loss_value,
+                'training_batch_wer': wer_num / wer_denom,
+                'learning_rate': self._optimizer.param_groups[0]['lr'],
+            }
+            return {'loss': loss_value, 'log': tensorboard_logs}
+
+Additionally, NeMo Models and Neural Modules come with Neural Type checking.
+Neural type checking is extremely use when combining many different neural 
+network architectures for a production grade application.
+
+.. code-block:: python
+
+        @property
+        def input_types(self) -> Optional[Dict[str, NeuralType]]:
+            if hasattr(self.preprocessor, '_sample_rate'):
+                audio_eltype = AudioSignal(freq=self.preprocessor._sample_rate)
+            else:
+                audio_eltype = AudioSignal()
+            return {
+                "input_signal": NeuralType(('B', 'T'), audio_eltype),
+                "input_signal_length": NeuralType(tuple('B'), LengthsType()),
+            }
+
+        @property
+        def output_types(self) -> Optional[Dict[str, NeuralType]]:
+            return {
+                "outputs": NeuralType(('B', 'T', 'D'), LogprobsType()),
+                "encoded_lengths": NeuralType(tuple('B'), LengthsType()),
+                "greedy_predictions": NeuralType(('B', 'T'), LabelsType()),
+            }
+
+
