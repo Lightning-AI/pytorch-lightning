@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.accelerators.base_backend import Accelerator
+import torch.distributed as torch_distrib
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -151,10 +152,10 @@ class DDP2Backend(Accelerator):
         model = model.configure_ddp(model, device_ids)
 
         # set up training routine
-        self.trainer.setup_training(model)
+        self.trainer.train_loop.setup_training(model)
 
         # train or test
-        results = self.trainer.train_or_test()
+        results = self.train_or_test()
 
         # get original model
         model = self.trainer.get_model()
@@ -195,3 +196,6 @@ class DDP2Backend(Accelerator):
         if isinstance(output, Result):
             output.dp_reduce()
         return output
+
+    def barrier(self, name: str = None):
+        torch_distrib.barrier()
