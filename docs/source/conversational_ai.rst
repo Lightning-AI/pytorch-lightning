@@ -4,11 +4,32 @@ Conversational AI
 Using NeMo Models
 ^^^^^^^^^^^^^^^^^
 
-NeMo is a conversational AI toolkit that uses PyTorch Lightning for
-training and fine-tuning of automatic speech recognition(ASR), 
-natural language processing (NLP), and text-to-speech (TTS) applications and research.
+NeMo is a toolkit for doing research in Conversational AI.   NeMo makes it easy to build complex 
+automatic speech recognition (ASR), natural language processing (NLP), and text-to-speech (TTS) 
+applications.
+
+Conversational AI architectures are typically very large and require a lot of data  and compute 
+for training. NeMo uses PyTorch Lightning for for easy and performant multi-gpu/multi-node 
+mixed-precision training. 
 
 .. note:: Every NeMo model is a LightningModule that comes equipped with all supporting infrastructure for training and reproducibility.
+
+NeMo Models contain everything needed to to train and reproduce state of the art Conversational AI
+research and applications. This includes
+
+- neural network architectures 
+- datasets/dataloaders
+- data preprocessing/postprocessing
+- data augmentors
+- optimizers and schedulers
+- tokenizers, language models
+
+NeMo uses Hydra for configuring both NeMo models and the PyTorch Lightning Trainer.
+Depending on the domain and application, many different AI libraries will have to be configured
+to build the application. Hydra makes it easy to bring all of these libraries together
+and do all the configuration from .yaml or the Hydra CLI.
+
+.. note:: Every NeMo model has an example configuration and run script that contains all configuration needed for training.
 
 Installing NeMo
 ^^^^^^^^^^^^^^^
