@@ -152,7 +152,6 @@ def test_call_to_trainer_method(tmpdir):
         'Learning rate was not altered after running learning rate finder'
 
 
-@pytest.mark.parametrize('use_hparams', [False, True])
 def test_datamodule_parameter(tmpdir):
     """ Test that the datamodule parameter works """
 
@@ -161,23 +160,18 @@ def test_datamodule_parameter(tmpdir):
 
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
-    before_lr = hparams.get('learning_rate')
-    if use_hparams:
-        del model.learning_rate
-        model.configure_optimizers = model.configure_optimizers__lr_from_hparams
 
+    before_lr = hparams.get('learning_rate')
     # logger file to get meta
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
-        auto_lr_find=True,
     )
 
-    trainer.tune(model, datamodule=dm)
-    if use_hparams:
-        after_lr = model.hparams.learning_rate
-    else:
-        after_lr = model.learning_rate
+    lrfinder = trainer.lr_find(model, mode='linear')
+    after_lr = lrfinder.suggestion()
+    model.learning_rate = after_lr
+    trainer.tune(model)
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
