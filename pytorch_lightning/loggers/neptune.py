@@ -181,19 +181,26 @@ class NeptuneLogger(LightningLoggerBase):
             They are editable after the experiment is created (see: ``append_tag()`` and ``remove_tag()``).
             Tags are displayed in the experiment’s Details section and can be viewed
             in the experiments view as a column.
+        experiment_id: Optional. Default is ''None''. ID of the existing experiment.
+            If specified, connect to experiment with experiment_id in project_name.
+            Input arguments "experiment_name", "params", "properties" and "tags" will be overriden based
+            on fetched experiment data.
     """
 
-    def __init__(self,
-                 api_key: Optional[str] = None,
-                 project_name: Optional[str] = None,
-                 close_after_fit: Optional[bool] = True,
-                 offline_mode: bool = False,
-                 experiment_name: Optional[str] = None,
-                 upload_source_files: Optional[List[str]] = None,
-                 params: Optional[Dict[str, Any]] = None,
-                 properties: Optional[Dict[str, Any]] = None,
-                 tags: Optional[List[str]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        project_name: Optional[str] = None,
+        close_after_fit: Optional[bool] = True,
+        offline_mode: bool = False,
+        experiment_name: Optional[str] = None,
+        upload_source_files: Optional[List[str]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        properties: Optional[Dict[str, Any]] = None,
+        tags: Optional[List[str]] = None,
+        experiment_id: Optional[str] = None,
+        **kwargs,
+    ):
         if not _NEPTUNE_AVAILABLE:
             raise ImportError('You want to use `neptune` logger which is not installed yet,'
                               ' install it with `pip install neptune-client`.')
@@ -208,7 +215,7 @@ class NeptuneLogger(LightningLoggerBase):
         self.properties = properties
         self.tags = tags
         self._kwargs = kwargs
-        self._experiment_id = None
+        self.experiment_id = experiment_id
         self._experiment = self._create_or_get_experiment()
 
         log.info(f'NeptuneLogger will work in {"offline" if self.offline_mode else "online"} mode')
@@ -219,7 +226,7 @@ class NeptuneLogger(LightningLoggerBase):
         # Experiment cannot be pickled, and additionally its ID cannot be pickled in offline mode
         state['_experiment'] = None
         if self.offline_mode:
-            state['_experiment_id'] = None
+            state['experiment_id'] = None
 
         return state
 
@@ -390,7 +397,7 @@ class NeptuneLogger(LightningLoggerBase):
             session = neptune.Session.with_default_backend(api_token=self.api_key)
             project = session.get_project(self.project_name)
 
-        if self._experiment_id is None:
+        if self.experiment_id is None:
             exp = project.create_experiment(
                 name=self.experiment_name,
                 params=self.params,
@@ -399,7 +406,11 @@ class NeptuneLogger(LightningLoggerBase):
                 upload_source_files=self.upload_source_files,
                 **self._kwargs)
         else:
-            exp = project.get_experiments(id=self._experiment_id)[0]
+            exp = project.get_experiments(id=self.experiment_id)[0]
+            self.experiment_name = exp.get_system_properties()['name']
+            self.params = exp.get_parameters()
+            self.properties = exp.get_properties()
+            self.tags = exp.get_tags()
 
-        self._experiment_id = exp.id
+        self.experiment_id = exp.id
         return exp
