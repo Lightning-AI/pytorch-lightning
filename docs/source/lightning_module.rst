@@ -899,7 +899,7 @@ Pointer to the trainer
 
 use_amp
 ~~~~~~~
-True if using amp
+True if using Automatic Mixed Precision (AMP)
 
 ------------
 
