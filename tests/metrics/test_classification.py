@@ -51,7 +51,7 @@ def test_confusion_matrix(normalize, num_classes):
     target = (torch.arange(120) % 3).view(-1, 1)
     pred = target.clone()
     cm = conf_matrix(pred, target)
-    assert isinstance(cm, torch.Tensor) and cm[cm.isnan()].nelement() == 0
+    assert isinstance(cm, torch.Tensor) and cm[torch.isnan(cm)].nelement() == 0
 
 
 @pytest.mark.parametrize('pos_label', [1, 2.])
