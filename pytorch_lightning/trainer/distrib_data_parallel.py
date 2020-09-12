@@ -132,35 +132,16 @@ import re
 from abc import ABC, abstractmethod
 from typing import Union, List, Optional, Tuple
 
-import torch
-
-from pytorch_lightning import _logger as log
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
 except ImportError:
     amp = None
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
-
-try:
-    import torch_xla
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
 
 
 class TrainerDDPMixin(ABC):
@@ -224,158 +205,6 @@ class TrainerDDPMixin(ABC):
     def is_function_implemented(self, *args) -> bool:
         """Warning: this is just empty shell for code implemented in other class."""
 
-    def init_tpu(self):
-        # enable tpu
-        self.use_tpu = True
-
-    def set_distributed_mode(self, distributed_backend):
-        self.use_dp = False
-        self.use_ddp = False
-        self.use_ddp2 = False
-        self.use_horovod = False
-        self.use_single_gpu = False
-
-        if distributed_backend is None:
-            if self.has_horovodrun():
-                self._set_horovod_backend()
-            elif self.num_gpus == 0:
-                if self.num_nodes > 1 or self.num_processes > 1:
-                    self.use_ddp = True  # ddp_cpu
-            elif self.num_gpus == 1:
-                self.use_single_gpu = True
-            elif self.num_gpus > 1:
-                rank_zero_warn(
-                    'You requested multiple GPUs but did not specify a backend, e.g.'
-                    ' Trainer(distributed_backend=dp) (or ddp, ddp2).'
-                    ' Setting distributed_backend=ddp_spawn for you.'
-                )
-                self.distributed_backend = 'ddp_spawn'
-                distributed_backend = 'ddp_spawn'
-
-        if distributed_backend == "dp":
-            # do nothing if num_gpus == 0
-            if self.num_gpus == 1:
-                self.use_single_gpu = True
-                self.use_dp = True
-            elif self.num_gpus > 1:
-                self.use_dp = True
-
-        elif distributed_backend in ['ddp', 'ddp_spawn']:
-            if self.num_gpus == 0:
-                if self.num_nodes > 1 or self.num_processes > 1:
-                    self.use_ddp = True  # ddp_cpu
-            elif self.num_gpus == 1:
-                self.use_single_gpu = True
-                self.use_ddp = True
-            elif self.num_gpus > 1:
-                self.use_ddp = True
-                self.num_processes = self.num_gpus
-
-        elif distributed_backend == "ddp2":
-            # do nothing if num_gpus == 0
-            if self.num_gpus >= 1:
-                self.use_ddp2 = True
-        elif distributed_backend == "ddp_cpu":
-            if self.num_gpus > 0:
-                rank_zero_warn(
-                    'You requested one or more GPUs, but set the backend to `ddp_cpu`. Training will not use GPUs.'
-                )
-            self.use_ddp = True
-            self.data_parallel_device_ids = None
-            self.on_gpu = False
-        elif distributed_backend == 'horovod':
-            self._set_horovod_backend()
-
-        # throw error to force user ddp or ddp2 choice
-        if self.num_nodes > 1 and not (self.use_ddp2 or self.use_ddp):
-            raise MisconfigurationException(
-                'DataParallel does not support num_nodes > 1. Switching to DistributedDataParallel for you. '
-                'To silence this warning set distributed_backend=ddp or distributed_backend=ddp2'
-            )
-
-        rank_zero_info(f'GPU available: {torch.cuda.is_available()}, used: {self.on_gpu}')
-        num_cores = self.tpu_cores if self.tpu_cores is not None else 0
-        rank_zero_info(f'TPU available: {XLA_AVAILABLE}, using: {num_cores} TPU cores')
-
-        if torch.cuda.is_available() and not self.on_gpu:
-            rank_zero_warn('GPU available but not used. Set the --gpus flag when calling the script.')
-
-    def configure_slurm_ddp(self, num_gpu_nodes):
-        self.is_slurm_managing_tasks = False
-
-        # extract SLURM flag vars
-        # whenever we have the correct number of tasks, we let slurm manage processes
-        # otherwise we launch the required number of processes
-        if self.use_ddp:
-            self.num_requested_gpus = self.num_gpus * num_gpu_nodes
-            self.num_slurm_tasks = 0
-            try:
-                self.num_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-                self.is_slurm_managing_tasks = self.num_slurm_tasks == self.num_requested_gpus
-
-                # in interactive mode we don't manage tasks
-                job_name = os.environ['SLURM_JOB_NAME']
-                if job_name == 'bash':
-                    self.is_slurm_managing_tasks = False
-
-            except Exception:
-                # likely not on slurm, so set the slurm managed flag to false
-                self.is_slurm_managing_tasks = False
-
-        # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
-            if should_fake:
-                self.is_slurm_managing_tasks = True
-        except Exception:
-            pass
-
-        # notify user the that slurm is managing tasks
-        if self.is_slurm_managing_tasks:
-            rank_zero_info('Multi-processing is handled by Slurm.')
-
-    def determine_local_rank(self):
-        if self.is_slurm_managing_tasks:
-            return int(os.environ['SLURM_LOCALID'])
-        else:
-            return int(os.environ.get('LOCAL_RANK', 0))
-
-    def determine_ddp_node_rank(self):
-        if self.is_slurm_managing_tasks:
-            return int(os.environ['SLURM_NODEID'])
-
-        # torchelastic uses the envvar GROUP_RANK, whereas other systems(?) use NODE_RANK.
-        # otherwise use given node rank or default to node rank 0
-        env_vars = ['NODE_RANK', 'GROUP_RANK']
-        node_ids = [(k, os.environ.get(k, None)) for k in env_vars]
-        node_ids = [(k, v) for k, v in node_ids if v is not None]
-        if len(node_ids) == 0:
-            return 0
-        if len(node_ids) > 1:
-            log.warning(f"Multiple environment variables ({node_ids}) defined for node rank. Using the first one.")
-        k, rank = node_ids.pop()
-        rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
-        return int(rank)
-
-    def set_nvidia_flags(self, is_slurm_managing_tasks, data_parallel_device_ids):
-        if data_parallel_device_ids is None:
-            return
-
-        # set the correct cuda visible devices (using pci order)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-        # when slurm is managing the task it sets the visible devices
-        if not is_slurm_managing_tasks and 'CUDA_VISIBLE_DEVICES' not in os.environ:
-            if isinstance(data_parallel_device_ids, int):
-                id_str = ','.join(str(x) for x in list(range(data_parallel_device_ids)))
-                os.environ["CUDA_VISIBLE_DEVICES"] = id_str
-            else:
-                gpu_str = ','.join([str(x) for x in data_parallel_device_ids])
-                os.environ["CUDA_VISIBLE_DEVICES"] = gpu_str
-
-        # don't make this debug... this is good UX
-        rank_zero_info(f'CUDA_VISIBLE_DEVICES: [{os.environ["CUDA_VISIBLE_DEVICES"]}]')
-
     def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
         if self.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
             return
@@ -431,44 +260,3 @@ class TrainerDDPMixin(ABC):
             os.remove(path)
 
         return loaded_model
-
-    def resolve_root_node_address(self, root_node):
-        if '[' in root_node:
-            name, numbers = root_node.split('[', maxsplit=1)
-            number = numbers.split(',', maxsplit=1)[0]
-            if '-' in number:
-                number = number.split('-')[0]
-
-            number = re.sub('[^0-9]', '', number)
-            root_node = name + number
-
-        return root_node
-
-    def _set_horovod_backend(self):
-        self.check_horovod()
-        self.use_horovod = True
-
-        # Initialize Horovod to get rank / size info
-        hvd.init()
-        if self.on_gpu:
-            # Horovod assigns one local GPU per process
-            self.root_gpu = hvd.local_rank()
-
-    def check_horovod(self):
-        """Raises a `MisconfigurationException` if the Trainer is not configured correctly for Horovod."""
-        if not HOROVOD_AVAILABLE:
-            raise MisconfigurationException(
-                'Requested `distributed_backend="horovod"`, but Horovod is not installed.'
-                'Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]'
-            )
-
-        if self.num_gpus > 1 or self.num_nodes > 1:
-            raise MisconfigurationException(
-                'Horovod does not support setting num_nodes / num_gpus explicitly. Use '
-                'horovodrun / mpirun to configure the number of processes.'
-            )
-
-    @staticmethod
-    def has_horovodrun():
-        """Returns True if running with `horovodrun` using Gloo or OpenMPI."""
-        return 'OMPI_COMM_WORLD_RANK' in os.environ or 'HOROVOD_RANK' in os.environ
