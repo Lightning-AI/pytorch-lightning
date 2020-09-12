@@ -187,7 +187,7 @@ class CheckpointConnector:
 
             # if hpc weights exist restore model
             if len(hpc_weight_paths) > 0:
-                self.trainer.hpc_load(folderpath, self.trainer.on_gpu)
+                self.hpc_load(folderpath, self.trainer.on_gpu)
                 did_restore = True
         return did_restore
 
