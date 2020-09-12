@@ -94,10 +94,6 @@ class AcceleratorConnector:
         self.trainer.tpu_local_core_rank = None
         self.trainer.tpu_global_core_rank = None
 
-        # distributed backend choice
-        self.trainer.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend)
-
         # override dist backend when using tpus
         if self.trainer.on_tpu:
             self.trainer.distributed_backend = 'tpu'
@@ -161,6 +157,7 @@ class AcceleratorConnector:
         return accelerator_backend
 
     def set_distributed_mode(self, distributed_backend):
+        self.trainer.distributed_backend = distributed_backend
         self.trainer.use_dp = False
         self.trainer.use_ddp = False
         self.trainer.use_ddp2 = False

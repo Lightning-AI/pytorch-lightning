@@ -195,7 +195,9 @@ class Trainer(
             terminate_on_nan
         )
 
-        # init accelerator related flags
+        # init distributed backends. Must be done in this order
+        self.accelerator_connector.set_distributed_mode(distributed_backend)
+        self.slurm_connector.on_trainer_init(num_nodes)
         self.accelerator_connector.on_trainer_init(
             num_processes,
             tpu_cores,
@@ -209,9 +211,6 @@ class Trainer(
             replace_sampler_ddp,
             deterministic
         )
-
-        # link up SLURM
-        self.slurm_connector.on_trainer_init(num_nodes)
 
         # init train loop related flags
         self.train_loop.on_trainer_init(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
