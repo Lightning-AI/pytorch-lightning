@@ -130,10 +130,8 @@ class ModelCheckpoint(Callback):
 
         self.monitor = monitor
         self.verbose = verbose
-        if filepath is None:  # will be determined by trainer at runtime
+        if not filepath:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
-        elif filepath == "":  # uses CWD as the dirpath
-            self.dirpath, self.filename = os.path.realpath(filepath), None
         else:
             if self._fs.isdir(filepath):
                 self.dirpath, self.filename = filepath, None
@@ -260,7 +258,8 @@ class ModelCheckpoint(Callback):
         filename = self._format_checkpoint_name(self.filename, epoch, metrics, prefix=self.prefix)
         if ver is not None:
             filename = self.CHECKPOINT_JOIN_CHAR.join((filename, f'v{ver}'))
-        return os.path.join(self.dirpath, f'{filename}.ckpt')
+        ckpt_name = f'{filename}.ckpt'
+        return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     @rank_zero_only
     def on_pretrain_routine_start(self, trainer, pl_module):
@@ -388,10 +387,9 @@ class ModelCheckpoint(Callback):
                 self.CHECKPOINT_NAME_LAST, epoch, ckpt_name_metrics, prefix=self.prefix
             )
             filepath = os.path.join(self.dirpath, f'{filename}.ckpt')
-            if self.last_model_path:
-                self._del_model(self.last_model_path)
             self._save_model(filepath, trainer, pl_module)
-            self.last_model_path = filepath
+            if self.last_model_path and self.last_model_path != filepath:
+                self._del_model(self.last_model_path)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
         # remove kth

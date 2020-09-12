@@ -132,19 +132,24 @@ def test_model_checkpoint__format_checkpoint_name():
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir):
     # no filepath set
-    ckpt_name = ModelCheckpoint(filepath='').format_checkpoint_name(3, {})
-    assert Path(ckpt_name) == Path(os.path.realpath('')) / "epoch=3.ckpt"
+    ckpt_name = ModelCheckpoint(filepath=None).format_checkpoint_name(3, {})
+    assert ckpt_name == 'epoch=3.ckpt'
+    ckpt_name = ModelCheckpoint(filepath='').format_checkpoint_name(5, {})
+    assert ckpt_name == 'epoch=5.ckpt'
+    # CWD
+    ckpt_name = ModelCheckpoint(filepath='.').format_checkpoint_name(3, {})
+    assert Path(ckpt_name) == Path('.') / 'epoch=3.ckpt'
     # dir does not exist so it is used as filename
-    filepath = tmpdir / "dir"
+    filepath = tmpdir / 'dir'
     ckpt_name = ModelCheckpoint(filepath=filepath, prefix='test').format_checkpoint_name(3, {})
-    assert ckpt_name == tmpdir / "test-dir.ckpt"
+    assert ckpt_name == tmpdir / 'test-dir.ckpt'
     # now, dir exists
     os.mkdir(filepath)
     ckpt_name = ModelCheckpoint(filepath=filepath, prefix='test').format_checkpoint_name(3, {})
-    assert ckpt_name == filepath / "test-epoch=3.ckpt"
+    assert ckpt_name == filepath / 'test-epoch=3.ckpt'
     # with ver
-    ckpt_name = ModelCheckpoint(filepath=tmpdir / "name", prefix='test').format_checkpoint_name(3, {}, ver=3)
-    assert ckpt_name == tmpdir / "test-name-v3.ckpt"
+    ckpt_name = ModelCheckpoint(filepath=tmpdir / 'name', prefix='test').format_checkpoint_name(3, {}, ver=3)
+    assert ckpt_name == tmpdir / 'test-name-v3.ckpt'
 
 
 def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
