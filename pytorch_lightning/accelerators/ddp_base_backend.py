@@ -180,6 +180,9 @@ class DDPBase(Accelerator):
         # clean up memory
         torch.cuda.empty_cache()
 
+        if self.trainer.global_rank == 0:
+            return results
+
     def set_world_ranks(self, process_idx):
         raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')
 
