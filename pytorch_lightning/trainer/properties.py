@@ -13,6 +13,7 @@ from pytorch_lightning.callbacks import ProgressBarBase
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 
+
 class TrainerProperties(ABC):
 
     precision: int
@@ -170,3 +171,6 @@ class TrainerProperties(ABC):
 
     def save_checkpoint(self, filepath, weights_only: bool = False):
         self.checkpoint_connector.save_checkpoint(filepath, weights_only)
+
+    def get_model(self):
+        return self.model_connector.get_model()

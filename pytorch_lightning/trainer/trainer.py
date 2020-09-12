@@ -34,7 +34,6 @@ from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
-from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
@@ -49,6 +48,7 @@ from pytorch_lightning.trainer.connectors.callback_connector import CallbackConn
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
+from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
@@ -71,7 +71,6 @@ except ImportError:
 
 class Trainer(
     TrainerProperties,
-    TrainerIOMixin,
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
@@ -151,6 +150,7 @@ class Trainer(
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.profile_connector = ProfilerConnector(self)
         self.checkpoint_connector = CheckpointConnector(self)
+        self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
@@ -209,6 +209,9 @@ class Trainer(
             replace_sampler_ddp,
             deterministic
         )
+
+        # link up SLURM
+        self.slurm_connector.on_trainer_init(num_nodes)
 
         # init train loop related flags
         self.train_loop.on_trainer_init(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
