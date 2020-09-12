@@ -18,7 +18,7 @@ Weights and Biases
 """
 import os
 from argparse import Namespace
-from typing import Optional, List, Dict, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 import torch.nn as nn
 
