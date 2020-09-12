@@ -48,6 +48,7 @@ from pytorch_lightning.trainer.connectors.training_trick_connector import Traini
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
 from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
+from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
@@ -149,6 +150,7 @@ class Trainer(
         self.debugging_connector = DebuggingConnector(self)
         self.training_tricks_connector = TrainingTricksConnector(self)
         self.profile_connector = ProfilerConnector(self)
+        self.checkpoint_connector = CheckpointConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)

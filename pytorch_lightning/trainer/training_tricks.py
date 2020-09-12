@@ -43,14 +43,6 @@ class TrainerTrainingTricksMixin(ABC):
         """Warning: this is just empty shell for code implemented in other class."""
 
     @abstractmethod
-    def save_checkpoint(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def restore(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
     def fit(self, *args):
         """Warning: this is just empty shell for code implemented in other class."""
 

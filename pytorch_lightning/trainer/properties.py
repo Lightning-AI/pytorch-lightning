@@ -11,7 +11,7 @@ from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import ProgressBarBase
 from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
-
+from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 
 class TrainerProperties(ABC):
 
@@ -30,6 +30,7 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _weights_save_path: str
     model_connector: ModelConnector
+    checkpoint_connector: CheckpointConnector
 
     @property
     def use_amp(self) -> bool:
@@ -166,3 +167,6 @@ class TrainerProperties(ABC):
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
         return self._weights_save_path
+
+    def save_checkpoint(self, filepath, weights_only: bool = False):
+        self.checkpoint_connector.save_checkpoint(filepath, weights_only)
