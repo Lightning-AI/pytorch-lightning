@@ -195,9 +195,7 @@ class Trainer(
             terminate_on_nan
         )
 
-        # init distributed backends. Must be done in this order
-        self.accelerator_connector.set_distributed_mode(distributed_backend)
-        self.slurm_connector.on_trainer_init(num_nodes)
+        # init accelerator related flags
         self.accelerator_connector.on_trainer_init(
             num_processes,
             tpu_cores,

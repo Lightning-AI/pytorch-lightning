@@ -94,6 +94,10 @@ class AcceleratorConnector:
         self.trainer.tpu_local_core_rank = None
         self.trainer.tpu_global_core_rank = None
 
+        # distributed backend choice
+        self.trainer.distributed_backend = distributed_backend
+        self.set_distributed_mode(distributed_backend)
+
         # override dist backend when using tpus
         if self.trainer.on_tpu:
             self.trainer.distributed_backend = 'tpu'
@@ -102,6 +106,10 @@ class AcceleratorConnector:
         # init flags for SLURM+DDP to work
         self.trainer.world_size = 1
         self.trainer.interactive_ddp_procs = []
+
+        # link up SLURM
+        # TODO: this should be taken out of here... but depends too much on DDP
+        self.trainer.slurm_connector.on_trainer_init(self.trainer.num_nodes)
         self.trainer.node_rank = self.determine_ddp_node_rank()
         self.trainer.local_rank = self.determine_local_rank()
         self.trainer.global_rank = 0
@@ -157,7 +165,6 @@ class AcceleratorConnector:
         return accelerator_backend
 
     def set_distributed_mode(self, distributed_backend):
-        self.trainer.distributed_backend = distributed_backend
         self.trainer.use_dp = False
         self.trainer.use_ddp = False
         self.trainer.use_ddp2 = False
