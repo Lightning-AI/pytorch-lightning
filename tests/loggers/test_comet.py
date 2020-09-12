@@ -108,6 +108,7 @@ def test_comet_logger_dirs_creation(tmpdir, monkeypatch):
 
 
 def test_comet_epoch_logging(tmpdir, monkeypatch):
+    """ Test that CometLogger removes the epoch key from the metrics dict and passes it as argument. """
     import atexit
     monkeypatch.setattr(atexit, "register", lambda _: None)
     with patch("pytorch_lightning.loggers.comet.CometOfflineExperiment.log_metrics") as log_metrics:
