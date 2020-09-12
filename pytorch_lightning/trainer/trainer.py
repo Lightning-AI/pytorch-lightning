@@ -62,6 +62,9 @@ from pytorch_lightning.trainer.properties import TrainerProperties
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
+warnings.filterwarnings(
+    'ignore', message='UserWarning: semaphore_tracker: ' 'to clean up at shutdown'
+)
 
 try:
     from apex import amp
