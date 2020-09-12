@@ -52,6 +52,7 @@ def test_confusion_matrix(normalize, num_classes):
     cm = conf_matrix(pred, target)
     assert isinstance(cm, torch.Tensor)
 
+
 @pytest.mark.parametrize(['normalize', 'num_classes'], [
     pytest.param(True, 3)
 ])

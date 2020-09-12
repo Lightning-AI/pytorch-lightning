@@ -191,7 +191,7 @@ def test_confusion_matrix():
     pred = torch.LongTensor([0] * 13 + [1] * 10 + [2] * 15)
     cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
     assert torch.allclose(cm, torch.tensor([[13., 0., 0.], [0., 10., 6.], [0., 0., 9.]]))
-    to_compare = cm / torch.tensor([[13.],[16.],[ 9.]])
+    to_compare = cm / torch.tensor([[13.], [16.], [9.]])
 
     cm = confusion_matrix(pred, target, normalize=True, num_classes=3)
     assert torch.allclose(cm, to_compare)
