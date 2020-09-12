@@ -116,7 +116,7 @@ class CheckpointConnector:
             amp.load_state_dict(checkpoint['amp_scaling_state'])
 
         # load training state (affects trainer only)
-        self.trainer.restore_training_state(checkpoint)
+        self.restore_training_state(checkpoint)
 
     def restore_training_state(self, checkpoint):
         """
