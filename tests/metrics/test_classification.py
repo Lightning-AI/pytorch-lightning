@@ -41,8 +41,7 @@ def test_accuracy(num_classes):
 @pytest.mark.parametrize(['normalize', 'num_classes'], [
     pytest.param(False, None),
     pytest.param(True, None),
-    pytest.param(False, 3),
-    pytest.param(True, 3)
+    pytest.param(False, 3)
 ])
 def test_confusion_matrix(normalize, num_classes):
     conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
@@ -51,7 +50,20 @@ def test_confusion_matrix(normalize, num_classes):
     target = (torch.arange(120) % 3).view(-1, 1)
     pred = target.clone()
     cm = conf_matrix(pred, target)
-    assert isinstance(cm, torch.Tensor) and cm[torch.isnan(cm)].nelement() == 0
+    assert isinstance(cm, torch.Tensor)
+
+@pytest.mark.parametrize(['normalize', 'num_classes'], [
+    pytest.param(True, 3)
+])
+def test_confusion_matrix_norm(normalize, num_classes):
+    conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
+    assert conf_matrix.name == 'confusion_matrix'
+
+    with pytest.warns(UserWarning, match='You have 6 nan values at confusion matrix replaced with zeros.'):
+        target = torch.LongTensor([0] * 5)
+        pred = target.clone()
+        cm = conf_matrix(pred, target)
+        assert isinstance(cm, torch.Tensor)
 
 
 @pytest.mark.parametrize('pos_label', [1, 2.])
