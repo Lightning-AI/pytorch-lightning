@@ -13,7 +13,6 @@
 # limitations under the License
 
 import os
-import re
 
 import torch
 
@@ -22,11 +21,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
-from pytorch_lightning.accelerators.base_backend import Accelerator
-import torch.distributed as torch_distrib
-import torch.distributed as dist
-from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.accelerators.ddp_base_backend import DDPBase
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -42,7 +37,7 @@ except ImportError:
     amp = None
 
 
-class DDP2Backend(Accelerator):
+class DDP2Backend(DDPBase):
 
     def __init__(self, trainer):
         super().__init__(trainer)
@@ -170,22 +165,6 @@ class DDP2Backend(Accelerator):
         # clean up memory
         torch.cuda.empty_cache()
 
-    def training_step(self, args):
-        if self.trainer.amp_backend == AMPType.NATIVE:
-            with torch.cuda.amp.autocast():
-                output = self.trainer.model(*args)
-        else:
-            output = self.trainer.model(*args)
-        return output
-
-    def validation_step(self, args):
-        output = self.training_step(args)
-        return output
-
-    def test_step(self, args):
-        output = self.training_step(args)
-        return output
-
     def training_step_end(self, output):
         if isinstance(output, Result):
             output.dp_reduce()
@@ -200,35 +179,3 @@ class DDP2Backend(Accelerator):
         if isinstance(output, Result):
             output.dp_reduce()
         return output
-
-    def barrier(self, name: str = None):
-        torch_distrib.barrier()
-
-    def early_stopping_should_stop(self, pl_module):
-        stop = torch.tensor(int(self.trainer.should_stop), device=pl_module.device)
-        dist.all_reduce(stop, op=dist.reduce_op.SUM)
-        dist.barrier()
-        should_stop = stop == self.trainer.world_size
-        return should_stop
-
-    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
-        if self.trainer.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
-            return
-
-        # track the best model path
-        best_model_path = None
-        if self.trainer.checkpoint_callback is not None:
-            best_model_path = self.trainer.checkpoint_callback.best_model_path
-
-        if self.trainer.global_rank == 0 and mp_queue is not None:
-            rank_zero_warn('cleaning up ddp environment...')
-            # todo, pass complete checkpoint as state dictionary
-            mp_queue.put(best_model_path)
-            mp_queue.put(results)
-
-            # save the last weights
-            last_path = None
-            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
-                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
-                atomic_save(model.state_dict(), last_path)
-            mp_queue.put(last_path)
