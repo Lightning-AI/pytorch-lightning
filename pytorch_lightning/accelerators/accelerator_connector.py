@@ -6,7 +6,6 @@ from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import _logger as log
-import re
 
 try:
     import torch_xla
@@ -107,7 +106,10 @@ class AcceleratorConnector:
         # init flags for SLURM+DDP to work
         self.trainer.world_size = 1
         self.trainer.interactive_ddp_procs = []
-        self.configure_slurm_ddp(self.trainer.num_nodes)
+
+        # link up SLURM
+        # TODO: this should be taken out of here... but depends too much on DDP
+        self.trainer.slurm_connector.on_trainer_init(self.trainer.num_nodes)
         self.trainer.node_rank = self.determine_ddp_node_rank()
         self.trainer.local_rank = self.determine_local_rank()
         self.trainer.global_rank = 0
@@ -288,40 +290,6 @@ class AcceleratorConnector:
         else:
             return int(os.environ.get('LOCAL_RANK', 0))
 
-    def configure_slurm_ddp(self, num_gpu_nodes):
-        self.trainer.is_slurm_managing_tasks = False
-
-        # extract SLURM flag vars
-        # whenever we have the correct number of tasks, we let slurm manage processes
-        # otherwise we launch the required number of processes
-        if self.trainer.use_ddp:
-            self.trainer.num_requested_gpus = self.trainer.num_gpus * num_gpu_nodes
-            self.trainer.num_slurm_tasks = 0
-            try:
-                self.trainer.num_slurm_tasks = int(os.environ['SLURM_NTASKS'])
-                self.trainer.is_slurm_managing_tasks = self.trainer.num_slurm_tasks == self.trainer.num_requested_gpus
-
-                # in interactive mode we don't manage tasks
-                job_name = os.environ['SLURM_JOB_NAME']
-                if job_name == 'bash':
-                    self.trainer.is_slurm_managing_tasks = False
-
-            except Exception:
-                # likely not on slurm, so set the slurm managed flag to false
-                self.trainer.is_slurm_managing_tasks = False
-
-        # used for tests only, set this flag to simulate slurm managing a task
-        try:
-            should_fake = int(os.environ['FAKE_SLURM_MANAGING_TASKS'])
-            if should_fake:
-                self.trainer.is_slurm_managing_tasks = True
-        except Exception:
-            pass
-
-        # notify user the that slurm is managing tasks
-        if self.trainer.is_slurm_managing_tasks:
-            rank_zero_info('Multi-processing is handled by Slurm.')
-
     def determine_ddp_node_rank(self):
         if self.trainer.is_slurm_managing_tasks:
             return int(os.environ['SLURM_NODEID'])
@@ -338,15 +306,3 @@ class AcceleratorConnector:
         k, rank = node_ids.pop()
         rank_zero_info(f"Using environment variable {k} for node rank ({rank}).")
         return int(rank)
-
-    def resolve_root_node_address(self, root_node):
-        if '[' in root_node:
-            name, numbers = root_node.split('[', maxsplit=1)
-            number = numbers.split(',', maxsplit=1)[0]
-            if '-' in number:
-                number = number.split('-')[0]
-
-            number = re.sub('[^0-9]', '', number)
-            root_node = name + number
-
-        return root_node

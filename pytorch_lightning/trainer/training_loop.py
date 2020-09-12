@@ -128,7 +128,7 @@ class TrainLoop:
         self.trainer.accelerator_backend.barrier('setup_training')
 
         # register auto-resubmit when on SLURM
-        self.trainer.register_slurm_signal_handlers()
+        self.trainer.slurm_connector.register_slurm_signal_handlers()
 
         # --------------------------
         # Pre-train
