@@ -321,7 +321,7 @@ class CheckpointConnector:
             if self.trainer.amp_backend == AMPType.NATIVE and not self.trainer.use_tpu and self.trainer.scaler is not None:
                 checkpoint['native_amp_scaling_state'] = self.trainer.scaler.state_dict()
             elif self.trainer.amp_backend == AMPType.APEX:
-                checkpoint['amp_scaling_state'] = self.trainer.state_dict()
+                checkpoint['amp_scaling_state'] = amp.state_dict()
 
         # add the module_arguments and state_dict from the model
         model = self.trainer.get_model()
