@@ -14,10 +14,9 @@
 
 import os
 import warnings
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
@@ -26,7 +25,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
+from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
@@ -37,23 +36,23 @@ from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
 from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.training_loop import TrainLoop
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.trainer.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.optimizer_connector import OptimizerConnector
-from pytorch_lightning.trainer.training_trick_connector import TrainingTricksConnector
-from pytorch_lightning.trainer.callback_connector import CallbackConnector
-from pytorch_lightning.trainer.model_connector import ModelConnector
-from pytorch_lightning.trainer.debugging_connector import DebuggingConnector
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
+from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
+from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
+from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.trainer.precision_connector import PrecisionConnector
-from pytorch_lightning.trainer.profiler_connector import ProfilerConnector
-from pytorch_lightning.trainer.data_connector import DataConnector
+from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
+from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
+from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer import docstrings
 from pytorch_lightning.trainer.properties import TrainerProperties
