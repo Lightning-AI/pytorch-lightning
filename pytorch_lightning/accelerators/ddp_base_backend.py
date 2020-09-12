@@ -184,7 +184,7 @@ class DDPBase(Accelerator):
         raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')
 
     def model_to_device(self, model, process_idx):
-        raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')
+        raise NotImplementedError('to create a ddp backend, please implement model_to_device')
 
     def get_device_ids(self):
-        raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')
+        raise NotImplementedError('to create a ddp backend, please implement get_device_ids')
