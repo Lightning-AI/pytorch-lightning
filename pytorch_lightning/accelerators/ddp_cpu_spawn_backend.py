@@ -25,7 +25,7 @@ except ImportError:
     amp = None
 
 
-class DDPSpawnBackend(DDPBase):
+class DDPCPUSpawnBackend(DDPBase):
 
     def __init__(self, trainer, nprocs):
         super().__init__(trainer)
@@ -75,11 +75,8 @@ class DDPSpawnBackend(DDPBase):
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
     def model_to_device(self, model, process_idx):
-        gpu_idx = process_idx
-        self.trainer.root_gpu = gpu_idx
-        torch.cuda.set_device(self.trainer.root_gpu)
-        model.cuda(self.trainer.root_gpu)
+        pass
 
     def get_device_ids(self):
-        device_ids = [self.trainer.root_gpu]
+        device_ids = None
         return device_ids
