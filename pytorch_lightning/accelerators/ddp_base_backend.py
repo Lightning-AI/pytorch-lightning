@@ -140,7 +140,7 @@ class DDPBase(Accelerator):
             model = model.configure_sync_batchnorm(model)
 
         # move the model to the correct device
-        self.model_to_device(model, process_idx)
+        self.model_to_device(model, process_idx, is_master)
 
         # CHOOSE OPTIMIZER
         # allow for lr schedulers as well
@@ -183,7 +183,7 @@ class DDPBase(Accelerator):
     def set_world_ranks(self, process_idx):
         raise NotImplementedError('to create a ddp backend, please implement set_world_ranks')
 
-    def model_to_device(self, model, process_idx):
+    def model_to_device(self, model, process_idx, is_master):
         raise NotImplementedError('to create a ddp backend, please implement model_to_device')
 
     def get_device_ids(self):

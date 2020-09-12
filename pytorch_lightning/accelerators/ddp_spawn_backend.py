@@ -74,7 +74,7 @@ class DDPSpawnBackend(DDPBase):
         self.trainer.global_rank = self.trainer.node_rank * self.trainer.num_processes + process_idx
         self.trainer.world_size = self.trainer.num_nodes * self.trainer.num_processes
 
-    def model_to_device(self, model, process_idx):
+    def model_to_device(self, model, process_idx, is_master):
         gpu_idx = process_idx
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)
