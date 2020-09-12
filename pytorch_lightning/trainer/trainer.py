@@ -63,7 +63,7 @@ warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
 warnings.filterwarnings(
-    'ignore', message='UserWarning: semaphore_tracker: ' 'to clean up at shutdown'
+    'ignore', category=UserWarning, message='.*leaked semaphores to clean up at shutdown.*'
 )
 
 try:
