@@ -103,7 +103,6 @@ class AcceleratorConnector:
         if self.trainer.on_tpu:
             self.trainer.distributed_backend = 'tpu'
             self.trainer.use_tpu = True
-            self.trainer.init_tpu()
 
         # init flags for SLURM+DDP to work
         self.trainer.world_size = 1
