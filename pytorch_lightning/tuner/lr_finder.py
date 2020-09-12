@@ -179,7 +179,7 @@ def lr_find(
     lr_finder._total_batch_idx = trainer.total_batch_idx  # for debug purpose
 
     # Reset model state
-    trainer.restore(str(save_path), on_gpu=trainer.on_gpu)
+    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
     os.remove(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
