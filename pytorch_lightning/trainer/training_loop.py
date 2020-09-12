@@ -172,6 +172,7 @@ class TrainLoop:
         self.trainer.call_hook('on_train_end')
 
         # kill loggers
+        print('175')
         if self.trainer.logger is not None:
             self.trainer.logger.finalize("success")
 
@@ -183,10 +184,12 @@ class TrainLoop:
             for proc in self.trainer.interactive_ddp_procs:
                 subprocess.Popen.kill(proc)
 
+        print('187')
         # clean up dist group
         if self.trainer.use_ddp or self.trainer.use_ddp2:
             torch_distrib.destroy_process_group()
 
+        print('192')
         # clear mem
         if self.trainer.on_gpu:
             model = self.trainer.get_model()
