@@ -42,10 +42,6 @@ class TrainerTrainingTricksMixin(ABC):
     def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
-    @abstractmethod
-    def fit(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
     def print_nan_gradients(self) -> None:
         model = self.get_model()
         for param in model.parameters():
