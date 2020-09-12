@@ -388,7 +388,6 @@ class Trainer(
                 # hook
                 self.train_loop.on_train_end()
 
-            print('eof')
             return
 
     def run_evaluation(self, test_mode: bool = False, max_batches=None):
