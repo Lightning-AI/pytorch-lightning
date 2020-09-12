@@ -52,7 +52,9 @@ class WandbLogger(LightningLoggerBase):
         version: Sets the version, mainly used to resume a previous run.
         project: The name of the project to which this run will belong.
         log_model: Save checkpoints in wandb dir to upload on W&B servers.
-        experiment: WandB experiment object
+        experiment: WandB experiment object.
+        kwargs: Addition arguments like `entity`, `group`, `tags`, etc. used by
+            `wandb.init` can be passed as keyword arguments in this logger.
 
     Example:
         >>> from pytorch_lightning.loggers import WandbLogger
