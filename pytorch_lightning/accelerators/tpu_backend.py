@@ -98,7 +98,7 @@ class TPUBackend(Accelerator):
 
         # load weights if not interrupted
         if self.trainer.on_colab_kaggle and not self.trainer.testing:
-            self.trainer.load_spawn_weights(model)
+            self.load_spawn_weights(model)
 
         self.trainer.model = model
 
@@ -180,7 +180,7 @@ class TPUBackend(Accelerator):
         # when training ends on these platforms dump weights to get out of the main process
         if trainer.on_colab_kaggle:
             rank_zero_warn('cleaning up... please do not interrupt')
-            trainer.save_spawn_weights(model)
+            self.save_spawn_weights(model)
 
     def __setup_tpu_training(self, model: LightningModule, trainer):
         # use the default device from the process
@@ -260,3 +260,37 @@ class TPUBackend(Accelerator):
         torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
         should_stop = int(stop.item()) == self.trainer.world_size
         return should_stop
+
+    def save_spawn_weights(self, model):
+        """
+        Dump a temporary checkpoint after ddp ends to get weights out of the process
+        :param model:
+        :return:
+        """
+        if self.trainer.is_global_zero:
+            path = os.path.join(self.trainer.default_root_dir, '__temp_weight_distributed_end.ckpt')
+            self.trainer.save_checkpoint(path)
+            return path
+
+    def load_spawn_weights(self, original_model):
+        """
+        Load the temp weights saved in the process
+        To recover the trained model from the ddp process we load the saved weights
+        :param model:
+        :return:
+        """
+
+        loaded_model = original_model
+
+        if self.trainer.is_global_zero:
+            # load weights saved in ddp
+            path = os.path.join(self.trainer.default_root_dir, '__temp_weight_distributed_end.ckpt')
+            loaded_model = original_model.__class__.load_from_checkpoint(path)
+
+            # copy loaded weights to old model
+            original_model.load_state_dict(loaded_model.state_dict())
+
+            # remove ddp weights
+            os.remove(path)
+
+        return loaded_model

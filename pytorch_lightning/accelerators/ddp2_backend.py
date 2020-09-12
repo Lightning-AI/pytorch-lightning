@@ -13,6 +13,7 @@
 # limitations under the License
 
 import os
+import re
 
 import torch
 
@@ -24,6 +25,8 @@ from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.accelerators.base_backend import Accelerator
 import torch.distributed as torch_distrib
 import torch.distributed as dist
+from pytorch_lightning.utilities.cloud_io import atomic_save
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -162,7 +165,7 @@ class DDP2Backend(Accelerator):
         model = self.trainer.get_model()
 
         # persist info in ddp_spawn
-        self.trainer.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
+        self.transfer_distrib_spawn_state_on_fit_end(model, mp_queue, results)
 
         # clean up memory
         torch.cuda.empty_cache()
@@ -207,3 +210,25 @@ class DDP2Backend(Accelerator):
         dist.barrier()
         should_stop = stop == self.trainer.world_size
         return should_stop
+
+    def transfer_distrib_spawn_state_on_fit_end(self, model, mp_queue, results):
+        if self.trainer.distributed_backend.lower() not in ['ddp_spawn', 'ddp_cpu', 'tpu']:
+            return
+
+        # track the best model path
+        best_model_path = None
+        if self.trainer.checkpoint_callback is not None:
+            best_model_path = self.trainer.checkpoint_callback.best_model_path
+
+        if self.trainer.global_rank == 0 and mp_queue is not None:
+            rank_zero_warn('cleaning up ddp environment...')
+            # todo, pass complete checkpoint as state dictionary
+            mp_queue.put(best_model_path)
+            mp_queue.put(results)
+
+            # save the last weights
+            last_path = None
+            if not self.trainer.testing and best_model_path is not None and len(best_model_path) > 0:
+                last_path = re.sub('.ckpt', '.tmp_end.ckpt', best_model_path)
+                atomic_save(model.state_dict(), last_path)
+            mp_queue.put(last_path)
