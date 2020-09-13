@@ -316,7 +316,7 @@ def confusion_matrix(
         nan_elements = cm[torch.isnan(cm)].nelement()
         if nan_elements != 0:
             cm[torch.isnan(cm)] = 0
-            rank_zero_warn(f'You have {nan_elements} nan values at confusion matrix replaced with zeros.')
+            rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
 
     return cm
 
