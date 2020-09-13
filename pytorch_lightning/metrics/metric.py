@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Optional, Sequence
 import numbers
 
 import torch
@@ -163,7 +163,17 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
-        return torch.cat(tensors).mean(0)
+        try:
+            return torch.cat(tensors).mean(0)
+        except (ValueError, TypeError):
+            if isinstance(tensors[0], Mapping):
+                return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
+            elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
+                return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
+            elif isinstance(tensors[0], torch.Tensor):
+                return torch.stack(tensors).mean(0)
+            else:
+                raise TypeError("unknown metric value format to aggregate")
 
     @staticmethod
     def compute(self, data: Any, output: Any):
@@ -211,30 +221,6 @@ class TensorMetric(Metric):
             output, (torch.Tensor, np.ndarray, numbers.Number), convert_to_tensor, self.dtype, self.device
         )
         return super(TensorMetric, self).output_convert(self, data, output)
-
-    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
-        """
-        Implement aggregation of values on the same device
-
-        Args:
-            tensors: the values to be aggregated
-
-        Returns:
-            aggregated values
-
-        """
-
-        try:
-            return super().aggregate(*tensors)
-        except (ValueError, TypeError):
-            if isinstance(tensors[0], Mapping):
-                return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
-            elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
-                return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
-            elif isinstance(tensors[0], torch.Tensor):
-                return torch.stack(tensors).mean(0)
-            else:
-                raise TypeError
 
 
 class NumpyMetric(Metric):
