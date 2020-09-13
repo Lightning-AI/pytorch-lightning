@@ -61,7 +61,7 @@ def test_confusion_matrix_norm(normalize, num_classes):
     conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
     assert conf_matrix.name == 'confusion_matrix'
 
-    with pytest.warns(UserWarning, match='You have 6 nan values at confusion matrix replaced with zeros.'):
+    with pytest.warns(UserWarning, match='6 nan values found in confusion matrix have been replaced with zeros.'):
         target = torch.LongTensor([0] * 5)
         pred = target.clone()
         cm = conf_matrix(pred, target)
