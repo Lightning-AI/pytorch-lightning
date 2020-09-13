@@ -77,7 +77,7 @@ class DDPBase(Accelerator):
         if self.trainer.checkpoint_callback is not None:
             best_model_path = self.trainer.checkpoint_callback.best_model_path
 
-        if self.trainer.on_colab_kaggle and (self.trainer.global_rank == 0 and mp_queue is not None):
+        if self.trainer.global_rank == 0 and mp_queue is not None:
             rank_zero_warn('cleaning up ddp environment...')
             # todo, pass complete checkpoint as state dictionary
             mp_queue.put(best_model_path)
