@@ -457,7 +457,7 @@ def test_model_checkpoint_only_weights(tmpdir):
 
     # assert restoring train state fails
     with pytest.raises(KeyError, match='checkpoint contains only the model'):
-        trainer.restore_training_state(checkpoint)
+        trainer.checkpoint_connector.restore_training_state(checkpoint)
 
 
 def test_model_freeze_unfreeze():

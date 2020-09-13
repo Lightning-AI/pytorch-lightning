@@ -30,22 +30,6 @@ from pytorch_lightning.utilities import parsing, AMPType
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
 
 class TrainLoop:
 
@@ -144,7 +128,7 @@ class TrainLoop:
         self.trainer.accelerator_backend.barrier('setup_training')
 
         # register auto-resubmit when on SLURM
-        self.trainer.register_slurm_signal_handlers()
+        self.trainer.slurm_connector.register_slurm_signal_handlers()
 
         # --------------------------
         # Pre-train
@@ -166,7 +150,7 @@ class TrainLoop:
         self.trainer.model = model
 
         # restore training and model before hpc is called
-        self.trainer.restore_weights(model)
+        self.trainer.checkpoint_connector.restore_weights(model)
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)

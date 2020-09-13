@@ -862,7 +862,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         except Exception:
             root_node = '127.0.0.1'
 
-        root_node = self.trainer.resolve_root_node_address(root_node)
+        root_node = self.trainer.slurm_connector.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
     def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
@@ -876,7 +876,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             global_rank: The global process idx.
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
             is_slurm_managing_tasks: is cluster managed by SLURM.
-
         """
         if is_slurm_managing_tasks:
             self._init_slurm_connection()

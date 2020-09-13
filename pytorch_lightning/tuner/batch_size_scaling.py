@@ -108,7 +108,7 @@ def scale_batch_size(trainer,
     log.info(f'Finished batch size finder, will continue with full run using batch size {new_size}')
 
     # Restore initial state of model
-    trainer.restore(str(save_path), on_gpu=trainer.on_gpu)
+    trainer.checkpoint_connector.restore(str(save_path), on_gpu=trainer.on_gpu)
     os.remove(save_path)
 
     # Finish by resetting variables so trainer is ready to fit model
