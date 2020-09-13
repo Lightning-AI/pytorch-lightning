@@ -1,4 +1,4 @@
-.. _data-modules:
+.. _datamodules:
 
 LightningDataModule
 ===================

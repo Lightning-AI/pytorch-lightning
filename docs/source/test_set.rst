@@ -1,4 +1,4 @@
-.. _test-set:
+.. _test_set:
 
 Test set
 ========

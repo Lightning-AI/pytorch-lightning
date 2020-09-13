@@ -22,15 +22,15 @@ Hooks lifecycle
 Training set-up
 ^^^^^^^^^^^^^^^
 
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.prepare_data`
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.setup`
+- :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.prepare_data`
+- :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.setup`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.init_ddp_connection`
 - :meth:`~pytorch_lightning.trainer.optimizers.TrainerOptimizersMixin.init_optimizers`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_apex`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_ddp`
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.train_dataloader`
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.test_dataloader`
-- :meth:`~pytorch_lightning.core.lightning.LightningModule.val_dataloader`
+- :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.train_dataloader`
+- :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.test_dataloader`
+- :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.val_dataloader`
 - :meth:`~pytorch_lightning.core.lightning.LightningModule.summarize`
 - :meth:`~pytorch_lightning.trainer.training_io.TrainerIOMixin.restore_weights`
 
@@ -89,5 +89,8 @@ Test loop
 General hooks
 -------------
 
-.. automodule:: pytorch_lightning.core.hooks
+.. autoclass:: pytorch_lightning.core.hooks.ModelHooks
+    :noindex:
+
+.. autoclass:: pytorch_lightning.core.hooks.DataHooks
     :noindex:
