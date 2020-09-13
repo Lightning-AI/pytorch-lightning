@@ -186,7 +186,7 @@ def test_confusion_matrix():
     pred = target.clone()
     cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
     assert torch.allclose(cm, torch.tensor([[5., 0., 0.], [0., 0., 0.], [0., 0., 0.]]))
-
+Example taken from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
     target = torch.LongTensor([0] * 13 + [1] * 16 + [2] * 9)
     pred = torch.LongTensor([0] * 13 + [1] * 10 + [2] * 15)
     cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
