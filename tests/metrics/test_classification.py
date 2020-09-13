@@ -57,6 +57,7 @@ def test_confusion_matrix(normalize, num_classes):
     pytest.param(True, 3)
 ])
 def test_confusion_matrix_norm(normalize, num_classes):
+    """ test that user is warned if confusion matrix contains nans that are changed to zeros"""
     conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
     assert conf_matrix.name == 'confusion_matrix'
 
