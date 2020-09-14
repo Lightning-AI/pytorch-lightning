@@ -69,23 +69,30 @@ For Docker users, the NeMo container is available on
 
     docker run --runtime=nvidia -it --rm -v --shm-size=16g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:v0.11
 
-Example: Speech to Text (ASR)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Automatic Speech Recognition (ASR)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Everything needed to train Convolutional ASR models is included with NeMo. 
 NeMo supports multiple Speech Recognition architectures, including Jasper 
 and QuartzNet. These models can be trained from scratch on custom datasets or 
-pretrained checkpoints trained on thousands of hour of audio can be restored for
+pretrained checkpoints trained on thousands of hours of audio that can be restored for
 immediate use.
 
 Some typical ASR tasks are included with NeMo:
 
-- Audio transcription
-- Speech Commands
-- Voice Activity Detection
-- Byte Pair/Word Piece Training
+- `Audio transcription <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/01_ASR_with_NeMo.ipynb>`_
+- `Byte Pair/Word Piece Training <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/speech_to_text_bpe.py>`_
+- `Speech Commands <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/03_Speech_Commands.ipynb>`_
+- `Voice Activity Detection <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/06_Voice_Activiy_Detection.ipynb>`_
+- `Speaker Recognition <https://github.com/NVIDIA/NeMo/blob/main/examples/speaker_recognition/speaker_reco.py>`_
 
-Configurations are in .yaml files included with NeMo/examples
+Specify Model Configurations with YAML File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
+
+See `here <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/conf/config.yaml>`_ 
+for the entire speech to text .yaml file.
 
 .. code-block:: yaml
 
@@ -116,7 +123,10 @@ Configurations are in .yaml files included with NeMo/examples
     # all other configuration, data, optimizer, etc
     ...
 
-The example speech-to-text script is just:
+Developing ASR Model From Scratch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`speech_to_text.py <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/speech_to_text.py>`_
 
 .. code-block:: python
 
@@ -126,10 +136,9 @@ The example speech-to-text script is just:
         asr_model = EncDecCTCModel(cfg.model, trainer)
         trainer.fit(asr_model)
 
-.. note:: NeMo models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
 
-Hydra makes it so that every aspect of the NeMo model, 
-including the PyTorch Lightning Trainer can be modified from the command line.
+Hydra makes every aspect of the NeMo model, 
+including the PyTorch Lightning Trainer, customizable from the command line.
 
 .. code-block:: bash
 
@@ -146,14 +155,35 @@ including the PyTorch Lightning Trainer can be modified from the command line.
 
 .. note:: Training NeMo ASR models can take days/weeks so it is highly recommended to use multiple GPUs and multiple nodes with the PyTorch Lightning Trainer.
 
-Optionally launch Tensorboard to view training results
+NeMo Experiment Manager
+^^^^^^^^^^^^^^^^^^^^^^^
+
+NeMo's Experiment Manager leverages PyTorch Lightning for model checkpointing, 
+TensorBoard Logging and Weights and Biases logging. The Experiment Manager is included by default
+in all NeMo example scripts.
+
+.. code-block:: python
+
+    exp_manager(trainer, cfg.get("exp_manager", None))
+
+And is configurable via .yaml with Hydra.
+
+.. code-block:: bash
+
+    exp_manager:
+        exp_dir: null
+        name: *name
+        create_tensorboard_logger: True
+        create_checkpoint_callback: True
+
+Optionally launch Tensorboard to view training results in ./nemo_experiments (by default).
 
 .. code-block:: bash
 
     tensorboard --bind_all --logdir nemo_experiments
 
 
-Transcribe audio with QuartzNet pretrained on 7000+ hours of audio.
+Transcribe audio with QuartzNet pretrained on ~3300 hours of audio.
 
 .. code-block:: python
 
