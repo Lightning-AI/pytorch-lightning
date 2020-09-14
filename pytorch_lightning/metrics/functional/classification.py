@@ -1010,7 +1010,6 @@ def iou(
     scores = torch.zeros(num_classes, device=pred.device, dtype=torch.float32)
 
     for class_idx in range(num_classes):
-        # Skip this class if its index is being ignored.
         if class_idx == ignore_index:
             continue
 
