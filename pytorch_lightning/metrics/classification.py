@@ -313,8 +313,8 @@ class Recall(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return recall(pred=pred, 
-                      target=target, 
+        return recall(pred=pred,
+                      target=target,
                       num_classes=self.num_classes,
                       class_reduction=self.class_reduction)
 
