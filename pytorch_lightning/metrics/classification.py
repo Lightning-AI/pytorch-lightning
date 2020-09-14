@@ -818,20 +818,9 @@ class IoU(TensorMetric):
                 not in the range [0, num_classes-1], where num_classes is either given or derived from pred and target.
                 By default, no index is ignored, and all classes are used.
             absent_score: score to use for an individual class, if no instances of the class index were present in
-                `y_pred` AND no instances of the class index were present in `y_true`. By default, assign a score of
-                0.0 for this class if absent.
-
-                Ex: if we have the following input:
-
-                - 3 classes
-                - `y_pred` is [0, 0]
-                - `y_true` is [0, 2]
-                - `absent_score` is 1.0
-
-                Then class 0 would get a score of 1 / 2, and class 2 would get a score of 0 / 1. However, class 1 is not
-                actually present in either `y_pred` or `y_true`, so it falls back to the `absent_score` (1.0 in
-                this example). These 3 scores are then reduced according to the `reduction` method in the same way as if
-                class 1 were present and received an empirical score.
+                `y_pred` AND no instances of the class index were present in `y_true`. For example, if we have 3
+                classes, [0, 0] for `y_pred`, and [0, 2] for `y_true`, then class 1 would be assigned the
+                `absent_score`. Default is 0.0.
             num_classes: Optionally specify the number of classes
             reduction: a method to reduce metric score over labels (default: takes the mean)
                 Available reduction methods:
