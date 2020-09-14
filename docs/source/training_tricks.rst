@@ -2,7 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _training-tricks:
+.. _training_tricks:
 
 Training Tricks
 ================
@@ -90,9 +90,10 @@ invoking the trainer method `.scale_batch_size` themself (see description below)
 
     # Use default in trainer construction
     trainer = Trainer()
+    tuner = Tuner(trainer)
 
     # Invoke method
-    new_batch_size = trainer.scale_batch_size(model, ...)
+    new_batch_size = tuner.scale_batch_size(model, ...)
 
     # Override old batch size
     model.hparams.batch_size = new_batch_size

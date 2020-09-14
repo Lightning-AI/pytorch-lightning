@@ -21,7 +21,6 @@ Monitor a validation metric and stop training when it stops improving.
 """
 import numpy as np
 import torch
-import torch.distributed as dist
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
@@ -151,14 +150,14 @@ class EarlyStopping(Callback):
         self.__warn_deprecated_monitor_key()
 
         val_es_key = 'val_early_stop_on'
-        if trainer.callback_metrics.get(val_es_key) is not None:
+        if trainer.logger_connector.callback_metrics.get(val_es_key) is not None:
             self.monitor = val_es_key
 
         # disable strict checking when using structured results
-        if val_es_key in trainer.callback_metrics:
+        if val_es_key in trainer.logger_connector.callback_metrics:
             self.strict = False
 
-        self._validate_condition_metric(trainer.callback_metrics)
+        self._validate_condition_metric(trainer.logger_connector.callback_metrics)
 
     def on_train_epoch_end(self, trainer, pl_module):
         # disable early stopping in train loop when there's a val loop
@@ -168,7 +167,7 @@ class EarlyStopping(Callback):
         # early stopping can also work in the train loop when there is no val loop and when using structured results
         should_check_early_stop = False
         train_es_key = 'early_stop_on'
-        if trainer.callback_metrics.get(train_es_key, None) is not None:
+        if trainer.logger_connector.callback_metrics.get(train_es_key, None) is not None:
             self.monitor = train_es_key
             should_check_early_stop = True
 
@@ -188,7 +187,7 @@ class EarlyStopping(Callback):
             rank_zero_warn(m)
 
     def _run_early_stopping_check(self, trainer, pl_module):
-        logs = trainer.callback_metrics
+        logs = trainer.logger_connector.callback_metrics
 
         if not self._validate_condition_metric(logs):
             return  # short circuit if metric not present
@@ -216,22 +215,8 @@ class EarlyStopping(Callback):
                 trainer.should_stop = True
 
         # stop every ddp process if any world process decides to stop
-        self._stop_distributed_training(trainer, pl_module)
-
-    def _stop_distributed_training(self, trainer, pl_module):
-
-        # in ddp make sure all processes stop when one is flagged
-        if trainer.use_ddp or trainer.use_ddp2:
-            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device)
-            dist.all_reduce(stop, op=dist.reduce_op.SUM)
-            dist.barrier()
-            trainer.should_stop = stop == trainer.world_size
-
-        if trainer.use_tpu:
-            stop = torch.tensor(int(trainer.should_stop), device=pl_module.device, dtype=torch.int32)
-            stop = xm.mesh_reduce("stop_signal", stop, sum)
-            torch_xla.core.xla_model.rendezvous("pl.EarlyStoppingCallback.stop_distributed_training_check")
-            trainer.should_stop = int(stop.item()) == trainer.world_size
+        should_stop = trainer.accelerator_backend.early_stopping_should_stop(pl_module)
+        trainer.should_stop = should_stop
 
     def on_train_end(self, trainer, pl_module):
         if self.stopped_epoch > 0 and self.verbose > 0:

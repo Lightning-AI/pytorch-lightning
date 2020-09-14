@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import os
+import shutil
 import subprocess
 from collections import OrderedDict
-from subprocess import PIPE
 from typing import Tuple, Dict, Union, List, Any
 
 import numpy as np
@@ -330,23 +330,27 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
 
 
 def get_gpu_memory_map() -> Dict[str, int]:
-    """Get the current gpu usage.
+    """
+    Get the current gpu usage.
 
     Return:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
     """
     result = subprocess.run(
-        ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader",],
+        [shutil.which("nvidia-smi"), "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
         encoding="utf-8",
         # capture_output=True,          # valid for python version >=3.7
-        stdout=PIPE,
-        stderr=PIPE,  # for backward compatibility with python version 3.6
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
         check=True,
     )
+
     # Convert lines into a dictionary
-    gpu_memory = [int(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {f"gpu_{index}": memory for index, memory in enumerate(gpu_memory)}
+    gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
+    gpu_memory_map = {
+        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
+    }
     return gpu_memory_map
 
 

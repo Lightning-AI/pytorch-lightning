@@ -63,13 +63,13 @@ def load_long_description():
 # From remote, use like `pip install pytorch-lightning[dev, docs]`
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
-    'docs': load_requirements(file_name='docs.txt'),
+    # 'docs': load_requirements(file_name='docs.txt'),
     'examples': load_requirements(file_name='examples.txt'),
     'extra': load_requirements(file_name='extra.txt'),
     'test': load_requirements(file_name='test.txt')
 }
 extras['dev'] = extras['extra'] + extras['test']
-extras['all'] = extras['dev'] + extras['examples'] + extras['docs']
+extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -116,7 +116,7 @@ setup(
         'Topic :: Scientific/Engineering :: Image Recognition',
         'Topic :: Scientific/Engineering :: Information Analysis',
         # Pick your license as you wish
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.

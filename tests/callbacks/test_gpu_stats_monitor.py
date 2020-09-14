@@ -37,10 +37,10 @@ def test_gpu_stats_monitor(tmpdir):
     header = lines[0].split()
 
     fields = [
-        'gpu_utilization.gpu',
-        'gpu_memory.used',
-        'gpu_memory.free',
-        'gpu_utilization.memory'
+        'utilization.gpu',
+        'memory.used',
+        'memory.free',
+        'utilization.memory'
     ]
 
     for f in fields:
@@ -91,5 +91,5 @@ def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
         gpus=None
     )
 
-    with pytest.warns(RuntimeWarning, match='not running on GPU. Logged utilization will be independent'):
+    with pytest.raises(MisconfigurationException, match='not running on GPU'):
         trainer.fit(model)

@@ -11,7 +11,7 @@
     import pytorch_lightning as pl
     from torch.utils.data import random_split
 
-.. _3-steps:
+.. _new_project:
 
 ####################
 Lightning in 2 steps
@@ -33,7 +33,7 @@ Here's a 2 minute conversion guide for PyTorch projects:
 
 .. raw:: html
 
-    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+    <video width="100%" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
 
 ----------
 
@@ -130,7 +130,7 @@ You can use your :class:`~pytorch_lightning.core.LightningModule` just like a Py
 
     model.anything_you_can_do_with_pytorch()
 
-More details in :ref:`lightning-module` docs.
+More details in :ref:`lightning_module` docs.
 
 
 ----------
@@ -187,7 +187,7 @@ Optional features
 TrainResult/EvalResult
 ======================
 Instead of returning the loss you can also use :class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`, plain Dict objects that give you options for logging on every step and/or at the end of the epoch.
-It also allows logging to the progress bar (by setting prog_bar=True). Read more in :ref:`result`.
+It also allows logging to the progress bar (by setting prog_bar=True). Read more in :ref:`results`.
 
 .. code-block::
 
@@ -333,7 +333,7 @@ the :class:`~pytorch_lightning.trainer.Trainer`:
     # test
     trainer.test(datamodule=dm)
 
-DataModules are specifically useful for building models based on data. Read more on :ref:`data-modules`.
+DataModules are specifically useful for building models based on data. Read more on :ref:`datamodules`.
 
 ----------
 
@@ -418,21 +418,21 @@ Advanced Lightning Features
 Once you define and train your first Lightning model, you might want to try other cool features like
 
 - :ref:`loggers`
-- `Automatic checkpointing <https://pytorch-lightning.readthedocs.io/en/stable/weights_loading.html>`_
-- `Automatic early stopping <https://pytorch-lightning.readthedocs.io/en/stable/early_stopping.html>`_
-- `Add custom callbacks <https://pytorch-lightning.readthedocs.io/en/stable/callbacks.html>`_ (self-contained programs that can be reused across projects)
-- `Dry run mode <https://pytorch-lightning.readthedocs.io/en/stable/debugging.html#fast-dev-run>`_ (Hit every line of your code once to see if you have bugs, instead of waiting hours to crash on validation ;)
-- `Automatically overfit your model for a sanity test <https://pytorch-lightning.readthedocs.io/en/stable/debugging.html?highlight=overfit#make-model-overfit-on-subset-of-data>`_
-- `Automatic truncated-back-propagation-through-time <https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.training_loop.html?highlight=truncated#truncated-backpropagation-through-time>`_
-- `Automatically scale your batch size <https://pytorch-lightning.readthedocs.io/en/stable/training_tricks.html?highlight=batch%20size#auto-scaling-of-batch-size>`_
-- `Automatically find a good learning rate <https://pytorch-lightning.readthedocs.io/en/stable/lr_finder.html>`_
-- `Load checkpoints directly from S3 <https://pytorch-lightning.readthedocs.io/en/stable/weights_loading.html#checkpoint-loading>`_
-- `Profile your code for speed/memory bottlenecks <https://pytorch-lightning.readthedocs.io/en/stable/profiler.html>`_
-- `Scale to massive compute clusters <https://pytorch-lightning.readthedocs.io/en/stable/slurm.html>`_
-- `Use multiple dataloaders per train/val/test loop <https://pytorch-lightning.readthedocs.io/en/stable/multiple_loaders.html>`_
-- `Use multiple optimizers to do Reinforcement learning or even GANs <https://pytorch-lightning.readthedocs.io/en/stable/optimizers.html?highlight=multiple%20optimizers#use-multiple-optimizers-like-gans>`_
+- :ref:`Automatic checkpointing <weights_loading>`
+- :ref:`Automatic early stopping <early_stopping>`
+- :ref:`Add custom callbacks <callbacks>` (self-contained programs that can be reused across projects)
+- :ref:`Dry run mode <debugging:fast_dev_run>` (Hit every line of your code once to see if you have bugs, instead of waiting hours to crash on validation :)
+- :ref:`Automatically overfit your model for a sanity test <debugging:Make model overfit on subset of data>`
+- :ref:`Automatic truncated-back-propagation-through-time <trainer:truncated_bptt_steps>`
+- :ref:`Automatically scale your batch size <training_tricks:Auto scaling of batch size>`
+- :ref:`Automatically find a good learning rate <lr_finder>`
+- :ref:`Load checkpoints directly from S3 <weights_loading:Checkpoint Loading>`
+- :ref:`Profile your code for speed/memory bottlenecks <profiler>`
+- :ref:`Scale to massive compute clusters <slurm>`
+- :ref:`Use multiple dataloaders per train/val/test loop <multiple_loaders>`
+- :ref:`Use multiple optimizers to do Reinforcement learning or even GANs <optimizers:Use multiple optimizers (like GANs)>`
 
-Or read our :ref:`introduction-guide` to learn more!
+Or read our :ref:`introduction_guide` to learn more!
 
 -------------
 

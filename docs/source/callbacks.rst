@@ -19,7 +19,7 @@ Here's the flow of how the callback hooks are executed:
 
 .. raw:: html
 
-    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
+    <video width="100%" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
 
 An overall Lightning system should have:
 
@@ -104,9 +104,9 @@ Lightning has a few built-in callbacks.
 .. automodule:: pytorch_lightning.callbacks.gpu_stats_monitor
     :noindex:
     :exclude-members:
-        _get_gpu_stat,
-        _log_gpu,
-        _log_memory
+        _get_gpu_stats,
+        _get_gpu_stat_keys,
+        _get_gpu_device_stat_keys,
 
 ----------------
 

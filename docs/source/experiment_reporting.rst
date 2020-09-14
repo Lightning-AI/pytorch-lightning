@@ -2,7 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _experiment-reporting:
+.. _experiment_reporting:
 
 Experiment Reporting
 =====================

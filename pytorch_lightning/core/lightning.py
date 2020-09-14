@@ -17,7 +17,7 @@ import inspect
 import os
 import re
 import tempfile
-from abc import ABC, abstractmethod
+from abc import ABC
 from argparse import Namespace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -27,11 +27,10 @@ from torch import Tensor, ScriptModule
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.grads import GradInformation
-from pytorch_lightning.core.hooks import ModelHooks
+from pytorch_lightning.core.hooks import ModelHooks, DataHooks
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES, ModelIO
 from pytorch_lightning.overrides.data_parallel import LightningDistributedDataParallel
@@ -48,7 +47,7 @@ else:
     XLA_AVAILABLE = True
 
 
-class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, Module):
+class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, ModelHooks, DataHooks, Module):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -336,7 +335,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return result
 
         See Also:
-            See the :ref:`multi-gpu-training` guide for more details.
+            See the :ref:`multi_gpu` guide for more details.
         """
 
     def training_epoch_end(
@@ -410,7 +409,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple val datasets used)
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -494,7 +493,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -532,7 +531,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return result
 
         See Also:
-            See the :ref:`multi-gpu-training` guide for more details.
+            See the :ref:`multi_gpu` guide for more details.
         """
 
     def validation_end(self, outputs):
@@ -562,7 +561,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         Note:
             If you didn't define a :meth:`validation_step`, this won't be called.
@@ -620,7 +619,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 (only if multiple test datasets used).
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -695,7 +694,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             batch_parts_outputs: What you return in :meth:`test_step` for each batch part.
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         .. code-block:: python
 
@@ -733,7 +732,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return result
 
         See Also:
-            See the :ref:`multi-gpu-training` guide for more details.
+            See the :ref:`multi_gpu` guide for more details.
         """
 
     def test_end(self, outputs):
@@ -764,7 +763,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 are multiple dataloaders, a list containing a list of outputs for each dataloader
 
         Return:
-            :class:`~pytorch_lightning.core.step_result.TrainResult`
+            :class:`~pytorch_lightning.core.step_result.EvalResult`
 
         Note:
             If you didn't define a :meth:`test_step`, this won't be called.
@@ -863,7 +862,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
         except Exception:
             root_node = '127.0.0.1'
 
-        root_node = self.trainer.resolve_root_node_address(root_node)
+        root_node = self.trainer.slurm_connector.resolve_root_node_address(root_node)
         os.environ['MASTER_ADDR'] = root_node
 
     def init_ddp_connection(self, global_rank: int, world_size: int, is_slurm_managing_tasks: bool = True) -> None:
@@ -877,7 +876,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             global_rank: The global process idx.
             world_size: Number of GPUs being use across all nodes. (num_nodes * num_gpus).
             is_slurm_managing_tasks: is cluster managed by SLURM.
-
         """
         if is_slurm_managing_tasks:
             self._init_slurm_connection()
@@ -1221,224 +1219,6 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
 
         return splits
 
-    def prepare_data(self) -> None:
-        """
-        Use this to download and prepare data.
-
-        .. warning:: DO NOT set state to the model (use `setup` instead)
-            since this is NOT called on every GPU in DDP/TPU
-
-        Example::
-
-            def prepare_data(self):
-                # good
-                download_data()
-                tokenize()
-                etc()
-
-                # bad
-                self.split = data_split
-                self.some_state = some_other_state()
-
-        In DDP prepare_data can be called in two ways (using Trainer(prepare_data_per_node)):
-
-        1. Once per node. This is the default and is only called on LOCAL_RANK=0.
-        2. Once in total. Only called on GLOBAL_RANK=0.
-
-        Example::
-
-            # DEFAULT
-            # called once per node on LOCAL_RANK=0 of that node
-            Trainer(prepare_data_per_node=True)
-
-            # call on GLOBAL_RANK=0 (great for shared file systems)
-            Trainer(prepare_data_per_node=False)
-
-        This is called before requesting the dataloaders:
-
-        .. code-block:: python
-
-            model.prepare_data()
-                if ddp/tpu: init()
-            model.setup(stage)
-            model.train_dataloader()
-            model.val_dataloader()
-            model.test_dataloader()
-        """
-
-    def train_dataloader(self) -> DataLoader:
-        """
-        Implement a PyTorch DataLoader for training.
-
-        Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
-
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
-
-        For data processing use the following pattern:
-
-            - download in :meth:`prepare_data`
-            - process and split in :meth:`setup`
-
-        However, the above are only necessary for distributed processing.
-
-        .. warning:: do not assign state in prepare_data
-
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
-        - :meth:`prepare_data`
-        - :meth:`setup`
-        - :meth:`train_dataloader`
-
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-
-        Example:
-            .. code-block:: python
-
-                def train_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(),
-                                                    transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=True, transform=transform,
-                                    download=True)
-                    loader = torch.utils.data.DataLoader(
-                        dataset=dataset,
-                        batch_size=self.batch_size,
-                        shuffle=True
-                    )
-                    return loader
-
-        """
-        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
-
-    def tng_dataloader(self):  # todo: remove in v1.0.0
-        """
-        Warnings:
-            Deprecated in v0.5.0. Use :meth:`train_dataloader` instead. Will be removed in 1.0.0.
-        """
-        output = self.train_dataloader()
-        rank_zero_warn(
-            "`tng_dataloader` has been renamed to `train_dataloader` since v0.5.0."
-            " and this method will be removed in v1.0.0",
-            DeprecationWarning,
-        )
-        return output
-
-    def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
-        r"""
-        Implement one or multiple PyTorch DataLoaders for testing.
-
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
-
-        For data processing use the following pattern:
-
-            - download in :meth:`prepare_data`
-            - process and split in :meth:`setup`
-
-        However, the above are only necessary for distributed processing.
-
-        .. warning:: do not assign state in prepare_data
-
-
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
-        - :meth:`prepare_data`
-        - :meth:`setup`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
-
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-
-        Return:
-            Single or multiple PyTorch DataLoaders.
-
-        Example:
-            .. code-block:: python
-
-                def test_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(),
-                                                    transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=False, transform=transform,
-                                    download=True)
-                    loader = torch.utils.data.DataLoader(
-                        dataset=dataset,
-                        batch_size=self.batch_size,
-                        shuffle=False
-                    )
-
-                    return loader
-
-                # can also return multiple dataloaders
-                def test_dataloader(self):
-                    return [loader_a, loader_b, ..., loader_n]
-
-        Note:
-            If you don't need a test dataset and a :meth:`test_step`, you don't need to implement
-            this method.
-
-        Note:
-            In the case where you return multiple test dataloaders, the :meth:`test_step`
-            will have an argument ``dataloader_idx`` which matches the order here.
-        """
-
-    def val_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
-        r"""
-        Implement one or multiple PyTorch DataLoaders for validation.
-
-        The dataloader you return will not be called every epoch unless you set
-        :paramref:`~pytorch_lightning.trainer.Trainer.reload_dataloaders_every_epoch` to ``True``.
-
-        It's recommended that all data downloads and preparation happen in :meth:`prepare_data`.
-
-        - :meth:`~pytorch_lightning.trainer.Trainer.fit`
-        - ...
-        - :meth:`prepare_data`
-        - :meth:`train_dataloader`
-        - :meth:`val_dataloader`
-        - :meth:`test_dataloader`
-
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware
-            There is no need to set it yourself.
-
-        Return:
-            Single or multiple PyTorch DataLoaders.
-
-        Examples:
-            .. code-block:: python
-
-                def val_dataloader(self):
-                    transform = transforms.Compose([transforms.ToTensor(),
-                                                    transforms.Normalize((0.5,), (1.0,))])
-                    dataset = MNIST(root='/path/to/mnist/', train=False,
-                                    transform=transform, download=True)
-                    loader = torch.utils.data.DataLoader(
-                        dataset=dataset,
-                        batch_size=self.batch_size,
-                        shuffle=False
-                    )
-
-                    return loader
-
-                # can also return multiple dataloaders
-                def val_dataloader(self):
-                    return [loader_a, loader_b, ..., loader_n]
-
-        Note:
-            If you don't need a validation dataset and a :meth:`validation_step`, you don't need to
-            implement this method.
-
-        Note:
-            In the case where you return multiple validation dataloaders, the :meth:`validation_step`
-            will have an argument ``dataloader_idx`` which matches the order here.
-        """
-
     def summarize(self, mode: str = ModelSummary.MODE_DEFAULT) -> ModelSummary:
         model_summary = ModelSummary(self, mode=mode)
         log.info('\n' + str(model_summary))
@@ -1542,7 +1322,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
             Dictionary with the items to be displayed in the progress bar.
         """
         # call .item() only once but store elements without graphs
-        running_train_loss = self.trainer.running_loss.mean()
+        running_train_loss = self.trainer.train_loop.running_loss.mean()
         avg_training_loss = running_train_loss.cpu().item() if running_train_loss is not None else float('NaN')
         tqdm_dict = {'loss': '{:.3f}'.format(avg_training_loss)}
 

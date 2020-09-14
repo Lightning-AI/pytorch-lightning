@@ -4,7 +4,7 @@
     from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _introduction-guide:
+.. _introduction_guide:
 
 #########################
 Step-by-step walk-through
@@ -90,12 +90,12 @@ Let's first start with the model. In this case we'll design a 3-layer neural net
         # (b, 1, 28, 28) -> (b, 1*28*28)
         x = x.view(batch_size, -1)
         x = self.layer_1(x)
-        x = torch.relu(x)
+        x = F.relu(x)
         x = self.layer_2(x)
-        x = torch.relu(x)
+        x = F.relu(x)
         x = self.layer_3(x)
 
-        x = torch.log_softmax(x, dim=1)
+        x = F.log_softmax(x, dim=1)
         return x
 
 Notice this is a :class:`~pytorch_lightning.core.LightningModule` instead of a `torch.nn.Module`. A LightningModule is
@@ -104,7 +104,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
 .. testcode::
 
     net = LitMNIST()
-    x = torch.Tensor(1, 1, 28, 28)
+    x = torch.randn(1, 1, 28, 28)
     out = net(x)
 
 .. rst-class:: sphx-glr-script-out
@@ -118,7 +118,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
 
 Now we add the training_step which has all our training loop logic
 
-.. code-block:: python
+.. testcode:: python
 
     class LitMNIST(LightningModule):
 
@@ -148,7 +148,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
                                   transforms.Normalize((0.1307,), (0.3081,))])
 
     # data
-    mnist_train = MNIST(os.getcwd(), train=True, download=True)
+    mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
     mnist_train = DataLoader(mnist_train, batch_size=64)
 
 .. testoutput::
@@ -192,17 +192,18 @@ For fast research prototyping, it might be easier to link the model with the dat
             transform=transforms.Compose([transforms.ToTensor(),
                                           transforms.Normalize((0.1307,), (0.3081,))])
             # data
-            mnist_train = MNIST(os.getcwd(), train=True, download=True)
-            mnist_train = DataLoader(mnist_train, batch_size=64)
-            return DataLoader(mnist_train)
+            mnist_train = MNIST(os.getcwd(), train=True, download=True, transform=transform)
+            return DataLoader(mnist_train, batch_size=64)
 
         def val_dataloader(self):
             transforms = ...
-            return DataLoader(self.val, transforms)
+            mnist_val = ...
+            return DataLoader(mnist_val, batch_size=64)
 
         def test_dataloader(self):
             transforms = ...
-            return DataLoader(self.test, transforms)
+            mnist_test = ...
+            return DataLoader(mnist_test, batch_size=64)
 
 DataLoaders are already in the model, no need to specify on .fit().
 
@@ -241,7 +242,7 @@ In this case, it's better to group the full definition of a dataset into a `Data
 
         def setup(self):
             # called on every GPU
-            vocab = load_vocab
+            vocab = load_vocab()
             self.vocab_size = len(vocab)
 
             self.train, self.val, self.test = load_datasets()
@@ -249,15 +250,15 @@ In this case, it's better to group the full definition of a dataset into a `Data
 
         def train_dataloader(self):
             transforms = ...
-            return DataLoader(self.train, transforms)
+            return DataLoader(self.train, batch_size=64)
 
         def val_dataloader(self):
             transforms = ...
-            return DataLoader(self.val, transforms)
+            return DataLoader(self.val, batch_size=64)
 
         def test_dataloader(self):
             transforms = ...
-            return DataLoader(self.test, transforms)
+            return DataLoader(self.test, batch_size=64)
 
 Using DataModules allows easier sharing of full dataset definitions.
 
@@ -288,15 +289,15 @@ When your models need to know about the data, it's best to process the data befo
     dm.setup()
 
     model = LitModel(out_features=dm.num_classes, img_width=dm.img_width, img_height=dm.img_height)
-    trainer.fit(model)
+    trainer.fit(model, dm)
 
 
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
 
-|
+An alternative to using a DataModule is to defer initialization of the models modules to the `setup` method of your LightningModule as follows:
 
-.. testcode::
+.. code-block:: python
 
     class LitMNIST(LightningModule):
 
@@ -465,11 +466,11 @@ For clarity, we'll recall that the full LightningModule now looks like this.
             batch_size, channels, width, height = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_2(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_3(x)
-            x = torch.log_softmax(x, dim=1)
+            x = F.log_softmax(x, dim=1)
             return x
 
         def training_step(self, batch, batch_idx):
@@ -509,7 +510,7 @@ Which will generate automatic tensorboard logs.
 
 |
 
-But you can also use any of the `number of other loggers <loggers.rst>`_ we support.
+But you can also use any of the :ref:`number of other loggers <loggers>` we support.
 
 
 Train on CPU
@@ -561,7 +562,7 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
     trainer.fit(model, train_loader)
 
-Refer to the `distributed computing guide for more details <https://pytorch-lightning.readthedocs.io/en/stable/multi_gpu.html>`_.
+Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.
 
 train on TPUs
 ^^^^^^^^^^^^^
@@ -731,7 +732,7 @@ Under the hood, Lightning does the following:
             loss = loss(y_hat, x)               # validation_step
             outputs.append({'val_loss': loss})  # validation_step
 
-        full_loss = outputs.mean()              # validation_epoch_end
+        total_loss = outputs.mean()             # validation_epoch_end
 
 Optional methods
 ^^^^^^^^^^^^^^^^
@@ -817,7 +818,7 @@ and use it for prediction.
 .. code-block:: python
 
     model = LitMNIST.load_from_checkpoint(PATH)
-    x = torch.Tensor(1, 1, 28, 28)
+    x = torch.randn(1, 1, 28, 28)
     out = model(x)
 
 On the surface, it looks like `forward` and `training_step` are similar. Generally, we want to make sure that
@@ -832,11 +833,11 @@ within it.
             batch_size, channels, width, height = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_2(x)
-            x = torch.relu(x)
+            x = F.relu(x)
             x = self.layer_3(x)
-            x = torch.log_softmax(x, dim=1)
+            x = F.log_softmax(x, dim=1)
             return x
 
         def training_step(self, batch, batch_idx):
@@ -861,16 +862,16 @@ In this case, we've set this LightningModel to predict logits. But we could also
             batch_size, channels, width, height = x.size()
             x = x.view(batch_size, -1)
             x = self.layer_1(x)
-            x1 = torch.relu(x)
+            x1 = F.relu(x)
             x = self.layer_2(x1)
-            x2 = torch.relu(x)
+            x2 = F.relu(x)
             x3 = self.layer_3(x2)
             return [x, x1, x2, x3]
 
         def training_step(self, batch, batch_idx):
             x, y = batch
             out, l1_feats, l2_feats, l3_feats = self(x)
-            logits = torch.log_softmax(out, dim=1)
+            logits = F.log_softmax(out, dim=1)
             ce_loss = F.nll_loss(logits, y)
             loss = perceptual_loss(l1_feats, l2_feats, l3_feats) + ce_loss
             return loss
@@ -966,7 +967,7 @@ you could do your own:
             return model
 
 Every single part of training is configurable this way.
-For a full list look at `LightningModule <lightning-module.rst>`_.
+For a full list look at :ref:`LightningModule <lightning_module>`.
 
 ----------------
 
@@ -1067,7 +1068,7 @@ Switching your model to Lightning is straight forward - here's a 2-minute video 
 
 .. raw:: html
 
-    <video width="100%" controls autoplay src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
+    <video width="100%" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_quick_start_full.m4v"></video>
 
 Your projects WILL grow in complexity and you WILL end up engineering more than trying out new ideas...
 Defer the hardest parts to Lightning!
@@ -1101,7 +1102,7 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
     
-In Lightning, this code is organized into a :ref:`lightning-module`.
+In Lightning, this code is organized into a :ref:`lightning_module`.
 
 Engineering code
 ================
@@ -1166,6 +1167,6 @@ spread all over files.
 This code gets specially complicated once you start doing multi-gpu training or needing info about
 the data to build your models.
 
-In Lightning this code is organized inside a :ref:`data-modules`.
+In Lightning this code is organized inside a :ref:`datamodules`.
 
 .. note:: DataModules are optional but encouraged, otherwise you can use standard DataModules
