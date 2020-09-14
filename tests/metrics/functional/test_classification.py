@@ -187,6 +187,17 @@ def test_confusion_matrix():
     cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
     assert torch.allclose(cm, torch.tensor([[5., 0., 0.], [0., 0., 0.], [0., 0., 0.]]))
 
+    # Example taken from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
+    target = torch.LongTensor([0] * 13 + [1] * 16 + [2] * 9)
+    pred = torch.LongTensor([0] * 13 + [1] * 10 + [2] * 15)
+    cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
+    assert torch.allclose(cm, torch.tensor([[13., 0., 0.], [0., 10., 6.], [0., 0., 9.]]))
+    to_compare = cm / torch.tensor([[13.], [16.], [9.]])
+
+    cm = confusion_matrix(pred, target, normalize=True, num_classes=3)
+    assert torch.allclose(cm, to_compare)
+
+
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
     pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5]),
