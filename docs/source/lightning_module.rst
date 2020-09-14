@@ -1,6 +1,7 @@
 .. role:: hidden
     :class: hidden-section
-.. _lightning-module:
+
+.. _lightning_module:
 
 LightningModule
 ===============

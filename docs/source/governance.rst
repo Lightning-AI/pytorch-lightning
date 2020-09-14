@@ -1,6 +1,6 @@
 .. _governance:
 
-Pytorch Lightning Governance | Persons of interest
+PyTorch Lightning Governance | Persons of interest
 ==================================================
 
 Leads

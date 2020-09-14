@@ -4,7 +4,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _multi-gpu-training:
+.. _multi_gpu:
 
 Multi-GPU training
 ==================
@@ -213,7 +213,7 @@ Lightning sets these for you automatically, there's NO NEED to do this yourself.
 
 However, when using a cluster, Lightning will NOT set these flags (and you should not either).
 SLURM will set these for you.
-For more details see the `SLURM cluster guide <slurm.rst>`_.
+For more details see the :ref:`SLURM cluster guide <slurm>`.
 
 ----------
 
