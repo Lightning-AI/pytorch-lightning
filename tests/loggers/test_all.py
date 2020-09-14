@@ -235,11 +235,9 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
-    CometLogger,
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    # WandbLogger,
 ])
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy logges on global rank > 0"""
