@@ -581,6 +581,9 @@ Writes logs to disk this often.
     # default used by the Trainer
     trainer = Trainer(log_save_interval=100)
 
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
+
 logger
 ^^^^^^
 
@@ -912,6 +915,10 @@ How often to add logging rows (does not write to disk)
 
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
+
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
+
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
