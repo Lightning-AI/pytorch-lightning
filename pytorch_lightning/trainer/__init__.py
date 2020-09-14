@@ -261,7 +261,7 @@ Example::
     trainer = Trainer(auto_lr_find='my_lr_arg')
 
 .. note::
-    See the `learning rate finder guide <lr_finder.rst>`_
+    See the :ref:`learning rate finder guide <lr_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -402,8 +402,8 @@ Example::
 .. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
 See Also:
-    - `Multi-GPU training guide <multi_gpu.rst>`_
-    - `Multi-node (SLURM) guide <slurm.rst>`_
+    - :ref:`Multi-GPU training guide <multi_gpu>`.
+    - :ref:`Multi-node (SLURM) guide <slurm>`.
 
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
@@ -499,7 +499,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - `Multi-GPU training guide <multi_gpu.rst>`_
+    - :ref:`Multi-GPU training guide <multi_gpu>`.
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -581,10 +581,13 @@ Writes logs to disk this often.
     # default used by the Trainer
     trainer = Trainer(log_save_interval=100)
 
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
+
 logger
 ^^^^^^
 
-`Logger <loggers.rst>`_ (or iterable collection of loggers) for experiment tracking.
+:ref:`Logger <loggers>` (or iterable collection of loggers) for experiment tracking.
 
 .. testcode::
 
@@ -820,7 +823,7 @@ profiler
 ^^^^^^^^
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the `profiler documentation <profiler.rst>`_. for more details.
+See the :ref:`profiler documentation <profiler>`. for more details.
 
 .. testcode::
 
@@ -912,6 +915,10 @@ How often to add logging rows (does not write to disk)
 
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
+
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
+
 
 sync_batchnorm
 ^^^^^^^^^^^^^^

@@ -1,4 +1,4 @@
-.. _result:
+.. _results:
 
 Result
 ======

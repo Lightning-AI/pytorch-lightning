@@ -313,7 +313,11 @@ def confusion_matrix(
     cm = bins.reshape(num_classes, num_classes).squeeze().float()
 
     if normalize:
-        cm = cm / cm.sum(-1)
+        cm = cm / cm.sum(-1, keepdim=True)
+        nan_elements = cm[torch.isnan(cm)].nelement()
+        if nan_elements != 0:
+            cm[torch.isnan(cm)] = 0
+            rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
 
     return cm
 

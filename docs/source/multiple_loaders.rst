@@ -68,8 +68,8 @@ option of passing in multiple dataloaders back from each call.
 
 See the following for more details:
 
-- :meth:`~pytorch_lightning.core.LightningModule.val_dataloader`
-- :meth:`~pytorch_lightning.core.LightningModule.test_dataloader`
+- :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.val_dataloader`
+- :meth:`~pytorch_lightning.core.datamodule.LightningDataModule.test_dataloader`
 
 .. testcode::
 

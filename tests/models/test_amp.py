@@ -13,36 +13,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_multi_gpu_wandb_ddp_spawn(tmpdir):
-    """
-    Test ddp + wb
-    """
-    from pytorch_lightning.loggers import WandbLogger
-    tutils.set_random_master_port()
-
-    model = EvalModelTemplate()
-
-    wandb.run = MagicMock()
-    wandb.init(name='name', project='project')
-
-    logger = WandbLogger(name='name', offline=True)
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gpus=2,
-        distributed_backend='ddp_spawn',
-        precision=16,
-        logger=logger,
-
-    )
-    # tutils.run_model_test(trainer_options, model)
-    trainer = Trainer(**trainer_options)
-    result = trainer.fit(model)
-    assert result
-    trainer.test(model)
-
-
 @pytest.mark.skip(reason='dp + amp not supported currently')  # TODO
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_amp_single_gpu_dp(tmpdir):

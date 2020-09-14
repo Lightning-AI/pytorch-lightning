@@ -2,7 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _single-gpu:
+.. _single_gpu:
 
 Single GPU Training
 ===================
