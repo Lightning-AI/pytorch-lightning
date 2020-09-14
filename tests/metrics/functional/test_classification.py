@@ -219,7 +219,6 @@ def test_confusion_matrix():
     assert torch.allclose(cm, to_compare)
 
 
-
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
     pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5]),
     pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5])
