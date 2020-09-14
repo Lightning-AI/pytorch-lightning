@@ -50,7 +50,7 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(sk_precision_recall_curve, precision_recall_curve, True, id='precision_recall_curve'),
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
 ])
-def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
+def test_against_sklearn(sklearn_metric, torch_metric, only_binary=False):
     """Compare PL metrics to sklearn version."""
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -366,10 +366,10 @@ def test_iou(half_ones, reduction, remove_bg, expected):
 
 @pytest.mark.parametrize('metric', [auroc])
 def test_error_on_multiclass_input(metric):
-    """ check that these metrics gives an error if they are used for multiclass problems  """
+    """ check that these metrics raise an error if they are used for multiclass problems  """
     pred = torch.randint(0, 10, (100, ))
     target = torch.randint(0, 10, (100, ))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="AUROC metric is meant for binary classification"):
         _ = metric(pred, target)
 
 # example data taken from
