@@ -78,6 +78,7 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
 
 @pytest.mark.parametrize("row_log_interval", [1, 2, 3])
 def test_grad_tracking_interval(tmpdir, row_log_interval):
+    """ Test that gradient norms get tracked in the right interval and that everytime the same keys get logged. """
     trainer = Trainer(
         default_root_dir=tmpdir,
         track_grad_norm=2,
@@ -89,8 +90,12 @@ def test_grad_tracking_interval(tmpdir, row_log_interval):
         model = EvalModelTemplate()
         trainer.fit(model)
         expected = trainer.global_step // row_log_interval
-        count = 0
+        grad_norm_dicts = []
         for _, kwargs in mocked.call_args_list:
-            if "grad_2.0_norm_c_d1.weight" in kwargs.get("metrics", {}):
-                count += 1
-        assert count == expected
+            metrics = kwargs.get("metrics", {})
+            grad_norm_dict = {k: v for k, v in metrics.items() if k.startswith("grad_")}
+            if grad_norm_dict:
+                grad_norm_dicts.append(grad_norm_dict)
+
+        assert len(grad_norm_dicts) == expected
+        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts)
