@@ -1,21 +1,24 @@
 Conversational AI
 -----------------
 
-Using NeMo Models
-^^^^^^^^^^^^^^^^^
+NVIDIA NeMo Models
+^^^^^^^^^^^^^^^^^^
 
-NeMo is a toolkit for doing research in Conversational AI.   NeMo makes it easy to build complex 
-automatic speech recognition (ASR), natural language processing (NLP), and text-to-speech (TTS) 
+`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building
+Conversational AI applications. NeMo has separate collections for Automatic Speech Recognition (ASR), 
+Natural Language Processing (NLP), and Text-to-Speech (TTS) models. Each collection consists of 
+prebuilt modules that include everything needed to train on your own data. 
+Every module can easily be customized, extended, and composed to create complex Conversational AI 
 applications.
 
 Conversational AI architectures are typically very large and require a lot of data  and compute 
-for training. NeMo uses PyTorch Lightning for for easy and performant multi-gpu/multi-node 
+for training. NeMo uses PyTorch Lightning for easy and performant multi-GPU/multi-node 
 mixed-precision training. 
 
 .. note:: Every NeMo model is a LightningModule that comes equipped with all supporting infrastructure for training and reproducibility.
 
-NeMo Models contain everything needed to to train and reproduce state of the art Conversational AI
-research and applications. This includes
+NeMo Models contain everything needed to train and reproduce state of the art Conversational AI
+research and applications, including:
 
 - neural network architectures 
 - datasets/dataloaders
@@ -25,7 +28,7 @@ research and applications. This includes
 - tokenizers
 - language models
 
-NeMo uses Hydra for configuring both NeMo models and the PyTorch Lightning Trainer.
+NeMo uses `Hydra <https://hydra.cc/>`_ for configuring both NeMo models and the PyTorch Lightning Trainer.
 Depending on the domain and application, many different AI libraries will have to be configured
 to build the application. Hydra makes it easy to bring all of these libraries together
 and do all the configuration from .yaml or the Hydra CLI.
