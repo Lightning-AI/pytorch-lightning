@@ -191,62 +191,6 @@ class CheckpointConnector:
                 did_restore = True
         return did_restore
 
-    def restore_training_state(self, checkpoint):
-        """
-        Restore trainer state.
-        Model will get its change to update
-        :param checkpoint:
-        :return:
-        """
-        if 'optimizer_states' not in checkpoint or 'lr_schedulers' not in checkpoint:
-            raise KeyError(
-                'Trying to restore training state but checkpoint contains only the model.'
-                ' This is probably due to `ModelCheckpoint.save_weights_only` being set to `True`.'
-            )
-
-        if any([key in checkpoint for key in DEPRECATED_CHECKPOINT_KEYS]):
-            raise ValueError(
-                "The checkpoint you're attempting to load follows an"
-                " outdated schema. You can upgrade to the current schema by running"
-                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
-                " where `model.ckpt` is your checkpoint file."
-            )
-
-        # load callback states
-        self.trainer.on_load_checkpoint(checkpoint)
-
-        self.trainer.global_step = checkpoint['global_step']
-        self.trainer.current_epoch = checkpoint['epoch']
-
-        # Division deals with global step stepping once per accumulated batch
-        # Inequality deals with different global step for odd vs even num_training_batches
-        n_accum = 1 if self.trainer.accumulate_grad_batches is None else self.trainer.accumulate_grad_batches
-        expected_steps = self.trainer.num_training_batches / n_accum
-        if self.trainer.num_training_batches != 0 and self.trainer.global_step % expected_steps > 1:
-            rank_zero_warn(
-                "You're resuming from a checkpoint that ended mid-epoch. "
-                "This can cause unreliable results if further training is done, "
-                "consider using an end of epoch checkpoint. "
-            )
-
-        # restore the optimizers
-        optimizer_states = checkpoint['optimizer_states']
-        for optimizer, opt_state in zip(self.trainer.optimizers, optimizer_states):
-            optimizer.load_state_dict(opt_state)
-
-            # move optimizer to GPU 1 weight at a time
-            # avoids OOM
-            if self.trainer.root_gpu is not None:
-                for state in optimizer.state.values():
-                    for k, v in state.items():
-                        if isinstance(v, torch.Tensor):
-                            state[k] = v.cuda(self.trainer.root_gpu)
-
-        # restore the lr schedulers
-        lr_schedulers = checkpoint['lr_schedulers']
-        for scheduler, lrs_state in zip(self.trainer.lr_schedulers, lr_schedulers):
-            scheduler['scheduler'].load_state_dict(lrs_state)
-
     # ----------------------------------
     # PRIVATE OPS
     # ----------------------------------
