@@ -31,12 +31,12 @@ research and applications, including:
 NeMo uses `Hydra <https://hydra.cc/>`_ for configuring both NeMo models and the PyTorch Lightning Trainer.
 Depending on the domain and application, many different AI libraries will have to be configured
 to build the application. Hydra makes it easy to bring all of these libraries together
-and do all the configuration from .yaml or the Hydra CLI.
+so that each can be configured from .yaml or the Hydra CLI.
 
-.. note:: Every NeMo model has an example configuration and run script that contains all configuration needed for training.
+.. note:: Every NeMo model has an example configuration file and run script that contains all configurations needed for training.
 
 The end result of using NeMo, Pytorch Lightning, and Hydra is that
-NeMo models all have the same look and feel so that is easy to do Conversational AI research
+NeMo models all have the same look and feel so that it is easy to do Conversational AI research
 across multiple domains and all NeMo models are fully compatible with the PyTorch ecosystem.
 
 Installing NeMo
@@ -55,6 +55,19 @@ To install a specific branch from GitHub:
     python -m pip install git+https://github.com/NVIDIA/NeMo.git@{BRANCH}#egg=nemo_toolkit[nlp]
 
 .. note:: Replace {BRANCH} with the specific branch name from GitHub.
+
+For Docker users, the NeMo container is available on 
+`NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_
+
+.. code-block:: bash
+
+    # TODO: update container tag when available
+    docker pull nvcr.io/nvidia/nemo:v0.11
+
+
+.. code-block:: bash
+
+    docker run --runtime=nvidia -it --rm -v --shm-size=16g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:v0.11
 
 Example: Speech to Text (ASR)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
