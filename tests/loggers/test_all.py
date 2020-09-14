@@ -239,7 +239,7 @@ class RankZeroLoggerCheck(Callback):
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    WandbLogger,
+    # WandbLogger,
 ])
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy logges on global rank > 0"""
