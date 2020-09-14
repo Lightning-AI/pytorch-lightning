@@ -40,9 +40,6 @@ Unlike the `row_log_interval`, this argument does not apply to all loggers.
 The example shown here works with :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`,
 which is the default logger in Lightning.
 
-.. seealso::
-    :class:`~pytorch_lightning.trainer.trainer.Trainer`
-
 ----------
 
 Log metrics
