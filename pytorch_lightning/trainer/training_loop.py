@@ -375,13 +375,12 @@ class TrainLoop:
         return grad_norm_dic
 
     def _track_gradient_norm(self, batch_idx):
-        grad_norm_dic = {}
-        if batch_idx % self.trainer.row_log_interval == 0:
+        grad_norm_dict = {}
+        if (batch_idx + 1) % self.trainer.row_log_interval == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.get_model()
-                grad_norm_dic = model.grad_norm(
-                    self.trainer.track_grad_norm)
-        return grad_norm_dic
+                grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
+        return grad_norm_dict
 
     def log_training_step_metrics(self, opt_closure_result, batch_callback_metrics, batch_log_metrics):
         # track callback metrics
