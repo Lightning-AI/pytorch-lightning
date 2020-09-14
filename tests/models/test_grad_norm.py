@@ -81,14 +81,14 @@ def test_grad_tracking_interval(tmpdir, row_log_interval):
     trainer = Trainer(
         default_root_dir=tmpdir,
         track_grad_norm=2,
-        row_log_interval=2,
+        row_log_interval=row_log_interval,
         max_steps=10,
     )
 
     with patch.object(trainer.logger, "log_metrics") as mocked:
         model = EvalModelTemplate()
         trainer.fit(model)
-        expected = trainer.global_step // 2
+        expected = trainer.global_step // row_log_interval
         count = 0
         for _, kwargs in mocked.call_args_list:
             if "grad_2.0_norm_c_d1.weight" in kwargs.get("metrics", {}):
