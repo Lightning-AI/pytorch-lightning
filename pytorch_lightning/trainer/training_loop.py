@@ -29,22 +29,7 @@ from pytorch_lightning.trainer.states import TrainerState
 from pytorch_lightning.utilities import parsing, AMPType
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 
 class TrainLoop:
@@ -144,7 +129,7 @@ class TrainLoop:
         self.trainer.accelerator_backend.barrier('setup_training')
 
         # register auto-resubmit when on SLURM
-        self.trainer.register_slurm_signal_handlers()
+        self.trainer.slurm_connector.register_slurm_signal_handlers()
 
         # --------------------------
         # Pre-train
@@ -166,7 +151,7 @@ class TrainLoop:
         self.trainer.model = model
 
         # restore training and model before hpc is called
-        self.trainer.restore_weights(model)
+        self.trainer.checkpoint_connector.restore_weights(model)
 
         # on pretrain routine end
         self.trainer.on_pretrain_routine_end(ref_model)
@@ -180,8 +165,8 @@ class TrainLoop:
         self._teardown_already_run = True
 
         # Save latest checkpoint
-        log.info('Saving latest checkpoint..')
-        self.check_checkpoint_callback(should_check_val=False)
+        rank_zero_warn('Saving latest checkpoint..')
+        self.check_checkpoint_callback(should_check_val=False, force_save=True)
 
         # hook
         self.trainer.call_hook('on_train_end')
@@ -208,13 +193,13 @@ class TrainLoop:
             model.cpu()
             torch.cuda.empty_cache()
 
-    def check_checkpoint_callback(self, should_check_val):
+    def check_checkpoint_callback(self, should_check_val, force_save=False):
         model = self.trainer.get_model()
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
         should_activate = not is_overridden('validation_step', model) and not should_check_val
-        if should_activate:
+        if should_activate or force_save:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 

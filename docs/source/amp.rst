@@ -2,7 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _16-bit:
+.. _amp:
 
 16-bit training
 =================

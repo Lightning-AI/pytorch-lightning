@@ -56,11 +56,13 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # get the training loader and batch
     # ------------------------------------------------------
+    # Create a reference train dataloader without shuffling.
     train_loader = DataLoader(model.train_dataloader().dataset, shuffle=False)
+    (xa, ya) = next(iter(train_loader))
+    train_loader = DataLoader(model.train_dataloader().dataset, shuffle=True)
     full_train_samples = len(train_loader)
     num_train_samples = int(0.11 * full_train_samples)
 
-    (xa, ya) = next(iter(train_loader))
 
     # ------------------------------------------------------
     # set VAL and Test loaders
@@ -87,7 +89,8 @@ def test_overfit_batch_limits(tmpdir):
 
     trainer = Trainer(overfit_batches=0.11)
     trainer.reset_train_dataloader(model)
-    assert trainer.train_dataloader is train_loader
+    # The dataloader should have been overwritten with a Sequential sampler.
+    assert trainer.train_dataloader is not train_loader
     assert trainer.num_training_batches == num_train_samples
 
     # make sure the loaders are the same

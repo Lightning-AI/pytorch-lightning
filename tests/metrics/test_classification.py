@@ -53,6 +53,21 @@ def test_confusion_matrix(normalize, num_classes):
     assert isinstance(cm, torch.Tensor)
 
 
+@pytest.mark.parametrize(['normalize', 'num_classes'], [
+    pytest.param(True, 3)
+])
+def test_confusion_matrix_norm(normalize, num_classes):
+    """ test that user is warned if confusion matrix contains nans that are changed to zeros"""
+    conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
+    assert conf_matrix.name == 'confusion_matrix'
+
+    with pytest.warns(UserWarning, match='6 nan values found in confusion matrix have been replaced with zeros.'):
+        target = torch.LongTensor([0] * 5)
+        pred = target.clone()
+        cm = conf_matrix(pred, target)
+        assert isinstance(cm, torch.Tensor)
+
+
 @pytest.mark.parametrize('pos_label', [1, 2.])
 def test_precision_recall(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])

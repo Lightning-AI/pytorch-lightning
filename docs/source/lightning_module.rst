@@ -1,6 +1,7 @@
 .. role:: hidden
     :class: hidden-section
-.. _lightning-module:
+
+.. _lightning_module:
 
 LightningModule
 ===============
@@ -896,6 +897,12 @@ Pointer to the trainer
 
 ------------
 
+use_amp
+~~~~~~~
+True if using Automatic Mixed Precision (AMP)
+
+------------
+
 use_ddp
 ~~~~~~~
 True if using ddp
@@ -1020,7 +1027,7 @@ configure_ddp
 configure_sync_batchnorm
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_ddp
+.. autofunction:: pytorch_lightning.core.lightning.LightningModule.configure_sync_batchnorm
     :noindex:
 
 get_progress_bar_dict
@@ -1152,18 +1159,6 @@ on_pretrain_routine_end
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_pretrain_routine_end
     :noindex:
 
-on_test_epoch_start
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_start
-    :noindex:
-
-on_test_epoch_end
-~~~~~~~~~~~~~~~~~
-
-.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
-    :noindex:
-
 on_test_batch_start
 ~~~~~~~~~~~~~~~~~~~
 
@@ -1174,6 +1169,18 @@ on_test_batch_end
 ~~~~~~~~~~~~~~~~~
 
 .. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_batch_end
+    :noindex:
+
+on_test_epoch_start
+~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_start
+    :noindex:
+
+on_test_epoch_end
+~~~~~~~~~~~~~~~~~
+
+.. autofunction:: pytorch_lightning.core.hooks.ModelHooks.on_test_epoch_end
     :noindex:
 
 on_train_batch_start

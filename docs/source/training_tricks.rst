@@ -2,7 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _training-tricks:
+.. _training_tricks:
 
 Training Tricks
 ================

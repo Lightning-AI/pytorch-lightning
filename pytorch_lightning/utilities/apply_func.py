@@ -121,4 +121,5 @@ def move_data_to_device(batch: Any, device: torch.device):
         kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
         return data.to(device, **kwargs)
 
-    return apply_to_collection(batch, dtype=(TransferableDataType, Batch), function=batch_to)
+    dtype = (TransferableDataType, Batch) if TORCHTEXT_AVAILABLE else TransferableDataType
+    return apply_to_collection(batch, dtype=dtype, function=batch_to)

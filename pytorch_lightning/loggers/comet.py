@@ -229,7 +229,10 @@ class CometLogger(LightningLoggerBase):
             if is_tensor(val):
                 metrics[key] = val.cpu().detach()
 
-        self.experiment.log_metrics(metrics, step=step)
+        metrics_without_epoch = metrics.copy()
+        epoch = metrics_without_epoch.pop('epoch', None)
+
+        self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     def reset_experiment(self):
         self._experiment = None

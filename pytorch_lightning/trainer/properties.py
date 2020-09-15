@@ -1,5 +1,5 @@
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.trainer.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
 from pytorch_lightning.trainer.states import TrainerState
 from typing import List, Optional, Union
 from pytorch_lightning.utilities import argparse_utils
@@ -10,7 +10,8 @@ import os
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.callbacks import ProgressBarBase
-from pytorch_lightning.trainer.model_connector import ModelConnector
+from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 
 
 class TrainerProperties(ABC):
@@ -30,6 +31,7 @@ class TrainerProperties(ABC):
     _default_root_dir: str
     _weights_save_path: str
     model_connector: ModelConnector
+    checkpoint_connector: CheckpointConnector
 
     @property
     def use_amp(self) -> bool:
@@ -42,6 +44,22 @@ class TrainerProperties(ABC):
     @callback_metrics.setter
     def callback_metrics(self, x):
         self.logger_connector.callback_metrics = x
+
+    @property
+    def logged_metrics(self):
+        return self.logger_connector.logged_metrics
+
+    @logged_metrics.setter
+    def logged_metrics(self, x):
+        self.logger_connector.logged_metrics = x
+
+    @property
+    def progress_bar_metrics(self):
+        return self.logger_connector.progress_bar_metrics
+
+    @progress_bar_metrics.setter
+    def progress_bar_metrics(self, x):
+        self.logger_connector.progress_bar_metrics = x
 
     @property
     def state(self) -> TrainerState:
@@ -150,3 +168,9 @@ class TrainerProperties(ABC):
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
         return self._weights_save_path
+
+    def save_checkpoint(self, filepath, weights_only: bool = False):
+        self.checkpoint_connector.save_checkpoint(filepath, weights_only)
+
+    def get_model(self):
+        return self.model_connector.get_model()
