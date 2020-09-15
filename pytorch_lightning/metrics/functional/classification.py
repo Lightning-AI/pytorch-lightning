@@ -4,7 +4,7 @@ from typing import Callable, Optional, Sequence, Tuple
 import torch
 from torch.nn import functional as F
 
-from pytorch_lightning.metrics.functional.reduction import reduce, class_reduce
+from pytorch_lightning.metrics.functional.reduction import class_reduce, reduce
 from pytorch_lightning.utilities import FLOAT16_EPSILON, rank_zero_warn
 
 
