@@ -58,7 +58,7 @@ class Accuracy(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            class_reduction: reduction method for multiclass problems
+            class_reduction: method to reduce metric score over labels
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
@@ -228,7 +228,7 @@ class Precision(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            class_reduction: reduction method for multiclass problems
+            class_reduction: method to reduce metric score over labels
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
@@ -284,7 +284,7 @@ class Recall(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            class_reduction: reduction method for multiclass problems
+            class_reduction: method to reduce metric score over labels
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
@@ -440,7 +440,7 @@ class FBeta(TensorMetric):
         Args:
             beta: determines the weight of recall in the combined score.
             num_classes: number of classes
-            class_reduction: reduction method for multiclass problems
+            class_reduction: method to reduce metric score over labels
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
@@ -498,7 +498,7 @@ class F1(TensorMetric):
         """
         Args:
             num_classes: number of classes
-            class_reduction: reduction method for multiclass problems
+            class_reduction: method to reduce metric score over labels
 
                 - ``'micro'``: calculate metrics globally (default)
                 - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
