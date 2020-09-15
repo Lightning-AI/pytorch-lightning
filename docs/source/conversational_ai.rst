@@ -182,8 +182,10 @@ Optionally launch Tensorboard to view training results in ./nemo_experiments (by
 
     tensorboard --bind_all --logdir nemo_experiments
 
+Using State-Of-The-Art Pre-trained Model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Transcribe audio with QuartzNet pretrained on ~3300 hours of audio.
+Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
 
 .. code-block:: python
 
@@ -194,8 +196,11 @@ Transcribe audio with QuartzNet pretrained on ~3300 hours of audio.
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
 
+NeMo Model Under the Hood
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Any aspect of ASR training or model architecture design can easily be customized
-since every NeMo model is a Lightning Module.
+with PyTorch Lightning since every NeMo model is a Lightning Module.
 
 .. code-block:: python
 
@@ -232,9 +237,12 @@ since every NeMo model is a Lightning Module.
             }
             return {'loss': loss_value, 'log': tensorboard_logs}
 
+Neural Types in NeMo
+^^^^^^^^^^^^^^^^^^^^
+
 Additionally, NeMo Models and Neural Modules come with Neural Type checking.
-Neural type checking is extremely use when combining many different neural 
-network architectures for a production grade application.
+Neural type checking is extremely useful when combining many different neural 
+network architectures for a production-grade application.
 
 .. code-block:: python
 
@@ -256,5 +264,3 @@ network architectures for a production grade application.
                 "encoded_lengths": NeuralType(tuple('B'), LengthsType()),
                 "greedy_predictions": NeuralType(('B', 'T'), LabelsType()),
             }
-
-
