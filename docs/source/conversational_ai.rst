@@ -1,5 +1,5 @@
 Conversational AI
------------------
+=================
 
 NVIDIA NeMo Models
 ^^^^^^^^^^^^^^^^^^
@@ -146,7 +146,6 @@ including the PyTorch Lightning Trainer, customizable from the command line.
         trainer.gpus=4 \
         trainer.max_epochs=128 \
         +trainer.precision=16 \
-        +trainer.amp_level=O1 \
         model.train_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-train-all.json \
         model.validation_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-dev-other.json \
         model.train_ds.batch_size=64 \
@@ -456,3 +455,7 @@ for a production-grade application.
     @property
     def output_types(self) -> Optional[Dict[str, NeuralType]]:
         return self.classifier.output_types
+
+Text-To-Speech (TTS)
+^^^^^^^^^^^^^^^^^^^^
+
