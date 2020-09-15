@@ -153,7 +153,7 @@ class DDPBase(Accelerator):
         # run through amp wrapper before going to distributed DP
         if self.trainer.amp_backend == AMPType.APEX:
             self.precision_backend = ApexPlugin(self.trainer)
-            model, optimizers = self.precision_backend._init(model)
+            model, optimizers = self.precision_backend.connect(model)
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()

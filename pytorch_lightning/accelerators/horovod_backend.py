@@ -85,7 +85,7 @@ class HorovodBackend(Accelerator):
 
         if self.trainer.amp_backend == AMPType.APEX:
             self.precision_backend = ApexPlugin(self.trainer)
-            model, optimizers = self.precision_backend._init(model)
+            model, optimizers = self.precision_backend.connect(model)
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.

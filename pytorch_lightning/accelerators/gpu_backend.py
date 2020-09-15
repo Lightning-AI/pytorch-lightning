@@ -15,7 +15,6 @@
 import torch
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.plugins.apex import ApexPlugin
 
 
 class GPUBackend(Accelerator):
@@ -23,7 +22,6 @@ class GPUBackend(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
-        self.precision_backend = None
 
     def setup(self, model):
 
@@ -40,9 +38,8 @@ class GPUBackend(Accelerator):
         self.trainer.lr_schedulers = lr_schedulers
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        if self.trainer.amp_backend == AMPType.APEX:
-            self.precision_backend = ApexPlugin(self.trainer)
-            model, optimizers = self.precision_backend._init(model)
+        # init precision
+        model, optimizers = self.trainer.precision_connector.backend.connect(model)
 
         self.trainer.model = model
 

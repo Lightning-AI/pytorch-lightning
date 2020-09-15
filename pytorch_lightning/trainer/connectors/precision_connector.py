@@ -13,12 +13,16 @@
 # limitations under the License.
 from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, rank_zero_warn, AMPType
+from pytorch_lightning.plugins.native_amp import NativeAMP
+from pytorch_lightning.plugins.apex import ApexPlugin
+from pytorch_lightning.utilities.no_op import NoOp
 
 
 class PrecisionConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
+        self.backend = NoOp()
 
     def on_trainer_init(self, precision, amp_level, amp_backend):
         # AMP init
@@ -52,6 +56,8 @@ class PrecisionConnector:
             else:
                 log.info('Using native 16bit precision.')
                 self.trainer.amp_backend = AMPType.NATIVE
+                self.backend = NativeAMP(self.trainer)
+
         if amp_type == 'apex':
             if not APEX_AVAILABLE:
                 rank_zero_warn('You have asked for Apex AMP but you have not installed it yet.'
@@ -59,6 +65,8 @@ class PrecisionConnector:
             else:
                 log.info('Using APEX 16bit precision.')
                 self.trainer.amp_backend = AMPType.APEX
+                self.backend = ApexPlugin(self.trainer)
+
         if not self.trainer.amp_backend:
             raise ModuleNotFoundError(
                 f'You have asked for AMP support {amp_type}, but there is no support on your side yet.'

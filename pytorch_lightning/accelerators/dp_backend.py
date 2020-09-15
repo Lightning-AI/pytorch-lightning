@@ -92,7 +92,7 @@ class DataParallelBackend(Accelerator):
                 f' We recommend you switch to ddp if you want to use amp')
         else:
             self.precision_backend = ApexPlugin(self.trainer)
-            model, optimizers = self.precision_backend._init(model)
+            model, optimizers = self.precision_backend.connect(model)
 
         return model
 
