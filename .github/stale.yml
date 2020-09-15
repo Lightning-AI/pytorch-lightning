@@ -9,8 +9,6 @@ onlyLabels:
   - "bug / fix"
 # Issues with these labels will never be considered stale
 exemptLabels:
-  - pinned
-  - security
   - Important
   - Priority
 # Label to use when marking an issue as stale
