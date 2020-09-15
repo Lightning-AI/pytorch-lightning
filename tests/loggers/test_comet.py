@@ -100,7 +100,6 @@ def test_comet_logger_dirs_creation(tmpdir, monkeypatch):
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {'epoch=0.ckpt'}
 
 
-
 def test_comet_name_default():
     """ Test that CometLogger.name don't create an Experiment and returns a default value. """
 
@@ -158,9 +157,11 @@ def test_comet_version_without_experiment():
         assert second_version is not None
         assert second_version != first_version
 
+
 def test_comet_epoch_logging(tmpdir, monkeypatch):
     """ Test that CometLogger removes the epoch key from the metrics dict and passes it as argument. """
     import atexit
+
     monkeypatch.setattr(atexit, "register", lambda _: None)
     with patch("pytorch_lightning.loggers.comet.CometOfflineExperiment.log_metrics") as log_metrics:
         logger = CometLogger(project_name="test", save_dir=tmpdir)
