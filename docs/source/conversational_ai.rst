@@ -52,7 +52,7 @@ To install a specific branch from GitHub:
 
 .. code-block:: bash
 
-    python -m pip install git+https://github.com/NVIDIA/NeMo.git@{BRANCH}#egg=nemo_toolkit[nlp]
+    python -m pip install git+https://github.com/NVIDIA/NeMo.git@{BRANCH}#egg=nemo_toolkit[all]
 
 .. note:: Replace {BRANCH} with the specific branch name from GitHub.
 
@@ -158,8 +158,8 @@ including the PyTorch Lightning Trainer, customizable from the command line.
 NeMo Experiment Manager
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-NeMo's Experiment Manager leverages PyTorch Lightning for model checkpointing, 
-TensorBoard Logging and Weights and Biases logging. The Experiment Manager is included by default
+The Experiment Manager leverages PyTorch Lightning for model checkpointing, 
+TensorBoard Logging, and Weights and Biases logging. The Experiment Manager is included by default
 in all NeMo example scripts.
 
 .. code-block:: python
@@ -264,3 +264,44 @@ network architectures for a production-grade application.
                 "encoded_lengths": NeuralType(tuple('B'), LengthsType()),
                 "greedy_predictions": NeuralType(('B', 'T'), LabelsType()),
             }
+
+Natural Language Processing (NLP)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Everything needed to train BERT based NLP models is included with NeMo.
+NeMo supports language models from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
+and model parallel architectures from `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_.
+
+With NeMo, any of the HuggingFace encoders or Megatron-LM encoders can easily be used for the NLP tasks 
+that are included with NeMo:
+
+- `Glue Benchmark (All tasks) <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/GLUE_Benchmark.ipynb>`_
+- Intent Slot Classification
+- `Language Modeling (BERT Pretraining) <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
+- `Question Answering <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Question_Answering_Squad.ipynb>`_
+- Text Classification (including Sentiment Analysis)
+- Token Classifcation
+- `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
+
+
+Tokenizers
+^^^^^^^^^^
+
+Tokenization is the process of converting natural langauge text into integer arrays 
+which can be used for machine learning.
+For NLP tasks, tokenization is an essential part of data preprocessing. 
+NeMo supports all BERT-like model tokenizers from 
+`HuggingFace's AutoTokenizer <https://huggingface.co/transformers/model_doc/auto.html#autotokenizer>`_
+and also supports `Google's SentencePieceTokenizer <https://github.com/google/sentencepiece>`_ 
+which can be trained on custom data.
+
+To see the list of supported tokenizers:
+
+..code-block:: python
+
+    from nemo.collections import nlp as nemo_nlp
+
+    nemo_nlp.modules.get_tokenizer_list()
+
+See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
+for a full tutorial on using tokenizers in NeMO.
