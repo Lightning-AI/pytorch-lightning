@@ -52,22 +52,25 @@ class Accuracy(TensorMetric):
     def __init__(
         self,
         num_classes: Optional[int] = None,
-        reduction: str = "elementwise_mean",
+        class_reduction: str = 'micro',
         reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
         """
         super().__init__(name="accuracy", reduce_group=reduce_group)
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -80,7 +83,8 @@ class Accuracy(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return accuracy(pred=pred, target=target, num_classes=self.num_classes, reduction=self.reduction)
+        return accuracy(pred=pred, target=target,
+                        num_classes=self.num_classes, class_reduction=self.class_reduction)
 
 
 class ConfusionMatrix(TensorMetric):
@@ -209,7 +213,7 @@ class Precision(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = Precision(num_classes=4)
+        >>> metric = Precision(num_classes=4, class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.7500)
 
@@ -218,17 +222,19 @@ class Precision(TensorMetric):
     def __init__(
         self,
         num_classes: Optional[int] = None,
-        reduction: str = "elementwise_mean",
+        class_reduction: str = 'micro',
         reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
         """
         super().__init__(
@@ -236,7 +242,8 @@ class Precision(TensorMetric):
             reduce_group=reduce_group,
         )
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -249,7 +256,9 @@ class Precision(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return precision(pred=pred, target=target, num_classes=self.num_classes, reduction=self.reduction)
+        return precision(pred=pred, target=target,
+                         num_classes=self.num_classes,
+                         class_reduction=self.class_reduction)
 
 
 class Recall(TensorMetric):
@@ -262,24 +271,26 @@ class Recall(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = Recall()
         >>> metric(pred, target)
-        tensor(0.6250)
+        tensor(0.7500)
 
     """
 
     def __init__(
         self,
         num_classes: Optional[int] = None,
-        reduction: str = "elementwise_mean",
+        class_reduction: str = 'micro',
         reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
         """
         super().__init__(
@@ -288,7 +299,8 @@ class Recall(TensorMetric):
         )
 
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -301,7 +313,10 @@ class Recall(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return recall(pred=pred, target=target, num_classes=self.num_classes, reduction=self.reduction)
+        return recall(pred=pred,
+                      target=target,
+                      num_classes=self.num_classes,
+                      class_reduction=self.class_reduction)
 
 
 class AveragePrecision(TensorMetric):
@@ -409,7 +424,7 @@ class FBeta(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = FBeta(0.25)
+        >>> metric = FBeta(0.25, class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.7361)
     """
@@ -418,18 +433,20 @@ class FBeta(TensorMetric):
         self,
         beta: float,
         num_classes: Optional[int] = None,
-        reduction: str = "elementwise_mean",
+        class_reduction: str = 'micro',
         reduce_group: Any = None,
     ):
         """
         Args:
             beta: determines the weight of recall in the combined score.
             num_classes: number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
         """
         super().__init__(
@@ -439,7 +456,8 @@ class FBeta(TensorMetric):
 
         self.beta = beta
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -452,9 +470,9 @@ class FBeta(TensorMetric):
         Return:
             torch.Tensor: classification score
         """
-        return fbeta_score(
-            pred=pred, target=target, beta=self.beta, num_classes=self.num_classes, reduction=self.reduction
-        )
+        return fbeta_score(pred=pred, target=target,
+                           beta=self.beta, num_classes=self.num_classes,
+                           class_reduction=self.class_reduction)
 
 
 class F1(TensorMetric):
@@ -466,7 +484,7 @@ class F1(TensorMetric):
 
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
-        >>> metric = F1()
+        >>> metric = F1(class_reduction='macro')
         >>> metric(pred, target)
         tensor(0.6667)
     """
@@ -474,17 +492,19 @@ class F1(TensorMetric):
     def __init__(
         self,
         num_classes: Optional[int] = None,
-        reduction: str = "elementwise_mean",
+        class_reduction: str = 'micro',
         reduce_group: Any = None,
     ):
         """
         Args:
             num_classes: number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            class_reduction: method to reduce metric score over labels
+
+                - ``'micro'``: calculate metrics globally (default)
+                - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
+                - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
+                - ``'none'``: returns calculated metric per class
+
             reduce_group: the process group to reduce metric results from DDP
         """
         super().__init__(
@@ -493,7 +513,8 @@ class F1(TensorMetric):
         )
 
         self.num_classes = num_classes
-        self.reduction = reduction
+        assert class_reduction in ('micro', 'macro', 'weighted', 'none')
+        self.class_reduction = class_reduction
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -506,7 +527,9 @@ class F1(TensorMetric):
         Return:
             torch.Tensor: classification score
         """
-        return f1_score(pred=pred, target=target, num_classes=self.num_classes, reduction=self.reduction)
+        return f1_score(pred=pred, target=target,
+                        num_classes=self.num_classes,
+                        class_reduction=self.class_reduction)
 
 
 class ROC(TensorMetric):
@@ -518,13 +541,10 @@ class ROC(TensorMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = ROC()
-        >>> fps, tps, thresholds = metric(pred, target)
-        >>> fps
-        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
-        >>> tps
-        tensor([0., 0., 0., 1., 1.])
-        >>> thresholds
-        tensor([4., 3., 2., 1., 0.])
+        >>> metric(pred, target)   # doctest: +NORMALIZE_WHITESPACE
+        (tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000]),
+         tensor([0., 0., 0., 1., 1.]),
+         tensor([4., 3., 2., 1., 0.]))
 
     """
 
