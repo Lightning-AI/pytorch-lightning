@@ -23,7 +23,7 @@ jobs:
         python-version: [3.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
