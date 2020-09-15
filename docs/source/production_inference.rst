@@ -1,4 +1,4 @@
-.. _production-inference:
+.. _production_inference:
 
 Inference in Production
 =======================

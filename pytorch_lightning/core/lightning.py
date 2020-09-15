@@ -335,7 +335,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return result
 
         See Also:
-            See the :ref:`multi-gpu-training` guide for more details.
+            See the :ref:`multi_gpu` guide for more details.
         """
 
     def training_epoch_end(
@@ -531,7 +531,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return result
 
         See Also:
-            See the :ref:`multi-gpu-training` guide for more details.
+            See the :ref:`multi_gpu` guide for more details.
         """
 
     def validation_end(self, outputs):
@@ -732,7 +732,7 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 return result
 
         See Also:
-            See the :ref:`multi-gpu-training` guide for more details.
+            See the :ref:`multi_gpu` guide for more details.
         """
 
     def test_end(self, outputs):

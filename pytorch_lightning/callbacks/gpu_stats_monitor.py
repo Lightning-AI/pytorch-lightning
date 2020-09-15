@@ -133,7 +133,7 @@ class GPUStatsMonitor(Callback):
     def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
         gpu_stats = self._get_gpu_stats(gpu_stat_keys)
-        
+
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
