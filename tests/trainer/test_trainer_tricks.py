@@ -63,7 +63,6 @@ def test_overfit_batch_limits(tmpdir):
     full_train_samples = len(train_loader)
     num_train_samples = int(0.11 * full_train_samples)
 
-
     # ------------------------------------------------------
     # set VAL and Test loaders
     # ------------------------------------------------------
