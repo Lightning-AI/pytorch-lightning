@@ -38,7 +38,7 @@ from pytorch_lightning.metrics.functional.classification import (
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
     pytest.param(sk_accuracy, accuracy, id='accuracy'),
-    pytest.param(partial(sk_jaccard_score, average='micro'), iou, id='iou'),
+    pytest.param(partial(sk_jaccard_score, average='macro'), iou, id='iou'),
     pytest.param(partial(sk_precision, average='micro'), precision, id='precision'),
     pytest.param(partial(sk_recall, average='micro'), recall, id='recall'),
     pytest.param(partial(sk_f1_score, average='micro'), f1_score, id='f1_score'),
