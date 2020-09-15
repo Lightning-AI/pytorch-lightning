@@ -67,7 +67,8 @@ class TensorBoardLogger(LightningLoggerBase):
             model.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
-        \**kwargs: Other arguments are passed directly to the :class:`SummaryWriter` constructor.
+        \**kwargs: Additional arguments like `comment`, `filename_suffix`, etc. used by
+            :class:`SummaryWriter` can be passed as keyword arguments in this logger.
 
     """
     NAME_HPARAMS_FILE = 'hparams.yaml'

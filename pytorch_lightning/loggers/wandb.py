@@ -53,8 +53,8 @@ class WandbLogger(LightningLoggerBase):
         project: The name of the project to which this run will belong.
         log_model: Save checkpoints in wandb dir to upload on W&B servers.
         experiment: WandB experiment object.
-        kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
-            `wandb.init` can be passed as keyword arguments in this logger.
+        \**kwargs: Additional arguments like `entity`, `group`, `tags`, etc. used by
+            :func:`wandb.init` can be passed as keyword arguments in this logger.
 
     Example:
         >>> from pytorch_lightning.loggers import WandbLogger
