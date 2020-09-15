@@ -23,14 +23,14 @@ import csv
 import io
 import os
 from argparse import Namespace
-from typing import Optional, Dict, Any, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase
-from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 
 class ExperimentWriter(object):

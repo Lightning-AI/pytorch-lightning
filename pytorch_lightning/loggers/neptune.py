@@ -17,8 +17,7 @@ Neptune
 -------
 """
 from argparse import Namespace
-from typing import Optional, List, Dict, Any, Union, Iterable
-
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 try:
     import neptune

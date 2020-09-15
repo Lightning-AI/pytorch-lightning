@@ -20,11 +20,11 @@ Comet
 import os
 
 from argparse import Namespace
-from typing import Optional, Dict, Union, Any
+from typing import Any, Dict, Optional, Union
 
 try:
-    from comet_ml import Experiment as CometExperiment
     from comet_ml import ExistingExperiment as CometExistingExperiment
+    from comet_ml import Experiment as CometExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml import BaseExperiment as CometBaseExperiment
     from comet_ml import generate_guid
@@ -34,7 +34,7 @@ try:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
-    from comet_ml.config import get_config, get_api_key
+    from comet_ml.config import get_api_key, get_config
 except ImportError:  # pragma: no-cover
     CometExperiment = None
     CometExistingExperiment = None
@@ -51,8 +51,8 @@ from torch import is_tensor
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CometLogger(LightningLoggerBase):

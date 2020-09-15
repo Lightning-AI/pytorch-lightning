@@ -19,7 +19,7 @@ TensorBoard
 
 import os
 from argparse import Namespace
-from typing import Optional, Dict, Union, Any
+from typing import Any, Dict, Optional, Union
 from warnings import warn
 
 import torch
@@ -27,11 +27,11 @@ from pkg_resources import parse_version
 from torch.utils.tensorboard import SummaryWriter
 
 from pytorch_lightning import _logger as log
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.core.lightning import LightningModule
 
 try:
     from omegaconf import Container, OmegaConf

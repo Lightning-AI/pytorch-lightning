@@ -36,7 +36,7 @@ from pytorch_lightning.utilities import rank_zero_only
 
 
 class WandbLogger(LightningLoggerBase):
-    """
+    r"""
     Log using `Weights and Biases <https://www.wandb.com/>`_. Install it with pip:
 
     .. code-block:: bash

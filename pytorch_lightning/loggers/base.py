@@ -18,13 +18,13 @@ import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Union, Optional, Dict, Iterable, Any, Callable, List, Sequence, Mapping, Tuple, MutableMapping
+from typing import Any, Callable, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.utilities import rank_zero_only
 
 
 class LightningLoggerBase(ABC):
