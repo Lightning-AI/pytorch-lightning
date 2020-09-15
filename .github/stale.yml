@@ -1,13 +1,18 @@
 # https://github.com/marketplace/stale
 
 # Number of days of inactivity before an issue becomes stale
-daysUntilStale: 60
+daysUntilStale: 30
 # Number of days of inactivity before a stale issue is closed
-daysUntilClose: 9
+daysUntilClose: 7
+# Only issues or pull requests with all of these labels are check if stale. Defaults to `[]` (disabled)
+onlyLabels:
+  - "bug / fix"
 # Issues with these labels will never be considered stale
 exemptLabels:
   - pinned
   - security
+  - Important
+  - Priority
 # Label to use when marking an issue as stale
 staleLabel: wontfix
 # Comment to post when marking an issue as stale. Set to `false` to disable
@@ -17,3 +22,5 @@ markComment: >
   for your contributions.
 # Comment to post when closing a stale issue. Set to `false` to disable
 closeComment: false
+# Limit the number of actions per hour, from 1-30. Default is 30
+limitPerRun: 10
