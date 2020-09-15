@@ -363,7 +363,7 @@ Inference from file:
 
 Or we can run inference on a few examples:
 
-..code-block:: python
+.. code-block:: python
 
     queries = ['we bought four shirts from the nvidia gear store in santa clara.', 'Nvidia is a company in Santa Clara.']
     results = model.add_predictions(queries)
@@ -397,7 +397,7 @@ which can be trained on custom data.
 
 To see the list of supported tokenizers:
 
-..code-block:: python
+.. code-block:: python
 
     from nemo.collections import nlp as nemo_nlp
 
