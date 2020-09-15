@@ -276,13 +276,15 @@ With NeMo, any of the HuggingFace encoders or Megatron-LM encoders can easily be
 that are included with NeMo:
 
 - `Glue Benchmark (All tasks) <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/GLUE_Benchmark.ipynb>`_
-- Intent Slot Classification
+- `Intent Slot Classification <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/intent_slot_classification>`_
 - `Language Modeling (BERT Pretraining) <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
 - `Question Answering <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Question_Answering_Squad.ipynb>`_
-- Text Classification (including Sentiment Analysis)
-- Token Classifcation
+- `Text Classification <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/text_classification>`_ (including Sentiment Analysis)
+- `Token Classifcation <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/token_classification>`_ (including Named Entity Recognition)
 - `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
 
+Named Entity Recognition
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Tokenizers
 ^^^^^^^^^^
