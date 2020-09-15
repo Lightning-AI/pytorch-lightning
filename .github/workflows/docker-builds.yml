@@ -3,11 +3,9 @@ name: Publish Docker Releases
 # https://github.com/docker/build-push-action
 on:
   push:
-    branches: 
-      - master
+    branches: [master]
   release:
-    types:
-       - created
+    types: [created]
 
 jobs:
   build-Conda:
