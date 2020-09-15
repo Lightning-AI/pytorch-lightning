@@ -13,14 +13,9 @@
 # limitations under the License.
 
 import torch
-from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.accelerators.base_backend import Accelerator
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
+from pytorch_lightning.plugins.apex import ApexPlugin
 
 
 class GPUBackend(Accelerator):
@@ -28,6 +23,7 @@ class GPUBackend(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
+        self.precision_backend = None
 
     def setup(self, model):
 
@@ -45,7 +41,8 @@ class GPUBackend(Accelerator):
         self.trainer.optimizer_frequencies = optimizer_frequencies
 
         if self.trainer.amp_backend == AMPType.APEX:
-            model = self._setup_nvidia_apex(model)
+            self.precision_backend = ApexPlugin(self.trainer)
+            model, optimizers = self.precision_backend._init(model)
 
         self.trainer.model = model
 
@@ -117,9 +114,3 @@ class GPUBackend(Accelerator):
         # be referenced from and if there are multiple optimizers the batch will
         # wind up copying it to the same device repeatedly.
         return self.batch_to_device(batch, gpu_id)
-
-    def _setup_nvidia_apex(self, model: LightningModule):
-        model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-        self.trainer.optimizers = optimizers
-        self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
-        return model

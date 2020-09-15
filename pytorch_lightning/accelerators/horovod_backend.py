@@ -18,12 +18,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from torch.optim.lr_scheduler import _LRScheduler
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
+from pytorch_lightning.plugins.apex import ApexPlugin
 
 try:
     import horovod.torch as hvd
@@ -38,6 +33,7 @@ class HorovodBackend(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
+        self.precision_backend = None
 
     def setup(self, model):
         # call setup after the ddp process has connected
@@ -88,9 +84,8 @@ class HorovodBackend(Accelerator):
         ]
 
         if self.trainer.amp_backend == AMPType.APEX:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.trainer.optimizers = optimizers
-            self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
+            self.precision_backend = ApexPlugin(self.trainer)
+            model, optimizers = self.precision_backend._init(model)
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
