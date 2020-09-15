@@ -237,8 +237,8 @@ with PyTorch Lightning since every NeMo model is a Lightning Module.
             }
             return {'loss': loss_value, 'log': tensorboard_logs}
 
-Neural Types in NeMo
-^^^^^^^^^^^^^^^^^^^^
+Neural Types in NeMo ASR
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Additionally, NeMo Models and Neural Modules come with Neural Type checking.
 Neural type checking is extremely useful when combining many different neural 
@@ -283,8 +283,106 @@ that are included with NeMo:
 - `Token Classifcation <https://github.com/NVIDIA/NeMo/tree/main/examples/nlp/token_classification>`_ (including Named Entity Recognition)
 - `Punctuation and Capitalization <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Punctuation_and_Capitalization.ipynb>`_
 
-Named Entity Recognition
-^^^^^^^^^^^^^^^^^^^^^^^^
+Named Entity Recognition (NER)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+NER (or more generally token classifcation) is the NLP task of detecting and classifying key information (entities) in text.
+This task is very popular in Healthcare and Finance. In finance, for example, it can be important to identify
+geographical, geopolitical, organizational, persons, events, and natural phenomenon entities.
+
+Specify NER Model Configurations with YAML File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..note NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
+
+See `here <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/token_classification/conf/token_classification_config.yaml>`_
+for the entire NER (token classification) .yaml file.
+
+.. code-block:: yaml
+
+    # configure any argument of the PyTorch Lightning Trainer
+    trainer:
+        gpus: 1 # the number of gpus, 0 for CPU
+        num_nodes: 1
+        max_epochs: 5
+        ...
+    # configure any aspect of the token classification model here
+    model:
+        dataset:
+            data_dir: ??? # /path/to/data
+            class_balancing: null # choose from [null, weighted_loss]. Weighted_loss enables the weighted class balancing of the loss, may be used for handling unbalanced classes
+            max_seq_length: 128
+            ...
+      tokenizer:
+        tokenizer_name: ${model.language_model.pretrained_model_name} # or sentencepiece
+        vocab_file: null # path to vocab file
+        ...
+    # the language model can be from HuggingFace or Megatron-LM
+    language_model:
+        pretrained_model_name: bert-base-uncased
+        lm_checkpoint: null
+        ...
+    # the classifier for the downstream task 
+      head:
+        num_fc_layers: 2
+        fc_dropout: 0.5
+        activation: 'relu'
+        ...
+    # all other configuration: train/val/test/ data, optimizer, experiment manager, etc
+    ...
+
+Developing NER Model From Scratch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`token_classification.py <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/token_classification/token_classification.py>`_
+
+.. code-block:: python
+
+    @hydra.main(config_path="conf", config_name="token_classification_config")
+    def main(cfg: DictConfig) -> None:
+        trainer = pl.Trainer(**cfg.trainer)
+        model = TokenClassificationModel(cfg.model, trainer=trainer)
+        trainer.fit(model)
+
+After training, we can do inference with the saved NER model using PyTorch Lightning.
+
+Inference from file:
+
+.. code-block:: python
+
+    gpu = 1 if cfg.trainer.gpus != 0 else 0
+    trainer = pl.Trainer(gpus=gpu)
+    model.set_trainer(trainer)
+    model.evaluate_from_file(
+        text_file=os.path.join(cfg.model.dataset.data_dir, cfg.model.validation_ds.text_file),
+        labels_file=os.path.join(cfg.model.dataset.data_dir, cfg.model.validation_ds.labels_file),
+        output_dir=exp_dir,
+        add_confusion_matrix=True,
+        normalize_confusion_matrix=True,
+    )
+
+Or we can run inference on a few examples:
+
+..code-block:: python
+
+    queries = ['we bought four shirts from the nvidia gear store in santa clara.', 'Nvidia is a company in Santa Clara.']
+    results = model.add_predictions(queries)
+
+    for query, result in zip(queries, results):
+        logging.info(f'Query : {query}')
+        logging.info(f'Result: {result.strip()}\n')
+
+Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trainer, customizable from the command line.
+
+.. code-block:: bash
+
+    python token_classification.py \
+        model.language_model.pretrained_model_name=bert-base-cased \
+        model.head.num_fc_layers=2 \
+        model.dataset.data_dir=/path/to/my/data  \
+        trainer.max_epochs=5 \
+        trainer.gpus=[0,1]
+
 
 Tokenizers
 ^^^^^^^^^^
@@ -307,3 +405,54 @@ To see the list of supported tokenizers:
 
 See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
 for a full tutorial on using tokenizers in NeMO.
+
+NeMo NER Model Under the Hood
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Any aspect of NLP training or model architecture design can easily be customized with PyTorch Lightning 
+since every NeMo model is a Lightning Module.
+
+.. code-block:: python
+
+    class TokenClassificationModel(ModelPT):
+        """
+        Token Classification Model with BERT, applicable for tasks such as Named Entity Recognition
+        """
+        ...
+        @typecheck()
+        def forward(self, input_ids, token_type_ids, attention_mask):
+            hidden_states = self.bert_model(
+                input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask
+            )
+            logits = self.classifier(hidden_states=hidden_states)
+            return logits
+
+        def training_step(self, batch, batch_idx):
+            """
+            Lightning calls this inside the training loop with the data from the training dataloader
+            passed in as `batch`.
+            """
+            input_ids, input_type_ids, input_mask, subtokens_mask, loss_mask, labels = batch
+            logits = self(input_ids=input_ids, token_type_ids=input_type_ids, attention_mask=input_mask)
+
+            loss = self.loss(logits=logits, labels=labels, loss_mask=loss_mask)
+            tensorboard_logs = {'train_loss': loss, 'lr': self._optimizer.param_groups[0]['lr']}
+            return {'loss': loss, 'log': tensorboard_logs}
+        ...
+
+Neural Types in NeMo NLP
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Additionally, NeMo Models and Neural Modules come with Neural Type checking. 
+Neural type checking is extremely useful when combining many different neural network architectures 
+for a production-grade application.
+
+.. code-block:: python
+
+    @property
+    def input_types(self) -> Optional[Dict[str, NeuralType]]:
+        return self.bert_model.input_types
+
+    @property
+    def output_types(self) -> Optional[Dict[str, NeuralType]]:
+        return self.classifier.output_types
