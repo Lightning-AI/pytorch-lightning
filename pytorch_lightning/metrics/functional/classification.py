@@ -921,12 +921,11 @@ def dice_score(
         bg: whether to also compute dice for the background
         nan_score: score to return, if a NaN occurs during computation
         no_fg_score: score to return, if no foreground pixel was found in target
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
 
     Return:
         Tensor containing dice score
@@ -983,12 +982,11 @@ def iou(
             [0, 0] for `pred`, and [0, 2] for `target`, then class 1 would be assigned the `absent_score`. Default is
             0.0.
         num_classes: Optionally specify the number of classes
-        reduction: a method to reduce metric score over labels (default: takes the mean)
-            Available reduction methods:
+        reduction: a method to reduce metric score over labels.
 
-            - elementwise_mean: takes the mean
-            - none: pass array
-            - sum: add elements
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
 
     Return:
         IoU score : Tensor containing single value if reduction is

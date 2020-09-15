@@ -748,11 +748,11 @@ class DiceCoefficient(TensorMetric):
             include_background: whether to also compute dice for the background
             nan_score: score to return, if a NaN occurs during computation (denom zero)
             no_fg_score: score to return, if no foreground pixel was found in target
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
             reduce_group: the process group to reduce metric results from DDP
         """
         super().__init__(
@@ -822,12 +822,11 @@ class IoU(TensorMetric):
                 classes, [0, 0] for `y_pred`, and [0, 2] for `y_true`, then class 1 would be assigned the
                 `absent_score`. Default is 0.0.
             num_classes: Optionally specify the number of classes
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
+            reduction: a method to reduce metric score over labels.
 
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
         super().__init__(name="iou")
         self.ignore_index = ignore_index
