@@ -1,4 +1,18 @@
-from typing import Any, Optional, Union, Sequence, List
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -8,15 +22,13 @@ from pytorch_lightning.metrics.metric import NumpyMetric
 from pytorch_lightning.utilities import rank_zero_warn
 
 try:
-    from torch.distributed import ReduceOp, group
+    from torch.distributed import group
 except ImportError:
-    class ReduceOp:
-        SUM = None
 
     class group:
         WORLD = None
 
-    rank_zero_warn('Unsupported `ReduceOp` for distributed computing.')
+    rank_zero_warn("Unsupported `ReduceOp` for distributed computing.")
 
 
 class SklearnMetric(NumpyMetric):
@@ -31,34 +43,33 @@ class SklearnMetric(NumpyMetric):
     """
 
     def __init__(
-            self,
-            metric_name: str,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
-            **kwargs,
+        self,
+        metric_name: str,
+        reduce_group: Any = group.WORLD,
+        **kwargs,
     ):
         """
         Args:
             metric_name: the metric name to import and compute from scikit-learn.metrics
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
             **kwargs: additonal keyword arguments (will be forwarded to metric call)
         """
-        super().__init__(name=metric_name,
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(
+            name=metric_name,
+            reduce_group=reduce_group,
+        )
 
         self.metric_kwargs = kwargs
         lightning_logger.debug(
-            f'Metric {self.__class__.__name__} is using Sklearn as backend, meaning that'
-            ' every metric call will cause a GPU synchronization, which may slow down your code'
+            f"Metric {self.__class__.__name__} is using Sklearn as backend, meaning that"
+            " every metric call will cause a GPU synchronization, which may slow down your code"
         )
 
     @property
     def metric_fn(self):
         import sklearn.metrics
+
         return getattr(sklearn.metrics, self.name)
 
     def forward(self, *args, **kwargs) -> Union[np.ndarray, int, float]:
@@ -89,15 +100,14 @@ class Accuracy(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Accuracy()
         >>> metric(y_pred, y_true)
-        tensor([0.7500])
+        tensor(0.7500)
 
     """
 
     def __init__(
-            self,
-            normalize: bool = True,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        normalize: bool = True,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -105,19 +115,14 @@ class Accuracy(SklearnMetric):
                 Otherwise, return the fraction of correctly classified samples.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__(metric_name='accuracy_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         normalize=normalize)
+        super().__init__(metric_name="accuracy_score", reduce_group=reduce_group, normalize=normalize)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Computes the accuracy
@@ -146,25 +151,20 @@ class AUC(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = AUC()
         >>> metric(y_pred, y_true)
-        tensor([4.])
+        tensor(4.)
     """
 
     def __init__(
-            self,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
 
-        super().__init__(metric_name='auc',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__(metric_name="auc", reduce_group=reduce_group)
 
     def forward(self, x: np.ndarray, y: np.ndarray) -> float:
         """
@@ -188,10 +188,9 @@ class AveragePrecision(SklearnMetric):
     """
 
     def __init__(
-            self,
-            average: Optional[str] = 'macro',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        average: Optional[str] = "macro",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -208,19 +207,14 @@ class AveragePrecision(SklearnMetric):
 
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('average_precision_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         average=average)
+        super().__init__("average_precision_score", reduce_group=reduce_group, average=average)
 
     def forward(
-            self,
-            y_score: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_score: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
@@ -232,12 +226,11 @@ class AveragePrecision(SklearnMetric):
         Return:
             average precision score
         """
-        return super().forward(y_score=y_score, y_true=y_true,
-                               sample_weight=sample_weight)
+        return super().forward(y_score=y_score, y_true=y_true, sample_weight=sample_weight)
 
 
 class BalancedAccuracy(SklearnMetric):
-    """ Compute the balanced accuracy score
+    """Compute the balanced accuracy score
 
     Warning:
         Every metric call will cause a GPU synchronization, which may slow down your code
@@ -248,15 +241,14 @@ class BalancedAccuracy(SklearnMetric):
         >>> y_true = torch.tensor([0, 0, 1, 1])
         >>> metric = BalancedAccuracy()
         >>> metric(y_pred, y_true)
-        tensor([0.7500])
+        tensor(0.7500)
 
     """
 
     def __init__(
-            self,
-            adjusted: bool = False,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        adjusted: bool = False,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -264,19 +256,14 @@ class BalancedAccuracy(SklearnMetric):
                 corresponds to 0 and perfect performance corresponds to 1
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('balanced_accuracy_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         adjusted=adjusted)
+        super().__init__("balanced_accuracy_score", reduce_group=reduce_group, adjusted=adjusted)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
@@ -288,9 +275,7 @@ class BalancedAccuracy(SklearnMetric):
             balanced accuracy score
 
         """
-        return super().forward(y_true=y_true,
-                               y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
 
 
 class CohenKappaScore(SklearnMetric):
@@ -303,16 +288,15 @@ class CohenKappaScore(SklearnMetric):
         >>> y_true = torch.tensor([2, 2, 2, 1])
         >>> metric = CohenKappaScore()
         >>> metric(y_pred, y_true)
-        tensor([-0.3333])
+        tensor(-0.3333)
 
     """
 
     def __init__(
-            self,
-            labels: Optional[Sequence] = None,
-            weights: Optional[str] = None,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        labels: Optional[Sequence] = None,
+        weights: Optional[str] = None,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -325,20 +309,14 @@ class CohenKappaScore(SklearnMetric):
                 and ``quadratic`` means quadratic weighted
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('cohen_kappa_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         weights=weights)
+        super().__init__("cohen_kappa_score", reduce_group=reduce_group, labels=labels, weights=weights)
 
     def forward(
-            self,
-            y1: np.ndarray,
-            y2: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y1: np.ndarray,
+        y2: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
@@ -372,10 +350,9 @@ class ConfusionMatrix(SklearnMetric):
     """
 
     def __init__(
-            self,
-            labels: Optional[Sequence] = None,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        labels: Optional[Sequence] = None,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -385,13 +362,8 @@ class ConfusionMatrix(SklearnMetric):
                 in ``y_true`` or ``y_pred`` are used in sorted order.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('confusion_matrix',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels)
+        super().__init__("confusion_matrix", reduce_group=reduce_group, labels=labels)
 
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray) -> np.ndarray:
         """
@@ -405,9 +377,12 @@ class ConfusionMatrix(SklearnMetric):
         """
         return super().forward(y_pred=y_pred, y_true=y_true)
 
+    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
+        return torch.stack(tensors).mean(0)
+
 
 class DCG(SklearnMetric):
-    """ Compute discounted cumulative gain
+    """Compute discounted cumulative gain
 
     Warning:
         Every metric call will cause a GPU synchronization, which may slow down your code
@@ -418,16 +393,15 @@ class DCG(SklearnMetric):
         >>> y_true = torch.tensor([[10, 0, 0, 1, 5]])
         >>> metric = DCG()
         >>> metric(y_score, y_true)
-        tensor([9.4995])
+        tensor(9.4995)
     """
 
     def __init__(
-            self,
-            k: Optional[int] = None,
-            log_base: float = 2,
-            ignore_ties: bool = False,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        k: Optional[int] = None,
+        log_base: float = 2,
+        ignore_ties: bool = False,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -436,21 +410,14 @@ class DCG(SklearnMetric):
             ignore_ties: If ``True``, assume there are no ties in y_score for efficiency gains
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('dcg_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         k=k,
-                         log_base=log_base,
-                         ignore_ties=ignore_ties)
+        super().__init__("dcg_score", reduce_group=reduce_group, k=k, log_base=log_base, ignore_ties=ignore_ties)
 
     def forward(
-            self,
-            y_score: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_score: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
@@ -463,9 +430,7 @@ class DCG(SklearnMetric):
             DCG score
 
         """
-        return super().forward(y_true=y_true,
-                               y_score=y_score,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_score=y_score, sample_weight=sample_weight)
 
 
 class F1(SklearnMetric):
@@ -489,7 +454,7 @@ class F1(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = F1()
         >>> metric(y_pred, y_true)
-        tensor([0.6667])
+        tensor(0.6667)
 
     References
         - [1] `Wikipedia entry for the F1-score
@@ -497,12 +462,11 @@ class F1(SklearnMetric):
     """
 
     def __init__(
-            self,
-            labels: Optional[Sequence] = None,
-            pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'macro',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "macro",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -536,21 +500,14 @@ class F1(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('f1_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__("f1_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -579,7 +536,7 @@ class FBeta(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = FBeta(beta=0.25)
         >>> metric(y_pred, y_true)
-        tensor([0.7361])
+        tensor(0.7361)
 
     References:
         - [1] R. Baeza-Yates and B. Ribeiro-Neto (2011).
@@ -589,13 +546,12 @@ class FBeta(SklearnMetric):
     """
 
     def __init__(
-            self,
-            beta: float,
-            labels: Optional[Sequence] = None,
-            pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'macro',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        beta: float,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "macro",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -630,22 +586,16 @@ class FBeta(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('fbeta_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         beta=beta,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__(
+            "fbeta_score", reduce_group=reduce_group, beta=beta, labels=labels, pos_label=pos_label, average=average
+        )
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -671,32 +621,27 @@ class Hamming(SklearnMetric):
         >>> y_true = torch.tensor([1, 1, 2, 3])
         >>> metric = Hamming()
         >>> metric(y_pred, y_true)
-        tensor([0.2500])
+        tensor(0.2500)
 
     """
 
     def __init__(
-            self,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
 
         """
-        super().__init__('hamming_loss',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__("hamming_loss", reduce_group=reduce_group)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -721,34 +666,28 @@ class Hinge(SklearnMetric):
         >>> y_true = torch.tensor([1, 1, 0, 0])
         >>> metric = Hinge()
         >>> metric(pred_decision, y_true)
-        tensor([1.6300])
+        tensor(1.6300)
 
     """
 
     def __init__(
-            self,
-            labels: Optional[Sequence] = None,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        labels: Optional[Sequence] = None,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
             labels: Integer array of labels.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('hinge_loss',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels)
+        super().__init__("hinge_loss", reduce_group=reduce_group, labels=labels)
 
     def forward(
-            self,
-            pred_decision: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        pred_decision: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
@@ -760,9 +699,7 @@ class Hinge(SklearnMetric):
             Average hinge loss
 
         """
-        return super().forward(pred_decision=pred_decision,
-                               y_true=y_true,
-                               sample_weight=sample_weight)
+        return super().forward(pred_decision=pred_decision, y_true=y_true, sample_weight=sample_weight)
 
 
 class Jaccard(SklearnMetric):
@@ -775,17 +712,16 @@ class Jaccard(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 1])
         >>> metric = Jaccard()
         >>> metric(y_pred, y_true)
-        tensor([0.3333])
+        tensor(0.3333)
 
     """
 
     def __init__(
-            self,
-            labels: Optional[Sequence] = None,
-            pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'macro',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "macro",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -819,21 +755,16 @@ class Jaccard(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('jaccard_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__(
+            "jaccard_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average
+        )
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -863,17 +794,16 @@ class Precision(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Precision()
         >>> metric(y_pred, y_true)
-        tensor([0.7500])
+        tensor(0.7500)
 
     """
 
     def __init__(
-            self,
-            labels: Optional[Sequence] = None,
-            pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'macro',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "macro",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -907,21 +837,16 @@ class Precision(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('precision_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__(
+            "precision_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average
+        )
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -951,17 +876,16 @@ class Recall(SklearnMetric):
         >>> y_true = torch.tensor([0, 1, 2, 2])
         >>> metric = Recall()
         >>> metric(y_pred, y_true)
-        tensor([0.6250])
+        tensor(0.6250)
 
     """
 
     def __init__(
-            self,
-            labels: Optional[Sequence] = None,
-            pos_label: Union[str, int] = 1,
-            average: Optional[str] = 'macro',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        labels: Optional[Sequence] = None,
+        pos_label: Union[str, int] = 1,
+        average: Optional[str] = "macro",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -995,21 +919,14 @@ class Recall(SklearnMetric):
                 behavior is deprecated and will change in version 0.18.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('recall_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         labels=labels,
-                         pos_label=pos_label,
-                         average=average)
+        super().__init__("recall_score", reduce_group=reduce_group, labels=labels, pos_label=pos_label, average=average)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -1045,29 +962,23 @@ class PrecisionRecallCurve(SklearnMetric):
     """
 
     def __init__(
-            self,
-            pos_label: Union[str, int] = 1,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        pos_label: Union[str, int] = 1,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
             pos_label: The class to report if ``average='binary'``.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('precision_recall_curve',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         pos_label=pos_label)
+        super().__init__("precision_recall_curve", reduce_group=reduce_group, pos_label=pos_label)
 
     def forward(
-            self,
-            probas_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        probas_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -1089,9 +1000,15 @@ class PrecisionRecallCurve(SklearnMetric):
         """
         # only return x and y here, since for now we cannot auto-convert elements of multiple length.
         # Will be fixed in native implementation
-        return np.array(super().forward(probas_pred=probas_pred,
-                                        y_true=y_true,
-                                        sample_weight=sample_weight)[:2])
+        return np.array(super().forward(probas_pred=probas_pred, y_true=y_true, sample_weight=sample_weight)[:2])
+
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+        return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
 
 
 class ROC(SklearnMetric):
@@ -1122,29 +1039,23 @@ class ROC(SklearnMetric):
     """
 
     def __init__(
-            self,
-            pos_label: Union[str, int] = 1,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        pos_label: Union[str, int] = 1,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
             pos_labels: The class to report if ``average='binary'``.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('roc_curve',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         pos_label=pos_label)
+        super().__init__("roc_curve", reduce_group=reduce_group, pos_label=pos_label)
 
     def forward(
-            self,
-            y_score: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_score: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> Union[np.ndarray, float]:
         """
         Args:
@@ -1168,6 +1079,15 @@ class ROC(SklearnMetric):
         """
         return np.array(super().forward(y_score=y_score, y_true=y_true, sample_weight=sample_weight)[:2])
 
+    def aggregate(self, *tensors: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Aggregates results by stacking them instead of concatenating before averaging.
+
+        Returns:
+            the aggregated results
+        """
+
+        return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
+
 
 class AUROC(SklearnMetric):
     """
@@ -1183,10 +1103,9 @@ class AUROC(SklearnMetric):
     """
 
     def __init__(
-            self,
-            average: Optional[str] = 'macro',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        average: Optional[str] = "macro",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1203,19 +1122,14 @@ class AUROC(SklearnMetric):
 
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('roc_auc_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         average=average)
+        super().__init__("roc_auc_score", reduce_group=reduce_group, average=average)
 
     def forward(
-            self,
-            y_score: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_score: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
         Args:
@@ -1227,8 +1141,7 @@ class AUROC(SklearnMetric):
         Return:
             Area Under Receiver Operating Characteristic Curve
         """
-        return super().forward(y_score=y_score, y_true=y_true,
-                               sample_weight=sample_weight)
+        return super().forward(y_score=y_score, y_true=y_true, sample_weight=sample_weight)
 
 
 class ExplainedVariance(SklearnMetric):
@@ -1244,14 +1157,13 @@ class ExplainedVariance(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = ExplainedVariance()
         >>> metric(y_pred, y_true)
-        tensor([0.9572])
+        tensor(0.9572)
     """
 
     def __init__(
-            self,
-            multioutput: Optional[Union[str, List[float]]] = 'variance_weighted',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        multioutput: Optional[Union[str, List[float]]] = "variance_weighted",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1260,19 +1172,14 @@ class ExplainedVariance(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('explained_variance_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         multioutput=multioutput)
+        super().__init__("explained_variance_score", reduce_group=reduce_group, multioutput=multioutput)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -1284,8 +1191,7 @@ class ExplainedVariance(SklearnMetric):
             Explained variance score
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
 
 
 class MeanAbsoluteError(SklearnMetric):
@@ -1301,15 +1207,14 @@ class MeanAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.5000])
+        tensor(0.5000)
 
     """
 
     def __init__(
-            self,
-            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        multioutput: Optional[Union[str, List[float]]] = "uniform_average",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1318,16 +1223,10 @@ class MeanAbsoluteError(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('mean_absolute_error',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         multioutput=multioutput)
+        super().__init__("mean_absolute_error", reduce_group=reduce_group, multioutput=multioutput)
 
-    def forward(self, y_pred: np.ndarray, y_true: np.ndarray,
-                sample_weight: Optional[np.ndarray] = None):
+    def forward(self, y_pred: np.ndarray, y_true: np.ndarray, sample_weight: Optional[np.ndarray] = None):
         """
         Args:
             y_pred: Estimated target values
@@ -1338,9 +1237,7 @@ class MeanAbsoluteError(SklearnMetric):
             Mean absolute error
 
         """
-        return super().forward(y_true=y_true,
-                               y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
 
 
 class MeanSquaredError(SklearnMetric):
@@ -1356,19 +1253,18 @@ class MeanSquaredError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MeanSquaredError()
         >>> metric(y_pred, y_true)
-        tensor([0.3750])
+        tensor(0.3750)
         >>> metric = MeanSquaredError(squared=True)
         >>> metric(y_pred, y_true)
-        tensor([0.6124])
+        tensor(0.6124)
 
     """
 
     def __init__(
-            self,
-            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-            squared: bool = False,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        multioutput: Optional[Union[str, List[float]]] = "uniform_average",
+        squared: bool = False,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1378,20 +1274,15 @@ class MeanSquaredError(SklearnMetric):
             squared: if ``True`` returns the mse value else the rmse value
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('mean_squared_error',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         multioutput=multioutput)
+        super().__init__("mean_squared_error", reduce_group=reduce_group, multioutput=multioutput)
         self.squared = squared
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -1403,8 +1294,7 @@ class MeanSquaredError(SklearnMetric):
             Mean squared error
 
         """
-        mse = super().forward(y_true=y_true, y_pred=y_pred,
-                              sample_weight=sample_weight)
+        mse = super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
         if self.squared:
             mse = np.sqrt(mse)
         return mse
@@ -1423,14 +1313,13 @@ class MeanSquaredLogError(SklearnMetric):
         >>> y_true = torch.tensor([3, 5, 2.5, 7])
         >>> metric = MeanSquaredLogError()
         >>> metric(y_pred, y_true)
-        tensor([0.0397])
+        tensor(0.0397)
     """
 
     def __init__(
-            self,
-            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        multioutput: Optional[Union[str, List[float]]] = "uniform_average",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1439,19 +1328,14 @@ class MeanSquaredLogError(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('mean_squared_log_error',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         multioutput=multioutput)
+        super().__init__("mean_squared_log_error", reduce_group=reduce_group, multioutput=multioutput)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -1463,8 +1347,7 @@ class MeanSquaredLogError(SklearnMetric):
             Mean squared log error
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
 
 
 class MedianAbsoluteError(SklearnMetric):
@@ -1480,14 +1363,13 @@ class MedianAbsoluteError(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = MedianAbsoluteError()
         >>> metric(y_pred, y_true)
-        tensor([0.5000])
+        tensor(0.5000)
     """
 
     def __init__(
-            self,
-            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        multioutput: Optional[Union[str, List[float]]] = "uniform_average",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1496,13 +1378,8 @@ class MedianAbsoluteError(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('median_absolute_error',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         multioutput=multioutput)
+        super().__init__("median_absolute_error", reduce_group=reduce_group, multioutput=multioutput)
 
     def forward(self, y_pred: np.ndarray, y_true: np.ndarray):
         """
@@ -1530,14 +1407,13 @@ class R2Score(SklearnMetric):
         >>> y_true = torch.tensor([3, -0.5, 2, 7])
         >>> metric = R2Score()
         >>> metric(y_pred, y_true)
-        tensor([0.9486])
+        tensor(0.9486)
     """
 
     def __init__(
-            self,
-            multioutput: Optional[Union[str, List[float]]] = 'uniform_average',
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        multioutput: Optional[Union[str, List[float]]] = "uniform_average",
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1546,19 +1422,14 @@ class R2Score(SklearnMetric):
                 output values should be aggregated.
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('r2_score',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         multioutput=multioutput)
+        super().__init__("r2_score", reduce_group=reduce_group, multioutput=multioutput)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -1570,8 +1441,7 @@ class R2Score(SklearnMetric):
             R^2 score
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
 
 
 class MeanPoissonDeviance(SklearnMetric):
@@ -1587,30 +1457,25 @@ class MeanPoissonDeviance(SklearnMetric):
         >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
         >>> metric = MeanPoissonDeviance()
         >>> metric(y_pred, y_true)
-        tensor([0.9034])
+        tensor(0.9034)
     """
 
     def __init__(
-            self,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('mean_poisson_deviance',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__("mean_poisson_deviance", reduce_group=reduce_group)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -1622,8 +1487,7 @@ class MeanPoissonDeviance(SklearnMetric):
             Mean possion deviance
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
 
 
 class MeanGammaDeviance(SklearnMetric):
@@ -1639,30 +1503,25 @@ class MeanGammaDeviance(SklearnMetric):
         >>> y_true = torch.tensor([2, 0.5, 1, 4])
         >>> metric = MeanGammaDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.0569])
+        tensor(1.0569)
     """
 
     def __init__(
-            self,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('mean_gamma_deviance',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op)
+        super().__init__("mean_gamma_deviance", reduce_group=reduce_group)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -1674,8 +1533,7 @@ class MeanGammaDeviance(SklearnMetric):
             Mean gamma deviance
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
 
 
 class MeanTweedieDeviance(SklearnMetric):
@@ -1691,14 +1549,13 @@ class MeanTweedieDeviance(SklearnMetric):
         >>> y_true = torch.tensor([0.5, 0.5, 2., 2.])
         >>> metric = MeanTweedieDeviance()
         >>> metric(y_pred, y_true)
-        tensor([1.8125])
+        tensor(1.8125)
     """
 
     def __init__(
-            self,
-            power: float = 0,
-            reduce_group: Any = group.WORLD,
-            reduce_op: Any = ReduceOp.SUM,
+        self,
+        power: float = 0,
+        reduce_group: Any = group.WORLD,
     ):
         """
         Args:
@@ -1715,19 +1572,14 @@ class MeanTweedieDeviance(SklearnMetric):
 
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            reduce_op: the operation to perform during reduction within DDP (only needed for DDP training).
-                Defaults to sum.
         """
-        super().__init__('mean_tweedie_deviance',
-                         reduce_group=reduce_group,
-                         reduce_op=reduce_op,
-                         power=power)
+        super().__init__("mean_tweedie_deviance", reduce_group=reduce_group, power=power)
 
     def forward(
-            self,
-            y_pred: np.ndarray,
-            y_true: np.ndarray,
-            sample_weight: Optional[np.ndarray] = None,
+        self,
+        y_pred: np.ndarray,
+        y_true: np.ndarray,
+        sample_weight: Optional[np.ndarray] = None,
     ):
         """
         Args:
@@ -1739,5 +1591,4 @@ class MeanTweedieDeviance(SklearnMetric):
             Mean tweedie deviance
 
         """
-        return super().forward(y_true=y_true, y_pred=y_pred,
-                               sample_weight=sample_weight)
+        return super().forward(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)

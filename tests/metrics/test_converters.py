@@ -10,11 +10,12 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning.metrics.converters import (
     _apply_to_inputs,
     _apply_to_outputs,
-    _convert_to_tensor,
-    _convert_to_numpy,
+    convert_to_tensor,
+    convert_to_numpy,
     _numpy_metric_conversion,
     _tensor_metric_conversion,
-    _sync_ddp_if_available,
+    sync_ddp_if_available,
+    gather_all_tensors_if_available,
     tensor_metric,
     numpy_metric
 )
@@ -63,14 +64,14 @@ def test_apply_to_outputs():
 
 def test_convert_to_tensor():
     for test_item in [1., np.array([1.])]:
-        result_tensor = _convert_to_tensor(test_item)
+        result_tensor = convert_to_tensor(test_item)
         assert isinstance(result_tensor, torch.Tensor)
         assert result_tensor.item() == 1.
 
 
 def test_convert_to_numpy():
     for test_item in [1., torch.tensor([1.])]:
-        result = _convert_to_numpy(test_item)
+        result = convert_to_numpy(test_item)
         assert isinstance(result, np.ndarray)
         assert result.item() == 1.
 
@@ -123,17 +124,26 @@ def _ddp_test_fn(rank, worldsize, add_offset: bool, reduction_mean=False):
     else:
         tensor = torch.tensor([1.], )
     if reduction_mean:
-        reduced_tensor = _sync_ddp_if_available(tensor, reduce_op='avg')
+        reduced_tensor = sync_ddp_if_available(tensor, reduce_op='avg')
 
         manual_reduction = sum([i for i in range(dist.get_world_size())]) / dist.get_world_size()
-        print(reduced_tensor)
-        print(manual_reduction)
         assert reduced_tensor.item() == manual_reduction
     else:
-        reduced_tensor = _sync_ddp_if_available(tensor)
+        reduced_tensor = sync_ddp_if_available(tensor)
 
         assert reduced_tensor.item() == dist.get_world_size(), \
             'Sync-Reduce does not work properly with DDP and Tensors'
+
+
+def _ddp_test_gather_all_tensors(rank, worldsize):
+    _setup_ddp(rank, worldsize)
+
+    tensor = torch.tensor([rank])
+    gather_tensors = gather_all_tensors_if_available(tensor)
+    mannual_tensors = [torch.tensor([i]) for i in range(worldsize)]
+
+    for t1, t2 in zip(gather_tensors, mannual_tensors):
+        assert(t1.equal(t2))
 
 
 @pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
@@ -160,10 +170,20 @@ def test_sync_reduce_simple():
     """Make sure sync-reduce works without DDP"""
     tensor = torch.tensor([1.], device='cpu')
 
-    reduced_tensor = _sync_ddp_if_available(tensor)
+    reduced_tensor = sync_ddp_if_available(tensor)
 
     assert torch.allclose(tensor, reduced_tensor), \
         'Sync-Reduce does not work properly without DDP and Tensors'
+
+
+@pytest.mark.skipif(sys.platform == "win32" , reason="DDP not available on windows")
+def test_gather_all_tensors_ddp():
+    """Make sure gather_all_tensors works with DDP"""
+    tutils.reset_seed()
+    tutils.set_random_master_port()
+
+    worldsize = 2
+    mp.spawn(_ddp_test_gather_all_tensors, args=(worldsize, ), nprocs=worldsize)
 
 
 def _test_tensor_metric(is_ddp: bool):

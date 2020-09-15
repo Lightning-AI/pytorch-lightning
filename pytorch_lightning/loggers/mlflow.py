@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 MLflow
 ------
@@ -95,15 +109,15 @@ class MLFlowLogger(LightningLoggerBase):
             self.logger.experiment.some_mlflow_function()
 
         """
-        expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
+        if self._experiment_id is None:
+            expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
+            if expt is not None:
+                self._experiment_id = expt.experiment_id
+            else:
+                log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
+                self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
 
-        if expt:
-            self._experiment_id = expt.experiment_id
-        else:
-            log.warning(f'Experiment with name {self._experiment_name} not found. Creating it.')
-            self._experiment_id = self._mlflow_client.create_experiment(name=self._experiment_name)
-
-        if not self._run_id:
+        if self._run_id is None:
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=self.tags)
             self._run_id = run.info.run_id
         return self._mlflow_client

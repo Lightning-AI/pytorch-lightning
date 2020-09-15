@@ -8,11 +8,18 @@
 
 .. _callbacks:
 
-Callbacks
-=========
+Callback
+========
+A callback is a self-contained program that can be reused across projects.
 
-Lightning has a callback system to execute arbitrary code. Callbacks should capture NON-ESSENTIAL
+Lightning has a callback system to execute callbacks when needed. Callbacks should capture NON-ESSENTIAL
 logic that is NOT required for your :class:`~pytorch_lightning.core.LightningModule` to run.
+
+Here's the flow of how the callback hooks are executed:
+
+.. raw:: html
+
+    <video width="100%" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_callbacks_mov.m4v"></video>
 
 An overall Lightning system should have:
 
@@ -47,6 +54,21 @@ Example:
 We successfully extended functionality without polluting our super clean
 :class:`~pytorch_lightning.core.LightningModule` research code.
 
+-----------
+
+Examples
+--------
+You can do pretty much anything with callbacks.
+
+- `Add a MLP to fine-tune self-supervised networks <https://pytorch-lightning-bolts.readthedocs.io/en/latest/self_supervised_callbacks.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/variational_callbacks.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://pytorch-lightning-bolts.readthedocs.io/en/latest/vision_callbacks.html#tensorboard-image-generator>`_.
+
+
+--------------
+
+Callback Hooks
 --------------
 
 .. automodule:: pytorch_lightning.callbacks.base
@@ -56,6 +78,16 @@ We successfully extended functionality without polluting our super clean
         _save_model,
         _abc_impl,
         check_monitor_top_k,
+
+----------------
+
+Built-in Callbacks
+------------------
+Lightning has a few built-in callbacks.
+
+.. note::
+    For a richer collection of callbacks, check out our
+    `bolts library <https://pytorch-lightning-bolts.readthedocs.io/en/latest/callbacks.html>`_.
 
 ----------------
 
@@ -69,6 +101,15 @@ We successfully extended functionality without polluting our super clean
 
 ----------------
 
+.. automodule:: pytorch_lightning.callbacks.gpu_stats_monitor
+    :noindex:
+    :exclude-members:
+        _get_gpu_stats,
+        _get_gpu_stat_keys,
+        _get_gpu_device_stat_keys,
+
+----------------
+
 .. automodule:: pytorch_lightning.callbacks.gradient_accumulation_scheduler
    :noindex:
    :exclude-members:
@@ -79,7 +120,7 @@ We successfully extended functionality without polluting our super clean
 
 ----------------
 
-.. automodule:: pytorch_lightning.callbacks.lr_logger
+.. automodule:: pytorch_lightning.callbacks.lr_monitor
     :noindex:
     :exclude-members:
         _extract_lr,
@@ -101,8 +142,19 @@ We successfully extended functionality without polluting our super clean
    :noindex:
    :exclude-members:
 
+----------
 
+Persisting State
 ----------------
+
+Some callbacks require internal state in order to function properly. You can optionally
+choose to persist your callback's state as part of model checkpoint files using the callback hooks
+:meth:`~pytorch_lightning.callbacks.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.Callback.on_load_checkpoint`.
+However, you must follow two constraints:
+
+1. Your returned state must be able to be pickled.
+2. You can only use one instance of that class in the Trainer callbacks list. We don't support persisting state for multiple callbacks of the same class.
+
 
 Best Practices
 --------------

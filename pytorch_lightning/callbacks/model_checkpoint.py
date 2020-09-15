@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Model Checkpointing
 ===================
@@ -8,14 +22,15 @@ Automatically save model checkpoints during training.
 
 import os
 import re
-
-import numpy as np
 from typing import Optional
 
+import numpy as np
 import torch
+
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
+from pytorch_lightning.utilities.cloud_io import get_filesystem
 
 
 class ModelCheckpoint(Callback):
@@ -96,11 +111,19 @@ class ModelCheckpoint(Callback):
 
     """
 
+    CHECKPOINT_NAME_LAST = "last.ckpt"
+    CHECKPOINT_STATE_BEST_SCORE = "checkpoint_callback_best_model_score"
+    CHECKPOINT_STATE_BEST_PATH = "checkpoint_callback_best_model_path"
+
     def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
                  save_last: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1, prefix: str = ''):
         super().__init__()
-        if save_top_k > 0 and filepath is not None and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:
+        if filepath:
+            self._fs = get_filesystem(filepath)
+        else:
+            self._fs = get_filesystem("")  # will give local fileystem
+        if save_top_k > 0 and filepath is not None and self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
             rank_zero_warn(
                 f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
                 "All files in this directory will be deleted when a checkpoint is saved!"
@@ -112,12 +135,13 @@ class ModelCheckpoint(Callback):
         if filepath is None:  # will be determined by trainer at runtime
             self.dirpath, self.filename = None, None
         else:
-            if os.path.isdir(filepath):
-                self.dirpath, self.filename = filepath, '{epoch}'
+            if self._fs.isdir(filepath):
+                self.dirpath, self.filename = filepath, "{epoch}"
             else:
-                filepath = os.path.realpath(filepath)
+                if self._fs.protocol == "file":  # dont normalize remote paths
+                    filepath = os.path.realpath(filepath)
                 self.dirpath, self.filename = os.path.split(filepath)
-            os.makedirs(self.dirpath, exist_ok=True)
+            self._fs.makedirs(self.dirpath, exist_ok=True)
         self.save_last = save_last
         self.save_top_k = save_top_k
         self.save_weights_only = save_weights_only
@@ -130,6 +154,7 @@ class ModelCheckpoint(Callback):
         self.best_model_score = 0
         self.best_model_path = ''
         self.save_function = None
+        self.warned_result_obj = False
 
         torch_inf = torch.tensor(np.Inf)
         mode_dict = {
@@ -159,8 +184,8 @@ class ModelCheckpoint(Callback):
         return self.kth_best_model_path
 
     def _del_model(self, filepath):
-        if os.path.isfile(filepath):
-            os.remove(filepath)
+        if self._fs.exists(filepath):
+            self._fs.rm(filepath)
 
     def _save_model(self, filepath, trainer, pl_module):
 
@@ -168,7 +193,7 @@ class ModelCheckpoint(Callback):
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the model
         if self.save_function is not None:
@@ -234,7 +259,7 @@ class ModelCheckpoint(Callback):
         return filepath
 
     @rank_zero_only
-    def on_train_start(self, trainer, pl_module):
+    def on_pretrain_routine_start(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
@@ -273,8 +298,20 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
-        os.makedirs(self.dirpath, exist_ok=True)
+        assert trainer.global_rank == 0, "tried to make a checkpoint from non global_rank=0"
+        self._fs.makedirs(self.dirpath, exist_ok=True)
+
+    def __warn_deprecated_monitor_key(self):
+        using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
+        invalid_key = self.monitor not in ['val_loss', 'checkpoint_on', 'loss', 'val_checkpoint_on']
+        if using_result_obj and not self.warned_result_obj and invalid_key:
+            self.warned_result_obj = True
+            m = f"""
+                    When using EvalResult(checkpoint_on=X) or TrainResult(checkpoint_on=X) the
+                    'monitor' key of ModelCheckpoint has no effect.
+                    Remove ModelCheckpoint(monitor='{self.monitor}) to fix')
+                """
+            rank_zero_warn(m)
 
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
@@ -282,7 +319,13 @@ class ModelCheckpoint(Callback):
         if trainer.global_rank != 0:
             return
 
-        metrics = trainer.callback_metrics
+        if trainer.running_sanity_check:
+            return
+
+        # TODO: remove when dict results are deprecated
+        self.__warn_deprecated_monitor_key()
+
+        metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
 
         # support structured results
@@ -302,14 +345,11 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
-        if self.save_last:
-            filepath = os.path.join(self.dirpath, self.prefix + 'last.ckpt')
-            self._save_model(filepath, trainer, pl_module)
-
-        filepath = self.format_checkpoint_name(epoch, metrics)
+        ckpt_name_metrics = trainer.logger_connector.logged_metrics
+        filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
-        while os.path.isfile(filepath):
-            filepath = self.format_checkpoint_name(epoch, metrics, ver=version_cnt)
+        while self._fs.exists(filepath):
+            filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
             version_cnt += 1
 
@@ -338,6 +378,10 @@ class ModelCheckpoint(Callback):
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
 
             assert trainer.global_rank == 0, 'tried to make a checkpoint from non global_rank=0'
+            self._save_model(filepath, trainer, pl_module)
+
+        if self.save_last:
+            filepath = os.path.join(self.dirpath, self.prefix + ModelCheckpoint.CHECKPOINT_NAME_LAST)
             self._save_model(filepath, trainer, pl_module)
 
     def _do_check_save(self, filepath, current, epoch, trainer, pl_module):
@@ -371,3 +415,13 @@ class ModelCheckpoint(Callback):
         for cur_path in del_list:
             if cur_path != filepath:
                 self._del_model(cur_path)
+
+    def on_save_checkpoint(self, trainer, pl_module):
+        return {
+            'best_model_score': self.best_model_score,
+            'best_model_path': self.best_model_path,
+        }
+
+    def on_load_checkpoint(self, checkpointed_state):
+        self.best_model_score = checkpointed_state['best_model_score']
+        self.best_model_path = checkpointed_state['best_model_path']

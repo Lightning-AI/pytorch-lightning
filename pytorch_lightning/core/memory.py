@@ -1,7 +1,21 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
+import shutil
 import subprocess
 from collections import OrderedDict
-from subprocess import PIPE
 from typing import Tuple, Dict, Union, List, Any
 
 import numpy as np
@@ -9,9 +23,7 @@ import torch
 import torch.nn as nn
 from torch.utils.hooks import RemovableHandle
 
-
-from pytorch_lightning.utilities import NATIVE_AMP_AVALAIBLE
-from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities import AMPType
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
@@ -209,9 +221,8 @@ class ModelSummary(object):
         input_ = model.example_input_array
         input_ = model.transfer_batch_to_device(input_, model.device)
 
-        if trainer is not None and trainer.use_amp and not trainer.use_tpu:
-            if NATIVE_AMP_AVALAIBLE:
-                model.forward = torch.cuda.amp.autocast()(model.forward)
+        if trainer is not None and trainer.amp_backend == AMPType.NATIVE and not trainer.use_tpu:
+            model.forward = torch.cuda.amp.autocast()(model.forward)
 
         mode = model.training
         model.eval()
@@ -319,23 +330,27 @@ def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
 
 
 def get_gpu_memory_map() -> Dict[str, int]:
-    """Get the current gpu usage.
+    """
+    Get the current gpu usage.
 
     Return:
         A dictionary in which the keys are device ids as integers and
         values are memory usage as integers in MB.
     """
     result = subprocess.run(
-        ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,nounits,noheader",],
+        [shutil.which("nvidia-smi"), "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
         encoding="utf-8",
         # capture_output=True,          # valid for python version >=3.7
-        stdout=PIPE,
-        stderr=PIPE,  # for backward compatibility with python version 3.6
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
         check=True,
     )
+
     # Convert lines into a dictionary
-    gpu_memory = [int(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {f"gpu_{index}": memory for index, memory in enumerate(gpu_memory)}
+    gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
+    gpu_memory_map = {
+        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
+    }
     return gpu_memory_map
 
 

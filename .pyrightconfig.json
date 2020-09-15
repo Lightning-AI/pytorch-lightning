@@ -7,7 +7,7 @@
     "pytorch_lightning/__init__.py",
     "pytorch_lightning/callbacks",
     "pytorch_lightning/core",
-    "pytorch_lightning/accelerator_backends",
+    "pytorch_lightning/accelerators",
     "pytorch_lightning/loggers",
     "pytorch_lightning/logging",
     "pytorch_lightning/metrics",
@@ -27,7 +27,13 @@
     "pytorch_lightning/trainer/trainer.py",
     "pytorch_lightning/trainer/training_io.py",
     "pytorch_lightning/trainer/training_loop.py",
-    "pytorch_lightning/trainer/training_tricks.py"
+    "pytorch_lightning/trainer/training_tricks.py",
+    "pytorch_lightning/trainer/batch_size_scaling.py",
+    "pytorch_lightning/trainer/distrib_data_parallel.py",
+    "pytorch_lightning/trainer/lr_scheduler_connector.py",
+    "pytorch_lightning/trainer/training_loop_temp.py",
+    "pytorch_lightning/trainer/connectors/checkpoint_connector.py",
+    "pytorch_lightning/tuner"
   ],
 
   "reportMissingImports": false

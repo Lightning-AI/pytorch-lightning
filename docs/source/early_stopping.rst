@@ -3,13 +3,14 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+.. _early_stopping:
 
 Early stopping
 ==============
 
 Stopping an epoch early
 -----------------------
-You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.on_batch_start` to return `-1` when some condition is met.
+You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.on_batch_start` to return ``-1`` when some condition is met.
 
 If you do this repeatedly, for every epoch you had originally requested, then this will stop your entire run.
 

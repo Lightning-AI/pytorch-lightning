@@ -1,3 +1,5 @@
+import os
+from copy import deepcopy
 import pickle
 
 import cloudpickle
@@ -9,6 +11,23 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
 
 
+class EarlyStoppingTestRestore(EarlyStopping):
+    # this class has to be defined outside the test function, otherwise we get pickle error
+    def __init__(self, expected_state=None):
+        super().__init__()
+        self.expected_state = expected_state
+        # cache the state for each epoch
+        self.saved_states = []
+
+    def on_train_start(self, trainer, pl_module):
+        if self.expected_state:
+            assert self.on_save_checkpoint(trainer, pl_module) == self.expected_state
+
+    def on_validation_end(self, trainer, pl_module):
+        super().on_validation_end(trainer, pl_module)
+        self.saved_states.append(self.on_save_checkpoint(trainer, pl_module).copy())
+
+
 def test_resume_early_stopping_from_checkpoint(tmpdir):
     """
     Prevent regressions to bugs:
@@ -16,31 +35,14 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
     """
 
-    class EarlyStoppingTestStore(EarlyStopping):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            # cache the state for each epoch
-            self.saved_states = []
-
-        def on_validation_end(self, trainer, pl_module):
-            super().on_validation_end(trainer, pl_module)
-            self.saved_states.append(self.state_dict().copy())
-
-    class EarlyStoppingTestRestore(EarlyStopping):
-        def __init__(self, expected_state):
-            super().__init__()
-            self.expected_state = expected_state
-
-        def on_train_start(self, trainer, pl_module):
-            assert self.state_dict() == self.expected_state
-
     model = EvalModelTemplate()
     checkpoint_callback = ModelCheckpoint(save_top_k=1)
-    early_stop_callback = EarlyStoppingTestStore()
+    early_stop_callback = EarlyStoppingTestRestore()
     trainer = Trainer(
         default_root_dir=tmpdir,
         checkpoint_callback=checkpoint_callback,
         early_stop_callback=early_stop_callback,
+        num_sanity_val_steps=0,
         max_epochs=4,
     )
     trainer.fit(model)
@@ -49,9 +51,9 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     # ensure state is persisted properly
     checkpoint = torch.load(checkpoint_filepath)
     # the checkpoint saves "epoch + 1"
-    early_stop_callback_state = early_stop_callback.saved_states[checkpoint['epoch'] - 1]
+    early_stop_callback_state = early_stop_callback.saved_states[checkpoint["epoch"] - 1]
     assert 4 == len(early_stop_callback.saved_states)
-    assert checkpoint['early_stop_callback_state_dict'] == early_stop_callback_state
+    assert checkpoint["callbacks"][type(early_stop_callback)] == early_stop_callback_state
 
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state)
@@ -66,35 +68,25 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
-    class EarlyStoppingTestInvocations(EarlyStopping):
-        def __init__(self, expected_count):
-            super().__init__()
-            self.count = 0
-            self.expected_count = expected_count
-
-        def on_validation_end(self, trainer, pl_module):
-            self.count += 1
-
-        def on_train_end(self, trainer, pl_module):
-            assert self.count == self.expected_count
+    os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
     expected_count = 4
-    early_stop_callback = EarlyStoppingTestInvocations(expected_count)
     trainer = Trainer(
         default_root_dir=tmpdir,
-        early_stop_callback=early_stop_callback,
+        early_stop_callback=True,
         val_check_interval=1.0,
         max_epochs=expected_count,
     )
     trainer.fit(model)
 
+    assert len(trainer.dev_debugger.early_stopping_history) == expected_count
 
-@pytest.mark.parametrize('loss_values, patience, expected_stop_epoch', [
-    ([6, 5, 5, 5, 5, 5], 3, 4),
-    ([6, 5, 4, 4, 3, 3], 1, 3),
-    ([6, 5, 6, 5, 5, 5], 3, 4),
-])
+
+@pytest.mark.parametrize(
+    "loss_values, patience, expected_stop_epoch",
+    [([6, 5, 5, 5, 5, 5], 3, 4), ([6, 5, 4, 4, 3, 3], 1, 3), ([6, 5, 6, 5, 5, 5], 3, 4),],
+)
 def test_early_stopping_patience(tmpdir, loss_values, patience, expected_stop_epoch):
     """Test to ensure that early stopping is not triggered before patience is exhausted."""
 

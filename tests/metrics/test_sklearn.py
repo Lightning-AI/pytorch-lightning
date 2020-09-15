@@ -33,7 +33,7 @@ from sklearn.metrics import (
     jaccard_score as sk_jaccard_score
 )
 
-from pytorch_lightning.metrics.converters import _convert_to_numpy
+from pytorch_lightning.metrics.converters import convert_to_numpy
 from pytorch_lightning.metrics.sklearns import (
     Accuracy,
     AUC,
@@ -163,17 +163,16 @@ def _xy_only(func):
                  id='Jaccard')
 ])
 def test_sklearn_metric(metric_class, sklearn_func, inputs):
-    numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
+    numpy_inputs = apply_to_collection(inputs, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy)
 
     sklearn_result = sklearn_func(**numpy_inputs)
     lightning_result = metric_class(**inputs)
-    assert np.allclose(sklearn_result, lightning_result, atol=1e-5)
 
     sklearn_result = apply_to_collection(
-        sklearn_result, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
+        sklearn_result, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy)
 
-    lightning_result = apply_to_collection(
-        lightning_result, (torch.Tensor, np.ndarray, numbers.Number), _convert_to_numpy)
+    lightning_result = np.array(apply_to_collection(
+        lightning_result, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy))
 
     assert np.allclose(sklearn_result, lightning_result, atol=1e-5)
     assert isinstance(lightning_result, type(sklearn_result))

@@ -78,8 +78,8 @@ def run_test_from_config(trainer_options):
         run_prediction(dataloader, pretrained_model)
 
     # test HPC loading / saving
-    trainer.hpc_save(ckpt_path, trainer.logger)
-    trainer.hpc_load(ckpt_path, on_gpu=args.on_gpu)
+    trainer.checkpoint_connector.hpc_save(ckpt_path, trainer.logger)
+    trainer.checkpoint_connector.hpc_load(ckpt_path, on_gpu=args.on_gpu)
 
     if args.on_gpu:
         trainer = Trainer(gpus=1, distributed_backend='horovod', max_epochs=1)

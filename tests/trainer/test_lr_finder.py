@@ -1,3 +1,4 @@
+from copy import deepcopy
 import pytest
 import torch
 
@@ -19,7 +20,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     )
 
     with pytest.raises(MisconfigurationException):
-        trainer.lr_find(model)
+        trainer.tuner.lr_find(model)
 
 
 def test_model_reset_correctly(tmpdir):
@@ -33,9 +34,9 @@ def test_model_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    before_state_dict = model.state_dict()
+    before_state_dict = deepcopy(model.state_dict())
 
-    _ = trainer.lr_find(model, num_training=5)
+    _ = trainer.tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 
@@ -62,7 +63,7 @@ def test_trainer_reset_correctly(tmpdir):
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
 
-    _ = trainer.lr_find(model, num_training=5)
+    _ = trainer.tuner.lr_find(model, num_training=5)
 
     attributes_after = {}
     for ca in changed_attributes:
@@ -90,7 +91,7 @@ def test_trainer_arg_bool(tmpdir, use_hparams):
         auto_lr_find=True,
     )
 
-    trainer.fit(model)
+    trainer.tune(model)
     if use_hparams:
         after_lr = model.hparams.learning_rate
     else:
@@ -119,7 +120,7 @@ def test_trainer_arg_str(tmpdir, use_hparams):
         auto_lr_find='my_fancy_lr',
     )
 
-    trainer.fit(model)
+    trainer.tune(model)
     if use_hparams:
         after_lr = model.hparams.my_fancy_lr
     else:
@@ -142,10 +143,10 @@ def test_call_to_trainer_method(tmpdir):
         max_epochs=2,
     )
 
-    lrfinder = trainer.lr_find(model, mode='linear')
+    lrfinder = trainer.tuner.lr_find(model, mode='linear')
     after_lr = lrfinder.suggestion()
     model.learning_rate = after_lr
-    trainer.fit(model)
+    trainer.tune(model)
 
     assert before_lr != after_lr, \
         'Learning rate was not altered after running learning rate finder'
@@ -165,7 +166,7 @@ def test_accumulation_and_early_stopping(tmpdir):
         accumulate_grad_batches=2,
     )
 
-    lrfinder = trainer.lr_find(model, early_stop_threshold=None)
+    lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
     after_lr = lrfinder.suggestion()
 
     assert before_lr != after_lr, \
@@ -188,7 +189,7 @@ def test_suggestion_parameters_work(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.lr_find(model)
+    lrfinder = trainer.tuner.lr_find(model)
     lr1 = lrfinder.suggestion(skip_begin=10)  # default
     lr2 = lrfinder.suggestion(skip_begin=80)  # way too high, should have an impact
 
@@ -208,7 +209,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
         max_epochs=3,
     )
 
-    lrfinder = trainer.lr_find(model)
+    lrfinder = trainer.tuner.lr_find(model)
     before_lr = lrfinder.suggestion()
     lrfinder.results['loss'][-1] = float('nan')
     after_lr = lrfinder.suggestion()

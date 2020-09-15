@@ -8,7 +8,7 @@ import torch
 from pytorch_lightning.metrics.classification import (
     Accuracy,
     ConfusionMatrix,
-    PrecisionRecall,
+    PrecisionRecallCurve,
     Precision,
     Recall,
     AveragePrecision,
@@ -17,7 +17,7 @@ from pytorch_lightning.metrics.classification import (
     F1,
     ROC,
     MulticlassROC,
-    MulticlassPrecisionRecall,
+    MulticlassPrecisionRecallCurve,
     DiceCoefficient,
     IoU,
 )
@@ -38,23 +38,41 @@ def test_accuracy(num_classes):
     assert isinstance(result, torch.Tensor)
 
 
-@pytest.mark.parametrize('normalize', [False, True])
-def test_confusion_matrix(normalize):
-    conf_matrix = ConfusionMatrix(normalize=normalize)
+@pytest.mark.parametrize(['normalize', 'num_classes'], [
+    pytest.param(False, None),
+    pytest.param(True, None),
+    pytest.param(False, 3)
+])
+def test_confusion_matrix(normalize, num_classes):
+    conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
     assert conf_matrix.name == 'confusion_matrix'
 
     target = (torch.arange(120) % 3).view(-1, 1)
     pred = target.clone()
-
     cm = conf_matrix(pred, target)
     assert isinstance(cm, torch.Tensor)
+
+
+@pytest.mark.parametrize(['normalize', 'num_classes'], [
+    pytest.param(True, 3)
+])
+def test_confusion_matrix_norm(normalize, num_classes):
+    """ test that user is warned if confusion matrix contains nans that are changed to zeros"""
+    conf_matrix = ConfusionMatrix(normalize=normalize, num_classes=num_classes)
+    assert conf_matrix.name == 'confusion_matrix'
+
+    with pytest.warns(UserWarning, match='6 nan values found in confusion matrix have been replaced with zeros.'):
+        target = torch.LongTensor([0] * 5)
+        pred = target.clone()
+        cm = conf_matrix(pred, target)
+        assert isinstance(cm, torch.Tensor)
 
 
 @pytest.mark.parametrize('pos_label', [1, 2.])
 def test_precision_recall(pos_label):
     pred, target = torch.tensor([1, 2, 3, 4]), torch.tensor([1, 0, 0, 1])
 
-    pr_curve = PrecisionRecall(pos_label=pos_label)
+    pr_curve = PrecisionRecallCurve(pos_label=pos_label)
     assert pr_curve.name == 'precision_recall_curve'
 
     pr = pr_curve(pred=pred, target=target, sample_weight=[0.1, 0.2, 0.3, 0.4])
@@ -181,7 +199,7 @@ def test_multiclass_pr(num_classes):
                          [0.05, 0.05, 0.05, 0.85]])
     target = torch.tensor([0, 1, 3, 2])
 
-    multi_pr = MulticlassPrecisionRecall(num_classes=num_classes)
+    multi_pr = MulticlassPrecisionRecallCurve(num_classes=num_classes)
     assert multi_pr.name == 'multiclass_precision_recall_curve'
 
     pr = multi_pr(pred, target)

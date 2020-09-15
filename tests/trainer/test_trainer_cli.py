@@ -9,6 +9,7 @@ import torch
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities import argparse_utils
 
 
 @mock.patch('argparse.ArgumentParser.parse_args')
@@ -59,7 +60,7 @@ def test_add_argparse_args_redefined(cli_args):
 
 def test_get_init_arguments_and_types():
     """Asserts a correctness of the `get_init_arguments_and_types` Trainer classmethod."""
-    args = Trainer.get_init_arguments_and_types()
+    args = argparse_utils.get_init_arguments_and_types(Trainer)
     parameters = inspect.signature(Trainer).parameters
     assert len(parameters) == len(args)
     for arg in args:
@@ -97,6 +98,12 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                  {'auto_lr_find': True, 'auto_scale_batch_size': 'power', 'early_stop_callback': False}),
     pytest.param('--auto_lr_find any_string --auto_scale_batch_size',
                  {'auto_lr_find': 'any_string', 'auto_scale_batch_size': True}),
+    pytest.param('--auto_lr_find TRUE --auto_scale_batch_size FALSE',
+                 {'auto_lr_find': True, 'auto_scale_batch_size': False}),
+    pytest.param('--auto_lr_find t --auto_scale_batch_size ON',
+                 {'auto_lr_find': True, 'auto_scale_batch_size': True}),
+    pytest.param('--auto_lr_find 0 --auto_scale_batch_size n',
+                 {'auto_lr_find': False, 'auto_scale_batch_size': False}),
     pytest.param('--early_stop_callback',
                  {'auto_lr_find': False, 'early_stop_callback': True, 'auto_scale_batch_size': False}),
     pytest.param('--tpu_cores=8',

@@ -1,3 +1,5 @@
+.. _performance:
+
 Fast Performance
 ================
 Here are some best practices to increase your performance.

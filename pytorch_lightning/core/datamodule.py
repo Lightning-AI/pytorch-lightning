@@ -18,9 +18,11 @@ from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from typing import Any, List, Optional, Tuple, Union
 
+import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.utilities import parsing, rank_zero_only, rank_zero_warn
+from pytorch_lightning.core.hooks import DataHooks
+from pytorch_lightning.utilities import parsing, rank_zero_only
 
 
 class _DataModuleWrapper(type):
@@ -86,7 +88,7 @@ def track_data_hook_calls(fn):
     return wrapped_fn
 
 
-class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no cover
+class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.
@@ -214,97 +216,27 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
     @abstractmethod
     def prepare_data(self, *args, **kwargs):
-        """
-        Use this to download and prepare data.
-        In distributed (GPU, TPU), this will only be called once.
-
-        .. warning:: Do not assign anything to the datamodule in this step since this will only be called on 1 GPU.
-
-        Pseudocode::
-
-            dm.prepare_data()
-            dm.setup()
-
-        Example::
-
-            def prepare_data(self):
-                download_imagenet()
-                clean_imagenet()
-                cache_imagenet()
-        """
+        pass
 
     @abstractmethod
     def setup(self, stage: Optional[str] = None):
-        """
-        Use this to load your data from file, split it, etc. You are safe to make state assignments here.
-        This hook is called on every process when using DDP.
-
-        Example::
-
-            def setup(self, stage):
-                data = load_data(...)
-                self.train_ds, self.val_ds, self.test_ds = split_data(data)
-        """
+        pass
 
     @abstractmethod
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        """
-        Implement a PyTorch DataLoader for training.
-        Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-
-        Example::
-
-            def train_dataloader(self):
-                dataset = MNIST(root=PATH, train=True, transform=transforms.ToTensor(), download=False)
-                loader = torch.utils.data.DataLoader(dataset=dataset)
-                return loader
-
-        """
-        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
+        pass
 
     @abstractmethod
     def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        r"""
-        Implement a PyTorch DataLoader for training.
-        Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-        Note:
-            You can also return a list of DataLoaders
-
-        Example::
-
-            def val_dataloader(self):
-                dataset = MNIST(root=PATH, train=False, transform=transforms.ToTensor(), download=False)
-                loader = torch.utils.data.DataLoader(dataset=dataset, shuffle=False)
-                return loader
-        """
+        pass
 
     @abstractmethod
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        r"""
-        Implement a PyTorch DataLoader for training.
-        Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-        Note:
-            You can also return a list of DataLoaders
+        pass
 
-        Example::
-
-            def test_dataloader(self):
-                dataset = MNIST(root=PATH, train=False, transform=transforms.ToTensor(), download=False)
-                loader = torch.utils.data.DataLoader(dataset=dataset, shuffle=False)
-                return loader
-        """
+    @abstractmethod
+    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
+        pass
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
@@ -317,7 +249,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         depr_arg_names = blacklist + added_args
         depr_arg_names = set(depr_arg_names)
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
@@ -329,13 +261,13 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 continue
             arg_kwargs = {}
             if bool in arg_types:
-                arg_kwargs.update(nargs="?")
+                arg_kwargs.update(nargs="?", const=True)
                 # if the only arg type is bool
                 if len(arg_types) == 1:
-                    # redefine the type for ArgParser needed
-                    def use_type(x):
-                        return bool(parsing.str_to_bool(x))
-
+                    use_type = parsing.str_to_bool
+                # if only two args (str, bool)
+                elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
+                    use_type = parsing.str_to_bool_or_str
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]

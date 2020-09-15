@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Comet
 -----
@@ -133,6 +147,7 @@ class CometLogger(LightningLoggerBase):
         elif api_key is not None:
             self.mode = "online"
             self.api_key = api_key
+            self._save_dir = None
         elif save_dir is not None:
             self.mode = "offline"
             self._save_dir = save_dir
@@ -222,7 +237,10 @@ class CometLogger(LightningLoggerBase):
             if is_tensor(val):
                 metrics[key] = val.cpu().detach()
 
-        self.experiment.log_metrics(metrics, step=step)
+        metrics_without_epoch = metrics.copy()
+        epoch = metrics_without_epoch.pop('epoch', None)
+
+        self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     def reset_experiment(self):
         self._experiment = None

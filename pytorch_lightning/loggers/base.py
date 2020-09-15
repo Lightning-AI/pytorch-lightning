@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import functools
 import operator
@@ -10,6 +24,7 @@ import numpy as np
 import torch
 
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.core.lightning import LightningModule
 
 
 class LightningLoggerBase(ABC):
@@ -220,6 +235,16 @@ class LightningLoggerBase(ABC):
             params: :class:`~argparse.Namespace` containing the hyperparameters
         """
 
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
+        """
+        Record model graph
+
+        Args:
+            model: lightning model
+            input_array: input passes to `model.forward`
+        """
+        pass
+
     def save(self) -> None:
         """Save log data."""
         self._finalize_agg_metrics()
@@ -295,6 +320,10 @@ class LoggerCollection(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
+
+    def log_graph(self, model: LightningModule, input_array=None) -> None:
+        for logger in self._logger_iterable:
+            logger.log_graph(model, input_array)
 
     def save(self) -> None:
         for logger in self._logger_iterable:

@@ -2,6 +2,8 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
+    
+.. _lr_finder:
 
 Learning Rate Finder
 --------------------
@@ -81,7 +83,7 @@ of this would look like
     trainer = Trainer()
     
     # Run learning rate finder
-    lr_finder = trainer.lr_find(model)
+    lr_finder = trainer.tuner.lr_find(model)
     
     # Results can be found in
     lr_finder.results
@@ -108,7 +110,5 @@ This is the point returned py ``lr_finder.suggestion()``.
 
 The parameters of the algorithm can be seen below.
 
-.. autoclass:: pytorch_lightning.trainer.lr_finder.TrainerLRFinderMixin
-   :members: lr_find
+.. autofunction:: pytorch_lightning.tuner.lr_finder.lr_find
    :noindex:
-   :exclude-members: _run_lr_finder_internally, save_checkpoint, restore
