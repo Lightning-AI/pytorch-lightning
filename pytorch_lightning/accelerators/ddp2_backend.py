@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.accelerators.ddp_base_backend import DDPBase
+from pytorch_lightning.plugins.apex import ApexPlugin
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -31,17 +32,13 @@ except ImportError:
 else:
     HYDRA_AVAILABLE = True
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 
 class DDP2Backend(DDPBase):
 
     def __init__(self, trainer):
         super().__init__(trainer)
         self.task_idx = None
+        self.precision_backend = None
 
     def setup(self, model):
         self._resolve_task_idx()
