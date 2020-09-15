@@ -22,7 +22,6 @@ import torch.distributed as dist
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_only
 from pytorch_lightning import _logger as log
-from pytorch_lightning.plugins.apex import ApexPlugin
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -37,7 +36,6 @@ class DDPBase(Accelerator):
 
     def __init__(self, trainer):
         super().__init__(trainer)
-        self.precision_backend = None
 
     def training_step(self, args):
         if self.trainer.amp_backend == AMPType.NATIVE:
@@ -151,9 +149,7 @@ class DDPBase(Accelerator):
 
         # AMP -
         # run through amp wrapper before going to distributed DP
-        if self.trainer.amp_backend == AMPType.APEX:
-            self.precision_backend = ApexPlugin(self.trainer)
-            model, optimizers = self.precision_backend.connect(model)
+        model, optimizers = self.trainer.precision_connector.connect(model, optimizers)
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()

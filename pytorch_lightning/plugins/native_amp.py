@@ -19,8 +19,9 @@ class NativeAMP:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def connect(self, model):
-        return model, self.trainer.optimizers
+    def connect(self, model, optimizers):
+        self.trainer.optimizers = optimizers
+        return model, optimizers
 
     def training_step(self, fx, args):
         with torch.cuda.amp.autocast():

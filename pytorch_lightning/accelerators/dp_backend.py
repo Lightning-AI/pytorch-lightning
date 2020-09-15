@@ -20,12 +20,6 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.accelerators.base_backend import Accelerator
-from pytorch_lightning.plugins.apex import ApexPlugin
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
 
 
 class DataParallelBackend(Accelerator):
@@ -33,7 +27,6 @@ class DataParallelBackend(Accelerator):
     def __init__(self, trainer):
         super().__init__(trainer)
         self.model_autocast_original_forward = None
-        self.precision_backend = None
 
     def setup(self, model):
         # call setup after the ddp process has connected
@@ -91,8 +84,7 @@ class DataParallelBackend(Accelerator):
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
                 f' We recommend you switch to ddp if you want to use amp')
         else:
-            self.precision_backend = ApexPlugin(self.trainer)
-            model, optimizers = self.precision_backend.connect(model)
+            model, optimizers = self.trainer.precision_connector.connect(model, self.trainer.optimizers)
 
         return model
 

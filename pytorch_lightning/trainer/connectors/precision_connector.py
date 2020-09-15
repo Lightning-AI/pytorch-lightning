@@ -15,14 +15,13 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.utilities import APEX_AVAILABLE, NATIVE_AMP_AVALAIBLE, rank_zero_warn, AMPType
 from pytorch_lightning.plugins.native_amp import NativeAMP
 from pytorch_lightning.plugins.apex import ApexPlugin
-from pytorch_lightning.utilities.no_op import NoOp
 
 
 class PrecisionConnector:
 
     def __init__(self, trainer):
         self.trainer = trainer
-        self.backend = NoOp()
+        self.backend = None
 
     def on_trainer_init(self, precision, amp_level, amp_backend):
         # AMP init
@@ -72,3 +71,9 @@ class PrecisionConnector:
                 f'You have asked for AMP support {amp_type}, but there is no support on your side yet.'
                 f' Consider installing torch >= 1.6 or NVIDIA Apex.'
             )
+
+    def connect(self, model, optimizers):
+        if self.backend:
+            model, optimizers = self.backend.connect(model, optimizers)
+
+        return model, optimizers
