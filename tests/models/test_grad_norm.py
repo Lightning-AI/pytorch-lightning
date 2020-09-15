@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -73,3 +74,28 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
         log, mod = [log[k] for k in common], [mod[k] for k in common]
 
         assert np.allclose(log, mod, rtol=rtol)
+
+
+@pytest.mark.parametrize("row_log_interval", [1, 2, 3])
+def test_grad_tracking_interval(tmpdir, row_log_interval):
+    """ Test that gradient norms get tracked in the right interval and that everytime the same keys get logged. """
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        track_grad_norm=2,
+        row_log_interval=row_log_interval,
+        max_steps=10,
+    )
+
+    with patch.object(trainer.logger, "log_metrics") as mocked:
+        model = EvalModelTemplate()
+        trainer.fit(model)
+        expected = trainer.global_step // row_log_interval
+        grad_norm_dicts = []
+        for _, kwargs in mocked.call_args_list:
+            metrics = kwargs.get("metrics", {})
+            grad_norm_dict = {k: v for k, v in metrics.items() if k.startswith("grad_")}
+            if grad_norm_dict:
+                grad_norm_dicts.append(grad_norm_dict)
+
+        assert len(grad_norm_dicts) == expected
+        assert all(grad_norm_dicts[0].keys() == g.keys() for g in grad_norm_dicts)
