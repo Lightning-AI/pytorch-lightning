@@ -37,7 +37,7 @@ class SignalConnector:
         self.original_handlers.update({signum: signal.getsignal(signum)})
         signal.signal(signum, handler)
 
-    def default_teardown(self):  # pragma: no-cover
+    def default_teardown(self, signum, frame):  # pragma: no-cover
         """ Handles teardown for certain signals that interrupt training. """
         trainer = self.trainer
         if not trainer.interrupted:
