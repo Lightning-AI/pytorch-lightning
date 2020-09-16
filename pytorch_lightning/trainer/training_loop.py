@@ -71,6 +71,8 @@ class TrainLoop:
         return num_optimizers
 
     def on_train_start(self):
+        self.trainer.signal_connector.setup()
+
         # clear cache before training
         if self.trainer.on_gpu and self.trainer.root_gpu is not None:
             # use context because of:

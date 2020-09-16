@@ -28,6 +28,7 @@ from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
+from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
@@ -277,6 +278,7 @@ class Trainer(
         self.profile_connector = ProfilerConnector(self)
         self.checkpoint_connector = CheckpointConnector(self)
         self.slurm_connector = SLURMConnector(self)
+        self.signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
         self.evaluation_loop = EvaluationLoop(self)
