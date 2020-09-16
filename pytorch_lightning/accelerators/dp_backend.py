@@ -52,7 +52,7 @@ class DataParallelBackend(Accelerator):
 
         # init half precision
         if self.trainer.amp_backend:
-            model = self._setup_half_precision(model)
+            model = self.__init_half_precision(model)
 
         self.trainer.model = model
 
@@ -67,17 +67,17 @@ class DataParallelBackend(Accelerator):
         model = LightningDataParallel(model, device_ids=device_ids)
         return model
 
-    def _setup_half_precision(self, model):
+    def __init_half_precision(self, model):
         if self.trainer.amp_backend == AMPType.NATIVE:
-            self._setup_native_amp(model)
+            self.__init_native_amp(model)
         else:
-            model = self._setup_nvidia_apex(model)
+            model = self.__init_nvidia_apex(model)
         return model
 
-    def _setup_native_amp(self, model):
+    def __init_native_amp(self, model):
         model.forward = torch.cuda.amp.autocast()(model.forward)
 
-    def _setup_nvidia_apex(self, model):
+    def __init_nvidia_apex(self, model):
         # check for this bug (amp + dp + !01 doesn't work)
         # https://github.com/NVIDIA/apex/issues/227
         if self.trainer.amp_level == 'O2':

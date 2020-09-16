@@ -153,8 +153,7 @@ class DDPBase(Accelerator):
         # set model properties before going into wrapper
         self.trainer.model_connector.copy_trainer_model_properties(model)
 
-        # AMP -
-        # run through amp wrapper before going to distributed DP
+        # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
         # device ids change depending on the DDP setup

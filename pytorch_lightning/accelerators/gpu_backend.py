@@ -39,7 +39,7 @@ class GPUBackend(Accelerator):
             self.trainer.lr_schedulers = lr_schedulers
             self.trainer.optimizer_frequencies = optimizer_frequencies
 
-        # init precision
+        # 16-bit
         model = self.trainer.precision_connector.connect(model)
 
         self.trainer.model = model
