@@ -1,11 +1,6 @@
 NeMo
 ====
 
-----------
-
-NVIDIA NeMo Models
-------------------
-
 `NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building
 Conversational AI applications. NeMo has separate collections for Automatic Speech Recognition (ASR), 
 Natural Language Processing (NLP), and Text-to-Speech (TTS) models. Each collection consists of 
@@ -18,6 +13,11 @@ for training. NeMo uses PyTorch Lightning for easy and performant multi-GPU/mult
 mixed-precision training. 
 
 .. note:: Every NeMo model is a LightningModule that comes equipped with all supporting infrastructure for training and reproducibility.
+
+----------
+
+NeMo Models
+-----------
 
 NeMo Models contain everything needed to train and reproduce state of the art Conversational AI
 research and applications, including:
@@ -117,7 +117,7 @@ Some typical ASR tasks are included with NeMo:
 - `Voice Activity Detection <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/06_Voice_Activiy_Detection.ipynb>`_
 - `Speaker Recognition <https://github.com/NVIDIA/NeMo/blob/main/examples/speaker_recognition/speaker_reco.py>`_
 
-See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/01_ASR_with_NeMo.ipynb>`_ 
+See this `asr notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/01_ASR_with_NeMo.ipynb>`_ 
 for a full tutorial on doing ASR with NeMo, PyTorch Lightning, and Hydra.
 
 Specify ASR Model Configurations with YAML File
@@ -125,7 +125,7 @@ Specify ASR Model Configurations with YAML File
 
 NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
-See `here <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/conf/config.yaml>`_ 
+See this `asr config <https://github.com/NVIDIA/NeMo/blob/main/examples/asr/conf/config.yaml>`_ 
 for the entire speech to text .yaml file.
 
 .. code-block:: yaml
@@ -300,7 +300,7 @@ Named Entity Recognition (NER)
 NER (or more generally token classifcation) is the NLP task of detecting and classifying key information (entities) in text.
 This task is very popular in Healthcare and Finance. In finance, for example, it can be important to identify
 geographical, geopolitical, organizational, persons, events, and natural phenomenon entities.
-See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Token_Classification_Named_Entity_Recognition.ipynb>`_
+See this `NER notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Token_Classification_Named_Entity_Recognition.ipynb>`_
 for a full tutorial on doing NER with NeMo, PyTorch Lightning, and Hydra.
 
 Specify NER Model Configurations with YAML File
@@ -308,7 +308,7 @@ Specify NER Model Configurations with YAML File
 
 ..note NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra. 
 
-See `here <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/token_classification/conf/token_classification_config.yaml>`_
+See this `token classification config <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/token_classification/conf/token_classification_config.yaml>`_
 for the entire NER (token classification) .yaml file.
 
 .. code-block:: yaml
@@ -416,7 +416,7 @@ To see the list of supported tokenizers:
 
     nemo_nlp.modules.get_tokenizer_list()
 
-See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
+See this `tokenizer notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
 for a full tutorial on using tokenizers in NeMO.
 
 
@@ -526,7 +526,7 @@ Specify TTS Model Configurations with YAML File
 
 ..note NeMo Models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
-`glow_tts.yaml <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/conf/glow_tts.yaml>`_
+`tts/conf/glow_tts.yaml <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/conf/glow_tts.yaml>`_
 
 .. code-block:: yaml
 
@@ -556,7 +556,7 @@ Specify TTS Model Configurations with YAML File
 Developing TTS Model From Scratch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`glow_tts.py <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
+`tts/glow_tts.py <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
 
 .. code-block:: python
 
@@ -586,7 +586,7 @@ Using State-Of-The-Art Pre-trained TTS Model
 Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`, 
 around 24 hours of single speaker data.
 
-See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/tts/1_TTS_inference.ipynb>`_ 
+See this `TTS notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/tts/1_TTS_inference.ipynb>`_ 
 for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra.
 
 .. code-block:: python
@@ -708,5 +708,3 @@ for a production-grade application.
     )
     def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
         ...
-
---------
