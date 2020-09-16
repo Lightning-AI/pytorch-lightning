@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Sequence
+from typing import Sequence, Any
 
 import torch
 
@@ -110,7 +110,13 @@ class RMSE(Metric):
         Return:
             A Tensor with the rmse loss.
         """
-        return rmse(pred, target, self.reduction)
+        return rmse(pred, target, self.reduction, return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ Squaring needs to happend after ddp sync"""
+        mse = output
+        return torch.sqrt(mse)
 
 
 class MAE(Metric):
