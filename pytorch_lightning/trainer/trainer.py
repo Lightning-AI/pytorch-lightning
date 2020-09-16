@@ -526,13 +526,13 @@ class Trainer(
 
         except KeyboardInterrupt:
             rank_zero_warn('Detected KeyboardInterrupt, attempting graceful shutdown...')
-
+            print('here')
             # user could press ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.interrupted = True
                 self._state = TrainerState.INTERRUPTED
                 self.on_keyboard_interrupt()
-
+                print('here2')
                 # hook
                 self.train_loop.on_train_end()
 
