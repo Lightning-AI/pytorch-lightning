@@ -6,12 +6,6 @@
 PyTorch Lightning Documentation
 ===============================
 
-.. toctree::
-   :maxdepth: 1
-   :name: conversational_ai
-   :caption: Conversational AI
-
-   conversational_ai
 
 .. toctree::
    :maxdepth: 1
@@ -112,6 +106,13 @@ PyTorch Lightning Documentation
    tpu
    test_set
    production_inference
+
+.. toctree::
+   :maxdepth: 1
+   :name: conversational_ai
+   :caption: Conversational AI
+
+   conversational_ai
 
 .. toctree::
    :maxdepth: 1
