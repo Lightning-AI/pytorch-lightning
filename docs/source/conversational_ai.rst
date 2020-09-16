@@ -86,8 +86,8 @@ Some typical ASR tasks are included with NeMo:
 - `Voice Activity Detection <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/06_Voice_Activiy_Detection.ipynb>`_
 - `Speaker Recognition <https://github.com/NVIDIA/NeMo/blob/main/examples/speaker_recognition/speaker_reco.py>`_
 
-Specify Model Configurations with YAML File
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Specify ASR Model Configurations with YAML File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 NeMo Models and the PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
 
@@ -105,23 +105,25 @@ for the entire speech to text .yaml file.
         distributed_backend: ddp
         ...
     # configure the ASR model
-    encoder:
-        _target_: nemo.collections.asr.modules.ConvASREncoder
-        params:
-        feat_in: *n_mels
-        activation: relu
-        conv_mask: true
+    model:
+        ...
+        encoder:
+            _target_: nemo.collections.asr.modules.ConvASREncoder
+            params:
+            feat_in: *n_mels
+            activation: relu
+            conv_mask: true
 
-        jasper:
-            - filters: 128
-            repeat: 1
-            kernel: [11]
-            stride: [1]
-            dilation: [1]
-            dropout: *dropout
-            ...
-    # all other configuration, data, optimizer, etc
-    ...
+            jasper:
+                - filters: 128
+                repeat: 1
+                kernel: [11]
+                stride: [1]
+                dilation: [1]
+                dropout: *dropout
+                ...
+        # all other configuration, data, optimizer, preprocessor, etc
+        ...
 
 Developing ASR Model From Scratch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -458,4 +460,119 @@ for a production-grade application.
 
 Text-To-Speech (TTS)
 ^^^^^^^^^^^^^^^^^^^^
+
+Everything needed to train TTS models and generate audio is included with NeMo. 
+Models can be trained from scratch on your own data or pretrained models can be downloaded
+automatically. NeMo currently supports:
+
+Mel Spectogram Generators:
+
+- `Tacotron 2 <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/tacotron2.py>`_
+- `Glow-TTS <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
+
+Audio Generators:
+
+- Griffin-Lim
+- `WaveGlow <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/waveglow.py>`_
+- `SqueezeWave <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/squeezewave.py>`_
+
+Specify TTS Model Configurations with YAML File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+..note NeMo Models and PyTorch Lightning Trainer can be fully configured from .yaml files using Hydra.
+
+`glow_tts.yaml <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/conf/glow_tts.yaml>`_
+
+.. code-block:: yaml
+
+    # configure the PyTorch Lightning Trainer
+    trainer:
+        gpus: -1 # number of gpus
+        max_epochs: 350
+        num_nodes: 1
+        distributed_backend: ddp
+        ...
+
+    # configure the TTS model
+    model:
+        ...
+        encoder:
+            _target_: nemo.collections.tts.modules.glow_tts.TextEncoder
+            params:
+            n_vocab: 148
+            out_channels: *n_mels
+            hidden_channels: 192
+            filter_channels: 768
+            filter_channels_dp: 256
+            ...
+    # all other configuration, data, optimizer, parser, preprocessor, etc
+    ...
+
+Developing TTS Model From Scratch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`glow_tts.py <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/glow_tts.py>`_
+
+.. code-block:: python
+
+    @hydra.main(config_path="conf", config_name="glow_tts")
+    def main(cfg):
+        trainer = pl.Trainer(**cfg.trainer)
+        model = GlowTTSModel(cfg=cfg.model, trainer=trainer)
+        trainer.fit(model)
+
+Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trainer, customizable from the command line.
+
+.. code-block:: bash
+
+    python NeMo/examples/tts/glow_tts.py \
+        trainer.gpus=4 \
+        trainer.max_epochs=400 \
+        ...
+        train_dataset=/path/to/train/data \
+        validation_datasets=/path/to/val/data \
+        model.train_ds.batch_size = 64 \
+
+..note Training NeMo TTTs models from scratch take days/weeks so it is highly recommended to use multiple GPUs and multiple nodes with the PyTorch Lightning Trainer.
+
+Using State-Of-The-Art Pre-trained TTS Model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`, 
+around 24 hours of single speaker data.
+
+.. code-block:: python
+
+    # load pretrained spectrogram model
+    spec_gen = SpecModel.from_pretrained('GlowTTS-22050Hz').cuda()
+
+    # load pretrained Generators
+    vocoder = WaveGlowModel.from_pretrained('WaveGlow-22050Hz').cuda()
+
+    def infer(spec_gen_model, vocder_model, str_input):
+        with torch.no_grad():
+            parsed = spec_gen.parse(text_to_generate)
+            spectrogram = spec_gen.generate_spectrogram(tokens=parsed)
+            audio = vocoder.convert_spectrogram_to_audio(spec=spectrogram)
+        if isinstance(spectrogram, torch.Tensor):
+            spectrogram = spectrogram.to('cpu').numpy()
+        if len(spectrogram.shape) == 3:
+            spectrogram = spectrogram[0]
+        if isinstance(audio, torch.Tensor):
+            audio = audio.to('cpu').numpy()
+        return spectrogram, audio
+        
+    text_to_generate = input("Input what you want the model to say: ")
+    spec, audio = infer(spec_gen, vocoder, text_to_generate)
+
+NeMo TTS Model Under the Hood
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+
+
 
