@@ -37,7 +37,8 @@ class CPUBackend(Accelerator):
             self.trainer.optimizers = optimizers
             self.trainer.lr_schedulers = lr_schedulers
             self.trainer.optimizer_frequencies = optimizer_frequencies
-            self.trainer.model = model
+
+        self.trainer.model = model
 
     def train(self):
         model = self.trainer.model

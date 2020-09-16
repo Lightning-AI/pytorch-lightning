@@ -36,7 +36,7 @@ class ApexPlugin:
             model = amp.initialize(model, opt_level=amp_level)
         else:
             model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
-        
+
         return model, optimizers
 
     def training_step(self, fx, args):
