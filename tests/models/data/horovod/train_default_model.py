@@ -28,12 +28,17 @@ except ImportError:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-# todo
-PATH_ROOT = os.path.join(PATH_HERE, '..', '..', '..', '..')
+PATH_ROOT = os.path.abspath(os.path.join(PATH_HERE, '..', '..', '..', '..'))
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
+
+# Move project root to the front of the search path, as some imports
+# may have reordered things
+idx = sys.path.index(PATH_ROOT)
+sys.path[0], sys.path[idx] = sys.path[idx], sys.path[0]
+
 from tests.base import EvalModelTemplate  # noqa: E402
 from tests.base.develop_pipelines import run_prediction  # noqa: E402
 from tests.base.develop_utils import set_random_master_port, reset_seed  # noqa: E402
