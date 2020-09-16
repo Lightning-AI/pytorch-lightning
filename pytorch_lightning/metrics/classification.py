@@ -21,6 +21,7 @@ from pytorch_lightning.metrics.functional.classification import (
     auroc,
     average_precision,
     confusion_matrix,
+    _confmat_normalize,
     dice_score,
     f1_score,
     fbeta_score,
@@ -135,7 +136,7 @@ class ConfusionMatrix(TensorMetric):
             A Tensor with the confusion matrix.
         """
         return confusion_matrix(pred=pred, target=target,
-                                normalize=self.normalize,
+                                normalize=False, # we normalize after ddp sync
                                 num_classes=self.num_classes)
 
     def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
@@ -144,8 +145,15 @@ class ConfusionMatrix(TensorMetric):
         Returns:
             the aggregated results
         """
-        return torch.stack(tensors).mean(0)
+        return torch.stack(tensors).sum(0)
 
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ Confusion matrix normalization needs to happen after ddp sync """
+        confmat = output
+        if self.normalize:
+            confmat = _confmat_normalize(confmat)
+        return confmat
 
 class PrecisionRecallCurve(TensorMetric):
     """

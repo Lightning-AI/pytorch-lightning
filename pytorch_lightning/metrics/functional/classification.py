@@ -275,6 +275,15 @@ def accuracy(
     return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
 
+def _confmat_normalize(cm):
+    """ Normalization function for confusion matrix """
+    cm = cm / cm.sum(-1, keepdim=True)
+    nan_elements = cm[torch.isnan(cm)].nelement()
+    if nan_elements != 0:
+        cm[torch.isnan(cm)] = 0
+        rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
+    return cm
+
 def confusion_matrix(
         pred: torch.Tensor,
         target: torch.Tensor,
@@ -312,11 +321,7 @@ def confusion_matrix(
     cm = bins.reshape(num_classes, num_classes).squeeze().float()
 
     if normalize:
-        cm = cm / cm.sum(-1, keepdim=True)
-        nan_elements = cm[torch.isnan(cm)].nelement()
-        if nan_elements != 0:
-            cm[torch.isnan(cm)] = 0
-            rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
+        cm = _confmat_normalize(cm)
 
     return cm
 
