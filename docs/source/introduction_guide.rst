@@ -106,7 +106,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
     net = LitMNIST()
     x = torch.randn(1, 1, 28, 28)
     out = net(x)
-
+    out.size()
 .. rst-class:: sphx-glr-script-out
 
  Out:
