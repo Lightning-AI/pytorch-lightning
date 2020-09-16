@@ -11,10 +11,10 @@ from tests.base import EvalModelTemplate
 
 
 class KillCallback(Callback):
-    """ A callback that simulates a terminal signal (e.g. KeyboardInterrupt). """
+    """ A callback that simulates a terminal signal (e.g. SIGINT). """
 
-    def __init__(self, signal):
-        self._signal = signal
+    def __init__(self, signal_code):
+        self._signal = signal_code
 
     def on_batch_end(self, trainer, pl_module):
         # send the signal after the first batch
@@ -23,12 +23,11 @@ class KillCallback(Callback):
         os.kill(pid, self._signal)
 
     def on_train_end(self, trainer, pl_module):
-        assert getattr(trainer, "_teardown_already_run")
+        assert trainer.train_loop._teardown_already_run
 
     def on_keyboard_interrupt(self, trainer, pl_module):
-        print('interrupted')
         assert trainer.state == TrainerState.INTERRUPTED
-        assert trainer.interrupted
+        assert not trainer.interrupted
 
 
 def get_available_signal_codes():
