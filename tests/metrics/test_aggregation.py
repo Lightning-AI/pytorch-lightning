@@ -2,6 +2,8 @@ import pytest
 import sys
 from collections import namedtuple
 from functools import partial
+import math
+import dill
 
 import torch
 import torch.distributed as dist
@@ -17,6 +19,8 @@ from pytorch_lightning.metrics import (
     Recall,
     AveragePrecision,
     MAE,
+    MSE,
+    RMSE
 )
 
 from sklearn.metrics import (
@@ -40,16 +44,24 @@ multiclass_and_binary_example = [*multiclass_example, *binary_example]
 binary_example_logits = (torch.randint(2, (N_samples,)), torch.randint(5, (N_samples,)))
 regression_example = [(torch.randn((N_samples,)), torch.randn((N_samples,)))]
 
+# construct additional test functions
+
+
+def root_mean_squared_error(x, y):
+    return math.sqrt(mean_squared_error(x, y))
+
+
+# Examples tested
 EXAMPLES = [
     Example('accuracy',
             Accuracy,
             accuracy_score,
             multiclass_and_binary_example),
-    Example('confusion_matrix_without_normalize',
+    Example('confusion matrix without normalize',
             ConfusionMatrix,
             confusion_matrix,
             multiclass_and_binary_example),
-    Example('confusion_matrix_with_normalize',
+    Example('confusion matrix with normalize',
             partial(ConfusionMatrix, normalize=True),
             partial(confusion_matrix, normalize='true'),
             multiclass_and_binary_example),
@@ -58,8 +70,8 @@ EXAMPLES = [
             partial(precision_score, average='micro'),
             multiclass_and_binary_example),
     Example('recall',
-            Precision,
-            partial(precision_score, average='micro'),
+            Recall,
+            partial(recall_score, average='micro'),
             multiclass_and_binary_example),
     # Example('average_precision',
     #         AveragePrecision,
@@ -68,6 +80,14 @@ EXAMPLES = [
     Example('mean absolute error',
             MAE,
             mean_absolute_error,
+            regression_example),
+    Example('mean squared error',
+            MSE,
+            mean_squared_error,
+            regression_example),
+    Example('root mean squared error',
+            RMSE,
+            root_mean_squared_error,
             regression_example)
 ]
 
