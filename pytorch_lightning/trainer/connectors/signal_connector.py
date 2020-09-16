@@ -32,7 +32,6 @@ class SignalConnector:
 
     def default_teardown(self, signum, frame):  # pragma: no-cover
         """ This default teardown raises KeyboardInterrupt and lets Trainer handle the graceful shutdown. """
-        if not self.trainer.interrupted:
-            self.trainer.interrupted = True
-            self.trainer._state = TrainerState.INTERRUPTED
-            raise KeyboardInterrupt
+        # self.trainer.interrupted = True
+        # self.trainer._state = TrainerState.INTERRUPTED
+        raise KeyboardInterrupt
