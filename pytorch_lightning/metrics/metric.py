@@ -131,9 +131,6 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         """
         gathered_tensors = apply_to_collection(tensor, torch.Tensor, gather_all_tensors_if_available, self.reduce_group)
-
-        self._step_vals.append(gathered_tensors)
-
         return gathered_tensors
 
     @staticmethod
@@ -150,7 +147,9 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         """
         synced = self.ddp_sync(output)
-        return self.aggregate(synced)
+        agg_val = self.aggregate(*synced)
+        self._step_vals.append(agg_val)
+        return agg_val
 
     def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
         """
@@ -165,7 +164,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         """
         try:
             return torch.cat(tensors).mean(0)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, RuntimeError):
             if isinstance(tensors[0], Mapping):
                 return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
             elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):

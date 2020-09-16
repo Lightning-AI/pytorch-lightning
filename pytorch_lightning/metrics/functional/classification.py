@@ -284,6 +284,7 @@ def _confmat_normalize(cm):
         rank_zero_warn(f'{nan_elements} nan values found in confusion matrix have been replaced with zeros.')
     return cm
 
+
 def confusion_matrix(
         pred: torch.Tensor,
         target: torch.Tensor,
