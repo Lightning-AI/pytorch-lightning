@@ -507,10 +507,13 @@ class LoggerConnector:
 
         return gathered_epoch_outputs
 
-    def log_train_step_metrics(self, batch_output):
+    def log_train_step_metrics(self, batch_output, is_last_batch):
         # when metrics should be logged
+        # todo: the same condition as in the training loop
         should_log_metrics = (
-            (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0 or self.trainer.should_stop
+                (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0
+                or self.trainer.should_stop
+                or is_last_batch
         )
         if should_log_metrics or self.trainer.fast_dev_run:
             # logs user requested information to logger

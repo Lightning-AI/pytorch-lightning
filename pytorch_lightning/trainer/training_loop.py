@@ -546,7 +546,7 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.logger_connector.log_train_step_metrics(batch_output)
+            self.trainer.logger_connector.log_train_step_metrics(batch_output, is_last_batch)
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
@@ -558,7 +558,7 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE LOGGERS (ie: Tensorboard, etc...)
             # -----------------------------------------
-            self.save_loggers_on_train_batch_end()
+            self.save_loggers_on_train_batch_end(is_last_batch)
 
             # update LR schedulers
             monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
@@ -804,14 +804,17 @@ class TrainLoop:
 
         return args
 
-    def save_loggers_on_train_batch_end(self):
+    def save_loggers_on_train_batch_end(self, is_last_batch):
         # when loggers should save to disk
+        # todo: the same condition as in LoggerConnector.log_train_step_metrics
         should_save_log = (
-            (self.trainer.global_step + 1) % self.trainer.log_save_interval == 0 or self.trainer.should_stop
+                (self.trainer.global_step + 1) % self.trainer.row_log_interval == 0
+                or self.trainer.should_stop
+                or is_last_batch
+                or self.trainer.fast_dev_run
         )
-        if should_save_log or self.trainer.fast_dev_run:
-            if self.trainer.is_global_zero and self.trainer.logger is not None:
-                self.trainer.logger.save()
+        if should_save_log and self.trainer.is_global_zero and self.trainer.logger is not None:
+            self.trainer.logger.save()
 
     def process_train_step_outputs(self, all_train_step_outputs, early_stopping_accumulator, checkpoint_accumulator):
         """
