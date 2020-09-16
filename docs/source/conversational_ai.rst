@@ -86,6 +86,9 @@ Some typical ASR tasks are included with NeMo:
 - `Voice Activity Detection <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/06_Voice_Activiy_Detection.ipynb>`_
 - `Speaker Recognition <https://github.com/NVIDIA/NeMo/blob/main/examples/speaker_recognition/speaker_reco.py>`_
 
+See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/asr/01_ASR_with_NeMo.ipynb>`_ 
+for a full tutorial on doing ASR with NeMo, PyTorch Lightning, and Hydra.
+
 Specify ASR Model Configurations with YAML File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -183,8 +186,8 @@ Optionally launch Tensorboard to view training results in ./nemo_experiments (by
 
     tensorboard --bind_all --logdir nemo_experiments
 
-Using State-Of-The-Art Pre-trained Model
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using State-Of-The-Art Pre-trained ASR Model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
 
@@ -290,6 +293,8 @@ Named Entity Recognition (NER)
 NER (or more generally token classifcation) is the NLP task of detecting and classifying key information (entities) in text.
 This task is very popular in Healthcare and Finance. In finance, for example, it can be important to identify
 geographical, geopolitical, organizational, persons, events, and natural phenomenon entities.
+See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/Token_Classification_Named_Entity_Recognition.ipynb>`_
+for a full tutorial on doing NER with NeMo, PyTorch Lightning, and Hydra.
 
 Specify NER Model Configurations with YAML File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -407,6 +412,35 @@ To see the list of supported tokenizers:
 See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
 for a full tutorial on using tokenizers in NeMO.
 
+
+Using a Pre-trained NER Model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+NeMo has pre-trained NER models that can be used to get 
+to get started with Token Classification right away.
+Models are automatically downloaded from NGC, 
+cached locally to disk,
+and loaded into GPU memory using the `.from_pretrained` method. 
+
+.. code-block:: python
+
+    # load pre-trained NER model
+    pretrained_ner_model = TokenClassificationModel.from_pretrained(model_name="NERModel")
+
+    # define the list of queries for inference
+    queries = [
+        'we bought four shirts from the nvidia gear store in santa clara.',
+        'Nvidia is a company.',
+        'The Adventures of Tom Sawyer by Mark Twain is an 1876 novel about a young boy growing '
+        + 'up along the Mississippi River.',
+    ]
+    results = pretrained_ner_model.add_predictions(queries)
+
+    for query, result in zip(queries, results):
+        print()
+        print(f'Query : {query}')
+        print(f'Result: {result.strip()}\n')
+
 NeMo NER Model Under the Hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -428,6 +462,7 @@ since every NeMo model is a Lightning Module.
             logits = self.classifier(hidden_states=hidden_states)
             return logits
 
+        # PTL-specfic methods
         def training_step(self, batch, batch_idx):
             """
             Lightning calls this inside the training loop with the data from the training dataloader
@@ -475,6 +510,7 @@ Audio Generators:
 - Griffin-Lim
 - `WaveGlow <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/waveglow.py>`_
 - `SqueezeWave <https://github.com/NVIDIA/NeMo/blob/main/examples/tts/squeezewave.py>`_
+
 
 Specify TTS Model Configurations with YAML File
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -541,6 +577,9 @@ Using State-Of-The-Art Pre-trained TTS Model
 Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`, 
 around 24 hours of single speaker data.
 
+See `here <https://github.com/NVIDIA/NeMo/blob/main/tutorials/tts/1_TTS_inference.ipynb>`_ 
+for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra.
+
 .. code-block:: python
 
     # load pretrained spectrogram model
@@ -568,7 +607,78 @@ around 24 hours of single speaker data.
 NeMo TTS Model Under the Hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Any aspect of TTS training or model architecture design can easily
+be customized with PyTorch Lightning since every NeMo model is a LightningModule.
 
+`glow_tts.py <https://github.com/NVIDIA/NeMo/blob/main/nemo/collections/tts/models/glow_tts.py>`_
+
+.. code-block:: python
+
+class GlowTTSModel(SpectrogramGenerator):
+    """
+    GlowTTS model used to generate spectrograms from text
+    Consists of a text encoder and an invertible spectrogram decoder
+    """
+    ...
+    # NeMo models come with neural type checking
+    @typecheck(
+        input_types={
+            "x": NeuralType(('B', 'T'), TokenIndex()),
+            "x_lengths": NeuralType(('B'), LengthsType()),
+            "y": NeuralType(('B', 'D', 'T'), MelSpectrogramType(), optional=True),
+            "y_lengths": NeuralType(('B'), LengthsType(), optional=True),
+            "gen": NeuralType(optional=True),
+            "noise_scale": NeuralType(optional=True),
+            "length_scale": NeuralType(optional=True),
+        }
+    )
+    def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
+        if gen:
+            return self.glow_tts.generate_spect(
+                text=x, text_lengths=x_lengths, noise_scale=noise_scale, length_scale=length_scale
+            )
+        else:
+            return self.glow_tts(text=x, text_lengths=x_lengths, spect=y, spect_lengths=y_lengths)
+    ...
+    def step(self, y, y_lengths, x, x_lengths):
+        z, y_m, y_logs, logdet, logw, logw_, y_lengths, attn = self(
+            x=x, x_lengths=x_lengths, y=y, y_lengths=y_lengths, gen=False
+        )
+
+        l_mle, l_length, logdet = self.loss(
+            z=z,
+            y_m=y_m,
+            y_logs=y_logs,
+            logdet=logdet,
+            logw=logw,
+            logw_=logw_,
+            x_lengths=x_lengths,
+            y_lengths=y_lengths,
+        )
+
+        loss = sum([l_mle, l_length])
+
+        return l_mle, l_length, logdet, loss, attn
+
+    # PTL-specfic methods
+    def training_step(self, batch, batch_idx):
+        y, y_lengths, x, x_lengths = batch
+
+        y, y_lengths = self.preprocessor(input_signal=y, length=y_lengths)
+
+        l_mle, l_length, logdet, loss, _ = self.step(y, y_lengths, x, x_lengths)
+
+        output = {
+            "loss": loss,  # required
+            "progress_bar": {"l_mle": l_mle, "l_length": l_length, "logdet": logdet},
+            "log": {"loss": loss, "l_mle": l_mle, "l_length": l_length, "logdet": logdet},
+        }
+
+        return output
+    ...
+
+    Neural Types in NeMo TTS
+    ^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
