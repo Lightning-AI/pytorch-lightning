@@ -34,8 +34,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 from pytorch_lightning import Trainer  # noqa: E402
 from pytorch_lightning.callbacks import ModelCheckpoint  # noqa: E402
 
-# Move project root to the front of the search path, as some imports
-# may have reordered things
+# Move project root to the front of the search path, as some imports may have reordered things
 idx = sys.path.index(PATH_ROOT)
 sys.path[0], sys.path[idx] = sys.path[idx], sys.path[0]
 
