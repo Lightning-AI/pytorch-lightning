@@ -27,7 +27,7 @@ class KillCallback(Callback):
 
     def on_keyboard_interrupt(self, trainer, pl_module):
         assert trainer.state == TrainerState.INTERRUPTED
-        assert not trainer.interrupted
+        assert trainer.interrupted
 
 
 def get_available_signal_codes():
