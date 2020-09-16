@@ -52,3 +52,4 @@ dependencies:
         - horovod>=0.19.2
         - onnxruntime>=1.3.0
         - gym>=0.17.0
+        - opacus>=0.9.0
