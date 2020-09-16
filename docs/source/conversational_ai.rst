@@ -1,10 +1,10 @@
-.._ NeMo:
+NeMo
+====
 
-NVIDIA NeMo
-===========
+----------
 
 NVIDIA NeMo Models
-^^^^^^^^^^^^^^^^^^
+------------------
 
 `NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building
 Conversational AI applications. NeMo has separate collections for Automatic Speech Recognition (ASR), 
@@ -71,8 +71,37 @@ For Docker users, the NeMo container is available on
 
     docker run --runtime=nvidia -it --rm -v --shm-size=16g -p 8888:8888 -p 6006:6006 --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/nemo:v0.11
 
+Experiment Manager
+^^^^^^^^^^^^^^^^^^
+
+NeMo's Experiment Manager leverages PyTorch Lightning for model checkpointing, 
+TensorBoard Logging, and Weights and Biases logging. The Experiment Manager is included by default
+in all NeMo example scripts.
+
+.. code-block:: python
+
+    exp_manager(trainer, cfg.get("exp_manager", None))
+
+And is configurable via .yaml with Hydra.
+
+.. code-block:: bash
+
+    exp_manager:
+        exp_dir: null
+        name: *name
+        create_tensorboard_logger: True
+        create_checkpoint_callback: True
+
+Optionally launch Tensorboard to view training results in ./nemo_experiments (by default).
+
+.. code-block:: bash
+
+    tensorboard --bind_all --logdir nemo_experiments
+
+--------
+
 Automatic Speech Recognition (ASR)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------
 
 Everything needed to train Convolutional ASR models is included with NeMo. 
 NeMo supports multiple Speech Recognition architectures, including Jasper 
@@ -161,32 +190,6 @@ including the PyTorch Lightning Trainer, customizable from the command line.
 
 .. note:: Training NeMo ASR models can take days/weeks so it is highly recommended to use multiple GPUs and multiple nodes with the PyTorch Lightning Trainer.
 
-NeMo Experiment Manager
-^^^^^^^^^^^^^^^^^^^^^^^
-
-The Experiment Manager leverages PyTorch Lightning for model checkpointing, 
-TensorBoard Logging, and Weights and Biases logging. The Experiment Manager is included by default
-in all NeMo example scripts.
-
-.. code-block:: python
-
-    exp_manager(trainer, cfg.get("exp_manager", None))
-
-And is configurable via .yaml with Hydra.
-
-.. code-block:: bash
-
-    exp_manager:
-        exp_dir: null
-        name: *name
-        create_tensorboard_logger: True
-        create_checkpoint_callback: True
-
-Optionally launch Tensorboard to view training results in ./nemo_experiments (by default).
-
-.. code-block:: bash
-
-    tensorboard --bind_all --logdir nemo_experiments
 
 Using State-Of-The-Art Pre-trained ASR Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -202,8 +205,8 @@ Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
 
-NeMo Model Under the Hood
-^^^^^^^^^^^^^^^^^^^^^^^^^
+NeMo ASR Model Under the Hood
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Any aspect of ASR training or model architecture design can easily be customized
 with PyTorch Lightning since every NeMo model is a Lightning Module.
@@ -271,8 +274,10 @@ network architectures for a production-grade application.
                 "greedy_predictions": NeuralType(('B', 'T'), LabelsType()),
             }
 
+--------
+
 Natural Language Processing (NLP)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------
 
 Everything needed to train BERT based NLP models is included with NeMo.
 NeMo supports language models from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
@@ -495,8 +500,10 @@ for a production-grade application.
     def output_types(self) -> Optional[Dict[str, NeuralType]]:
         return self.classifier.output_types
 
+--------
+
 Text-To-Speech (TTS)
-^^^^^^^^^^^^^^^^^^^^
+--------------------
 
 Everything needed to train TTS models and generate audio is included with NeMo. 
 Models can be trained from scratch on your own data or pretrained models can be downloaded
@@ -702,8 +709,4 @@ for a production-grade application.
     def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
         ...
 
-
-
-
-
-
+--------

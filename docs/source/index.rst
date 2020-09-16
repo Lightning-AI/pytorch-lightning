@@ -109,7 +109,7 @@ PyTorch Lightning Documentation
 
 .. toctree::
    :maxdepth: 1
-   :name: conversational_ai
+   :name: Conversational AI
    :caption: Conversational AI
 
    conversational_ai
