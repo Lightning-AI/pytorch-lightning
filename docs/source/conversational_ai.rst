@@ -614,78 +614,13 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
 
 .. code-block:: python
 
-class GlowTTSModel(SpectrogramGenerator):
-    """
-    GlowTTS model used to generate spectrograms from text
-    Consists of a text encoder and an invertible spectrogram decoder
-    """
-    ...
-    # NeMo models come with neural type checking
-    @typecheck(
-        input_types={
-            "x": NeuralType(('B', 'T'), TokenIndex()),
-            "x_lengths": NeuralType(('B'), LengthsType()),
-            "y": NeuralType(('B', 'D', 'T'), MelSpectrogramType(), optional=True),
-            "y_lengths": NeuralType(('B'), LengthsType(), optional=True),
-            "gen": NeuralType(optional=True),
-            "noise_scale": NeuralType(optional=True),
-            "length_scale": NeuralType(optional=True),
-        }
-    )
-    def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
-        if gen:
-            return self.glow_tts.generate_spect(
-                text=x, text_lengths=x_lengths, noise_scale=noise_scale, length_scale=length_scale
-            )
-        else:
-            return self.glow_tts(text=x, text_lengths=x_lengths, spect=y, spect_lengths=y_lengths)
-    ...
-    def step(self, y, y_lengths, x, x_lengths):
-        z, y_m, y_logs, logdet, logw, logw_, y_lengths, attn = self(
-            x=x, x_lengths=x_lengths, y=y, y_lengths=y_lengths, gen=False
-        )
-
-        l_mle, l_length, logdet = self.loss(
-            z=z,
-            y_m=y_m,
-            y_logs=y_logs,
-            logdet=logdet,
-            logw=logw,
-            logw_=logw_,
-            x_lengths=x_lengths,
-            y_lengths=y_lengths,
-        )
-
-        loss = sum([l_mle, l_length])
-
-        return l_mle, l_length, logdet, loss, attn
-
-    # PTL-specfic methods
-    def training_step(self, batch, batch_idx):
-        y, y_lengths, x, x_lengths = batch
-
-        y, y_lengths = self.preprocessor(input_signal=y, length=y_lengths)
-
-        l_mle, l_length, logdet, loss, _ = self.step(y, y_lengths, x, x_lengths)
-
-        output = {
-            "loss": loss,  # required
-            "progress_bar": {"l_mle": l_mle, "l_length": l_length, "logdet": logdet},
-            "log": {"loss": loss, "l_mle": l_mle, "l_length": l_length, "logdet": logdet},
-        }
-
-        return output
-    ...
-
-    Neural Types in NeMo TTS
-    ^^^^^^^^^^^^^^^^^^^^^^^^
-
-    NeMo Models and Neural Modules come with Neural Type checking. 
-    Neural type checking is extremely useful when combining many different neural network architectures 
-    for a production-grade application.
-
-    .. code-block:: python
-
+    class GlowTTSModel(SpectrogramGenerator):
+        """
+        GlowTTS model used to generate spectrograms from text
+        Consists of a text encoder and an invertible spectrogram decoder
+        """
+        ...
+        # NeMo models come with neural type checking
         @typecheck(
             input_types={
                 "x": NeuralType(('B', 'T'), TokenIndex()),
@@ -698,7 +633,72 @@ class GlowTTSModel(SpectrogramGenerator):
             }
         )
         def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
-            ...
+            if gen:
+                return self.glow_tts.generate_spect(
+                    text=x, text_lengths=x_lengths, noise_scale=noise_scale, length_scale=length_scale
+                )
+            else:
+                return self.glow_tts(text=x, text_lengths=x_lengths, spect=y, spect_lengths=y_lengths)
+        ...
+        def step(self, y, y_lengths, x, x_lengths):
+            z, y_m, y_logs, logdet, logw, logw_, y_lengths, attn = self(
+                x=x, x_lengths=x_lengths, y=y, y_lengths=y_lengths, gen=False
+            )
+
+            l_mle, l_length, logdet = self.loss(
+                z=z,
+                y_m=y_m,
+                y_logs=y_logs,
+                logdet=logdet,
+                logw=logw,
+                logw_=logw_,
+                x_lengths=x_lengths,
+                y_lengths=y_lengths,
+            )
+
+            loss = sum([l_mle, l_length])
+
+            return l_mle, l_length, logdet, loss, attn
+
+        # PTL-specfic methods
+        def training_step(self, batch, batch_idx):
+            y, y_lengths, x, x_lengths = batch
+
+            y, y_lengths = self.preprocessor(input_signal=y, length=y_lengths)
+
+            l_mle, l_length, logdet, loss, _ = self.step(y, y_lengths, x, x_lengths)
+
+            output = {
+                "loss": loss,  # required
+                "progress_bar": {"l_mle": l_mle, "l_length": l_length, "logdet": logdet},
+                "log": {"loss": loss, "l_mle": l_mle, "l_length": l_length, "logdet": logdet},
+            }
+
+            return output
+        ...
+
+Neural Types in NeMo TTS
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+NeMo Models and Neural Modules come with Neural Type checking. 
+Neural type checking is extremely useful when combining many different neural network architectures 
+for a production-grade application.
+
+.. code-block:: python
+
+    @typecheck(
+        input_types={
+            "x": NeuralType(('B', 'T'), TokenIndex()),
+            "x_lengths": NeuralType(('B'), LengthsType()),
+            "y": NeuralType(('B', 'D', 'T'), MelSpectrogramType(), optional=True),
+            "y_lengths": NeuralType(('B'), LengthsType(), optional=True),
+            "gen": NeuralType(optional=True),
+            "noise_scale": NeuralType(optional=True),
+            "length_scale": NeuralType(optional=True),
+        }
+    )
+    def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
+        ...
 
 
 
