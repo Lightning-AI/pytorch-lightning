@@ -186,8 +186,6 @@ class TrainLoop:
 
         # clear mem
         if self.trainer.on_gpu:
-            model = self.trainer.get_model()
-            model.cpu()
             torch.cuda.empty_cache()
 
     def check_checkpoint_callback(self, should_save, is_last=False):
