@@ -136,7 +136,7 @@ class ConfusionMatrix(TensorMetric):
             A Tensor with the confusion matrix.
         """
         return confusion_matrix(pred=pred, target=target,
-                                normalize=False, # we normalize after ddp sync
+                                normalize=False,  # we normalize after ddp sync
                                 num_classes=self.num_classes)
 
     def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
@@ -154,6 +154,7 @@ class ConfusionMatrix(TensorMetric):
         if self.normalize:
             confmat = _confmat_normalize(confmat)
         return confmat
+
 
 class PrecisionRecallCurve(TensorMetric):
     """

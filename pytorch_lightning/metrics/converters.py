@@ -320,7 +320,8 @@ def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional
         torch.distributed.all_gather(gathered_result, result, group)
 
         result = gathered_result
-
+    else:
+        result = [result]
     return result
 
 
