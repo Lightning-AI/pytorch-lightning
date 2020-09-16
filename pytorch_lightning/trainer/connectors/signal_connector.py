@@ -15,17 +15,13 @@ class SignalConnector:
         self.original_handlers = {}
 
     def setup(self):
-        """
-        Registers the signal handlers for the Trainer, including
-        - training teardown signal handlers that run on interpreter exit and other POSIX signals.
-        - HPC signal handling, i.e., registering auto-resubmit when on SLURM
-        """
+        """ Registers the default signal handlers for the Trainer. """
         self.register_signal(signal.SIGTERM, self.default_teardown)
         self.register_signal(signal.SIGSEGV, self.default_teardown)
         self.register_signal(signal.SIGINT, self.default_teardown)
 
     def restore_signals(self):
-        """ Restores the original signal handlers (e.g. the Python defaults) """
+        """ Restores the original signal handlers (e.g. the Python or user defaults) """
         for signum, handler in self.original_handlers.items():
             signal.signal(signum, handler)
 
