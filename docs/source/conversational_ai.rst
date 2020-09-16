@@ -244,7 +244,7 @@ with PyTorch Lightning since every NeMo model is a Lightning Module.
 Neural Types in NeMo ASR
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Additionally, NeMo Models and Neural Modules come with Neural Type checking.
+NeMo Models and Neural Modules come with Neural Type checking.
 Neural type checking is extremely useful when combining many different neural 
 network architectures for a production-grade application.
 
@@ -479,7 +479,7 @@ since every NeMo model is a Lightning Module.
 Neural Types in NeMo NLP
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Additionally, NeMo Models and Neural Modules come with Neural Type checking. 
+NeMo Models and Neural Modules come with Neural Type checking. 
 Neural type checking is extremely useful when combining many different neural network architectures 
 for a production-grade application.
 
@@ -680,6 +680,25 @@ class GlowTTSModel(SpectrogramGenerator):
     Neural Types in NeMo TTS
     ^^^^^^^^^^^^^^^^^^^^^^^^
 
+    NeMo Models and Neural Modules come with Neural Type checking. 
+    Neural type checking is extremely useful when combining many different neural network architectures 
+    for a production-grade application.
+
+    .. code-block:: python
+
+        @typecheck(
+            input_types={
+                "x": NeuralType(('B', 'T'), TokenIndex()),
+                "x_lengths": NeuralType(('B'), LengthsType()),
+                "y": NeuralType(('B', 'D', 'T'), MelSpectrogramType(), optional=True),
+                "y_lengths": NeuralType(('B'), LengthsType(), optional=True),
+                "gen": NeuralType(optional=True),
+                "noise_scale": NeuralType(optional=True),
+                "length_scale": NeuralType(optional=True),
+            }
+        )
+        def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
+            ...
 
 
 
