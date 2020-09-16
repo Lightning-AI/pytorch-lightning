@@ -67,7 +67,12 @@ class MSE(Metric):
         Return:
             A Tensor with the mse loss.
         """
-        return mse(pred, target, self.reduction)
+        return mse(pred, target, return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        sse, n = output['squared_error'], output['n_observations']
+        return sse / n
 
 
 class RMSE(Metric):
@@ -110,13 +115,13 @@ class RMSE(Metric):
         Return:
             A Tensor with the rmse loss.
         """
-        return rmse(pred, target, self.reduction, return_state=True)
+        return rmse(pred, target, reduction='none', return_state=True)
 
     @staticmethod
     def compute(self, data: Any, output: Any):
         """ Squaring needs to happend after ddp sync"""
-        mse = output
-        return torch.sqrt(mse)
+        sse, n = output['squared_error'], output['n_observations']
+        return torch.sqrt(sse / n)
 
 
 class MAE(Metric):
@@ -159,7 +164,12 @@ class MAE(Metric):
         Return:
             A Tensor with the mae loss.
         """
-        return mae(pred, target, self.reduction)
+        return mae(pred, target, return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        sae, n = output['absolute_error'], output['n_observations']
+        return sae / n
 
 
 class RMSLE(Metric):

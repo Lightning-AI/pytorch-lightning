@@ -28,11 +28,11 @@ from pytorch_lightning.metrics.functional.classification import (
     iou,
     multiclass_precision_recall_curve,
     multiclass_roc,
-    precision,
     precision_recall_curve,
-    recall,
     roc,
+    precision_recall
 )
+from pytorch_lightning.metrics.functional.reduction import class_reduce
 from pytorch_lightning.metrics.metric import TensorMetric
 
 
@@ -85,7 +85,14 @@ class Accuracy(TensorMetric):
             A Tensor with the classification score.
         """
         return accuracy(pred=pred, target=target,
-                        num_classes=self.num_classes, class_reduction=self.class_reduction)
+                        num_classes=self.num_classes,
+                        class_reduction='none',
+                        return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, sups = output['tps'], output['sups']
+        return class_reduce(tps, sups, sups, class_reduction=self.class_reduction)
 
 
 class ConfusionMatrix(TensorMetric):
@@ -138,14 +145,6 @@ class ConfusionMatrix(TensorMetric):
         return confusion_matrix(pred=pred, target=target,
                                 normalize=False,  # we normalize after ddp sync
                                 num_classes=self.num_classes)
-
-    def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
-        """Aggregates results by stacking them instead of concatenating before averaging.
-
-        Returns:
-            the aggregated results
-        """
-        return torch.stack(tensors).sum(0)
 
     @staticmethod
     def compute(self, data: Any, output: Any):
@@ -212,7 +211,7 @@ class PrecisionRecallCurve(TensorMetric):
             - threshold values
         """
         return precision_recall_curve(pred=pred, target=target, sample_weight=sample_weight, pos_label=self.pos_label)
-
+    
 
 class Precision(TensorMetric):
     """
@@ -265,9 +264,15 @@ class Precision(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return precision(pred=pred, target=target,
-                         num_classes=self.num_classes,
-                         class_reduction=self.class_reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, fps, sups = output['tps'], output['fps'], output['sups']
+        return class_reduce(tps, tps + fps, sups, class_reduction=self.class_reduction)
 
 
 class Recall(TensorMetric):
@@ -322,10 +327,15 @@ class Recall(TensorMetric):
         Return:
             A Tensor with the classification score.
         """
-        return recall(pred=pred,
-                      target=target,
-                      num_classes=self.num_classes,
-                      class_reduction=self.class_reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        tps, fns, sups = output['tps'], output['fns'], output['sups']
+        return class_reduce(tps, tps + fns, sups, class_reduction=self.class_reduction)
 
 
 class AveragePrecision(TensorMetric):

@@ -146,6 +146,24 @@ def test_multi_batch(example):
         assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
 
 
+@pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
+def test_multi_batch_unequal_sizes(example):
+    """ test that aggregation works for multiple batches with uneven sizes """
+    lightning_metric = example.lightning_metric()
+    comparing_metric = example.comparing_metric
+
+    for test_input in example.test_input:
+
+        for i in range(2):  # for lightning device in 2 artificially batches
+            if i == 0:  # allocate 3/4 of data to the first batch
+                _ = lightning_metric(*[ti[:int(3 / 4 * len(ti))] for ti in test_input])
+            else:
+                _ = lightning_metric(*[ti[int(3 / 4 * len(ti)):] for ti in test_input])
+        lightning_val = lightning_metric.aggregated
+        comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
+        assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
+
+
 def _test_ddp_multi_batch(rank, worldsize, lightning_metric, comparing_metric, test_inputs):
     _setup_ddp(rank, worldsize)
 

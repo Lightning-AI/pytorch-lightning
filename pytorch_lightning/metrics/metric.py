@@ -147,9 +147,9 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
         """
         synced = self.ddp_sync(output)
-        agg_val = self.aggregate(*synced)
+        agg_val = self.aggregate(synced)
         self._step_vals.append(agg_val)
-        return agg_val
+        return self.aggregate(synced)
 
     def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
         """
@@ -162,15 +162,26 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
-        try:
-            return torch.cat(tensors).mean(0)
-        except (ValueError, TypeError, RuntimeError):
+        # TODO: write this into same
+        if len(tensors) == 1:
+            tensors = tensors[0]
+            if isinstance(tensors, Mapping):
+                return {k: torch.stack([t for t in tensors[k]]).sum(0) for k in tensors.keys()}
+            elif isinstance(tensors, list):
+                return torch.stack([t for t in tensors]).sum(0)
+            elif isinstance(tensors, tuple):
+                return tensors
+            elif isinstance(tensors, torch.Tensor):
+                return tensors
+            else:
+                raise TypeError("unknown metric value format to aggregate")
+        else:
             if isinstance(tensors[0], Mapping):
-                return {k: torch.stack([tensor[k] for tensor in tensors]).mean(0) for k in tensors[0].keys()}
-            elif isinstance(tensors[0], Sequence) and not isinstance(tensors[0], torch.Tensor):
-                return tuple([torch.stack(tmp).mean(0) for tmp in zip(*tensors)])
+                return {k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys()}
+            elif isinstance(tensors[0], Sequence):
+                return tuple([torch.stack(tmp).sum(0) for tmp in zip(*tensors)])
             elif isinstance(tensors[0], torch.Tensor):
-                return torch.stack(tensors).mean(0)
+                return torch.stack(tensors).sum(0)
             else:
                 raise TypeError("unknown metric value format to aggregate")
 
