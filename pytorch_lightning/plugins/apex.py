@@ -23,10 +23,12 @@ class ApexPlugin:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def connect(self, model, optimizers):
+    def connect(self, model, optimizers=None):
         model, optimizers = self.configure_apex(model, optimizers, self.trainer.amp_level)
-        self.trainer.optimizers = optimizers
-        self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
+
+        if optimizers is not None:
+            self.trainer.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
+        
         return model, optimizers
 
     def configure_apex(self, model, optimizers, amp_level):

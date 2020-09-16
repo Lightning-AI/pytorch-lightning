@@ -19,8 +19,7 @@ class NativeAMP:
     def __init__(self, trainer):
         self.trainer = trainer
 
-    def connect(self, model, optimizers):
-        self.trainer.optimizers = optimizers
+    def connect(self, model, optimizers=None):
         return model, optimizers
 
     def training_step(self, fx, args):

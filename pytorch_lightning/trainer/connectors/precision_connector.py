@@ -72,8 +72,13 @@ class PrecisionConnector:
                 f' Consider installing torch >= 1.6 or NVIDIA Apex.'
             )
 
-    def connect(self, model, optimizers):
+    def connect(self, model):
+        optimizers = getattr(self.trainer, 'optimizers', None)
+
         if self.backend:
             model, optimizers = self.backend.connect(model, optimizers)
 
-        return model, optimizers
+            if optimizers is not None:
+                self.trainer.optimizers = optimizers
+
+        return model

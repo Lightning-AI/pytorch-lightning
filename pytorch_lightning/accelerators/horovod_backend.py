@@ -83,7 +83,7 @@ class HorovodBackend(Accelerator):
             ]
 
         # 16-bit
-        model, self.trainer.optimizers = self.trainer.precision_connector.connect(model, self.trainer.optimizers)
+        model = self.trainer.precision_connector.connect(model)
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.

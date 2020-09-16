@@ -40,7 +40,7 @@ class GPUBackend(Accelerator):
             self.trainer.optimizer_frequencies = optimizer_frequencies
 
         # init precision
-        model, optimizers = self.trainer.precision_connector.connect(model, optimizers)
+        model = self.trainer.precision_connector.connect(model)
 
         self.trainer.model = model
 

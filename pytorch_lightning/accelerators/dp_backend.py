@@ -86,7 +86,7 @@ class DataParallelBackend(Accelerator):
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
                 f' We recommend you switch to ddp if you want to use amp')
         else:
-            model, optimizers = self.trainer.precision_connector.connect(model, self.trainer.optimizers)
+            model = self.trainer.precision_connector.connect(model)
 
         return model
 

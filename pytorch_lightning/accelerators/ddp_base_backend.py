@@ -155,7 +155,7 @@ class DDPBase(Accelerator):
 
         # AMP -
         # run through amp wrapper before going to distributed DP
-        model, optimizers = self.trainer.precision_connector.connect(model, optimizers)
+        model = self.trainer.precision_connector.connect(model)
 
         # device ids change depending on the DDP setup
         device_ids = self.get_device_ids()
