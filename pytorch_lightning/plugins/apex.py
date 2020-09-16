@@ -32,7 +32,11 @@ class ApexPlugin:
         return model, optimizers
 
     def configure_apex(self, model, optimizers, amp_level):
-        model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
+        if optimizers is None:
+            model = amp.initialize(model, opt_level=amp_level)
+        else:
+            model, optimizers = amp.initialize(model, optimizers, opt_level=amp_level)
+        
         return model, optimizers
 
     def training_step(self, fx, args):
