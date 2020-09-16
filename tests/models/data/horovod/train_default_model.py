@@ -28,7 +28,8 @@ except ImportError:
     print('You requested to import Horovod which is missing or not supported for your OS.')
 
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
-PATH_ROOT = os.path.join(PATH_HERE, '..', '..', '..')
+# todo
+PATH_ROOT = os.path.join(PATH_HERE, '..', '..', '..', '..')
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 
 from pytorch_lightning import Trainer  # noqa: E402
