@@ -9,7 +9,8 @@ from pytorch_lightning.metrics.functional.reduction import reduce
 def mse(
         pred: torch.Tensor,
         target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
+        reduction: str = 'elementwise_mean',
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes mean squared error
@@ -22,6 +23,8 @@ def mse(
             - ``'elementwise_mean'``: takes the mean (default)
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with MSE
@@ -35,6 +38,8 @@ def mse(
 
     """
     mse = F.mse_loss(pred, target, reduction='none')
+    if return_state:
+        return {'squared_error': mse.sum(), 'n_observations': torch.tensor(mse.numel())}
     mse = reduce(mse, reduction=reduction)
     return mse
 
@@ -56,8 +61,8 @@ def rmse(
             - ``'elementwise_mean'``: takes the mean (default)
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied
-        return_state: returns a internal state (mean sum of squared error)
-            that can be ddp reduced before doing the final calculation
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with RMSE
@@ -71,14 +76,16 @@ def rmse(
     """
     mean_squared_error = mse(pred, target, reduction=reduction)
     if return_state:
-        return mean_squared_error
+        return {'squared_error': mean_squared_error.sum(),
+                'n_observations': torch.tensor(mean_squared_error.numel())}
     return torch.sqrt(mean_squared_error)
 
 
 def mae(
         pred: torch.Tensor,
         target: torch.Tensor,
-        reduction: str = 'elementwise_mean'
+        reduction: str = 'elementwise_mean',
+        return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes mean absolute error
@@ -91,6 +98,8 @@ def mae(
             - ``'elementwise_mean'``: takes the mean (default)
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with MAE
@@ -104,6 +113,8 @@ def mae(
 
     """
     mae = F.l1_loss(pred, target, reduction='none')
+    if return_state:
+        return {'absolute_error': mae.sum(), 'n_observations': torch.tensor(mae.numel())}
     mae = reduce(mae, reduction=reduction)
     return mae
 

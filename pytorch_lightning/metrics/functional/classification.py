@@ -239,7 +239,8 @@ def accuracy(
         pred: torch.Tensor,
         target: torch.Tensor,
         num_classes: Optional[int] = None,
-        class_reduction: str = 'micro'
+        class_reduction: str = 'micro',
+        return_state=False
 ) -> torch.Tensor:
     """
     Computes the accuracy classification score
@@ -254,7 +255,8 @@ def accuracy(
             - ``'macro'``: calculate metrics for each label, and find their unweighted mean.
             - ``'weighted'``: calculate metrics for each label, and find their weighted mean.
             - ``'none'``: returns calculated metric per class
-
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
     Return:
          A Tensor with the accuracy score.
 
@@ -271,8 +273,10 @@ def accuracy(
 
     tps, fps, tns, fns, sups = stat_scores_multiple_classes(
         pred=pred, target=target, num_classes=num_classes)
-
-    return class_reduce(tps, sups, sups, class_reduction=class_reduction)
+    if return_state:
+        return {'tps': tps, 'sups': sups}
+    else:
+        return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
 
 def _confmat_normalize(cm):
@@ -332,7 +336,8 @@ def precision_recall(
         target: torch.Tensor,
         num_classes: Optional[int] = None,
         class_reduction: str = 'micro',
-        return_support: bool = False
+        return_support: bool = False,
+        return_state: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes precision and recall for different thresholds
@@ -349,6 +354,8 @@ def precision_recall(
             - ``'none'``: returns calculated metric per class
 
         return_support: returns the support for each class, need for fbeta/f1 calculations
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with precision and recall
@@ -365,6 +372,8 @@ def precision_recall(
 
     precision = class_reduce(tps, tps + fps, sups, class_reduction=class_reduction)
     recall = class_reduce(tps, tps + fns, sups, class_reduction=class_reduction)
+    if return_state:
+        return {'tps': tps, 'fps': fps, 'fns': fns, 'sups': sups}
     if return_support:
         return precision, recall, sups
     return precision, recall
