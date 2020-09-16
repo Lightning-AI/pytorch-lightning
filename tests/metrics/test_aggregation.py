@@ -16,6 +16,7 @@ from pytorch_lightning.metrics import (
     Precision,
     Recall,
     AveragePrecision,
+    MAE,
 )
 
 from sklearn.metrics import (
@@ -23,8 +24,9 @@ from sklearn.metrics import (
     confusion_matrix,
     precision_score,
     recall_score,
-    average_precision_score
-
+    average_precision_score,
+    mean_squared_error,
+    mean_absolute_error
 )
 
 # example structure
@@ -36,7 +38,7 @@ multiclass_example = [(torch.randint(10, (N_samples,)), torch.randint(10, (N_sam
 binary_example = [(torch.randint(2, (N_samples,)), torch.randint(2, (N_samples,)))]
 multiclass_and_binary_example = [*multiclass_example, *binary_example]
 binary_example_logits = (torch.randint(2, (N_samples,)), torch.randint(5, (N_samples,)))
-
+regression_example = [(torch.randn((N_samples,)), torch.randn((N_samples,)))]
 
 EXAMPLES = [
     Example('accuracy',
@@ -51,11 +53,11 @@ EXAMPLES = [
             partial(ConfusionMatrix, normalize=True),
             partial(confusion_matrix, normalize='true'),
             multiclass_and_binary_example),
-    Example('precision_score',
+    Example('precision',
             Precision,
             partial(precision_score, average='micro'),
             multiclass_and_binary_example),
-    Example('recall_score',
+    Example('recall',
             Precision,
             partial(precision_score, average='micro'),
             multiclass_and_binary_example),
@@ -63,7 +65,10 @@ EXAMPLES = [
     #         AveragePrecision,
     #         average_precision_score,
     #         binary_example)
-
+    Example('mean absolute error',
+            MAE,
+            mean_absolute_error,
+            regression_example)
 ]
 
 
