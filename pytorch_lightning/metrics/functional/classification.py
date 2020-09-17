@@ -275,8 +275,7 @@ def accuracy(
         pred=pred, target=target, num_classes=num_classes)
     if return_state:
         return {'tps': tps, 'sups': sups}
-    else:
-        return class_reduce(tps, sups, sups, class_reduction=class_reduction)
+    return class_reduce(tps, sups, sups, class_reduction=class_reduction)
 
 
 def _confmat_normalize(cm):
