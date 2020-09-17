@@ -35,7 +35,7 @@ class Result(Dict):
         super().__init__()
 
         # temporary until dict results are deprecated
-        os.environ['PL_USING_RESULT_OBJ'] = '1'
+        os.environ["PL_USING_RESULT_OBJ"] = "1"
 
         if early_stop_on is not None:
             self.early_stop_on = early_stop_on
@@ -44,32 +44,32 @@ class Result(Dict):
         if hiddens is not None:
             self.hiddens = hiddens.detach()
         if minimize is not None:
-            err = 'Minimize can only be used in training_step, training_step_end, training_epoch_end'
-            self._assert_grad_tensor_metric('minimize', minimize, err)
+            err = "Minimize can only be used in training_step, training_step_end, training_epoch_end"
+            self._assert_grad_tensor_metric("minimize", minimize, err)
             self.minimize = minimize
 
         if minimize is not None and checkpoint_on is None:
             self.checkpoint_on = minimize.detach()
 
-        self['meta'] = {'_internal': {'_reduce_on_epoch': False, 'batch_sizes': []}}
+        self["meta"] = {"_internal": {"_reduce_on_epoch": False, "batch_sizes": []}}
 
     def __getitem__(self, key: Union[str, Any]) -> Any:
         try:
             return super().__getitem__(key)
         except KeyError:
-            return super().__getitem__(f'step_{key}')
+            return super().__getitem__(f"step_{key}")
 
     def __getattr__(self, key: str) -> Any:
         try:
-            if key == 'callback_metrics':
+            if key == "callback_metrics":
                 return self.get_callback_metrics()
-            elif key == 'batch_log_metrics':
+            elif key == "batch_log_metrics":
                 return self.get_batch_log_metrics()
-            elif key == 'batch_pbar_metrics':
+            elif key == "batch_pbar_metrics":
                 return self.get_batch_pbar_metrics()
-            elif key == 'epoch_log_metrics':
+            elif key == "epoch_log_metrics":
                 return self.get_epoch_log_metrics()
-            elif key == 'epoch_pbar_metrics':
+            elif key == "epoch_pbar_metrics":
                 return self.get_epoch_pbar_metrics()
             else:
                 return self[key]
@@ -78,28 +78,28 @@ class Result(Dict):
 
     def __setattr__(self, key: str, val: Union[Tensor, Any]):
         # ensure reserve keys are tensors and detached
-        if key in {'checkpoint_on', 'early_stop_on'}:
+        if key in {"checkpoint_on", "early_stop_on"}:
             self._assert_tensor_metric(key, val)
             if val is not None and isinstance(val, torch.Tensor):
                 val = val.detach()
 
         # ensure anything else that is a tensor is detached
-        elif isinstance(val, torch.Tensor) and key != 'minimize':
+        elif isinstance(val, torch.Tensor) and key != "minimize":
             val = val.detach()
 
         self[key] = val
 
     def _assert_tensor_metric(self, name: str, potential_metric: Union[bool, Tensor, None, Any]):
         if potential_metric is not None and not isinstance(potential_metric, bool):
-            assert isinstance(potential_metric, Tensor), f'{name} must be a torch.Tensor'
+            assert isinstance(potential_metric, Tensor), f"{name} must be a torch.Tensor"
 
-    def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ''):
+    def _assert_grad_tensor_metric(self, name: str, x: Union[torch.Tensor, Any], additional_err: str = ""):
         if x is not None:
-            assert isinstance(x, Tensor), f'{name} must be a torch.Tensor'
-            m = f'{name} must have a computational graph.'
+            assert isinstance(x, Tensor), f"{name} must be a torch.Tensor"
+            m = f"{name} must have a computational graph."
 
             if additional_err:
-                m += f' {additional_err}'
+                m += f" {additional_err}"
             assert x.grad_fn is not None, m
 
     def log(
@@ -115,7 +115,7 @@ class Result(Dict):
         tbptt_pad_token: int = 0,
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Union[Any, str] = "mean",
         sync_dist_group: Optional[Any] = None,
     ):
         # no metrics should be logged with graphs
@@ -126,14 +126,14 @@ class Result(Dict):
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
-        if 'meta' not in self:
-            self.__setitem__('meta', {})
+        if "meta" not in self:
+            self.__setitem__("meta", {})
 
         # if user requests both step and epoch, then we split the metric in two automatically
         # one will be logged per step. the other per epoch
         if on_step and on_epoch:
             # set step version
-            step_name = f'step_{name}'
+            step_name = f"step_{name}"
             self.__set_meta(
                 step_name,
                 value,
@@ -148,7 +148,7 @@ class Result(Dict):
             self.__setitem__(step_name, value)
 
             # set epoch version
-            epoch_name = f'epoch_{name}'
+            epoch_name = f"epoch_{name}"
             self.__set_meta(
                 epoch_name,
                 value,
@@ -202,22 +202,22 @@ class Result(Dict):
             tbptt_pad_token=tbptt_pad_token,
         )
 
-        self['meta'][name] = meta
+        self["meta"][name] = meta
 
         # track whether any input requires reduction on epoch end
-        _internal = self['meta']['_internal']
-        _internal['_reduce_on_epoch'] = max(_internal['_reduce_on_epoch'], on_epoch)
+        _internal = self["meta"]["_internal"]
+        _internal["_reduce_on_epoch"] = max(_internal["_reduce_on_epoch"], on_epoch)
 
     def track_batch_size(self, batch_size):
-        meta = self['meta']
-        meta['_internal']['batch_sizes'].append(batch_size)
+        meta = self["meta"]
+        meta["_internal"]["batch_sizes"].append(batch_size)
 
     def get_batch_sizes(self):
-        meta = self['meta']
-        return torch.tensor(meta['_internal']['batch_sizes'])
+        meta = self["meta"]
+        return torch.tensor(meta["_internal"]["batch_sizes"])
 
     def get_callback_metrics(self) -> dict:
-        result = {'early_stop_on': self.early_stop_on, 'checkpoint_on': self.checkpoint_on}
+        result = {"early_stop_on": self.early_stop_on, "checkpoint_on": self.checkpoint_on}
 
         return result
 
@@ -227,11 +227,11 @@ class Result(Dict):
         """
         result = {}
 
-        meta = self['meta']
+        meta = self["meta"]
         for k, options in meta.items():
-            if k == '_internal':
+            if k == "_internal":
                 continue
-            if options['logger'] and options['on_step']:
+            if options["logger"] and options["on_step"]:
                 result[k] = self[k]
         return result
 
@@ -241,11 +241,11 @@ class Result(Dict):
         """
         result = {}
 
-        meta = self['meta']
+        meta = self["meta"]
         for k, options in meta.items():
-            if k == '_internal':
+            if k == "_internal":
                 continue
-            if options['logger'] and options['on_epoch']:
+            if options["logger"] and options["on_epoch"]:
                 result[k] = self[k]
         return result
 
@@ -255,11 +255,11 @@ class Result(Dict):
         """
         result = {}
 
-        meta = self['meta']
+        meta = self["meta"]
         for k, options in meta.items():
-            if k == '_internal':
+            if k == "_internal":
                 continue
-            if options['prog_bar'] and options['on_epoch']:
+            if options["prog_bar"] and options["on_epoch"]:
                 result[k] = self[k]
         return result
 
@@ -269,11 +269,11 @@ class Result(Dict):
         """
         result = {}
 
-        meta = self['meta']
+        meta = self["meta"]
         for k, options in meta.items():
-            if k == '_internal':
+            if k == "_internal":
                 continue
-            if options['prog_bar'] and options['on_step']:
+            if options["prog_bar"] and options["on_step"]:
                 result[k] = self[k]
         return result
 
@@ -285,14 +285,14 @@ class Result(Dict):
     def __repr__(self):
         self_copy = self.copy()
 
-        if 'meta' in self_copy:
-            del self_copy['meta']
+        if "meta" in self_copy:
+            del self_copy["meta"]
 
         return str(self_copy)
 
     def __str__(self):
         copy = self.copy()
-        del copy['meta']
+        del copy["meta"]
 
         return str(copy)
 
@@ -306,18 +306,18 @@ class Result(Dict):
 
     @classmethod
     def gather(cls, outputs):
-        meta = outputs[0].get('meta')
+        meta = outputs[0].get("meta")
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
 
         if meta:
-            result['meta'] = meta
+            result["meta"] = meta
         return result
 
     @classmethod
     def padded_gather(cls, outputs):
-        meta = outputs[0].get('meta')
+        meta = outputs[0].get("meta")
         result = cls()
         result = recursive_gather(outputs, result)
 
@@ -325,27 +325,32 @@ class Result(Dict):
         default_padding_idx = 0
         for name, value in result.items():
             if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
-                if name not in {'checkpoint_on', 'early_stop_on', 'minimize'}:
-                    default_padding_idx = meta[name]['tbptt_pad_token']
+                if name not in {"checkpoint_on", "early_stop_on", "minimize"} and name in meta:
+                    default_padding_idx = meta[name]["tbptt_pad_token"]
                     break
 
         # pad across each key individually
         for name, value in result.items():
-            is_reserved = name in {'checkpoint_on', 'early_stop_on', 'minimize'}
-            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
-
+            is_reserved = name in {"checkpoint_on", "early_stop_on", "minimize"}
+            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor) and name in meta:
                 if is_reserved:
                     padding_key = default_padding_idx
                 else:
-                    padding_key = meta[name]['tbptt_pad_token']
+                    padding_key = meta[name]["tbptt_pad_token"]
                 padded = torch.nn.utils.rnn.pad_sequence(value, batch_first=True, padding_value=padding_key)
                 result[name] = padded
 
                 # also update the result
                 if meta and not is_reserved:
-                    meta[name]['value'] = padded
+                    meta[name]["value"] = padded
+
+        # collate tensors that are not in meta (e.g. user assigned attributes)
+        for name, value in result.items():
+            if name not in meta:
+                result[name] = collate_tensors(result[name])
+
         if meta:
-            result['meta'] = meta
+            result["meta"] = meta
         return result
 
     @classmethod
@@ -353,17 +358,17 @@ class Result(Dict):
         # get the batch sizes for all outputs
         batch_sizes = torch.stack([x.get_batch_sizes() for x in outputs]).view(-1)
 
-        meta = outputs[0]['meta']
+        meta = outputs[0]["meta"]
         result = cls()
         result = recursive_gather(outputs, result)
         recursive_stack(result)
 
         for k, option in meta.items():
-            if k == '_internal':
+            if k == "_internal":
                 continue
 
-            if option['on_epoch']:
-                fx = option['reduce_fx']
+            if option["on_epoch"]:
+                fx = option["reduce_fx"]
                 if fx == torch.mean:
                     reduced_val = weighted_mean(result[k], batch_sizes)
                 else:
@@ -371,34 +376,34 @@ class Result(Dict):
 
                 result[k] = reduced_val
 
-        result['meta'] = meta
+        result["meta"] = meta
         return result
 
     @classmethod
     def reduce_across_time(cls, time_outputs):
         # auto-reduce across time for tbptt
-        meta = time_outputs[0]['meta']
+        meta = time_outputs[0]["meta"]
         result = cls()
         result = recursive_gather(time_outputs, result)
         recursive_stack(result)
 
         for k, value in result.items():
-            if k == 'meta':
+            if k == "meta":
                 continue
 
             # pick the reduce fx
-            if k in ['checkpoint_on', 'early_stop_on', 'minimize']:
+            if k in ["checkpoint_on", "early_stop_on", "minimize"]:
                 tbptt_reduce_fx = torch.mean
             else:
-                tbptt_reduce_fx = meta[k]['tbptt_reduce_fx']
+                tbptt_reduce_fx = meta[k]["tbptt_reduce_fx"]
             result[k] = tbptt_reduce_fx(value)
 
-        result['meta'] = meta
+        result["meta"] = meta
         return result
 
     def dp_reduce(self):
         for k, value in self.items():
-            if k == 'meta':
+            if k == "meta":
                 continue
             if isinstance(value, list):
                 value = torch.tensor(value)
@@ -406,11 +411,11 @@ class Result(Dict):
 
     @property
     def should_reduce_on_epoch_end(self) -> bool:
-        return self['meta']['_internal']['_reduce_on_epoch']
+        return self["meta"]["_internal"]["_reduce_on_epoch"]
 
     def drop_hiddens(self):
-        if 'hiddens' in self:
-            del self['hiddens']
+        if "hiddens" in self:
+            del self["hiddens"]
 
     def rename_keys(self, map_dict: dict):
         """
@@ -432,8 +437,8 @@ class Result(Dict):
 
 def recursive_gather(outputs: Sequence[dict], result: Optional[MutableMapping] = None) -> Optional[MutableMapping]:
     for out in outputs:
-        if 'meta' in out:
-            del out['meta']
+        if "meta" in out:
+            del out["meta"]
 
         for k, v in out.items():
             if isinstance(v, dict):
@@ -520,7 +525,7 @@ class TrainResult(Result):
         tbptt_pad_token: int = 0,
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Union[Any, str] = "mean",
         sync_dist_group: Optional[Any] = None,
     ):
         """
@@ -586,7 +591,7 @@ class TrainResult(Result):
         tbptt_pad_token: int = 0,
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Union[Any, str] = "mean",
         sync_dist_group: Optional[Any] = None,
     ):
         """
@@ -675,7 +680,7 @@ class EvalResult(Result):
         tbptt_pad_token: int = 0,
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Union[Any, str] = "mean",
         sync_dist_group: Optional[Any] = None,
     ):
         """
@@ -740,7 +745,7 @@ class EvalResult(Result):
         tbptt_pad_token: int = 0,
         enable_graph: bool = False,
         sync_dist: bool = False,
-        sync_dist_op: Union[Any, str] = 'mean',
+        sync_dist_op: Union[Any, str] = "mean",
         sync_dist_group: Optional[Any] = None,
     ):
         """
@@ -783,11 +788,11 @@ class EvalResult(Result):
             )
 
     def get_callback_metrics(self) -> dict:
-        result = {'val_early_stop_on': self.early_stop_on, 'val_checkpoint_on': self.checkpoint_on}
+        result = {"val_early_stop_on": self.early_stop_on, "val_checkpoint_on": self.checkpoint_on}
 
         return result
 
-    def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):
+    def write(self, name: str, values: Union[Tensor, list], filename: str = "predictions.pt"):
         """Add feature name and value pair to collection of predictions that will be written to disk on
         `validation_end` or `test_end`. If running on multiple GPUs, you will get separate `n_gpu`
         prediction files with the rank prepended onto filename.
@@ -812,7 +817,7 @@ class EvalResult(Result):
         if isinstance(values, Tensor):
             values = values.detach()
 
-        preds = getattr(self, 'predictions', None)
+        preds = getattr(self, "predictions", None)
         if preds is None:
             self.predictions = {filename: {name: values}}
         elif filename not in preds:
@@ -824,7 +829,7 @@ class EvalResult(Result):
         elif isinstance(values, list):
             preds[filename][name].extend(values)
 
-    def write_dict(self, predictions_dict, filename='predictions.pt'):
+    def write_dict(self, predictions_dict, filename="predictions.pt"):
         """Calls EvalResult.write() for each key-value pair in predictions_dict.
 
         It is recommended that you use this function call instead of .write if you need to
