@@ -19,13 +19,14 @@ Early Stopping
 Monitor a validation metric and stop training when it stops improving.
 
 """
+import os
+
 import numpy as np
 import torch
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn
-import os
 
 torch_inf = torch.tensor(np.Inf)
 
