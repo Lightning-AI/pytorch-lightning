@@ -34,12 +34,8 @@ class MyModel(pl.LightningModule):
         idx = batch[0, 0, 0, 0].detach()
         pred = self.forward(batch)
         loss = self.loss(pred, batch)
-        return {'loss': loss, 'idx': idx}
-
-    def training_epoch_end(self, outputs):
-        idx_list = torch.tensor([x['idx'] for x in outputs])
-        print('Epoch: {}, device: {} samples: {}'.format(self.current_epoch, self.device, idx_list))
-        return torch.stack([x['loss'] for x in outputs]).mean()
+        print(batch_idx, idx)
+        return {'loss': loss}
 
     def setup(self, stage):
         self.dataset = MyDataset()
@@ -55,7 +51,7 @@ class MyModel(pl.LightningModule):
 def main():
     pl_model = MyModel()
     # trainer = Trainer(distributed_backend='ddp', num_nodes=1, gpus=2, overfit_batches=4)
-    trainer = Trainer(distributed_backend='ddp', gpus=2, overfit_batches=5, max_epochs=4, check_val_every_n_epoch=100)
+    trainer = Trainer(distributed_backend="ddp", gpus=2, overfit_batches=5, max_epochs=4, check_val_every_n_epoch=100)
     trainer.fit(pl_model)
 
 
