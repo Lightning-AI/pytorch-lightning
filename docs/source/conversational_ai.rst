@@ -4,7 +4,7 @@ NeMo
 `NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building
 Conversational AI applications. NeMo has separate collections for Automatic Speech Recognition (ASR), 
 Natural Language Processing (NLP), and Text-to-Speech (TTS) models. Each collection consists of 
-prebuilt modules that include everything needed to train on your own data. 
+prebuilt modules that include everything needed to train on your data. 
 Every module can easily be customized, extended, and composed to create complex Conversational AI 
 applications.
 
@@ -23,7 +23,7 @@ NeMo Models contain everything needed to train and reproduce state of the art Co
 research and applications, including:
 
 - neural network architectures 
-- datasets/dataloaders
+- datasets/data loaders
 - data preprocessing/postprocessing
 - data augmentors
 - optimizers and schedulers
@@ -38,8 +38,8 @@ so that each can be configured from .yaml or the Hydra CLI.
 .. note:: Every NeMo model has an example configuration file and a corresponding script that contains all configurations needed for training.
 
 The end result of using NeMo, Pytorch Lightning, and Hydra is that
-NeMo models all have the same look and feel so that it is easy to do Conversational AI research
-across multiple domains and all NeMo models are fully compatible with the PyTorch ecosystem.
+NeMo models all have the same look and feel. This makes it easy to do Conversational AI research
+across multiple domains. NeMo models are also fully compatible with the PyTorch ecosystem.
 
 Installing NeMo
 ^^^^^^^^^^^^^^^
