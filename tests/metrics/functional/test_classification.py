@@ -53,7 +53,7 @@ from pytorch_lightning.metrics.functional.classification import (
     pytest.param(sk_roc_auc_score, auroc, True, id='auroc')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric, only_binary):
-    """Compare PL metrics to sklearn version."""
+    """Compare PL metrics to sklearn version. """
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # for metrics with only_binary=False, we try out different combinations of number
