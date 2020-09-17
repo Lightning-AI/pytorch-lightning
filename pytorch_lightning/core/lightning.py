@@ -266,9 +266,11 @@ class LightningModule(ABC, DeviceDtypeModuleMixin, GradInformation, ModelIO, Mod
                 result = pl.TrainResult(minimize=loss, hiddens=hiddens)
                 return result
 
-        Notes:
-            The loss value shown in the progress bar is smoothed (averaged) over the last values,
-            so it differs from the actual loss returned in train/validation step.
+        Note:
+            - The loss value shown in the progress bar is smoothed (averaged) over the last values,
+              so it differs from the actual loss returned in train/validation step.
+            - If :meth:`training_step` returns `None`, training will skip to the next batch.
+
         """
         rank_zero_warn('`training_step` must be implemented to be used with the Lightning Trainer')
 
