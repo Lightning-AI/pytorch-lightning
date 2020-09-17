@@ -298,6 +298,8 @@ class TrainLoop:
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
+            if not training_step_output:
+                return
 
             # ----------------------------
             # PROCESS THE RESULT
@@ -445,19 +447,20 @@ class TrainLoop:
             # ------------------------------------
             batch_output = self.run_training_batch(batch, batch_idx, dataloader_idx)
 
-            # only track outputs when user implements training_epoch_end
-            # otherwise we will build up unnecessary memory
-            epoch_end_outputs = self.process_train_step_outputs(
-                batch_output.training_step_output_for_epoch_end,
-                self.early_stopping_accumulator,
-                self.checkpoint_accumulator
-            )
+            if batch_output:
+                # only track outputs when user implements training_epoch_end
+                # otherwise we will build up unnecessary memory
+                epoch_end_outputs = self.process_train_step_outputs(
+                    batch_output.training_step_output_for_epoch_end,
+                    self.early_stopping_accumulator,
+                    self.checkpoint_accumulator
+                )
 
-            # hook
-            self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
+                # hook
+                self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
-            # when returning -1 from train_step, we end epoch early
-            self.trainer.should_stop = batch_output.signal == -1
+                # when returning -1 from train_step, we end epoch early
+                self.trainer.should_stop = batch_output.signal == -1
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
@@ -474,12 +477,14 @@ class TrainLoop:
             # -----------------------------------------
             # SAVE METRICS TO LOGGERS
             # -----------------------------------------
-            self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
+            if batch_output:
+                self.trainer.logger_connector.save_train_loop_metrics_to_loggers(batch_idx, batch_output)
 
             # update LR schedulers
-            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-            monitor_metrics.update(batch_output.batch_log_metrics)
-            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+            if batch_output:
+                monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
+                monitor_metrics.update(batch_output.batch_log_metrics)
+                self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # progress global step according to grads progress
             self.increment_accumulated_grad_global_step()
@@ -565,6 +570,8 @@ class TrainLoop:
                     optimizer,
                     self.trainer.hiddens
                 )
+                if not opt_closure_result:
+                    return
 
                 # log metrics
                 self.log_training_step_metrics(opt_closure_result, batch_callback_metrics, batch_log_metrics)
@@ -638,6 +645,8 @@ class TrainLoop:
         """
         # lightning module hook
         result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
+        if not result:
+            return
 
         # backward pass
         self.backward(result, optimizer, opt_idx)

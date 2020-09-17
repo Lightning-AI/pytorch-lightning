@@ -380,6 +380,36 @@ def test_training_step_epoch_end_result(tmpdir):
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
 
 
+def test_training_step_none_return(tmpdir):
+    """
+    Tests that training_step can return None
+    """
+    # enable internal debugging actions
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    model = DeterministicModel()
+    model.training_step = model.training_step_none_return
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.val_dataloader = None
+
+    batches = 3
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=batches,
+        limit_val_batches=batches,
+        row_log_interval=1,
+        max_epochs=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
+
+    # make sure correct steps were called
+    assert model.training_step_called
+    assert not model.training_step_end_called
+    assert not model.training_epoch_end_called
+
+
 def test_no_auto_callbacks_with_train_loop_only(tmpdir):
     """
     Make sure early stop + checkpoint work with only a train loop

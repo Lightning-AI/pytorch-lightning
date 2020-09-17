@@ -444,6 +444,13 @@ class DeterministicModel(LightningModule):
         result['val_epoch_end'] = torch.tensor(1233)
         return result
 
+    # --------------------------
+    # None returns
+    # --------------------------
+    def training_step_none_return(self, batch, batch_idx):
+        self.training_step_called = True
+        return
+
     # -----------------------------
     # DATA
     # -----------------------------
