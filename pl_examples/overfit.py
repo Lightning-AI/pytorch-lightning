@@ -34,6 +34,7 @@ class MyModel(pl.LightningModule):
         idx = batch[0, 0, 0, 0].detach()
         pred = self.forward(batch)
         loss = pred.sum()
+        print(self.trainer.train_dataloader.sampler)
         return {'loss': loss, 'idx': idx}
 
     def training_epoch_end(self, outputs):
