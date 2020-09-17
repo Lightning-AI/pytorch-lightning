@@ -34,9 +34,6 @@ TPU_AVAILABLE = tpu_device_exists()
 
 torch_inf = torch.tensor(np.Inf)
 
-if TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-    import torch_xla
 
 
 
