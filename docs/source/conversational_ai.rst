@@ -510,7 +510,9 @@ Text-To-Speech (TTS)
 
 Everything needed to train TTS models and generate audio is included with NeMo. 
 Models can be trained from scratch on your own data or pretrained models can be downloaded
-automatically. NeMo currently supports:
+automatically. NeMo currently supports  a two step inference procedure. 
+First, a model is used to generate a mel spectrogram from text. 
+Second, a model is used to generate audio from a mel spectrogram.
 
 Mel Spectogram Generators:
 
