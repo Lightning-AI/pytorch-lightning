@@ -4,6 +4,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-devel
 # install versions
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.4
+ARG PYTORCH_CHANNEL=pytorch
 ARG LIGHTNING_VERSION=""
 # NOTE new Conda does not forward the exit status... https://github.com/conda/conda/issues/8385
 ARG CONDA_VERSION=4.7.12
@@ -47,7 +48,7 @@ COPY --chown=flash environment.yml environment.yml
 RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
     conda init bash && \
     # conda install -y python=$PYTHON_VERSION && \
-    conda install pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=pytorch && \
+    conda install pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
     conda env update --file environment.yml && \
     rm environment.yml && \
 
