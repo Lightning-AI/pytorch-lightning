@@ -3,7 +3,6 @@ import sys
 from collections import namedtuple
 from functools import partial
 import math
-import dill
 
 import torch
 import torch.distributed as dist
