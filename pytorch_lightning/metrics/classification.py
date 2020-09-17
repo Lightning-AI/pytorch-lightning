@@ -349,7 +349,7 @@ class AveragePrecision(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = AveragePrecision()
         >>> metric(pred, target)
-        tensor(0.3333)
+        tensor([0.3333])
 
     """
 
