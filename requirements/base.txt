@@ -8,3 +8,4 @@ PyYAML>=5.1  # OmegaConf requirement >=5.1
 tqdm>=4.41.0
 fsspec>=0.8.0
 tensorboard>=2.2.0
+dataclasses;python_version<'3.7'
