@@ -59,7 +59,8 @@ jobs:
         pytorch_channel: [pytorch]
         # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-including-new-combinations
         include:
-          - pytorch_version: 1.7
+          - python_version: [3.7, 3.8]
+            pytorch_version: 1.7
             pytorch_channel: pytorch-nightly
     steps:
       - name: Checkout
