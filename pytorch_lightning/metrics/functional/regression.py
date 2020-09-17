@@ -177,11 +177,9 @@ def psnr(
 
     Example:
 
-        >>> from pytorch_lightning.metrics.regression import PSNR
         >>> pred = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
         >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
-        >>> metric = PSNR()
-        >>> metric(pred, target)
+        >>> psnr(pred, target)
         tensor(2.5527)
 
     """

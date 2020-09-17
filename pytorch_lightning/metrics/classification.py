@@ -210,8 +210,9 @@ class PrecisionRecallCurve(TensorMetric):
             - recall values
             - threshold values
         """
-        return precision_recall_curve(pred=pred, target=target, sample_weight=sample_weight, pos_label=self.pos_label)
-    
+        return precision_recall_curve(pred=pred, target=target,
+                                      sample_weight=sample_weight, pos_label=self.pos_label)
+
 
 class Precision(TensorMetric):
     """
@@ -396,7 +397,7 @@ class AUROC(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = AUROC()
         >>> metric(pred, target)
-        tensor(0.3333)
+        tensor([0.3333])
 
     """
 
@@ -445,7 +446,7 @@ class FBeta(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = FBeta(0.25, class_reduction='macro')
         >>> metric(pred, target)
-        tensor(0.7361)
+        tensor([0.7361])
     """
 
     def __init__(
@@ -505,7 +506,7 @@ class F1(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = F1(class_reduction='macro')
         >>> metric(pred, target)
-        tensor(0.6667)
+        tensor([0.6667])
     """
 
     def __init__(
@@ -751,7 +752,7 @@ class DiceCoefficient(TensorMetric):
         >>> target = torch.tensor([0, 1, 3, 2])
         >>> metric = DiceCoefficient()
         >>> metric(pred, target)
-        tensor(0.3333)
+        tensor([0.3333])
     """
 
     def __init__(
@@ -819,7 +820,7 @@ class IoU(TensorMetric):
         ...                        [0, 0, 0, 0, 0, 0, 0, 0]])
         >>> metric = IoU()
         >>> metric(pred, target)
-        tensor(0.7045)
+        tensor([0.7045])
 
     """
 

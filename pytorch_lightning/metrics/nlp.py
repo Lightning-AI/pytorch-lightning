@@ -28,7 +28,7 @@ class BLEUScore(Metric):
         >>> reference_corpus = [['there is a cat on the mat'.split(), 'a cat is on the mat'.split()]]
         >>> metric = BLEUScore()
         >>> metric(translate_corpus, reference_corpus)
-        tensor(0.7598)
+        tensor([0.7598])
     """
 
     def __init__(self, n_gram: int = 4, smooth: bool = False):
