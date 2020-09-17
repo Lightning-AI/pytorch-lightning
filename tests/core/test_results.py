@@ -3,9 +3,10 @@ from pathlib import Path
 
 import pytest
 import torch
+import torch.nn.functional as F
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer, LightningModule, seed_everything
 from pytorch_lightning.core.step_result import Result, TrainResult, EvalResult
 import tests.base.develop_utils as tutils
 
@@ -46,40 +47,30 @@ def test_result_reduce_ddp(result_cls):
 @pytest.mark.parametrize(
     "test_option,do_train,gpus",
     [
+        pytest.param(0, True, 0, id="full_loop"),
+        pytest.param(0, False, 0, id="test_only"),
         pytest.param(
-            0, True, 0, id='full_loop'
+            1, False, 0, id="test_only_mismatching_tensor", marks=pytest.mark.xfail(raises=ValueError, match="Mism.*")
         ),
+        pytest.param(2, False, 0, id="mix_of_tensor_dims"),
+        pytest.param(3, False, 0, id="string_list_predictions"),
+        pytest.param(4, False, 0, id="int_list_predictions"),
+        pytest.param(5, False, 0, id="nested_list_predictions"),
+        pytest.param(6, False, 0, id="dict_list_predictions"),
         pytest.param(
-            0, False, 0, id='test_only'
+            0,
+            True,
+            1,
+            id="full_loop_single_gpu",
+            marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine"),
         ),
-        pytest.param(
-            1, False, 0, id='test_only_mismatching_tensor', marks=pytest.mark.xfail(raises=ValueError, match="Mism.*")
-        ),
-        pytest.param(
-            2, False, 0, id='mix_of_tensor_dims'
-        ),
-        pytest.param(
-            3, False, 0, id='string_list_predictions'
-        ),
-        pytest.param(
-            4, False, 0, id='int_list_predictions'
-        ),
-        pytest.param(
-            5, False, 0, id='nested_list_predictions'
-        ),
-        pytest.param(
-            6, False, 0, id='dict_list_predictions'
-        ),
-        pytest.param(
-            0, True, 1, id='full_loop_single_gpu', marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="test requires single-GPU machine")
-        )
-    ]
+    ],
 )
 def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
     tutils.reset_seed()
 
     dm = TrialMNISTDataModule(tmpdir)
-    prediction_file = Path('predictions.pt')
+    prediction_file = Path("predictions.pt")
 
     model = EvalModelTemplate()
     model.test_option = test_option
@@ -92,13 +83,7 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
     if prediction_file.exists():
         prediction_file.unlink()
 
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=3,
-        weights_summary=None,
-        deterministic=True,
-        gpus=gpus
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, weights_summary=None, deterministic=True, gpus=gpus)
 
     # Prediction file shouldn't exist yet because we haven't done anything
     assert not prediction_file.exists()
@@ -108,8 +93,8 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
         assert result == 1
         result = trainer.test(datamodule=dm)
         result = result[0]
-        assert result['test_loss'] < 0.6
-        assert result['test_acc'] > 0.8
+        assert result["test_loss"] < 0.6
+        assert result["test_acc"] > 0.8
     else:
         result = trainer.test(model, datamodule=dm)
 
@@ -123,15 +108,16 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
 def test_result_obj_predictions_ddp_spawn(tmpdir):
     seed_everything(4321)
 
-    distributed_backend = 'ddp_spawn'
+    distributed_backend = "ddp_spawn"
     option = 0
 
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
     dm = TrialMNISTDataModule(tmpdir)
 
-    prediction_file = Path('predictions.pt')
+    prediction_file = Path("predictions.pt")
 
     model = EvalModelTemplate(learning_rate=0.005)
     model.test_option = option
@@ -141,7 +127,7 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
     model.test_epoch_end = None
     model.test_end = None
 
-    prediction_files = [Path('predictions_rank_0.pt'), Path('predictions_rank_1.pt')]
+    prediction_files = [Path("predictions_rank_0.pt"), Path("predictions_rank_1.pt")]
     for prediction_file in prediction_files:
         if prediction_file.exists():
             prediction_file.unlink()
@@ -152,7 +138,7 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
         weights_summary=None,
         deterministic=True,
         distributed_backend=distributed_backend,
-        gpus=[0, 1]
+        gpus=[0, 1],
     )
 
     # Prediction file shouldn't exist yet because we haven't done anything
@@ -162,10 +148,10 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
     assert result == 1
     result = trainer.test(datamodule=dm)
     result = result[0]
-    assert result['test_loss'] < 0.6
-    assert result['test_acc'] > 0.8
+    assert result["test_loss"] < 0.6
+    assert result["test_acc"] > 0.8
 
-    dm.setup('test')
+    dm.setup("test")
 
     # check prediction file now exists and is of expected length
     size = 0
@@ -240,7 +226,87 @@ def test_result_gather_mixed_types():
 
 def test_result_retrieve_last_logged_item():
     result = Result()
-    result.log('a', 5., on_step=True, on_epoch=True)
-    assert result['epoch_a'] == 5.
-    assert result['step_a'] == 5.
-    assert result['a'] == 5.
+    result.log("a", 5.0, on_step=True, on_epoch=True)
+    assert result["epoch_a"] == 5.0
+    assert result["step_a"] == 5.0
+    assert result["a"] == 5.0
+
+
+def test_result_train_epoch_end(tmpdir):
+    class LitModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(28 * 28, 10)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self(x)
+            loss = F.cross_entropy(y_hat, y)
+            result = TrainResult(minimize=loss)
+            result.log_dict({"train_loss": loss})
+
+            result.y = y
+            result.y_hat = y_hat
+            return result
+
+        def training_epoch_end(self, out):
+            result = TrainResult()
+            result.log_dict({"train_epoch_loss": 0.0})
+            return result
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.0005)
+
+    dm = TrialMNISTDataModule(tmpdir)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(LitModel(), dm)
+
+
+def test_result_valid_epoch_end(tmpdir):
+    class LitModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(28 * 28, 10)
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self(x)
+            loss = F.cross_entropy(y_hat, y)
+            result = TrainResult(minimize=loss)
+            result.log_dict({"train_loss": loss})
+
+        def valid_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self(x)
+            loss = F.cross_entropy(y_hat, y)
+            result = EvalResult()
+            result.log_dict({"valid_loss": loss})
+            result.y = y
+            result.y_hat = y_hat
+            return result
+
+        def valid_epoch_end(self, out):
+            result = EvalResult()
+            result.log_dict({"valid_epoch_loss": 0.0})
+            return result
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.0005)
+
+    dm = TrialMNISTDataModule(tmpdir)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        weights_summary=None,
+    )
+    trainer.fit(LitModel(), dm)
