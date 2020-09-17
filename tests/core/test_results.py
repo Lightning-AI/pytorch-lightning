@@ -253,8 +253,9 @@ def test_result_train_epoch_end(tmpdir):
             return result
 
         def training_epoch_end(self, out):
+            epoch_loss = F.cross_entropy(out.y_hat, out.y)
             result = TrainResult()
-            result.log_dict({"train_epoch_loss": 0.0})
+            result.log_dict({"train_epoch_loss": epoch_loss})
             return result
 
         def configure_optimizers(self):
@@ -284,8 +285,9 @@ def test_result_valid_epoch_end(tmpdir):
             loss = F.cross_entropy(y_hat, y)
             result = TrainResult(minimize=loss)
             result.log_dict({"train_loss": loss})
+            return result
 
-        def valid_step(self, batch, batch_idx):
+        def validation_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
@@ -295,9 +297,10 @@ def test_result_valid_epoch_end(tmpdir):
             result.y_hat = y_hat
             return result
 
-        def valid_epoch_end(self, out):
+        def validation_epoch_end(self, out):
             result = EvalResult()
-            result.log_dict({"valid_epoch_loss": 0.0})
+            epoch_loss = F.cross_entropy(out.y_hat, out.y)
+            result.log_dict({"valid_epoch_loss": epoch_loss})
             return result
 
         def configure_optimizers(self):
