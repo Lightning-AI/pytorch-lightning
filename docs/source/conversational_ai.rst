@@ -282,10 +282,10 @@ Natural Language Processing (NLP)
 
 Everything needed to finetune BERT-like language models for NLP tasks is included with NeMo.
 NeMo supports language models from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
-and `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_. 
+and `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_ BERT and Bio-Megatron models. 
 NeMo can also be used for pretraining BERT-based language models from HuggingFace.
 
-With NeMo, any of the HuggingFace encoders or Megatron-LM encoders can easily be used for the NLP tasks 
+Any of the HuggingFace encoders or Megatron-LM encoders can easily be used for the NLP tasks 
 that are included with NeMo:
 
 - `Glue Benchmark (All tasks) <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/GLUE_Benchmark.ipynb>`_
@@ -353,7 +353,8 @@ Developing NER Model From Scratch
 
 .. code-block:: python
 
-    @hydra.main(config_path="conf", config_name="token_classification_config")
+    # TODO: add comment explaining hydra_runner
+    @hydra_runner(config_path="conf", config_name="token_classification_config")
     def main(cfg: DictConfig) -> None:
         trainer = pl.Trainer(**cfg.trainer)
         model = TokenClassificationModel(cfg.model, trainer=trainer)
@@ -425,7 +426,7 @@ for a full tutorial on using tokenizers in NeMO.
 Using a Pre-trained NER Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-NeMo has pre-trained NER models that can be used to get 
+NeMo has pre-trained NER models that can be used 
 to get started with Token Classification right away.
 Models are automatically downloaded from NGC, 
 cached locally to disk,
@@ -562,7 +563,8 @@ Developing TTS Model From Scratch
 
 .. code-block:: python
 
-    @hydra.main(config_path="conf", config_name="glow_tts")
+    # TODO: add comment explaining hydra_runner
+    @hydra_runner(config_path="conf", config_name="glow_tts")
     def main(cfg):
         trainer = pl.Trainer(**cfg.trainer)
         model = GlowTTSModel(cfg=cfg.model, trainer=trainer)
