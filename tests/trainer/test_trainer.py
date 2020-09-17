@@ -414,7 +414,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     file_lists = set(os.listdir(tmpdir))
 
     assert len(file_lists) == len(expected_files), (
-        f" Should save {len(expected_files)} models when save_top_k={save_top_k} but found={file_lists}"
+        f"Should save {len(expected_files)} models when save_top_k={save_top_k} but found={file_lists}"
     )
 
     # verify correct naming
