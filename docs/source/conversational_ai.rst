@@ -419,8 +419,33 @@ To see the list of supported tokenizers:
     nemo_nlp.modules.get_tokenizer_list()
 
 See this `tokenizer notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/02_NLP_Tokenizers.ipynb>`_ 
-for a full tutorial on using tokenizers in NeMO.
+for a full tutorial on using tokenizers in NeMo.
 
+Language Models
+^^^^^^^^^^^^^^^
+
+Language models are used to extract information from (tokenized) text. 
+Much of the state-of-the-art in natural language processing is achieved
+by fine-tuning pretrained language models on the downstream task. 
+
+With NeMo, you can either `pretrain <https://github.com/NVIDIA/NeMo/blob/main/examples/nlp/language_modeling/bert_pretraining.py>`_ 
+a BERT model on your data or use a pretrained lanugage model from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_  
+or `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_.
+
+To see the list of language models available in NeMo:
+
+.. code-block:: python
+
+    nemo_nlp.modules.get_pretrained_lm_models_list(include_external=True)
+
+Easily switch between any language model in the above list by using `.get_lm_model`.
+
+.. code-block:: python
+
+    nemo_nlp.modules.get_lm_model(pretrained_model_name='distilbert-base-uncased')
+
+See this `language model notebook <https://github.com/NVIDIA/NeMo/blob/main/tutorials/nlp/01_Pretrained_Language_Models_for_Downstream_Tasks.ipynb>`_
+for a full tutorial on using pretrained language models in NeMo.
 
 Using a Pre-trained NER Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
