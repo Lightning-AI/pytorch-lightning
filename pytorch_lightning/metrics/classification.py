@@ -748,11 +748,11 @@ class DiceCoefficient(TensorMetric):
             include_background: whether to also compute dice for the background
             nan_score: score to return, if a NaN occurs during computation (denom zero)
             no_fg_score: score to return, if no foreground pixel was found in target
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+            reduction: a method to reduce metric score over labels.
+
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
             reduce_group: the process group to reduce metric results from DDP
         """
         super().__init__(
@@ -804,26 +804,45 @@ class IoU(TensorMetric):
 
     """
 
-    def __init__(self, remove_bg: bool = False, reduction: str = "elementwise_mean"):
+    def __init__(
+            self,
+            ignore_index: Optional[int] = None,
+            absent_score: float = 0.0,
+            num_classes: Optional[int] = None,
+            reduction: str = "elementwise_mean",
+    ):
         """
         Args:
-            remove_bg: Flag to state whether a background class has been included
-                within input parameters. If true, will remove background class. If
-                false, return IoU over all classes.
-                Assumes that background is '0' class in input tensor
-            reduction: a method to reduce metric score over labels (default: takes the mean)
-                Available reduction methods:
+            ignore_index: optional int specifying a target class to ignore. If given, this class index does not
+                contribute to the returned score, regardless of reduction method. Has no effect if given an int that is
+                not in the range [0, num_classes-1], where num_classes is either given or derived from pred and target.
+                By default, no index is ignored, and all classes are used.
+            absent_score: score to use for an individual class, if no instances of the class index were present in
+                `y_pred` AND no instances of the class index were present in `y_true`. For example, if we have 3
+                classes, [0, 0] for `y_pred`, and [0, 2] for `y_true`, then class 1 would be assigned the
+                `absent_score`. Default is 0.0.
+            num_classes: Optionally specify the number of classes
+            reduction: a method to reduce metric score over labels.
 
-                - elementwise_mean: takes the mean
-                - none: pass array
-                - sum: add elements
+                - ``'elementwise_mean'``: takes the mean (default)
+                - ``'sum'``: takes the sum
+                - ``'none'``: no reduction will be applied
         """
         super().__init__(name="iou")
-        self.remove_bg = remove_bg
+        self.ignore_index = ignore_index
+        self.absent_score = absent_score
+        self.num_classes = num_classes
         self.reduction = reduction
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor, sample_weight: Optional[torch.Tensor] = None):
         """
         Actual metric calculation.
         """
-        return iou(y_pred, y_true, remove_bg=self.remove_bg, reduction=self.reduction)
+        return iou(
+            pred=y_pred,
+            target=y_true,
+            ignore_index=self.ignore_index,
+            absent_score=self.absent_score,
+            num_classes=self.num_classes,
+            reduction=self.reduction,
+        )
