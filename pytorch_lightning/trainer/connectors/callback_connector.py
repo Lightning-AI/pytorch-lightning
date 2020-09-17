@@ -53,23 +53,21 @@ class CallbackConnector:
 
     def configure_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
-            # when no val step is defined, use 'loss' otherwise 'val_loss'
-            train_step_only = not is_overridden('validation_step', self.trainer.get_model())
-            monitor_key = 'loss' if train_step_only else 'val_loss'
             checkpoint_callback = ModelCheckpoint(
                 filepath=None,
-                monitor=monitor_key
+                monitor='val_loss',
+                verbose=True
             )
-        elif checkpoint_callback is False:
+        elif not checkpoint_callback:
             checkpoint_callback = None
 
-        if checkpoint_callback:
+        if checkpoint_callback is not None:
             checkpoint_callback.save_function = self.trainer.save_checkpoint
 
         return checkpoint_callback
 
     def configure_early_stopping(self, early_stop_callback):
-        if early_stop_callback is True or None:
+        if early_stop_callback is True:
             early_stop_callback = EarlyStopping(
                 monitor='val_loss',
                 patience=3,
@@ -79,8 +77,7 @@ class CallbackConnector:
             )
         elif not early_stop_callback:
             early_stop_callback = None
-        else:
-            early_stop_callback = early_stop_callback
+
         return early_stop_callback
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):

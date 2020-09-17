@@ -170,6 +170,21 @@ class ModelCheckpoint(Callback):
 
         self.kth_value, self.mode = mode_dict[mode]
 
+    def _validate_condition_metric(self, logs):
+        monitor_val = logs.get(self.monitor)
+
+        if monitor_val is None:  # self.monitor wasn't found in the metrics dict
+            if self.verbose > 0:
+                error_msg = (f'Checkpointing conditioned on metric `{self.monitor}`'
+                             f' which is not available. Either add `{self.monitor}` to the return of'
+                             f' validation_epoch end or modify your CheckPoint callback to use any of the'
+                             f' following: `{"`, `".join(list(logs.keys()))}`')
+                rank_zero_warn(error_msg, RuntimeWarning)
+
+            return False
+
+        return True
+
     def _del_model(self, filepath):
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
@@ -303,25 +318,6 @@ class ModelCheckpoint(Callback):
                 f" Remove `ModelCheckpoint(monitor='{self.monitor}')` to fix."
             )
 
-    def _validate_condition_metric(self, logs):
-        monitor_val = logs.get(self.monitor)
-
-        if monitor_val is None:  # self.monitor wasn't found in the metrics dict
-            error_msg = (f'Checkpointing conditioned on metric `{self.monitor}`'
-                         f' which is not available. Either add `{self.monitor}` to the return of '
-                         f' validation_epoch end or modify your CheckPoint callback to use any of the '
-                         f'following: `{"`, `".join(list(logs.keys()))}`')
-
-            if self.verbose > 0:
-                rank_zero_warn(error_msg, RuntimeWarning)
-
-            return False
-
-        return True
-
-    def _run_checkpoint_check(self, metrics):
-        self._validate_condition_metric(metrics)
-
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
@@ -337,7 +333,7 @@ class ModelCheckpoint(Callback):
         metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
 
-        self._run_checkpoint_check(metrics)
+        self._validate_condition_metric(metrics)
         # support structured results
         if metrics.get('checkpoint_on') is not None:
             self.monitor = 'checkpoint_on'
@@ -358,6 +354,7 @@ class ModelCheckpoint(Callback):
         ckpt_name_metrics = trainer.logger_connector.logged_metrics
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
+
         while self._fs.exists(filepath):
             filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics, ver=version_cnt)
             # this epoch called before
