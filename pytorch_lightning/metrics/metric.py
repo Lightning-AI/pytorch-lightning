@@ -162,28 +162,25 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
-        # TODO: write this into same
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
                 return {k: torch.stack([t for t in tensors[k]]).sum(0) for k in tensors.keys()}
-            elif isinstance(tensors, list):
+            if isinstance(tensors, list):
                 return torch.stack([t for t in tensors]).sum(0)
-            elif isinstance(tensors, tuple):
+            if isinstance(tensors, tuple):
                 return tensors
-            elif isinstance(tensors, torch.Tensor):
+            if isinstance(tensors, torch.Tensor):
                 return tensors
-            else:
-                raise TypeError("unknown metric value format to aggregate")
+            raise TypeError("unknown metric value format to aggregate")
         else:
             if isinstance(tensors[0], Mapping):
                 return {k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys()}
-            elif isinstance(tensors[0], Sequence):
+            if isinstance(tensors[0], Sequence):
                 return tuple([torch.stack(tmp).sum(0) for tmp in zip(*tensors)])
-            elif isinstance(tensors[0], torch.Tensor):
+            if isinstance(tensors[0], torch.Tensor):
                 return torch.stack(tensors).sum(0)
-            else:
-                raise TypeError("unknown metric value format to aggregate")
+            raise TypeError("unknown metric value format to aggregate")
 
     @staticmethod
     def compute(self, data: Any, output: Any):
