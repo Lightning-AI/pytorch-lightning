@@ -165,7 +165,6 @@ Developing ASR Model From Scratch
 
 .. code-block:: python
 
-    # TODO: add comment explaining hydra_runner
     # hydra_runner calls hydra.main and is useful for multi-node experiments
     @hydra_runner(config_path="conf", config_name="config")
     def main(cfg):
@@ -353,7 +352,7 @@ Developing NER Model From Scratch
 
 .. code-block:: python
 
-    # TODO: add comment explaining hydra_runner
+    # hydra_runner calls hydra.main and is useful for multi-node experiments
     @hydra_runner(config_path="conf", config_name="token_classification_config")
     def main(cfg: DictConfig) -> None:
         trainer = pl.Trainer(**cfg.trainer)
@@ -565,7 +564,7 @@ Developing TTS Model From Scratch
 
 .. code-block:: python
 
-    # TODO: add comment explaining hydra_runner
+    # hydra_runner calls hydra.main and is useful for multi-node experiments
     @hydra_runner(config_path="conf", config_name="glow_tts")
     def main(cfg):
         trainer = pl.Trainer(**cfg.trainer)
