@@ -23,7 +23,7 @@ codecov:
   strict_yaml_branch: "yaml-config"
   require_ci_to_pass: yes
   notify:
-    after_n_builds: 22
+    after_n_builds: 24
     wait_for_ci: yes
   # https://docs.codecov.io/docs/codecov-yaml#section-expired-reports
   max_report_age: off
@@ -64,4 +64,4 @@ comment:
   layout: header, diff
   require_changes: false
   behavior: default  # update if exists else create new
-  after_n_builds: 22
+  after_n_builds: 24
