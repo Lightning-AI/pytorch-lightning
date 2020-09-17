@@ -105,7 +105,7 @@ Automatic Speech Recognition (ASR)
 Everything needed to train Convolutional ASR models is included with NeMo. 
 NeMo supports multiple Speech Recognition architectures, including Jasper 
 and QuartzNet. These models can be trained from scratch on custom datasets or 
-finetuned using pretrained checkpoints trained on thousands of hours of audio 
+fine-tuned using pre-trained checkpoints trained on thousands of hours of audio 
 that can be restored for immediate use.
 
 Some typical ASR tasks are included with NeMo:
@@ -204,6 +204,12 @@ Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
 
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
+
+To see the available pretrained checkpoints:
+
+.. code-block python
+
+    EncDecCTCModel.list_available_models()
 
 NeMo ASR Model Under the Hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
