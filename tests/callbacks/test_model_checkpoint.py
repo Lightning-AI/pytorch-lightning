@@ -111,7 +111,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     assert 1 == result
 
 
-def test_model_checkpoint__format_checkpoint_name():
+def test_model_checkpoint_format_checkpoint_name(tmpdir):
     # empty filename:
     ckpt_name = ModelCheckpoint._format_checkpoint_name('', 3, {})
     assert ckpt_name == 'epoch=3'
@@ -124,13 +124,11 @@ def test_model_checkpoint__format_checkpoint_name():
     ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch:03d}-{acc}', 3, {'acc': 0.03})
     assert ckpt_name == 'epoch=003-acc=0.03'
     # prefix
+    char_org = ModelCheckpoint.CHECKPOINT_JOIN_CHAR
     ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '@'
     ckpt_name = ModelCheckpoint._format_checkpoint_name('{epoch},{acc:.5f}', 3, {'acc': 0.03}, prefix='test')
     assert ckpt_name == 'test@epoch=3,acc=0.03000'
-    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = '-'
-
-
-def test_model_checkpoint_format_checkpoint_name(tmpdir):
+    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = char_org
     # no filepath set
     ckpt_name = ModelCheckpoint(filepath=None).format_checkpoint_name(3, {})
     assert ckpt_name == 'epoch=3.ckpt'
