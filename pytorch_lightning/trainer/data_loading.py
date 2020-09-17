@@ -155,7 +155,7 @@ class TrainerDataLoadingMixin(ABC):
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
-        kwargs['shuffle'] = train
+        kwargs['shuffle'] = not self.overfit_batches or train
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
