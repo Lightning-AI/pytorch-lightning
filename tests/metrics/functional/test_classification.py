@@ -454,6 +454,7 @@ def test_iou_absent_score(pred, target, ignore_index, absent_score, num_classes,
     )
     assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))
 
+
 # example data taken from
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/metrics/tests/test_ranking.py
 @pytest.mark.parametrize(['pred', 'target', 'ignore_index', 'num_classes', 'reduction', 'expected'], [
@@ -478,6 +479,3 @@ def test_iou_ignore_index(pred, target, ignore_index, num_classes, reduction, ex
         reduction=reduction,
     )
     assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))
-
-
-
