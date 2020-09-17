@@ -35,7 +35,7 @@ Depending on the domain and application, many different AI libraries will have t
 to build the application. Hydra makes it easy to bring all of these libraries together
 so that each can be configured from .yaml or the Hydra CLI.
 
-.. note:: Every NeMo model has an example configuration file and run script that contains all configurations needed for training.
+.. note:: Every NeMo model has an example configuration file and a corresponding script that contains all configurations needed for training.
 
 The end result of using NeMo, Pytorch Lightning, and Hydra is that
 NeMo models all have the same look and feel so that it is easy to do Conversational AI research
@@ -50,13 +50,12 @@ Installing the latest NeMo release is a simple pip install.
 
     pip install nemo_toolkit[all]
 
-To install a specific branch from GitHub:
+To install the main branch from GitHub:
 
 .. code-block:: bash
 
-    python -m pip install git+https://github.com/NVIDIA/NeMo.git@{BRANCH}#egg=nemo_toolkit[all]
+    python -m pip install git+https://github.com/NVIDIA/NeMo.git@main#egg=nemo_toolkit[all]
 
-.. note:: Replace {BRANCH} with the specific branch name from GitHub.
 
 For Docker users, the NeMo container is available on 
 `NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_
@@ -106,8 +105,8 @@ Automatic Speech Recognition (ASR)
 Everything needed to train Convolutional ASR models is included with NeMo. 
 NeMo supports multiple Speech Recognition architectures, including Jasper 
 and QuartzNet. These models can be trained from scratch on custom datasets or 
-pretrained checkpoints trained on thousands of hours of audio that can be restored for
-immediate use.
+finetuned using pretrained checkpoints trained on thousands of hours of audio 
+that can be restored for immediate use.
 
 Some typical ASR tasks are included with NeMo:
 
@@ -166,7 +165,9 @@ Developing ASR Model From Scratch
 
 .. code-block:: python
 
-    @hydra.main(config_name="config")
+    # TODO: add comment explaining hydra_runner
+    # hydra_runner calls hydra.main and is useful for multi-node experiments
+    @hydra_runner(config_path="conf", config_name="config")
     def main(cfg):
         trainer = Trainer(**cfg.trainer)
         asr_model = EncDecCTCModel(cfg.model, trainer)
@@ -200,7 +201,7 @@ Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
 
     quartznet = EncDecCTCModel.from_pretrained('QuartzNet15x5Base-En')
 
-    files = ['path/to/my.wav'] # file should be less than 25 seconds
+    files = ['path/to/my.wav'] # file duration should be less than 25 seconds
 
     for fname, transcription in zip(files, quartznet.transcribe(paths2audio_files=files)):
         print(f"Audio in {fname} was recognized as: {transcription}")
@@ -279,9 +280,10 @@ network architectures for a production-grade application.
 Natural Language Processing (NLP)
 ---------------------------------
 
-Everything needed to train BERT based NLP models is included with NeMo.
+Everything needed to finetune BERT-like language models for NLP tasks is included with NeMo.
 NeMo supports language models from `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
-and model parallel architectures from `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_.
+and `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_. 
+NeMo can also be used for pretraining BERT-based language models from HuggingFace.
 
 With NeMo, any of the HuggingFace encoders or Megatron-LM encoders can easily be used for the NLP tasks 
 that are included with NeMo:
