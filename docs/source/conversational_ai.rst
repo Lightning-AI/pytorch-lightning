@@ -207,7 +207,7 @@ Transcribe audio with QuartzNet model pretrained on ~3300 hours of audio.
 
 To see the available pretrained checkpoints:
 
-.. code-block python
+.. code-block:: python
 
     EncDecCTCModel.list_available_models()
 
