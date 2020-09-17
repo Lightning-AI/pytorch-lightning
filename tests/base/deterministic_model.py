@@ -449,7 +449,6 @@ class DeterministicModel(LightningModule):
     # --------------------------
     def training_step_none_return(self, batch, batch_idx):
         self.training_step_called = True
-        return
 
     # -----------------------------
     # DATA
