@@ -649,6 +649,16 @@ for a full tutorial on generating speech with NeMo, PyTorch Lightning, and Hydra
     text_to_generate = input("Input what you want the model to say: ")
     spec, audio = infer(spec_gen, vocoder, text_to_generate)
 
+To see the available pretrained checkpoints:
+
+.. code-block:: python
+
+    # spec generator
+    GlowTTSModel.list_available_models()
+
+    # vocoder
+    WaveGlowModel.list_available_models()
+
 NeMo TTS Model Under the Hood
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
