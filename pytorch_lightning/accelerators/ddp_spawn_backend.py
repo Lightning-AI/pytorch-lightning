@@ -19,11 +19,6 @@ import torch.multiprocessing as mp
 from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.accelerators.ddp_base_backend import DDPBase
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 
 class DDPSpawnBackend(DDPBase):
 

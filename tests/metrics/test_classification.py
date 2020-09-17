@@ -226,9 +226,9 @@ def test_dice_coefficient(include_background):
     assert isinstance(dice, torch.Tensor)
 
 
-@pytest.mark.parametrize('remove_bg', [True, False])
-def test_iou(remove_bg):
-    iou = IoU(remove_bg=remove_bg)
+@pytest.mark.parametrize('ignore_index', [0, 1, None])
+def test_iou(ignore_index):
+    iou = IoU(ignore_index=ignore_index)
     assert iou.name == 'iou'
 
     score = iou(torch.randint(0, 1, (10, 25, 25)),

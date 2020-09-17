@@ -22,9 +22,7 @@ from typing import Optional
 import numpy as np
 import torch
 
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.distributed import rank_zero_only, find_free_network_port
+from pytorch_lightning.utilities.distributed import find_free_network_port
 from pytorch_lightning.accelerators.ddp_base_backend import DDPBase
 
 try:
@@ -34,11 +32,6 @@ except ImportError:
     HYDRA_AVAILABLE = False
 else:
     HYDRA_AVAILABLE = True
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
 
 
 class DDPBackend(DDPBase):
