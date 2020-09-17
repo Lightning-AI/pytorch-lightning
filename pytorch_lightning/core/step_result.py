@@ -344,7 +344,7 @@ class Result(Dict):
                 # also update the result
                 if meta and not is_reserved:
                     meta[name]['value'] = padded
-        
+
         # collate tensors that are not in meta (e.g. user assigned attributes)
         for name, value in result.items():
             if name not in meta:
