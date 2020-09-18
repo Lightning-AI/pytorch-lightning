@@ -134,9 +134,9 @@ When using optimization schemes such as LBFGS, the `second_order_closure` needs 
 
 .. testcode::
 
-    def second_order_closure(pl_module, split_batch, batch_idx, opt_idx, optimizer, ...):
+    def second_order_closure(pl_module, split_batch, batch_idx, opt_idx, optimizer, hidden):
         # Model training step on a given batch
-        result = pl_module.training_step(split_batch, batch_idx, opt_idx, ...)
+        result = pl_module.training_step(split_batch, batch_idx, opt_idx, hidden)
 
         # Model backward pass
         pl_module.backward(result, optimizer, opt_idx)
