@@ -171,10 +171,7 @@ def test_early_stopping_functionality(tmpdir):
 
 
 def test_early_stopping_functionality_arbitrary_key(tmpdir):
-    """
-    Tests whether early stopping works with a
-    custom key and dictionary results on val step.
-    """
+    """Tests whether early stopping works with a custom key and dictionary results on val step."""
 
     class CurrentModel(EvalModelTemplate):
         def validation_epoch_end(self, outputs):
