@@ -123,8 +123,8 @@ class ModelCheckpoint(Callback):
         self._fs = get_filesystem(filepath if filepath is not None else "")
         if save_top_k > 0 and filepath is not None and self._fs.isdir(filepath) and len(self._fs.ls(filepath)) > 0:
             rank_zero_warn(
-                f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0. "
-                "All files in this directory will be deleted when a checkpoint is saved!"
+                f"Checkpoint directory {filepath} exists and is not empty with save_top_k != 0."
+                " All files in this directory will be deleted when a checkpoint is saved!"
             )
         self._rank = 0
 
