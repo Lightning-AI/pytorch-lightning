@@ -122,7 +122,7 @@ class Result(Dict):
             value = torch.tensor(value, device=self.device)
 
         # no metrics should be logged with graphs
-        if not enable_graph:
+        if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
         # sync across ddp
