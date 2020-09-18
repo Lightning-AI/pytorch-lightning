@@ -9,6 +9,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import numpy as np
 
+from tests.base import EvalModelTemplate
+from pytorch_lightning import Trainer
 import tests.base.develop_utils as tutils
 from pytorch_lightning.metrics import (
     Accuracy,
@@ -176,6 +178,7 @@ def _test_ddp_multi_batch(rank, worldsize, lightning_metric, comparing_metric, t
         assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
 @pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
 def test_ddp_multi_batch(example):
     """ test that aggregation works fine with in DDP mode and multiple batches """
@@ -189,3 +192,41 @@ def test_ddp_multi_batch(example):
                    example.comparing_metric,
                    example.test_input),
              nprocs=worldsize)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+@pytest.mark.parametrize("distributed_backend", ["dp", "ddp_spawn", "ddp"])
+@pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
+def test_model_integration(tmpdir, distributed_backend, example):
+    """ test model that metrics work with lightning module and trainer """
+
+    if 'confusion matrix' in example.name:
+        pytest.skip()  # confusion matrix does not return scalar output, so we skip these
+
+    # setup ports for ddp
+    tutils.set_random_master_port()
+
+    # setup model with metric
+    model = EvalModelTemplate()
+    model.metric = example.lightning_metric()
+    model.test_step = model.test_step__metrics
+    model.test_epoch_end = model.test_epoch_end__metrics
+
+    # here we only run with the first test_data
+    test_input = example.test_input[0]
+    dataset = torch.utils.data.TensorDataset(*test_input)
+    # divide data into 2 batches
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=int(len(test_input[0]) / 2))
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        logger=False,
+        gpus=[0],
+        distributed_backend=distributed_backend,
+    )
+    trainer = Trainer(**trainer_options)
+
+    lightning_val = trainer.test(model, test_dataloaders=dataloader)[0]['metric_val']
+    comparing_val = example.comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
+
+    assert np.allclose(lightning_val, comparing_val, rtol=1e-3)

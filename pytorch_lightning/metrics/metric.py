@@ -201,7 +201,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     @property
     def aggregated(self) -> torch.Tensor:
-        aggr = self.aggregate(*self._step_vals)
+        aggr = self.aggregate(*self._step_vals if len(self._step_vals) > 1 else self._step_vals)
         self.reset()
         return self.compute(self, None, aggr)
 

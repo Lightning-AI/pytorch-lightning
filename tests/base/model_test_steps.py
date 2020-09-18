@@ -184,3 +184,10 @@ class TestStepVariations(ABC):
             result.write('vals', lst_of_dict, prediction_file)
 
         return result
+
+    def test_step__metrics(self, batch, batch_idx, **kwargs):
+        pred, target = batch
+        metric_val = self.metric(pred, target)
+        result = EvalResult()
+        result.log('metric_val', metric_val)
+        return result
