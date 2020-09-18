@@ -195,7 +195,7 @@ def test_ddp_multi_batch(example):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize("distributed_backend", ["dp", "ddp_spawn", "ddp"])
+@pytest.mark.parametrize("distributed_backend", ["dp", "ddp"])
 @pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
 def test_model_integration(tmpdir, distributed_backend, example):
     """ test model that metrics work with lightning module and trainer """
@@ -221,7 +221,7 @@ def test_model_integration(tmpdir, distributed_backend, example):
     trainer_options = dict(
         default_root_dir=tmpdir,
         logger=False,
-        gpus=[0],
+        gpus=2,
         distributed_backend=distributed_backend,
     )
     trainer = Trainer(**trainer_options)
