@@ -191,4 +191,4 @@ def test_early_stopping_functionality_arbitrary_key(tmpdir):
         max_epochs=20,
     )
     trainer.fit(model)
-    assert trainer.current_epoch == 5, 'early_stopping failed'
+    assert trainer.current_epoch >= 5, 'early_stopping failed'
