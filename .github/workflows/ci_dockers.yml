@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7]
+        python_version: [3.7, 3.8]
         pytorch_version: [1.6]
     steps:
       - name: Checkout
@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: [3.7]
-        xla_version: ["nightly"]
+        xla_version: [1.6, "nightly"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -54,15 +54,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [3.7, 3.8]
-        pytorch_version: [1.6, 1.7]
-        pytorch_channel: [ "pytorch", "pytorch-nightly" ]
-        # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-including-new-combinations
-        exclude:
-          - pytorch_version: 1.7
-            pytorch_channel: pytorch
-          - pytorch_version: 1.6
+        include:
+          - python_version: 3.7
+            pytorch_version: 1.7
             pytorch_channel: pytorch-nightly
+          - python_version: 3.8
+            pytorch_version: 1.6
+            pytorch_channel: pytorch
     steps:
       - name: Checkout
         uses: actions/checkout@v2
