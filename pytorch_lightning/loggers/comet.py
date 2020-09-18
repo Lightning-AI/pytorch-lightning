@@ -17,6 +17,8 @@ Comet
 -----
 """
 
+import os
+
 from argparse import Namespace
 from typing import Optional, Dict, Union, Any
 
@@ -25,6 +27,8 @@ try:
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml import BaseExperiment as CometBaseExperiment
+    from comet_ml import generate_guid
+
     try:
         from comet_ml.api import API
     except ImportError:  # pragma: no-cover
@@ -37,10 +41,10 @@ except ImportError:  # pragma: no-cover
     CometOfflineExperiment = None
     CometBaseExperiment = None
     API = None
+    generate_guid = None
     _COMET_AVAILABLE = False
 else:
     _COMET_AVAILABLE = True
-
 
 import torch
 from torch import is_tensor
@@ -112,20 +116,24 @@ class CometLogger(LightningLoggerBase):
             file but still want to run offline experiments.
     """
 
-    def __init__(self,
-                 api_key: Optional[str] = None,
-                 save_dir: Optional[str] = None,
-                 workspace: Optional[str] = None,
-                 project_name: Optional[str] = None,
-                 rest_api_key: Optional[str] = None,
-                 experiment_name: Optional[str] = None,
-                 experiment_key: Optional[str] = None,
-                 offline: bool = False,
-                 **kwargs):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        workspace: Optional[str] = None,
+        project_name: Optional[str] = None,
+        rest_api_key: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        offline: bool = False,
+        **kwargs,
+    ):
 
         if not _COMET_AVAILABLE:
-            raise ImportError('You want to use `comet_ml` logger which is not installed yet,'
-                              ' install it with `pip install comet-ml`.')
+            raise ImportError(
+                "You want to use `comet_ml` logger which is not installed yet,"
+                " install it with `pip install comet-ml`."
+            )
         super().__init__()
         self._experiment = None
 
@@ -145,16 +153,16 @@ class CometLogger(LightningLoggerBase):
             self._save_dir = save_dir
         else:
             # If neither api_key nor save_dir are passed as arguments, raise an exception
-            raise MisconfigurationException(
-                "CometLogger requires either api_key or save_dir during initialization."
-            )
+            raise MisconfigurationException("CometLogger requires either api_key or save_dir during initialization.")
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
         self.workspace = workspace
-        self.project_name = project_name
-        self.experiment_key = experiment_key
+        self._project_name = project_name
+        self._experiment_key = experiment_key
+        self._experiment_name = experiment_name
         self._kwargs = kwargs
+        self._future_experiment_key = None
 
         if rest_api_key is not None:
             # Comet.ml rest API, used to determine version number
@@ -164,8 +172,6 @@ class CometLogger(LightningLoggerBase):
             self.rest_api_key = None
             self.comet_api = None
 
-        if experiment_name:
-            self.experiment.set_name(experiment_name)
         self._kwargs = kwargs
 
     @property
@@ -183,30 +189,37 @@ class CometLogger(LightningLoggerBase):
         if self._experiment is not None:
             return self._experiment
 
-        if self.mode == "online":
-            if self.experiment_key is None:
-                self._experiment = CometExperiment(
-                    api_key=self.api_key,
-                    workspace=self.workspace,
-                    project_name=self.project_name,
-                    **self._kwargs
-                )
-                self.experiment_key = self._experiment.get_key()
+        if self._future_experiment_key is not None:
+            os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
+            self._future_experiment_key = None
+
+        try:
+            if self.mode == "online":
+                if self._experiment_key is None:
+                    self._experiment = CometExperiment(
+                        api_key=self.api_key, workspace=self.workspace, project_name=self._project_name, **self._kwargs
+                    )
+                    self._experiment_key = self._experiment.get_key()
+                else:
+                    self._experiment = CometExistingExperiment(
+                        api_key=self.api_key,
+                        workspace=self.workspace,
+                        project_name=self._project_name,
+                        previous_experiment=self._experiment_key,
+                        **self._kwargs,
+                    )
             else:
-                self._experiment = CometExistingExperiment(
-                    api_key=self.api_key,
+                self._experiment = CometOfflineExperiment(
+                    offline_directory=self.save_dir,
                     workspace=self.workspace,
-                    project_name=self.project_name,
-                    previous_experiment=self.experiment_key,
-                    **self._kwargs
+                    project_name=self._project_name,
+                    **self._kwargs,
                 )
-        else:
-            self._experiment = CometOfflineExperiment(
-                offline_directory=self.save_dir,
-                workspace=self.workspace,
-                project_name=self.project_name,
-                **self._kwargs
-            )
+        finally:
+            os.environ.pop("COMET_EXPERIMENT_KEY", None)
+
+        if self._experiment_name:
+            self._experiment.set_name(self._experiment_name)
 
         return self._experiment
 
@@ -217,13 +230,8 @@ class CometLogger(LightningLoggerBase):
         self.experiment.log_parameters(params)
 
     @rank_zero_only
-    def log_metrics(
-            self,
-            metrics: Dict[str, Union[torch.Tensor, float]],
-            step: Optional[int] = None
-    ) -> None:
-        assert rank_zero_only.rank == 0, 'experiment tried to log from global_rank != 0'
-
+    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
+        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         for key, val in metrics.items():
             if is_tensor(val):
@@ -257,13 +265,42 @@ class CometLogger(LightningLoggerBase):
 
     @property
     def name(self) -> str:
-        return str(self.experiment.project_name)
+        # Don't create an experiment if we don't have one
+        if self._experiment is not None and self._experiment.project_name is not None:
+            return self._experiment.project_name
+
+        if self._project_name is not None:
+            return self._project_name
+
+        return "comet-default"
 
     @property
     def version(self) -> str:
-        return self.experiment.id
+        # Don't create an experiment if we don't have one
+        if self._experiment is not None:
+            return self._experiment.id
+
+        if self._experiment_key is not None:
+            return self._experiment_key
+
+        if self._future_experiment_key is not None:
+            return self._future_experiment_key
+
+        # Pre-generate an experiment key
+        self._future_experiment_key = generate_guid()
+
+        return self._future_experiment_key
 
     def __getstate__(self):
         state = self.__dict__.copy()
+
+        # Save the experiment id in case an experiment object already exists,
+        # this way we could create an ExistingExperiment pointing to the same
+        # experiment
+        state["_experiment_key"] = self._experiment.id if self._experiment is not None else None
+
+        # Remove the experiment object as it contains hard to pickle objects
+        # (like network connections), the experiment object will be recreated if
+        # needed later
         state["_experiment"] = None
         return state
