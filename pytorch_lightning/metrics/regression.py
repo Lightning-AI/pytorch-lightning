@@ -182,7 +182,7 @@ class RMSLE(Metric):
         >>> target = torch.tensor([0., 1, 2, 2])
         >>> metric = RMSLE()
         >>> metric(pred, target)
-        tensor([0.1438])
+        tensor(0.1438)
 
     """
 
@@ -225,7 +225,7 @@ class PSNR(Metric):
         >>> target = torch.tensor([[3.0, 2.0], [1.0, 0.0]])
         >>> metric = PSNR()
         >>> metric(pred, target)
-        tensor([2.5527])
+        tensor(2.5527)
 
     """
 
@@ -274,7 +274,7 @@ class SSIM(Metric):
         >>> target = pred * 0.75
         >>> metric = SSIM()
         >>> metric(pred, target)
-        tensor([0.9219])
+        tensor(0.9219)
 
     """
 

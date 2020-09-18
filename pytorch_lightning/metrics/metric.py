@@ -171,6 +171,8 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             if isinstance(tensors, tuple):
                 return tensors
             if isinstance(tensors, torch.Tensor):
+                if tensors.numel() == 1:
+                    tensors = tensors.squeeze()
                 return tensors
             raise TypeError("unknown metric value format to aggregate")
         else:

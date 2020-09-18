@@ -45,8 +45,8 @@ class Accuracy(TensorMetric):
         >>> pred = torch.tensor([0, 1, 2, 3])
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = Accuracy()
-        >>> metric(pred, target).item()
-        0.75
+        >>> metric(pred, target)
+        tensor(0.7500)
 
     """
 
@@ -349,7 +349,7 @@ class AveragePrecision(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = AveragePrecision()
         >>> metric(pred, target)
-        tensor([0.3333])
+        tensor(0.3333)
 
     """
 
@@ -397,7 +397,7 @@ class AUROC(TensorMetric):
         >>> target = torch.tensor([0, 1, 1, 0])
         >>> metric = AUROC()
         >>> metric(pred, target)
-        tensor([0.3333])
+        tensor(0.3333)
 
     """
 
@@ -446,7 +446,7 @@ class FBeta(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = FBeta(0.25, class_reduction='macro')
         >>> metric(pred, target)
-        tensor([0.7361])
+        tensor(0.7361)
     """
 
     def __init__(
@@ -506,7 +506,7 @@ class F1(TensorMetric):
         >>> target = torch.tensor([0, 1, 2, 2])
         >>> metric = F1(class_reduction='macro')
         >>> metric(pred, target)
-        tensor([0.6667])
+        tensor(0.6667)
     """
 
     def __init__(
@@ -752,7 +752,7 @@ class DiceCoefficient(TensorMetric):
         >>> target = torch.tensor([0, 1, 3, 2])
         >>> metric = DiceCoefficient()
         >>> metric(pred, target)
-        tensor([0.3333])
+        tensor(0.3333)
     """
 
     def __init__(
@@ -820,7 +820,7 @@ class IoU(TensorMetric):
         ...                        [0, 0, 0, 0, 0, 0, 0, 0]])
         >>> metric = IoU()
         >>> metric(pred, target)
-        tensor([0.7045])
+        tensor(0.7045)
 
     """
 
