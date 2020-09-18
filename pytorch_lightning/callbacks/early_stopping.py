@@ -85,6 +85,9 @@ class EarlyStopping(Callback):
         self.stopped_epoch = 0
         self.mode = mode
         self.warned_result_obj = False
+        # Indicates, if eval results are used as basis for early stopping
+        # It is set to False initially and overwritten, if eval results have been validated
+        self.based_on_eval_results = False
 
         if mode not in self.mode_dict:
             if self.verbose > 0:
@@ -157,18 +160,24 @@ class EarlyStopping(Callback):
         if val_es_key in trainer.logger_connector.callback_metrics:
             self.strict = False
 
-        self._validate_condition_metric(trainer.logger_connector.callback_metrics)
+        if self._validate_condition_metric(trainer.logger_connector.callback_metrics):
+            # turn off early stopping in on_train_epoch_end
+            self.based_on_eval_results = True
 
     def on_train_epoch_end(self, trainer, pl_module):
         # disable early stopping in train loop when there's a val loop
-        if self.monitor == 'val_early_stop_on':
+        if self.based_on_eval_results:
             return
 
-        # early stopping can also work in the train loop when there is no val loop and when using structured results
+        # early stopping can also work in the train loop when there is no val loop
         should_check_early_stop = False
+        # early_stop_on takes precedence over monitor key
         train_es_key = 'early_stop_on'
         if trainer.logger_connector.callback_metrics.get(train_es_key, None) is not None:
             self.monitor = train_es_key
+            should_check_early_stop = True
+        # fallback to monitor key in result dict
+        if trainer.logger_connector.callback_metrics.get(self.monitor, None) is not None:
             should_check_early_stop = True
 
         if should_check_early_stop:
@@ -187,6 +196,10 @@ class EarlyStopping(Callback):
             rank_zero_warn(m)
 
     def _run_early_stopping_check(self, trainer, pl_module):
+        """
+        Checks whether the early stopping condition is met
+        and if so tells the trainer to stop the training.
+        """
         logs = trainer.logger_connector.callback_metrics
 
         if not self._validate_condition_metric(logs):
