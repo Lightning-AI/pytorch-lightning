@@ -203,6 +203,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 - count number of classes
 - build vocabulary
 - perform train/val/test splits
+- define default transforms
 - etc...
 
 .. code-block:: python
@@ -214,9 +215,14 @@ There are also data operations you might want to perform on every GPU. Use setup
 
         def setup(self, stage: Optional[str] = None):
 
+            transforms = transform_lib.Compose([
+                transform_lib.ToTensor(),
+                transform_lib.Normalize(mean=(0.5,), std=(0.5,)),
+            ])
+
             # Assign Train/val split(s) for use in Dataloaders
             if stage == 'fit' or stage is None:
-                mnist_full = MNIST(self.data_dir, train=True, download=True)
+                mnist_full = MNIST(self.data_dir, train=True, download=True, transform=transforms)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
                 self.dims = self.mnist_train[0][0].shape
 
@@ -231,7 +237,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 
 train_dataloader
 ^^^^^^^^^^^^^^^^
-Use this method to generate the train dataloader. This is also a good place to place default transformations.
+Use this method to generate the train dataloader.
 
 .. code-block:: python
 
@@ -240,11 +246,7 @@ Use this method to generate the train dataloader. This is also a good place to p
 
     class MNISTDataModule(pl.LightningDataModule):
         def train_dataloader(self):
-            transforms = transform_lib.Compose([
-                transform_lib.ToTensor(),
-                transform_lib.Normalize(mean=(0.5,), std=(0.5,)),
-            ])
-            return DataLoader(self.train_dataset, transform=transforms, batch_size=64)
+            return DataLoader(self.mnist_train, batch_size=64)
 
 However, to decouple your data from transforms you can parametrize them via `__init__`.
 
