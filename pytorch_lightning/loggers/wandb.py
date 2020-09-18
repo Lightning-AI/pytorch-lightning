@@ -69,17 +69,19 @@ class WandbLogger(LightningLoggerBase):
 
     """
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 save_dir: Optional[str] = None,
-                 offline: bool = False,
-                 id: Optional[str] = None,
-                 anonymous: bool = False,
-                 version: Optional[str] = None,
-                 project: Optional[str] = None,
-                 log_model: bool = False,
-                 experiment=None,
-                 **kwargs):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        save_dir: Optional[str] = None,
+        offline: bool = False,
+        id: Optional[str] = None,
+        anonymous: bool = False,
+        version: Optional[str] = None,
+        project: Optional[str] = None,
+        log_model: bool = False,
+        experiment=None,
+        **kwargs
+    ):
         if not _WANDB_AVAILABLE:
             raise ImportError('You want to use `wandb` logger which is not installed yet,'  # pragma: no-cover
                               ' install it with `pip install wandb`.')

@@ -18,15 +18,14 @@ Comet
 """
 
 import os
-
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 try:
+    from comet_ml import BaseExperiment as CometBaseExperiment
     from comet_ml import ExistingExperiment as CometExistingExperiment
     from comet_ml import Experiment as CometExperiment
     from comet_ml import OfflineExperiment as CometOfflineExperiment
-    from comet_ml import BaseExperiment as CometBaseExperiment
     from comet_ml import generate_guid
 
     try:
@@ -128,7 +127,6 @@ class CometLogger(LightningLoggerBase):
         offline: bool = False,
         **kwargs
     ):
-
         if not _COMET_AVAILABLE:
             raise ImportError(
                 "You want to use `comet_ml` logger which is not installed yet,"

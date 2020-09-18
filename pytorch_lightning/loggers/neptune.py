@@ -162,13 +162,15 @@ class NeptuneLogger(LightningLoggerBase):
             :func:`neptune.Session.create_experiment` can be passed as keyword arguments in this logger.
     """
 
-    def __init__(self,
-                 api_key: Optional[str] = None,
-                 project_name: Optional[str] = None,
-                 close_after_fit: Optional[bool] = True,
-                 offline_mode: bool = False,
-                 experiment_name: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        project_name: Optional[str] = None,
+        close_after_fit: Optional[bool] = True,
+        offline_mode: bool = False,
+        experiment_name: Optional[str] = None,
+        **kwargs
+    ):
         if not _NEPTUNE_AVAILABLE:
             raise ImportError('You want to use `neptune` logger which is not installed yet,'
                               ' install it with `pip install neptune-client`.')

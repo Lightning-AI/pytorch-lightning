@@ -116,11 +116,12 @@ class CSVLogger(LightningLoggerBase):
             directory for existing versions, then automatically assigns the next available version.
     """
 
-    def __init__(self,
-                 save_dir: str,
-                 name: Optional[str] = "default",
-                 version: Optional[Union[int, str]] = None):
-
+    def __init__(
+        self,
+        save_dir: str,
+        name: Optional[str] = "default",
+        version: Optional[Union[int, str]] = None
+    ):
         super().__init__()
         self._save_dir = save_dir
         self._name = name or ''
