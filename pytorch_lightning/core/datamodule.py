@@ -137,7 +137,7 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
         self._train_transforms = train_transforms
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms
-        self.dims = ()
+        self._dims = ()
 
         # Private attrs to keep track of whether or not data hooks have been called yet
         self._has_prepared_data = False
@@ -177,9 +177,21 @@ class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
     def test_transforms(self, t):
         self._test_transforms = t
 
+    @property
+    def dims(self):
+        """
+        A tuple describing the shape of your data. Extra functionality exposed in ``size``.
+        """
+        return self._train_transforms
+
+    @dims.setter
+    def dims(self, d):
+        self._dims = d
+
     def size(self, dim=None) -> Union[Tuple, int]:
         """
-        Return the dimension of each input either as a tuple or list of tuples.
+        Return the dimension of each input either as a tuple or list of tuples. You can index this
+        just as you would with a torch tensor.
         """
 
         if dim is not None:
