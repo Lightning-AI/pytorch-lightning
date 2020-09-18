@@ -305,6 +305,7 @@ Override to define how you want to move an arbitrary batch to a device
 
     class MNISTDataModule(pl.LightningDataModule):
         def __init__(self, train_transforms, val_transforms, test_transforms):
+            super().__init__()
             self.train_transforms = train_transforms
             self.val_transforms = val_transforms
             self.test_transforms = test_transforms
