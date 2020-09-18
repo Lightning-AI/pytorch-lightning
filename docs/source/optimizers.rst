@@ -146,7 +146,7 @@ When using optimization schemes such as LBFGS, the `second_order_closure` needs 
 
         return result
 
-This default `second_order_closure` function can be enabled by pass it directly into the `optimizer.step`
+This default `second_order_closure` function can be enabled by passing it directly into the `optimizer.step`
 
 .. testcode::
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
