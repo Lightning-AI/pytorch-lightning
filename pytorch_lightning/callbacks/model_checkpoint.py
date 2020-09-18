@@ -176,7 +176,7 @@ class ModelCheckpoint(Callback):
         if monitor_val is None and self.verbose > 0:
             error_msg = (f'Checkpointing conditioned on metric `{self.monitor}` which is'
                          f' not available. Either add `{self.monitor}` to the return of'
-                         f' validation_epoch end or modify your ModelCheckpoint callback to'
+                         f' `validation_epoch_end` or modify your `ModelCheckpoint` callback to'
                          f' use any of the following: `{"`, `".join(list(logs.keys()))}`')
             rank_zero_warn(error_msg, RuntimeWarning)
 
