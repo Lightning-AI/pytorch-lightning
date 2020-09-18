@@ -929,21 +929,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 
     trainer = Trainer(sync_batchnorm=True)
 
-val_percent_check
-^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 0.10.0
-
-test_percent_check
-^^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 0.10.0
-
-train_percent_check
-^^^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_train_batches`. Will remove in 0.10.0
-
 track_grad_norm
 ^^^^^^^^^^^^^^^
 
