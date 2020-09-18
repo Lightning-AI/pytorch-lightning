@@ -173,17 +173,12 @@ class ModelCheckpoint(Callback):
     def _validate_condition_metric(self, logs):
         monitor_val = logs.get(self.monitor)
 
-        if monitor_val is None:  # self.monitor wasn't found in the metrics dict
-            if self.verbose > 0:
-                error_msg = (f'Checkpointing conditioned on metric `{self.monitor}`'
-                             f' which is not available. Either add `{self.monitor}` to the return of'
-                             f' validation_epoch end or modify your CheckPoint callback to use any of the'
-                             f' following: `{"`, `".join(list(logs.keys()))}`')
-                rank_zero_warn(error_msg, RuntimeWarning)
-
-            return False
-
-        return True
+        if monitor_val is None and self.verbose > 0:
+            error_msg = (f'Checkpointing conditioned on metric `{self.monitor}` which is'
+                         f' not available. Either add `{self.monitor}` to the return of'
+                         f' validation_epoch end or modify your ModelCheckpoint callback to'
+                         f' use any of the following: `{"`, `".join(list(logs.keys()))}`')
+            rank_zero_warn(error_msg, RuntimeWarning)
 
     def _del_model(self, filepath):
         if self._fs.exists(filepath):

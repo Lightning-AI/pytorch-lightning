@@ -110,18 +110,14 @@ class EarlyStopping(Callback):
         monitor_val = logs.get(self.monitor)
 
         if monitor_val is None:
-            error_msg = (f'Early stopping conditioned on metric `{self.monitor}`'
-                         f' which is not available. Either add `{self.monitor}` to the return of'
-                         f' validation_epoch end or modify your EarlyStopping callback to use any of the'
-                         f' following: `{"`, `".join(list(logs.keys()))}`')
+            error_msg = (f'Early stopping conditioned on metric `{self.monitor}` which is'
+                         f' not available. Either add `{self.monitor}` to the return of'
+                         f' validation_epoch end or modify your EarlyStopping callback to'
+                         f' use any of the following: `{"`, `".join(list(logs.keys()))}`')
             if self.strict:
                 raise RuntimeError(error_msg)
             if self.verbose > 0:
                 rank_zero_warn(error_msg, RuntimeWarning)
-
-            return False
-
-        return True
 
     @property
     def monitor_op(self):
