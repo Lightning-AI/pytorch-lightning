@@ -165,6 +165,17 @@ Here's a more realistic, complex DataModule that shows how much more reusable th
 
 .. note:: ``setup`` expects a string arg ``stage``. It is used to separate setup logic for ``trainer.fit`` and ``trainer.test``.
 
+To decouple your data from transforms you can parametrize them via `__init__`.
+
+.. code-block:: python
+
+    class MNISTDataModule(pl.LightningDataModule):
+        def __init__(self, train_transforms, val_transforms, test_transforms):
+            self.train_transforms = train_transforms
+            self.val_transforms = val_transforms
+            self.test_transforms = test_transforms
+
+
 ---------------
 
 LightningDataModule API
@@ -203,6 +214,7 @@ There are also data operations you might want to perform on every GPU. Use setup
 - count number of classes
 - build vocabulary
 - perform train/val/test splits
+- apply transforms (defined explicitly in your datamodule or assigned in init)
 - etc...
 
 .. code-block:: python
@@ -216,13 +228,13 @@ There are also data operations you might want to perform on every GPU. Use setup
 
             # Assign Train/val split(s) for use in Dataloaders
             if stage == 'fit' or stage is None:
-                mnist_full = MNIST(self.data_dir, train=True, download=True, transform=transforms)
+                mnist_full = MNIST(self.data_dir, train=True, download=True, transform=self.transform)
                 self.mnist_train, self.mnist_val = random_split(mnist_full, [55000, 5000])
                 self.dims = self.mnist_train[0][0].shape
 
             # Assign Test split(s) for use in Dataloaders
             if stage == 'test' or stage is None:
-                self.mnist_test = MNIST(self.data_dir, train=False, download=True)
+                self.mnist_test = MNIST(self.data_dir, train=False, download=True, transform=self.transform)
                 self.dims = getattr(self, 'dims', self.mnist_test[0][0].shape)
 
 
@@ -242,15 +254,6 @@ Use this method to generate the train dataloader.
         def train_dataloader(self):
             return DataLoader(self.mnist_train, batch_size=64)
 
-However, to decouple your data from transforms you can parametrize them via `__init__`.
-
-.. code-block:: python
-
-    class MNISTDataModule(pl.LightningDataModule):
-        def __init__(self, train_transforms, val_transforms, test_transforms):
-            self.train_transforms = train_transforms
-            self.val_transforms = val_transforms
-            self.test_transforms = test_transforms
 
 val_dataloader
 ^^^^^^^^^^^^^^
