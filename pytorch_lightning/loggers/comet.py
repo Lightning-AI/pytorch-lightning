@@ -194,13 +194,14 @@ class CometLogger(LightningLoggerBase):
             if self.mode == "online":
                 if self._experiment_key is None:
                     self._experiment = CometExperiment(
-                        api_key=self.api_key, workspace=self.workspace, project_name=self._project_name, **self._kwargs
+                        api_key=self.api_key,
+                        project_name=self._project_name,
+                        **self._kwargs,
                     )
                     self._experiment_key = self._experiment.get_key()
                 else:
                     self._experiment = CometExistingExperiment(
                         api_key=self.api_key,
-                        workspace=self.workspace,
                         project_name=self._project_name,
                         previous_experiment=self._experiment_key,
                         **self._kwargs,
@@ -208,7 +209,6 @@ class CometLogger(LightningLoggerBase):
             else:
                 self._experiment = CometOfflineExperiment(
                     offline_directory=self.save_dir,
-                    workspace=self.workspace,
                     project_name=self._project_name,
                     **self._kwargs,
                 )
