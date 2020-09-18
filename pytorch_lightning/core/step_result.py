@@ -126,6 +126,9 @@ class Result(Dict):
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)
 
+        if not isinstance(value, torch.Tensor):
+            value = torch.tensor(value, device=self.device)
+
         if 'meta' not in self:
             self.__setitem__('meta', {})
 
