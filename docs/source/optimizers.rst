@@ -130,7 +130,7 @@ Here we add a learning-rate warm up
 Using the closure functions for optimization
 --------------------------------------------
 
-When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled.  By default, this function is defined by wrapping the training_step and the backward steps as follows
+When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled.  By default, this function is defined by wrapping the `training_step` and the backward steps as follows
 
 .. testcode::
 
@@ -146,10 +146,7 @@ When using optimization schemes such as LBFGS, the `second_order_closure` needs 
 
         return result
 
-This default `second_order_closure` function can be enabled by passing it directly into the `optimizer.step`
-
-.. testcode::
-
+    # This default `second_order_closure` function can be enabled by passing it directly into the `optimizer.step`
     def optimizer_step(self, current_epoch, batch_nb, optimizer, optimizer_idx, second_order_closure, on_tpu=False, using_native_amp=False, using_lbfgs=False):
         # update params
         optimizer.step(second_order_closure)
