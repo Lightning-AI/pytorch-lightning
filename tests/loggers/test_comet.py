@@ -65,7 +65,6 @@ def test_comet_logger_experiment_name():
     with patch('pytorch_lightning.loggers.comet.CometExperiment') as comet:
         logger = CometLogger(api_key=api_key, experiment_name=experiment_name,)
 
-        # The experiment object should not exists
         assert logger._experiment is None
 
         _ = logger.experiment
@@ -116,7 +115,7 @@ def test_comet_name_default():
 
 
 def test_comet_name_project_name():
-    """ Test that CometLogger.name don't create an Experiment and returns project name if passed. """
+    """ Test that CometLogger.name does not create an Experiment and returns project name if passed. """
 
     api_key = "key"
     project_name = "My Project Name"
@@ -132,7 +131,7 @@ def test_comet_name_project_name():
 
 
 def test_comet_version_without_experiment():
-    """ Test that CometLogger.version don't create an Experiment. """
+    """ Test that CometLogger.version does not create an Experiment. """
 
     api_key = "key"
     experiment_name = "My Name"
