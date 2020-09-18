@@ -203,7 +203,6 @@ There are also data operations you might want to perform on every GPU. Use setup
 - count number of classes
 - build vocabulary
 - perform train/val/test splits
-- define default transforms
 - etc...
 
 .. code-block:: python
@@ -214,11 +213,6 @@ There are also data operations you might want to perform on every GPU. Use setup
     class MNISTDataModule(pl.LightningDataModule):
 
         def setup(self, stage: Optional[str] = None):
-
-            transforms = transform_lib.Compose([
-                transform_lib.ToTensor(),
-                transform_lib.Normalize(mean=(0.5,), std=(0.5,)),
-            ])
 
             # Assign Train/val split(s) for use in Dataloaders
             if stage == 'fit' or stage is None:
