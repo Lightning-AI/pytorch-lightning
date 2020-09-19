@@ -124,13 +124,12 @@ Here we add a learning-rate warm up
         optimizer.step()
         optimizer.zero_grad()
 
-
 ----------
 
 Using the closure functions for optimization
 --------------------------------------------
 
-When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled.  By default, this function is defined by wrapping the `training_step` and the backward steps as follows
+When using optimization schemes such as LBFGS, the `second_order_closure` needs to be enabled. By default, this function is defined by wrapping the `training_step` and the backward steps as follows
 
 .. testcode::
 
