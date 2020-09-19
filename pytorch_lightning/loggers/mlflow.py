@@ -18,7 +18,7 @@ MLflow
 """
 from argparse import Namespace
 from time import time
-from typing import Optional, Dict, Any, Union
+from typing import Any, Dict, Optional, Union
 
 try:
     import mlflow
@@ -33,7 +33,6 @@ except ModuleNotFoundError:  # pragma: no-cover
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities import rank_zero_only
-
 
 LOCAL_FILE_URI_PREFIX = "file:"
 
@@ -77,12 +76,13 @@ class MLFlowLogger(LightningLoggerBase):
 
     """
 
-    def __init__(self,
-                 experiment_name: str = 'default',
-                 tracking_uri: Optional[str] = None,
-                 tags: Optional[Dict[str, Any]] = None,
-                 save_dir: Optional[str] = './mlruns'):
-
+    def __init__(
+        self,
+        experiment_name: str = 'default',
+        tracking_uri: Optional[str] = None,
+        tags: Optional[Dict[str, Any]] = None,
+        save_dir: Optional[str] = './mlruns'
+    ):
         if not _MLFLOW_AVAILABLE:
             raise ImportError('You want to use `mlflow` logger which is not installed yet,'
                               ' install it with `pip install mlflow`.')
