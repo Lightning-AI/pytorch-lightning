@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 
 import pytest
 import torch
@@ -79,7 +78,7 @@ def test_result_obj_predictions(tmpdir, test_option, do_train, gpus):
     tutils.reset_seed()
 
     dm = TrialMNISTDataModule(tmpdir)
-    prediction_file = Path('predictions.pt')
+    prediction_file = tmpdir / 'predictions.pt'
 
     model = EvalModelTemplate()
     model.test_option = test_option
@@ -131,7 +130,7 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
 
     dm = TrialMNISTDataModule(tmpdir)
 
-    prediction_file = Path('predictions.pt')
+    prediction_file = tmpdir / 'predictions.pt'
 
     model = EvalModelTemplate(learning_rate=0.005)
     model.test_option = option
@@ -141,7 +140,7 @@ def test_result_obj_predictions_ddp_spawn(tmpdir):
     model.test_epoch_end = None
     model.test_end = None
 
-    prediction_files = [Path('predictions_rank_0.pt'), Path('predictions_rank_1.pt')]
+    prediction_files = [tmpdir / 'predictions_rank_0.pt', tmpdir / 'predictions_rank_1.pt']
     for prediction_file in prediction_files:
         if prediction_file.exists():
             prediction_file.unlink()
