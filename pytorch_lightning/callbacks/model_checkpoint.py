@@ -26,7 +26,7 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
-from pytorch_lightning import LightningModule, Trainer, _logger as log
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -189,7 +189,7 @@ class ModelCheckpoint(Callback):
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
 
-    def _save_model(self, filepath: str, trainer: Trainer, pl_module: LightningModule):
+    def _save_model(self, filepath: str, trainer, pl_module):
 
         # in debugging, track when we save checkpoints
         trainer.dev_debugger.track_checkpointing_history(filepath)
@@ -273,7 +273,7 @@ class ModelCheckpoint(Callback):
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     @rank_zero_only
-    def on_pretrain_routine_start(self, trainer: Trainer, pl_module: LightningModule):
+    def on_pretrain_routine_start(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
         trainer's logger to determine where to save checkpoints.
@@ -334,7 +334,7 @@ class ModelCheckpoint(Callback):
             )
 
     @rank_zero_only
-    def on_validation_end(self, trainer: Trainer, pl_module: LightningModule):
+    def on_validation_end(self, trainer, pl_module):
         # only run on main process
         if trainer.global_rank != 0:
             return
@@ -425,8 +425,8 @@ class ModelCheckpoint(Callback):
         filepath: str,
         current: torch.Tensor,
         epoch: int,
-        trainer: Trainer,
-        pl_module: LightningModule,
+        trainer,
+        pl_module,
     ):
         # remove kth
 
@@ -462,7 +462,7 @@ class ModelCheckpoint(Callback):
                 self._del_model(cur_path)
 
     def on_save_checkpoint(
-        self, trainer: Trainer, pl_module: LightningModule
+        self, trainer, pl_module
     ) -> Dict[str, Any]:
         return {
             "best_model_score": self.best_model_score,
