@@ -6,7 +6,7 @@ from tests.base.develop_utils import pl_multi_process_test
 try:
     import torch_xla.core.xla_model as xm
     XLA_AVAILABLE = True
-except:
+except ImportError as e:
     XLA_AVAILABLE = False
 
 

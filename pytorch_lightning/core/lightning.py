@@ -32,7 +32,7 @@ from pytorch_lightning.overrides.data_parallel import LightningDistributedDataPa
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.core.step_result import TrainResult, EvalResult
-from pytorch_lightning.utilities.xla_device_utils import tpu_device_exists
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     collect_init_args,
@@ -43,7 +43,9 @@ from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
-TPU_AVAILABLE = tpu_device_exists()
+
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
+
 if TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 

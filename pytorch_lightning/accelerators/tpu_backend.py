@@ -24,9 +24,9 @@ from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities.cloud_io import atomic_save
-from pytorch_lightning.utilities.xla_device_utils import tpu_device_exists
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils
 
-TPU_AVAILABLE = tpu_device_exists()
+TPU_AVAILABLE = XLADeviceUtils.tpu_device_exists()
 
 if TPU_AVAILABLE:
     import torch_xla
