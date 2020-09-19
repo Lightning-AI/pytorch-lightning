@@ -35,6 +35,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed IoU `remove_bg` bool to `ignore_index` optional int ([#3098](https://github.com/PyTorchLightning/pytorch-lightning/pull/3098))
 
+- Changed `ModelCheckpoint` callback to run in all ranks ([#3562](https://github.com/PyTorchLightning/pytorch-lightning/pull/3562))
+
 ### Deprecated
 
 
