@@ -301,6 +301,12 @@ class TrainLoop:
             args = self.build_train_args(split_batch, batch_idx, opt_idx, hiddens)
             training_step_output = self.trainer.accelerator_backend.training_step(args)
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
+            if training_step_output is None:
+                raise MisconfigurationException(
+                    'training_step cannot return None. HINT: Did you add a return statement?'
+                )
+            if training_step_output == self.trainer.SKIP:
+                return training_step_output
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
                 training_step_output,
@@ -531,22 +537,21 @@ class TrainLoop:
             if batch_output.signal == -1:
                 break
 
-            # only track outputs when user implements training_epoch_end
-            # otherwise we will build up unnecessary memory
-            epoch_end_outputs = self.process_train_step_outputs(
-                batch_output.training_step_output_for_epoch_end,
-                self.early_stopping_accumulator,
-                self.checkpoint_accumulator
-            )
+            if batch_output != self.trainer.SKIP:
+                # only track outputs when user implements training_epoch_end
+                # otherwise we will build up unnecessary memory
+                epoch_end_outputs = self.process_train_step_outputs(
+                    batch_output.training_step_output_for_epoch_end,
+                    self.early_stopping_accumulator,
+                    self.checkpoint_accumulator
+                )
 
-            # hook
-            # TODO: add outputs to batches
-            self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
+                # hook
+                # TODO: add outputs to batches
+                self.on_train_batch_end(epoch_output, epoch_end_outputs, batch, batch_idx, dataloader_idx)
 
-            # -----------------------------------------
-            # SAVE METRICS TO LOGGERS
-            # -----------------------------------------
-            self.trainer.logger_connector.log_train_step_metrics(batch_output)
+                # when returning -1 from train_step, we end epoch early
+                self.trainer.should_stop = batch_output.signal == -1
 
             # -----------------------------------------
             # VALIDATE IF NEEDED + CHECKPOINT CALLBACK
@@ -555,15 +560,21 @@ class TrainLoop:
             if should_check_val:
                 self.trainer.run_evaluation(test_mode=False)
 
-            # -----------------------------------------
-            # SAVE LOGGERS (ie: Tensorboard, etc...)
-            # -----------------------------------------
-            self.save_loggers_on_train_batch_end()
+            if batch_output != self.trainer.SKIP:
+                # -----------------------------------------
+                # SAVE METRICS TO LOGGERS
+                # -----------------------------------------
+                self.trainer.logger_connector.log_train_step_metrics(batch_output)
 
-            # update LR schedulers
-            monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
-            monitor_metrics.update(batch_output.batch_log_metrics)
-            self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
+                # -----------------------------------------
+                # SAVE LOGGERS (ie: Tensorboard, etc...)
+                # -----------------------------------------
+                self.save_loggers_on_train_batch_end()
+
+                # update LR schedulers
+                monitor_metrics = deepcopy(self.trainer.logger_connector.callback_metrics)
+                monitor_metrics.update(batch_output.batch_log_metrics)
+                self.update_train_loop_lr_schedulers(monitor_metrics=monitor_metrics)
 
             # max steps reached, end training
             if self.trainer.max_steps is not None and self.trainer.max_steps == self.trainer.global_step + 1:
@@ -662,6 +673,8 @@ class TrainLoop:
                     optimizer,
                     self.trainer.hiddens
                 )
+                if opt_closure_result == self.trainer.SKIP:
+                    return opt_closure_result
 
                 if opt_closure_result is None:
                     continue
@@ -740,6 +753,8 @@ class TrainLoop:
         """
         # lightning module hook
         result = self.training_step(split_batch, batch_idx, opt_idx, hiddens)
+        if result == self.trainer.SKIP:
+            return result
 
         if result is None:
             self.warning_cache.warn('training_step returned None if it was on purpose, ignore this warning...')

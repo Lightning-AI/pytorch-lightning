@@ -448,6 +448,25 @@ class DeterministicModel(LightningModule):
         result['val_epoch_end'] = torch.tensor(1233)
         return result
 
+    # --------------------------
+    # SKIP returns
+    # --------------------------
+    def training_step_skip_return(self, batch, batch_idx):
+        self.training_step_called = True
+        return self.trainer.SKIP
+
+    def training_step_skip_return_when_even(self, batch, batch_idx):
+        from pytorch_lightning import Trainer
+
+        self.training_step_called = True
+        return self.step(batch, batch_idx) if batch_idx % 2 else Trainer.SKIP
+
+    # --------------------------
+    # Invalid returns
+    # --------------------------
+    def training_step_no_return(self, batch, batch_idx):
+        self.training_step_called = True
+
     # -----------------------------
     # DATA
     # -----------------------------
