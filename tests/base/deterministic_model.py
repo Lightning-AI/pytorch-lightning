@@ -98,6 +98,14 @@ class DeterministicModel(LightningModule):
                 assert batch_out.grad_fn is None
                 assert isinstance(batch_out, torch.Tensor)
 
+    def validation_step_scalar_return(self, batch, batch_idx):
+        self.validation_step_called = True
+        acc = self.step(batch, batch_idx)
+        return acc
+
+    # --------------------------
+    # TrainResult return
+    # --------------------------
     def training_step_no_default_callbacks_for_train_loop(self, batch, batch_idx):
         """
         Early stop and checkpoint only on these values
@@ -207,7 +215,7 @@ class DeterministicModel(LightningModule):
         return result
 
     # --------------------------
-    # EvalResults
+    # EvalResult return
     # --------------------------
     def validation_step_result_callbacks(self, batch, batch_idx):
         acc = self.step(batch, batch_idx)
@@ -396,15 +404,6 @@ class DeterministicModel(LightningModule):
 
         return {'log': logs, 'progress_bar': pbar}
 
-    def validation_step_no_return(self, batch, batch_idx):
-        self.validation_step_called = True
-        acc = self.step(batch, batch_idx)
-
-    def validation_step_scalar_return(self, batch, batch_idx):
-        self.validation_step_called = True
-        acc = self.step(batch, batch_idx)
-        return acc
-
     def validation_step_arbitary_dict_return(self, batch, batch_idx):
         self.validation_step_called = True
         acc = self.step(batch, batch_idx)
@@ -417,13 +416,6 @@ class DeterministicModel(LightningModule):
         logs = {'log_acc1': torch.tensor(12 + batch_idx).type_as(acc), 'log_acc2': torch.tensor(7).type_as(acc)}
         pbar = {'pbar_acc1': torch.tensor(17).type_as(acc), 'pbar_acc2': torch.tensor(19).type_as(acc)}
         return {'val_loss': acc, 'log': logs, 'progress_bar': pbar}
-
-    def validation_step_end_no_return(self, val_step_output):
-        assert len(val_step_output) == 3
-        assert val_step_output['val_loss'] == 171
-        assert val_step_output['log']['log_acc1'] >= 12
-        assert val_step_output['progress_bar']['pbar_acc1'] == 17
-        self.validation_step_end_called = True
 
     def validation_step_end(self, val_step_output):
         assert len(val_step_output) == 3
@@ -470,6 +462,20 @@ class DeterministicModel(LightningModule):
     def training_step_evalresult_return(self, batch, batch_idx):
         self.training_step_called = True
         return EvalResult()
+
+    # --------------------------
+    # None returns
+    # --------------------------
+    def validation_step_no_return(self, batch, batch_idx):
+        self.validation_step_called = True
+        self.step(batch, batch_idx)
+
+    def validation_step_end_no_return(self, val_step_output):
+        assert len(val_step_output) == 3
+        assert val_step_output['val_loss'] == 171
+        assert val_step_output['log']['log_acc1'] >= 12
+        assert val_step_output['progress_bar']['pbar_acc1'] == 17
+        self.validation_step_end_called = True
 
     # -----------------------------
     # DATA
