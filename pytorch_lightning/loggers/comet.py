@@ -18,15 +18,14 @@ Comet
 """
 
 import os
-
 from argparse import Namespace
-from typing import Optional, Dict, Union, Any
+from typing import Any, Dict, Optional, Union
 
 try:
-    from comet_ml import Experiment as CometExperiment
-    from comet_ml import ExistingExperiment as CometExistingExperiment
-    from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml import BaseExperiment as CometBaseExperiment
+    from comet_ml import ExistingExperiment as CometExistingExperiment
+    from comet_ml import Experiment as CometExperiment
+    from comet_ml import OfflineExperiment as CometOfflineExperiment
     from comet_ml import generate_guid
 
     try:
@@ -34,7 +33,7 @@ try:
     except ImportError:  # pragma: no-cover
         # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
         from comet_ml.papi import API  # pragma: no-cover
-    from comet_ml.config import get_config, get_api_key
+    from comet_ml.config import get_api_key, get_config
 except ImportError:  # pragma: no-cover
     CometExperiment = None
     CometExistingExperiment = None
@@ -51,8 +50,8 @@ from torch import is_tensor
 
 from pytorch_lightning import _logger as log
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class CometLogger(LightningLoggerBase):
@@ -102,7 +101,6 @@ class CometLogger(LightningLoggerBase):
             if either exists.
         save_dir: Required in offline mode. The path for the directory to save local
             comet logs. If given, this also sets the directory for saving checkpoints.
-        workspace: Optional. Name of workspace for this user
         project_name: Optional. Send your experiment to a specific project.
             Otherwise will be sent to Uncategorized Experiments.
             If the project name does not already exist, Comet.ml will create a new project.
@@ -114,21 +112,21 @@ class CometLogger(LightningLoggerBase):
             the experiment will be in online or offline mode. This is useful if you use
             save_dir to control the checkpoints directory and have a ~/.comet.config
             file but still want to run offline experiments.
+        \**kwargs: Additional arguments like `workspace`, `log_code`, etc. used by
+            :class:`CometExperiment` can be passed as keyword arguments in this logger.
     """
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         save_dir: Optional[str] = None,
-        workspace: Optional[str] = None,
         project_name: Optional[str] = None,
         rest_api_key: Optional[str] = None,
         experiment_name: Optional[str] = None,
         experiment_key: Optional[str] = None,
         offline: bool = False,
-        **kwargs,
+        **kwargs
     ):
-
         if not _COMET_AVAILABLE:
             raise ImportError(
                 "You want to use `comet_ml` logger which is not installed yet,"
@@ -157,7 +155,6 @@ class CometLogger(LightningLoggerBase):
 
         log.info(f"CometLogger will be initialized in {self.mode} mode")
 
-        self.workspace = workspace
         self._project_name = project_name
         self._experiment_key = experiment_key
         self._experiment_name = experiment_name
@@ -197,13 +194,14 @@ class CometLogger(LightningLoggerBase):
             if self.mode == "online":
                 if self._experiment_key is None:
                     self._experiment = CometExperiment(
-                        api_key=self.api_key, workspace=self.workspace, project_name=self._project_name, **self._kwargs
+                        api_key=self.api_key,
+                        project_name=self._project_name,
+                        **self._kwargs,
                     )
                     self._experiment_key = self._experiment.get_key()
                 else:
                     self._experiment = CometExistingExperiment(
                         api_key=self.api_key,
-                        workspace=self.workspace,
                         project_name=self._project_name,
                         previous_experiment=self._experiment_key,
                         **self._kwargs,
@@ -211,7 +209,6 @@ class CometLogger(LightningLoggerBase):
             else:
                 self._experiment = CometOfflineExperiment(
                     offline_directory=self.save_dir,
-                    workspace=self.workspace,
                     project_name=self._project_name,
                     **self._kwargs,
                 )

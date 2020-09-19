@@ -69,7 +69,7 @@ def test_comet_logger_experiment_name():
 
         _ = logger.experiment
 
-        comet.assert_called_once_with(api_key=api_key, project_name=None, workspace=None)
+        comet.assert_called_once_with(api_key=api_key, project_name=None)
 
         comet().set_name.assert_called_once_with(experiment_name)
 
