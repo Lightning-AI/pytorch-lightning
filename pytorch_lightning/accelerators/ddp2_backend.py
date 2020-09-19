@@ -77,15 +77,6 @@ class DDP2Backend(DDPBase):
 
     def model_to_device(self, model, process_idx, is_master):
         gpu_idx = process_idx
-
-        # when using ddp, the master process (proc 0) continues running as the main one
-        # this means that the local rank will always be 0
-        # (even if cuda visible devices has other visible gpus)
-        # this means that the master process needs to pull the 0th visible index as the device number
-        if is_master:
-            available_gpus = os.environ['CUDA_VISIBLE_DEVICES'].split(',')
-            gpu_idx = int(available_gpus[self.trainer.local_rank])
-
         self.trainer.root_gpu = gpu_idx
         torch.cuda.set_device(self.trainer.root_gpu)
         model.cuda(self.trainer.root_gpu)
