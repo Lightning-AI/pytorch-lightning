@@ -45,6 +45,6 @@ def is_device_tpu():
 
 def tpu_device_exists():
     global TPU_AVAILABLE
-    if TPU_AVAILABLE is None:
+    if TPU_AVAILABLE is None and TORCHXLA_AVAILABLE:
         TPU_AVAILABLE = pl_multi_process(is_device_tpu)()
     return TPU_AVAILABLE
