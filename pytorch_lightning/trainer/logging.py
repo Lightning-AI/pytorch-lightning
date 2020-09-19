@@ -73,9 +73,10 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
-        for k, v in output.items():
-            if k not in ['progress_bar', 'log', 'hiddens']:
-                callback_metrics[k] = v
+        if output:
+            for k, v in output.items():
+                if k not in ['progress_bar', 'log', 'hiddens']:
+                    callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
             num_gpus = self.num_gpus
@@ -136,7 +137,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        hiddens = output.get('hiddens')
+        hiddens = output.get('hiddens') if output else None
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)

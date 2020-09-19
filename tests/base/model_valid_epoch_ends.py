@@ -33,6 +33,21 @@ class ValidationEpochEndVariations(ABC):
         results = {'progress_bar': metrics_dict, 'log': metrics_dict}
         return results
 
+    def validation_epoch_end_return_none(self, outputs):
+        """
+        Called at the end of validation to aggregate outputs
+
+        Args:
+            outputs: list of individual outputs of each validation step
+        """
+        # if returned a scalar from validation_step, outputs is a list of tensor scalars
+        # we return just the average in this case (if we want)
+        def _mean(res, key):
+            # recursive mean for multilevel dicts
+            return torch.stack([x[key] if isinstance(x, dict) else _mean(x, key) for x in res]).mean()
+
+        return None
+
     def validation_epoch_end__multiple_dataloaders(self, outputs):
         """
         Called at the end of validation to aggregate outputs
