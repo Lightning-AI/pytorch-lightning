@@ -50,7 +50,7 @@ def get_filesystem(path: pathlike):
         return fsspec.filesystem("file")
 
 
-def atomic_save(checkpoint, filepath: str, is_xla_tensor=False):
+def atomic_save(checkpoint, filepath: str):
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -64,7 +64,7 @@ def atomic_save(checkpoint, filepath: str, is_xla_tensor=False):
     """
     bytesbuffer = io.BytesIO()
 
-    if is_xla_tensor and XLA_AVAILABLE:
+    if checkpoint.device.type == "xla" and XLA_AVAILABLE:
         return xm.save(checkpoint, filepath, master_only=True, global_master=True)
     elif LooseVersion(torch.__version__).version[:3] == [1, 6, 0]:
         # Can't use the new zipfile serialization for 1.6.0 because there's a bug in
