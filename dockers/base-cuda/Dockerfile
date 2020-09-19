@@ -28,11 +28,11 @@ ENV PATH="$PATH:/root/.local/bin"
 # ENV MAKEFLAGS="-j$(nproc)"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    git \
-    curl \
-    ca-certificates \
+        build-essential \
+        cmake \
+        git \
+        curl \
+        ca-certificates \
     && \
     # Cleaning
     apt-get autoremove -y && \

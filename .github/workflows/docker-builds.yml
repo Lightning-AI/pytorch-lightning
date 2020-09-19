@@ -23,6 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      # TODO: move this to nightly events
       - name: Publish Master to Docker
         # publish master
         uses: docker/build-push-action@v1.1.0
@@ -34,7 +35,7 @@ jobs:
           dockerfile: dockers/conda/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
           tags: "nightly-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-        timeout-minutes: 40
+        timeout-minutes: 55
 
       - name: Get release version
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
@@ -52,7 +53,7 @@ jobs:
           dockerfile: dockers/conda/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},LIGHTNING_VERSION=${{ env.RELEASE_VERSION }}
           tags: "${{ env.RELEASE_VERSION }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }},latest-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-        timeout-minutes: 40
+        timeout-minutes: 55
 
   build-XLA:
     runs-on: ubuntu-20.04
@@ -75,7 +76,7 @@ jobs:
           dockerfile: dockers/base-xla/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
           tags: "base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}"
-        timeout-minutes: 35
+        timeout-minutes: 55
 
   build-cuda:
     runs-on: ubuntu-20.04
@@ -111,4 +112,4 @@ jobs:
           dockerfile: dockers/base-cuda/Dockerfile
           build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},PYTORCH_CHANNEL=${{ matrix.pytorch_channel }}
           tags: "base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
-        timeout-minutes: 40
+        timeout-minutes: 55
