@@ -171,9 +171,9 @@ class ModelCheckpoint(Callback):
         self.kth_value, self.mode = mode_dict[mode]
 
     def _validate_condition_metric(self, logs):
-        monitor_val = logs.get(self.monitor)
+        found = logs.get(self.monitor) is not None
 
-        if monitor_val is None and self.verbose > 0:
+        if not found and self.verbose > 0:
             error_msg = (f'Checkpointing conditioned on metric `{self.monitor}` which is'
                          f' not available. Either add `{self.monitor}` to the return of'
                          f' `validation_epoch_end` or modify your `ModelCheckpoint` callback to'
