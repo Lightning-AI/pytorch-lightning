@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Union
+from typing import Any, Dict, List, Union
 
 import torch
 from pytorch_lightning.utilities import AMPType, move_data_to_device, rank_zero_warn
