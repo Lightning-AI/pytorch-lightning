@@ -21,9 +21,6 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 """
 
-from typing import Dict
-
-from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks.base import Callback
 
 
@@ -47,7 +44,7 @@ class GradientAccumulationScheduler(Callback):
         >>> trainer = Trainer(accumulate_grad_batches={5: 2})
     """
 
-    def __init__(self, scheduling: Dict[int, int]):
+    def __init__(self, scheduling: dict):
         super().__init__()
 
         if not scheduling:  # empty dict error
@@ -59,16 +56,14 @@ class GradientAccumulationScheduler(Callback):
 
         minimal_epoch = min(scheduling.keys())
         if minimal_epoch < 0:
-            raise IndexError(
-                f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct"
-            )
+            raise IndexError(f"Epochs indexing from 1, epoch {minimal_epoch} cannot be interpreted correct")
         if minimal_epoch != 0:  # if user didnt define first epoch accumulation factor
             scheduling.update({0: 1})
 
         self.scheduling = scheduling
         self.epochs = sorted(scheduling.keys())
 
-    def on_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_epoch_start(self, trainer, pl_module):
         epoch = trainer.current_epoch
         for i in reversed(range(len(self.epochs))):
             if epoch >= self.epochs[i]:
