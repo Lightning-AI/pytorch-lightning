@@ -28,7 +28,7 @@ except ImportError:
     class group:
         WORLD = None
 
-    rank_zero_warn("Unsupported `ReduceOp` for distributed computing.")
+    rank_zero_warn("Unsupported `group` for distributed computing.")
 
 
 class SklearnMetric(NumpyMetric):
