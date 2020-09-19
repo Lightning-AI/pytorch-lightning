@@ -112,7 +112,7 @@ class EarlyStopping(Callback):
         if not found:
             error_msg = (f'Early stopping conditioned on metric `{self.monitor}` which is'
                          f' not available. Either add `{self.monitor}` to the return of'
-                         f' validation_epoch end or modify your EarlyStopping callback to'
+                         f' `validation_epoch_end` or modify your `EarlyStopping` callback to'
                          f' use any of the following: `{"`, `".join(list(logs.keys()))}`')
             if self.strict:
                 raise RuntimeError(error_msg)
