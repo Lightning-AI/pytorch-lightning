@@ -9,6 +9,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.step_result import TrainResult
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.deterministic_model import DeterministicModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -386,6 +387,22 @@ def test_training_step_epoch_end_result(tmpdir):
     opt_closure_result = trainer.train_loop.training_step_and_backward(
         batch, batch_idx, 0, trainer.optimizers[0], trainer.hiddens)
     assert opt_closure_result['loss'] == (42.0 * 3) + (15.0 * 3)
+
+
+def test_training_step_evalresult_return(tmpdir):
+    """
+    Tests that an exception is raised when training_step returns an EvalResult
+    """
+    model = DeterministicModel()
+    model.training_step = model.training_step_evalresult_return
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=3,
+        max_epochs=2,
+        weights_summary=None,
+    )
+    with pytest.raises(MisconfigurationException, match=r'training_step cannot return EvalResult.*'):
+        trainer.fit(model)
 
 
 def test_no_auto_callbacks_with_train_loop_only(tmpdir):
