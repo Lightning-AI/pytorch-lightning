@@ -149,7 +149,7 @@ class CheckpointConnector:
         # crash if max_epochs is lower than the current epoch from the checkpoint
         if self.trainer.current_epoch > self.trainer.max_epochs:
             m = f"""
-            you restored a checkpoint with current_epoch={self.trainer.current_epoch}
+            you restored a checkpoint with current_epoch={self.trainer.current_epoch} 
             but the Trainer(max_epochs={self.trainer.max_epochs})
             """
             raise MisconfigurationException(m)

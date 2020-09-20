@@ -121,6 +121,11 @@ class LoggerConnector:
                         flat = {'val_loss': eval_result}
                     else:
                         flat = flatten_dict(eval_result)
+
+                    # removing val_loss magic word to map to checkpoint + ES callback
+                    flat['checkpoint_on'] = flat['val_loss']
+                    flat['early_stop_on'] = flat['val_loss']
+                    del flat['val_loss']
                     self.trainer.logger_connector.callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
@@ -128,6 +133,11 @@ class LoggerConnector:
                     flat = {'val_loss': eval_results}
                 else:
                     flat = flatten_dict(eval_results)
+
+                # removing val_loss magic word to map to checkpoint + ES callback
+                flat['checkpoint_on'] = flat['val_loss']
+                flat['early_stop_on'] = flat['val_loss']
+                del flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
 
     def __log_evaluation_epoch_metrics_2(self, eval_results, test_mode):
