@@ -60,7 +60,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state)
     new_trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=6,
+        max_epochs=2,
         resume_from_checkpoint=checkpoint_filepath,
         early_stop_callback=early_stop_callback,
     )
