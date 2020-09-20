@@ -305,7 +305,7 @@ class TrainLoop:
                 raise MisconfigurationException(
                     'training_step cannot return None. HINT: Did you add a return statement?'
                 )
-            if training_step_output == self.trainer.SKIP:
+            if not isinstance(training_step_output, torch.Tensor) and training_step_output == self.trainer.SKIP:
                 return training_step_output
 
             training_step_output_for_epoch_end, training_step_output = self._process_training_step_output(
