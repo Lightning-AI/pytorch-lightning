@@ -203,7 +203,7 @@ decorator to make sure that only the first process in DDP training logs data.
             pass
 
 If you write a logger that may be useful to others, please send
-a pull request to add it to Lighting!
+a pull request to add it to Lightning!
 
 ----------
 

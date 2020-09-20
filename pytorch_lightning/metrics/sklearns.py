@@ -19,16 +19,12 @@ import torch
 
 from pytorch_lightning import _logger as lightning_logger
 from pytorch_lightning.metrics.metric import NumpyMetric
-from pytorch_lightning.utilities import rank_zero_warn
 
-try:
+if torch.distributed.is_available():
     from torch.distributed import group
-except ImportError:
-
+else:
     class group:
         WORLD = None
-
-    rank_zero_warn("Unsupported `group` for distributed computing.")
 
 
 class SklearnMetric(NumpyMetric):

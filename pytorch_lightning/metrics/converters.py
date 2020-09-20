@@ -26,17 +26,13 @@ import numpy as np
 import torch
 from torch.utils.data._utils.collate import np_str_obj_array_pattern
 
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 
-try:
+if torch.distributed.is_available():
     from torch.distributed import ReduceOp
-except ImportError:
-
+else:
     class ReduceOp:
         SUM = None
-
-    rank_zero_warn("Unsupported `ReduceOp` for distributed computing")
 
 
 def _apply_to_inputs(func_to_apply: Callable, *dec_args, **dec_kwargs) -> Callable:
