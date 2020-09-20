@@ -332,8 +332,9 @@ class ModelCheckpoint(Callback):
 
         # validate metric
         if not self._is_valid_monitor_key(metrics):
+            keys = list(metrics.keys())
             m = f"""
-                ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics,
+                ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics ({keys}),
                 "did you call result.log(f'{self.monitor}', tensor)?"""
             raise MisconfigurationException(m)
 

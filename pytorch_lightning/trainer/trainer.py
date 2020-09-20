@@ -272,7 +272,6 @@ class Trainer(
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
-    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -280,6 +279,8 @@ class Trainer(
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
+        self._state = TrainerState.RUNNING
+
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
@@ -313,6 +314,7 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
+        self._state = TrainerState.FINISHED
         return results or 1
 
     def train(self):

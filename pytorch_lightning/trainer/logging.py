@@ -150,7 +150,13 @@ class TrainerLoggingMixin(ABC):
         # replace loss with checkpoint_on
         if 'loss' in callback_metrics:
             callback_metrics['checkpoint_on'] = callback_metrics['loss']
+            callback_metrics['early_stop_on'] = callback_metrics['loss']
             del callback_metrics['loss']
+
+        if 'val_loss' in callback_metrics:
+            callback_metrics['checkpoint_on'] = callback_metrics['val_loss']
+            callback_metrics['early_stop_on'] = callback_metrics['val_loss']
+            del callback_metrics['val_loss']
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
