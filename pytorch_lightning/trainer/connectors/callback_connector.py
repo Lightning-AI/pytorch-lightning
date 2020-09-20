@@ -1,5 +1,5 @@
 import os
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar, GPUStatsMonitor
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_utils import is_overridden
 
@@ -12,6 +12,7 @@ class CallbackConnector:
     def on_trainer_init(
             self,
             callbacks,
+            gpu_stats_callback,
             early_stop_callback,
             checkpoint_callback,
             progress_bar_refresh_rate,
@@ -28,6 +29,11 @@ class CallbackConnector:
 
         # init callbacks
         self.trainer.callbacks = callbacks or []
+
+        # configure gpu stats monitor callback
+        gpu_stats_callback = self.configure_gpu_stats_callback(gpu_stats_callback)
+        if gpu_stats_callback:
+            self.trainer.callbacks.append(gpu_stats_callback)
 
         # configure early stop callback
         # creates a default one if none passed in
@@ -82,6 +88,13 @@ class CallbackConnector:
         else:
             early_stop_callback = early_stop_callback
         return early_stop_callback
+
+    def configure_gpu_stats_callback(self, gpu_stats_callback):
+        if not self.trainer.on_gpu or not gpu_stats_callback:
+            return
+        if gpu_stats_callback is True:
+            gpu_stats_callback = GPUStatsMonitor(gpu_utilization=False)
+        return gpu_stats_callback
 
     def configure_progress_bar(self, refresh_rate=1, process_position=0):
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]

@@ -19,7 +19,7 @@ from typing import Dict, Iterable, List, Optional, Union
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, GPUStatsMonitor
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
@@ -83,6 +83,7 @@ class Trainer(
         logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
         checkpoint_callback: Union[ModelCheckpoint, bool] = True,
         early_stop_callback: Optional[Union[EarlyStopping, bool]] = False,
+        gpu_stats_callback: Optional[Union[GPUStatsMonitor, bool]] = False,
         callbacks: Optional[List[Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: float = 0,
@@ -92,7 +93,6 @@ class Trainer(
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
-        log_gpu_memory: Optional[str] = None,
         progress_bar_refresh_rate: int = 1,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -129,6 +129,7 @@ class Trainer(
         amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
+        log_gpu_memory: Optional[str] = None,  # backward compatible
     ):
         super().__init__()
 
@@ -160,6 +161,7 @@ class Trainer(
         # init callbacks
         self.callback_connector.on_trainer_init(
             callbacks,
+            gpu_stats_callback if gpu_stats_callback else bool(log_gpu_memory),
             early_stop_callback,
             checkpoint_callback,
             progress_bar_refresh_rate,
@@ -199,7 +201,6 @@ class Trainer(
             auto_select_gpus,
             gpus,
             num_nodes,
-            log_gpu_memory,
             sync_batchnorm,
             benchmark,
             replace_sampler_ddp,

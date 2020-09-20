@@ -35,7 +35,6 @@ class AcceleratorConnector:
             auto_select_gpus,
             gpus,
             num_nodes,
-            log_gpu_memory,
             sync_batchnorm,
             benchmark,
             replace_sampler_ddp,
@@ -60,7 +59,6 @@ class AcceleratorConnector:
 
         # Transfer params
         self.trainer.num_nodes = num_nodes
-        self.trainer.log_gpu_memory = log_gpu_memory
 
         # sync-bn backend
         self.trainer.sync_batchnorm = sync_batchnorm

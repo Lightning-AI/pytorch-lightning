@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import shutil
-import subprocess
 from collections import OrderedDict
 from typing import Tuple, Dict, Union, List, Any
 
@@ -299,59 +296,6 @@ def _format_summary_table(*cols) -> str:
         summary += "\n" + " | ".join(line)
 
     return summary
-
-
-def get_memory_profile(mode: str) -> Union[Dict[str, int], Dict[int, int]]:
-    """ Get a profile of the current memory usage.
-
-    Args:
-        mode: There are two modes:
-
-            - 'all' means return memory for all gpus
-            - 'min_max' means return memory for max and min
-
-    Return:
-        A dictionary in which the keys are device ids as integers and
-        values are memory usage as integers in MB.
-        If mode is 'min_max', the dictionary will also contain two additional keys:
-
-        - 'min_gpu_mem': the minimum memory usage in MB
-        - 'max_gpu_mem': the maximum memory usage in MB
-    """
-    memory_map = get_gpu_memory_map()
-
-    if mode == "min_max":
-        min_index, min_memory = min(memory_map.items(), key=lambda item: item[1])
-        max_index, max_memory = max(memory_map.items(), key=lambda item: item[1])
-
-        memory_map = {"min_gpu_mem": min_memory, "max_gpu_mem": max_memory}
-
-    return memory_map
-
-
-def get_gpu_memory_map() -> Dict[str, int]:
-    """
-    Get the current gpu usage.
-
-    Return:
-        A dictionary in which the keys are device ids as integers and
-        values are memory usage as integers in MB.
-    """
-    result = subprocess.run(
-        [shutil.which("nvidia-smi"), "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
-        encoding="utf-8",
-        # capture_output=True,          # valid for python version >=3.7
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
-        check=True,
-    )
-
-    # Convert lines into a dictionary
-    gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {
-        f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)
-    }
-    return gpu_memory_map
 
 
 def get_human_readable_count(number: int) -> str:

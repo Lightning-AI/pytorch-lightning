@@ -28,7 +28,6 @@ class TrainerLoggingMixin(ABC):
     #  the proper values/initialisation should be done in child class
     current_epoch: int
     on_gpu: bool
-    log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
     global_step: int
     global_rank: int

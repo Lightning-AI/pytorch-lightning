@@ -61,11 +61,6 @@ class LoggerConnector:
             grad_norm_dic (dict): Gradient norms
             step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
         """
-        # add gpu memory
-        if self.trainer.on_gpu and self.trainer.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.trainer.log_gpu_memory)
-            metrics.update(mem_map)
-
         # add norms
         metrics.update(grad_norm_dic)
 
