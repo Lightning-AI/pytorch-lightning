@@ -48,7 +48,7 @@ jobs:
 
     - name: Install PyTorch nightly
       run: |
-        pip install torch==${{ matrix.pytorch_version }} -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install torch==${{ matrix.pytorch_version }} -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html --pre --upgrade
         python -c "import torch; torch.__version__"
 
     - name: Reinstall Horovod if necessary
