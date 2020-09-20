@@ -49,7 +49,7 @@ def test_mc_called(tmpdir):
 
     trainer = Trainer(max_epochs=3, limit_train_batches=10, limit_val_batches=10)
     trainer.fit(train_step_only_model)
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 2
+    assert len(trainer.dev_debugger.checkpoint_callback_history) == 3
 
     # no callback
     trainer = Trainer(max_epochs=3, checkpoint_callback=False)
