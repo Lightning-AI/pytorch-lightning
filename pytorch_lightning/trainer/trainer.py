@@ -158,6 +158,20 @@ class Trainer(
         self.model = None
         self.shown_warnings = set()
 
+        # init accelerator related flags
+        self.accelerator_connector.on_trainer_init(
+            num_processes,
+            tpu_cores,
+            distributed_backend,
+            auto_select_gpus,
+            gpus,
+            num_nodes,
+            sync_batchnorm,
+            benchmark,
+            replace_sampler_ddp,
+            deterministic
+        )
+
         # init callbacks
         self.callback_connector.on_trainer_init(
             callbacks,
@@ -191,20 +205,6 @@ class Trainer(
             accumulate_grad_batches,
             truncated_bptt_steps,
             terminate_on_nan
-        )
-
-        # init accelerator related flags
-        self.accelerator_connector.on_trainer_init(
-            num_processes,
-            tpu_cores,
-            distributed_backend,
-            auto_select_gpus,
-            gpus,
-            num_nodes,
-            sync_batchnorm,
-            benchmark,
-            replace_sampler_ddp,
-            deterministic
         )
 
         # init train loop related flags
