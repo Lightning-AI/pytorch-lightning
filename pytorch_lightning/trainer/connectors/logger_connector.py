@@ -104,6 +104,9 @@ class LoggerConnector:
         return self.__log_evaluation_epoch_metrics_2(eval_results, test_mode)
 
     def _log_on_evaluation_epoch_end_metrics(self, eval_results, using_eval_result):
+        if len(eval_results) > 0 and eval_results[0] is None:
+            return
+
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:

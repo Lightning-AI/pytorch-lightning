@@ -623,3 +623,27 @@ def test_result_monitor_warnings(tmpdir):
 
     with pytest.warns(UserWarning, match='key of `EarlyStopping` has no effect'):
         trainer.fit(model)
+
+
+def test_eval_loop_return_none(tmpdir):
+    """
+    Tests that we warn when the monitor key is changed and we use Results obj
+    """
+    model = EvalModelTemplate()
+    model.test_step = None
+    model.training_step = model.training_step_result_obj
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_result_obj
+    model.validation_step_end = None
+    model.validation_epoch_end = model.validation_epoch_end_return_none
+    model.test_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        row_log_interval=2,
+        limit_train_batches=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
