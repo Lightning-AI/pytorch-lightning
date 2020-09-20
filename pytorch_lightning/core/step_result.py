@@ -801,7 +801,7 @@ class EvalResult(Result):
             )
 
     def get_callback_metrics(self) -> dict:
-        result = {'val_early_stop_on': self.early_stop_on, 'val_checkpoint_on': self.checkpoint_on}
+        result = {'val_early_stop_on': self.early_stop_on, 'checkpoint_on': self.checkpoint_on}
 
         return result
 

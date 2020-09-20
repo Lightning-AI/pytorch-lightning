@@ -11,6 +11,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.core.step_result import TrainResult
 from tests.base import EvalModelTemplate
 from tests.base.deterministic_model import DeterministicModel
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 # test with train_step_end
@@ -606,10 +607,11 @@ def test_result_monitor_warnings(tmpdir):
         row_log_interval=2,
         limit_train_batches=2,
         weights_summary=None,
-        checkpoint_callback=ModelCheckpoint(monitor='not_val_loss')
+        checkpoint_callback=ModelCheckpoint(monitor='not_checkpoint_on')
     )
 
-    with pytest.warns(UserWarning, match='key of `ModelCheckpoint` has no effect'):
+    # warn that the key was changed but metric was not found
+    with pytest.raises(MisconfigurationException, match="not found in the returned metrics"):
         trainer.fit(model)
 
     trainer = Trainer(

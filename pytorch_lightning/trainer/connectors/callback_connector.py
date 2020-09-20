@@ -1,7 +1,6 @@
 import os
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ProgressBarBase, ProgressBar
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_utils import is_overridden
 
 
 class CallbackConnector:
@@ -38,7 +37,7 @@ class CallbackConnector:
         # configure checkpoint callback
         # it is important that this is the last callback to run
         # pass through the required args to figure out defaults
-        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
+        checkpoint_callback = self.init_default_checkpoint_callback(checkpoint_callback)
         if checkpoint_callback:
             self.trainer.callbacks.append(checkpoint_callback)
 
@@ -51,18 +50,11 @@ class CallbackConnector:
             progress_bar_refresh_rate, process_position
         )
 
-    def configure_checkpoint_callback(self, checkpoint_callback):
+    def init_default_checkpoint_callback(self, checkpoint_callback):
         if checkpoint_callback is True:
-            # when no val step is defined, use 'loss' otherwise 'val_loss'
-            train_step_only = not is_overridden('validation_step', self.trainer.get_model())
-            monitor_key = 'loss' if train_step_only else 'val_loss'
-            checkpoint_callback = ModelCheckpoint(
-                filepath=None,
-                monitor=monitor_key
-            )
+            checkpoint_callback = ModelCheckpoint(filepath=None)
         elif checkpoint_callback is False:
             checkpoint_callback = None
-
         if checkpoint_callback:
             checkpoint_callback.save_function = self.trainer.save_checkpoint
 

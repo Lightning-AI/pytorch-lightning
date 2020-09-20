@@ -15,6 +15,7 @@ class ValidationStepVariations(ABC):
         :param batch:
         :return:
         """
+        self.validation_step_called = True
         x, y = batch
         x = x.view(x.size(0), -1)
         y_hat = self(x)

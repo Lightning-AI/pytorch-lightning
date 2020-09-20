@@ -151,7 +151,7 @@ class LoggerConnector:
                     if test_mode:
                         callback_metrics = {}
                 else:
-                    _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_output(result)
+                    _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
 
                 # eval loop returns all metrics
                 dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
@@ -239,7 +239,7 @@ class LoggerConnector:
                 epoch_log_metrics = epoch_output.epoch_log_metrics
                 epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
             else:
-                _processed_outputs = self.trainer.process_output(epoch_output)
+                _processed_outputs = self.trainer.process_dict_result(epoch_output)
                 epoch_progress_bar_metrics = _processed_outputs[1]
                 epoch_log_metrics = _processed_outputs[2]
                 epoch_callback_metrics = _processed_outputs[3]

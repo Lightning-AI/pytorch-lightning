@@ -502,7 +502,7 @@ class Trainer(
                 if isinstance(eval_results, EvalResult):
                     callback_metrics = eval_results.callback_metrics
                 else:
-                    _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
                 self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()

@@ -52,7 +52,7 @@ class TrainerLoggingMixin(ABC):
 
         return new_metrics
 
-    def process_output(self, output, train=False):
+    def process_dict_result(self, output, train=False):
         """Reduces output according to the training mode.
 
         Separates loss from logging and progress bar metrics
@@ -146,6 +146,11 @@ class TrainerLoggingMixin(ABC):
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
         callback_metrics = recursive_detach(callback_metrics)
+
+        # replace loss with checkpoint_on
+        if 'loss' in callback_metrics:
+            callback_metrics['checkpoint_on'] = callback_metrics['loss']
+            del callback_metrics['loss']
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 
