@@ -63,7 +63,7 @@ class CallbackConnector:
     def configure_early_stopping(self, early_stop_callback):
         if early_stop_callback is True or None:
             early_stop_callback = EarlyStopping(
-                monitor='val_loss',
+                monitor='early_stop_on',
                 patience=3,
                 strict=True,
                 verbose=True,

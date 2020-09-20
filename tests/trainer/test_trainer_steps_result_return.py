@@ -419,7 +419,7 @@ def test_no_auto_callbacks_with_train_loop_only(tmpdir):
     )
     trainer.fit(model)
 
-    assert trainer.early_stop_callback.monitor == 'val_loss'
+    assert trainer.early_stop_callback.monitor == 'early_stop_on'
 
 
 def test_no_callbacks_with_train_loop_only(tmpdir):

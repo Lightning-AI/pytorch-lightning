@@ -288,6 +288,8 @@ For cases like production, you might want to iterate different models inside a L
             y_hat = self.model(x)
             loss = F.cross_entropy(y_hat, y)
             acc = FM.accuracy(y_hat, y)
+
+            # loss is a scalar. The Checkpoint Callback is monitoring 'checkpoint_on'
             result = pl.EvalResult(checkpoint_on=loss)
             result.log_dict({'val_acc': acc, 'val_loss': loss})
             return result
