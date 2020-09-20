@@ -47,7 +47,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Changed IoU `remove_bg` bool to `ignore_index` optional int ([#3098](https://github.com/PyTorchLightning/pytorch-lightning/pull/3098))
 
-- Support skipping `training_step` ([#3527](https://github.com/PyTorchLightning/pytorch-lightning/pull/3527))
+- Support skipping `training_step` ([#3566](https://github.com/PyTorchLightning/pytorch-lightning/pull/3566))
 
 - Changed defaults of `save_top_k` and `save_last` to `None` in ModelCheckpoint ([#3680](https://github.com/PyTorchLightning/pytorch-lightning/pull/3680))
 
