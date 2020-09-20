@@ -1,6 +1,6 @@
 import pytest
 
-import pytorch_lightning.utilities.xla_device_utils as xdu
+from pytorch_lightning.utilities.xla_device_utils import XLADeviceUtils as xdu
 from tests.base.develop_utils import pl_multi_process_test
 
 try:
