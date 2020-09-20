@@ -126,7 +126,6 @@ class LoggerConnector:
                     if 'val_loss' in flat:
                         flat['checkpoint_on'] = flat['val_loss']
                         flat['early_stop_on'] = flat['val_loss']
-                        del flat['val_loss']
                     self.trainer.logger_connector.callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
@@ -139,7 +138,6 @@ class LoggerConnector:
                 if 'val_loss' in flat:
                     flat['checkpoint_on'] = flat['val_loss']
                     flat['early_stop_on'] = flat['val_loss']
-                    del flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
 
     def __log_evaluation_epoch_metrics_2(self, eval_results, test_mode):
