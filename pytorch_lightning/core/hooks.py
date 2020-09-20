@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Union
+from typing import Any, Union, List
 
 import torch
-from pytorch_lightning.utilities import AMPType, move_data_to_device, rank_zero_warn
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+from pytorch_lightning.utilities import move_data_to_device, AMPType, rank_zero_warn
 
 try:
     from apex import amp
@@ -28,6 +28,7 @@ except ImportError:
 
 
 class ModelHooks:
+
     def setup(self, stage: str):
         """
         Called at the beginning of fit and test.
@@ -112,9 +113,7 @@ class ModelHooks:
         """
         # do something at the end of the pretrain routine
 
-    def on_train_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop before anything happens for that batch.
 
@@ -127,9 +126,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_train_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_train_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the training loop after the batch.
 
@@ -140,9 +137,7 @@ class ModelHooks:
         """
         # do something when the batch ends
 
-    def on_validation_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop before anything happens for that batch.
 
@@ -153,9 +148,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_validation_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_validation_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the validation loop after the batch.
 
@@ -166,9 +159,7 @@ class ModelHooks:
         """
         # do something when the batch ends
 
-    def on_test_batch_start(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop before anything happens for that batch.
 
@@ -179,9 +170,7 @@ class ModelHooks:
         """
         # do something when the batch starts
 
-    def on_test_batch_end(
-        self, batch: Any, batch_idx: int, dataloader_idx: int
-    ) -> None:
+    def on_test_batch_end(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
         """
         Called in the test loop after the batch.
 
@@ -299,9 +288,7 @@ class ModelHooks:
 
         """
 
-    def backward(
-        self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int
-    ) -> None:
+    def backward(self, trainer, loss: Tensor, optimizer: Optimizer, optimizer_idx: int) -> None:
         """
         Override backward with your own implementation if you need to.
 
@@ -324,13 +311,7 @@ class ModelHooks:
         """
         loss.backward()
 
-    def amp_scale_loss(
-        self,
-        unscaled_loss: Tensor,
-        optimizer: Optimizer,
-        optimizer_idx: int,
-        amp_backend: AMPType,
-    ):
+    def amp_scale_loss(self, unscaled_loss, optimizer, optimizer_idx, amp_backend: AMPType):
         if amp_backend == AMPType.NATIVE:
             scaled_loss = self.trainer.scaler.scale(unscaled_loss)
         else:
@@ -340,6 +321,7 @@ class ModelHooks:
 
 
 class DataHooks:
+
     def prepare_data(self) -> None:
         """
         Use this to download and prepare data.
@@ -430,9 +412,7 @@ class DataHooks:
                     return loader
 
         """
-        rank_zero_warn(
-            "`train_dataloader` must be implemented to be used with the Lightning Trainer"
-        )
+        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
 
     def test_dataloader(self) -> Union[DataLoader, List[DataLoader]]:
         r"""
