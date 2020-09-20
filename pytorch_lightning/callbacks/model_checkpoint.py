@@ -403,7 +403,7 @@ class ModelCheckpoint(Callback):
                 self._del_model(self.last_model_path)
 
     def _is_valid_monitor_key(self, metrics):
-        is_valid = self.monitor in metrics
+        is_valid = self.monitor in metrics or len(metrics) == 0
         return is_valid
 
     def _do_check_save(
