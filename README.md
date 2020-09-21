@@ -38,15 +38,23 @@
 ###### *Codecov is > 90%+ but build delays may show less
 
 ## PyTorch Lightning is just organized PyTorch
+Lightning disentangles PyTorch code to decouple the science from the engineering.
 ![PT to PL](/docs/source/_images/general/pl_quick_start_full_compressed.gif)
 
-Lightning disentangles PyTorch code to decouple the science from the engineering 
-by organizing it into 4 categories:
+---
 
-1. Research code (the LightningModule).
-2. Engineering code (you delete, and is handled by the Trainer).
-3. Non-essential research code (logging, etc... this goes in Callbacks).
-4. Data (use PyTorch Dataloaders or organize them into a LightningDataModule).
+## Lightning Philosophy
+Lightning is designed with these principles in mind:
+
+1. Enable maximal flexibility.
+2. Abstract away unecessary boilerplate.
+3. Systems should be self-contained (ie: optimizers, computation code, etc).
+4. Deep learning code should be organized into 4 distinct categories
+
+- Research code (the LightningModule).
+- Engineering code (you delete, and is handled by the Trainer).
+- Non-essential research code (logging, etc... this goes in Callbacks).
+- Data (use PyTorch Dataloaders or organize them into a LightningDataModule).
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
@@ -169,15 +177,6 @@ trainer = Trainer(tpu_cores=8)
 # Single TPU core training
 trainer = Trainer(tpu_cores=[1])
 ```
-
-----
-
-## Lightning philosophy
-
-- Enable maximal flexibility.
-- Abstract away unecessary boilerplate.
-- Systems should be self-contained (ie: optimizers, computation code, etc).
-- Deep learning code should be organized into 4 distinct categories (data, system, engineering, non-critical code).
 
 ---
 
