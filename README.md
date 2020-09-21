@@ -173,6 +173,14 @@ trainer = Trainer(tpu_cores=[1])
 
 ----
 
+## Lightning philosophy
+
+- Enable maximal flexibility.
+- Abstract away unecessary boilerplate.
+- Systems should be self-contained (ie: optimizers, computation code, etc).
+- Deep learning code should be organized into 4 distinct categories (data, system, engineering, non-critical code).
+
+----
 
 ## [PyTorch Lightning Masterclass](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
 ### [New lessons weekly!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
