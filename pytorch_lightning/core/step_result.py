@@ -801,8 +801,11 @@ class EvalResult(Result):
             )
 
     def get_callback_metrics(self) -> dict:
-        result = {'val_early_stop_on': self.early_stop_on, 'val_checkpoint_on': self.checkpoint_on}
-
+        result = {}
+        if self.early_stop_on:
+            result['early_stop_on'] = self.early_stop_on
+        if self.checkpoint_on:
+            result['checkpoint_on'] = self.checkpoint_on
         return result
 
     def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):

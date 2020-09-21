@@ -350,7 +350,7 @@ Example::
         filepath=os.getcwd(),
         save_top_k=True,
         verbose=True,
-        monitor='val_loss',
+        monitor='checkpoint_on',
         mode='min',
         prefix=''
     )
@@ -411,9 +411,9 @@ early_stop_callback
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
-- ``True``: A default callback monitoring ``'val_loss'`` (if dict is returned in validation loop) or
+- ``True``: A default callback monitoring ``'early_stop_on'`` (if dict is returned in validation loop) or
   ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
-  Will raise an error if a dictionary is returned and ``'val_loss'`` is not found.
+  Will raise an error if a dictionary is returned and ``'early_stop_on'`` is not found.
   Will raise an error if a :class:`~pytorch_lightning.core.step_result.Result` is returned
   and ``early_stopping_on`` was not specified.
 - ``False``: Early stopping will be disabled.
@@ -426,7 +426,7 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
     # default used by the Trainer
     early_stop = EarlyStopping(
-        monitor='val_loss',
+        monitor='early_stop_on',
         patience=3,
         strict=False,
         verbose=False,
@@ -434,7 +434,7 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
     )
     trainer = Trainer(early_stop_callback=early_stop)
 
-.. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
+.. note:: If ``'early_stop_on'`` is not found will work as if early stopping is disabled.
 
 fast_dev_run
 ^^^^^^^^^^^^

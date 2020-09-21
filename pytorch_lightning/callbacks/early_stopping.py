@@ -42,8 +42,7 @@ class EarlyStopping(Callback):
     r"""
 
     Args:
-        monitor: quantity to be monitored. Default: ``'val_loss'``.
-            .. note:: Has no effect when using `EvalResult` or `TrainResult`
+        monitor: quantity to be monitored. Default: ``'early_stop_on'``.
         min_delta: minimum change in the monitored quantity
             to qualify as an improvement, i.e. an absolute
             change of less than `min_delta`, will count as no
@@ -73,7 +72,7 @@ class EarlyStopping(Callback):
         'max': torch.gt,
     }
 
-    def __init__(self, monitor: str = 'val_loss', min_delta: float = 0.0, patience: int = 3,
+    def __init__(self, monitor: str = 'early_stop_on', min_delta: float = 0.0, patience: int = 3,
                  verbose: bool = False, mode: str = 'auto', strict: bool = True):
         super().__init__()
         self.monitor = monitor
@@ -150,16 +149,6 @@ class EarlyStopping(Callback):
         if trainer.running_sanity_check:
             return
 
-        self.__warn_deprecated_monitor_key()
-
-        val_es_key = 'val_early_stop_on'
-        if trainer.logger_connector.callback_metrics.get(val_es_key) is not None:
-            self.monitor = val_es_key
-
-        # disable strict checking when using structured results
-        if val_es_key in trainer.logger_connector.callback_metrics:
-            self.strict = False
-
         if self._validate_condition_metric(trainer.logger_connector.callback_metrics):
             # turn off early stopping in on_train_epoch_end
             self.based_on_eval_results = True
@@ -171,28 +160,13 @@ class EarlyStopping(Callback):
 
         # early stopping can also work in the train loop when there is no val loop
         should_check_early_stop = False
-        # early_stop_on takes precedence over monitor key
-        train_es_key = 'early_stop_on'
-        if trainer.logger_connector.callback_metrics.get(train_es_key, None) is not None:
-            self.monitor = train_es_key
-            should_check_early_stop = True
+
         # fallback to monitor key in result dict
         if trainer.logger_connector.callback_metrics.get(self.monitor, None) is not None:
             should_check_early_stop = True
 
         if should_check_early_stop:
             self._run_early_stopping_check(trainer, pl_module)
-
-    def __warn_deprecated_monitor_key(self):
-        using_result_obj = os.environ.get('PL_USING_RESULT_OBJ', None)
-        invalid_key = self.monitor not in ['val_loss', 'early_stop_on', 'val_early_stop_on', 'loss']
-        if using_result_obj and not self.warned_result_obj and invalid_key:
-            self.warned_result_obj = True
-            rank_zero_warn(
-                f"When using `EvalResult(early_stop_on=X)` or `TrainResult(early_stop_on=X)`"
-                " the 'monitor' key of `EarlyStopping` has no effect. "
-                f" Remove `EarlyStopping(monitor='{self.monitor}')` to fix."
-            )
 
     def _run_early_stopping_check(self, trainer, pl_module):
         """

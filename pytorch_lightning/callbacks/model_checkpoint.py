@@ -30,6 +30,7 @@ from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class ModelCheckpoint(Callback):
@@ -118,7 +119,7 @@ class ModelCheckpoint(Callback):
     def __init__(
         self,
         filepath: Optional[str] = None,
-        monitor: str = "val_loss",
+        monitor: str = "checkpoint_on",
         verbose: bool = False,
         save_last: bool = False,
         save_top_k: int = 1,
@@ -317,48 +318,30 @@ class ModelCheckpoint(Callback):
         ), "tried to make a checkpoint from non global_rank=0"
         self._fs.makedirs(self.dirpath, exist_ok=True)
 
-    def __warn_deprecated_monitor_key(self):
-        using_result_obj = os.environ.get("PL_USING_RESULT_OBJ", None)
-        invalid_key = self.monitor not in [
-            "val_loss",
-            "checkpoint_on",
-            "loss",
-            "val_checkpoint_on",
-        ]
-        if using_result_obj and not self.warned_result_obj and invalid_key:
-            self.warned_result_obj = True
-            rank_zero_warn(
-                f"When using `EvalResult(checkpoint_on=X)` or `TrainResult(checkpoint_on=X)`"
-                " the 'monitor' key of `ModelCheckpoint` has no effect."
-                f" Remove `ModelCheckpoint(monitor='{self.monitor}')` to fix."
-            )
-
     @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
         # only run on main process
         if trainer.global_rank != 0:
             return
 
-        if trainer.running_sanity_check:
+        # no models are saved
+        if self.save_top_k == 0:
             return
 
-        # TODO: remove when dict results are deprecated
-        self.__warn_deprecated_monitor_key()
+        if trainer.running_sanity_check:
+            return
 
         metrics = trainer.logger_connector.callback_metrics
         epoch = trainer.current_epoch
 
-        # support structured results
-        if metrics.get("checkpoint_on") is not None:
-            self.monitor = "checkpoint_on"
+        # validate metric
+        if not self._is_valid_monitor_key(metrics):
+            keys = list(metrics.keys())
+            m = f"""
+                ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics ({keys}),
+                "did you call result.log(f'{self.monitor}', tensor)?"""
+            raise MisconfigurationException(m)
 
-        # conditioned val metrics override conditioned train loop metrics
-        if metrics.get("val_checkpoint_on") is not None:
-            self.monitor = "val_checkpoint_on"
-
-        if self.save_top_k == 0:
-            # no models are saved
-            return
         if (
             self.epoch_last_check is not None
             and (epoch - self.epoch_last_check) < self.period
@@ -419,6 +402,9 @@ class ModelCheckpoint(Callback):
             self._save_model(filepath, trainer, pl_module)
             if self.last_model_path and self.last_model_path != filepath:
                 self._del_model(self.last_model_path)
+
+    def _is_valid_monitor_key(self, metrics):
+        return self.monitor in metrics or len(metrics) == 0
 
     def _do_check_save(
         self,

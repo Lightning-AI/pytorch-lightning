@@ -408,7 +408,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, file_prefix, ex
     # emulate callback's calls during the training
     for i, loss in enumerate(losses):
         trainer.current_epoch = i
-        trainer.logger_connector.callback_metrics = {'val_loss': torch.tensor(loss)}
+        trainer.logger_connector.callback_metrics = {'checkpoint_on': torch.tensor(loss)}
         checkpoint_callback.on_validation_end(trainer, trainer.get_model())
 
     file_lists = set(os.listdir(tmpdir))
@@ -599,7 +599,7 @@ def test_trainer_min_steps_and_epochs(tmpdir):
     # define callback for stopping the model and default epochs
     trainer_options.update(
         default_root_dir=tmpdir,
-        early_stop_callback=EarlyStopping(monitor='val_loss', min_delta=1.0),
+        early_stop_callback=EarlyStopping(monitor='early_stop_on', min_delta=1.0),
         val_check_interval=2,
         min_epochs=1,
         max_epochs=7,
