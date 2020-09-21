@@ -187,6 +187,8 @@ Or for a production system
          model.to_onnx(tmpfile.name, input_sample, export_params=True)
          os.path.isfile(tmpfile.name)
 
+-----------
+
 ***********
 Checkpoints
 ***********
@@ -216,8 +218,13 @@ Optional features
 
 TrainResult/EvalResult
 ======================
-Instead of returning the loss you can also use :class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`, plain Dict objects that give you options for logging on every step and/or at the end of the epoch.
-It also allows logging to the progress bar (by setting prog_bar=True). Read more in :ref:`results`.
+Although you can return a simple tensor for the loss, if you want to log to the progress bar,
+to tensorboard or your favorite library, you can use the
+:class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`
+objects.
+
+These objects are just plain Dictionaries but error checks for you to avoid things like memory leaks and automatically
+syncs metrics across GPUs/TPUs so you don't have to.
 
 .. code-block::
 
@@ -228,6 +235,7 @@ It also allows logging to the progress bar (by setting prog_bar=True). Read more
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
             result = pl.TrainResult(minimize=loss)
+
             # Add logging to progress bar (note that refreshing the progress bar too frequently
             # in Jupyter notebooks or Colab may freeze your UI) 
             result.log('train_loss', loss, prog_bar=True)
