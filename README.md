@@ -7,7 +7,7 @@
 **The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
 
 <p align="center">
-  <a href="#https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2">Masterclass</a> •
+  <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&t=2s">Masterclass</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
