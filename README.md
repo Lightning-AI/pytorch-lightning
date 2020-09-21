@@ -87,49 +87,6 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 
 ---
 
-## [PyTorch Lightning Masterclass](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
-### [New lessons weekly!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
-
-<div style="display: flex">
-  <div>
-    <p>From PyTorch to PyTorch Lightning</p>
-    <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2">
-         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/PTL101_youtube_thumbnail.jpg" width=250">
-    </a>
-  </div>
-  <div style="margin-top: 5px">
-    <p>Converting a VAE to PyTorch Lightning</p>
-    <a href="https://www.youtube.com/watch?v=QHww1JH7IDU">
-         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.jpg" width=250">
-    </a>
-  </div>
-</div>
-
----
-
-## Key Features
-
-* Scale your models to run on any hardware (CPU, GPUs, TPUs) without changing your model
-* Making code more readable by decoupling the research code from the engineering
-* Easier to reproduce
-* Less error prone by automating most of the training loop and tricky engineering
-* Keeps all the flexibility (LightningModules are still PyTorch modules), but removes a ton of boilerplate
-* Lightning has out-of-the-box integration with the popular logging/visualizing frameworks ([Tensorboard](https://pytorch.org/docs/stable/tensorboard.html), [MLFlow](https://mlflow.org/), [Neptune.ai](https://neptune.ai/), [Comet.ml](https://www.comet.ml/site/), [Wandb](https://www.wandb.com/)).
-* [Tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
-* Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
-
-### Lightning automates 40+ parts of DL/ML research
-- GPU training
-- Distributed GPU (cluster) training
-- TPU training
-- EarlyStopping
-- Logging/Visualizing
-- Checkpointing
-- Experiment management
-- [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
-
----
-
 ## How To Use
 
 #### Setup step: Install
@@ -213,6 +170,50 @@ trainer = Trainer(tpu_cores=8)
 # Single TPU core training
 trainer = Trainer(tpu_cores=[1])
 ```
+
+----
+
+
+## [PyTorch Lightning Masterclass](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+### [New lessons weekly!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
+
+<div style="display: flex">
+  <div>
+    <p>From PyTorch to PyTorch Lightning</p>
+    <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2">
+         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/PTL101_youtube_thumbnail.jpg" width=250">
+    </a>
+  </div>
+  <div style="margin-top: 5px">
+    <p>Converting a VAE to PyTorch Lightning</p>
+    <a href="https://www.youtube.com/watch?v=QHww1JH7IDU">
+         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.jpg" width=250">
+    </a>
+  </div>
+</div>
+
+---
+
+## Key Features
+
+* Scale your models to run on any hardware (CPU, GPUs, TPUs) without changing your model
+* Making code more readable by decoupling the research code from the engineering
+* Easier to reproduce
+* Less error prone by automating most of the training loop and tricky engineering
+* Keeps all the flexibility (LightningModules are still PyTorch modules), but removes a ton of boilerplate
+* Lightning has out-of-the-box integration with the popular logging/visualizing frameworks ([Tensorboard](https://pytorch.org/docs/stable/tensorboard.html), [MLFlow](https://mlflow.org/), [Neptune.ai](https://neptune.ai/), [Comet.ml](https://www.comet.ml/site/), [Wandb](https://www.wandb.com/)).
+* [Tested rigorously with every new PR](https://github.com/PyTorchLightning/pytorch-lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
+* Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
+
+### Lightning automates 40+ parts of DL/ML research
+- GPU training
+- Distributed GPU (cluster) training
+- TPU training
+- EarlyStopping
+- Logging/Visualizing
+- Checkpointing
+- Experiment management
+- [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
 
 ---
 
