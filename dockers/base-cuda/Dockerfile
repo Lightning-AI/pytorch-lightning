@@ -78,9 +78,9 @@ ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH
 # if you want this environment to be the default one, uncomment the following line:
 ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 
-COPY ./requirements/extra.txt requirements-extra.txt
-COPY ./requirements/test.txt requirements-tests.txt
-COPY ./requirements/examples.txt requirements-examples.txt
+COPY --chown=flash ./requirements/extra.txt requirements-extra.txt
+COPY --chown=flash ./requirements/test.txt requirements-tests.txt
+COPY --chown=flash ./requirements/examples.txt requirements-examples.txt
 
 RUN \
     # Disable cache
