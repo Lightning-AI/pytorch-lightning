@@ -117,7 +117,7 @@ of the 20+ hooks found in :ref:`hooks`
 
 .. code-block:: python
 
-    class LitModel(pl.LightningModule):
+    class LitAutoEncoder(pl.LightningModule):
 
         def backward(self, trainer, loss, optimizer, optimizer_idx):
             loss.backward()
