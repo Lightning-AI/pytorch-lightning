@@ -17,8 +17,7 @@ Neptune
 -------
 """
 from argparse import Namespace
-from typing import Optional, List, Dict, Any, Union, Iterable
-
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 try:
     import neptune
@@ -159,41 +158,19 @@ class NeptuneLogger(LightningLoggerBase):
         experiment_name: Optional. Editable name of the experiment.
             Name is displayed in the experiment’s Details (Metadata section) and
             in experiments view as a column.
-        upload_source_files: Optional. List of source files to be uploaded.
-            Must be list of str or single str. Uploaded sources are displayed
-            in the experiment’s Source code tab.
-            If ``None`` is passed, the Python file from which the experiment was created will be uploaded.
-            Pass an empty list (``[]``) to upload no files.
-            Unix style pathname pattern expansion is supported.
-            For example, you can pass ``'\*.py'``
-            to upload all python source files from the current directory.
-            For recursion lookup use ``'\**/\*.py'`` (for Python 3.5 and later).
-            For more information see :mod:`glob` library.
-        params: Optional. Parameters of the experiment.
-            After experiment creation params are read-only.
-            Parameters are displayed in the experiment’s Parameters section and
-            each key-value pair can be viewed in the experiments view as a column.
-        properties: Optional. Default is ``{}``. Properties of the experiment.
-            They are editable after the experiment is created.
-            Properties are displayed in the experiment’s Details section and
-            each key-value pair can be viewed in the experiments view as a column.
-        tags: Optional. Default is ``[]``. Must be list of str. Tags of the experiment.
-            They are editable after the experiment is created (see: ``append_tag()`` and ``remove_tag()``).
-            Tags are displayed in the experiment’s Details section and can be viewed
-            in the experiments view as a column.
+        \**kwargs: Additional arguments like `params`, `tags`, `properties`, etc. used by
+            :func:`neptune.Session.create_experiment` can be passed as keyword arguments in this logger.
     """
 
-    def __init__(self,
-                 api_key: Optional[str] = None,
-                 project_name: Optional[str] = None,
-                 close_after_fit: Optional[bool] = True,
-                 offline_mode: bool = False,
-                 experiment_name: Optional[str] = None,
-                 upload_source_files: Optional[List[str]] = None,
-                 params: Optional[Dict[str, Any]] = None,
-                 properties: Optional[Dict[str, Any]] = None,
-                 tags: Optional[List[str]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        project_name: Optional[str] = None,
+        close_after_fit: Optional[bool] = True,
+        offline_mode: bool = False,
+        experiment_name: Optional[str] = None,
+        **kwargs
+    ):
         if not _NEPTUNE_AVAILABLE:
             raise ImportError('You want to use `neptune` logger which is not installed yet,'
                               ' install it with `pip install neptune-client`.')
@@ -203,10 +180,6 @@ class NeptuneLogger(LightningLoggerBase):
         self.offline_mode = offline_mode
         self.close_after_fit = close_after_fit
         self.experiment_name = experiment_name
-        self.upload_source_files = upload_source_files
-        self.params = params
-        self.properties = properties
-        self.tags = tags
         self._kwargs = kwargs
         self._experiment_id = None
         self._experiment = self._create_or_get_experiment()
@@ -391,13 +364,7 @@ class NeptuneLogger(LightningLoggerBase):
             project = session.get_project(self.project_name)
 
         if self._experiment_id is None:
-            exp = project.create_experiment(
-                name=self.experiment_name,
-                params=self.params,
-                properties=self.properties,
-                tags=self.tags,
-                upload_source_files=self.upload_source_files,
-                **self._kwargs)
+            exp = project.create_experiment(name=self.experiment_name, **self._kwargs)
         else:
             exp = project.get_experiments(id=self._experiment_id)[0]
 

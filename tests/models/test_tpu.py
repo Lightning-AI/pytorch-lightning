@@ -118,12 +118,10 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
         max_epochs=1,
         tpu_cores=[tpu_core],
         limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_val_batches=0.2,
     )
 
     model = EvalModelTemplate()
@@ -228,8 +226,8 @@ def test_exception_when_no_tpu_found(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         tpu_cores=8,
     )
 
