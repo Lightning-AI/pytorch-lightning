@@ -45,16 +45,13 @@ ENV CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda"
 COPY --chown=flash environment.yml environment.yml
 
 # conda init
-RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
+RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VERSION torchvision cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
     conda init bash && \
-    # conda install -y python=$PYTHON_VERSION && \
-    conda install pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
+    # NOTE: this requires that the channel is presented in the yaml before packages
+    python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
     conda env update --file environment.yml && \
-    rm environment.yml && \
-
-# Disable cache
-    conda install "pip>20.1" && \
-    pip config set global.cache-dir false
+    conda clean -ya && \
+    rm environment.yml
 
 ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 # if you want this environment to be the default one, uncomment the following line:
@@ -65,6 +62,9 @@ COPY --chown=flash ./ ./pytorch-lightning/
 
 # install dependencies
 RUN \
+    # Disable cache
+    #conda install "pip>20.1" && \
+    #pip config set global.cache-dir false && \
     if [ -z $LIGHTNING_VERSION ] ; then \
         pip install ./pytorch-lightning --upgrade-strategy only-if-needed ; \
         rm -rf pytorch-lightning ; \
