@@ -419,6 +419,7 @@ class ModelCheckpoint(Callback):
             self._save_model(filepath, trainer, pl_module)
             if self.last_model_path and self.last_model_path != filepath:
                 self._del_model(self.last_model_path)
+            self.last_model_path = filepath
 
     def _do_check_save(
         self,
