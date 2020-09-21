@@ -11,9 +11,8 @@
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
-  <a href="#resources">Resources</a> •
+  <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
-  <a href="#faq">FAQ</a> •
   <a href="#licence">Licence</a>
 </p>
 
@@ -205,9 +204,8 @@ trainer = Trainer(tpu_cores=[1])
 
 ---
 
-## Resources
+## Examples
 
-### Examples
 ###### Hello world
 [MNIST hello world](https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL)  
 [MNIST on TPUs](https://colab.research.google.com/drive/1-_LKx4HwAxl5M6xPJmqAAu444LTDQoa3)
