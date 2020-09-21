@@ -156,7 +156,8 @@ def psnr(
     target: torch.Tensor,
     data_range: float = None,
     base: float = 10.0,
-    reduction: str = 'elementwise_mean'
+    reduction: str = 'elementwise_mean',
+    return_state: bool = False
 ) -> torch.Tensor:
     """
     Computes the peak signal-to-noise ratio
@@ -171,6 +172,8 @@ def psnr(
             - ``'elementwise_mean'``: takes the mean (default)
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied
+        return_state: returns a internal state that can be ddp reduced
+            before doing the final calculation
 
     Return:
         Tensor with PSNR score
@@ -184,14 +187,19 @@ def psnr(
 
     """
     if data_range is None:
-        data_range = max(target.max() - target.min(), pred.max() - pred.min())
+        data_range = target.max() - target.min()
     else:
         data_range = torch.tensor(float(data_range))
 
-    mse_score = mse(pred.view(-1), target.view(-1), reduction=reduction)
-    psnr_base_e = 2 * torch.log(data_range) - torch.log(mse_score)
-    psnr = psnr_base_e * (10 / torch.log(torch.tensor(base)))
-    return psnr
+    if return_state:
+        return {'data_range': data_range,
+                'squared_error': F.mse_loss(pred, target, reduction='none').sum(),
+                'n_observations': torch.tensor(target.numel())}
+    else:
+        mse_score = mse(pred.view(-1), target.view(-1), reduction=reduction)
+        psnr_base_e = 2 * torch.log(data_range) - torch.log(mse_score)
+        psnr = psnr_base_e * (10 / torch.log(torch.tensor(base)))
+        return psnr
 
 
 def _gaussian_kernel(channel, kernel_size, sigma, device):
