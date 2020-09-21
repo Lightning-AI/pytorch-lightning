@@ -78,6 +78,7 @@ ENV LD_LIBRARY_PATH="${WORKDIR}/miniconda/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH
 # if you want this environment to be the default one, uncomment the following line:
 ENV CONDA_DEFAULT_ENV=${CONDA_ENV}
 
+COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/test.txt requirements-tests.txt
 COPY ./requirements/examples.txt requirements-examples.txt
 
@@ -87,8 +88,10 @@ RUN \
     #echo ". ${WORKDIR}/miniconda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     #echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
     #source ~/.bashrc && \
+    # filter only Horovod
+    python -c "fname = 'requirements-extra.txt' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' in l])" && \
     # Install all requirements
-    pip install --global-option="--quiet" horovod && \
+    pip install --global-option="--quiet" -r requirements-extra.txt && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
     rm requirements* && \
