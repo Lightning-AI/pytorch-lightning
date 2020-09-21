@@ -5,11 +5,11 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.3 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
 
-# ARG CUDNN_VERSION=7
+ARG CUDNN_VERSION=7
 ARG CUDA_VERSION=10.1
 
-# FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
-FROM nvidia/cuda:${CUDA_VERSION}-devel
+FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
+# FROM nvidia/cuda:${CUDA_VERSION}-devel
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
@@ -68,6 +68,7 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VE
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
+    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
     conda env update --file environment.yml && \
     conda clean -ya && \
     rm environment.yml
@@ -87,6 +88,7 @@ RUN \
     #echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
     #source ~/.bashrc && \
     # Install all requirements
+    pip install --global-option="--quiet" horovod && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
     rm requirements* && \
