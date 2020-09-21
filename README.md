@@ -87,6 +87,101 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 
 ---
 
+## How To Use
+
+#### Setup step: Install
+Simple installation from PyPI
+```bash
+pip install pytorch-lightning
+```
+
+From Conda
+```bash
+conda install pytorch-lightning -c conda-forge
+```
+
+Install bleeding-edge (no guarantees)   
+```bash
+pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
+```
+
+#### Setup step: Add these imports
+
+```python
+import os
+import torch
+from torch import nn
+import torch.nn.functional as F
+from torchvision.datasets import MNIST
+from torch.utils.data import DataLoader, random_split
+from torchvision import transforms
+import pytorch_lightning as pl
+```
+
+#### Step 1: Define a LightningModule
+A LightningModule defines a full *system* (ie: a GAN, autoencoder, BERT or a simple Image Classifier).
+
+```python
+class LitAutoEncoder(pl.LightningModule):
+
+    def __init__(self):
+        super().__init__()
+        self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
+        self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        z = self.encoder(x)
+        x_hat = self.decoder(z)
+        loss = F.mse_loss(x_hat, x)
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+```
+
+#### Step 2: Train!
+
+```python
+dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
+train, val = random_split(dataset, [55000, 5000])
+
+autoencoder = LitAutoEncoder()
+trainer = pl.Trainer()
+trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
+```
+
+#### And without changing a single line of code, you could run on GPUs
+```python
+# 8 GPUs
+trainer = Trainer(max_epochs=1, gpus=8)
+
+# 256 GPUs
+trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+```
+
+Or TPUs
+```python
+# Distributes TPU core training
+trainer = Trainer(tpu_cores=8)
+
+# Single TPU core training
+trainer = Trainer(tpu_cores=[1])
+```
+
+----
+
+## Lightning philosophy
+
+- Enable maximal flexibility.
+- Abstract away unecessary boilerplate.
+- Systems should be self-contained (ie: optimizers, computation code, etc).
+- Deep learning code should be organized into 4 distinct categories (data, system, engineering, non-critical code).
+
+----
+
 ## [PyTorch Lightning Masterclass](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
 ### [New lessons weekly!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
 
@@ -127,98 +222,6 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 - Checkpointing
 - Experiment management
 - [Full list here](https://pytorch-lightning.readthedocs.io/en/latest/#common-use-cases)
-
----
-
-## How To Use
-
-##### Install
-Simple installation from PyPI
-```bash
-pip install pytorch-lightning
-```
-
-From Conda
-```bash
-conda install pytorch-lightning -c conda-forge
-```
-
-Install bleeding-edge (no guarantees)   
-```bash
-pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
-```
-
-##### Here's a minimal example without a test loop.
-
-```python
-import os
-import torch
-import torch.nn.functional as F
-from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader, random_split
-from torchvision import transforms
-import pytorch_lightning as pl
-from pytorch_lightning import Trainer
-```
-
-```python
-# this is just a plain nn.Module with some structure
-class LitClassifier(pl.LightningModule):
-
-    def __init__(self):
-        super().__init__()
-        self.l1 = torch.nn.Linear(28 * 28, 10)
-
-    def forward(self, x):
-        return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        result = pl.TrainResult(loss)
-        result.log('train_loss', loss, on_epoch=True)
-        return result
-        
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        result = pl.EvalResult(checkpoint_on=loss)
-        result.log('val_loss', loss)
-        return result
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.02)
-
-# train!
-dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-train, val = random_split(dataset, [55000, 5000])
-
-model = LitClassifier()
-trainer = Trainer()
-trainer.fit(model, DataLoader(train), DataLoader(val))
-```
-
-#### And without changing a single line of code, you could run on GPUs
-```python
-# 8 GPUs
-
-
-trainer = Trainer(max_epochs=1, gpus=8)
-
-# 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
-```
-
-Or TPUs
-```python
-# Distributes TPU core training
-trainer = Trainer(tpu_cores=8)
-
-# Single TPU core training
-trainer = Trainer(tpu_cores=[1])
-```
 
 ---
 

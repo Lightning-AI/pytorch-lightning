@@ -9,6 +9,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from tests.base import EvalModelTemplate
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class EarlyStoppingTestRestore(EarlyStopping):
@@ -63,7 +64,9 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         resume_from_checkpoint=checkpoint_filepath,
         early_stop_callback=early_stop_callback,
     )
-    new_trainer.fit(model)
+
+    with pytest.raises(MisconfigurationException, match=r'.*you restored a checkpoint with current_epoch*'):
+        new_trainer.fit(model)
 
 
 def test_early_stopping_no_extraneous_invocations(tmpdir):

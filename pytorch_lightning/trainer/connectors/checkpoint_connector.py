@@ -33,6 +33,7 @@ from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 from pytorch_lightning.accelerators.base_backend import Accelerator
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 try:
     from apex import amp
@@ -144,6 +145,14 @@ class CheckpointConnector:
 
         self.trainer.global_step = checkpoint['global_step']
         self.trainer.current_epoch = checkpoint['epoch']
+
+        # crash if max_epochs is lower than the current epoch from the checkpoint
+        if self.trainer.current_epoch > self.trainer.max_epochs:
+            m = f"""
+            you restored a checkpoint with current_epoch={self.trainer.current_epoch}
+            but the Trainer(max_epochs={self.trainer.max_epochs})
+            """
+            raise MisconfigurationException(m)
 
         # Division deals with global step stepping once per accumulated batch
         # Inequality deals with different global step for odd vs even num_training_batches

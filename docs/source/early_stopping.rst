@@ -18,9 +18,10 @@ If you do this repeatedly, for every epoch you had originally requested, then th
 
 Default Epoch End Callback Behavior
 -----------------------------------
-By default early stopping will be enabled if `'val_loss'`
-is found in :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`'s
-return dict. Otherwise training will proceed with early stopping disabled.
+By default early stopping will be enabled if the `early_stop_on` key in the EvalResult object is used
+in either the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method or
+the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
+
 
 ----------
 
