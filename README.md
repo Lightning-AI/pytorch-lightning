@@ -46,11 +46,10 @@ Lightning disentangles PyTorch code to decouple the science from the engineering
 ## Lightning Philosophy
 Lightning is designed with these principles in mind:
 
-Principle 1: Enable maximal flexibility.
-Principle 2: Abstract away unecessary boilerplate, but make it accessible when needed.
-Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).
-
-Principle 4: Finally, Deep learning code should be organized into 4 distinct categories
+Principle 1: Enable maximal flexibility.   
+Principle 2: Abstract away unecessary boilerplate, but make it accessible when needed.    
+Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).    
+Principle 4: Deep learning code should be organized into 4 distinct categories.    
 
   - Research code (the LightningModule).
   - Engineering code (you delete, and is handled by the Trainer).
