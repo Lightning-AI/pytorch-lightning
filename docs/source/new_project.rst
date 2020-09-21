@@ -160,12 +160,16 @@ Option 1: Pull out the relevant parts you need for prediction
 
 .. code-block:: python
 
+    # ----------------------------------
     # to use as embedding extractor
+    # ----------------------------------
     autoencoder = LitAutoEncoder.load_from_checkpoint('path/to/checkpoint_file.ckpt')
     model = autoencoder.encoder
     model.eval()
 
+    # ----------------------------------
     # to use as image generator
+    # ----------------------------------
     model = autoencoder.decoder
     model.eval()
 
@@ -173,7 +177,9 @@ Option 2: Add a forward method to enable predictions however you want.
 
 .. code-block:: python
 
+    # ----------------------------------
     # using the AE to extract embeddings
+    # ----------------------------------
     class LitAutoEncoder(pl.LightningModule):
         def forward(self, x):
             embedding = self.encoder(x)
@@ -181,7 +187,9 @@ Option 2: Add a forward method to enable predictions however you want.
     autoencoder = LitAutoencoder()
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
 
+    # ----------------------------------
     # or using the AE to generate images
+    # ----------------------------------
     class LitAutoEncoder(pl.LightningModule):
         def forward(self):
             z = torch.rand(1, 28 * 28)
@@ -196,12 +204,16 @@ Option 3: Or for a production system
 
 .. code-block:: python
 
+    # ----------------------------------
     # torchscript
+    # ----------------------------------
     model = LitAutoEncoder()
     torch.jit.save(model.to_torchscript(), "model.pt")
     os.path.isfile("model.pt")
 
+    # ----------------------------------
     # onnx
+    # ----------------------------------
     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
          model = LitAutoEncoder()
          input_sample = torch.randn((1, 28 * 28))
