@@ -54,8 +54,7 @@ Example: Imagenet (computer Vision)
         def __init__(self):
             # init a pretrained resnet
             num_target_classes = 10
-            self.feature_extractor = models.resnet50(
-                                        pretrained=True,)
+            self.feature_extractor = models.resnet50(pretrained=True)
             self.feature_extractor.eval()
 
             # use the pretrained model to classify cifar-10 (10 image classes)
