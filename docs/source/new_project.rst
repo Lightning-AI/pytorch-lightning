@@ -140,7 +140,7 @@ More details in :ref:`lightning_module` docs.
 Step 2: Fit with a Trainer
 **************************
 
-First, define the data in whatever way you want. Lightning just needs a dataloader per split you might want.
+First, define the data however you want. Lightning just needs a dataloader for any split you want (train/val/test).
 
 .. code-block:: python
 
