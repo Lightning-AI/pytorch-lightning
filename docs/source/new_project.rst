@@ -103,7 +103,7 @@ Step 1: Define LightningModule
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
-A :class:`~pytorch_lightning.core.LightningModule` defines a **system** such as:
+A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
 
 - Autoencoder
 - BERT
