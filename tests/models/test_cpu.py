@@ -88,7 +88,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
+    stopping = EarlyStopping(monitor='early_stop_on', min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,

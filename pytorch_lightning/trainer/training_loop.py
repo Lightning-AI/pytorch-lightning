@@ -317,7 +317,7 @@ class TrainLoop:
 
             # handle regular dicts
             if not is_result_obj:
-                training_step_output = self.trainer.process_output(training_step_output, train=True)
+                training_step_output = self.trainer.process_dict_result(training_step_output, train=True)
 
                 training_step_output = AttributeDict(
                     batch_loss=training_step_output[0],

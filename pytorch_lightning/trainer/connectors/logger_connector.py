@@ -104,12 +104,15 @@ class LoggerConnector:
         return self.__log_evaluation_epoch_metrics_2(eval_results, test_mode)
 
     def _log_on_evaluation_epoch_end_metrics(self, eval_results, using_eval_result):
+        if len(eval_results) > 0 and eval_results[0] is None:
+            return
+
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
-                    self.trainer.logger_connector.callback_metrics = eval_result.callback_metrics
+                    self.trainer.logger_connector.callback_metrics.update(eval_result.callback_metrics)
             else:
-                self.trainer.logger_connector.callback_metrics = eval_results.callback_metrics
+                self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
         else:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
@@ -118,6 +121,11 @@ class LoggerConnector:
                         flat = {'val_loss': eval_result}
                     else:
                         flat = flatten_dict(eval_result)
+
+                    # removing val_loss magic word to map to checkpoint + ES callback
+                    if 'val_loss' in flat:
+                        flat['checkpoint_on'] = flat['val_loss']
+                        flat['early_stop_on'] = flat['val_loss']
                     self.trainer.logger_connector.callback_metrics.update(flat)
             else:
                 # with a scalar return, auto set it to "val_loss" for callbacks
@@ -125,6 +133,11 @@ class LoggerConnector:
                     flat = {'val_loss': eval_results}
                 else:
                     flat = flatten_dict(eval_results)
+
+                # removing val_loss magic word to map to checkpoint + ES callback
+                if 'val_loss' in flat:
+                    flat['checkpoint_on'] = flat['val_loss']
+                    flat['early_stop_on'] = flat['val_loss']
                 self.trainer.logger_connector.callback_metrics.update(flat)
 
     def __log_evaluation_epoch_metrics_2(self, eval_results, test_mode):
@@ -148,7 +161,7 @@ class LoggerConnector:
                     if test_mode:
                         callback_metrics = {}
                 else:
-                    _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_output(result)
+                    _, prog_bar_metrics, log_metrics, callback_metrics, _ = self.trainer.process_dict_result(result)
 
                 # eval loop returns all metrics
                 dataloader_result_metrics = {**prog_bar_metrics, **log_metrics, **callback_metrics}
@@ -236,7 +249,7 @@ class LoggerConnector:
                 epoch_log_metrics = epoch_output.epoch_log_metrics
                 epoch_progress_bar_metrics = epoch_output.epoch_pbar_metrics
             else:
-                _processed_outputs = self.trainer.process_output(epoch_output)
+                _processed_outputs = self.trainer.process_dict_result(epoch_output)
                 epoch_progress_bar_metrics = _processed_outputs[1]
                 epoch_log_metrics = _processed_outputs[2]
                 epoch_callback_metrics = _processed_outputs[3]

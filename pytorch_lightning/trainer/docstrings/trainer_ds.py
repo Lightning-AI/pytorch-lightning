@@ -66,21 +66,6 @@ init = r"""
 
             limit_test_batches: How much of test dataset to check (floats = percent, int = num_batches)
 
-            train_percent_check:
-                .. warning:: .. deprecated:: 0.8.0
-
-                    Use `limit_train_batches` instead. Will remove v0.10.0.
-
-            val_percent_check:
-                .. warning:: .. deprecated:: 0.8.0
-
-                    Use `limit_val_batches` instead. Will remove v0.10.0.
-
-            test_percent_check:
-                .. warning:: .. deprecated:: 0.8.0
-
-                    Use `limit_test_batches` instead. Will remove v0.10.0.
-
             val_check_interval: How often to check the validation set. Use float to check within a training epoch,
                 use int to check every n steps (batches).
 

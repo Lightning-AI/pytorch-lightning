@@ -350,7 +350,7 @@ Example::
         filepath=os.getcwd(),
         save_top_k=True,
         verbose=True,
-        monitor='val_loss',
+        monitor='checkpoint_on',
         mode='min',
         prefix=''
     )
@@ -411,10 +411,13 @@ early_stop_callback
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
-- ``True``: A default callback monitoring ``'val_loss'`` is created.
-   Will raise an error if ``'val_loss'`` is not found.
+- ``True``: A default callback monitoring ``'early_stop_on'`` (if dict is returned in validation loop) or
+  ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
+  Will raise an error if a dictionary is returned and ``'early_stop_on'`` is not found.
+  Will raise an error if a :class:`~pytorch_lightning.core.step_result.Result` is returned
+  and ``early_stopping_on`` was not specified.
 - ``False``: Early stopping will be disabled.
-- ``None``: The default callback monitoring ``'val_loss'`` is created.
+- ``None``: Same as, if ``True`` is specified.
 - Default: ``None``.
 
 .. testcode::
@@ -423,7 +426,7 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
     # default used by the Trainer
     early_stop = EarlyStopping(
-        monitor='val_loss',
+        monitor='early_stop_on',
         patience=3,
         strict=False,
         verbose=False,
@@ -431,7 +434,7 @@ early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
     )
     trainer = Trainer(early_stop_callback=early_stop)
 
-.. note:: If ``'val_loss'`` is not found will work as if early stopping is disabled.
+.. note:: If ``'early_stop_on'`` is not found will work as if early stopping is disabled.
 
 fast_dev_run
 ^^^^^^^^^^^^
@@ -928,21 +931,6 @@ Enable synchronization between batchnorm layers across all GPUs.
 .. testcode::
 
     trainer = Trainer(sync_batchnorm=True)
-
-val_percent_check
-^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 0.10.0
-
-test_percent_check
-^^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 0.10.0
-
-train_percent_check
-^^^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_train_batches`. Will remove in 0.10.0
 
 track_grad_norm
 ^^^^^^^^^^^^^^^

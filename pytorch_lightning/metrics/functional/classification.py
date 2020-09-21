@@ -598,12 +598,12 @@ def roc(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> y = torch.tensor([0, 1, 1, 1])
         >>> fpr, tpr, thresholds = roc(x, y)
         >>> fpr
-        tensor([0.0000, 0.3333, 0.6667, 0.6667, 1.0000])
+        tensor([0., 0., 0., 0., 1.])
         >>> tpr
-        tensor([0., 0., 0., 1., 1.])
+        tensor([0.0000, 0.3333, 0.6667, 1.0000, 1.0000])
         >>> thresholds
         tensor([4, 3, 2, 1, 0])
 
@@ -696,12 +696,12 @@ def precision_recall_curve(
     Example:
 
         >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> target = torch.tensor([0, 1, 1, 0])
         >>> precision, recall, thresholds = precision_recall_curve(pred, target)
         >>> precision
-        tensor([0.3333, 0.0000, 0.0000, 1.0000])
+        tensor([0.6667, 0.5000, 0.0000, 1.0000])
         >>> recall
-        tensor([1., 0., 0., 0.])
+        tensor([1.0000, 0.5000, 0.0000, 0.0000])
         >>> thresholds
         tensor([1, 2, 3])
 
@@ -872,10 +872,14 @@ def auroc(
     Example:
 
         >>> x = torch.tensor([0, 1, 2, 3])
-        >>> y = torch.tensor([0, 1, 2, 2])
+        >>> y = torch.tensor([0, 1, 1, 0])
         >>> auroc(x, y)
-        tensor(0.3333)
+        tensor(0.5000)
     """
+    if any(target > 1):
+        raise ValueError('AUROC metric is meant for binary classification, but'
+                         ' target tensor contains value different from 0 and 1.'
+                         ' Multiclass is currently not supported.')
 
     @auc_decorator(reorder=True)
     def _auroc(pred, target, sample_weight, pos_label):

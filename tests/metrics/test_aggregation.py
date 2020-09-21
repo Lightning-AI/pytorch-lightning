@@ -177,8 +177,6 @@ TESTS = [
 ]
 
 # Utility test functions
-
-
 def idsfn(val):
     """ Return id for current example being tested """
     return val.name
@@ -216,8 +214,8 @@ def _test_ddp_single_batch(rank, worldsize, lightning_metric, comparing_metric, 
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.parametrize("example", TESTS, ids=idsfn)
-def test_ddp(example):
+@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+def test_ddp(test):
     """Make sure that metrics are correctly sync and reduced in DDP mode"""
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -225,19 +223,19 @@ def test_ddp(example):
     worldsize = 2
     mp.spawn(_test_ddp_single_batch,
              args=(worldsize,
-                   example.lightning_metric,
-                   example.comparing_metric,
-                   example.test_input),
+                   test.lightning_metric,
+                   test.comparing_metric,
+                   test.test_input),
              nprocs=worldsize)
 
 
-@pytest.mark.parametrize("example", TESTS, ids=idsfn)
-def test_multi_batch(example):
+@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+def test_multi_batch(test):
     """ test that aggregation works for multiple batches """
-    lightning_metric = example.lightning_metric()
-    comparing_metric = example.comparing_metric
+    lightning_metric = test.lightning_metric()
+    comparing_metric = test.comparing_metric
 
-    for test_input in example.test_input:
+    for test_input in test.test_input:
         for i in range(2):  # for lightning device in 2 artificially batches
             _ = lightning_metric(*[ti[i::2] for ti in test_input])
         lightning_val = lightning_metric.aggregated
@@ -246,14 +244,13 @@ def test_multi_batch(example):
         comparing_fn(lightning_val, comparing_val)
 
 
-@pytest.mark.parametrize("example", TESTS, ids=idsfn)
-def test_multi_batch_unequal_sizes(example):
+@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+def test_multi_batch_unequal_sizes(test):
     """ test that aggregation works for multiple batches with uneven sizes """
-    lightning_metric = example.lightning_metric()
-    comparing_metric = example.comparing_metric
+    lightning_metric = test.lightning_metric()
+    comparing_metric = test.comparing_metric
 
-    for test_input in example.test_input:
-
+    for test_input in test.test_input:
         for i in range(2):  # for lightning device in 2 artificially batches
             if i == 0:  # allocate 3/4 of data to the first batch
                 _ = lightning_metric(*[ti[:int(3 / 4 * len(ti))] for ti in test_input])
@@ -280,8 +277,8 @@ def _test_ddp_multi_batch(rank, worldsize, lightning_metric, comparing_metric, t
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.parametrize("example", TESTS, ids=idsfn)
-def test_ddp_multi_batch(example):
+@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+def test_ddp_multi_batch(test):
     """ test that aggregation works fine with in DDP mode and multiple batches """
     tutils.reset_seed()
     tutils.set_random_master_port()
@@ -289,19 +286,20 @@ def test_ddp_multi_batch(example):
     worldsize = 2
     mp.spawn(_test_ddp_multi_batch,
              args=(worldsize,
-                   example.lightning_metric,
-                   example.comparing_metric,
-                   example.test_input),
+                   test.lightning_metric,
+                   test.comparing_metric,
+                   test.test_input),
              nprocs=worldsize)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+
 @pytest.mark.parametrize("distributed_backend", ["dp", "ddp_spawn"])
-@pytest.mark.parametrize("example", TESTS, ids=idsfn)
-def test_model_integration(tmpdir, distributed_backend, example):
+@pytest.mark.parametrize("test", TESTS, ids=idsfn)
+def test_model_integration(tmpdir, distributed_backend, test):
     """ test model that metrics work with lightning module and trainer """
 
-    if 'confusion matrix' in example.name:
+    if 'confusion matrix' in test.name:
         pytest.skip()  # confusion matrix does not return scalar output, so we skip these
 
     # setup ports for ddp
@@ -309,12 +307,12 @@ def test_model_integration(tmpdir, distributed_backend, example):
 
     # setup model with metric
     model = EvalModelTemplate()
-    model.metric = example.lightning_metric()
+    model.metric = test.lightning_metric()
     model.test_step = model.test_step__metrics
     model.test_epoch_end = model.test_epoch_end__metrics
 
     # here we only run with the first test_data
-    test_input = example.test_input[0]
+    test_input = test.test_input[0]
     dataset = torch.utils.data.TensorDataset(*test_input)
     # divide data into 2 batches
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=int(len(test_input[0]) / 2))
@@ -328,6 +326,6 @@ def test_model_integration(tmpdir, distributed_backend, example):
     trainer = Trainer(**trainer_options)
 
     lightning_val = trainer.test(model, test_dataloaders=dataloader)[0]['metric_val']
-    comparing_val = example.comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
+    comparing_val = test.comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
 
-    assert np.allclose(lightning_val, comparing_val, rtol=1e-3)
+    comparing_fn(lightning_val, comparing_val)

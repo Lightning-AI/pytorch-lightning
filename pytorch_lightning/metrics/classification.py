@@ -394,7 +394,7 @@ class AUROC(TensorMetric):
     Example:
 
         >>> pred = torch.tensor([0, 1, 2, 3])
-        >>> target = torch.tensor([0, 1, 2, 2])
+        >>> target = torch.tensor([0, 1, 1, 0])
         >>> metric = AUROC()
         >>> metric(pred, target)
         tensor(0.3333)

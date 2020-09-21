@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
+import os
 import re
 import torch
 
@@ -22,6 +22,7 @@ import torch.distributed as dist
 from pytorch_lightning.utilities.cloud_io import atomic_save
 from pytorch_lightning.utilities.distributed import rank_zero_warn, rank_zero_only
 from pytorch_lightning import _logger as log
+from pytorch_lightning.utilities.seed import seed_everything
 
 try:
     from hydra.utils import to_absolute_path, get_original_cwd
@@ -97,6 +98,11 @@ class DDPBase(Accelerator):
         Returns:
 
         """
+        seed = os.environ.get("PL_GLOBAL_SEED")
+        if seed is not None:
+            seed_everything(int(seed))
+
+
         # offset the process id if requested
         process_idx = process_idx + proc_offset
 

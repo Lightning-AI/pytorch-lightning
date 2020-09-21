@@ -42,7 +42,7 @@ def _info(*args, **kwargs):
 
 
 def _debug(*args, **kwargs):
-    log.info(*args, **kwargs)
+    log.debug(*args, **kwargs)
 
 
 rank_zero_debug = rank_zero_only(_debug)

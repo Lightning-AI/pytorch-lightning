@@ -29,7 +29,6 @@ from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
@@ -78,7 +77,6 @@ class Trainer(
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerDeprecatedAPITillVer0_10,
 ):
     def __init__(
         self,
@@ -130,9 +128,6 @@ class Trainer(
         prepare_data_per_node: bool = True,
         amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
-        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
     ):
         super().__init__()
@@ -227,9 +222,6 @@ class Trainer(
         # init debugging flags
         self.debugging_connector.on_init_start(
             overfit_pct,
-            val_percent_check,
-            test_percent_check,
-            train_percent_check,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
@@ -280,7 +272,6 @@ class Trainer(
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
-    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -288,6 +279,8 @@ class Trainer(
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
+        self._state = TrainerState.RUNNING
+
         # setup data, etc...
         self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
@@ -321,6 +314,9 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
+
+        if self._state != TrainerState.INTERRUPTED:
+            self._state = TrainerState.FINISHED
         return results or 1
 
     def train(self):
@@ -510,7 +506,7 @@ class Trainer(
                 if isinstance(eval_results, EvalResult):
                     callback_metrics = eval_results.callback_metrics
                 else:
-                    _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
                 self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
