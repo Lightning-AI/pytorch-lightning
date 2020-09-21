@@ -88,8 +88,8 @@ Step 1: Define LightningModule
 
         def __init__(self):
             super().__init__()
-            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 11))
-            self.decoder = nn.Sequential(nn.Linear(11, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
+            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
+            self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
 
         def forward(self, x):
             # for inference we want to extract embeddings
@@ -168,9 +168,10 @@ First, define the data in whatever way you want. Lightning just needs a dataload
 .. code-block:: python
 
     # init model
-    model = LitModel()
+    model = LitAutoEncoder()
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
+    # trainer = pl.Trainer(gpus=8) (if you have GPUs)
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
