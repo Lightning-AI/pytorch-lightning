@@ -490,12 +490,28 @@ class FBeta(TensorMetric):
         Return:
             torch.Tensor: classification score
         """
-        return fbeta_score(pred=pred, target=target,
-                           beta=self.beta, num_classes=self.num_classes,
-                           class_reduction=self.class_reduction)
+        return precision_recall(pred=pred, target=target,
+                                num_classes=self.num_classes,
+                                class_reduction='none',
+                                return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ tps, fps, fns, sups needs to be synced before we do any calculations """
+        tps, fps, fns, sups = output['tps'], output['fps'], output['fns'], output['sups']
+
+        intermidiate_reduction = 'none' if self.class_reduction != "micro" else 'micro'
+        precision = class_reduce(tps, tps + fps, sups, class_reduction=intermidiate_reduction)
+        recall = class_reduce(tps, tps + fns, sups, class_reduction=intermidiate_reduction)
+
+        num = (1 + self.beta ** 2) * precision * recall
+        denom = ((self.beta ** 2) * precision + recall)
+        if intermidiate_reduction == 'micro':
+            return torch.sum(num) / torch.sum(denom)
+        return class_reduce(num, denom, sups, class_reduction=self.class_reduction)
 
 
-class F1(TensorMetric):
+class F1(FBeta):
     """
     Computes the F1 score, which is the harmonic mean of the precision and recall.
     It ranges between 1 and 0, where 1 is perfect and the worst value is 0.
@@ -527,7 +543,7 @@ class F1(TensorMetric):
 
             reduce_group: the process group to reduce metric results from DDP
         """
-        super().__init__(
+        super(TensorMetric, self).__init__(
             name="f1",
             reduce_group=reduce_group,
         )
@@ -535,21 +551,7 @@ class F1(TensorMetric):
         self.num_classes = num_classes
         assert class_reduction in ('micro', 'macro', 'weighted', 'none')
         self.class_reduction = class_reduction
-
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        Actual metric computation
-
-        Args:
-            pred: predicted labels
-            target: groundtruth labels
-
-        Return:
-            torch.Tensor: classification score
-        """
-        return f1_score(pred=pred, target=target,
-                        num_classes=self.num_classes,
-                        class_reduction=self.class_reduction)
+        self.beta = 1.0
 
 
 class ROC(TensorMetric):
