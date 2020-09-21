@@ -64,14 +64,13 @@ class OptimizerConnector:
                                 f' which is not available. Available metrics are: {avail_metrics}.'
                                 ' Condition can be set using `monitor` key in lr scheduler dict'
                             )
-                        else:
-                            rank_zero_warn(
-                                f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                                f' which is not available but strict is set to `False`.'
-                                f' Skipping learning rate update.',
-                                RuntimeWarning,
-                            )
-                            continue
+                        rank_zero_warn(
+                            f'ReduceLROnPlateau conditioned on metric {monitor_key}'
+                            f' which is not available but strict is set to `False`.'
+                            f' Skipping learning rate update.',
+                            RuntimeWarning,
+                        )
+                        continue
                     # update LR
                     old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                     lr_scheduler['scheduler'].step(monitor_val)
