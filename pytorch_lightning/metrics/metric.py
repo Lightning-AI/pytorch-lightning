@@ -57,12 +57,13 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     """
 
-    def __init__(self, name: str, reduce_group: Optional[Any] = None):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, default_agg: str = torch.sum):
         """
         Args:
             name: the metric's name
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
+            default_agg: default aggregation function
 
         """
         super().__init__()
@@ -73,6 +74,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self.reduce_group = reduce_group
 
         self._step_vals = []
+        self._agg_fn = default_agg
 
         # Register hooks
         self.register_forward_pre_hook(self.input_convert)
@@ -165,9 +167,9 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
-                return {k: torch.stack([t for t in tensors[k]]).sum(0) for k in tensors.keys()}
+                return {k: self._agg_fn(torch.stack([t for t in tensors[k]]), 0) for k in tensors.keys()}
             if isinstance(tensors, list):
-                return torch.stack([t for t in tensors]).sum(0)
+                return self._agg_fn(torch.stack([t for t in tensors]), 0)
             if isinstance(tensors, tuple):
                 return tensors
             if isinstance(tensors, torch.Tensor):
@@ -177,11 +179,11 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             raise TypeError("unknown metric value format to aggregate")
         else:
             if isinstance(tensors[0], Mapping):
-                return {k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys()}
+                return {k: self._agg_fn(torch.stack([tensor[k] for tensor in tensors]), 0) for k in tensors[0].keys()}
             if isinstance(tensors[0], Sequence):
-                return tuple([torch.stack(tmp).sum(0) for tmp in zip(*tensors)])
+                return tuple([self._agg_fn(torch.stack(tmp), 0) for tmp in zip(*tensors)])
             if isinstance(tensors[0], torch.Tensor):
-                return torch.stack(tensors).sum(0)
+                return self._agg_fn(torch.stack(tensors), 0)
             raise TypeError("unknown metric value format to aggregate")
 
     @staticmethod

@@ -15,27 +15,50 @@ import tests.base.develop_utils as tutils
 from pytorch_lightning.metrics import (
     Accuracy,
     ConfusionMatrix,
-    # PrecisionRecallCurve
+    PrecisionRecallCurve,
     Precision,
     Recall,
     AveragePrecision,
+    AUROC,
+    FBeta,
+    F1,
+    ROC,
+    MulticlassROC,
+    MulticlassPrecisionRecallCurve,
+    DiceCoefficient,
+    IoU,
     MAE,
     MSE,
-    RMSE
+    RMSE,
+    RMSLE,
+    PSNR,
+    SSIM,
 )
 
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
+    precision_recall_curve,
     precision_score,
     recall_score,
     average_precision_score,
+    roc_auc_score,
+    fbeta_score,
+    f1_score,
+    roc_curve,
+    jaccard_score,
     mean_squared_error,
-    mean_absolute_error
+    mean_absolute_error,
+    mean_squared_log_error
+)
+
+from skimage.metrics import (
+    peak_signal_noise_ratio,
+    structural_similarity
 )
 
 # example structure
-Example = namedtuple('example', ['name', 'lightning_metric', 'comparing_metric', 'test_input'])
+TestCase = namedtuple('example', ['name', 'lightning_metric', 'comparing_metric', 'test_input'])
 
 # setup some standard testcases
 N_samples = 200
@@ -43,54 +66,117 @@ multiclass_example = [(torch.randint(10, (N_samples,)), torch.randint(10, (N_sam
 binary_example = [(torch.randint(2, (N_samples,)), torch.randint(2, (N_samples,)))]
 multiclass_and_binary_example = [*multiclass_example, *binary_example]
 binary_example_logits = (torch.randint(2, (N_samples,)), torch.randint(5, (N_samples,)))
-regression_example = [(torch.randn((N_samples,)), torch.randn((N_samples,)))]
+multiclass_example_probs = (torch.randint(10, (N_samples,)), torch.randn((N_samples, 10)).softmax(-1))
+regression_example = [(torch.rand((N_samples,)), torch.rand((N_samples,)))]
+
 
 # construct additional test functions
-
-
 def root_mean_squared_error(x, y):
     return math.sqrt(mean_squared_error(x, y))
 
 
-# Examples tested
-EXAMPLES = [
-    Example('accuracy',
-            Accuracy,
-            accuracy_score,
-            multiclass_and_binary_example),
-    Example('confusion matrix without normalize',
-            ConfusionMatrix,
-            confusion_matrix,
-            multiclass_and_binary_example),
-    Example('confusion matrix with normalize',
-            partial(ConfusionMatrix, normalize=True),
-            partial(confusion_matrix, normalize='true'),
-            multiclass_and_binary_example),
-    Example('precision',
-            Precision,
-            partial(precision_score, average='micro'),
-            multiclass_and_binary_example),
-    Example('recall',
-            Recall,
-            partial(recall_score, average='micro'),
-            multiclass_and_binary_example),
-    # Example('average_precision',
-    #         AveragePrecision,
-    #         average_precision_score,
-    #         binary_example)
-    Example('mean absolute error',
-            MAE,
-            mean_absolute_error,
-            regression_example),
-    Example('mean squared error',
-            MSE,
-            mean_squared_error,
-            regression_example),
-    Example('root mean squared error',
-            RMSE,
-            root_mean_squared_error,
-            regression_example)
+def multiclass_roc(x, y):
+    class_labels = np.unique(x)
+    pass
+
+
+def multiclass_precision_recall_curve(x, y):
+    pass
+
+
+def root_mean_squared_log_error(x, y):
+    return math.sqrt(mean_squared_log_error(x, y))
+
+
+# Define testcases
+TESTS = [
+    TestCase('accuracy',
+             Accuracy,
+             accuracy_score,
+             multiclass_and_binary_example),
+    TestCase('confusion matrix without normalize',
+             ConfusionMatrix,
+             confusion_matrix,
+             multiclass_and_binary_example),
+    TestCase('confusion matrix with normalize',
+             partial(ConfusionMatrix, normalize=True),
+             partial(confusion_matrix, normalize='true'),
+             multiclass_and_binary_example),
+    TestCase('precision recall curve',
+             PrecisionRecallCurve,
+             precision_recall_curve,
+             binary_example),
+    TestCase('precision',
+             Precision,
+             partial(precision_score, average='micro'),
+             multiclass_and_binary_example),
+    TestCase('recall',
+             Recall,
+             partial(recall_score, average='micro'),
+             multiclass_and_binary_example),
+    TestCase('average_precision',
+             AveragePrecision,
+             average_precision_score,
+             binary_example),
+    TestCase('auroc',
+             AUROC,
+             roc_auc_score,
+             binary_example),
+    TestCase('f beta',
+             partial(FBeta, beta=2),
+             partial(fbeta_score, average='micro', beta=2),
+             multiclass_and_binary_example),
+    TestCase('f1',
+             F1,
+             partial(f1_score, average='micro'),
+             multiclass_and_binary_example),
+    TestCase('roc',
+             ROC,
+             roc_curve,
+             binary_example),
+    TestCase('multiclass roc',
+             MulticlassROC,
+             multiclass_roc,
+             binary_example),
+    TestCase('multiclass precision recall curve',
+             MulticlassPrecisionRecallCurve,
+             multiclass_precision_recall_curve,
+             binary_example),
+    TestCase('dice coefficient',
+             DiceCoefficient,
+             partial(f1_score, average='micro'),
+             multiclass_and_binary_example),
+    TestCase('intersection over union',
+             IoU,
+             partial(jaccard_score, average='macro'),
+             binary_example),
+    TestCase('mean squared error',
+             MSE,
+             mean_squared_error,
+             regression_example),
+    TestCase('root mean squared error',
+             RMSE,
+             root_mean_squared_error,
+             regression_example),
+    TestCase('mean absolute error',
+             MAE,
+             mean_absolute_error,
+             regression_example),
+    TestCase('root mean squared log error',
+             RMSLE,
+             root_mean_squared_log_error,
+             regression_example),
+    TestCase('peak signal-to-noise ratio',
+             PSNR,
+             peak_signal_noise_ratio,
+             regression_example),
+    TestCase('structual similarity index measure',
+             SSIM,
+             structural_similarity,
+             regression_example)
 ]
+
+# Utility test functions
 
 
 def idsfn(val):
@@ -106,6 +192,17 @@ def _setup_ddp(rank, worldsize):
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
+def comparing_fn(lightning_val, comparing_val):
+    """ function for comparing output, both multi and single output"""
+    # multi output
+    if isinstance(comparing_val, tuple):
+        for l_score, c_score in zip(lightning_val, comparing_val):
+            assert np.allclose(l_score.numpy(), c_score, rtol=1e-3)
+    else:  # single output
+        assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
+
+
+# ===== Tests start here =====
 def _test_ddp_single_batch(rank, worldsize, lightning_metric, comparing_metric, test_inputs):
     _setup_ddp(rank, worldsize)
 
@@ -114,11 +211,12 @@ def _test_ddp_single_batch(rank, worldsize, lightning_metric, comparing_metric, 
     for test_input in test_inputs:
         lightning_val = lightning_metric(*[ti[rank::2] for ti in test_input])
         comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
-        assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
+
+        comparing_fn(lightning_val, comparing_val)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
+@pytest.mark.parametrize("example", TESTS, ids=idsfn)
 def test_ddp(example):
     """Make sure that metrics are correctly sync and reduced in DDP mode"""
     tutils.reset_seed()
@@ -133,7 +231,7 @@ def test_ddp(example):
              nprocs=worldsize)
 
 
-@pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
+@pytest.mark.parametrize("example", TESTS, ids=idsfn)
 def test_multi_batch(example):
     """ test that aggregation works for multiple batches """
     lightning_metric = example.lightning_metric()
@@ -144,10 +242,11 @@ def test_multi_batch(example):
             _ = lightning_metric(*[ti[i::2] for ti in test_input])
         lightning_val = lightning_metric.aggregated
         comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
-        assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
+
+        comparing_fn(lightning_val, comparing_val)
 
 
-@pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
+@pytest.mark.parametrize("example", TESTS, ids=idsfn)
 def test_multi_batch_unequal_sizes(example):
     """ test that aggregation works for multiple batches with uneven sizes """
     lightning_metric = example.lightning_metric()
@@ -162,7 +261,8 @@ def test_multi_batch_unequal_sizes(example):
                 _ = lightning_metric(*[ti[int(3 / 4 * len(ti)):] for ti in test_input])
         lightning_val = lightning_metric.aggregated
         comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
-        assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
+
+        comparing_fn(lightning_val, comparing_val)
 
 
 def _test_ddp_multi_batch(rank, worldsize, lightning_metric, comparing_metric, test_inputs):
@@ -175,11 +275,12 @@ def _test_ddp_multi_batch(rank, worldsize, lightning_metric, comparing_metric, t
             _ = lightning_metric(*[ti[i + worldsize * rank::4] for ti in test_input])
         lightning_val = lightning_metric.aggregated
         comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
-        assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
+
+        comparing_fn(lightning_val, comparing_val)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="DDP not available on windows")
-@pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
+@pytest.mark.parametrize("example", TESTS, ids=idsfn)
 def test_ddp_multi_batch(example):
     """ test that aggregation works fine with in DDP mode and multiple batches """
     tutils.reset_seed()
@@ -195,8 +296,8 @@ def test_ddp_multi_batch(example):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize("distributed_backend", ["dp", "ddp"])
-@pytest.mark.parametrize("example", EXAMPLES, ids=idsfn)
+@pytest.mark.parametrize("distributed_backend", ["dp", "ddp_spawn"])
+@pytest.mark.parametrize("example", TESTS, ids=idsfn)
 def test_model_integration(tmpdir, distributed_backend, example):
     """ test model that metrics work with lightning module and trainer """
 
