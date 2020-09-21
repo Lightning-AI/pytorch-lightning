@@ -1,12 +1,12 @@
 NeMo
 ====
 
-`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building
-Conversational AI applications. NeMo has separate collections for Automatic Speech Recognition (ASR), 
+`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is a toolkit for building new State-of-the-Art 
+Conversational AI models. NeMo has separate collections for Automatic Speech Recognition (ASR), 
 Natural Language Processing (NLP), and Text-to-Speech (TTS) models. Each collection consists of 
 prebuilt modules that include everything needed to train on your data. 
-Every module can easily be customized, extended, and composed to create complex Conversational AI 
-applications.
+Every module can easily be customized, extended, and composed to create new Conversational AI 
+model architectures.
 
 Conversational AI architectures are typically very large and require a lot of data  and compute 
 for training. NeMo uses PyTorch Lightning for easy and performant multi-GPU/multi-node 
