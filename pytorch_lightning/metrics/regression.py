@@ -212,7 +212,14 @@ class RMSLE(Metric):
         Return:
             A Tensor with the rmsle loss.
         """
-        return rmsle(pred, target, self.reduction)
+        return mse(torch.log(pred + 1), torch.log(target + 1),
+                   self.reduction, return_state=True)
+
+    @staticmethod
+    def compute(self, data: Any, output: Any):
+        """ Squaring needs to happend after ddp sync"""
+        sse, n = output['squared_error'], output['n_observations']
+        return torch.sqrt(sse / n)
 
 
 class PSNR(Metric):
