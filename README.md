@@ -153,6 +153,7 @@ pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master
 ```python
 import os
 import torch
+from torch import nn
 import torch.nn.functional as F
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
