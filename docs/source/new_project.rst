@@ -257,39 +257,56 @@ Optional features
 
 TrainResult/EvalResult
 ======================
-Although you can return a simple tensor for the loss, if you want to log to the progress bar,
-to tensorboard or your favorite library, you can use the
-:class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`
-objects.
-
-These objects are just plain Dictionaries but error check for you to avoid things like memory leaks and automatically
-syncs metrics across GPUs/TPUs so you don't have to.
+If you want to log to Tensorboard or your favorite logger, and/or the progress bar, use the
+:class:`~pytorch_lightning.core.step_result.TrainResult` object.
 
 .. code-block::
 
     class LitModel(pl.LightningModule):
 
         def training_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
+            loss = F.cross_entropy(y_hat, y)
+            result = pl.TrainResult(minimize=loss)
+            return result
+
+        # equivalent
+        def training_step(self, batch, batch_idx):
+            loss = F.cross_entropy(y_hat, y)
+            return loss
+
+To enable logging:
+
+.. code-block::
+
+    class LitModel(pl.LightningModule):
+
+        def training_step(self, batch, batch_idx):
             loss = F.cross_entropy(y_hat, y)
             result = pl.TrainResult(minimize=loss)
 
-            # Add logging to progress bar (note that refreshing the progress bar too frequently
-            # in Jupyter notebooks or Colab may freeze your UI) 
-            result.log('train_loss', loss, prog_bar=True)
+            # .log sends to tensorboard/logger, prog_bar also sends to the progress bar
+            result.log('my_train_loss', loss, prog_bar=True)
             return result
-            
+
+And for the validation loop use the :class:`~pytorch_lightning.core.step_result.EvalResult` object.
+
+.. code-block:: python
+
+    class LitModel(pl.LightningModule):
         def validation_step(self, batch, batch_idx):
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
-            # Checkpoint model based on validation loss
+
+            # lightning monitors 'checkpoint_on' to know when to checkpoint (this is a tensor)
             result = pl.EvalResult(checkpoint_on=loss)
             result.log('val_loss', loss)
             return result
 
-            
+
+.. note:: A Result Object is just a dictionary (print it to verify for yourself!)
+
+
 Callbacks
 =========
 A callback is an arbitrary self-contained program that can be executed at arbitrary parts of the training loop.
