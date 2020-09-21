@@ -61,17 +61,15 @@ You could also use conda environments
     conda activate my_env
     pip install pytorch-lightning
 
-
 ----------
 
-******************************
-Step 1: Define LightningModule
-******************************
+Import the following:
 
-.. code-block::
+.. code-block:: python
 
     import os
     import torch
+    from torch import nn
     import torch.nn.functional as F
     from torchvision.datasets import MNIST
     from torchvision import transforms
@@ -79,32 +77,39 @@ Step 1: Define LightningModule
     import pytorch_lightning as pl
     from torch.utils.data import random_split
 
-    class LitModel(pl.LightningModule):
+******************************
+Step 1: Define LightningModule
+******************************
+
+.. code-block::
+
+
+    class LitAutoEncoder(pl.LightningModule):
 
         def __init__(self):
             super().__init__()
-            self.layer_1 = torch.nn.Linear(28 * 28, 128)
-            self.layer_2 = torch.nn.Linear(128, 10)
+            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 11))
+            self.decoder = nn.Sequential(nn.Linear(11, 128), nn.ReLU(), nn.Linear(128, 28*28))
 
         def forward(self, x):
+            # for inference we want to extract embeddings
+            return self.encoder(x)
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
             x = x.view(x.size(0), -1)
-            x = self.layer_1(x)
-            x = F.relu(x)
-            x = self.layer_2(x)
-            return x
+            z = self(x)
+            x_hat = self.decoder(z)
+            loss = F.mse_loss(x_hat, x)
+            return loss
 
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
-        def training_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            loss = F.cross_entropy(y_hat, y)
-            return loss
 
-The :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module`
-also groups your research code in a single file:
+A :class:`~pytorch_lightning.core.LightningModule` defines a system such as a GAN, VAE or MNIST classifier.
+It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
 - The Train loop
 - The Validation loop
@@ -128,18 +133,19 @@ When you're done training, export to your favorite format or use for predictions
 .. code-block:: python
 
     # use as regular nn.Module
-    model = LitModel()
-    out = model(torch.rand(1, 1, 32, 32))
+    model = LitAutoEncoder()
+    image = torch.rand(1, 28 * 28)
+    embedding = model(image)
 
     # onnx
     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-         model = LitModel()
-         input_sample = torch.randn((1, 64))
+         model = LitAutoEncoder()
+         input_sample = torch.randn((1, 28 * 28))
          model.to_onnx(tmpfile.name, input_sample, export_params=True)
          os.path.isfile(tmpfile.name)
 
     # torchscript
-    model = LitModel()
+    model = LitAutoEncoder()
     torch.jit.save(model.to_torchscript(), "model.pt")
     os.path.isfile("model.pt")
 
