@@ -159,7 +159,6 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 import pytorch_lightning as pl
-from pytorch_lightning import Trainer
 ```
 
 #### Step 1: Define a LightningModule
@@ -193,7 +192,7 @@ dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
 train, val = random_split(dataset, [55000, 5000])
 
 autoencoder = LitAutoEncoder()
-trainer = Trainer()
+trainer = pl.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
