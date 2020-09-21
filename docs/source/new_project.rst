@@ -223,7 +223,7 @@ to tensorboard or your favorite library, you can use the
 :class:`~pytorch_lightning.core.step_result.TrainResult` and :class:`~pytorch_lightning.core.step_result.EvalResult`
 objects.
 
-These objects are just plain Dictionaries but error checks for you to avoid things like memory leaks and automatically
+These objects are just plain Dictionaries but error check for you to avoid things like memory leaks and automatically
 syncs metrics across GPUs/TPUs so you don't have to.
 
 .. code-block::
@@ -253,52 +253,44 @@ syncs metrics across GPUs/TPUs so you don't have to.
             
 Callbacks
 =========
-A :class:`~pytorch_lightning.core.LightningModule` handles advances cases by allowing you to override any critical part of training
-via :ref:`hooks` that are called on your :class:`~pytorch_lightning.core.LightningModule`.
+A callback is an arbitrary self-contained program that can be executed at arbitrary parts of the training loop.
 
-.. code-block::
+Things you can do with a callback:
 
-    class LitModel(pl.LightningModule):
+- send emails at some point in training
+- grow the model
+- update learning rates
+- visualize gradients
+- ...
+- you are limited by your imagination
 
-        def backward(self, trainer, loss, optimizer, optimizer_idx):
-            loss.backward()
-            
-        def optimizer_step(self, epoch, batch_idx,
-                           optimizer, optimizer_idx,
-                           second_order_closure,
-                           on_tpu, using_native_amp, using_lbfgs):
-            optimizer.step()
-            
-For certain train/val/test loops, you may wish to do more than just logging. In this case,
-you can also implement `__epoch_end` which gives you the output for each step
-
-Here's the motivating Pytorch example:
+Here's an example adding a not-so-fancy learning rate decay rule:
 
 .. code-block:: python
 
-    validation_step_outputs = []
-    for batch_idx, batch in val_dataloader():
-        out = validation_step(batch, batch_idx)
-        validation_step_outputs.append(out)
+    class DecayLearningRate(pl.Callback)
 
-    validation_epoch_end(validation_step_outputs)
+        def __init__(self):
+            self.old_lrs = []
 
-And the lightning equivalent
+        def on_train_start(self, trainer, pl_module):
+            # track the initial learning rates
+            for opt_idx in optimizer in enumerate(trainer.optimizers):
+                group = []
+                for param_group in optimizer.param_groups:
+                    group.append(param_group['lr'])
+                self.old_lrs.append(group)
 
-.. code-block::
-
-    class LitModel(pl.LightningModule):
-    
-        def validation_step(self, batch, batch_idx):
-            loss = ...
-            predictions = ...
-            result = pl.EvalResult(checkpoint_on=loss)
-            result.log('val_loss', loss)
-            result.predictions = predictions
-
-         def validation_epoch_end(self, validation_step_outputs):
-            all_val_losses = validation_step_outputs.val_loss
-            all_predictions = validation_step_outputs.predictions
+        def on_train_epoch_end(self, trainer, pl_module):
+            for opt_idx in optimizer in enumerate(trainer.optimizers):
+                old_lr_group = self.old_lrs[opt_idx]
+                new_lr_group = []
+                for p_idx, param_group in enumerate(optimizer.param_groups):
+                    old_lr = old_lr_group[p_idx]
+                    new_lr = old_lr * 0.98
+                    new_lr_group.append(new_lr)
+                    param_group['lr'] = new_lr
+                 self.old_lrs[opt_idx] = new_lr_group
 
 Datamodules
 ===========
