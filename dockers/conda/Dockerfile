@@ -49,7 +49,7 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION && \
     conda init bash && \
     # conda install -y python=$PYTHON_VERSION && \
     conda install pytorch=$PYTORCH_VERSION cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
-    MAKEFLAGS="-j1" conda env update --file environment.yml --global-option="--quiet" && \
+    MAKEFLAGS="-j1" conda env update --file environment.yml --quiet && \
     rm environment.yml && \
 
 # Disable cache
