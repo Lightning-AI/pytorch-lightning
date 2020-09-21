@@ -157,11 +157,9 @@ First, define the data however you want. Lightning just needs a dataloader for a
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
--------------
-
-**********
-Use/Deploy
-**********
+*****************
+Predict or Deploy
+*****************
 When you're done training, you have 3 options to use your LightningModule for predictions.
 
 Option 1: Pull out the relevant parts you need for prediction
