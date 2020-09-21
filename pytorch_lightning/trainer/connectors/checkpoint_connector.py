@@ -106,6 +106,9 @@ class CheckpointConnector:
 
         # give model a chance to load something
         model.on_load_checkpoint(checkpoint)
+        # give the datamodule a chance to load something
+        if self.trainer.datamodule is not None:
+            self.trainer.datamodule.on_load_checkpoint(checkpoint)
 
         if on_gpu:
             model.cuda(self.trainer.root_gpu)
@@ -294,6 +297,8 @@ class CheckpointConnector:
 
         # give the model a chance to add a few things
         model.on_save_checkpoint(checkpoint)
+        if self.trainer.datamodule is not None:
+            self.trainer.datamodule.on_save_checkpoint(checkpoint)
 
         return checkpoint
 
