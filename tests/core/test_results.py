@@ -244,3 +244,4 @@ def test_result_retrieve_last_logged_item():
     assert result['epoch_a'] == 5.
     assert result['step_a'] == 5.
     assert result['a'] == 5.
+    assert isinstance(result.a, torch.Tensor)
