@@ -623,7 +623,7 @@ def test_result_monitor_warnings(tmpdir):
         early_stop_callback=EarlyStopping(monitor='not_val_loss')
     )
 
-    with pytest.warns(UserWarning, match='key of `EarlyStopping` has no effect'):
+    with pytest.raises(RuntimeError, match=r'.*Early stopping conditioned on metric `not_val_loss` which is not*'):
         trainer.fit(model)
 
 
