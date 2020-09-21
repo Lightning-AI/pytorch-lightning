@@ -91,11 +91,6 @@ Step 1: Define LightningModule
             self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
             self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
 
-        def forward(self, x):
-            # you decide what to do here when using your LightningModule for predictions
-            # in this case, we'll use the Autoencoder to extract image embeddings
-            return self.encoder(x)
-
         def training_step(self, batch, batch_idx):
             x, y = batch
             x = x.view(x.size(0), -1)
@@ -107,7 +102,6 @@ Step 1: Define LightningModule
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
-
 
 A :class:`~pytorch_lightning.core.LightningModule` defines a system such as a GAN, VAE or MNIST classifier.
 It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
@@ -129,7 +123,6 @@ of the 20+ hooks found in :ref:`hooks`
             loss.backward()
 
 More details in :ref:`lightning_module` docs.
-
 
 ----------
 
@@ -161,18 +154,45 @@ Use/Deploy
 **********
 When you're done training, export to your favorite format or use for predictions.
 
-As a pretrained model or in any way you use nn.Modules today
+If you want to use a LightningModule for predictions, you have 2 options.
+
+Option 1: Pull out the relevant parts you need for prediction
 
 .. code-block:: python
 
-    # use as regular nn.Module
-    model = LitAutoEncoder.load_from_checkpoint('path/to/checkpoint_file.ckpt')
-    model.freeze()
+    # to use as embedding extractor
+    autoencoder = LitAutoEncoder.load_from_checkpoint('path/to/checkpoint_file.ckpt')
+    model = autoencoder.encoder
+    model.eval()
 
-    image = torch.rand(1, 28 * 28)
-    embedding = model(image)
+    # to use as image generator
+    model = autoencoder.decoder
+    model.eval()
 
-Or for a production system
+Option 2: Add a forward method to enable predictions however you want.
+
+.. code-block:: python
+
+    # using the AE to extract embeddings
+    class LitAutoEncoder(pl.LightningModule):
+        def forward(self, x):
+            embedding = self.encoder(x)
+
+    autoencoder = LitAutoencoder()
+    autoencoder = autoencoder(torch.rand(1, 28 * 28))
+
+    # or using the AE to generate images
+    class LitAutoEncoder(pl.LightningModule):
+        def forward(self):
+            z = torch.rand(1, 28 * 28)
+            image = self.decoder(z)
+            image = image.view(1, 1, 28, 28)
+            return image
+
+    autoencoder = LitAutoencoder()
+    image_sample = autoencoder(()
+
+Option 3: Or for a production system
 
 .. code-block:: python
 
