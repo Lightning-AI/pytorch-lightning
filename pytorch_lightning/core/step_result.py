@@ -118,12 +118,13 @@ class Result(Dict):
         sync_dist_op: Union[Any, str] = 'mean',
         sync_dist_group: Optional[Any] = None,
     ):
-        if not isinstance(value, (torch.Tensor, numbers.Number)):
-            value = torch.tensor(value, device=self.device)
 
         # no metrics should be logged with graphs
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
+
+        if not isinstance(value, (torch.Tensor, numbers.Number)):
+            value = torch.tensor(value, device=self.device)
 
         # sync across ddp
         if sync_dist:
