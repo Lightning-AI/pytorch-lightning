@@ -66,7 +66,7 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VE
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
-    conda env update --file environment.yml && \
+    MAKEFLAGS="-j1" conda env update --file environment.yml && \
     conda clean -ya && \
     rm environment.yml && \
     # Disable cache
