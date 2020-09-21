@@ -46,15 +46,16 @@ Lightning disentangles PyTorch code to decouple the science from the engineering
 ## Lightning Philosophy
 Lightning is designed with these principles in mind:
 
-1. Enable maximal flexibility.
-2. Abstract away unecessary boilerplate.
-3. Systems should be self-contained (ie: optimizers, computation code, etc).
-4. Deep learning code should be organized into 4 distinct categories
+Principle 1: Enable maximal flexibility.
+Principle 2: Abstract away unecessary boilerplate, but make it accessible when needed.
+Principle 3: Systems should be self-contained (ie: optimizers, computation code, etc).
 
-- Research code (the LightningModule).
-- Engineering code (you delete, and is handled by the Trainer).
-- Non-essential research code (logging, etc... this goes in Callbacks).
-- Data (use PyTorch Dataloaders or organize them into a LightningDataModule).
+Principle 4: Finally, Deep learning code should be organized into 4 distinct categories
+
+  - Research code (the LightningModule).
+  - Engineering code (you delete, and is handled by the Trainer).
+  - Non-essential research code (logging, etc... this goes in Callbacks).
+  - Data (use PyTorch Dataloaders or organize them into a LightningDataModule).
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs and even in 16-bit precision without changing your code!
 
