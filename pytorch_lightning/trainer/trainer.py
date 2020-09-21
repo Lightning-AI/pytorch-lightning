@@ -314,7 +314,9 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
-        self._state = TrainerState.FINISHED
+
+        if self._state != TrainerState.INTERRUPTED:
+            self._state = TrainerState.FINISHED
         return results or 1
 
     def train(self):
