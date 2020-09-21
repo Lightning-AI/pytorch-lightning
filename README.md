@@ -7,7 +7,7 @@
 **The lightweight PyTorch wrapper for high-performance AI research. Scale your models, not the boilerplate.**
 
 <p align="center">
-  <a href="#pytorch-lightning-masterclass">Masterclass</a> •
+  <a href="#https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2">Masterclass</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
@@ -179,26 +179,6 @@ trainer = Trainer(tpu_cores=[1])
 - Abstract away unecessary boilerplate.
 - Systems should be self-contained (ie: optimizers, computation code, etc).
 - Deep learning code should be organized into 4 distinct categories (data, system, engineering, non-critical code).
-
-----
-
-## [PyTorch Lightning Masterclass](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
-### [New lessons weekly!](https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2)
-
-<div style="display: flex">
-  <div>
-    <p>From PyTorch to PyTorch Lightning</p>
-    <a href="https://www.youtube.com/watch?v=DbESHcCoWbM&list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2">
-         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/PTL101_youtube_thumbnail.jpg" width=250">
-    </a>
-  </div>
-  <div style="margin-top: 5px">
-    <p>Converting a VAE to PyTorch Lightning</p>
-    <a href="https://www.youtube.com/watch?v=QHww1JH7IDU">
-         <img alt="From PyTorch to PyTorch Lightning" src="https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/source/_images/general/tutorial_cover.jpg" width=250">
-    </a>
-  </div>
-</div>
 
 ---
 
