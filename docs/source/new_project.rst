@@ -92,7 +92,8 @@ Step 1: Define LightningModule
             self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
 
         def forward(self, x):
-            # for inference we want to extract embeddings
+            # you decide what to do here when using your LightningModule for predictions
+            # in this case, we'll use the Autoencoder to extract image embeddings
             return self.encoder(x)
 
         def training_step(self, batch, batch_idx):
