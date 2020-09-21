@@ -56,7 +56,10 @@ class TrainingStepVariations(ABC):
 
         result = TrainResult(loss_val)
         result.log('some_val', log_val * log_val, prog_bar=True, logger=False)
+        assert isinstance(result.some_val, torch.Tensor)
         result.log('train_some_val', log_val * log_val)
+        assert isinstance(result.train_some_val, torch.Tensor)
+        result.log('epoch_some_val', log_val * log_val, on_step=False, on_epoch=True)
         return result
 
     def training_step__inf_loss(self, batch, batch_idx, optimizer_idx=None):
