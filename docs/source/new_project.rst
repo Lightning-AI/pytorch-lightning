@@ -265,13 +265,15 @@ If you want to log to Tensorboard or your favorite logger, and/or the progress b
     class LitModel(pl.LightningModule):
 
         def training_step(self, batch, batch_idx):
-            loss = F.cross_entropy(y_hat, y)
+            ...
+            loss = F.mse_loss(x_hat, x)
             result = pl.TrainResult(minimize=loss)
             return result
 
         # equivalent
         def training_step(self, batch, batch_idx):
-            loss = F.cross_entropy(y_hat, y)
+            ...
+            loss = F.mse_loss(x_hat, x)
             return loss
 
 To enable logging:
@@ -281,7 +283,8 @@ To enable logging:
     class LitModel(pl.LightningModule):
 
         def training_step(self, batch, batch_idx):
-            loss = F.cross_entropy(y_hat, y)
+            ...
+            loss = F.mse_loss(x_hat, x)
             result = pl.TrainResult(minimize=loss)
 
             # .log sends to tensorboard/logger, prog_bar also sends to the progress bar
@@ -293,10 +296,10 @@ And for the validation loop use the :class:`~pytorch_lightning.core.step_result.
 .. code-block:: python
 
     class LitModel(pl.LightningModule):
+
         def validation_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            loss = F.cross_entropy(y_hat, y)
+            ...
+            loss = F.mse_loss(x_hat, x)
 
             # lightning monitors 'checkpoint_on' to know when to checkpoint (this is a tensor)
             result = pl.EvalResult(checkpoint_on=loss)
