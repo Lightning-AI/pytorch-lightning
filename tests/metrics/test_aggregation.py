@@ -176,10 +176,11 @@ TESTS = [
     #          regression_example)
 ]
 
+
 # Utility test functions
-def idsfn(val):
+def idsfn(test):
     """ Return id for current example being tested """
-    return val.name
+    return test.name
 
 
 def _setup_ddp(rank, worldsize):
@@ -292,40 +293,39 @@ def test_ddp_multi_batch(test):
              nprocs=worldsize)
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+# @pytest.mark.parametrize("distributed_backend", ["dp", "ddp_spawn"])
+# @pytest.mark.parametrize("test", TESTS, ids=idsfn)
+# def test_model_integration(tmpdir, distributed_backend, test):
+#     """ test model that metrics work with lightning module and trainer """
 
-@pytest.mark.parametrize("distributed_backend", ["dp", "ddp_spawn"])
-@pytest.mark.parametrize("test", TESTS, ids=idsfn)
-def test_model_integration(tmpdir, distributed_backend, test):
-    """ test model that metrics work with lightning module and trainer """
+#     if 'confusion matrix' in test.name:
+#         pytest.skip()  # confusion matrix does not return scalar output, so we skip these
 
-    if 'confusion matrix' in test.name:
-        pytest.skip()  # confusion matrix does not return scalar output, so we skip these
+#     # setup ports for ddp
+#     tutils.set_random_master_port()
 
-    # setup ports for ddp
-    tutils.set_random_master_port()
+#     # setup model with metric
+#     model = EvalModelTemplate()
+#     model.metric = test.lightning_metric()
+#     model.test_step = model.test_step__metrics
+#     model.test_epoch_end = model.test_epoch_end__metrics
 
-    # setup model with metric
-    model = EvalModelTemplate()
-    model.metric = test.lightning_metric()
-    model.test_step = model.test_step__metrics
-    model.test_epoch_end = model.test_epoch_end__metrics
+#     # here we only run with the first test_data
+#     test_input = test.test_input[0]
+#     dataset = torch.utils.data.TensorDataset(*test_input)
+#     # divide data into 2 batches
+#     dataloader = torch.utils.data.DataLoader(dataset, batch_size=int(len(test_input[0]) / 2))
 
-    # here we only run with the first test_data
-    test_input = test.test_input[0]
-    dataset = torch.utils.data.TensorDataset(*test_input)
-    # divide data into 2 batches
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=int(len(test_input[0]) / 2))
+#     trainer_options = dict(
+#         default_root_dir=tmpdir,
+#         logger=False,
+#         gpus=2,
+#         distributed_backend=distributed_backend,
+#     )
+#     trainer = Trainer(**trainer_options)
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        logger=False,
-        gpus=2,
-        distributed_backend=distributed_backend,
-    )
-    trainer = Trainer(**trainer_options)
+#     lightning_val = trainer.test(model, test_dataloaders=dataloader)[0]['metric_val']
+#     comparing_val = test.comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
 
-    lightning_val = trainer.test(model, test_dataloaders=dataloader)[0]['metric_val']
-    comparing_val = test.comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
-
-    comparing_fn(lightning_val, comparing_val)
+#     comparing_fn(lightning_val, comparing_val)
