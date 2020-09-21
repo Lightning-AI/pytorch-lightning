@@ -153,6 +153,8 @@ First, define the data in whatever way you want. Lightning just needs a dataload
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
+-------------
+
 **********
 Use/Deploy
 **********
@@ -163,7 +165,9 @@ As a pretrained model or in any way you use nn.Modules today
 .. code-block:: python
 
     # use as regular nn.Module
-    model = LitAutoEncoder()
+    model = LitAutoEncoder.load_from_checkpoint('path/to/checkpoint_file.ckpt')
+    model.freeze()
+
     image = torch.rand(1, 28 * 28)
     embedding = model(image)
 
@@ -171,17 +175,17 @@ Or for a production system
 
 .. code-block:: python
 
+    # torchscript
+    model = LitAutoEncoder()
+    torch.jit.save(model.to_torchscript(), "model.pt")
+    os.path.isfile("model.pt")
+
     # onnx
     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
          model = LitAutoEncoder()
          input_sample = torch.randn((1, 28 * 28))
          model.to_onnx(tmpfile.name, input_sample, export_params=True)
          os.path.isfile(tmpfile.name)
-
-    # torchscript
-    model = LitAutoEncoder()
-    torch.jit.save(model.to_torchscript(), "model.pt")
-    os.path.isfile("model.pt")
 
 ***********
 Checkpoints
