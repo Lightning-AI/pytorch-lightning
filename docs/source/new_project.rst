@@ -110,6 +110,7 @@ A :class:`~pytorch_lightning.core.LightningModule` defines a system such as:
 - DQN
 - GAN
 - Image classifier
+- Seq2seq
 - SimCLR
 - VAE
 
