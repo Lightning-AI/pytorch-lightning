@@ -61,7 +61,8 @@ ENV HOROVOD_WITHOUT_MXNET=1
 ENV HOROVOD_WITH_GLOO=1
 ENV HOROVOD_WITHOUT_MPI=1
 # TODO: uncomment in horovod next release, https://github.com/horovod/horovod/pull/2239
-ENV MAKEFLAGS="-j$(nproc)"
+# ENV MAKEFLAGS="-j$(nproc)"
+ENV MAKEFLAGS="-j1"
 
 # conda init
 RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VERSION torchvision cudatoolkit=$CUDA_VERSION --channel=$PYTORCH_CHANNEL && \
