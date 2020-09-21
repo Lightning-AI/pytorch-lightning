@@ -101,12 +101,10 @@ Step 1: Define LightningModule
             x, y = batch
             y_hat = self(x)
             loss = F.cross_entropy(y_hat, y)
+            return loss
 
-            # (log keyword is optional)
-            return {'loss': loss, 'log': {'train_loss': loss}}
-
-
-The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
+The :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module`
+also groups your research code in a single file:
 
 - The Train loop
 - The Validation loop
@@ -114,21 +112,36 @@ The :class:`~pytorch_lightning.core.LightningModule` holds your research code:
 - The Model + system architecture
 - The Optimizer
 
-A :class:`~pytorch_lightning.core.LightningModule` is a :class:`torch.nn.Module` but with added functionality.
-It organizes your research code into :ref:`hooks`.
-
-In the snippet above we override the basic hooks, but a full list of hooks to customize can be found under :ref:`hooks`.
-
-You can use your :class:`~pytorch_lightning.core.LightningModule` just like a PyTorch model.
+You can customize any part of training (such as the backward pass) by overriding any
+of the 20+ hooks found in :ref:`hooks`
 
 .. code-block:: python
 
+    class LitModel(pl.LightningModule):
+
+        def backward(self, trainer, loss, optimizer, optimizer_idx):
+            loss.backward()
+
+When you're done training, export to your favorite format or use for predictions
+
+
+.. code-block:: python
+
+    # use as regular nn.Module
     model = LitModel()
-    model.eval()
+    out = model(torch.rand(1, 1, 32, 32))
 
-    y_hat = model(x)
+    # onnx
+    with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+         model = LitModel()
+         input_sample = torch.randn((1, 64))
+         model.to_onnx(tmpfile.name, input_sample, export_params=True)
+         os.path.isfile(tmpfile.name)
 
-    model.anything_you_can_do_with_pytorch()
+    # torchscript
+    model = LitModel()
+    torch.jit.save(model.to_torchscript(), "model.pt")
+    os.path.isfile("model.pt")
 
 More details in :ref:`lightning_module` docs.
 
