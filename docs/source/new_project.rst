@@ -103,7 +103,16 @@ Step 1: Define LightningModule
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
-A :class:`~pytorch_lightning.core.LightningModule` defines a system such as a GAN, VAE or MNIST classifier.
+A :class:`~pytorch_lightning.core.LightningModule` defines a system such as:
+
+- GAN
+- VAE
+- Autoencoder
+- BERT
+- SimCLR
+- DQN
+- Image classifier
+
 It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
 - The Train loop
