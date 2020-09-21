@@ -37,6 +37,8 @@
 
 ###### *Codecov is > 90%+ but build delays may show less
 
+---
+
 ## PyTorch Lightning is just organized PyTorch
 Lightning disentangles PyTorch code to decouple the science from the engineering.
 ![PT to PL](/docs/source/_images/general/pl_quick_start_full_compressed.gif)
