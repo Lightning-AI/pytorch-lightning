@@ -18,6 +18,7 @@ import torch
 
 from pytorch_lightning.metrics.functional.self_supervised import embedding_similarity
 from pytorch_lightning.metrics.metric import TensorMetric
+from pytorch_lightning.utilities import rank_zero_warn
 
 
 class EmbeddingSimilarity(TensorMetric):
@@ -56,6 +57,9 @@ class EmbeddingSimilarity(TensorMetric):
         assert reduction in ('none', 'sum', 'mean')
         self.reduction = reduction
 
+        rank_zero_warn('Please note that Metric `EmbeddingSimilarity` does not '
+                       'support aggregation.')
+
     def forward(self, batch: torch.Tensor) -> torch.Tensor:
         """
         Actual metric computation
@@ -71,3 +75,12 @@ class EmbeddingSimilarity(TensorMetric):
                                     similarity=self.similarity,
                                     zero_diagonal=self.zero_diagonal,
                                     reduction=self.reduction)
+
+    @staticmethod
+    def ddp_reduce(self, data: Any, output: Any):
+        """ reduction for this metric does not make sense """
+        return output
+
+    @property
+    def aggregated(self):
+        raise ValueError('Metric `EmbeddingSimilarity` does not support aggregation.')
