@@ -332,8 +332,9 @@ class Result(Dict):
         # pad across each key individually
         for name, value in result.items():
             is_reserved = name in {'checkpoint_on', 'early_stop_on', 'minimize'}
-            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor) and name in meta:
-
+            if isinstance(value, list) and len(value) > 0 and isinstance(value[0], torch.Tensor):
+                if not is_reserved and name not in meta:
+                    continue
                 if is_reserved:
                     padding_key = default_padding_idx
                 else:
@@ -347,7 +348,7 @@ class Result(Dict):
 
         # collate tensors that are not in meta (e.g. user assigned attributes)
         for name, value in result.items():
-            if name not in meta:
+            if name not in meta and name not in {'checkpoint_on', 'early_stop_on', 'minimize'}:
                 result[name] = collate_tensors(result[name])
 
         if meta:
