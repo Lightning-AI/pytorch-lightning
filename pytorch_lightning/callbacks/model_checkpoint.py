@@ -27,9 +27,8 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
-from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -187,9 +186,11 @@ class ModelCheckpoint(Callback):
 
         self.kth_value, self.mode = mode_dict[mode]
 
+    @rank_zero_only
     def _del_model(self, filepath: str):
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
+            rank_zero_info(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, filepath: str, trainer, pl_module):
 
@@ -197,7 +198,8 @@ class ModelCheckpoint(Callback):
         trainer.dev_debugger.track_checkpointing_history(filepath)
 
         # make paths
-        self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if trainer.is_global_zero:
+            self._fs.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # delegate the saving to the model
         if self.save_function is not None:
@@ -275,7 +277,6 @@ class ModelCheckpoint(Callback):
         ckpt_name = f"{filename}.ckpt"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    @rank_zero_only
     def on_pretrain_routine_start(self, trainer, pl_module):
         """
         Determines model checkpoint save directory at runtime. References attributes from the
@@ -315,17 +316,10 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-        assert (
-            trainer.global_rank == 0
-        ), "tried to make a checkpoint from non global_rank=0"
-        self._fs.makedirs(self.dirpath, exist_ok=True)
+        if trainer.is_global_zero:
+            self._fs.makedirs(self.dirpath, exist_ok=True)
 
-    @rank_zero_only
     def on_validation_end(self, trainer, pl_module):
-        # only run on main process
-        if trainer.global_rank != 0:
-            return
-
         # no models are saved
         if self.save_top_k == 0:
             return
@@ -388,17 +382,14 @@ class ModelCheckpoint(Callback):
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose:
-                log.info(
+                rank_zero_info(
                     f"Epoch {epoch:d}: {self.monitor} was not in top {self.save_top_k}"
                 )
 
         else:
             if self.verbose:
-                log.info(f"Epoch {epoch:d}: saving model to {filepath}")
+                rank_zero_info(f"Epoch {epoch:d}: saving model to {filepath}")
 
-            assert (
-                trainer.global_rank == 0
-            ), "tried to make a checkpoint from non global_rank=0"
             self._save_model(filepath, trainer, pl_module)
 
         if self.save_last:
@@ -407,7 +398,11 @@ class ModelCheckpoint(Callback):
             )
             filepath = os.path.join(self.dirpath, f"{filename}.ckpt")
             self._save_model(filepath, trainer, pl_module)
-            if self.last_model_path and self.last_model_path != filepath:
+            if (
+                self.last_model_path
+                and self.last_model_path != filepath
+                and trainer.is_global_zero
+            ):
                 self._del_model(self.last_model_path)
             self.last_model_path = filepath
 
@@ -415,12 +410,7 @@ class ModelCheckpoint(Callback):
         return self.monitor in metrics or len(metrics) == 0
 
     def _do_check_save(
-        self,
-        filepath: str,
-        current: torch.Tensor,
-        epoch: int,
-        trainer,
-        pl_module,
+        self, filepath: str, current: torch.Tensor, epoch: int, trainer, pl_module
     ):
         # remove kth
 
@@ -444,20 +434,19 @@ class ModelCheckpoint(Callback):
         self.best_model_score = self.best_k_models[self.best_model_path]
 
         if self.verbose:
-            log.info(
+            rank_zero_info(
                 f"Epoch {epoch:d}: {self.monitor} reached"
                 f" {current:0.5f} (best {self.best_model_score:0.5f}),"
                 f" saving model to {filepath} as top {self.save_top_k}"
             )
         self._save_model(filepath, trainer, pl_module)
 
-        for cur_path in del_list:
-            if cur_path != filepath:
-                self._del_model(cur_path)
+        if trainer.is_global_zero:
+            for cur_path in del_list:
+                if cur_path != filepath:
+                    self._del_model(cur_path)
 
-    def on_save_checkpoint(
-        self, trainer, pl_module
-    ) -> Dict[str, Any]:
+    def on_save_checkpoint(self, trainer, pl_module) -> Dict[str, Any]:
         return {
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
