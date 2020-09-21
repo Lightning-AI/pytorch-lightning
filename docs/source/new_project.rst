@@ -105,13 +105,13 @@ Step 1: Define LightningModule
 
 A :class:`~pytorch_lightning.core.LightningModule` defines a system such as:
 
-- GAN
-- VAE
 - Autoencoder
 - BERT
-- SimCLR
 - DQN
+- GAN
 - Image classifier
+- SimCLR
+- VAE
 
 It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
