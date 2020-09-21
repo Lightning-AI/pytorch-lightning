@@ -82,7 +82,8 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
-        # we expect all ranks to call _save_model
+        # expect all ranks to run but only rank 0 will actually write
+        # the checkpoint file
         assert self.count == self.expected_count
 
 
