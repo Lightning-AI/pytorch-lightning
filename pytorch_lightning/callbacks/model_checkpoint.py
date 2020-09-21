@@ -324,6 +324,10 @@ class ModelCheckpoint(Callback):
         if trainer.global_rank != 0:
             return
 
+        # no models are saved
+        if self.save_top_k == 0:
+            return
+
         if trainer.running_sanity_check:
             return
 
@@ -338,9 +342,6 @@ class ModelCheckpoint(Callback):
                 "did you call result.log(f'{self.monitor}', tensor)?"""
             raise MisconfigurationException(m)
 
-        if self.save_top_k == 0:
-            # no models are saved
-            return
         if (
             self.epoch_last_check is not None
             and (epoch - self.epoch_last_check) < self.period
