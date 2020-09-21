@@ -110,9 +110,9 @@ class LoggerConnector:
         if using_eval_result:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
-                    self.trainer.logger_connector.callback_metrics = eval_result.callback_metrics
+                    self.trainer.logger_connector.callback_metrics.update(eval_result.callback_metrics)
             else:
-                self.trainer.logger_connector.callback_metrics = eval_results.callback_metrics
+                self.trainer.logger_connector.callback_metrics.update(eval_results.callback_metrics)
         else:
             if isinstance(eval_results, list):
                 for eval_result in eval_results:
