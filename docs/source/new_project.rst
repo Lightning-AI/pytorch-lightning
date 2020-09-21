@@ -127,28 +127,6 @@ of the 20+ hooks found in :ref:`hooks`
         def backward(self, trainer, loss, optimizer, optimizer_idx):
             loss.backward()
 
-When you're done training, export to your favorite format or use for predictions
-
-
-.. code-block:: python
-
-    # use as regular nn.Module
-    model = LitAutoEncoder()
-    image = torch.rand(1, 28 * 28)
-    embedding = model(image)
-
-    # onnx
-    with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-         model = LitAutoEncoder()
-         input_sample = torch.randn((1, 28 * 28))
-         model.to_onnx(tmpfile.name, input_sample, export_params=True)
-         os.path.isfile(tmpfile.name)
-
-    # torchscript
-    model = LitAutoEncoder()
-    torch.jit.save(model.to_torchscript(), "model.pt")
-    os.path.isfile("model.pt")
-
 More details in :ref:`lightning_module` docs.
 
 
@@ -175,7 +153,35 @@ First, define the data in whatever way you want. Lightning just needs a dataload
     trainer = pl.Trainer()
     trainer.fit(model, train_loader)
 
------
+**********
+Use/Deploy
+**********
+When you're done training, export to your favorite format or use for predictions.
+
+As a pretrained model or in any way you use nn.Modules today
+
+.. code-block:: python
+
+    # use as regular nn.Module
+    model = LitAutoEncoder()
+    image = torch.rand(1, 28 * 28)
+    embedding = model(image)
+
+Or for a production system
+
+.. code-block:: python
+
+    # onnx
+    with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+         model = LitAutoEncoder()
+         input_sample = torch.randn((1, 28 * 28))
+         model.to_onnx(tmpfile.name, input_sample, export_params=True)
+         os.path.isfile(tmpfile.name)
+
+    # torchscript
+    model = LitAutoEncoder()
+    torch.jit.save(model.to_torchscript(), "model.pt")
+    os.path.isfile("model.pt")
 
 ***********
 Checkpoints
