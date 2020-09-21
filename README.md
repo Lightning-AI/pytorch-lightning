@@ -98,7 +98,8 @@ Get started with our [3 steps guide](https://pytorch-lightning.readthedocs.io/en
 
 ## How To Use
 
-#### Setup step: Install
+#### Step 0: Install
+
 Simple installation from PyPI
 ```bash
 pip install pytorch-lightning
@@ -114,7 +115,7 @@ Install bleeding-edge (no guarantees)
 pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
 ```
 
-#### Setup step: Add these imports
+#### Step 0: Add these imports
 
 ```python
 import os
