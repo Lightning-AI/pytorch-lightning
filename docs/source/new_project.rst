@@ -152,9 +152,7 @@ First, define the data in whatever way you want. Lightning just needs a dataload
 **********
 Use/Deploy
 **********
-When you're done training, export to your favorite format or use for predictions.
-
-If you want to use a LightningModule for predictions, you have 2 options.
+When you're done training, you have 3 options to use your LightningModule for predictions.
 
 Option 1: Pull out the relevant parts you need for prediction
 
