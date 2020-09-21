@@ -66,7 +66,7 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VE
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').write([l for l in req if 'horovod' not in l])" && \
+    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
     conda env update --file environment.yml && \
     MAKEFLAGS="-j1" pip install --global-option="--quiet" horovod && \
     conda clean -ya && \
