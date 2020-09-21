@@ -5,10 +5,11 @@
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.4 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
 # --build-arg PYTHON_VERSION=3.7 --build-arg PYTORCH_VERSION=1.3 --build-arg PYTORCH_CHANNEL=pytorch --build-arg CUDA_VERSION=10.1
 
-ARG CUDNN_VERSION=7
+# ARG CUDNN_VERSION=7
 ARG CUDA_VERSION=10.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
+# FROM nvidia/cuda:${CUDA_VERSION}-cudnn${CUDNN_VERSION}-devel
+FROM nvidia/cuda:${CUDA_VERSION}-devel
 
 ARG PYTHON_VERSION=3.7
 ARG PYTORCH_VERSION=1.6
