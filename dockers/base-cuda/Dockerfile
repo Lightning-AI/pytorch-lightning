@@ -68,7 +68,6 @@ RUN conda create -y --name $CONDA_ENV python=$PYTHON_VERSION pytorch=$PYTORCH_VE
     python -c "fname = 'environment.yml' ; req = open(fname).read().replace('pytorch', '${PYTORCH_CHANNEL}', 1) ; open(fname, 'w').write(req)" && \
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([l for l in req if 'horovod' not in l])" && \
     conda env update --file environment.yml && \
-    MAKEFLAGS="-j1" pip install --global-option="--quiet" horovod && \
     conda clean -ya && \
     rm environment.yml && \
     # Disable cache
@@ -88,6 +87,7 @@ RUN \
     echo "conda activate ${CONDA_ENV}" >> ~/.bashrc && \
     source ~/.bashrc && \
     # Install all requirements
+    MAKEFLAGS="-j1" pip install --global-option="--quiet" horovod && \
     pip install -r requirements-tests.txt --upgrade-strategy only-if-needed && \
     pip install -r requirements-examples.txt --upgrade-strategy only-if-needed && \
     rm requirements* && \
