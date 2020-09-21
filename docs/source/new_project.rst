@@ -89,7 +89,7 @@ Step 1: Define LightningModule
         def __init__(self):
             super().__init__()
             self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 11))
-            self.decoder = nn.Sequential(nn.Linear(11, 128), nn.ReLU(), nn.Linear(128, 28*28))
+            self.decoder = nn.Sequential(nn.Linear(11, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
 
         def forward(self, x):
             # for inference we want to extract embeddings
