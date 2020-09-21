@@ -164,8 +164,7 @@ class TrainLoop:
 
         self._teardown_already_run = True
 
-        # Save latest checkpoint
-        rank_zero_warn('Saving latest checkpoint..')
+        # maybe save checkpoint
         self.check_checkpoint_callback(should_check_val=False, force_save=True)
 
         # hook
@@ -201,6 +200,8 @@ class TrainLoop:
         should_activate = not is_overridden('validation_step', model) and not should_check_val
         if should_activate or force_save:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
+            if any(c.save_last for c in checkpoint_callbacks):
+                rank_zero_warn('Saving latest checkpoint...')
             [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
     def on_train_epoch_start(self, epoch):

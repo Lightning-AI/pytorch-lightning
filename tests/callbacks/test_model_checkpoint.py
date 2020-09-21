@@ -257,3 +257,24 @@ def test_ckpt_metric_names_results(tmpdir):
     assert len(ckpts) == 1
     val = re.sub("[^0-9.]", "", ckpts[0])
     assert len(val) > 3
+
+
+def test_model_checkpoint_save_last_warning(tmpdir):
+    """Tests that a warning is output only when save_last is set"""
+    model = EvalModelTemplate()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        checkpoint_callback=ModelCheckpoint(filepath=tmpdir, save_top_k=0, save_last=True),
+        max_epochs=1,
+    )
+    with pytest.warns(UserWarning, match=r'Saving latest checkpoint\.\.\.'):
+        trainer.fit(model)
+    # make sure warning does not appear if save_last=False:
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        checkpoint_callback=ModelCheckpoint(filepath=tmpdir, save_top_k=0, save_last=False),
+        max_epochs=1,
+    )
+    with pytest.warns(None) as record:
+        trainer.fit(model)
+    assert not any(r.message.args[0] == "Saving latest checkpoint..." for r in record)
