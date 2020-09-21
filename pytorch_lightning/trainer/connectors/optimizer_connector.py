@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -57,12 +57,21 @@ class OptimizerConnector:
                         monitor_val = self.trainer.logger_connector.callback_metrics.get(monitor_key)
 
                     if monitor_val is None:
-                        avail_metrics = ','.join(list(self.trainer.logger_connector.callback_metrics.keys()))
-                        raise MisconfigurationException(
-                            f'ReduceLROnPlateau conditioned on metric {monitor_key}'
-                            f' which is not available. Available metrics are: [{avail_metrics}].'
-                            ' Condition can be set using `monitor` key in lr scheduler dict'
-                        )
+                        if lr_scheduler.get('strict', True):
+                            avail_metrics = self.trainer.logger_connector.callback_metrics.keys()
+                            raise MisconfigurationException(
+                                f'ReduceLROnPlateau conditioned on metric {monitor_key}'
+                                f' which is not available. Available metrics are: {avail_metrics}.'
+                                ' Condition can be set using `monitor` key in lr scheduler dict'
+                            )
+                        else:
+                            rank_zero_warn(
+                                f'ReduceLROnPlateau conditioned on metric {monitor_key}'
+                                f' which is not available but strict is set to `False`.'
+                                f' Skipping learning rate update.',
+                                RuntimeWarning,
+                            )
+                            continue
                     # update LR
                     old_lr = lr_scheduler['scheduler'].optimizer.param_groups[0]['lr']
                     lr_scheduler['scheduler'].step(monitor_val)

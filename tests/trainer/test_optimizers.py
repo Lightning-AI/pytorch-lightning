@@ -15,6 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer, Callback
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base.boring_model import BoringModel
@@ -360,3 +361,36 @@ def test_multiple_optimizers_callbacks(tmpdir):
         weights_summary=None,
     )
     trainer.fit(model)
+
+
+def test_lr_scheduler_strict(tmpdir):
+    """
+    Test "strict" support in lr_scheduler dict
+    """
+    model = EvalModelTemplate()
+    optimizer = torch.optim.Adam(model.parameters())
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+
+    model.configure_optimizers = lambda: {
+        'optimizer': optimizer,
+        'lr_scheduler': {'scheduler': scheduler, 'monitor': 'giraffe', 'strict': True},
+    }
+    with pytest.raises(
+        MisconfigurationException,
+        match=r'ReduceLROnPlateau conditioned on metric .* which is not available\. Available metrics are:',
+    ):
+        trainer.fit(model)
+
+    model.configure_optimizers = lambda: {
+        'optimizer': optimizer,
+        'lr_scheduler': {
+            'scheduler': scheduler,
+            'monitor': 'giraffe',
+            'strict': False,
+        },
+    }
+    with pytest.warns(
+        RuntimeWarning, match=r'ReduceLROnPlateau conditioned on metric .* which is not available but strict'
+    ):
+        assert trainer.fit(model)
