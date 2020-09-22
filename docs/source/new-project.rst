@@ -317,13 +317,13 @@ Without changing a SINGLE line of your code, you can now do the following with t
 ***********
 Checkpoints
 ***********
-Once you've trained, you can load the checkpoints as follows:
+Lightning automatically saves your model. Once you've trained, you can load the checkpoints as follows:
 
 .. code-block:: python
 
     model = LitModel.load_from_checkpoint(path)
 
-The above checkpoint knows all the arguments needed to init the model and set the state dict.
+The above checkpoint contains all the arguments needed to init the model and set the state dict.
 If you prefer to do it manually, here's the equivalent
 
 .. code-block:: python
@@ -443,7 +443,7 @@ Here's an example adding a not-so-fancy learning rate decay rule:
 Datamodules
 ===========
 DataLoaders and data processing code tends to end up scattered around.
-Make your data code more reusable by organizing it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
+Make your data code reusable by organizing it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
 .. code-block:: python
 
@@ -549,26 +549,12 @@ Lightning has many tools for debugging:
     
     # Profile your code to find speed/memory bottlenecks
     Trainer(profiler=True)
-
-
-
-**********
-Learn more
-**********
-
-That's it! Once you build your module, data, and call trainer.fit(), Lightning trainer calls each loop at the correct time as needed.
-
-You can then boot up your logger or tensorboard instance to view training logs
-
-.. code-block:: bash
-
-    tensorboard --logdir ./lightning_logs
  
 ---------------
 
-
+***************************
 Advanced Lightning Features
-===========================
+***************************
 
 Once you define and train your first Lightning model, you might want to try other cool features like
 
@@ -584,6 +570,18 @@ Once you define and train your first Lightning model, you might want to try othe
 Or read our :ref:`introduction_guide` to learn more!
 
 -------------
+
+**********
+Learn more
+**********
+
+That's it! Once you build your module, data, and call trainer.fit(), Lightning trainer calls each loop at the correct time as needed.
+
+You can then boot up your logger or tensorboard instance to view training logs
+
+.. code-block:: bash
+
+    tensorboard --logdir ./lightning_logs
 
 Masterclass
 ===========
