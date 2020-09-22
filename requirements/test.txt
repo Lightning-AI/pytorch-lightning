@@ -4,7 +4,7 @@ pytest>=5.0
 pytest-cov
 pytest-flake8
 pytest-xdist[psutil]  # To use psutil for detection of the number of CPUs available
-pytest-icdiff  # for showing the asserts diffs
+#pytest-icdiff  # for showing the asserts diffs
 pytest-freezegun
 #pytest-lazy-fixtures
 pytest-deadfixtures
