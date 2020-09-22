@@ -543,7 +543,7 @@ DataModules are specifically useful for building models based on data. Read more
 *********
 Debugging
 *********
-Lightning has many tools for debugging:
+Lightning has many tools for debugging. Here is an example of just a few of them:
 
 .. code-block:: python
 
