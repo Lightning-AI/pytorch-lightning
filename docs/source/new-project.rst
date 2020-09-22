@@ -367,14 +367,14 @@ If you want to log to Tensorboard or your favorite logger, and/or the progress b
         def training_step(self, batch, batch_idx):
             ...
             loss = F.mse_loss(x_hat, x)
-            result = pl.TrainResult(minimize=loss)
-            return result
+            return loss
 
         # equivalent
         def training_step(self, batch, batch_idx):
             ...
             loss = F.mse_loss(x_hat, x)
-            return loss
+            result = pl.TrainResult(minimize=loss)
+            return result
 
 To enable logging:
 
