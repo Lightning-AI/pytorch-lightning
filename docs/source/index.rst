@@ -11,7 +11,7 @@ PyTorch Lightning Documentation
    :name: start
    :caption: Getting started
 
-   new_project
+   new-project
    converting
 
 .. toctree::

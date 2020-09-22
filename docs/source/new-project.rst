@@ -106,13 +106,13 @@ Step 1: Define LightningModule
 A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
 
 - `Autoencoder <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
-- BERT <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>
-- DQN <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=IAlT0-75T_Kv>
+- `BERT <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
+- `DQN <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=IAlT0-75T_Kv>`_
 - `GAN <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/gans/basic/basic_gan_module.py>`_
-- Image classifier <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL>
+- `Image classifier <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL>`_
 - Seq2seq 
-- SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>
-- VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>
+- `SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
+- `VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
 
 It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
@@ -136,7 +136,7 @@ More details in :ref:`lightning_module` docs.
 
 ----------
 
-**************************
+**********************************
 Step 2: Fit with Lightning Trainer
 **********************************
 
@@ -152,11 +152,11 @@ The :class:`~pytorch_lightning.trainer.Trainer` will:
 
 * Automate epoch and batch iteration
 * Automate calling of optimizer.step()
-* Automatic :ref:`weights-loading`
+* Automatic :ref:`weights_loading`
 * Automatic Tensorboard (see :ref:`loggers` options)
-* Automatic :ref:`multi-gpu-training` support
+* Automatic :ref:`multi_gpu` support
 * Automatic :ref:`tpu`
-* Automatic :ref:`16-bit` support
+* Automatic :ref:`amp` support
 
 .. code-block:: python
 
@@ -245,7 +245,6 @@ Option 3: Or for a production system
          model.to_onnx(tmpfile.name, input_sample, export_params=True)
          os.path.isfile(tmpfile.name)
 
------------
 
 ********************
 Using CPUs/GPUs/TPUs
@@ -312,7 +311,6 @@ Without changing a SINGLE line of your code, you can now do the following with t
         val_check_interval=0.25
     )
     
-----------
 
 ***********
 Checkpoints
@@ -335,7 +333,6 @@ If you prefer to do it manually, here's the equivalent
     model = LitModel()
     model.load_state_dict(ckpt['state_dict'])
 
---------
 *****************
 Optional features
 *****************
