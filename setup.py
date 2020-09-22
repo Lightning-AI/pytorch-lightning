@@ -1,4 +1,17 @@
 #!/usr/bin/env python
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 from io import open
@@ -12,21 +25,23 @@ except ImportError:
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
-
 PATH_ROOT = os.path.dirname(__file__)
 builtins.__LIGHTNING_SETUP__ = True
 
 import pytorch_lightning  # noqa: E402
 
 
-def load_requirements(path_dir=PATH_ROOT, comment_char='#'):
-    with open(os.path.join(path_dir, 'requirements', 'base.txt'), 'r') as file:
+def load_requirements(path_dir=PATH_ROOT, file_name='base.txt', comment_char='#'):
+    with open(os.path.join(path_dir, 'requirements', file_name), 'r') as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []
     for ln in lines:
         # filer all comments
         if comment_char in ln:
-            ln = ln[:ln.index(comment_char)]
+            ln = ln[:ln.index(comment_char)].strip()
+        # skip directly installed dependencies
+        if ln.startswith('http'):
+            continue
         if ln:  # if requirement is not empty
             reqs.append(ln)
     return reqs
@@ -42,6 +57,19 @@ def load_long_description():
     text = text.replace('.svg', '.png')
     return text
 
+
+# https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
+# Define package extras. These are only installed if you specify them.
+# From remote, use like `pip install pytorch-lightning[dev, docs]`
+# From local copy of repo, use like `pip install ".[dev, docs]"`
+extras = {
+    # 'docs': load_requirements(file_name='docs.txt'),
+    'examples': load_requirements(file_name='examples.txt'),
+    'extra': load_requirements(file_name='extra.txt'),
+    'test': load_requirements(file_name='test.txt')
+}
+extras['dev'] = extras['extra'] + extras['test']
+extras['all'] = extras['dev'] + extras['examples']  # + extras['docs']
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -67,7 +95,8 @@ setup(
     keywords=['deep learning', 'pytorch', 'AI'],
     python_requires='>=3.6',
     setup_requires=[],
-    install_requires=load_requirements(PATH_ROOT),
+    install_requires=load_requirements(),
+    extras_require=extras,
 
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
@@ -87,7 +116,7 @@ setup(
         'Topic :: Scientific/Engineering :: Image Recognition',
         'Topic :: Scientific/Engineering :: Information Analysis',
         # Pick your license as you wish
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.

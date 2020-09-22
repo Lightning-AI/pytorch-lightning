@@ -1,9 +1,8 @@
-import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
-from pytorch_lightning import TrainResult, EvalResult
 
+from pytorch_lightning import TrainResult, EvalResult
 from pytorch_lightning.core.lightning import LightningModule
 
 
@@ -456,6 +455,18 @@ class DeterministicModel(LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0)
+
+    def configure_optimizers__lr_on_plateau_epoch(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=0)
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        scheduler = {'scheduler': lr_scheduler, 'interval': 'epoch', 'monitor': 'epoch_end_log_1'}
+        return [optimizer], [scheduler]
+
+    def configure_optimizers__lr_on_plateau_step(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=0)
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        scheduler = {'scheduler': lr_scheduler, 'interval': 'step', 'monitor': 'pbar_acc1'}
+        return [optimizer], [scheduler]
 
     def backward(self, trainer, loss, optimizer, optimizer_idx):
         if self.assert_backward:

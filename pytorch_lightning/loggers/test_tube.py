@@ -1,9 +1,23 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Test Tube
 ---------
 """
 from argparse import Namespace
-from typing import Optional, Dict, Any, Union
+from typing import Any, Dict, Optional, Union
 
 try:
     from test_tube import Experiment
@@ -12,8 +26,9 @@ except ImportError:  # pragma: no-cover
     Experiment = None
     _TEST_TUBE_AVAILABLE = False
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 
 class TestTubeLogger(LightningLoggerBase):
@@ -51,19 +66,23 @@ class TestTubeLogger(LightningLoggerBase):
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
         create_git_tag: If ``True`` creates a git tag to save the code used in this experiment.
-
+        log_graph: Adds the computational graph to tensorboard. This requires that
+            the user has defined the `self.example_input_array` attribute in their
+            model.
     """
 
     __test__ = False
 
-    def __init__(self,
-                 save_dir: str,
-                 name: str = "default",
-                 description: Optional[str] = None,
-                 debug: bool = False,
-                 version: Optional[int] = None,
-                 create_git_tag: bool = False):
-
+    def __init__(
+        self,
+        save_dir: str,
+        name: str = "default",
+        description: Optional[str] = None,
+        debug: bool = False,
+        version: Optional[int] = None,
+        create_git_tag: bool = False,
+        log_graph: bool = False
+    ):
         if not _TEST_TUBE_AVAILABLE:
             raise ImportError('You want to use `test_tube` logger which is not installed yet,'
                               ' install it with `pip install test-tube`.')
@@ -74,6 +93,7 @@ class TestTubeLogger(LightningLoggerBase):
         self.debug = debug
         self._version = version
         self.create_git_tag = create_git_tag
+        self._log_graph = log_graph
         self._experiment = None
 
     @property
@@ -116,6 +136,24 @@ class TestTubeLogger(LightningLoggerBase):
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
+
+    @rank_zero_only
+    def log_graph(self, model: LightningModule, input_array=None):
+        if self._log_graph:
+            if input_array is None:
+                input_array = model.example_input_array
+
+            if input_array is not None:
+                self.experiment.add_graph(
+                    model,
+                    model.transfer_batch_to_device(
+                        model.example_input_array, model.device)
+                )
+            else:
+                rank_zero_warn('Could not log computational graph since the'
+                               ' `model.example_input_array` attribute is not set'
+                               ' or `input_array` was not given',
+                               UserWarning)
 
     @rank_zero_only
     def save(self) -> None:

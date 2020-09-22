@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import inspect
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
+import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.utilities import parsing, rank_zero_only, rank_zero_warn
+from pytorch_lightning.core.hooks import DataHooks
+from pytorch_lightning.utilities import parsing, rank_zero_only
 
 
 class _DataModuleWrapper(type):
@@ -28,10 +31,13 @@ class _DataModuleWrapper(type):
 
             1. Runs user defined subclass's __init__
             2. Assures prepare_data() runs on rank 0
+            3. Lets you check prepare_data and setup to see if they've been called
         """
 
-        # Wrap cls's prepare_data function with rank_zero_only
-        cls.prepare_data = rank_zero_only(cls.prepare_data)
+        # Track prepare_data calls and make sure it runs on rank zero
+        cls.prepare_data = track_data_hook_calls(rank_zero_only(cls.prepare_data))
+        # Track setup calls
+        cls.setup = track_data_hook_calls(cls.setup)
 
         # Get instance of LightningDataModule by mocking its __init__ via __call__
         obj = type.__call__(cls, *args, **kwargs)
@@ -39,7 +45,50 @@ class _DataModuleWrapper(type):
         return obj
 
 
-class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no cover
+def track_data_hook_calls(fn):
+    """A decorator that checks if prepare_data/setup have been called.
+
+    - When dm.prepare_data() is called, dm.has_prepared_data gets set to True
+    - When dm.setup('fit') is called, dm.has_setup_fit gets set to True
+    - When dm.setup('test') is called, dm.has_setup_test gets set to True
+    - When dm.setup() is called without stage arg, both dm.has_setup_fit and dm.has_setup_test get set to True
+
+    Args:
+        fn (function): Function that will be tracked to see if it has been called.
+
+    Returns:
+        function: Decorated function that tracks its call status and saves it to private attrs in its obj instance.
+    """
+
+    @functools.wraps(fn)
+    def wrapped_fn(*args, **kwargs):
+
+        # The object instance from which setup or prepare_data was called
+        obj = args[0]
+
+        # If calling setup, we check the stage and assign stage-specific bool args
+        if fn.__name__ == 'setup':
+
+            # Get stage either by grabbing from args or checking kwargs.
+            # If not provided, set call status of 'fit' and 'test' to True.
+            # We do this so __attach_datamodule in trainer.py doesn't mistakenly call setup('test') on trainer.test()
+            stage = args[1] if len(args) > 1 else kwargs.get('stage', None)
+
+            if stage == 'fit' or stage is None:
+                obj._has_setup_fit = True
+
+            if stage == 'test' or stage is None:
+                obj._has_setup_test = True
+
+        if fn.__name__ == 'prepare_data':
+            obj._has_prepared_data = True
+
+        return fn(*args, **kwargs)
+
+    return wrapped_fn
+
+
+class LightningDataModule(DataHooks, metaclass=_DataModuleWrapper):
     """
     A DataModule standardizes the training, val, test splits, data preparation and transforms.
     The main advantage is consistent data splits, data preparation and transforms across models.
@@ -82,13 +131,18 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     name: str = ...
 
     def __init__(
-        self, train_transforms=None, val_transforms=None, test_transforms=None,
+        self, train_transforms=None, val_transforms=None, test_transforms=None, dims=None
     ):
         super().__init__()
         self._train_transforms = train_transforms
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms
-        self.dims = ()
+        self._dims = dims if dims is not None else ()
+
+        # Private attrs to keep track of whether or not data hooks have been called yet
+        self._has_prepared_data = False
+        self._has_setup_fit = False
+        self._has_setup_test = False
 
     @property
     def train_transforms(self):
@@ -123,9 +177,21 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
     def test_transforms(self, t):
         self._test_transforms = t
 
+    @property
+    def dims(self):
+        """
+        A tuple describing the shape of your data. Extra functionality exposed in ``size``.
+        """
+        return self._dims
+
+    @dims.setter
+    def dims(self, d):
+        self._dims = d
+
     def size(self, dim=None) -> Union[Tuple, int]:
         """
-        Return the dimension of each input either as a tuple or list of tuples.
+        Return the dimension of each input either as a tuple or list of tuples. You can index this
+        just as you would with a torch tensor.
         """
 
         if dim is not None:
@@ -133,99 +199,56 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
 
         return self.dims
 
+    @property
+    def has_prepared_data(self):
+        """Return bool letting you know if datamodule.prepare_data() has been called or not.
+
+        Returns:
+            bool: True if datamodule.prepare_data() has been called. False by default.
+        """
+        return self._has_prepared_data
+
+    @property
+    def has_setup_fit(self):
+        """Return bool letting you know if datamodule.setup('fit') has been called or not.
+
+        Returns:
+            bool: True if datamodule.setup('fit') has been called. False by default.
+        """
+        return self._has_setup_fit
+
+    @property
+    def has_setup_test(self):
+        """Return bool letting you know if datamodule.setup('test') has been called or not.
+
+        Returns:
+            bool: True if datamodule.setup('test') has been called. False by default.
+        """
+        return self._has_setup_test
+
     @abstractmethod
     def prepare_data(self, *args, **kwargs):
-        """
-        Use this to download and prepare data.
-        In distributed (GPU, TPU), this will only be called once.
-
-        .. warning:: Do not assign anything to the datamodule in this step since this will only be called on 1 GPU.
-
-        Pseudocode::
-
-            dm.prepare_data()
-            dm.setup()
-
-        Example::
-
-            def prepare_data(self):
-                download_imagenet()
-                clean_imagenet()
-                cache_imagenet()
-        """
+        pass
 
     @abstractmethod
-    def setup(self, *args, **kwargs):
-        """
-        Use this to load your data from file, split it, etc. You are safe to make state assignments here.
-        This hook is called on every process when using DDP.
-
-        Example::
-
-            def setup(self):
-                data = load_data(...)
-                self.train_ds, self.val_ds, self.test_ds = split_data(data)
-        """
+    def setup(self, stage: Optional[str] = None):
+        pass
 
     @abstractmethod
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
-        """
-        Implement a PyTorch DataLoader for training.
-        Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-
-        Example::
-
-            def train_dataloader(self):
-                dataset = MNIST(root=PATH, train=True, transform=transforms.ToTensor(), download=False)
-                loader = torch.utils.data.DataLoader(dataset=dataset)
-                return loader
-
-        """
-        rank_zero_warn('`train_dataloader` must be implemented to be used with the Lightning Trainer')
+        pass
 
     @abstractmethod
     def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        r"""
-        Implement a PyTorch DataLoader for training.
-        Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-        Note:
-            You can also return a list of DataLoaders
-
-        Example::
-
-            def val_dataloader(self):
-                dataset = MNIST(root=PATH, train=False, transform=transforms.ToTensor(), download=False)
-                loader = torch.utils.data.DataLoader(dataset=dataset, shuffle=False)
-                return loader
-        """
+        pass
 
     @abstractmethod
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
-        r"""
-        Implement a PyTorch DataLoader for training.
-        Return:
-            Single PyTorch :class:`~torch.utils.data.DataLoader`.
-        Note:
-            Lightning adds the correct sampler for distributed and arbitrary hardware.
-            There is no need to set it yourself.
-        Note:
-            You can also return a list of DataLoaders
+        pass
 
-        Example::
-
-            def test_dataloader(self):
-                dataset = MNIST(root=PATH, train=False, transform=transforms.ToTensor(), download=False)
-                loader = torch.utils.data.DataLoader(dataset=dataset, shuffle=False)
-                return loader
-        """
+    @abstractmethod
+    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
+        pass
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
@@ -238,7 +261,7 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
         depr_arg_names = blacklist + added_args
         depr_arg_names = set(depr_arg_names)
 
-        allowed_types = (str, float, int, bool)
+        allowed_types = (str, int, float, bool)
 
         # TODO: get "help" from docstring :)
         for arg, arg_types, arg_default in (
@@ -250,13 +273,13 @@ class LightningDataModule(object, metaclass=_DataModuleWrapper):  # pragma: no c
                 continue
             arg_kwargs = {}
             if bool in arg_types:
-                arg_kwargs.update(nargs="?")
+                arg_kwargs.update(nargs="?", const=True)
                 # if the only arg type is bool
                 if len(arg_types) == 1:
-                    # redefine the type for ArgParser needed
-                    def use_type(x):
-                        return bool(parsing.str_to_bool(x))
-
+                    use_type = parsing.str_to_bool
+                # if only two args (str, bool)
+                elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
+                    use_type = parsing.str_to_bool_or_str
                 else:
                     # filter out the bool as we need to use more general
                     use_type = [at for at in arg_types if at is not bool][0]

@@ -1,50 +1,82 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import inspect
+import pickle
 from argparse import Namespace
-from typing import Dict
+from typing import Dict, Union
+
+from pytorch_lightning.utilities import rank_zero_warn
 
 
-def str_to_bool(val):
-    """Convert a string representation of truth to true (1) or false (0).
-    Copied from the python implementation distutils.utils.strtobool
+def str_to_bool_or_str(val: str) -> Union[str, bool]:
+    """Possibly convert a string representation of truth to bool.
+    Returns the input otherwise.
+    Based on the python implementation distutils.utils.strtobool
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.
+    """
+    lower = val.lower()
+    if lower in ('y', 'yes', 't', 'true', 'on', '1'):
+        return True
+    elif lower in ('n', 'no', 'f', 'false', 'off', '0'):
+        return False
+    else:
+        return val
+
+
+def str_to_bool(val: str) -> bool:
+    """Convert a string representation of truth to bool.
 
     True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
     are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
     'val' is anything else.
 
     >>> str_to_bool('YES')
-    1
+    True
     >>> str_to_bool('FALSE')
-    0
+    False
     """
-    val = val.lower()
-    if val in ('y', 'yes', 't', 'true', 'on', '1'):
-        return 1
-    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-        return 0
-    else:
-        raise ValueError(f'invalid truth value {val}')
+    val = str_to_bool_or_str(val)
+    if isinstance(val, bool):
+        return val
+    raise ValueError(f'invalid truth value {val}')
+
+
+def is_picklable(obj: object) -> bool:
+    """Tests if an object can be pickled"""
+
+    try:
+        pickle.dumps(obj)
+        return True
+    except pickle.PicklingError:
+        return False
 
 
 def clean_namespace(hparams):
-    """Removes all functions from hparams so we can pickle."""
+    """Removes all unpicklable entries from hparams"""
 
+    hparams_dict = hparams
     if isinstance(hparams, Namespace):
-        del_attrs = []
-        for k in hparams.__dict__:
-            if callable(getattr(hparams, k)):
-                del_attrs.append(k)
+        hparams_dict = hparams.__dict__
 
-        for k in del_attrs:
-            delattr(hparams, k)
+    del_attrs = [k for k, v in hparams_dict.items() if not is_picklable(v)]
 
-    elif isinstance(hparams, dict):
-        del_attrs = []
-        for k, v in hparams.items():
-            if callable(v):
-                del_attrs.append(k)
-
-        for k in del_attrs:
-            del hparams[k]
+    for k in del_attrs:
+        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled", UserWarning)
+        del hparams_dict[k]
 
 
 def get_init_args(frame) -> dict:
@@ -140,3 +172,77 @@ class AttributeDict(Dict):
         rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
         out = '\n'.join(rows)
         return out
+
+
+def lightning_hasattr(model, attribute):
+    """ Special hasattr for lightning. Checks for attribute in model namespace,
+        the old hparams namespace/dict, and the datamodule. """
+    trainer = model.trainer
+
+    # Check if attribute in model
+    if hasattr(model, attribute):
+        attr = True
+    # Check if attribute in model.hparams, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            attr = attribute in model.hparams
+        else:
+            attr = hasattr(model.hparams, attribute)
+    # Check if the attribute in datamodule (datamodule gets registered in Trainer)
+    elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        attr = getattr(trainer.datamodule, attribute)
+    else:
+        attr = False
+
+    return attr
+
+
+def lightning_getattr(model, attribute):
+    """ Special getattr for lightning. Checks for attribute in model namespace,
+        the old hparams namespace/dict, and the datamodule. """
+    trainer = model.trainer
+
+    # Check if attribute in model
+    if hasattr(model, attribute):
+        attr = getattr(model, attribute)
+    # Check if attribute in model.hparams, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            attr = model.hparams[attribute]
+        else:
+            attr = getattr(model.hparams, attribute)
+
+    # Check if the attribute in datamodule (datamodule gets registered in Trainer)
+    elif trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        attr = getattr(trainer.datamodule, attribute)
+    else:
+        raise ValueError(f'{attribute} is neither stored in the model namespace'
+                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+    return attr
+
+
+def lightning_setattr(model, attribute, value):
+    """ Special setattr for lightning. Checks for attribute in model namespace
+        and the old hparams namespace/dict.
+        Will also set the attribute on datamodule, if it exists.
+    """
+    if not lightning_hasattr(model, attribute):
+        raise ValueError(f'{attribute} is neither stored in the model namespace'
+                         ' nor the `hparams` namespace/dict, nor the datamodule.')
+
+    trainer = model.trainer
+
+    # Check if attribute in model
+    if hasattr(model, attribute):
+        setattr(model, attribute, value)
+
+    # Check if attribute in model.hparams, either namespace or dict
+    elif hasattr(model, 'hparams'):
+        if isinstance(model.hparams, dict):
+            model.hparams[attribute] = value
+        else:
+            setattr(model.hparams, attribute, value)
+
+    # Check if the attribute in datamodule (datamodule gets registered in Trainer)
+    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
+        setattr(trainer.datamodule, attribute, value)

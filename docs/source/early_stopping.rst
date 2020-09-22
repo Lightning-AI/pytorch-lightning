@@ -3,13 +3,14 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+.. _early_stopping:
 
 Early stopping
 ==============
 
 Stopping an epoch early
 -----------------------
-You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.on_batch_start` to return `-1` when some condition is met.
+You can stop an epoch early by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.on_batch_start` to return ``-1`` when some condition is met.
 
 If you do this repeatedly, for every epoch you had originally requested, then this will stop your entire run.
 
@@ -32,9 +33,17 @@ callback can be used to monitor a validation metric and stop the training when n
 There are two ways to enable the EarlyStopping callback:
 
 -   Set `early_stop_callback=True`.
-    The callback will look for 'val_loss' in the dict returned by 
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`
-    and raise an error if `val_loss` is not present.
+    If a dict is returned by
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`,
+    the callback will look for `val_loss` in the dict
+    and display a warning if `val_loss` is not present.
+    Otherwise, if a :class:`~pytorch_lightning.core.step_result.Result` is returned by
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`,
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` or
+    :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
+    the `early_stop_on` metric, specified in the initialization of the
+    :class:`~pytorch_lightning.core.step_result.Result` object is used
+    and display a warning if it was not specified.
 
     .. testcode::
 

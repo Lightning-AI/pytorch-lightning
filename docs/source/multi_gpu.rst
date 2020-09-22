@@ -4,7 +4,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _multi-gpu-training:
+.. _multi_gpu:
 
 Multi-GPU training
 ==================
@@ -48,7 +48,7 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
     # with lightning
     def forward(self, x):
         z = torch.Tensor(2, 3)
-        z = z.type_as(x, device=self.device)
+        z = z.type_as(x)
 
 The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via `self.device`.
 Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
@@ -67,7 +67,7 @@ register the tensor as a buffer in your modules's `__init__` method with :meth:`
 
 Remove samplers
 ^^^^^^^^^^^^^^^
-In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training in PyTorch. The
+In PyTorch, you must use `torch.nn.DistributedSampler` for multi-node or TPU training. The
 sampler makes sure each GPU sees the appropriate part of your data.
 
 .. testcode::
@@ -149,7 +149,7 @@ a comma separated list of GPU ids:
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
 
-    # DEFAULT (int) specifies how many GPUs to use
+    # DEFAULT (int) specifies how many GPUs to use per node
     Trainer(gpus=k)
 
     # Above is equivalent to
@@ -192,6 +192,13 @@ Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 | "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
 +---------------+-----------+---------------------+---------------------------------+
 
+.. note::
+
+    When specifying number of gpus as an integer `gpus=k`, setting the trainer flag
+    `auto_select_gpus=True` will automatically help you find `k` gpus that are not
+    occupied by other processes. This is especially useful when GPUs are configured
+    to be in "exclusive mode", such that only one process at a time can access them.
+
 Remove CUDA flags
 ^^^^^^^^^^^^^^^^^
 
@@ -206,7 +213,7 @@ Lightning sets these for you automatically, there's NO NEED to do this yourself.
 
 However, when using a cluster, Lightning will NOT set these flags (and you should not either).
 SLURM will set these for you.
-For more details see the `SLURM cluster guide <slurm.rst>`_.
+For more details see the :ref:`SLURM cluster guide <slurm>`.
 
 ----------
 
@@ -279,17 +286,19 @@ variables:
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
 
-If your code does not support this (ie: jupyter notebook, colab, or a nested script without a root package),
-use `dp` or `ddp_spawn`.
 We use DDP this way because `ddp_spawn` has a few limitations (due to Python and PyTorch):
 
 1. Since `.spawn()` trains the model in subprocesses, the model on the main process does not get updated.
-
 2. Dataloader(num_workers=N), where N is large, bottlenecks training with DDP... ie: it will be VERY slow or won't work at all. This is a PyTorch limitation.
-
 3. Forces everything to be picklable.
 
-However, if you don't mind these limitations, you can use `ddp_spawn`.
+There are cases in which it is not possible to use DDP. Examples are:
+
+- Jupyter Notebook, Google COLAB, Kaggle, etc.
+- You have a nested script without a root package
+- Your script needs to invoke `.fit` or `.test` multiple times
+
+In these situations you should use `dp` or `ddp_spawn` instead.
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

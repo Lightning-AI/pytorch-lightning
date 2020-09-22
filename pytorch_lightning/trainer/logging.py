@@ -1,4 +1,17 @@
-import os
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from abc import ABC
 from typing import Union, Iterable
 
@@ -17,7 +30,6 @@ class TrainerLoggingMixin(ABC):
     on_gpu: bool
     log_gpu_memory: ...
     logger: Union[LightningLoggerBase, bool]
-    progress_bar_metrics: ...
     global_step: int
     global_rank: int
     use_dp: bool
@@ -25,65 +37,7 @@ class TrainerLoggingMixin(ABC):
     default_root_dir: str
     slurm_job_id: int
     num_gpus: int
-
-    def configure_logger(self, logger):
-        if logger is True:
-            # default logger
-            self.logger = TensorBoardLogger(
-                save_dir=self.default_root_dir,
-                version=self.slurm_job_id,
-                name='lightning_logs'
-            )
-        elif logger is False:
-            self.logger = None
-        else:
-            if isinstance(logger, Iterable):
-                self.logger = LoggerCollection(logger)
-            else:
-                self.logger = logger
-
-    def log_metrics(self, metrics, grad_norm_dic, step=None):
-        """Logs the metric dict passed in.
-        If `step` parameter is None and `step` key is presented is metrics,
-        uses metrics["step"] as a step
-
-        Args:
-            metrics (dict): Metric values
-            grad_norm_dic (dict): Gradient norms
-            step (int): Step for which metrics should be logged. Default value corresponds to `self.global_step`
-        """
-        # add gpu memory
-        if self.on_gpu and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            metrics.update(mem_map)
-
-        # add norms
-        metrics.update(grad_norm_dic)
-
-        # turn all tensors to scalars
-        scalar_metrics = self.metrics_to_scalars(metrics)
-
-        if "step" in scalar_metrics and step is None:
-            step = scalar_metrics.pop("step")
-        else:
-            # added metrics by Lightning for convenience
-            scalar_metrics['epoch'] = self.current_epoch
-            step = step if step is not None else self.global_step
-        # log actual metrics
-        if self.is_global_zero and self.logger is not None:
-            self.logger.agg_and_log_metrics(scalar_metrics, step=step)
-            self.logger.save()
-
-            self.dev_debugger.track_logged_metrics_history(scalar_metrics)
-
-    def add_progress_bar_metrics(self, metrics):
-        for k, v in metrics.items():
-            if isinstance(v, torch.Tensor):
-                v = v.item()
-
-            self.progress_bar_metrics[k] = v
-
-        self.dev_debugger.track_pbar_metrics_history(metrics)
+    logged_metrics: ...
 
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
@@ -119,9 +73,10 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
-        for k, v in output.items():
-            if k not in ['progress_bar', 'log', 'hiddens']:
-                callback_metrics[k] = v
+        if output:
+            for k, v in output.items():
+                if k not in ['progress_bar', 'log', 'hiddens']:
+                    callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
             num_gpus = self.num_gpus
@@ -182,7 +137,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        hiddens = output.get('hiddens')
+        hiddens = output.get('hiddens') if output else None
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)
@@ -207,6 +162,10 @@ class TrainerLoggingMixin(ABC):
             # recurse on nested dics
             if isinstance(output[k], dict):
                 output[k] = self.reduce_distributed_output(output[k], num_gpus)
+
+            # compute the average of scalars
+            elif isinstance(output[k], list):
+                output[k] = sum(output[k]) / len(output[k])
 
             # do nothing when there's a scalar
             elif isinstance(output[k], torch.Tensor) and output[k].dim() == 0:

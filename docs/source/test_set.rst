@@ -1,3 +1,5 @@
+.. _test_set:
+
 Test set
 ========
 Lightning forces the user to run the test set separately to make sure it isn't evaluated by mistake.

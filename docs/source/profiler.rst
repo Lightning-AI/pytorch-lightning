@@ -1,6 +1,7 @@
 .. role:: hidden
     :class: hidden-section
 
+.. _profiler:
 
 Performance and Bottleneck Profiler
 ===================================

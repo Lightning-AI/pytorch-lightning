@@ -1,13 +1,3 @@
-from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
-from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
-from pytorch_lightning.metrics.regression import (
-    MAE,
-    MSE,
-    PSNR,
-    RMSE,
-    RMSLE,
-    SSIM
-)
 from pytorch_lightning.metrics.classification import (
     Accuracy,
     AveragePrecision,
@@ -18,18 +8,28 @@ from pytorch_lightning.metrics.classification import (
     ROC,
     AUROC,
     DiceCoefficient,
-    MulticlassPrecisionRecall,
+    MulticlassPrecisionRecallCurve,
     MulticlassROC,
     Precision,
-    PrecisionRecall,
+    PrecisionRecallCurve,
     IoU,
+)
+from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
+from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
+from pytorch_lightning.metrics.nlp import BLEUScore
+from pytorch_lightning.metrics.self_supervised import EmbeddingSimilarity
+from pytorch_lightning.metrics.regression import (
+    MAE,
+    MSE,
+    PSNR,
+    RMSE,
+    RMSLE,
+    SSIM
 )
 from pytorch_lightning.metrics.sklearns import (
     AUC,
-    PrecisionRecallCurve,
     SklearnMetric,
 )
-from pytorch_lightning.metrics.nlp import BLEUScore
 
 __classification_metrics = [
     "AUC",
@@ -40,10 +40,9 @@ __classification_metrics = [
     "DiceCoefficient",
     "F1",
     "FBeta",
-    "MulticlassPrecisionRecall",
+    "MulticlassPrecisionRecallCurve",
     "MulticlassROC",
     "Precision",
-    "PrecisionRecall",
     "PrecisionRecallCurve",
     "ROC",
     "Recall",
@@ -58,4 +57,10 @@ __regression_metrics = [
     "SSIM"
 ]
 __sequence_metrics = ["BLEUScore"]
-__all__ = __regression_metrics + __classification_metrics + ["SklearnMetric"] + __sequence_metrics
+__selfsuper_metrics = ["EmbeddingSimilarity"]
+
+__all__ = __regression_metrics \
+    + __classification_metrics \
+    + __selfsuper_metrics \
+    + __sequence_metrics \
+    + ["SklearnMetric"]

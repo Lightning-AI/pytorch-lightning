@@ -1,6 +1,8 @@
 .. testsetup:: *
 
     from pytorch_lightning.trainer.trainer import Trainer
+    
+.. _slurm:
 
 Computing cluster (SLURM)
 =========================

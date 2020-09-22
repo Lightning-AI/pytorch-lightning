@@ -4,6 +4,7 @@ import pytest
 import torch
 from sklearn.metrics import (
     accuracy_score as sk_accuracy,
+    jaccard_score as sk_jaccard_score,
     precision_score as sk_precision,
     recall_score as sk_recall,
     f1_score as sk_f1_score,
@@ -37,10 +38,11 @@ from pytorch_lightning.metrics.functional.classification import (
 
 @pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
     pytest.param(sk_accuracy, accuracy, id='accuracy'),
-    pytest.param(partial(sk_precision, average='macro'), precision, id='precision'),
-    pytest.param(partial(sk_recall, average='macro'), recall, id='recall'),
-    pytest.param(partial(sk_f1_score, average='macro'), f1_score, id='f1_score'),
-    pytest.param(partial(sk_fbeta_score, average='macro', beta=2), partial(fbeta_score, beta=2), id='fbeta_score'),
+    pytest.param(partial(sk_jaccard_score, average='macro'), iou, id='iou'),
+    pytest.param(partial(sk_precision, average='micro'), precision, id='precision'),
+    pytest.param(partial(sk_recall, average='micro'), recall, id='recall'),
+    pytest.param(partial(sk_f1_score, average='micro'), f1_score, id='f1_score'),
+    pytest.param(partial(sk_fbeta_score, average='micro', beta=2), partial(fbeta_score, beta=2), id='fbeta_score'),
     pytest.param(sk_confusion_matrix, confusion_matrix, id='confusion_matrix')
 ])
 def test_against_sklearn(sklearn_metric, torch_metric):
@@ -57,6 +59,27 @@ def test_against_sklearn(sklearn_metric, torch_metric):
         sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
         pl_score = torch_metric(pred, target)
         assert torch.allclose(sk_score, pl_score)
+
+
+@pytest.mark.parametrize('class_reduction', ['micro', 'macro', 'weighted'])
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
+    pytest.param(sk_precision, precision, id='precision'),
+    pytest.param(sk_recall, recall, id='recall'),
+    pytest.param(sk_f1_score, f1_score, id='f1_score'),
+    pytest.param(partial(sk_fbeta_score, beta=2), partial(fbeta_score, beta=2), id='fbeta_score')
+])
+def test_different_reduction_against_sklearn(class_reduction, sklearn_metric, torch_metric):
+    """ Test metrics where the class_reduction parameter have a correponding
+        value in sklearn """
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    pred = torch.randint(10, (300,), device=device)
+    target = torch.randint(10, (300,), device=device)
+    sk_score = sklearn_metric(target.cpu().detach().numpy(),
+                              pred.cpu().detach().numpy(),
+                              average=class_reduction)
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    pl_score = torch_metric(pred, target, class_reduction=class_reduction)
+    assert torch.allclose(sk_score, pl_score)
 
 
 def test_onehot():
@@ -121,15 +144,19 @@ def test_stat_scores(pred, target, expected_tp, expected_fp, expected_tn, expect
     assert sup.item() == expected_support
 
 
-@pytest.mark.parametrize(['pred', 'target', 'expected_tp', 'expected_fp',
+@pytest.mark.parametrize(['pred', 'target', 'reduction', 'expected_tp', 'expected_fp',
                           'expected_tn', 'expected_fn', 'expected_support'], [
-    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]),
+    pytest.param(torch.tensor([0., 2., 4., 4.]), torch.tensor([0., 4., 3., 4.]), 'none',
                  [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1], [1, 0, 0, 1, 2]),
-    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]),
-                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1], [1, 0, 0, 1, 2])
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'none',
+                 [1, 0, 0, 0, 1], [0, 0, 1, 0, 1], [3, 4, 3, 3, 1], [0, 0, 0, 1, 1], [1, 0, 0, 1, 2]),
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'sum',
+                 torch.tensor(2), torch.tensor(2), torch.tensor(14), torch.tensor(2), torch.tensor(4)),
+    pytest.param(to_onehot(torch.tensor([0., 2., 4., 4.])), torch.tensor([0., 4., 3., 4.]), 'elementwise_mean',
+                 torch.tensor(0.4), torch.tensor(0.4), torch.tensor(2.8), torch.tensor(0.4), torch.tensor(0.8))
 ])
-def test_stat_scores_multiclass(pred, target, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
-    tp, fp, tn, fn, sup = stat_scores_multiple_classes(pred, target)
+def test_stat_scores_multiclass(pred, target, reduction, expected_tp, expected_fp, expected_tn, expected_fn, expected_support):
+    tp, fp, tn, fn, sup = stat_scores_multiple_classes(pred, target, reduction=reduction)
 
     assert torch.allclose(torch.tensor(expected_tp).to(tp), tp)
     assert torch.allclose(torch.tensor(expected_fp).to(fp), fp)
@@ -143,14 +170,14 @@ def test_multilabel_accuracy():
     y1 = torch.tensor([[0, 1, 1], [1, 0, 1]])
     y2 = torch.tensor([[0, 0, 1], [1, 0, 1]])
 
-    assert torch.allclose(accuracy(y1, y2, reduction='none'), torch.tensor([2 / 3, 1.]))
-    assert torch.allclose(accuracy(y1, y1, reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, y2, reduction='none'), torch.tensor([1., 1.]))
-    assert torch.allclose(accuracy(y2, torch.logical_not(y2), reduction='none'), torch.tensor([0., 0.]))
-    assert torch.allclose(accuracy(y1, torch.logical_not(y1), reduction='none'), torch.tensor([0., 0.]))
+    assert torch.allclose(accuracy(y1, y2, class_reduction='none'), torch.tensor([2 / 3, 1.]))
+    assert torch.allclose(accuracy(y1, y1, class_reduction='none'), torch.tensor([1., 1.]))
+    assert torch.allclose(accuracy(y2, y2, class_reduction='none'), torch.tensor([1., 1.]))
+    assert torch.allclose(accuracy(y2, torch.logical_not(y2), class_reduction='none'), torch.tensor([0., 0.]))
+    assert torch.allclose(accuracy(y1, torch.logical_not(y1), class_reduction='none'), torch.tensor([0., 0.]))
 
     with pytest.raises(RuntimeError):
-        accuracy(y2, torch.zeros_like(y2), reduction='none')
+        accuracy(y2, torch.zeros_like(y2), class_reduction='none')
 
 
 def test_accuracy():
@@ -178,14 +205,29 @@ def test_confusion_matrix():
     cm = confusion_matrix(pred, target, normalize=True)
     assert torch.allclose(cm, torch.tensor([[1., 0., 0.], [1., 0., 0.], [1., 0., 0.]]))
 
+    target = torch.LongTensor([0, 0, 0, 0, 0])
+    pred = target.clone()
+    cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
+    assert torch.allclose(cm, torch.tensor([[5., 0., 0.], [0., 0., 0.], [0., 0., 0.]]))
+
+    # Example taken from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
+    target = torch.LongTensor([0] * 13 + [1] * 16 + [2] * 9)
+    pred = torch.LongTensor([0] * 13 + [1] * 10 + [2] * 15)
+    cm = confusion_matrix(pred, target, normalize=False, num_classes=3)
+    assert torch.allclose(cm, torch.tensor([[13., 0., 0.], [0., 10., 6.], [0., 0., 9.]]))
+    to_compare = cm / torch.tensor([[13.], [16.], [9.]])
+
+    cm = confusion_matrix(pred, target, normalize=True, num_classes=3)
+    assert torch.allclose(cm, to_compare)
+
 
 @pytest.mark.parametrize(['pred', 'target', 'expected_prec', 'expected_rec'], [
     pytest.param(torch.tensor([1., 0., 1., 0.]), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5]),
     pytest.param(to_onehot(torch.tensor([1., 0., 1., 0.])), torch.tensor([0., 1., 1., 0.]), [0.5, 0.5], [0.5, 0.5])
 ])
 def test_precision_recall(pred, target, expected_prec, expected_rec):
-    prec = precision(pred, target, reduction='none')
-    rec = recall(pred, target, reduction='none')
+    prec = precision(pred, target, class_reduction='none')
+    rec = recall(pred, target, class_reduction='none')
 
     assert torch.allclose(torch.tensor(expected_prec).to(prec), prec)
     assert torch.allclose(torch.tensor(expected_rec).to(rec), rec)
@@ -197,10 +239,10 @@ def test_precision_recall(pred, target, expected_prec, expected_rec):
     pytest.param([1., 0., 1., 0.], [0., 1., 1., 0.], 2, [0.5, 0.5]),
 ])
 def test_fbeta_score(pred, target, beta, exp_score):
-    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, reduction='none')
+    score = fbeta_score(torch.tensor(pred), torch.tensor(target), beta, class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
-    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, reduction='none')
+    score = fbeta_score(to_onehot(torch.tensor(pred)), torch.tensor(target), beta, class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
 
@@ -210,10 +252,10 @@ def test_fbeta_score(pred, target, beta, exp_score):
     pytest.param([1., 0., 1., 0.], [1., 0., 1., 0.], [1.0, 1.0]),
 ])
 def test_f1_score(pred, target, exp_score):
-    score = f1_score(torch.tensor(pred), torch.tensor(target), reduction='none')
+    score = f1_score(torch.tensor(pred), torch.tensor(target), class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
-    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), reduction='none')
+    score = f1_score(to_onehot(torch.tensor(pred)), torch.tensor(target), class_reduction='none')
     assert torch.allclose(score, torch.tensor(exp_score))
 
 
@@ -320,21 +362,94 @@ def test_dice_score(pred, target, expected):
     assert score == expected
 
 
-@pytest.mark.parametrize(['half_ones', 'reduction', 'remove_bg', 'expected'], [
-    pytest.param(False, 'none', False, torch.Tensor([1, 1, 1])),
-    pytest.param(False, 'elementwise_mean', False, torch.Tensor([1])),
-    pytest.param(False, 'none', True, torch.Tensor([1, 1])),
-    pytest.param(True, 'none', False, torch.Tensor([0.5, 0.5, 0.5])),
-    pytest.param(True, 'elementwise_mean', False, torch.Tensor([0.5])),
-    pytest.param(True, 'none', True, torch.Tensor([0.5, 0.5])),
+@pytest.mark.parametrize(['half_ones', 'reduction', 'ignore_index', 'expected'], [
+    pytest.param(False, 'none', None, torch.Tensor([1, 1, 1])),
+    pytest.param(False, 'elementwise_mean', None, torch.Tensor([1])),
+    pytest.param(False, 'none', 0, torch.Tensor([1, 1])),
+    pytest.param(True, 'none', None, torch.Tensor([0.5, 0.5, 0.5])),
+    pytest.param(True, 'elementwise_mean', None, torch.Tensor([0.5])),
+    pytest.param(True, 'none', 0, torch.Tensor([0.5, 0.5])),
 ])
-def test_iou(half_ones, reduction, remove_bg, expected):
+def test_iou(half_ones, reduction, ignore_index, expected):
     pred = (torch.arange(120) % 3).view(-1, 1)
     target = (torch.arange(120) % 3).view(-1, 1)
     if half_ones:
         pred[:60] = 1
-    iou_val = iou(pred, target, remove_bg=remove_bg, reduction=reduction)
+    iou_val = iou(
+        pred=pred,
+        target=target,
+        ignore_index=ignore_index,
+        reduction=reduction,
+    )
     assert torch.allclose(iou_val, expected, atol=1e-9)
+
+
+# TODO: When the jaccard_score of the sklearn version we use accepts `zero_division` (see
+#       https://github.com/scikit-learn/scikit-learn/pull/17866), consider adding a test here against our
+#       `absent_score`.
+@pytest.mark.parametrize(['pred', 'target', 'ignore_index', 'absent_score', 'num_classes', 'expected'], [
+    # Note that -1 is used as the absent_score in almost all tests here to distinguish it from the range of valid
+    # scores the function can return ([0., 1.] range, inclusive).
+    # 2 classes, class 0 is correct everywhere, class 1 is absent.
+    pytest.param([0], [0], None, -1., 2, [1., -1.]),
+    pytest.param([0, 0], [0, 0], None, -1., 2, [1., -1.]),
+    # absent_score not applied if only class 0 is present and it's the only class.
+    pytest.param([0], [0], None, -1., 1, [1.]),
+    # 2 classes, class 1 is correct everywhere, class 0 is absent.
+    pytest.param([1], [1], None, -1., 2, [-1., 1.]),
+    pytest.param([1, 1], [1, 1], None, -1., 2, [-1., 1.]),
+    # When 0 index ignored, class 0 does not get a score (not even the absent_score).
+    pytest.param([1], [1], 0, -1., 2, [1.0]),
+    # 3 classes. Only 0 and 2 are present, and are perfectly predicted. 1 should get absent_score.
+    pytest.param([0, 2], [0, 2], None, -1., 3, [1., -1., 1.]),
+    pytest.param([2, 0], [2, 0], None, -1., 3, [1., -1., 1.]),
+    # 3 classes. Only 0 and 1 are present, and are perfectly predicted. 2 should get absent_score.
+    pytest.param([0, 1], [0, 1], None, -1., 3, [1., 1., -1.]),
+    pytest.param([1, 0], [1, 0], None, -1., 3, [1., 1., -1.]),
+    # 3 classes, class 0 is 0.5 IoU, class 1 is 0 IoU (in pred but not target; should not get absent_score), class
+    # 2 is absent.
+    pytest.param([0, 1], [0, 0], None, -1., 3, [0.5, 0., -1.]),
+    # 3 classes, class 0 is 0.5 IoU, class 1 is 0 IoU (in target but not pred; should not get absent_score), class
+    # 2 is absent.
+    pytest.param([0, 0], [0, 1], None, -1., 3, [0.5, 0., -1.]),
+    # Sanity checks with absent_score of 1.0.
+    pytest.param([0, 2], [0, 2], None, 1.0, 3, [1., 1., 1.]),
+    pytest.param([0, 2], [0, 2], 0, 1.0, 3, [1., 1.]),
+])
+def test_iou_absent_score(pred, target, ignore_index, absent_score, num_classes, expected):
+    iou_val = iou(
+        pred=torch.tensor(pred),
+        target=torch.tensor(target),
+        ignore_index=ignore_index,
+        absent_score=absent_score,
+        num_classes=num_classes,
+        reduction='none',
+    )
+    assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))
+
+
+@pytest.mark.parametrize(['pred', 'target', 'ignore_index', 'num_classes', 'reduction', 'expected'], [
+    # Ignoring an index outside of [0, num_classes-1] should have no effect.
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], None, 3, 'none', [1, 1 / 2, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], -1, 3, 'none', [1, 1 / 2, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 255, 3, 'none', [1, 1 / 2, 2 / 3]),
+    # Ignoring a valid index drops only that index from the result.
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'none', [1 / 2, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 1, 3, 'none', [1, 2 / 3]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 2, 3, 'none', [1, 1 / 2]),
+    # When reducing to mean or sum, the ignored index does not contribute to the output.
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'elementwise_mean', [7 / 12]),
+    pytest.param([0, 1, 1, 2, 2], [0, 1, 2, 2, 2], 0, 3, 'sum', [7 / 6]),
+])
+def test_iou_ignore_index(pred, target, ignore_index, num_classes, reduction, expected):
+    iou_val = iou(
+        pred=torch.tensor(pred),
+        target=torch.tensor(target),
+        ignore_index=ignore_index,
+        num_classes=num_classes,
+        reduction=reduction,
+    )
+    assert torch.allclose(iou_val, torch.tensor(expected).to(iou_val))
 
 
 # example data taken from

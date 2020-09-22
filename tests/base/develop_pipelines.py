@@ -71,8 +71,8 @@ def run_model_test(trainer_options, model, on_gpu: bool = True, version=None, wi
                 trainer.init_optimizers(pretrained_model)
 
         # test HPC loading / saving
-        trainer.hpc_save(save_dir, logger)
-        trainer.hpc_load(save_dir, on_gpu=on_gpu)
+        trainer.checkpoint_connector.hpc_save(save_dir, logger)
+        trainer.checkpoint_connector.hpc_load(save_dir, on_gpu=on_gpu)
 
 
 def run_prediction(dataloader, trained_model, dp=False, min_acc=0.50):

@@ -1,8 +1,17 @@
+import numpy as np
 import pytest
 import torch
-import numpy as np
-from skimage.metrics import peak_signal_noise_ratio as ski_psnr
-from skimage.metrics import structural_similarity as ski_ssim
+from functools import partial
+from math import sqrt
+from skimage.metrics import (
+    peak_signal_noise_ratio as ski_psnr,
+    structural_similarity as ski_ssim
+)
+from sklearn.metrics import (
+    mean_absolute_error as mae_sk,
+    mean_squared_error as mse_sk,
+    mean_squared_log_error as msle_sk
+)
 
 from pytorch_lightning.metrics.functional import (
     mae,
@@ -12,6 +21,27 @@ from pytorch_lightning.metrics.functional import (
     rmsle,
     ssim
 )
+
+
+@pytest.mark.parametrize(['sklearn_metric', 'torch_metric'], [
+    pytest.param(mae_sk, mae, id='mean_absolute_error'),
+    pytest.param(mse_sk, mse, id='mean_squared_error'),
+    pytest.param(partial(mse_sk, squared=False), rmse, id='root_mean_squared_error'),
+    pytest.param(lambda x, y: sqrt(msle_sk(x, y)), rmsle, id='root_mean_squared_log_error')
+])
+def test_against_sklearn(sklearn_metric, torch_metric):
+    """Compare PL metrics to sklearn version."""
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # iterate over different label counts in predictions and target
+    pred = torch.rand(300, device=device)
+    target = torch.rand(300, device=device)
+
+    sk_score = sklearn_metric(target.cpu().detach().numpy(),
+                              pred.cpu().detach().numpy())
+    sk_score = torch.tensor(sk_score, dtype=torch.float, device=device)
+    pl_score = torch_metric(pred, target)
+    assert torch.allclose(sk_score, pl_score)
 
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
@@ -45,8 +75,8 @@ def test_mae(pred, target, expected):
 
 @pytest.mark.parametrize(['pred', 'target', 'expected'], [
     pytest.param([0., 1, 2, 3], [0., 1, 2, 3], 0.0),
-    pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.0207),
-    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 0.2841),
+    pytest.param([0., 1, 2, 3], [0., 1, 2, 2], 0.1438),
+    pytest.param([4., 3, 2, 1], [1., 4, 3, 2], 0.5330),
 ])
 def test_rmsle(pred, target, expected):
     score = rmsle(torch.tensor(pred), torch.tensor(target))
@@ -97,24 +127,25 @@ def test_psnr_against_sklearn(sklearn_metric, torch_metric):
         assert torch.allclose(sk_score, pl_score)
 
 
-@pytest.mark.parametrize(['size', 'channel', 'plus', 'multichannel'], [
-    pytest.param(16, 1, 0.125, False),
-    pytest.param(32, 1, 0.25, False),
-    pytest.param(48, 3, 0.5, True),
-    pytest.param(64, 4, 0.75, True),
-    pytest.param(128, 5, 1, True)
+@pytest.mark.parametrize(['size', 'channel', 'coef', 'multichannel'], [
+    pytest.param(16, 1, 0.9, False),
+    pytest.param(32, 3, 0.8, True),
+    pytest.param(48, 4, 0.7, True),
+    pytest.param(64, 5, 0.6, True)
 ])
-def test_ssim(size, channel, plus, multichannel):
+def test_ssim(size, channel, coef, multichannel):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    pred = torch.rand(1, channel, size, size, device=device)
-    target = pred + plus
-    ssim_idx = ssim(pred, target)
-    np_pred = np.random.rand(size, size, channel)
+    pred = torch.rand(size, channel, size, size, device=device)
+    target = pred * coef
+    ssim_idx = ssim(pred, target, data_range=1.0)
+    np_pred = pred.permute(0, 2, 3, 1).cpu().numpy()
     if multichannel is False:
-        np_pred = np_pred[:, :, 0]
-    np_target = np.add(np_pred, plus)
-    sk_ssim_idx = ski_ssim(np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True)
-    assert torch.allclose(ssim_idx, torch.tensor(sk_ssim_idx, dtype=torch.float, device=device), atol=1e-2, rtol=1e-2)
+        np_pred = np_pred[:, :, :, 0]
+    np_target = np.multiply(np_pred, coef)
+    sk_ssim_idx = ski_ssim(
+        np_pred, np_target, win_size=11, multichannel=multichannel, gaussian_weights=True, data_range=1.0
+    )
+    assert torch.allclose(ssim_idx, torch.tensor(sk_ssim_idx, dtype=torch.float, device=device), atol=1e-4)
 
     ssim_idx = ssim(pred, pred)
     assert torch.allclose(ssim_idx, torch.tensor(1.0, device=device))

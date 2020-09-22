@@ -10,17 +10,23 @@
 Once you've organized your PyTorch code into a LightningModule,
 the Trainer automates everything else.
 
-.. figure:: /_images/lightning_module/pt_trainer.png
-   :alt: Convert from PyTorch to Lightning
+.. raw:: html
+
+    <video width="100%" controls autoplay
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pt_trainer_mov.m4v"></video>
+
+|
 
 This abstraction achieves the following:
 
-    1. You maintain control over all aspects via PyTorch code without an added abstraction.
+1. You maintain control over all aspects via PyTorch code without an added abstraction.
 
-    2. The trainer uses best practices embedded by contributors and users
-       from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
+2. The trainer uses best practices embedded by contributors and users
+   from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
 
-    3. The trainer allows overriding any key part that you don't want automated.
+3. The trainer allows overriding any key part that you don't want automated.
+
+|
 
 -----------
 
@@ -34,15 +40,14 @@ This is the basic use of the trainer:
     model = MyLightningModule()
 
     trainer = Trainer()
-    trainer.fit(model)
+    trainer.fit(model, train_dataloader, val_dataloader)
 
 
 --------
 
-Best Practices
---------------
-For cluster computing, it's recommended you structure your
-main.py file this way
+Trainer in Python scrips
+------------------------
+In Python scripts, it's recommended you use a main function to call the Trainer.
 
 .. code-block:: python
 
@@ -66,6 +71,31 @@ So you can run it like so:
 
     python main.py --gpus 2
 
+.. note::
+
+    Pro-tip: You don't need to define all flags manually. Lightning can add them automatically
+
+.. code-block:: python
+
+    from argparse import ArgumentParser
+
+    def main(args):
+        model = LightningModule()
+        trainer = Trainer.from_argparse_args(args)
+        trainer.fit(model)
+
+    if __name__ == '__main__':
+        parser = ArgumentParser()
+        parser = Trainer.add_argparse_args(parser)
+        args = parser.parse_args()
+
+        main(args)
+
+So you can run it like so:
+
+.. code-block:: bash
+
+    python main.py --gpus 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
@@ -83,7 +113,7 @@ Once you're done training, feel free to run the test set!
 
 .. code-block:: python
 
-    trainer.test()
+    trainer.test(test_dataloader=test_dataloader)
 
 ------------
 
@@ -138,6 +168,7 @@ Trainer flags
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 Accumulates grads every k batches or as set up in the dict.
+Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 
 .. testcode::
 
@@ -151,6 +182,19 @@ Example::
 
     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
+
+amp_backend
+^^^^^^^^^^^
+
+Use PyTorch AMP ('native') (available PyTorch 1.6+), or NVIDIA apex ('apex').
+
+.. testcode::
+
+    # using PyTorch built-in AMP, default used by the Trainer
+    trainer = Trainer(amp_backend='native')
+
+    # using NVIDIA Apex
+    trainer = Trainer(amp_backend='apex')
 
 amp_level
 ^^^^^^^^^
@@ -169,7 +213,7 @@ auto_scale_batch_size
 Automatically tries to find the largest batch size that fits into memory,
 before any training.
 
-.. testcode::
+.. code-block::
 
     # default used by the Trainer (no scaling of batch size)
     trainer = Trainer(auto_scale_batch_size=None)
@@ -177,15 +221,36 @@ before any training.
     # run batch size scaling, result overrides hparams.batch_size
     trainer = Trainer(auto_scale_batch_size='binsearch')
 
+    # call tune to find the batch size
+    trainer.tune(model)
+
+auto_select_gpus
+^^^^^^^^^^^^^^^^
+
+If enabled and `gpus` is an integer, pick available gpus automatically.
+This is especially useful when GPUs are configured to be in "exclusive mode",
+such that only one process at a time can access them.
+
+Example::
+
+    # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
+    trainer = Trainer(gpus=2, auto_select_gpus=False)
+
+    # enable auto selection (will find two available gpus on system)
+    trainer = Trainer(gpus=2, auto_select_gpus=True)
+
 auto_lr_find
 ^^^^^^^^^^^^
 Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
 before any training, to find optimal initial learning rate.
 
-.. testcode::
+.. code-block:: python
 
     # default used by the Trainer (no learning rate finder)
     trainer = Trainer(auto_lr_find=False)
+
+    # call tune to find the lr
+    trainer.tune(model)
 
 Example::
 
@@ -196,7 +261,7 @@ Example::
     trainer = Trainer(auto_lr_find='my_lr_arg')
 
 .. note::
-    See the `learning rate finder guide <lr_finder.rst>`_
+    See the :ref:`learning rate finder guide <lr_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -293,10 +358,12 @@ Example::
 default_root_dir
 ^^^^^^^^^^^^^^^^
 
-Default path for logs and weights when no logger
-or :class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.
-On certain clusters you might want to separate where logs and checkpoints
-are stored. If you don't then use this argument for convenience.
+Default path for logs and weights when no logger or
+:class:`pytorch_lightning.callbacks.ModelCheckpoint` callback passed.  On
+certain clusters you might want to separate where logs and checkpoints are
+stored. If you don't then use this argument for convenience. Paths can be local
+paths or remote paths such as `s3://bucket/path` or 'hdfs://path/'. Credentials
+will need to be set up to use remote filepaths.
 
 Example::
 
@@ -335,8 +402,8 @@ Example::
 .. note:: this option does not apply to TPU. TPUs use ```ddp``` by default (over each core)
 
 See Also:
-    - `Multi-GPU training guide <multi_gpu.rst>`_
-    - `Multi-node (SLURM) guide <slurm.rst>`_
+    - :ref:`Multi-GPU training guide <multi_gpu>`.
+    - :ref:`Multi-node (SLURM) guide <slurm>`.
 
 early_stop_callback
 ^^^^^^^^^^^^^^^^^^^
@@ -344,10 +411,13 @@ early_stop_callback
 Callback for early stopping.
 early_stop_callback (:class:`pytorch_lightning.callbacks.EarlyStopping`)
 
-- ``True``: A default callback monitoring ``'val_loss'`` is created.
-   Will raise an error if ``'val_loss'`` is not found.
+- ``True``: A default callback monitoring ``'val_loss'`` (if dict is returned in validation loop) or
+  ``early_stopping_on`` (if :class:`~pytorch_lightning.core.step_result.Result` is returned) is created.
+  Will raise an error if a dictionary is returned and ``'val_loss'`` is not found.
+  Will raise an error if a :class:`~pytorch_lightning.core.step_result.Result` is returned
+  and ``early_stopping_on`` was not specified.
 - ``False``: Early stopping will be disabled.
-- ``None``: The default callback monitoring ``'val_loss'`` is created.
+- ``None``: Same as, if ``True`` is specified.
 - Default: ``None``.
 
 .. testcode::
@@ -399,14 +469,17 @@ Under the hood the pseudocode looks like this:
 gpus
 ^^^^
 
-- Number of GPUs to train on
-- or Which GPUs to train on
+- Number of GPUs to train on (int)
+- or which GPUs to train on (list)
 - can handle strings
 
 .. testcode::
 
     # default used by the Trainer (ie: train on CPU)
     trainer = Trainer(gpus=None)
+
+    # equivalent
+    trainer = Trainer(gpus=0)
 
 Example::
 
@@ -425,8 +498,11 @@ Example::
     # uses 8 gpus in total
     trainer = Trainer(gpus=2, num_nodes=4)
 
+    # train only on GPUs 1 and 4 across nodes
+    trainer = Trainer(gpus=[1, 4], num_nodes=4)
+
 See Also:
-    - `Multi-GPU training guide <multi_gpu.rst>`_
+    - :ref:`Multi-GPU training guide <multi_gpu>`.
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -508,10 +584,13 @@ Writes logs to disk this often.
     # default used by the Trainer
     trainer = Trainer(log_save_interval=100)
 
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
+
 logger
 ^^^^^^
 
-`Logger <loggers.rst>`_ (or iterable collection of loggers) for experiment tracking.
+:ref:`Logger <loggers>` (or iterable collection of loggers) for experiment tracking.
 
 .. testcode::
 
@@ -747,7 +826,7 @@ profiler
 ^^^^^^^^
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the `profiler documentation <profiler.rst>`_. for more details.
+See the :ref:`profiler documentation <profiler>`. for more details.
 
 .. testcode::
 
@@ -801,7 +880,9 @@ Set to True to reload dataloaders every epoch.
 
 replace_sampler_ddp
 ^^^^^^^^^^^^^^^^^^^
-Enables auto adding of distributed sampler.
+Enables auto adding of distributed sampler. By default it will add ``shuffle=True``
+for train sampler and ``shuffle=False`` for val/test sampler. If you want to customize
+it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
 .. testcode::
 
@@ -838,21 +919,18 @@ How often to add logging rows (does not write to disk)
     # default used by the Trainer
     trainer = Trainer(row_log_interval=50)
 
+See Also:
+    - :ref:`Experiment Reporting <experiment_reporting>`
 
-val_percent_check
-^^^^^^^^^^^^^^^^^
 
-.. warning:: deprecated in v0.8.0 please use `limit_val_batches`. Will remove in 0.10.0
+sync_batchnorm
+^^^^^^^^^^^^^^
 
-test_percent_check
-^^^^^^^^^^^^^^^^^^
+Enable synchronization between batchnorm layers across all GPUs.
 
-.. warning:: deprecated in v0.8.0 please use `limit_test_batches`. Will remove in 0.10.0
+.. testcode::
 
-train_percent_check
-^^^^^^^^^^^^^^^^^^^
-
-.. warning:: deprecated in v0.8.0 please use `limit_train_batches`. Will remove in 0.10.0
+    trainer = Trainer(sync_batchnorm=True)
 
 track_grad_norm
 ^^^^^^^^^^^^^^^
@@ -1008,8 +1086,8 @@ Options: 'full', 'top', None.
     # don't print a summary
     trainer = Trainer(weights_summary=None)
 
-Trainer class
--------------
+Trainer class API
+-----------------
 
 """
 

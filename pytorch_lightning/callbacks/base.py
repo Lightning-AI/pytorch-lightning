@@ -1,8 +1,19 @@
-r"""
-Callback Base
-=============
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Abstract base class used to build new callbacks.
+r"""
+Subclass this class and override any of the relevant hooks
 
 """
 
@@ -14,11 +25,11 @@ class Callback(abc.ABC):
     Abstract base class used to build new callbacks.
     """
 
-    def setup(self, trainer, stage: str):
+    def setup(self, trainer, pl_module, stage: str):
         """Called when fit or test begins"""
         pass
 
-    def teardown(self, trainer, stage: str):
+    def teardown(self, trainer, pl_module, stage: str):
         """Called when fit or test ends"""
         pass
 
@@ -30,11 +41,11 @@ class Callback(abc.ABC):
         """Called when the trainer initialization ends, model has not yet been set."""
         pass
 
-    def on_fit_start(self, trainer):
+    def on_fit_start(self, trainer, pl_module):
         """Called when fit begins"""
         pass
 
-    def on_fit_end(self, trainer):
+    def on_fit_end(self, trainer, pl_module):
         """Called when fit ends"""
         pass
 
@@ -44,6 +55,14 @@ class Callback(abc.ABC):
 
     def on_sanity_check_end(self, trainer, pl_module):
         """Called when the validation sanity check ends."""
+        pass
+
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        """Called when the train batch begins."""
+        pass
+
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        """Called when the train batch ends."""
         pass
 
     def on_train_epoch_start(self, trainer, pl_module):
@@ -82,19 +101,19 @@ class Callback(abc.ABC):
         """Called when the training batch begins."""
         pass
 
-    def on_validation_batch_start(self, trainer, pl_module):
+    def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the validation batch begins."""
         pass
 
-    def on_validation_batch_end(self, trainer, pl_module):
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the validation batch ends."""
         pass
 
-    def on_test_batch_start(self, trainer, pl_module):
+    def on_test_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the test batch begins."""
         pass
 
-    def on_test_batch_end(self, trainer, pl_module):
+    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         """Called when the test batch ends."""
         pass
 
@@ -108,6 +127,14 @@ class Callback(abc.ABC):
 
     def on_train_end(self, trainer, pl_module):
         """Called when the train ends."""
+        pass
+
+    def on_pretrain_routine_start(self, trainer, pl_module):
+        """Called when the pretrain routine begins."""
+        pass
+
+    def on_pretrain_routine_end(self, trainer, pl_module):
+        """Called when the pretrain routine ends."""
         pass
 
     def on_validation_start(self, trainer, pl_module):
@@ -128,3 +155,12 @@ class Callback(abc.ABC):
 
     def on_keyboard_interrupt(self, trainer, pl_module):
         """Called when the training is interrupted by KeyboardInterrupt."""
+        pass
+
+    def on_save_checkpoint(self, trainer, pl_module):
+        """Called when saving a model checkpoint, use to persist state."""
+        pass
+
+    def on_load_checkpoint(self, checkpointed_state):
+        """Called when loading a model checkpoint, use to reload state."""
+        pass

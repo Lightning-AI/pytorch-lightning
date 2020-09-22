@@ -4,7 +4,7 @@ import pytest
 from torch.utils.data import DataLoader
 
 import tests.base.develop_pipelines as tpipes
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.datasets import TrialMNIST
@@ -41,7 +41,6 @@ def test_model_tpu_cores_1(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -60,7 +59,6 @@ def test_model_tpu_index(tmpdir, tpu_core):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=[tpu_core],
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -79,7 +77,6 @@ def test_model_tpu_cores_8(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -102,7 +99,6 @@ def test_model_16bit_tpu_cores_1(tmpdir):
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -122,13 +118,10 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         default_root_dir=tmpdir,
         precision=16,
         progress_bar_refresh_rate=0,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=[tpu_core],
         limit_train_batches=0.4,
-        limit_val_batches=0.4,
+        limit_val_batches=0.2,
     )
 
     model = EvalModelTemplate()
@@ -146,7 +139,6 @@ def test_model_16bit_tpu_cores_8(tmpdir):
         precision=16,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=8,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -172,7 +164,6 @@ def test_model_tpu_early_stop(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
-        distributed_backend='tpu',
         tpu_cores=1,
     )
     trainer.fit(model)
@@ -186,7 +177,6 @@ def test_tpu_grad_norm(tmpdir):
         default_root_dir=tmpdir,
         progress_bar_refresh_rate=0,
         max_epochs=1,
-        distributed_backend='tpu',
         tpu_cores=1,
         limit_train_batches=0.4,
         limit_val_batches=0.4,
@@ -204,7 +194,11 @@ def test_dataloaders_passed_to_fit(tmpdir):
 
     model = EvalModelTemplate()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, distributed_backend='tpu', tpu_cores=8)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        tpu_cores=8
+    )
     result = trainer.fit(model, train_dataloader=model.train_dataloader(), val_dataloaders=model.val_dataloader())
     assert result, "TPU doesn't work with dataloaders passed to fit()."
 
@@ -221,9 +215,7 @@ def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
 def test_tpu_misconfiguration():
     """Test if trainer.tpu_id is set as expected"""
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
-        Trainer(
-            tpu_cores=[1, 8], distributed_backend='tpu',
-        )
+        Trainer(tpu_cores=[1, 8])
 
 
 # @patch('pytorch_lightning.trainer.trainer.XLA_AVAILABLE', False)
@@ -234,11 +226,49 @@ def test_exception_when_no_tpu_found(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
-        train_percent_check=0.4,
-        val_percent_check=0.2,
-        distributed_backend='tpu',
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
         tpu_cores=8,
     )
 
     with pytest.raises(MisconfigurationException, match='PyTorch XLA not installed.'):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize('tpu_cores', [1, 8, [1]])
+def test_distributed_backend_set_when_using_tpu(tmpdir, tpu_cores):
+    """Test if distributed_backend is set to `tpu` when tpu_cores is not None"""
+    assert Trainer(tpu_cores=tpu_cores).distributed_backend == 'tpu'
+
+
+@pytest.mark.skipif(not TPU_AVAILABLE, reason="test requires TPU machine")
+@pl_multi_process_test
+def test_result_obj_on_tpu(tmpdir):
+    seed_everything(1234)
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    batches = 5
+    epochs = 2
+
+    model = EvalModelTemplate()
+    model.training_step = model.training_step_result_obj
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_result_obj
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    model.test_step = model.test_step_result_obj
+    model.test_step_end = None
+    model.test_epoch_end = None
+
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        max_epochs=epochs,
+        early_stop_callback=True,
+        row_log_interval=2,
+        limit_train_batches=batches,
+        weights_summary=None,
+        tpu_cores=8
+    )
+
+    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)

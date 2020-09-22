@@ -1,3 +1,17 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Progress Bars
 =============
@@ -36,8 +50,8 @@ class ProgressBarBase(Callback):
             def disable(self):
                 self.enable = False
 
-            def on_batch_end(self, trainer, pl_module):
-                super().on_batch_end(trainer, pl_module)  # don't forget this :)
+            def on_train_batch_end(self, trainer, pl_module):
+                super().on_train_batch_end(trainer, pl_module)  # don't forget this :)
                 percent = (self.train_batch_idx / self.total_train_batches) * 100
                 sys.stdout.flush()
                 sys.stdout.write(f'{percent:.01f} percent complete \r')
@@ -99,7 +113,7 @@ class ProgressBarBase(Callback):
         """
         total_val_batches = 0
         if not self.trainer.disable_validation:
-            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            is_val_epoch = (self.trainer.current_epoch) % self.trainer.check_val_every_n_epoch == 0
             total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
         return total_val_batches
 
@@ -124,7 +138,7 @@ class ProgressBarBase(Callback):
         """
         You should provide a way to enable the progress bar.
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
-        routines like the `learning rate finder <lr_finder.rst>`_ to temporarily enable and
+        routines like the :ref:`learning rate finder <lr_finder>` to temporarily enable and
         disable the main progress bar.
         """
         raise NotImplementedError
@@ -138,19 +152,19 @@ class ProgressBarBase(Callback):
     def on_epoch_start(self, trainer, pl_module):
         self._train_batch_idx = 0
 
-    def on_batch_end(self, trainer, pl_module):
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._train_batch_idx += 1
 
     def on_validation_start(self, trainer, pl_module):
         self._val_batch_idx = 0
 
-    def on_validation_batch_end(self, trainer, pl_module):
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._val_batch_idx += 1
 
     def on_test_start(self, trainer, pl_module):
         self._test_batch_idx = 0
 
-    def on_test_batch_end(self, trainer, pl_module):
+    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         self._test_batch_idx += 1
 
 
@@ -293,7 +307,7 @@ class ProgressBar(ProgressBarBase):
     def on_sanity_check_start(self, trainer, pl_module):
         super().on_sanity_check_start(trainer, pl_module)
         self.val_progress_bar = self.init_sanity_tqdm()
-        self.val_progress_bar.total = convert_inf(trainer.num_sanity_val_steps * len(trainer.val_dataloaders))
+        self.val_progress_bar.total = convert_inf(sum(trainer.num_sanity_val_batches))
         self.main_progress_bar = tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, trainer, pl_module):
@@ -316,10 +330,10 @@ class ProgressBar(ProgressBarBase):
         total_batches = total_train_batches + total_val_batches
         if not self.main_progress_bar.disable:
             self.main_progress_bar.reset(convert_inf(total_batches))
-        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch + 1}')
+        self.main_progress_bar.set_description(f'Epoch {trainer.current_epoch}')
 
-    def on_batch_end(self, trainer, pl_module):
-        super().on_batch_end(trainer, pl_module)
+    def on_train_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_train_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.train_batch_idx % self.refresh_rate == 0:
             self.main_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.set_postfix(trainer.progress_bar_dict)
@@ -329,8 +343,8 @@ class ProgressBar(ProgressBarBase):
         self.val_progress_bar = self.init_validation_tqdm()
         self.val_progress_bar.total = convert_inf(self.total_val_batches)
 
-    def on_validation_batch_end(self, trainer, pl_module):
-        super().on_validation_batch_end(trainer, pl_module)
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_validation_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.val_batch_idx % self.refresh_rate == 0:
             self.val_progress_bar.update(self.refresh_rate)
             self.main_progress_bar.update(self.refresh_rate)
@@ -349,8 +363,8 @@ class ProgressBar(ProgressBarBase):
         self.test_progress_bar = self.init_test_tqdm()
         self.test_progress_bar.total = convert_inf(self.total_test_batches)
 
-    def on_test_batch_end(self, trainer, pl_module):
-        super().on_test_batch_end(trainer, pl_module)
+    def on_test_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        super().on_test_batch_end(trainer, pl_module, batch, batch_idx, dataloader_idx)
         if self.is_enabled and self.test_batch_idx % self.refresh_rate == 0:
             self.test_progress_bar.update(self.refresh_rate)
 

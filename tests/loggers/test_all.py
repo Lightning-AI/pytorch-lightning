@@ -43,6 +43,8 @@ def _get_logger_args(logger_class, save_dir):
 @mock.patch('pytorch_lightning.loggers.wandb.wandb')
 def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
+    os.environ['PL_DEV_DEBUG'] = '0'
+
     if logger_class == CometLogger:
         # prevent comet logger from trying to print at exit, since
         # pytest's stdout/stderr redirection breaks it
@@ -79,9 +81,16 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
     trainer.test()
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
-    assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
-                                (0, ['epoch', 'train_some_val']),
-                                (1, ['epoch', 'test_acc', 'test_loss'])]
+    if logger_class == TensorBoardLogger:
+        assert log_metric_names == [(0, ['hp_metric']),
+                                    (0, ['epoch', 'val_acc', 'val_loss']),
+                                    (0, ['epoch', 'train_some_val']),
+                                    (0, ['hp_metric']),
+                                    (1, ['epoch', 'test_acc', 'test_loss'])]
+    else:
+        assert log_metric_names == [(0, ['epoch', 'val_acc', 'val_loss']),
+                                    (0, ['epoch', 'train_some_val']),
+                                    (1, ['epoch', 'test_acc', 'test_loss'])]
 
 
 @pytest.mark.parametrize("logger_class", [
@@ -200,7 +209,7 @@ def test_logger_reset_correctly(tmpdir, extra_params):
         **extra_params,
     )
     logger1 = trainer.logger
-    trainer.fit(model)
+    trainer.tune(model)
     logger2 = trainer.logger
     logger3 = model.logger
 
@@ -214,7 +223,7 @@ class RankZeroLoggerCheck(Callback):
     # this class has to be defined outside the test function, otherwise we get pickle error
     # due to the way ddp process is launched
 
-    def on_batch_start(self, trainer, pl_module):
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         is_dummy = isinstance(trainer.logger.experiment, DummyExperiment)
         if trainer.is_global_zero:
             assert not is_dummy
@@ -226,11 +235,9 @@ class RankZeroLoggerCheck(Callback):
 @pytest.mark.skipif(platform.system() == "Windows", reason="Distributed training is not supported on Windows")
 @pytest.mark.parametrize("logger_class", [
     TensorBoardLogger,
-    CometLogger,
     MLFlowLogger,
     NeptuneLogger,
     TestTubeLogger,
-    WandbLogger,
 ])
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """ Test that loggers get replaced by dummy logges on global rank > 0"""

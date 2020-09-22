@@ -1,11 +1,14 @@
+from copy import deepcopy
 import pytest
 import torch
 from torch.utils.data import RandomSampler, SequentialSampler, DataLoader
 
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.utilities import AMPType, NATIVE_AMP_AVALAIBLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
+from tests.base.datamodules import MNISTDataModule
 
 
 def test_num_training_batches(tmpdir):
@@ -53,11 +56,12 @@ def test_overfit_batch_limits(tmpdir):
     # ------------------------------------------------------
     # get the training loader and batch
     # ------------------------------------------------------
+    # Create a reference train dataloader without shuffling.
     train_loader = DataLoader(model.train_dataloader().dataset, shuffle=False)
+    (xa, ya) = next(iter(train_loader))
+    train_loader = DataLoader(model.train_dataloader().dataset, shuffle=True)
     full_train_samples = len(train_loader)
     num_train_samples = int(0.11 * full_train_samples)
-
-    (xa, ya) = next(iter(train_loader))
 
     # ------------------------------------------------------
     # set VAL and Test loaders
@@ -84,7 +88,8 @@ def test_overfit_batch_limits(tmpdir):
 
     trainer = Trainer(overfit_batches=0.11)
     trainer.reset_train_dataloader(model)
-    assert trainer.train_dataloader is train_loader
+    # The dataloader should have been overwritten with a Sequential sampler.
+    assert trainer.train_dataloader is not train_loader
     assert trainer.num_training_batches == num_train_samples
 
     # make sure the loaders are the same
@@ -155,9 +160,9 @@ def test_model_reset_correctly(tmpdir):
         max_epochs=1,
     )
 
-    before_state_dict = model.state_dict()
+    before_state_dict = deepcopy(model.state_dict())
 
-    trainer.scale_batch_size(model, max_trials=5)
+    trainer.tuner.scale_batch_size(model, max_trials=5)
 
     after_state_dict = model.state_dict()
 
@@ -190,7 +195,7 @@ def test_trainer_reset_correctly(tmpdir):
     for ca in changed_attributes:
         attributes_before[ca] = getattr(trainer, ca)
 
-    trainer.scale_batch_size(model, max_trials=5)
+    trainer.tuner.scale_batch_size(model, max_trials=5)
 
     attributes_after = {}
     for ca in changed_attributes:
@@ -201,26 +206,66 @@ def test_trainer_reset_correctly(tmpdir):
             f'Attribute {key} was not reset correctly after learning rate finder'
 
 
-@pytest.mark.parametrize('scale_arg', ['power', 'binsearch'])
-def test_trainer_arg(tmpdir, scale_arg):
-    """ Check that trainer arg works with bool input. """
+@pytest.mark.parametrize('scale_arg', ['power', 'binsearch', True])
+def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
+    """ Test possible values for 'batch size auto scaling' Trainer argument. """
     tutils.reset_seed()
-
     hparams = EvalModelTemplate.get_default_hparams()
     model = EvalModelTemplate(**hparams)
-
     before_batch_size = hparams.get('batch_size')
-    # logger file to get meta
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        auto_scale_batch_size=scale_arg,
-    )
-
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg)
+    trainer.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, \
         'Batch size was not altered after running auto scaling of batch size'
+
+
+@pytest.mark.parametrize('use_hparams', [True, False])
+def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
+    """ Test that new batch size gets written to the correct hyperparameter attribute. """
+    tutils.reset_seed()
+
+    hparams = EvalModelTemplate.get_default_hparams()
+    before_batch_size = hparams.get('batch_size')
+
+    class HparamsEvalModelTemplate(EvalModelTemplate):
+
+        def dataloader(self, *args, **kwargs):
+            # artificially set batch_size so we can get a dataloader
+            # remove it immediately after, because we want only self.hparams.batch_size
+            setattr(self, "batch_size", before_batch_size)
+            dataloader = super().dataloader(*args, **kwargs)
+            del self.batch_size
+            return dataloader
+
+    datamodule_model = MNISTDataModule(data_dir=tmpdir, batch_size=111)  # this datamodule should get ignored!
+    datamodule_fit = MNISTDataModule(data_dir=tmpdir, batch_size=before_batch_size)
+
+    model_class = HparamsEvalModelTemplate if use_hparams else EvalModelTemplate
+    model = model_class(**hparams)
+    model.datamodule = datamodule_model  # unused when another module gets passed to .tune() / .fit()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
+    trainer.tune(model, datamodule_fit)
+    after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
+    assert trainer.datamodule == datamodule_fit
+    assert before_batch_size != after_batch_size
+    assert after_batch_size <= len(trainer.train_dataloader.dataset)
+    assert datamodule_fit.batch_size == after_batch_size
+    # should be left unchanged, since it was not passed to .tune()
+    assert datamodule_model.batch_size == 111
+
+
+def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
+    """ Test for a warning when model.batch_size and model.hparams.batch_size both present. """
+    hparams = EvalModelTemplate.get_default_hparams()
+    model = EvalModelTemplate(**hparams)
+    model.hparams = hparams
+    # now we have model.batch_size and model.hparams.batch_size
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True)
+    expected_message = "Field `model.batch_size` and `model.hparams.batch_size` are mutually exclusive!"
+    with pytest.warns(UserWarning, match=expected_message):
+        trainer.tune(model)
 
 
 @pytest.mark.parametrize('scale_method', ['power', 'binsearch'])
@@ -238,7 +283,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
         max_epochs=1,
     )
 
-    after_batch_size = trainer.scale_batch_size(model, mode=scale_method, max_trials=5)
+    after_batch_size = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
     model.batch_size = after_batch_size
     trainer.fit(model)
 
@@ -262,4 +307,23 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloader=model.dataloader(train=True))
 
     with pytest.raises(MisconfigurationException):
-        trainer.fit(model, **fit_options)
+        trainer.tune(model, **fit_options)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+@pytest.mark.skipif(not NATIVE_AMP_AVALAIBLE, reason="test requires native AMP.")
+def test_auto_scale_batch_size_with_amp(tmpdir):
+    model = EvalModelTemplate()
+    batch_size_before = model.batch_size
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        auto_scale_batch_size=True,
+        gpus=1,
+        precision=16
+    )
+    trainer.tune(model)
+    batch_size_after = model.batch_size
+    assert trainer.amp_backend == AMPType.NATIVE
+    assert trainer.scaler is not None
+    assert batch_size_after != batch_size_before

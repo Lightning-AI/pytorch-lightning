@@ -4,10 +4,8 @@ import platform
 import shlex
 import subprocess
 import sys
-
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 import torch
 
@@ -15,7 +13,7 @@ import tests.base.develop_pipelines as tpipes
 import tests.base.develop_utils as tutils
 from pytorch_lightning import Trainer
 from tests.base import EvalModelTemplate
-from tests.base.models import TestGAN
+from tests.base.models import BasicGAN
 
 try:
     from horovod.common.util import nccl_built
@@ -44,8 +42,8 @@ def _nccl_available():
 def _run_horovod(trainer_options, on_gpu=False):
     """Execute the training script across multiple workers in parallel."""
     num_processes = trainer_options.get('gpus', 2)
-    # gpus trainer argument does not apply for horovod
-    trainer_options.update(gpus=None)
+    # for Horovod, we interpret `gpus` to be set per worker
+    trainer_options.update(gpus=1 if on_gpu else None)
     tutils.reset_seed()
     cmdline = [
         'horovodrun',
@@ -114,6 +112,27 @@ def test_horovod_multi_gpu(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 @pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_horovod_amp(tmpdir):
+    """Test Horovod with multi-GPU support."""
+    trainer_options = dict(
+        default_root_dir=str(tmpdir),
+        weights_save_path=str(tmpdir),
+        gradient_clip_val=1.0,
+        progress_bar_refresh_rate=0,
+        max_epochs=1,
+        limit_train_batches=0.4,
+        limit_val_batches=0.2,
+        gpus=2,
+        deterministic=True,
+        distributed_backend='horovod',
+        precision=16,
+    )
+    _run_horovod(trainer_options, on_gpu=True)
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
+@pytest.mark.skipif(not _nccl_available(), reason="test requires Horovod with NCCL support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(EvalModelTemplate):
@@ -147,7 +166,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
 
 @pytest.mark.skipif(platform.system() == "Windows", reason="Horovod is not supported on Windows")
 def test_horovod_multi_optimizer(tmpdir):
-    model = TestGAN(**EvalModelTemplate.get_default_hparams())
+    model = BasicGAN(**EvalModelTemplate.get_default_hparams())
 
     # fit model
     trainer = Trainer(
@@ -186,7 +205,7 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     num_workers = 8
     init_lr = hparams.get('learning_rate') * num_workers
 
-    with patch('pytorch_lightning.trainer.distrib_parts.hvd.size') as mock_hvd_size:
+    with patch('pytorch_lightning.accelerators.horovod_backend.hvd.size') as mock_hvd_size:
         mock_hvd_size.return_value = 8
 
         # fit model

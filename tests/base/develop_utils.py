@@ -1,3 +1,4 @@
+import functools
 import os
 
 import numpy as np
@@ -6,9 +7,8 @@ import numpy as np
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
-from tests import TEMP_PATH, RANDOM_PORTS, RANDOM_SEEDS
+from tests import TEMP_PATH, RANDOM_PORTS
 from tests.base.model_template import EvalModelTemplate
-import functools
 
 
 def assert_speed_parity_relative(pl_times, pt_times, max_diff: float = 0.1):
@@ -68,12 +68,11 @@ def load_model_from_checkpoint(logger, root_weights_dir, module_class=EvalModelT
 
 def assert_ok_model_acc(trainer, key='test_acc', thr=0.5):
     # this model should get 0.80+ acc
-    acc = trainer.callback_metrics[key]
+    acc = trainer.logger_connector.callback_metrics[key]
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def reset_seed():
-    seed = RANDOM_SEEDS.pop()
+def reset_seed(seed=0):
     seed_everything(seed)
 
 
