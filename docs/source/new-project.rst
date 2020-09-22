@@ -240,15 +240,16 @@ You can also add a forward method to do predictions however you want.
 
 Option 3: Production
 ====================
-For production systems onnx or torchscript are much faster.
+For production systems onnx or torchscript are much faster. Make sure you have added
+a forward method or trace only the sub-models you need.
 
 .. code-block:: python
 
     # ----------------------------------
     # torchscript
     # ----------------------------------
-    model = LitAutoEncoder()
-    torch.jit.save(model.to_torchscript(), "model.pt")
+    autoencoder = LitAutoEncoder()
+    torch.jit.save(autoencoder.to_torchscript(), "model.pt")
     os.path.isfile("model.pt")
 
 .. code-block:: python
@@ -257,9 +258,9 @@ For production systems onnx or torchscript are much faster.
     # onnx
     # ----------------------------------
     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-         model = LitAutoEncoder()
+         autoencoder = LitAutoEncoder()
          input_sample = torch.randn((1, 28 * 28))
-         model.to_onnx(tmpfile.name, input_sample, export_params=True)
+         autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
          os.path.isfile(tmpfile.name)
 
 
