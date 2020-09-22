@@ -22,6 +22,7 @@ Automatically save model checkpoints during training.
 
 import os
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -352,7 +353,7 @@ class ModelCheckpoint(Callback):
         self.epoch_last_check = epoch
 
         # anything logged or in callbacks can be in the name
-        ckpt_name_metrics = trainer.logger_connector.logged_metrics
+        ckpt_name_metrics = deepcopy(trainer.logger_connector.logged_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
         ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
 
