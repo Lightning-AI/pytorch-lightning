@@ -88,8 +88,8 @@ Step 1: Define LightningModule
 
         def __init__(self):
             super().__init__()
-            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
-            self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
+            self.encoder = nn.Sequential(nn.Linear(28*28, 64), nn.ReLU(), nn.Linear(64, 3))
+            self.decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28*28))
 
         def training_step(self, batch, batch_idx):
             x, y = batch
@@ -147,26 +147,31 @@ First, define the data however you want. Lightning just needs a :class:`~torch.u
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
     train_loader = DataLoader(dataset)
     
-Init :class:`~pytorch_lightning.core.LightningModule`, your PyTorch dataloaders, and then the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`.
-The :class:`~pytorch_lightning.trainer.Trainer` will:
-
-* Automate epoch and batch iteration
-* Automate calling of optimizer.step()
-* Automatic :ref:`weights_loading`
-* Automatic Tensorboard (see :ref:`loggers` options)
-* Automatic :ref:`multi_gpu` support
-* Automatic :ref:`tpu`
-* Automatic :ref:`amp` support
+Next, init the :class:`~pytorch_lightning.core.LightningModule` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
+then call fit with both the data and model.
 
 .. code-block:: python
 
     # init model
-    model = LitAutoEncoder()
+    autoencoder = LitAutoEncoder()
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     # trainer = pl.Trainer(gpus=8) (if you have GPUs)
     trainer = pl.Trainer()
-    trainer.fit(model, train_loader)
+    trainer.fit(autoencoder, train_loader)
+
+The :class:`~pytorch_lightning.trainer.Trainer` automates:
+
+* Epoch and batch iteration
+* Calling of optimizer.step(), backward, zero_grad()
+* Calling of .eval(), enabling/disabling grads
+* :ref:`weights_loading`
+* Tensorboard (see :ref:`loggers` options)
+* :ref:`multi_gpu` support
+* :ref:`tpu`
+* :ref:`amp` support
+
+-----------
 
 *****************
 Predict or Deploy
@@ -202,6 +207,7 @@ Option 2: Add a forward method to enable predictions however you want.
     class LitAutoEncoder(pl.LightningModule):
         def forward(self, x):
             embedding = self.encoder(x)
+            return embedding
 
     autoencoder = LitAutoencoder()
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
@@ -214,7 +220,7 @@ Option 2: Add a forward method to enable predictions however you want.
     # ----------------------------------
     class LitAutoEncoder(pl.LightningModule):
         def forward(self):
-            z = torch.rand(1, 28 * 28)
+            z = torch.rand(1, 3)
             image = self.decoder(z)
             image = image.view(1, 1, 28, 28)
             return image
