@@ -425,15 +425,6 @@ Callbacks
 =========
 A callback is an arbitrary self-contained program that can be executed at arbitrary parts of the training loop.
 
-Things you can do with a callback:
-
-- Send emails at some point in training
-- Grow the model
-- Update learning rates
-- Visualize gradients
-- ...
-- You are only limited by your imagination
-
 Here's an example adding a not-so-fancy learning rate decay rule:
 
 .. code-block:: python
@@ -462,7 +453,18 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     param_group['lr'] = new_lr
                  self.old_lrs[opt_idx] = new_lr_group
                  
+
+Things you can do with a callback:
+
+- Send emails at some point in training
+- Grow the model
+- Update learning rates
+- Visualize gradients
+- ...
+- You are only limited by your imagination
+
 :ref:`Learn more about custom callbacks <callbacks>`.
+
 
 Datamodules
 ===========
