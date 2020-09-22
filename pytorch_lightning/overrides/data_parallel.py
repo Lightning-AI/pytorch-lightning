@@ -83,10 +83,7 @@ class LightningDataParallel(DataParallel):
         outputs = self.parallel_apply(replicas, inputs, kwargs)
 
         if isinstance(outputs[0], Result):
-            try:
-                outputs = self.__gather_structured_result(outputs)
-            except Exception as e:
-                import pdb; pdb.set_trace()
+            outputs = self.__gather_structured_result(outputs)
         else:
             outputs = self.gather(outputs)
         return outputs
