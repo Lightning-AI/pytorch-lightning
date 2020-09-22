@@ -103,18 +103,11 @@ class DataParallelBackend(Accelerator):
         self.trainer.model.forward = self.model_autocast_original_forward
 
     def training_step(self, args):
-
-
         if self.trainer.amp_backend == AMPType.NATIVE:
             with torch.cuda.amp.autocast():
                 output = self.trainer.model(*args)
         else:
-            try:
-                output = self.trainer.model(*args)
-            except Exception as e:
-                import pdb; pdb.set_trace()
-                output = self.trainer.model(*args)
-
+            output = self.trainer.model(*args)
         return output
 
     def validation_step(self, args):
