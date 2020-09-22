@@ -111,6 +111,10 @@ Step 1: Define LightningModule
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
 
+        # def forward(self, x):
+            # in lightning this is optional and mostly used to say
+            # how your LightningModule should work for inference/predictions
+
 A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
 
 - `Autoencoder <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
