@@ -122,6 +122,10 @@ class Result(Dict):
         if not enable_graph and isinstance(value, torch.Tensor):
             value = value.detach()
 
+        # make everything logged a tensor
+        if not isinstance(value, torch.Tensor):
+            value = torch.tensor(value)
+
         # sync across ddp
         if sync_dist and isinstance(value, (torch.Tensor, numbers.Number)):
             value = sync_ddp_if_available(value, group=sync_dist_group, reduce_op=sync_dist_op)

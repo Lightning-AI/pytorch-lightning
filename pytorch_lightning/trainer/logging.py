@@ -146,6 +146,8 @@ class TrainerLoggingMixin(ABC):
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
         callback_metrics = recursive_detach(callback_metrics)
+        progress_bar_metrics = recursive_detach(progress_bar_metrics)
+        log_metrics = recursive_detach(log_metrics)
 
         # replace loss with checkpoint_on
         if 'loss' in callback_metrics:
