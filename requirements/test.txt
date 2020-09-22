@@ -3,7 +3,7 @@ codecov>=2.1
 pytest>=5.0
 pytest-cov
 pytest-flake8
-pytest-xdist
+pytest-parallel
 flake8>=3.6
 flake8-black
 check-manifest
