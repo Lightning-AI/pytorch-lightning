@@ -591,7 +591,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Load checkpoints directly from S3 <weights_loading:Checkpoint Loading>`
 - :ref:`Scale to massive compute clusters <slurm>`
 - :ref:`Use multiple dataloaders per train/val/test loop <multiple_loaders>`
-- :ref:`Use multiple optimizers to do Reinforcement learning or even GANs <optimizers:Use multiple optimizers (like GANs)>`
+- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <optimizers:Use multiple optimizers (like GANs)>`
 
 Or read our :ref:`introduction_guide` to learn more!
 
