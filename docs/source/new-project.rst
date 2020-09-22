@@ -88,8 +88,16 @@ Step 1: Define LightningModule
 
         def __init__(self):
             super().__init__()
-            self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
-            self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
+            self.encoder = nn.Sequential(
+                nn.Linear(28*28, 64),
+                nn.ReLU(),
+                nn.Linear(64, 3)
+            )
+            self.decoder = nn.Sequential(
+                nn.Linear(3, 64),
+                nn.ReLU(),
+                nn.Linear(64, 28*28)
+            )
 
         def training_step(self, batch, batch_idx):
             x, y = batch
@@ -105,14 +113,14 @@ Step 1: Define LightningModule
 
 A :class:`~pytorch_lightning.core.LightningModule` defines a *system* such as:
 
-- Autoencoder
-- BERT
-- DQN
-- GAN
-- Image classifier
-- Seq2seq
-- SimCLR
-- VAE
+- `Autoencoder <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_ae/basic_ae_module.py>`_
+- `BERT <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=yr7eaxkF-djf>`_
+- `DQN <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=IAlT0-75T_Kv>`_
+- `GAN <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/gans/basic/basic_gan_module.py>`_
+- `Image classifier <https://colab.research.google.com/drive/1F_RNcHzTfFuQf-LeKvSlud6x7jXYkG31#scrollTo=gEulmrbxwaYL>`_
+- Seq2seq 
+- `SimCLR <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/self_supervised/simclr/simclr_module.py>`_
+- `VAE <https://github.com/PyTorchLightning/pytorch-lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py>`_
 
 It is a :class:`torch.nn.Module` that groups all research code into a single file to make it self-contained:
 
@@ -136,33 +144,51 @@ More details in :ref:`lightning_module` docs.
 
 ----------
 
-**************************
-Step 2: Fit with a Trainer
-**************************
+**********************************
+Step 2: Fit with Lightning Trainer
+**********************************
 
-First, define the data however you want. Lightning just needs a dataloader for any split you want (train/val/test).
+First, define the data however you want. Lightning just needs a :class:`~torch.utils.data.DataLoader` for the train/val/test splits.
 
 .. code-block:: python
 
     dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
     train_loader = DataLoader(dataset)
+    
+Next, init the :class:`~pytorch_lightning.core.LightningModule` and the PyTorch Lightning :class:`~pytorch_lightning.trainer.Trainer`,
+then call fit with both the data and model.
 
 .. code-block:: python
 
     # init model
-    model = LitAutoEncoder()
+    autoencoder = LitAutoEncoder()
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
     # trainer = pl.Trainer(gpus=8) (if you have GPUs)
     trainer = pl.Trainer()
-    trainer.fit(model, train_loader)
+    trainer.fit(autoencoder, train_loader)
+
+The :class:`~pytorch_lightning.trainer.Trainer` automates:
+
+* Epoch and batch iteration
+* Calling of optimizer.step(), backward, zero_grad()
+* Calling of .eval(), enabling/disabling grads
+* :ref:`weights_loading`
+* Tensorboard (see :ref:`loggers` options)
+* :ref:`multi_gpu` support
+* :ref:`tpu`
+* :ref:`amp` support
+
+-----------
 
 *****************
 Predict or Deploy
 *****************
 When you're done training, you have 3 options to use your LightningModule for predictions.
 
-Option 1: Pull out the relevant parts you need for prediction
+Option 1: Sub-models
+====================
+Pull out any model inside your system for predictions.
 
 .. code-block:: python
 
@@ -170,16 +196,18 @@ Option 1: Pull out the relevant parts you need for prediction
     # to use as embedding extractor
     # ----------------------------------
     autoencoder = LitAutoEncoder.load_from_checkpoint('path/to/checkpoint_file.ckpt')
-    model = autoencoder.encoder
-    model.eval()
+    encoder_model = autoencoder.encoder
+    encoder_model.eval()
 
     # ----------------------------------
     # to use as image generator
     # ----------------------------------
-    model = autoencoder.decoder
-    model.eval()
+    decoder_model = autoencoder.decoder
+    decoder_model.eval()
 
-Option 2: Add a forward method to enable predictions however you want.
+Option 2: Forward
+=================
+You can also add a forward method to do predictions however you want.
 
 .. code-block:: python
 
@@ -189,16 +217,20 @@ Option 2: Add a forward method to enable predictions however you want.
     class LitAutoEncoder(pl.LightningModule):
         def forward(self, x):
             embedding = self.encoder(x)
+            return embedding
 
     autoencoder = LitAutoencoder()
     autoencoder = autoencoder(torch.rand(1, 28 * 28))
+    
+    
+.. code-block:: python
 
     # ----------------------------------
     # or using the AE to generate images
     # ----------------------------------
     class LitAutoEncoder(pl.LightningModule):
         def forward(self):
-            z = torch.rand(1, 28 * 28)
+            z = torch.rand(1, 3)
             image = self.decoder(z)
             image = image.view(1, 1, 28, 28)
             return image
@@ -206,38 +238,108 @@ Option 2: Add a forward method to enable predictions however you want.
     autoencoder = LitAutoencoder()
     image_sample = autoencoder(()
 
-Option 3: Or for a production system
+Option 3: Production
+====================
+For production systems onnx or torchscript are much faster. Make sure you have added
+a forward method or trace only the sub-models you need.
 
 .. code-block:: python
 
     # ----------------------------------
     # torchscript
     # ----------------------------------
-    model = LitAutoEncoder()
-    torch.jit.save(model.to_torchscript(), "model.pt")
+    autoencoder = LitAutoEncoder()
+    torch.jit.save(autoencoder.to_torchscript(), "model.pt")
     os.path.isfile("model.pt")
+
+.. code-block:: python
 
     # ----------------------------------
     # onnx
     # ----------------------------------
     with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-         model = LitAutoEncoder()
+         autoencoder = LitAutoEncoder()
          input_sample = torch.randn((1, 28 * 28))
-         model.to_onnx(tmpfile.name, input_sample, export_params=True)
+         autoencoder.to_onnx(tmpfile.name, input_sample, export_params=True)
          os.path.isfile(tmpfile.name)
 
------------
+
+********************
+Using CPUs/GPUs/TPUs
+********************
+It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
+
+.. code-block:: python
+
+    # train on CPU
+    trainer = pl.Trainer()
+
+.. code-block:: python
+
+    # train on 8 CPUs
+    trainer = pl.Trainer(num_processes=8)
+
+.. code-block:: python
+
+    # train on 1024 CPUs across 128 machines
+    trainer = pl.Trainer(
+        num_processes=8,
+        num_nodes=128
+    )
+
+.. code-block:: python
+
+    # train on 1 GPU
+    trainer = pl.Trainer(gpus=1)
+    
+.. code-block:: python
+
+    # train on multiple GPUs across nodes (32 gpus here)
+    trainer = pl.Trainer(
+        gpus=4,
+        num_nodes=8
+    )
+    
+.. code-block:: python
+
+    # train on gpu 1, 3, 5 (3 gpus total)
+    trainer = pl.Trainer(gpus=[1, 3, 5])
+
+.. code-block:: python
+
+    # Multi GPU with mixed precision
+    trainer = pl.Trainer(gpus=2, precision=16)
+
+.. code-block:: python
+
+    # Train on TPUs
+    trainer = pl.Trainer(tpu_cores=8)
+
+Without changing a SINGLE line of your code, you can now do the following with the above code:
+
+.. code-block:: python
+
+    # train on TPUs using 16 bit precision with early stopping
+    # using only half the training data and checking validation every quarter of a training epoch
+    trainer = pl.Trainer(
+        tpu_cores=8,
+        precision=16,
+        early_stop_callback=True,
+        limit_train_batches=0.5,
+        val_check_interval=0.25
+    )
+    
 
 ***********
 Checkpoints
 ***********
-Once you've trained, you can load the checkpoints as follows:
+Lightning automatically saves your model. Once you've trained, you can load the checkpoints as follows:
 
 .. code-block:: python
 
     model = LitModel.load_from_checkpoint(path)
 
-The above checkpoint knows all the arguments needed to init the model and set the state dict.
+The above checkpoint contains all the arguments needed to init the model and set the state dict.
 If you prefer to do it manually, here's the equivalent
 
 .. code-block:: python
@@ -248,8 +350,6 @@ If you prefer to do it manually, here's the equivalent
     # equivalent to the above
     model = LitModel()
     model.load_state_dict(ckpt['state_dict'])
-
---------
 
 *****************
 Optional features
@@ -267,16 +367,16 @@ If you want to log to Tensorboard or your favorite logger, and/or the progress b
         def training_step(self, batch, batch_idx):
             ...
             loss = F.mse_loss(x_hat, x)
-            result = pl.TrainResult(minimize=loss)
-            return result
+            return loss
 
         # equivalent
         def training_step(self, batch, batch_idx):
             ...
             loss = F.mse_loss(x_hat, x)
-            return loss
+            result = pl.TrainResult(minimize=loss)
+            return result
 
-To enable logging:
+To enable logging in the training loop:
 
 .. code-block::
 
@@ -309,19 +409,21 @@ And for the validation loop use the :class:`~pytorch_lightning.core.step_result.
 
 .. note:: A Result Object is just a dictionary (print it to verify for yourself!)
 
+The results objects:
+
+* Automatically reduce epoch metrics.
+* Can log at each step or epoch.
+* Can log to a visual logger, progress bar, or both.
+* Detaches everything except the loss.
+* Handle syncing across GPUs.
+* Handle writing predictions across GPUs.
+
+Read more about result objects and :ref:`loggers`.
+
 
 Callbacks
 =========
 A callback is an arbitrary self-contained program that can be executed at arbitrary parts of the training loop.
-
-Things you can do with a callback:
-
-- send emails at some point in training
-- grow the model
-- update learning rates
-- visualize gradients
-- ...
-- you are limited by your imagination
 
 Here's an example adding a not-so-fancy learning rate decay rule:
 
@@ -350,12 +452,24 @@ Here's an example adding a not-so-fancy learning rate decay rule:
                     new_lr_group.append(new_lr)
                     param_group['lr'] = new_lr
                  self.old_lrs[opt_idx] = new_lr_group
+                 
+
+Things you can do with a callback:
+
+- Send emails at some point in training
+- Grow the model
+- Update learning rates
+- Visualize gradients
+- ...
+- You are only limited by your imagination
+
+:ref:`Learn more about custom callbacks <callbacks>`.
+
 
 Datamodules
 ===========
-DataLoader and data processing code tends to end up scattered around.
-Make your data code more reusable by organizing
-it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
+DataLoaders and data processing code tends to end up scattered around.
+Make your data code reusable by organizing it into a :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
 .. code-block:: python
 
@@ -424,67 +538,64 @@ the :class:`~pytorch_lightning.trainer.Trainer`:
 
 DataModules are specifically useful for building models based on data. Read more on :ref:`datamodules`.
 
-----------
-
-********************
-Using CPUs/GPUs/TPUs
-********************
-It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change your code, simply change the :class:`~pytorch_lightning.trainer.Trainer` options.
-
-.. code-block:: python
-
-    # train on CPU
-    trainer = pl.Trainer()
-
-    # train on 8 CPUs
-    trainer = pl.Trainer(num_processes=8)
-
-    # train on 1 GPU
-    trainer = pl.Trainer(gpus=1)
-
-    # train on the ith GPU
-    trainer = pl.Trainer(gpus=[3])
-
-    # train on multiple GPUs
-    trainer = pl.Trainer(gpus=3)
-
-    # train on multiple GPUs across nodes (32 gpus here)
-    trainer = pl.Trainer(gpus=4, num_nodes=8)
-
-    # train on gpu 1, 3, 5 (3 gpus total)
-    trainer = pl.Trainer(gpus=[1, 3, 5])
-
-    # train on 8 GPU cores
-    trainer = pl.Trainer(tpu_cores=8)
-
 ------
 
 *********
 Debugging
 *********
-Lightning has many tools for debugging:
+Lightning has many tools for debugging. Here is an example of just a few of them:
 
 .. code-block:: python
 
     # use only 10 train batches and 3 val batches
-    Trainer(limit_train_batches=10, limit_val_batches=3)
+    trainer = pl.Trainer(limit_train_batches=10, limit_val_batches=3)
 
-    # overfit the same batch
-    Trainer(overfit_batches=1)
+.. code-block:: python
 
-    # unit test all the code (check every line)
-    Trainer(fast_dev_run=True)
+    # Automatically overfit the sane batch of your model for a sanity test 
+    trainer = pl.Trainer(overfit_batches=1)
 
-    # train only 20% of an epoch
-    Trainer(limit_train_batches=0.2)
+.. code-block:: python
+
+    # unit test all the code- hits every line of your code once to see if you have bugs,
+    # instead of waiting hours to crash on validation
+    trainer = pl.Trainer(fast_dev_run=True)
+
+.. code-block:: python
+   
+   # train only 20% of an epoch
+   trainer = pl. Trainer(limit_train_batches=0.2)
+
+.. code-block:: python
 
     # run validation every 20% of a training epoch
-    Trainer(val_check_interval=0.2)
+    trainer = pl.Trainer(val_check_interval=0.2)
 
-    # find bottlenecks
+.. code-block:: python
+    
+    # Profile your code to find speed/memory bottlenecks
     Trainer(profiler=True)
+ 
+---------------
 
-    # ... and 20+ more tools
+***************************
+Advanced Lightning Features
+***************************
+
+Once you define and train your first Lightning model, you might want to try other cool features like
+
+- :ref:`Automatic early stopping <early_stopping>`
+- :ref:`Automatic truncated-back-propagation-through-time <trainer:truncated_bptt_steps>`
+- :ref:`Automatically scale your batch size <training_tricks:Auto scaling of batch size>`
+- :ref:`Automatically find a good learning rate <lr_finder>`
+- :ref:`Load checkpoints directly from S3 <weights_loading:Checkpoint Loading>`
+- :ref:`Scale to massive compute clusters <slurm>`
+- :ref:`Use multiple dataloaders per train/val/test loop <multiple_loaders>`
+- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <optimizers:Use multiple optimizers (like GANs)>`
+
+Or read our :ref:`introduction_guide` to learn more!
+
+-------------
 
 **********
 Learn more
@@ -497,33 +608,6 @@ You can then boot up your logger or tensorboard instance to view training logs
 .. code-block:: bash
 
     tensorboard --logdir ./lightning_logs
- 
----------------
-
-
-Advanced Lightning Features
-===========================
-
-Once you define and train your first Lightning model, you might want to try other cool features like
-
-- :ref:`loggers`
-- :ref:`Automatic checkpointing <weights_loading>`
-- :ref:`Automatic early stopping <early_stopping>`
-- :ref:`Add custom callbacks <callbacks>` (self-contained programs that can be reused across projects)
-- :ref:`Dry run mode <debugging:fast_dev_run>` (Hit every line of your code once to see if you have bugs, instead of waiting hours to crash on validation :)
-- :ref:`Automatically overfit your model for a sanity test <debugging:Make model overfit on subset of data>`
-- :ref:`Automatic truncated-back-propagation-through-time <trainer:truncated_bptt_steps>`
-- :ref:`Automatically scale your batch size <training_tricks:Auto scaling of batch size>`
-- :ref:`Automatically find a good learning rate <lr_finder>`
-- :ref:`Load checkpoints directly from S3 <weights_loading:Checkpoint Loading>`
-- :ref:`Profile your code for speed/memory bottlenecks <profiler>`
-- :ref:`Scale to massive compute clusters <slurm>`
-- :ref:`Use multiple dataloaders per train/val/test loop <multiple_loaders>`
-- :ref:`Use multiple optimizers to do Reinforcement learning or even GANs <optimizers:Use multiple optimizers (like GANs)>`
-
-Or read our :ref:`introduction_guide` to learn more!
-
--------------
 
 Masterclass
 ===========
