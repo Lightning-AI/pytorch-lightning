@@ -260,23 +260,18 @@ def test_ckpt_metric_names_results(tmpdir):
     assert len(val) > 3
 
 
-def test_model_checkpoint_save_last_warning(tmpdir, caplog):
-    """Tests that a warning is output only when save_last is set"""
+@pytest.mark.parametrize('max_epochs', [1, 2])
+@pytest.mark.parametrize('should_validate', [True, False])
+@pytest.mark.parametrize('save_last', [True, False])
+def test_model_checkpoint_save_last_warning(tmpdir, caplog, max_epochs, should_validate, save_last):
+    """Tests 'Saving latest checkpoint...' log"""
     model = EvalModelTemplate()
+    if not should_validate:
+        model.validation_step = None
     trainer = Trainer(
         default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(filepath=tmpdir, save_top_k=0, save_last=True),
-        max_epochs=1,
+        checkpoint_callback=ModelCheckpoint(filepath=tmpdir, save_top_k=0, save_last=save_last),
+        max_epochs=max_epochs,
     )
     trainer.fit(model)
-    assert "Saving latest checkpoint..." in caplog.messages
-    caplog.clear()
-
-    # make sure warning does not appear if save_last=False:
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        checkpoint_callback=ModelCheckpoint(filepath=tmpdir, save_top_k=0, save_last=False),
-        max_epochs=1,
-    )
-    trainer.fit(model)
-    assert "Saving latest checkpoint..." not in caplog.messages
+    assert caplog.messages.count('Saving latest checkpoint...') == save_last
