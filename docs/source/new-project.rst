@@ -88,8 +88,16 @@ Step 1: Define LightningModule
 
         def __init__(self):
             super().__init__()
-            self.encoder = nn.Sequential(nn.Linear(28*28, 64), nn.ReLU(), nn.Linear(64, 3))
-            self.decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28*28))
+            self.encoder = nn.Sequential(
+                nn.Linear(28*28, 64),
+                nn.ReLU(),
+                nn.Linear(64, 3)
+            )
+            self.decoder = nn.Sequential(
+                nn.Linear(3, 64),
+                nn.ReLU(),
+                nn.Linear(64, 28*28)
+            )
 
         def training_step(self, batch, batch_idx):
             x, y = batch
@@ -140,7 +148,7 @@ More details in :ref:`lightning_module` docs.
 Step 2: Fit with Lightning Trainer
 **********************************
 
-First, define the data however you want. Lightning just needs a :class:`~torch.utils.data.DataLoader` for any split you want (train/val/test).
+First, define the data however you want. Lightning just needs a :class:`~torch.utils.data.DataLoader` for the train/val/test splits.
 
 .. code-block:: python
 
@@ -178,8 +186,9 @@ Predict or Deploy
 *****************
 When you're done training, you have 3 options to use your LightningModule for predictions.
 
-Option 1: Pull out the relevant parts you need for prediction
-=============================================================
+Option 1: Sub-models
+====================
+Pull out any model inside your system for predictions.
 
 .. code-block:: python
 
@@ -196,8 +205,9 @@ Option 1: Pull out the relevant parts you need for prediction
     decoder_model = autoencoder.decoder
     decoder_model.eval()
 
-Option 2: Add a forward method to enable predictions however you want.
-======================================================================
+Option 2: Forward
+=================
+You can also add a forward method to do predictions however you want.
 
 .. code-block:: python
 
@@ -228,8 +238,9 @@ Option 2: Add a forward method to enable predictions however you want.
     autoencoder = LitAutoencoder()
     image_sample = autoencoder(()
 
-Option 3: Or for a production system
-====================================
+Option 3: Production
+====================
+For production systems onnx or torchscript are much faster.
 
 .. code-block:: python
 
@@ -259,7 +270,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change y
 
 .. code-block:: python
 
-  # train on CPU
+    # train on CPU
     trainer = pl.Trainer()
 
 .. code-block:: python
@@ -269,7 +280,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change y
 
 .. code-block:: python
 
-  # train on 1024 CPUs across 128 machines
+    # train on 1024 CPUs across 128 machines
     trainer = pl.Trainer(
         num_processes=8,
         num_nodes=128
@@ -282,7 +293,7 @@ It's trivial to use CPUs, GPUs or TPUs in Lightning. There's NO NEED to change y
     
 .. code-block:: python
 
-     # train on multiple GPUs across nodes (32 gpus here)
+    # train on multiple GPUs across nodes (32 gpus here)
     trainer = pl.Trainer(
         gpus=4,
         num_nodes=8
