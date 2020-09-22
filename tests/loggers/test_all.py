@@ -82,8 +82,9 @@ def test_loggers_fit_test(wandb, tmpdir, monkeypatch, logger_class):
 
     log_metric_names = [(s, sorted(m.keys())) for s, m in logger.history]
     if logger_class == TensorBoardLogger:
+        b = ['checkpoint_on', 'early_stop_on', 'epoch', 'some_val', 'train_some_val', 'val_acc', 'val_loss']
         assert log_metric_names == [(0, ['hp_metric']),
-                                    (0, ['epoch', 'val_acc', 'val_loss']),
+                                    (0, b),
                                     (0, ['epoch', 'train_some_val']),
                                     (0, ['hp_metric']),
                                     (1, ['epoch', 'test_acc', 'test_loss'])]
