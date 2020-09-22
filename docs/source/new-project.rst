@@ -146,11 +146,8 @@ of the 20+ hooks found in :ref:`hooks`
 
 More details in :ref:`lightning_module` docs.
 
-**Forward vs training_step**
-The training_step defines the training loop and should be independent of forward. The forward method
-defines what the LightningModule does for prediction/inference.
-
-In this case, we want to use our Autoencoder for generating image embeddings.
+.. note:: The training_step defines the training loop and forward defines the prediction/inference behavior.
+    In this case, we want to use our Autoencoder for generating image embeddings.
 
 ----------
 
