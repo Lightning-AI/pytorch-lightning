@@ -63,6 +63,7 @@ class LightningModule(
 ):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         self.exp_save_path = None
 
