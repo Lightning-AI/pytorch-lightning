@@ -17,42 +17,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 # test with train_step_end
 # add logging + row interval tests
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-def test_loop_steps_only_dp(tmpdir):
-    os.environ['PL_DEV_DEBUG'] = '1'
-
-    batches = 10
-    epochs = 3
-
-    model = EvalModelTemplate()
-    model.validation_step = None
-    model.test_step = None
-    model.training_step = model.training_step_result_obj_dp
-    model.training_step_end = None
-    model.training_epoch_end = None
-    model.validation_step = model.validation_step_result_obj_dp
-    model.validation_step_end = None
-    model.validation_epoch_end = None
-    model.test_dataloader = None
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        distributed_backend='dp',
-        gpus=[0, 1],
-        max_epochs=epochs,
-        early_stop_callback=True,
-        row_log_interval=2,
-        limit_train_batches=batches,
-        weights_summary=None,
-    )
-
-    import pdb; pdb.set_trace()
-    trainer.fit(model)
-
-    assert model.training_step_called
-    assert model.validation_step_called
-
-
 def test_training_step_result_log_step_only(tmpdir):
     """
     Tests that only training_step can be used with TrainResult
@@ -583,6 +547,41 @@ def test_full_train_loop_with_results_obj_dp(tmpdir):
     assert 'train_step_metric' in seen_keys
     assert 'train_step_end_metric' in seen_keys
     assert 'epoch_train_epoch_end_metric' in seen_keys
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+def test_loop_steps_only_dp(tmpdir):
+    os.environ['PL_DEV_DEBUG'] = '1'
+
+    batches = 10
+    epochs = 3
+
+    model = EvalModelTemplate()
+    model.validation_step = None
+    model.test_step = None
+    model.training_step = model.training_step_result_obj_dp
+    model.training_step_end = None
+    model.training_epoch_end = None
+    model.validation_step = model.validation_step_result_obj_dp
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    model.test_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        distributed_backend='dp',
+        gpus=[0, 1],
+        max_epochs=epochs,
+        early_stop_callback=True,
+        row_log_interval=2,
+        limit_train_batches=batches,
+        weights_summary=None,
+    )
+
+    trainer.fit(model)
+
+    assert model.training_step_called
+    assert model.validation_step_called
 
 
 def test_result_map(tmpdir):
