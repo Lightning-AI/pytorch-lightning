@@ -402,6 +402,7 @@ class ModelCheckpoint(Callback):
             self._save_model(filepath, trainer, pl_module)
             if self.last_model_path and self.last_model_path != filepath:
                 self._del_model(self.last_model_path)
+            self.last_model_path = filepath
 
     def _is_valid_monitor_key(self, metrics):
         return self.monitor in metrics or len(metrics) == 0
