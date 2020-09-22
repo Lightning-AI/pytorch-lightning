@@ -9,7 +9,7 @@ on:
 
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
-  build-release:
+  pypi-release:
     runs-on: ubuntu-20.04
 
     steps:
@@ -40,3 +40,100 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
+
+  docker-XLA:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [3.6, 3.7]
+        xla_version: [1.6, "nightly"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Publish Master to Docker
+        # publish master
+        uses: docker/build-push-action@v1.1.0
+        with:
+          repository: pytorchlightning/pytorch_lightning
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          dockerfile: dockers/base-xla/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},XLA_VERSION=${{ matrix.xla_version }}
+          tags: "base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}"
+        timeout-minutes: 55
+
+  docker-cuda:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [3.6, 3.7, 3.8]
+        pytorch_version: [1.3, 1.4, 1.5, 1.6, 1.7]
+        pytorch_channel: ["pytorch", "pytorch-nightly"]
+        # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-including-new-combinations
+        exclude:
+          - pytorch_version: 1.7
+            pytorch_channel: pytorch
+          - pytorch_version: 1.3
+            pytorch_channel: pytorch-nightly
+          - pytorch_version: 1.4
+            pytorch_channel: pytorch-nightly
+          - pytorch_version: 1.5
+            pytorch_channel: pytorch-nightly
+          - pytorch_version: 1.6
+            pytorch_channel: pytorch-nightly
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Publish Master to Docker
+        # publish master
+        uses: docker/build-push-action@v1.1.0
+        with:
+          repository: pytorchlightning/pytorch_lightning
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          dockerfile: dockers/base-cuda/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }},PYTORCH_CHANNEL=${{ matrix.pytorch_channel }}
+          tags: "base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+        timeout-minutes: 55
+
+
+  docker-Conda:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: [ 3.6, 3.7, 3.8 ]
+        pytorch_version: [ 1.3, 1.4, 1.5, 1.6, 1.7 ]
+        pytorch_channel: [ "pytorch", "pytorch-nightly" ]
+        # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-including-new-combinations
+        exclude:
+          - pytorch_version: 1.7
+            pytorch_channel: pytorch
+          - pytorch_version: 1.3
+            pytorch_channel: pytorch-nightly
+          - pytorch_version: 1.4
+            pytorch_channel: pytorch-nightly
+          - pytorch_version: 1.5
+            pytorch_channel: pytorch-nightly
+          - pytorch_version: 1.6
+            pytorch_channel: pytorch-nightly
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Publish Master to Docker
+        # publish master
+        uses: docker/build-push-action@v1.1.0
+        if: github.event_name == 'push'
+        with:
+          repository: pytorchlightning/pytorch_lightning
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          dockerfile: dockers/conda/Dockerfile
+          build_args: PYTHON_VERSION=${{ matrix.python_version }},PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          tags: "nightly-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}"
+        timeout-minutes: 55
