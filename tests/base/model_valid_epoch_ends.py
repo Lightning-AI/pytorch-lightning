@@ -63,18 +63,18 @@ class ValidationEpochEndVariations(ABC):
         pbar = {}
         logs = {}
         for dl_output_list in outputs:
-            output_keys = dl_output_list[0].keys()
-            # # for multiple dataloaders
-            # if isinstance(dl_output_list, list):
-            #     output_keys = dl_output_list[0].keys()
-            # else:
-            #     # When overfit_batches > 0,
-            #     # dataloader became train_dataloader which length is 1
-            #     # so, dl_output_list is dict
-            #     output_keys = dl_output_list.keys()
+            # output_keys = dl_output_list[0].keys()
+            # for multiple dataloaders
+            if isinstance(dl_output_list, list):
+                output_keys = dl_output_list[0].keys()
+            else:
+                # When overfit_batches > 0,
+                # dataloader became train_dataloader which length is 1
+                # so, dl_output_list is dict
+                output_keys = dl_output_list.keys()
 
-            #     # change to list for _mean() method
-            #     dl_output_list = [dl_output_list]
+                # change to list for _mean() method
+                dl_output_list = [dl_output_list]
             output_keys = [x for x in output_keys if 'val_' in x]
             for key in output_keys:
                 metric_out = _mean(dl_output_list, key)
