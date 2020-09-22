@@ -138,6 +138,11 @@ class LitAutoEncoder(pl.LightningModule):
         super().__init__()
         self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
         self.decoder = nn.Sequential(nn.Linear(3, 128), nn.ReLU(), nn.Linear(128, 28 * 28))
+    
+    def forward(self, x):
+        # in lightning, forward defines the prediction/inference actions
+        embedding = self.encoder(x)
+        return embedding
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -151,9 +156,6 @@ class LitAutoEncoder(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
 
-    # def forward(self, x):
-        # in lightning this is optional and mostly used to say
-        # how your LightningModule should work for inference/predictions
 ```
 
 #### Step 2: Train!
