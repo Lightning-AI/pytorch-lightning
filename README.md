@@ -150,6 +150,10 @@ class LitAutoEncoder(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
+
+    # def forward(self, x):
+        # in lightning this is optional and mostly used to say
+        # how your LightningModule should work for inference/predictions
 ```
 
 #### Step 2: Train!
