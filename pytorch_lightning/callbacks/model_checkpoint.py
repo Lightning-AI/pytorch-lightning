@@ -380,7 +380,7 @@ class ModelCheckpoint(Callback):
                     RuntimeWarning,
                 )
                 if current is not None:
-                    current = torch.tensor(current)
+                    current = torch.tensor(current).to(pl_module.device)
 
             if current is None:
                 m = f"Can save best model only with {self.monitor} available, skipping."
