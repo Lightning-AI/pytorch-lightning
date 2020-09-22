@@ -150,6 +150,8 @@ More details in :ref:`lightning_module` docs.
 The training_step defines the training loop and should be independent of forward. The forward method
 defines what the LightningModule does for prediction/inference.
 
+In this case, we want to use our Autoencoder for generating image embeddings.
+
 ----------
 
 **********************************
