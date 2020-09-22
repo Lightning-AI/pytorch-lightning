@@ -13,23 +13,24 @@
 # limitations under the License.
 
 import subprocess
+from copy import copy, deepcopy
+
 import numpy as np
 import torch
 import torch.distributed as torch_distrib
-from pytorch_lightning.utilities.model_utils import is_overridden
-from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
+
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import _logger as log
-from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.core.step_result import EvalResult, Result
-from pytorch_lightning.utilities.parsing import AttributeDict
-from copy import copy, deepcopy
-from pytorch_lightning.trainer.states import TrainerState
-from pytorch_lightning.utilities import parsing, AMPType
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
-from pytorch_lightning.utilities.distributed import rank_zero_warn
+from pytorch_lightning.core.step_result import EvalResult, Result
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.trainer.supporters import TensorRunningAccum, Accumulator
+from pytorch_lightning.utilities import parsing, AMPType
+from pytorch_lightning.utilities.distributed import rank_zero_info
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.model_utils import is_overridden
+from pytorch_lightning.utilities.parsing import AttributeDict
 
 
 class TrainLoop:
@@ -201,7 +202,7 @@ class TrainLoop:
         if should_activate or force_save:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             if any(c.save_last for c in checkpoint_callbacks):
-                rank_zero_warn('Saving latest checkpoint...')
+                rank_zero_info('Saving latest checkpoint...')
             [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
     def on_train_epoch_start(self, epoch):
