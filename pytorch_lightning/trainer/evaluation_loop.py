@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from inspect import signature
+
 from pytorch_lightning.trainer.supporters import PredictionCollection
 from pytorch_lightning.core.step_result import Result, EvalResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -128,7 +130,15 @@ class EvaluationLoop(object):
 
         multiple_val_loaders = (not test_mode and len(self.trainer.val_dataloaders) > 1)
         multiple_test_loaders = (test_mode and len(self.trainer.test_dataloaders) > 1)
+        has_overfit_batches = (self.trainer.overfit_batches > 0)
+        val_step_arg_len = len(signature(self.trainer.model.validation_step).parameters)
+        test_step_arg_len = len(signature(self.trainer.model.test_step).parameters)
+
         if multiple_test_loaders or multiple_val_loaders:
+            args.append(dataloader_idx)
+        elif not test_mode and has_overfit_batches and val_step_arg_len == 3:
+            args.append(dataloader_idx)
+        elif test_mode and has_overfit_batches and test_step_arg_len == 3:
             args.append(dataloader_idx)
 
         return args
@@ -136,20 +146,11 @@ class EvaluationLoop(object):
     def evaluation_step(self, test_mode, batch, batch_idx, dataloader_idx):
         # configure args
         args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
-        has_overfit_batches = (self.trainer.overfit_batches > 0)
         # run actual test step
-        try:
-            if self.testing:
-                output = self.trainer.accelerator_backend.test_step(args)
-            else:
-                output = self.trainer.accelerator_backend.validation_step(args)
-        except TypeError:
-            if has_overfit_batches:
-                args.append(dataloader_idx)
-            if self.testing:
-                output = self.trainer.accelerator_backend.test_step(args)
-            else:
-                output = self.trainer.accelerator_backend.validation_step(args)
+        if self.testing:
+            output = self.trainer.accelerator_backend.test_step(args)
+        else:
+            output = self.trainer.accelerator_backend.validation_step(args)
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
         if is_result_obj:
