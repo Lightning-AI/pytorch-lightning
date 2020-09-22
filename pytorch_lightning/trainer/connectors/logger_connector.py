@@ -330,3 +330,4 @@ class LoggerConnector:
             grad_norm_dic = batch_output.grad_norm_dic
             if len(metrics) > 0 or len(grad_norm_dic) > 0:
                 self.log_metrics(metrics, grad_norm_dic)
+                self.callback_metrics.update(metrics)
