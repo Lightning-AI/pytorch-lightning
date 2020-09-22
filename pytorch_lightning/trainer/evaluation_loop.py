@@ -128,15 +128,7 @@ class EvaluationLoop(object):
 
         multiple_val_loaders = (not test_mode and len(self.trainer.val_dataloaders) > 1)
         multiple_test_loaders = (test_mode and len(self.trainer.test_dataloaders) > 1)
-        has_overfit_batches = (self.trainer.overfit_batches > 0)
-
-        # TODO: need to add check for multi train dataloaders
-        # refers to PR https://github.com/PyTorchLightning/pytorch-lightning/pull/1959
-        if (multiple_test_loaders or multiple_val_loaders) and has_overfit_batches:
-            # if there is overfit_batches and multi val/test dataloaders,
-            # pass dataloader_idx as None for 1 train dataloaders
-            args.append(dataloader_idx=None)
-        elif multiple_test_loaders or multiple_val_loaders:
+        if (multiple_test_loaders or multiple_val_loaders):
             args.append(dataloader_idx)
 
         return args
@@ -144,13 +136,20 @@ class EvaluationLoop(object):
     def evaluation_step(self, test_mode, batch, batch_idx, dataloader_idx):
         # configure args
         args = self.build_args(test_mode, batch, batch_idx, dataloader_idx)
-
+        has_overfit_batches = (self.trainer.overfit_batches > 0)
         # run actual test step
-        if self.testing:
-            output = self.trainer.accelerator_backend.test_step(args)
-        else:
-            output = self.trainer.accelerator_backend.validation_step(args)
-
+        try:
+            if self.testing:
+                output = self.trainer.accelerator_backend.test_step(args)
+            else:
+                output = self.trainer.accelerator_backend.validation_step(args)
+        except TypeError:
+            if has_overfit_batches:
+                args.append(dataloader_idx)
+            if self.testing:
+                output = self.trainer.accelerator_backend.test_step(args)
+            else:
+                output = self.trainer.accelerator_backend.validation_step(args)
         # track batch size for weighted average
         is_result_obj = isinstance(output, Result)
         if is_result_obj:
