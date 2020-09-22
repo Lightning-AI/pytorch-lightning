@@ -69,7 +69,7 @@ jobs:
     - name: Test Package [only]
       run: |
         # NOTE: run coverage on tests does not propagare faler status for Win, https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning --workers auto -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml --ignore=pytorch_lightning/loggers/comet.py --ignore=pytorch_lightning/loggers/mlflow.py --ignore=pytorch_lightning/loggers/neptune.py --ignore=pytorch_lightning/loggers/test_tube.py --ignore=pytorch_lightning/loggers/wandb.py --ignore=pytorch_lightning/metrics/sklearns.py
+        coverage run --source pytorch_lightning -m pytest pytorch_lightning --tests-per-worker auto -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml --ignore=pytorch_lightning/loggers/comet.py --ignore=pytorch_lightning/loggers/mlflow.py --ignore=pytorch_lightning/loggers/neptune.py --ignore=pytorch_lightning/loggers/test_tube.py --ignore=pytorch_lightning/loggers/wandb.py --ignore=pytorch_lightning/metrics/sklearns.py
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
