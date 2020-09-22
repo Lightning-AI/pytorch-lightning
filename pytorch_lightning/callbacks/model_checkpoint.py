@@ -351,7 +351,11 @@ class ModelCheckpoint(Callback):
 
         self.epoch_last_check = epoch
 
+        # anything logged or in callbacks can be in the name
         ckpt_name_metrics = trainer.logger_connector.logged_metrics
+        ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
+        ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
+
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
         while self._fs.exists(filepath):
