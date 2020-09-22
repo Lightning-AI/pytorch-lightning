@@ -370,18 +370,19 @@ class ModelCheckpoint(Callback):
 
             if not isinstance(current, torch.Tensor):
                 rank_zero_warn(
-                    f"The metric you returned {current} must be a `torch.Tensor` instance, checkpoint not saved"
-                    f" HINT: what is the value of {self.monitor} in validation_epoch_end()?",
+                    f"The metric you returned {self.monitor}={current} must be a `torch.Tensor` "
+                    f"instance, checkpoint not saved HINT: what is the value of {self.monitor}?",
                     RuntimeWarning,
                 )
                 if current is not None:
                     current = torch.tensor(current)
 
             if current is None:
-                rank_zero_warn(
-                    f"Can save best model only with {self.monitor} available, skipping.",
-                    RuntimeWarning,
-                )
+                m = f"Can save best model only with {self.monitor} available, skipping."
+                if self.monitor == 'checkpoint_on':
+                    m = f'No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or ' \
+                        f'TrainResult(checkpoint_on=tensor)?'
+                rank_zero_warn(m, RuntimeWarning)
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
             elif self.verbose:
