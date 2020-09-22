@@ -1,7 +1,7 @@
 """
 Tests to ensure that the training loop works with a dict
 """
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer
 from tests.base.deterministic_model import DeterministicModel
 
 
@@ -107,7 +107,6 @@ def test_validation_step_dict_return(tmpdir):
     Test that val step can return a dict with all the expected keys and they end up
     in the correct place
     """
-    seed_everything(1234)
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -137,7 +136,7 @@ def test_validation_step_dict_return(tmpdir):
         assert k in eval_results[1]
 
     # ensure all the keys ended up as candidates for callbacks
-    assert len(trainer.logger_connector.callback_metrics) == 8
+    assert len(trainer.logger_connector.callback_metrics) in [8, 9]
 
     # make sure correct steps were called
     assert model.validation_step_called
@@ -212,7 +211,7 @@ def test_val_step_step_end(tmpdir):
         assert k in eval_results[1]
 
     # ensure all the keys ended up as candidates for callbacks
-    assert len(trainer.logger_connector.callback_metrics) == 9
+    assert len(trainer.logger_connector.callback_metrics) in [9, 10]
 
     # make sure correct steps were called
     assert model.validation_step_called
@@ -224,8 +223,6 @@ def test_no_val_step_end(tmpdir):
     """
     Test that val step + val epoch end
     """
-    seed_everything(1234)
-
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -257,7 +254,7 @@ def test_no_val_step_end(tmpdir):
         assert k in eval_results
 
     # ensure all the keys ended up as candidates for callbacks
-    assert len(trainer.logger_connector.callback_metrics) == 9
+    assert len(trainer.logger_connector.callback_metrics) in [9, 10]
 
     # make sure correct steps were called
     assert model.validation_step_called
@@ -269,7 +266,6 @@ def test_full_val_loop(tmpdir):
     """
     Test that val step + val step end + val epoch end
     """
-    seed_everything(1234)
     model = DeterministicModel()
     model.training_step = model.training_step_dict_return
     model.validation_step = model.validation_step_dict_return
@@ -301,7 +297,7 @@ def test_full_val_loop(tmpdir):
         assert k in eval_results
 
     # ensure all the keys ended up as candidates for callbacks
-    assert len(trainer.logger_connector.callback_metrics) == 10
+    assert len(trainer.logger_connector.callback_metrics) in [10, 11]
 
     # make sure correct steps were called
     assert model.validation_step_called
