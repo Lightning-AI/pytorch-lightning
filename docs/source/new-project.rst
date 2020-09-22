@@ -376,7 +376,7 @@ If you want to log to Tensorboard or your favorite logger, and/or the progress b
             result = pl.TrainResult(minimize=loss)
             return result
 
-To enable logging:
+To enable logging in the training loop:
 
 .. code-block::
 
@@ -409,7 +409,16 @@ And for the validation loop use the :class:`~pytorch_lightning.core.step_result.
 
 .. note:: A Result Object is just a dictionary (print it to verify for yourself!)
 
-Read more about reult objects and :ref:`loggers`.
+The results objects:
+
+* Automatically reduce epoch metrics.
+* Can log at each step or epoch.
+* Can log to a visual logger, progress bar, or both.
+* Detaches everything except the loss.
+* Handle syncing across GPUs.
+* Handle writing predictions across GPUs.
+
+Read more about result objects and :ref:`loggers`.
 
 
 Callbacks
