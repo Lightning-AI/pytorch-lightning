@@ -121,7 +121,7 @@ def test_overfit_batch_limits(tmpdir):
         # ------------------------------------------------------
         loader_num_batches, dataloaders = Trainer(overfit_batches=1)._reset_eval_dataloader(model, split)
         assert loader_num_batches[0] == 1
-        loader_num_batches, dataloaders, ref_dataloaders = Trainer(overfit_batches=5)._reset_eval_dataloader(model, split)
+        loader_num_batches, dataloaders = Trainer(overfit_batches=5)._reset_eval_dataloader(model, split)
         assert loader_num_batches[0] == 5
 
         # ------------------------------------------------------
