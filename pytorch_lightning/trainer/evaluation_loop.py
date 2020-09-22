@@ -128,7 +128,7 @@ class EvaluationLoop(object):
 
         multiple_val_loaders = (not test_mode and len(self.trainer.val_dataloaders) > 1)
         multiple_test_loaders = (test_mode and len(self.trainer.test_dataloaders) > 1)
-        if (multiple_test_loaders or multiple_val_loaders):
+        if multiple_test_loaders or multiple_val_loaders:
             args.append(dataloader_idx)
 
         return args
