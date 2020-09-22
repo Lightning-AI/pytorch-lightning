@@ -220,7 +220,11 @@ class ModelCheckpoint(Callback):
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
 
-        return monitor_op(current, self.best_k_models[self.kth_best_model_path])
+        try:
+            val = monitor_op(current, self.best_k_models[self.kth_best_model_path])
+        except Exception as e:
+            print(monitor_op, current, self.best_k_models[self.kth_best_model_path], self.monitor)
+        return val
 
     @classmethod
     def _format_checkpoint_name(
