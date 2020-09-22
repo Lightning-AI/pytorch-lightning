@@ -230,7 +230,7 @@ class TrainerDataLoadingMixin(ABC):
             mode: Either `'val'` or `'test'`
 
         Returns:
-            Tuple (num_batches, dataloaders, ref_dataloaders)
+            Tuple (num_batches, dataloaders)
         """
         # use the training loader as val and test when overfitting
         loader_name = f'{mode}_dataloader'
@@ -300,7 +300,7 @@ class TrainerDataLoadingMixin(ABC):
 
                 loader_num_batches.append(num_batches)
 
-        return loader_num_batches, dataloaders, ref_dataloaders
+        return loader_num_batches, dataloaders
 
     def reset_val_dataloader(self, model: LightningModule) -> None:
         """Resets the validation dataloader and determines the number of batches.
@@ -311,8 +311,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = is_overridden('val_dataloader', model)
         has_step = is_overridden('validation_step', model)
         if has_loader and has_step:
-            self.num_val_batches, self.val_dataloaders, self.ref_dataloaders =\
-                self._reset_eval_dataloader(model, 'val')
+            self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
 
     def reset_test_dataloader(self, model) -> None:
         """Resets the validation dataloader and determines the number of batches.
@@ -323,8 +322,7 @@ class TrainerDataLoadingMixin(ABC):
         has_loader = is_overridden('test_dataloader', model)
         has_step = is_overridden('test_step', model)
         if has_loader and has_step:
-            self.num_test_batches, self.test_dataloaders, self.ref_dataloaders =\
-                self._reset_eval_dataloader(model, 'test')
+            self.num_test_batches, self.test_dataloaders = self._reset_eval_dataloader(model, 'test')
 
     def request_dataloader(self, dataloader_fx: Callable) -> DataLoader:
         """Handles downloading data in the GPU or TPU case.

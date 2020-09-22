@@ -128,8 +128,15 @@ class EvaluationLoop(object):
 
         multiple_val_loaders = (not test_mode and len(self.trainer.val_dataloaders) > 1)
         multiple_test_loaders = (test_mode and len(self.trainer.test_dataloaders) > 1)
+        has_overfit_batches = (self.trainer.overfit_batches > 0)
 
-        if multiple_test_loaders or multiple_val_loaders:
+        # TODO: need to add check for multi train dataloaders
+        # refers to PR https://github.com/PyTorchLightning/pytorch-lightning/pull/1959
+        if (multiple_test_loaders or multiple_val_loaders) and has_overfit_batches:
+            # if there is overfit_batches and multi val/test dataloaders,
+            # pass dataloader_idx as None for 1 train dataloaders
+            args.append(dataloader_idx=None)
+        elif multiple_test_loaders or multiple_val_loaders:
             args.append(dataloader_idx)
 
         return args

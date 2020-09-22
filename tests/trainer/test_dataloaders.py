@@ -453,9 +453,9 @@ def test_dataloaders_with_fast_dev_run(tmpdir):
     assert trainer.dev_debugger.num_seen_sanity_check_batches == trainer.num_sanity_val_steps * num_val_dataloaders
 
 
-@pytest.mark.parametrize('overfit_batches', [0, 0.5])
+@pytest.mark.parametrize('overfit_batches', [0, 0.5, 8])
 def test_dataloaders_with_overfit_batches(tmpdir, overfit_batches):
-    """Verify train_dataloader loaded as val, test dataloaders if overfit_batches > 0"""
+    """Verify overfit_batches works with multi val/test dataloaders."""
     os.environ['PL_DEV_DEBUG'] = '1'
 
     model = EvalModelTemplate()
@@ -478,10 +478,16 @@ def test_dataloaders_with_overfit_batches(tmpdir, overfit_batches):
     trainer.test(model, **test_options)
 
     # 2 in overfit_batches == 0, 1 in overfit_batches > 0
-    assert len(trainer.val_dataloaders) == 2 or 1, \
-        f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
-    assert len(trainer.test_dataloaders) == 2 or 1, \
-        f'Multiple `test_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+    if overfit_batches == 0:
+        assert len(trainer.val_dataloaders) == 2, \
+            f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+        assert len(trainer.test_dataloaders) == 2, \
+            f'Multiple `val_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
+    else:
+        assert len(trainer.val_dataloaders) == 1, \
+            f'Multiple `val_dataloaders` not initiated properly, got {trainer.val_dataloaders}'
+        assert len(trainer.test_dataloaders) == 1, \
+            f'Multiple `val_dataloaders` not initiated properly, got {trainer.test_dataloaders}'
 
 
 @pytest.mark.parametrize('ckpt_path', [None, 'best', 'specific'])

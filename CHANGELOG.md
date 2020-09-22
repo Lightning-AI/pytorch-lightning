@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `overfit_batches` when using with multiple `val_dataloaders` and `test_dataloaders` ([#2792](https://github.com/PyTorchLightning/pytorch-lightning/pull/2792))
+
 - Fixed `num_sanity_val_steps` is clipped to `limit_val_batches` ([#2917](https://github.com/PyTorchLightning/pytorch-lightning/pull/2917))
 
 - Fixed RMSLE metric ([#3188](https://github.com/PyTorchLightning/pytorch-lightning/pull/3188))
@@ -133,8 +135,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * LR Finder argument `num_accumulation_steps`
 
 ### Fixed
-
-- Fixed `overfit_batches` when using with multiple `val_dataloaders` and `test_dataloaders` ([#2792](https://github.com/PyTorchLightning/pytorch-lightning/pull/2792))
 
 - Fixed `accumulate_grad_batches` for last batch ([#2853](https://github.com/PyTorchLightning/pytorch-lightning/pull/2853))
 - Fixed setup call while testing ([#2624](https://github.com/PyTorchLightning/pytorch-lightning/pull/2624))
