@@ -358,8 +358,8 @@ class ModelCheckpoint(Callback):
 
         # anything logged or in callbacks can be in the name
         ckpt_name_metrics = {k: v for k, v in trainer.logger_connector.logged_metrics.items()} #deepcopy(trainer.logger_connector.logged_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
-        ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
+        # ckpt_name_metrics.update(trainer.logger_connector.callback_metrics)
+        # ckpt_name_metrics.update(trainer.logger_connector.progress_bar_metrics)
 
         filepath = self.format_checkpoint_name(epoch, ckpt_name_metrics)
         version_cnt = 0
