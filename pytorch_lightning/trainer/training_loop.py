@@ -499,7 +499,7 @@ class TrainLoop:
         )
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
-        self.check_checkpoint_callback(not (should_check_val and is_overridden('validation_step', model)))
+        self.check_checkpoint_callback(not (should_check_val or is_overridden('validation_step', model)))
 
         # epoch end hook
         self.run_on_epoch_end_hook()
