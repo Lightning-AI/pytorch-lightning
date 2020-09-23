@@ -104,7 +104,7 @@ Automatic Speech Recognition (ASR)
 
 Everything needed to train Convolutional ASR models is included with NeMo. 
 NeMo supports multiple Speech Recognition architectures, including Jasper and QuartzNet. 
-`NeMo Speech Models <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>` 
+`NeMo Speech Models <https://ngc.nvidia.com/catalog/models/nvidia:nemospeechmodels>`_ 
 can be trained from scratch on custom datasets or 
 fine-tuned using pre-trained checkpoints trained on thousands of hours of audio 
 that can be restored for immediate use.
@@ -287,7 +287,7 @@ Natural Language Processing (NLP)
 ---------------------------------
 
 Everything needed to finetune BERT-like language models for NLP tasks is included with NeMo.
-`NeMo NLP Models <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`  
+`NeMo NLP Models <https://ngc.nvidia.com/catalog/models/nvidia:nemonlpmodels>`_  
 include `HuggingFace Transformers <https://github.com/huggingface/transformers>`_ 
 and `NVIDIA Megatron-LM <https://github.com/NVIDIA/Megatron-LM>`_ BERT and Bio-Megatron models. 
 NeMo can also be used for pretraining BERT-based language models from HuggingFace.
@@ -541,7 +541,7 @@ Text-To-Speech (TTS)
 --------------------
 
 Everything needed to train TTS models and generate audio is included with NeMo. 
-`NeMo TTS Models <https://ngc.nvidia.com/catalog/models/nvidia:nemottsmodels>` 
+`NeMo TTS Models <https://ngc.nvidia.com/catalog/models/nvidia:nemottsmodels>`_ 
 can be trained from scratch on your own data or pretrained models can be downloaded
 automatically. NeMo currently supports  a two step inference procedure. 
 First, a model is used to generate a mel spectrogram from text. 
@@ -763,13 +763,13 @@ for a production-grade application.
 Learn More
 ^^^^^^^^^^
 
-`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>` is actively being developed on GitHub.
+`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is actively being developed on GitHub.
 Go there to see our 
-`tutorials <https://github.com/NVIDIA/NeMo#tutorials`, or
-`example scripts <https://github.com/NVIDIA/NeMo/tree/main/examples>`, 
-or make a `contribution <https://github.com/NVIDIA/NeMo/blob/main/CONTRIBUTING.md>`!
+`tutorials <https://github.com/NVIDIA/NeMo#tutorials`_, or
+`example scripts <https://github.com/NVIDIA/NeMo/tree/main/examples>`_, 
+or make a `contribution <https://github.com/NVIDIA/NeMo/blob/main/CONTRIBUTING.md>`_!
 
-.. note:: Most NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`
+.. note:: Most NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`_
 
 
 
