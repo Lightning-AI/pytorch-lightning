@@ -303,7 +303,9 @@ class TrainLoop:
             training_step_output = self.trainer.call_hook('training_step_end', training_step_output)
             if training_step_output is None:
                 raise MisconfigurationException(
-                    'training_step cannot return None. HINT: Did you add a return statement?'
+                    'training_step cannot return None.'
+                    ' HINT: Did you add a return statement?'
+                    ' If you want to skip training_step, return Trainer.SKIP'
                 )
             if not isinstance(training_step_output, torch.Tensor) and training_step_output == self.trainer.SKIP:
                 return training_step_output
