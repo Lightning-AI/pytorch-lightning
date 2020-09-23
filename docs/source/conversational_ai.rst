@@ -757,3 +757,19 @@ for a production-grade application.
     )
     def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
         ...
+
+--------
+
+Learn More
+^^^^^^^^^^
+
+`NVIDIA NeMo <https://github.com/NVIDIA/NeMo>` is actively being developed on GitHub.
+Go there to see our 
+`tutorials <https://github.com/NVIDIA/NeMo#tutorials`, or
+`example scripts <https://github.com/NVIDIA/NeMo/tree/main/examples>`, 
+or make a `contribution <https://github.com/NVIDIA/NeMo/blob/main/CONTRIBUTING.md>`!
+
+.. note:: Most NeMo tutorial notebooks can be run on `Google Colab <https://colab.research.google.com/notebooks/intro.ipynb>`
+
+
+
