@@ -8,10 +8,10 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.core.step_result import TrainResult
+from pytorch_lightning.core.step_result import TrainResult, EvalResult
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.base import EvalModelTemplate
 from tests.base.deterministic_model import DeterministicModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 # test with train_step_end
@@ -634,6 +634,42 @@ def test_result_monitor_warnings(tmpdir):
 
     with pytest.raises(RuntimeError, match=r'.*Early stopping conditioned on metric `not_val_loss` which is not*'):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize("monitor", ["tr_foo", "tr_bar", "va_foo", "va_bar"])
+def test_callbacks_can_monitor_anything(tmpdir, monitor):
+    """
+    Tests that EarlyStopping and ModelCheckpoint callbacks can
+    monitor anything logged via the Result object
+    """
+
+    class TestModel(DeterministicModel):
+        def training_step(self, batch, batch_idx):
+            acc = self.step(batch, batch_idx)
+            result = TrainResult(minimize=acc)
+            result.log("tr_foo", torch.randn(1), on_step=False, on_epoch=True)
+            result.log("tr_bar", torch.randn(1), on_step=False, on_epoch=True)
+            return result
+
+        def validation_step(*_, **__):
+            result = EvalResult()
+            result.log("va_foo", torch.randn(1), on_step=False, on_epoch=True)
+            result.log("va_bar", torch.randn(1), on_step=False, on_epoch=True)
+            return result
+
+    model = TestModel()
+    model.validation_step_end = None
+    model.validation_epoch_end = None
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        early_stop_callback=EarlyStopping(monitor=monitor),
+        checkpoint_callback=ModelCheckpoint(monitor=monitor),
+        limit_train_batches=3,
+        limit_val_batches=3,
+        max_epochs=2,
+        weights_summary=None,
+    )
+    trainer.fit(model)
 
 
 def test_eval_loop_return_none(tmpdir):
