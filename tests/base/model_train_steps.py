@@ -15,6 +15,8 @@ class TrainingStepVariations(ABC):
     test_step_inf_loss = float('inf')
 
     def training_step(self, batch, batch_idx, optimizer_idx=None):
+        self.training_step_called = True
+
         """Lightning calls this inside the training loop"""
         # forward pass
         x, y = batch

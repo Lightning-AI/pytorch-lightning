@@ -17,7 +17,7 @@ Test Tube
 ---------
 """
 from argparse import Namespace
-from typing import Optional, Dict, Any, Union
+from typing import Any, Dict, Optional, Union
 
 try:
     from test_tube import Experiment
@@ -26,9 +26,9 @@ except ImportError:  # pragma: no-cover
     Experiment = None
     _TEST_TUBE_AVAILABLE = False
 
+from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
-from pytorch_lightning.core.lightning import LightningModule
 
 
 class TestTubeLogger(LightningLoggerBase):

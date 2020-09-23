@@ -341,6 +341,12 @@ def test_single_gpu_batch_parse():
     trainer = Trainer(gpus=1)
     trainer.accelerator_backend = GPUBackend(trainer)
 
+    # non-transferrable types
+    primitive_objects = [None, {}, [], 1.0, "x", [None, 2], {"x": (1, 2), "y": None}]
+    for batch in primitive_objects:
+        data = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))
+        assert data == batch
+
     # batch is just a tensor
     batch = torch.rand(2, 3)
     batch = trainer.accelerator_backend.batch_to_device(batch, torch.device('cuda:0'))

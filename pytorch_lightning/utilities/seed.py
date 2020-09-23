@@ -25,17 +25,24 @@ from pytorch_lightning import _logger as log
 
 
 def seed_everything(seed: Optional[int] = None) -> int:
-    """Function that sets seed for pseudo-random number generators  in:
-        pytorch, numpy, python.random and sets PYTHONHASHSEED environment variable.
+    """
+    Function that sets seed for pseudo-random number generators in:
+    pytorch, numpy, python.random and sets PYTHONHASHSEED environment variable.
+    In addition, sets the env variable `PL_GLOBAL_SEED` which will be passed to
+    spawned subprocesses (e.g. ddp_spawn backend).
+
+    Args:
+        seed: the integer value seed for global random state in Lightning.
+            If `None`, will read seed from `PL_GLOBAL_SEED` env variable
+            or select it randomly.
     """
     max_seed_value = np.iinfo(np.uint32).max
     min_seed_value = np.iinfo(np.uint32).min
 
     try:
         if seed is None:
-            seed = _select_seed_randomly(min_seed_value, max_seed_value)
-        else:
-            seed = int(seed)
+            seed = os.environ.get("PL_GLOBAL_SEED", _select_seed_randomly(min_seed_value, max_seed_value))
+        seed = int(seed)
     except (TypeError, ValueError):
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
@@ -47,6 +54,7 @@ def seed_everything(seed: Optional[int] = None) -> int:
         seed = _select_seed_randomly(min_seed_value, max_seed_value)
 
     os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)

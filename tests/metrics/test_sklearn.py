@@ -167,13 +167,12 @@ def test_sklearn_metric(metric_class, sklearn_func, inputs):
 
     sklearn_result = sklearn_func(**numpy_inputs)
     lightning_result = metric_class(**inputs)
-    assert np.allclose(sklearn_result, lightning_result, atol=1e-5)
 
     sklearn_result = apply_to_collection(
         sklearn_result, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy)
 
-    lightning_result = apply_to_collection(
-        lightning_result, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy)
+    lightning_result = np.array(apply_to_collection(
+        lightning_result, (torch.Tensor, np.ndarray, numbers.Number), convert_to_numpy))
 
     assert np.allclose(sklearn_result, lightning_result, atol=1e-5)
     assert isinstance(lightning_result, type(sklearn_result))

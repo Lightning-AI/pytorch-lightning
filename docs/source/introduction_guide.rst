@@ -4,7 +4,7 @@
     from pytorch_lightning.core.datamodule import LightningDataModule
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _introduction-guide:
+.. _introduction_guide:
 
 #########################
 Step-by-step walk-through
@@ -289,13 +289,13 @@ When your models need to know about the data, it's best to process the data befo
     dm.setup()
 
     model = LitModel(out_features=dm.num_classes, img_width=dm.img_width, img_height=dm.img_height)
-    trainer.fit(model)
+    trainer.fit(model, dm)
 
 
 1. use `prepare_data` to download and process the dataset.
 2. use `setup` to do splits, and build your model internals
 
-|
+An alternative to using a DataModule is to defer initialization of the models modules to the `setup` method of your LightningModule as follows:
 
 .. testcode::
 
@@ -510,7 +510,7 @@ Which will generate automatic tensorboard logs.
 
 |
 
-But you can also use any of the `number of other loggers <loggers.rst>`_ we support.
+But you can also use any of the :ref:`number of other loggers <loggers>` we support.
 
 
 Train on CPU
@@ -562,7 +562,7 @@ Or multiple nodes
     trainer = Trainer(gpus=8, num_nodes=4, distributed_backend='ddp')
     trainer.fit(model, train_loader)
 
-Refer to the `distributed computing guide for more details <https://pytorch-lightning.readthedocs.io/en/stable/multi_gpu.html>`_.
+Refer to the :ref:`distributed computing guide for more details <multi_gpu>`.
 
 train on TPUs
 ^^^^^^^^^^^^^
@@ -683,6 +683,9 @@ Since the `validation_step` processes a single batch, use the `EvalResult` to lo
 .. code-block:: python
 
     def validation_step(self, batch, batch_idx):
+        loss = MSE_loss(...)
+
+        # loss is a tensor. The Checkpoint Callback is monitoring 'checkpoint_on'
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
 
@@ -967,7 +970,7 @@ you could do your own:
             return model
 
 Every single part of training is configurable this way.
-For a full list look at `LightningModule <lightning-module.rst>`_.
+For a full list look at :ref:`LightningModule <lightning_module>`.
 
 ----------------
 
@@ -1102,7 +1105,7 @@ would be the particular system and how it's trained (ie: A GAN or VAE or GPT).
 
     loss = perceptual_loss(x1, x2, x) + CE(out, x)
     
-In Lightning, this code is organized into a :ref:`lightning-module`.
+In Lightning, this code is organized into a :ref:`lightning_module`.
 
 Engineering code
 ================
@@ -1167,6 +1170,6 @@ spread all over files.
 This code gets specially complicated once you start doing multi-gpu training or needing info about
 the data to build your models.
 
-In Lightning this code is organized inside a :ref:`data-modules`.
+In Lightning this code is organized inside a :ref:`datamodules`.
 
 .. note:: DataModules are optional but encouraged, otherwise you can use standard DataModules

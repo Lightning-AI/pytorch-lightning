@@ -1,4 +1,4 @@
-.. _result:
+.. _results:
 
 Result
 ======
@@ -101,16 +101,6 @@ checkpointing or early stopping:
         return TrainResult(some_metric, checkpoint_on=metric_a, early_stop_on=metric_b)
 
 
-In the manual loop, checkpoint and early stop is based only on the loss returned. With the `TrainResult` you
-can change it every batch if you want, or even monitor different metrics for each purpose.
-
-.. code-block:: python
-
-    # early stop + checkpoint can only use the `loss` when done manually via dictionaries
-    def training_step(...):
-        return loss
-    def training_step(...):
-        return {'loss': loss}
 
 logging
 ^^^^^^^

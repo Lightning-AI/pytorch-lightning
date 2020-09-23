@@ -21,11 +21,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import Result
 from pytorch_lightning.accelerators.base_backend import Accelerator
 
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 
 class DataParallelBackend(Accelerator):
 
@@ -89,18 +84,17 @@ class DataParallelBackend(Accelerator):
                 f' See this note from NVIDIA for more info: https://github.com/NVIDIA/apex/issues/227.'
                 f' We recommend you switch to ddp if you want to use amp')
         else:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.reinit_scheduler_properties(optimizers, self.trainer.lr_schedulers)
+            model, optimizers = self.trainer.precision_connector.connect(model, self.trainer.optimizers)
 
         return model
 
     def train(self):
         model = self.trainer.model
         # set up training routine
-        self.trainer.setup_training(model)
+        self.trainer.train_loop.setup_training(model)
 
         # train or test
-        results = self.trainer.train_or_test()
+        results = self.train_or_test()
 
         return results
 
@@ -127,16 +121,22 @@ class DataParallelBackend(Accelerator):
     def training_step_end(self, output):
         if isinstance(output, Result):
             output.dp_reduce()
+        elif isinstance(output, torch.Tensor):
+            output = output.mean()
         return output
 
     def validation_step_end(self, output):
         if isinstance(output, Result):
             output.dp_reduce()
+        elif isinstance(output, torch.Tensor):
+            output = output.mean()
         return output
 
     def test_step_end(self, output):
         if isinstance(output, Result):
             output.dp_reduce()
+        elif isinstance(output, torch.Tensor):
+            output = output.mean()
         return output
 
     def reinit_scheduler_properties(self, optimizers: list, schedulers: list):

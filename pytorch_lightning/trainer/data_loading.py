@@ -155,7 +155,7 @@ class TrainerDataLoadingMixin(ABC):
             assert self.distributed_backend is not None
             kwargs = dict(num_replicas=world_size[self.distributed_backend], rank=self.global_rank)
 
-        kwargs['shuffle'] = train
+        kwargs['shuffle'] = train and not self.overfit_batches
         sampler = DistributedSampler(dataloader.dataset, **kwargs)
         return sampler
 
@@ -167,6 +167,12 @@ class TrainerDataLoadingMixin(ABC):
             model: The current `LightningModule`
         """
         self.train_dataloader = self.request_dataloader(model.train_dataloader)
+        if (self.overfit_batches > 0):
+            if hasattr(self.train_dataloader, 'sampler') and isinstance(self.train_dataloader.sampler, RandomSampler):
+                rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
+                               ' We are turning it off for you.')
+                self.train_dataloader = self.replace_sampler(
+                    self.train_dataloader, SequentialSampler(self.train_dataloader.dataset))
 
         # debugging
         self.dev_debugger.track_load_dataloader_call('train_dataloader', dataloaders=[self.train_dataloader])
@@ -247,7 +253,7 @@ class TrainerDataLoadingMixin(ABC):
 
                 # when overfitting, the dataloader should not have sampler
                 if self.overfit_batches > 0:
-                    rank_zero_warn('You requested to overfit but enabled training dataloader shuffling.'
+                    rank_zero_warn('You requested to overfit but enabled test/val dataloader shuffling.'
                                    ' We are turning it off for you.')
                     dataloaders[loader_i] = self.replace_sampler(loader, SequentialSampler(loader.dataset))
 
@@ -288,7 +294,7 @@ class TrainerDataLoadingMixin(ABC):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
                         f'you requested to check {limit_eval_batches} of the {mode} dataloader but'
-                        f' {limit_eval_batches}*{num_batches} = 0. Please increase the limit_{mode}_batches.'
+                        f' {limit_eval_batches}*{num_batches} < 1. Please increase the limit_{mode}_batches.'
                         f' Try at least limit_{mode}_batches={min_pct}'
                     )
 
@@ -345,10 +351,3 @@ class TrainerDataLoadingMixin(ABC):
             hvd.join()
 
         return dataloader
-
-    def determine_data_use_amount(self, overfit_batches: float) -> None:
-        """Use less data for debugging purposes"""
-        if overfit_batches > 0:
-            self.limit_train_batches = overfit_batches
-            self.limit_val_batches = overfit_batches
-            self.limit_test_batches = overfit_batches

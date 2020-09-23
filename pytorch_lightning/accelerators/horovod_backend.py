@@ -13,17 +13,10 @@
 # limitations under the License.
 from contextlib import ExitStack
 import torch
-from pytorch_lightning.core import LightningModule
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.accelerators.base_backend import Accelerator
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from torch.optim.lr_scheduler import _LRScheduler
-
-try:
-    from apex import amp
-except ImportError:
-    amp = None
-
 
 try:
     import horovod.torch as hvd
@@ -87,10 +80,8 @@ class HorovodBackend(Accelerator):
             for optimizer in self.trainer.optimizers
         ]
 
-        if self.trainer.amp_backend == AMPType.APEX:
-            model, optimizers = model.configure_apex(amp, model, self.trainer.optimizers, self.trainer.amp_level)
-            self.trainer.optimizers = optimizers
-            self.trainer.reinit_scheduler_properties(self.trainer.optimizers, self.trainer.lr_schedulers)
+        # 16-bit
+        model, self.trainer.optimizers = self.trainer.precision_connector.connect(model, self.trainer.optimizers)
 
         # Update logger rank info from Horovod to avoid race conditions from  different ranks
         # creating directories / writing files in the same locations.
@@ -106,10 +97,10 @@ class HorovodBackend(Accelerator):
                 stack.enter_context(optimizer.skip_synchronize())
 
             # set up training routine
-            self.trainer.setup_training(self.trainer.model)
+            self.trainer.train_loop.setup_training(self.trainer.model)
 
             # train or test
-            results = self.trainer.train_or_test()
+            results = self.train_or_test()
 
         # Make sure all workers have finished training before returning to the user
         hvd.join()
@@ -165,3 +156,6 @@ class HorovodBackend(Accelerator):
 
     def on_train_epoch_end(self):
         hvd.join(hvd.local_rank() if self.trainer.on_gpu else -1)
+
+    def barrier(self, name: str = None):
+        hvd.join()

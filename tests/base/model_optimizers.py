@@ -34,6 +34,14 @@ class ConfigureOptimizersPool(ABC):
         optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer1, optimizer2
 
+    def configure_optimizers__multiple_optimizers_frequency(self):
+        optimizer1 = optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer2 = optim.Adam(self.parameters(), lr=self.learning_rate)
+        return [
+            {'optimizer': optimizer1, 'frequency': 1},
+            {'optimizer': optimizer2, 'frequency': 5}
+        ]
+
     def configure_optimizers__single_scheduler(self):
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1)

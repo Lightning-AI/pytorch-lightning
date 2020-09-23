@@ -4,7 +4,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _weights-loading:
+.. _weights_loading:
 
 Saving and loading weights
 ==========================
@@ -45,7 +45,7 @@ To modify the behavior of checkpointing pass in your own callback.
         filepath=os.getcwd(),
         save_top_k=1,
         verbose=True,
-        monitor='val_loss',
+        monitor='checkpoint_on',
         mode='min',
         prefix=''
     )

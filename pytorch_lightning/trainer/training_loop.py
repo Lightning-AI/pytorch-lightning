@@ -25,6 +25,11 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.core.step_result import EvalResult, Result
 from pytorch_lightning.utilities.parsing import AttributeDict
 from copy import copy, deepcopy
+from pytorch_lightning.trainer.states import TrainerState
+from pytorch_lightning.utilities import parsing, AMPType
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.memory import ModelSummary
+from pytorch_lightning.utilities.distributed import rank_zero_warn
 
 
 class TrainLoop:
@@ -36,6 +41,29 @@ class TrainLoop:
         self.checkpoint_accumulator = None
         self.accumulated_loss = None
         self._teardown_already_run = False
+        self.running_loss = TensorRunningAccum(window_length=20)
+
+    def on_trainer_init(self, max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps):
+        self.trainer.global_step = 0
+        self.trainer.current_epoch = 0
+        self.trainer.interrupted = False
+        self.trainer.should_stop = False
+        self.trainer._state = TrainerState.INITIALIZING
+
+        self.trainer.total_batch_idx = 0
+        self.trainer.batch_idx = 0
+        self.trainer.num_training_batches = 0
+        self.trainer.train_dataloader = None
+
+        self.trainer.max_epochs = max_epochs
+        self.trainer.min_epochs = min_epochs
+        self.trainer.max_steps = max_steps
+        self.trainer.min_steps = min_steps
+
+        if num_sanity_val_steps == -1:
+            self.trainer.num_sanity_val_steps = float('inf')
+        else:
+            self.trainer.num_sanity_val_steps = num_sanity_val_steps
 
     @property
     def num_optimizers(self):
@@ -53,6 +81,83 @@ class TrainLoop:
         # hook
         self.trainer.call_hook('on_train_start')
 
+    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
+        # bind logger and other properties
+        self.trainer.model_connector.copy_trainer_model_properties(model)
+
+        # clean hparams
+        if hasattr(model, 'hparams'):
+            parsing.clean_namespace(model.hparams)
+
+        # links data to the trainer
+        self.trainer.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
+
+        # check that model is configured correctly
+        self.trainer.config_validator.verify_loop_configurations(model)
+
+    def setup_training(self, model: LightningModule):
+        """Sanity check a few things before starting actual training.
+
+        Args:
+            model: The model to run sanity test on.
+        """
+        # --------------------------
+        # Setup??
+        # --------------------------
+        ref_model = model
+        if self.trainer.data_parallel:
+            ref_model = model.module
+
+        # give model convenience properties
+        ref_model.trainer = self.trainer
+
+        # set local properties on the model
+        self.trainer.model_connector.copy_trainer_model_properties(ref_model)
+
+        # init amp. Must be done here instead of __init__ to allow ddp to work
+        if self.trainer.amp_backend == AMPType.NATIVE and self.trainer.precision == 16 and not self.trainer.use_tpu:
+            self.trainer.scaler = torch.cuda.amp.GradScaler()
+
+        # log hyper-parameters
+        if self.trainer.logger is not None:
+            # save exp to get started
+            self.trainer.logger.log_hyperparams(ref_model.hparams)
+            self.trainer.logger.log_graph(ref_model)
+            self.trainer.logger.save()
+
+        # wait for all to join if on distributed
+        self.trainer.accelerator_backend.barrier('setup_training')
+
+        # register auto-resubmit when on SLURM
+        self.trainer.slurm_connector.register_slurm_signal_handlers()
+
+        # --------------------------
+        # Pre-train
+        # --------------------------
+        # on pretrain routine start
+        self.trainer.on_pretrain_routine_start(ref_model)
+        if self.trainer.is_function_implemented('on_pretrain_routine_start'):
+            ref_model.on_pretrain_routine_start()
+
+        # print model summary
+        if self.trainer.is_global_zero and self.trainer.weights_summary is not None and not self.trainer.testing:
+            if self.trainer.weights_summary in ModelSummary.MODES:
+                ref_model.summarize(mode=self.trainer.weights_summary)
+            else:
+                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
+
+        # track model now.
+        # if cluster resets state, the model will update with the saved weights
+        self.trainer.model = model
+
+        # restore training and model before hpc is called
+        self.trainer.checkpoint_connector.restore_weights(model)
+
+        # on pretrain routine end
+        self.trainer.on_pretrain_routine_end(ref_model)
+        if self.trainer.is_function_implemented('on_pretrain_routine_end'):
+            ref_model.on_pretrain_routine_end()
+
     def on_train_end(self):
         if self._teardown_already_run:
             return
@@ -60,8 +165,8 @@ class TrainLoop:
         self._teardown_already_run = True
 
         # Save latest checkpoint
-        log.info('Saving latest checkpoint..')
-        self.check_checkpoint_callback(should_check_val=False)
+        rank_zero_warn('Saving latest checkpoint..')
+        self.check_checkpoint_callback(should_check_val=False, force_save=True)
 
         # hook
         self.trainer.call_hook('on_train_end')
@@ -88,13 +193,13 @@ class TrainLoop:
             model.cpu()
             torch.cuda.empty_cache()
 
-    def check_checkpoint_callback(self, should_check_val):
+    def check_checkpoint_callback(self, should_check_val, force_save=False):
         model = self.trainer.get_model()
 
         # when no val loop is present or fast-dev-run still need to call checkpoints
         # TODO bake this logic into the checkpoint callback
         should_activate = not is_overridden('validation_step', model) and not should_check_val
-        if should_activate:
+        if should_activate or force_save:
             checkpoint_callbacks = [c for c in self.trainer.callbacks if isinstance(c, ModelCheckpoint)]
             [c.on_validation_end(self.trainer, model) for c in checkpoint_callbacks]
 
@@ -212,7 +317,7 @@ class TrainLoop:
 
             # handle regular dicts
             if not is_result_obj:
-                training_step_output = self.trainer.process_output(training_step_output, train=True)
+                training_step_output = self.trainer.process_dict_result(training_step_output, train=True)
 
                 training_step_output = AttributeDict(
                     batch_loss=training_step_output[0],
@@ -271,13 +376,12 @@ class TrainLoop:
         return grad_norm_dic
 
     def _track_gradient_norm(self, batch_idx):
-        grad_norm_dic = {}
-        if batch_idx % self.trainer.row_log_interval == 0:
+        grad_norm_dict = {}
+        if (batch_idx + 1) % self.trainer.row_log_interval == 0:
             if float(self.trainer.track_grad_norm) > 0:
                 model = self.trainer.get_model()
-                grad_norm_dic = model.grad_norm(
-                    self.trainer.track_grad_norm)
-        return grad_norm_dic
+                grad_norm_dict = model.grad_norm(self.trainer.track_grad_norm)
+        return grad_norm_dict
 
     def log_training_step_metrics(self, opt_closure_result, batch_callback_metrics, batch_log_metrics):
         # track callback metrics
@@ -476,7 +580,8 @@ class TrainLoop:
                 self.accumulated_loss.append(opt_closure_result.loss)
 
                 # track all the outputs across all steps
-                batch_outputs[opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
+                batch_opt_idx = opt_idx if len(batch_outputs) > 1 else 0
+                batch_outputs[batch_opt_idx].append(opt_closure_result.training_step_output_for_epoch_end)
 
                 # ------------------------------
                 # BACKWARD PASS
@@ -503,7 +608,7 @@ class TrainLoop:
                     self.optimizer_zero_grad(batch_idx, optimizer, opt_idx)
 
                     # calculate running loss for display
-                    self.trainer.running_loss.append(
+                    self.running_loss.append(
                         self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches
                     )
 
@@ -548,7 +653,7 @@ class TrainLoop:
 
         if num_accumulated_batches_reached or num_training_batches_reached:
             # update lr
-            self.trainer.lr_scheduler_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
+            self.trainer.optimizer_connector.update_learning_rates(interval='step', monitor_metrics=monitor_metrics)
 
     def run_on_epoch_end_hook(self):
         self.trainer.call_hook('on_epoch_end')

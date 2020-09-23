@@ -192,7 +192,9 @@ decorator to make sure that only the first process in DDP training logs data.
 
         def save(self):
             # Optional. Any code necessary to save logger data goes here
-            pass
+            # If you implement this, remember to call `super().save()`
+            # at the start of the method (important for aggregation of metrics)
+            super().save()
 
         @rank_zero_only
         def finalize(self, status):
@@ -201,7 +203,7 @@ decorator to make sure that only the first process in DDP training logs data.
             pass
 
 If you write a logger that may be useful to others, please send
-a pull request to add it to Lighting!
+a pull request to add it to Lightning!
 
 ----------
 

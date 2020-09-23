@@ -17,6 +17,7 @@ from pytorch_lightning.metrics.classification import (
 from pytorch_lightning.metrics.converters import numpy_metric, tensor_metric
 from pytorch_lightning.metrics.metric import Metric, TensorMetric, NumpyMetric
 from pytorch_lightning.metrics.nlp import BLEUScore
+from pytorch_lightning.metrics.self_supervised import EmbeddingSimilarity
 from pytorch_lightning.metrics.regression import (
     MAE,
     MSE,
@@ -56,4 +57,10 @@ __regression_metrics = [
     "SSIM"
 ]
 __sequence_metrics = ["BLEUScore"]
-__all__ = __regression_metrics + __classification_metrics + ["SklearnMetric"] + __sequence_metrics
+__selfsuper_metrics = ["EmbeddingSimilarity"]
+
+__all__ = __regression_metrics \
+    + __classification_metrics \
+    + __selfsuper_metrics \
+    + __sequence_metrics \
+    + ["SklearnMetric"]

@@ -27,7 +27,7 @@ PyTorch Lightning Documentation
    :name: pl_docs
    :caption: Lightning API
 
-   lightning-module
+   lightning_module
    trainer
 
 .. toctree::
@@ -84,7 +84,7 @@ PyTorch Lightning Documentation
    :name: Common Use Cases
    :caption: Common Use Cases
 
-   apex
+   amp
    slurm
    child_modules
    debugging
@@ -141,3 +141,4 @@ Indices and tables
    api/pytorch_lightning.trainer
    api/pytorch_lightning.utilities
    api/pytorch_lightning.tuner
+   api/pytorch_lightning.plugins

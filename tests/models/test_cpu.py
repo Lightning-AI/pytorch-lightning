@@ -56,7 +56,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
     # test HPC saving
     # simulate snapshot on slurm
-    saved_filepath = trainer.hpc_save(trainer.weights_save_path, logger)
+    saved_filepath = trainer.checkpoint_connector.hpc_save(trainer.weights_save_path, logger)
     assert os.path.exists(saved_filepath)
 
     # new logger file to get meta
@@ -88,7 +88,7 @@ def test_cpu_slurm_save_load(tmpdir):
 
 def test_early_stopping_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    stopping = EarlyStopping(monitor='val_loss', min_delta=0.1)
+    stopping = EarlyStopping(monitor='early_stop_on', min_delta=0.1)
     trainer_options = dict(
         default_root_dir=tmpdir,
         early_stop_callback=stopping,

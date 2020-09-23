@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
 import os
 import warnings
-from argparse import ArgumentParser, Namespace
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import torch
-import torch.distributed as torch_distrib
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
@@ -28,79 +25,58 @@ from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.core.memory import ModelSummary
 from pytorch_lightning.core.step_result import EvalResult
 from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.profiler import BaseProfiler, PassThroughProfiler, SimpleProfiler
-from pytorch_lightning.trainer.callback_config import TrainerCallbackConfigMixin
+from pytorch_lightning.profiler import BaseProfiler
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import ConfigValidator
 from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
-from pytorch_lightning.trainer.deprecated_api import TrainerDeprecatedAPITillVer0_10
-from pytorch_lightning.trainer.distrib_data_parallel import TrainerDDPMixin
-from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.trainer.logging import TrainerLoggingMixin
-from pytorch_lightning.trainer.lr_finder import TrainerLRFinderMixin
 from pytorch_lightning.trainer.model_hooks import TrainerModelHooksMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import TrainerState, trainer_state
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
-from pytorch_lightning.trainer.training_io import TrainerIOMixin
 from pytorch_lightning.trainer.training_tricks import TrainerTrainingTricksMixin
-from pytorch_lightning.utilities import parsing, rank_zero_info, rank_zero_only, rank_zero_warn, AMPType
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.debugging import InternalDebugger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.trainer.evaluation_loop import EvaluationLoop
 from pytorch_lightning.trainer.training_loop import TrainLoop
-from pytorch_lightning.trainer.data_connector import DataConnector
 from pytorch_lightning.accelerators.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.utilities import argparse_utils
-from pytorch_lightning.trainer.logger_connector import LoggerConnector
-from pytorch_lightning.trainer.lr_scheduler_connector import LRSchedulerConnector
-from pytorch_lightning.trainer.model_connector import ModelConnector
+from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.optimizer_connector import OptimizerConnector
+from pytorch_lightning.trainer.connectors.training_trick_connector import TrainingTricksConnector
+from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
+from pytorch_lightning.trainer.connectors.model_connector import ModelConnector
+from pytorch_lightning.trainer.connectors.debugging_connector import DebuggingConnector
+from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
+from pytorch_lightning.trainer.connectors.slurm_connector import SLURMConnector
 from pytorch_lightning import _logger as log
 from pytorch_lightning.tuner.tuning import Tuner
-from pytorch_lightning.trainer.initializer import Initializer
+from pytorch_lightning.trainer.connectors.precision_connector import PrecisionConnector
+from pytorch_lightning.trainer.connectors.profiler_connector import ProfilerConnector
+from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.utilities.model_utils import is_overridden
 from pytorch_lightning.trainer import docstrings
+from pytorch_lightning.trainer.properties import TrainerProperties
 
 # warnings to ignore in trainer
 warnings.filterwarnings(
     'ignore', message='torch.distributed.reduce_op is deprecated, ' 'please use torch.distributed.ReduceOp instead'
 )
+os.environ['PYTHONWARNINGS'] = 'ignore:semaphore_tracker:UserWarning'
 
 try:
     from apex import amp
 except ImportError:
     amp = None
 
-try:
-    import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-except ImportError:
-    XLA_AVAILABLE = False
-else:
-    XLA_AVAILABLE = True
-
-try:
-    import horovod.torch as hvd
-except (ModuleNotFoundError, ImportError):
-    HOROVOD_AVAILABLE = False
-else:
-    HOROVOD_AVAILABLE = True
-
 
 class Trainer(
-    TrainerIOMixin,
+    TrainerProperties,
     TrainerCallbackHookMixin,
     TrainerModelHooksMixin,
     TrainerOptimizersMixin,
-    TrainerDDPMixin,
     TrainerLoggingMixin,
     TrainerTrainingTricksMixin,
     TrainerDataLoadingMixin,
-    TrainerCallbackConfigMixin,
-    TrainerLRFinderMixin,
-    TrainerDeprecatedAPITillVer0_10,
 ):
     def __init__(
         self,
@@ -152,500 +128,113 @@ class Trainer(
         prepare_data_per_node: bool = True,
         amp_backend: str = 'native',
         amp_level: str = 'O2',  # backward compatible, todo: remove in v1.0.0
-        val_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        test_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
-        train_percent_check: float = None,  # backward compatible, todo: remove in v0.10.0
         overfit_pct: float = None,  # backward compatible, todo: remove in v1.0.0
     ):
         super().__init__()
 
-        self.deterministic = deterministic
-        torch.backends.cudnn.deterministic = self.deterministic
-        if self.deterministic:
-            # fixing non-deterministic part of horovod
-            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
-            os.environ["HOROVOD_FUSION_THRESHOLD"] = str(0)
-
-        # init the default rank if exists
-        # we need to call this here or NVIDIA flags and other messaging in init will show on all ranks
-        # this way we only show it on rank 0
-        if 'LOCAL_RANK' in os.environ:
-            rank_zero_only.rank = int(os.environ['LOCAL_RANK'])
-
-        # tracks internal state for debugging
+        # init connectors
         self.dev_debugger = InternalDebugger(self)
         self.config_validator = ConfigValidator(self)
         self.data_connector = DataConnector(self)
-        self.lr_scheduler_connector = LRSchedulerConnector(self)
+        self.optimizer_connector = OptimizerConnector(self)
         self.accelerator_connector = AcceleratorConnector(self)
         self.logger_connector = LoggerConnector(self)
         self.model_connector = ModelConnector(self)
-        self.initializer = Initializer(self)
+        self.precision_connector = PrecisionConnector(self)
+        self.callback_connector = CallbackConnector(self)
+        self.debugging_connector = DebuggingConnector(self)
+        self.training_tricks_connector = TrainingTricksConnector(self)
+        self.profile_connector = ProfilerConnector(self)
+        self.checkpoint_connector = CheckpointConnector(self)
+        self.slurm_connector = SLURMConnector(self)
         self.tuner = Tuner(self)
         self.accelerator_backend = None
-
-        # loops
         self.evaluation_loop = EvaluationLoop(self)
         self.train_loop = TrainLoop(self)
 
-        # training bookeeping
-        self.total_batch_idx = 0
-        self.running_loss = TensorRunningAccum(window_length=20)
-        self.batch_idx = 0
-        self.num_training_batches = 0
-        self.num_val_batches = []
-        self.num_sanity_val_batches = []
-        self.num_test_batches = []
-        self.train_dataloader = None
-        self.test_dataloaders = None
-        self.val_dataloaders = None
-
-        # when true, prints test results
-        self.verbose_test = True
-
-        # when .test() is called, it sets this
-        self.tested_ckpt_path = None
-
         # training state
-        self.model = None
-        self.datamodule = None
-        self.testing = False
-        self.prepare_data_per_node = prepare_data_per_node
-        self.lr_schedulers = []
-        self.optimizers = None
-        self.optimizer_frequencies = []
-        self.global_step = 0
-        self.current_epoch = 0
-        self.interrupted = False
-        self.should_stop = False
-        self.running_sanity_check = False
-        self._state = TrainerState.INITIALIZING
-
-        self._default_root_dir = default_root_dir or os.getcwd()
-        self._weights_save_path = weights_save_path or self._default_root_dir
-
-        # init callbacks
-        self.callbacks = callbacks or []
-
-        # configure early stop callback
-        # creates a default one if none passed in
-        early_stop_callback = self.configure_early_stopping(early_stop_callback)
-        if early_stop_callback:
-            self.callbacks.append(early_stop_callback)
-
-        # configure checkpoint callback
-        # it is important that this is the last callback to run
-        # pass through the required args to figure out defaults
-        checkpoint_callback = self.configure_checkpoint_callback(checkpoint_callback)
-        if checkpoint_callback:
-            self.callbacks.append(checkpoint_callback)
-
-        # TODO refactor codebase (tests) to not directly reach into these callbacks
-        self.checkpoint_callback = checkpoint_callback
-        self.early_stop_callback = early_stop_callback
-
-        self.on_init_start()
-
-        # benchmarking
-        self.benchmark = benchmark
-        torch.backends.cudnn.benchmark = self.benchmark
-
-        # Transfer params
-        self.num_nodes = num_nodes
-        self.log_gpu_memory = log_gpu_memory
-
-        # sync-bn backend
-        self.sync_batchnorm = sync_batchnorm
-
-        self.gradient_clip_val = gradient_clip_val
-        self.check_val_every_n_epoch = check_val_every_n_epoch
-
-        if not isinstance(track_grad_norm, (int, float)) and track_grad_norm != 'inf':
-            raise MisconfigurationException("track_grad_norm can be an int, a float or 'inf' (infinity norm).")
-        self.track_grad_norm = float(track_grad_norm)
-
-        self.tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
-        self.on_tpu = self.tpu_cores is not None
-
-        self.tpu_id = self.tpu_cores[0] if isinstance(self.tpu_cores, list) else None
-
-        if num_processes != 1 and distributed_backend != "ddp_cpu":
-            rank_zero_warn("num_processes is only used for distributed_backend=\"ddp_cpu\". Ignoring it.")
-        self.num_processes = num_processes
-
         self.weights_summary = weights_summary
-
-        self.max_epochs = max_epochs
-        self.min_epochs = min_epochs
-        self.max_steps = max_steps
-        self.min_steps = min_steps
-
-        if num_sanity_val_steps == -1:
-            self.num_sanity_val_steps = float('inf')
-        else:
-            self.num_sanity_val_steps = num_sanity_val_steps
-
-        self.reload_dataloaders_every_epoch = reload_dataloaders_every_epoch
-
-        self.auto_lr_find = auto_lr_find
-        self.auto_scale_batch_size = auto_scale_batch_size
-        self._is_data_prepared = False
-        self.replace_sampler_ddp = replace_sampler_ddp
-
-        self.truncated_bptt_steps = truncated_bptt_steps
-        self.resume_from_checkpoint = resume_from_checkpoint
-        self.terminate_on_nan = terminate_on_nan
+        self.model = None
         self.shown_warnings = set()
 
-        self.fast_dev_run = fast_dev_run
-        if self.fast_dev_run:
-            limit_train_batches = 1
-            limit_val_batches = 1
-            limit_test_batches = 1
-            self.num_sanity_val_steps = 0
-            self.max_epochs = 1
-            rank_zero_info(
-                'Running in fast_dev_run mode: will run a full train,' ' val and test loop using a single batch'
-            )
+        # init callbacks
+        self.callback_connector.on_trainer_init(
+            callbacks,
+            early_stop_callback,
+            checkpoint_callback,
+            progress_bar_refresh_rate,
+            process_position,
+            default_root_dir,
+            weights_save_path,
+            resume_from_checkpoint
+        )
+
+        # hook
+        self.on_init_start()
+
+        # init optimizer + lr scheduler related flags
+        self.optimizer_connector.on_trainer_init()
+
+        # init data flags
+        self.data_connector.on_trainer_init(
+            check_val_every_n_epoch,
+            reload_dataloaders_every_epoch,
+            prepare_data_per_node
+        )
+
+        # init training tricks
+        self.training_tricks_connector.on_trainer_init(
+            gradient_clip_val,
+            track_grad_norm,
+            accumulate_grad_batches,
+            truncated_bptt_steps,
+            terminate_on_nan
+        )
+
+        # init accelerator related flags
+        self.accelerator_connector.on_trainer_init(
+            num_processes,
+            tpu_cores,
+            distributed_backend,
+            auto_select_gpus,
+            gpus,
+            num_nodes,
+            log_gpu_memory,
+            sync_batchnorm,
+            benchmark,
+            replace_sampler_ddp,
+            deterministic
+        )
+
+        # init train loop related flags
+        self.train_loop.on_trainer_init(max_epochs, min_epochs, max_steps, min_steps, num_sanity_val_steps)
+        self.evaluation_loop.on_trainer_init()
+
+        # configure tuner
+        self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
-        if profiler is True:
-            profiler = SimpleProfiler()
-        self.profiler = profiler or PassThroughProfiler()
+        self.profile_connector.on_trainer_init(profiler)
 
-        # accumulated grads
-        self.accumulate_grad_batches = accumulate_grad_batches
-        self.configure_accumulated_gradients(accumulate_grad_batches)
+        # init logger flags
+        self.logger_connector.on_trainer_init(logger, log_save_interval, row_log_interval)
 
-        # override with environment flag
-        gpus = os.environ.get('PL_TRAINER_GPUS', gpus)
+        # init debugging flags
+        self.debugging_connector.on_init_start(
+            overfit_pct,
+            limit_train_batches,
+            limit_val_batches,
+            limit_test_batches,
+            val_check_interval,
+            overfit_batches,
+            fast_dev_run
+        )
 
-        # for gpus allow int, string and gpu list
-        if auto_select_gpus and isinstance(gpus, int):
-            self.gpus = self.tuner.pick_multiple_gpus(gpus)
-        else:
-            self.gpus = gpus
-
-        self.data_parallel_device_ids = device_parser.parse_gpu_ids(self.gpus)
-        self.root_gpu = device_parser.determine_root_gpu_device(self.data_parallel_device_ids)
-        self.root_device = torch.device("cpu")
-
-        self.on_gpu = True if (self.data_parallel_device_ids and torch.cuda.is_available()) else False
-
-        # tpu state flags
-        self.use_tpu = False
-        self.tpu_local_core_rank = None
-        self.tpu_global_core_rank = None
-
-        # distributed backend choice
-        self.distributed_backend = distributed_backend
-        self.set_distributed_mode(distributed_backend)
-
-        # override dist backend when using tpus
-        if self.on_tpu:
-            self.distributed_backend = 'tpu'
-            self.init_tpu()
-
-        # init flags for SLURM+DDP to work
-        self.world_size = 1
-        self.interactive_ddp_procs = []
-        self.configure_slurm_ddp(self.num_nodes)
-        self.node_rank = self.determine_ddp_node_rank()
-        self.local_rank = self.determine_local_rank()
-        self.global_rank = 0
-
-        # NVIDIA setup
-        self.set_nvidia_flags(self.is_slurm_managing_tasks, self.data_parallel_device_ids)
-
-        self._progress_bar_callback = self.configure_progress_bar(progress_bar_refresh_rate, process_position)
-
-        # logging
-        self.configure_logger(logger)
-        self.log_save_interval = log_save_interval
-        self.row_log_interval = row_log_interval
-
-        # how much of the data to use
-        # TODO: remove in 0.10.0
-        if overfit_pct is not None:
-            rank_zero_warn(
-                "Argument `overfit_pct` is now set by `overfit_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            overfit_batches = overfit_pct
-
-        # TODO: remove in 0.10.0
-        if val_percent_check is not None:
-            rank_zero_warn(
-                "Argument `val_percent_check` is now set by `limit_val_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            limit_val_batches = val_percent_check
-
-        # TODO: remove in 0.10.0
-        if test_percent_check is not None:
-            rank_zero_warn(
-                "Argument `test_percent_check` is now set by `limit_test_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            limit_test_batches = test_percent_check
-
-        # TODO: remove in 0.10.0
-        if train_percent_check is not None:
-            rank_zero_warn(
-                "Argument `train_percent_check` is now set by `limit_train_batches` since v0.8.0"
-                " and this argument will be removed in v0.10.0",
-                DeprecationWarning,
-            )
-            limit_train_batches = train_percent_check
-
-        self.limit_train_batches = _determine_batch_limits(limit_train_batches, 'limit_train_batches')
-        self.limit_val_batches = _determine_batch_limits(limit_val_batches, 'limit_val_batches')
-        self.limit_test_batches = _determine_batch_limits(limit_test_batches, 'limit_test_batches')
-        self.val_check_interval = _determine_batch_limits(val_check_interval, 'val_check_interval')
-        self.overfit_batches = _determine_batch_limits(overfit_batches, 'overfit_batches')
-        self.determine_data_use_amount(self.overfit_batches)
-
-        # AMP init
-        # These are the only lines needed after v0.8.0
-        # we wrap the user's forward with autocast and give it back at the end of fit
-        self.autocast_original_forward = None
-        self.precision = precision
-        self.scaler = None
-
-        self.amp_level = amp_level
-        self.initializer.init_amp(amp_backend)
-
-        self.on_colab_kaggle = os.getenv('COLAB_GPU') or os.getenv('KAGGLE_URL_BASE')
+        # set precision
+        self.precision_connector.on_trainer_init(precision, amp_level, amp_backend)
 
         # Callback system
         self.on_init_end()
-
-    @property
-    def use_amp(self) -> bool:
-        return self.precision == 16
-
-    @property
-    def callback_metrics(self):
-        return self.logger_connector.callback_metrics
-
-    @callback_metrics.setter
-    def callback_metrics(self, x):
-        self.logger_connector.callback_metrics = x
-
-    @property
-    def state(self) -> TrainerState:
-        return self._state
-
-    @property
-    def is_global_zero(self) -> bool:
-        return self.global_rank == 0
-
-    @property
-    def slurm_job_id(self) -> Optional[int]:
-        try:
-            job_id = os.environ['SLURM_JOB_ID']
-            job_id = int(job_id)
-
-            # in interactive mode, don't make logs use the same job id
-            in_slurm_interactive_mode = os.environ['SLURM_JOB_NAME'] == 'bash'
-            if in_slurm_interactive_mode:
-                job_id = None
-
-        except Exception:
-            job_id = None
-        return job_id
-
-    @classmethod
-    def default_attributes(cls):
-        init_signature = inspect.signature(Trainer)
-
-        args = {}
-        for param_name in init_signature.parameters:
-            value = init_signature.parameters[param_name].default
-            args[param_name] = value
-
-        return args
-
-    @classmethod
-    def get_deprecated_arg_names(cls) -> List:
-        """Returns a list with deprecated Trainer arguments."""
-        depr_arg_names = []
-        for name, val in cls.__dict__.items():
-            if name.startswith('DEPRECATED') and isinstance(val, (tuple, list)):
-                depr_arg_names.extend(val)
-        return depr_arg_names
-
-    @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs) -> 'Trainer':
-        return argparse_utils.from_argparse_args(cls, args, **kwargs)
-
-    @classmethod
-    def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
-        return argparse_utils.parse_argparser(cls, arg_parser)
-
-    @classmethod
-    def add_argparse_args(cls, parent_parser: ArgumentParser) -> ArgumentParser:
-        r"""Extends existing argparse by default `Trainer` attributes.
-
-        Args:
-            parent_parser:
-                The custom cli arguments parser, which will be extended by
-                the Trainer default arguments.
-
-        Only arguments of the allowed types (str, float, int, bool) will
-        extend the `parent_parser`.
-
-        Examples:
-            >>> import argparse
-            >>> import pprint
-            >>> parser = argparse.ArgumentParser()
-            >>> parser = Trainer.add_argparse_args(parser)
-            >>> args = parser.parse_args([])
-            >>> pprint.pprint(vars(args))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-            {...
-             'check_val_every_n_epoch': 1,
-             'checkpoint_callback': True,
-             'default_root_dir': None,
-             'deterministic': False,
-             'distributed_backend': None,
-             'early_stop_callback': False,
-             ...
-             'logger': True,
-             'max_epochs': 1000,
-             'max_steps': None,
-             'min_epochs': 1,
-             'min_steps': None,
-             ...
-             'profiler': None,
-             'progress_bar_refresh_rate': 1,
-             ...}
-
-        """
-        parser = ArgumentParser(parents=[parent_parser], add_help=False,)
-
-        blacklist = ['kwargs']
-        depr_arg_names = cls.get_deprecated_arg_names() + blacklist
-
-        allowed_types = (str, int, float, bool)
-
-        # TODO: get "help" from docstring :)
-        for arg, arg_types, arg_default in (
-            at for at in argparse_utils.get_init_arguments_and_types(cls) if at[0] not in depr_arg_names
-        ):
-            arg_types = [at for at in allowed_types if at in arg_types]
-            if not arg_types:
-                # skip argument with not supported type
-                continue
-            arg_kwargs = {}
-            if bool in arg_types:
-                arg_kwargs.update(nargs="?", const=True)
-                # if the only arg type is bool
-                if len(arg_types) == 1:
-                    use_type = parsing.str_to_bool
-                # if only two args (str, bool)
-                elif len(arg_types) == 2 and set(arg_types) == {str, bool}:
-                    use_type = parsing.str_to_bool_or_str
-                else:
-                    # filter out the bool as we need to use more general
-                    use_type = [at for at in arg_types if at is not bool][0]
-            else:
-                use_type = arg_types[0]
-
-            if arg == 'gpus' or arg == 'tpu_cores':
-                use_type = Trainer._gpus_allowed_type
-                arg_default = Trainer._gpus_arg_default
-
-            # hack for types in (int, float)
-            if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
-                use_type = Trainer._int_or_float_type
-
-            # hack for track_grad_norm
-            if arg == 'track_grad_norm':
-                use_type = float
-
-            parser.add_argument(
-                f'--{arg}',
-                dest=arg,
-                default=arg_default,
-                type=use_type,
-                help='autogenerated by pl.Trainer',
-                **arg_kwargs,
-            )
-
-        return parser
-
-    def _gpus_allowed_type(x) -> Union[int, str]:
-        if ',' in x:
-            return str(x)
-        else:
-            return int(x)
-
-    def _gpus_arg_default(x) -> Union[int, str]:
-        if ',' in x:
-            return str(x)
-        else:
-            return int(x)
-
-    def _int_or_float_type(x) -> Union[int, float]:
-        if '.' in str(x):
-            return float(x)
-        else:
-            return int(x)
-
-    @property
-    def num_gpus(self) -> int:
-        gpus = self.data_parallel_device_ids
-        if gpus is None:
-            return 0
-        return len(gpus)
-
-    @property
-    def data_parallel(self) -> bool:
-        return self.use_dp or self.use_ddp or self.use_ddp2
-
-    @property
-    def progress_bar_callback(self):
-        return self._progress_bar_callback
-
-    @property
-    def progress_bar_dict(self) -> dict:
-        """ Read-only for progress bar metrics. """
-        ref_model = self.model if not self.data_parallel else self.model.module
-        return dict(**ref_model.get_progress_bar_dict(), **self.logger_connector.progress_bar_metrics)
-
-    @property
-    def disable_validation(self) -> bool:
-        """ Check if validation is disabled during training. """
-        return not self.enable_validation
-
-    @property
-    def enable_validation(self) -> bool:
-        """ Check if we should run validation during training. """
-        val_loop_enabled = is_overridden('validation_step', self.get_model()) and self.limit_val_batches > 0
-        return val_loop_enabled or self.fast_dev_run
-
-    @property
-    def default_root_dir(self) -> str:
-        """
-        The default location to save artifacts of loggers, checkpoints etc.
-        It is used as a fallback if logger or checkpoint callback do not define specific save paths.
-        """
-        if get_filesystem(self._default_root_dir).protocol == "file":
-            return os.path.normpath(self._default_root_dir)
-        return self._default_root_dir
-
-    @property
-    def weights_save_path(self) -> str:
-        """
-        The default root location to save weights (checkpoints), e.g., when the
-        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
-        """
-        if get_filesystem(self._weights_save_path).protocol == "file":
-            return os.path.normpath(self._weights_save_path)
-        return self._weights_save_path
 
     def tune(
         self,
@@ -657,10 +246,7 @@ class Trainer(
         # TODO: temporary, need to decide if tune or separate object
 
         # setup data, etc...
-        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
-
-        # hook
-        self.call_hook('on_fit_start', model)
+        self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.data_connector.prepare_data(model)
@@ -680,13 +266,12 @@ class Trainer(
 
         # Run learning rate finder:
         if self.auto_lr_find:
-            self._run_lr_finder_internally(model)
+            self.tuner.internal_find_lr(self, model)
             model.logger = self.logger  # reset logger binding
 
     # -----------------------------
     # MODEL TRAINING
     # -----------------------------
-    @trainer_state(entering=TrainerState.RUNNING, exiting=TrainerState.FINISHED)
     def fit(
         self,
         model: LightningModule,
@@ -694,10 +279,10 @@ class Trainer(
         val_dataloaders: Optional[Union[DataLoader, List[DataLoader]]] = None,
         datamodule: Optional[LightningDataModule] = None,
     ):
-        results = None
+        self._state = TrainerState.RUNNING
 
         # setup data, etc...
-        self.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
+        self.train_loop.setup_fit(model, train_dataloader, val_dataloaders, datamodule)
 
         # hook
         self.call_hook('on_fit_start', model)
@@ -729,93 +314,10 @@ class Trainer(
 
         # return 1 when finished
         # used for testing or when we need to know that training succeeded
+
+        if self._state != TrainerState.INTERRUPTED:
+            self._state = TrainerState.FINISHED
         return results or 1
-
-    def setup_fit(self, model, train_dataloader, val_dataloaders, datamodule):
-        # bind logger and other properties
-        self.model_connector.copy_trainer_model_properties(model)
-
-        # clean hparams
-        if hasattr(model, 'hparams'):
-            parsing.clean_namespace(model.hparams)
-
-        # links data to the trainer
-        self.data_connector.attach_data(model, train_dataloader, val_dataloaders, datamodule)
-
-        # check that model is configured correctly
-        self.config_validator.verify_loop_configurations(model)
-
-    def setup_training(self, model: LightningModule):
-        """Sanity check a few things before starting actual training.
-
-        Args:
-            model: The model to run sanity test on.
-        """
-        # --------------------------
-        # Setup??
-        # --------------------------
-        ref_model = model
-        if self.data_parallel:
-            ref_model = model.module
-
-        # give model convenience properties
-        ref_model.trainer = self
-
-        # set local properties on the model
-        self.model_connector.copy_trainer_model_properties(ref_model)
-
-        # init amp. Must be done here instead of __init__ to allow ddp to work
-        if self.amp_backend == AMPType.NATIVE and self.precision == 16 and not self.use_tpu:
-            self.scaler = torch.cuda.amp.GradScaler()
-
-        # log hyper-parameters
-        if self.logger is not None:
-            # save exp to get started
-            self.logger.log_hyperparams(ref_model.hparams)
-            self.logger.log_graph(ref_model)
-            self.logger.save()
-
-        if self.use_ddp or self.use_ddp2:
-            torch_distrib.barrier()
-
-        # wait for all models to restore weights
-        if self.on_tpu and XLA_AVAILABLE:
-            # wait for all processes to catch up
-            torch_xla.core.xla_model.rendezvous("pl.Trainer.setup_training")
-
-        elif self.use_horovod:
-            # wait for all processes to catch up
-            hvd.join()
-
-        # register auto-resubmit when on SLURM
-        self.register_slurm_signal_handlers()
-
-        # --------------------------
-        # Pre-train
-        # --------------------------
-        # on pretrain routine start
-        self.on_pretrain_routine_start(ref_model)
-        if self.is_function_implemented('on_pretrain_routine_start'):
-            ref_model.on_pretrain_routine_start()
-
-        # print model summary
-        if self.is_global_zero and self.weights_summary is not None and not self.testing:
-            if self.weights_summary in ModelSummary.MODES:
-                ref_model.summarize(mode=self.weights_summary)
-            else:
-                raise MisconfigurationException("weights_summary can be None, " + ", ".join(ModelSummary.MODES))
-
-        # track model now.
-        # if cluster resets state, the model will update with the saved weights
-        self.model = model
-
-        # restore training and model before hpc is called
-        self.restore_weights(model)
-
-        # on pretrain routine end
-        self.on_pretrain_routine_end(ref_model)
-        if self.is_function_implemented('on_pretrain_routine_end'):
-            ref_model.on_pretrain_routine_end()
 
     def train(self):
         self.run_sanity_check(self.get_model())
@@ -852,7 +354,7 @@ class Trainer(
                     return
 
                 # update LR schedulers
-                self.lr_scheduler_connector.update_learning_rates(interval='epoch')
+                self.optimizer_connector.update_learning_rates(interval='epoch')
 
                 # early stopping
                 met_min_epochs = epoch >= self.min_epochs - 1
@@ -976,13 +478,6 @@ class Trainer(
 
         return eval_loop_results
 
-    def train_or_test(self):
-        if self.testing:
-            results = self.run_test()
-        else:
-            results = self.train()
-        return results
-
     def run_sanity_check(self, ref_model):
         using_val_step = ref_model.val_dataloader is not None and is_overridden('validation_step', ref_model)
         should_sanity_check = using_val_step and self.num_sanity_val_steps > 0 and self.limit_val_batches > 0
@@ -1011,7 +506,7 @@ class Trainer(
                 if isinstance(eval_results, EvalResult):
                     callback_metrics = eval_results.callback_metrics
                 else:
-                    _, _, _, callback_metrics, _ = self.process_output(eval_results)
+                    _, _, _, callback_metrics, _ = self.process_dict_result(eval_results)
                 self.logger_connector.callback_metrics = callback_metrics
 
             self.on_sanity_check_end()
@@ -1149,17 +644,6 @@ class Trainer(
                 output = accelerator_hook(*args, **kwargs)
 
             return output
-
-
-def _determine_batch_limits(batches: Union[int, float], name: str) -> Union[int, float]:
-    if 0 <= batches <= 1:
-        return batches
-    elif batches > 1 and batches % 1.0 == 0:
-        return int(batches)
-    else:
-        raise MisconfigurationException(
-            f'You have passed invalid value {batches} for {name}, it has to be in [0.0, 1.0] or an int.'
-        )
 
 
 # add docstrings

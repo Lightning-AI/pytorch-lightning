@@ -175,7 +175,7 @@ def test_train_loop_only(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
-    assert trainer.logger_connector.callback_metrics['loss'] < 0.6
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] < 0.6
 
 
 def test_train_val_loop_only(tmpdir):
@@ -197,7 +197,7 @@ def test_train_val_loop_only(tmpdir):
     # fit model
     result = trainer.fit(model, dm)
     assert result == 1
-    assert trainer.logger_connector.callback_metrics['loss'] < 0.6
+    assert trainer.logger_connector.callback_metrics['checkpoint_on'] < 0.6
 
 
 def test_test_loop_only(tmpdir):

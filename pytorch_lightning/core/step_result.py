@@ -501,7 +501,16 @@ class TrainResult(Result):
         Args:
             minimize: Metric currently being minimized.
             early_stop_on: Metric to early stop on.
+                Should be a one element tensor if combined with default
+                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
+                the specified value will be averaged across all steps.
             checkpoint_on: Metric to checkpoint on.
+                Should be a one element tensor if combined with default checkpoint callback.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
+                the specified value will be averaged across all steps.
             hiddens:
         """
 
@@ -656,7 +665,16 @@ class EvalResult(Result):
 
         Args:
             early_stop_on: Metric to early stop on.
+                Should be a one element tensor if combined with default
+                :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping`.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
+                the specified value will be averaged across all steps.
             checkpoint_on: Metric to checkpoint on.
+                Should be a one element tensor if combined with default checkpoint callback.
+                If this result is returned by
+                :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
+                the specified value will be averaged across all steps.
             hiddens:
         """
 
@@ -783,8 +801,11 @@ class EvalResult(Result):
             )
 
     def get_callback_metrics(self) -> dict:
-        result = {'val_early_stop_on': self.early_stop_on, 'val_checkpoint_on': self.checkpoint_on}
-
+        result = {}
+        if self.early_stop_on:
+            result['early_stop_on'] = self.early_stop_on
+        if self.checkpoint_on:
+            result['checkpoint_on'] = self.checkpoint_on
         return result
 
     def write(self, name: str, values: Union[Tensor, list], filename: str = 'predictions.pt'):

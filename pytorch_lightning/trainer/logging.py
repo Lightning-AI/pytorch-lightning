@@ -39,22 +39,6 @@ class TrainerLoggingMixin(ABC):
     num_gpus: int
     logged_metrics: ...
 
-    def configure_logger(self, logger):
-        if logger is True:
-            # default logger
-            self.logger = TensorBoardLogger(
-                save_dir=self.default_root_dir,
-                version=self.slurm_job_id,
-                name='lightning_logs'
-            )
-        elif logger is False:
-            self.logger = None
-        else:
-            if isinstance(logger, Iterable):
-                self.logger = LoggerCollection(logger)
-            else:
-                self.logger = logger
-
     def metrics_to_scalars(self, metrics):
         new_metrics = {}
         for k, v in metrics.items():
@@ -68,7 +52,7 @@ class TrainerLoggingMixin(ABC):
 
         return new_metrics
 
-    def process_output(self, output, train=False):
+    def process_dict_result(self, output, train=False):
         """Reduces output according to the training mode.
 
         Separates loss from logging and progress bar metrics
@@ -89,9 +73,10 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # all keys not progress_bar or log are candidates for callbacks
         callback_metrics = {}
-        for k, v in output.items():
-            if k not in ['progress_bar', 'log', 'hiddens']:
-                callback_metrics[k] = v
+        if output:
+            for k, v in output.items():
+                if k not in ['progress_bar', 'log', 'hiddens']:
+                    callback_metrics[k] = v
 
         if train and (self.use_dp or self.use_ddp2):
             num_gpus = self.num_gpus
@@ -152,7 +137,7 @@ class TrainerLoggingMixin(ABC):
         # ---------------
         # EXTRACT HIDDEN
         # ---------------
-        hiddens = output.get('hiddens')
+        hiddens = output.get('hiddens') if output else None
 
         # use every metric passed in as a candidate for callback
         callback_metrics.update(progress_bar_metrics)
@@ -161,6 +146,19 @@ class TrainerLoggingMixin(ABC):
         # detach all metrics for callbacks to prevent memory leaks
         # no .item() because it will slow things down
         callback_metrics = recursive_detach(callback_metrics)
+        progress_bar_metrics = recursive_detach(progress_bar_metrics)
+        log_metrics = recursive_detach(log_metrics)
+
+        # replace loss with checkpoint_on
+        if 'loss' in callback_metrics:
+            callback_metrics['checkpoint_on'] = callback_metrics['loss']
+            callback_metrics['early_stop_on'] = callback_metrics['loss']
+            del callback_metrics['loss']
+
+        if 'val_loss' in callback_metrics:
+            callback_metrics['checkpoint_on'] = callback_metrics['val_loss']
+            callback_metrics['early_stop_on'] = callback_metrics['val_loss']
+            del callback_metrics['val_loss']
 
         return loss, progress_bar_metrics, log_metrics, callback_metrics, hiddens
 

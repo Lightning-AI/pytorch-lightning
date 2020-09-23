@@ -42,18 +42,6 @@ class TrainerTrainingTricksMixin(ABC):
     def get_model(self) -> LightningModule:
         """Warning: this is just empty shell for code implemented in other class."""
 
-    @abstractmethod
-    def save_checkpoint(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def restore(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
-    @abstractmethod
-    def fit(self, *args):
-        """Warning: this is just empty shell for code implemented in other class."""
-
     def print_nan_gradients(self) -> None:
         model = self.get_model()
         for param in model.parameters():
@@ -76,12 +64,3 @@ class TrainerTrainingTricksMixin(ABC):
                     f'Detected nan and/or inf values in `{name}`.'
                     ' Check your forward pass for numerically unstable operations.'
                 )
-
-    def configure_accumulated_gradients(self, accumulate_grad_batches):
-        if isinstance(accumulate_grad_batches, dict):
-            self.accumulation_scheduler = GradientAccumulationScheduler(accumulate_grad_batches)
-        elif isinstance(accumulate_grad_batches, int):
-            schedule = {0: accumulate_grad_batches}
-            self.accumulation_scheduler = GradientAccumulationScheduler(schedule)
-        else:
-            raise TypeError("Gradient accumulation supports only int and dict types")
