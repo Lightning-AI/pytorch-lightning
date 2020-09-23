@@ -167,7 +167,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
-                return {k: self._agg_fn(torch.stack([t for t in tensors[k]]), 0) for k in tensors.keys()}
+                return {k: self._agg_fn(torch.stack([t for t in tensors[k]]), 0) if isinstance(tensors[k], list) else tensors[k] for k in tensors.keys()}
             if isinstance(tensors, list):
                 return self._agg_fn(torch.stack([t for t in tensors]), 0)
             if isinstance(tensors, tuple):

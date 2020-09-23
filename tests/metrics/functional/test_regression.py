@@ -90,7 +90,7 @@ def test_rmsle(pred, target, expected):
 ])
 def test_psnr_with_skimage(pred, target):
     score = psnr(pred=torch.tensor(pred),
-                 target=torch.tensor(target))
+                 target=torch.tensor(target), data_range=3)
     sk_score = ski_psnr(np.array(pred), np.array(target), data_range=3)
     assert torch.allclose(score, torch.tensor(sk_score, dtype=torch.float), atol=1e-3)
 
