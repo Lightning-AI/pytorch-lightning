@@ -206,7 +206,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
 def test_model_checkpoint_none_monitor(tmpdir):
     model = EvalModelTemplate()
-    epochs = 5
+    epochs = 2
     checkpoint_callback = ModelCheckpoint(filepath=tmpdir, monitor=None, save_top_k=-1)
     trainer = Trainer(
         default_root_dir=tmpdir,
