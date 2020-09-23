@@ -168,23 +168,21 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
-                return {k: _stack_and_agg(tensors[k], self._agg_fn) for k in tensors.keys()}
+                return {k: _stack_and_agg(tensors[k]) for k in tensors.keys()}
             if isinstance(tensors, list):
-                return _stack_and_agg(tensors, self._agg_fn)
+                return _stack_and_agg(tensors)
             if isinstance(tensors, tuple):
                 return tensors
             if isinstance(tensors, torch.Tensor):
-                if tensors.numel() == 1:
-                    tensors = tensors.squeeze()
-                return tensors
+                return _stack_and_agg(tensors)
 
         # multiple tensors (from aggregation over batches)
         if isinstance(tensors[0], Mapping):
-            return {k: self._agg_fn(torch.stack([tensor[k] for tensor in tensors]), 0) for k in tensors[0].keys()}
+            return {k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys()}
         if isinstance(tensors[0], Sequence):
-            return tuple([self._agg_fn(torch.stack(tmp), 0) for tmp in zip(*tensors)])
+            return tuple([torch.stack(tmp).sum(0) for tmp in zip(*tensors)])
         if isinstance(tensors[0], torch.Tensor):
-            return self._agg_fn(torch.stack(tensors), 0)
+            return torch.stack(tensors).sum(0)
 
         raise TypeError("unknown metric value format to aggregate")
 
@@ -213,11 +211,11 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self._step_vals = []
 
 
-def _stack_and_agg(tensors, agg_fn):
+def _stack_and_agg(tensors):
     """ Utility function for stacking and aggregating tensors """
     if isinstance(tensors, list):
-        return agg_fn(torch.stack([t for t in tensors]), 0)
-    return tensors.squeeze()
+        return torch.sum(torch.stack([t for t in tensors]), 0)
+    return tensors.squeeze() if tensors.numel() == 1 else tensors
 
 
 class TensorMetric(Metric):
