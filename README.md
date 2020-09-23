@@ -128,7 +128,7 @@ from torchvision import transforms
 import pytorch_lightning as pl
 ```
 
-#### Step 1: Define a LightningModule
+#### Step 1: Define a LightningModule (nn.Module subclass)
 A LightningModule defines a full *system* (ie: a GAN, autoencoder, BERT or a simple Image Classifier).
 
 ```python
