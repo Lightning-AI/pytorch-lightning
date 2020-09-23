@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Mapping, Optional, Sequence, Callable
+from typing import Any, Mapping, Optional, Sequence
 import numbers
 
 import torch
@@ -57,13 +57,13 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     """
 
-    def __init__(self, name: str, reduce_group: Optional[Any] = None, default_agg: Callable = torch.sum):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, default_agg: str = 'sum'):
         """
         Args:
             name: the metric's name
             reduce_group: the process group for DDP reduces (only needed for DDP training).
                 Defaults to all processes (world)
-            default_agg: default aggregation function
+            default_agg: default aggregation function, either 'sum' or 'mean'
 
         """
         super().__init__()
@@ -74,7 +74,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self.reduce_group = reduce_group
 
         self._step_vals = []
-        self._agg_fn = default_agg
+        self._agg_fn = torch.sum if default_agg == 'sum' else torch.mean
 
         # Register hooks
         self.register_forward_pre_hook(self.input_convert)
@@ -168,9 +168,9 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
-                return {k: stack_and_agg(tensors[k], self._agg_fn) for k in tensors.keys()}
+                return {k: _stack_and_agg(tensors[k], self._agg_fn) for k in tensors.keys()}
             if isinstance(tensors, list):
-                return stack_and_agg(tensors, self._agg_fn)
+                return _stack_and_agg(tensors, self._agg_fn)
             if isinstance(tensors, tuple):
                 return tensors
             if isinstance(tensors, torch.Tensor):
@@ -213,10 +213,12 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         self._step_vals = []
 
 
-def stack_and_agg(tensors, agg_fn):
+def _stack_and_agg(tensors, agg_fn):
+    """ Utility function for stacking and aggregating tensors """
     if isinstance(tensors, list):
         return agg_fn(torch.stack([t for t in tensors]), 0)
     return tensors.squeeze()
+
 
 class TensorMetric(Metric):
     """
