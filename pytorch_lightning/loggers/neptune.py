@@ -22,11 +22,9 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 try:
     import neptune
     from neptune.experiments import Experiment
-    _NEPTUNE_AVAILABLE = True
 except ImportError:  # pragma: no-cover
     neptune = None
     Experiment = None
-    _NEPTUNE_AVAILABLE = False
 
 import torch
 from torch import is_tensor
@@ -171,7 +169,7 @@ class NeptuneLogger(LightningLoggerBase):
         experiment_name: Optional[str] = None,
         **kwargs
     ):
-        if not _NEPTUNE_AVAILABLE:
+        if neptune is None:
             raise ImportError('You want to use `neptune` logger which is not installed yet,'
                               ' install it with `pip install neptune-client`.')
         super().__init__()
