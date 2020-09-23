@@ -38,22 +38,22 @@ ddp_args = """
 #         cli_main()
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [dp_16_args])
-def test_examples_dp_image_classifier(cli_args):
-    from pl_examples.basic_examples.image_classifier import cli_main
-
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        cli_main()
-
-
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-@pytest.mark.parametrize('cli_args', [dp_16_args])
-def test_examples_dp_autoencoder(cli_args):
-    from pl_examples.basic_examples.autoencoder import cli_main
-
-    with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
-        cli_main()
+# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+# @pytest.mark.parametrize('cli_args', [dp_16_args])
+# def test_examples_dp_image_classifier(cli_args):
+#     from pl_examples.basic_examples.image_classifier import cli_main
+#
+#     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+#         cli_main()
+#
+#
+# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
+# @pytest.mark.parametrize('cli_args', [dp_16_args])
+# def test_examples_dp_autoencoder(cli_args):
+#     from pl_examples.basic_examples.autoencoder import cli_main
+#
+#     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args.strip().split()):
+#         cli_main()
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
