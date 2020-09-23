@@ -75,15 +75,6 @@ def root_mean_squared_error(x, y):
     return math.sqrt(mean_squared_error(x, y))
 
 
-def multiclass_roc(x, y):
-    class_labels = np.unique(x)
-    pass
-
-
-def multiclass_precision_recall_curve(x, y):
-    pass
-
-
 def root_mean_squared_log_error(x, y):
     return math.sqrt(mean_squared_log_error(x, y))
 

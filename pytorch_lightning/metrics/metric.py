@@ -164,6 +164,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
+        # single tensor
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
@@ -176,15 +177,15 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
                 if tensors.numel() == 1:
                     tensors = tensors.squeeze()
                 return tensors
-            raise TypeError("unknown metric value format to aggregate")
-        else:
-            if isinstance(tensors[0], Mapping):
-                return {k: self._agg_fn(torch.stack([tensor[k] for tensor in tensors]), 0) for k in tensors[0].keys()}
-            if isinstance(tensors[0], Sequence):
-                return tuple([self._agg_fn(torch.stack(tmp), 0) for tmp in zip(*tensors)])
-            if isinstance(tensors[0], torch.Tensor):
-                return self._agg_fn(torch.stack(tensors), 0)
-            raise TypeError("unknown metric value format to aggregate")
+        # multiple tensors (from aggregation over batches)
+        if isinstance(tensors[0], Mapping):
+            return {k: self._agg_fn(torch.stack([tensor[k] for tensor in tensors]), 0) for k in tensors[0].keys()}
+        if isinstance(tensors[0], Sequence):
+            return tuple([self._agg_fn(torch.stack(tmp), 0) for tmp in zip(*tensors)])
+        if isinstance(tensors[0], torch.Tensor):
+            return self._agg_fn(torch.stack(tensors), 0)
+        
+        raise TypeError("unknown metric value format to aggregate")
 
     @staticmethod
     def compute(self, data: Any, output: Any):
