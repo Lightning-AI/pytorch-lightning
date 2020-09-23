@@ -175,31 +175,35 @@ def idsfn(test):
 
 
 def _setup_ddp(rank, worldsize):
-    """ setup ddp enviroment for test """
+    """ setup ddp enviroment for testing """
     import os
     os.environ['MASTER_ADDR'] = 'localhost'
     # initialize the process group
     dist.init_process_group("gloo", rank=rank, world_size=worldsize)
 
 
-def comparing_fn(lightning_val, comparing_val):
+def comparing_fn(lightning_val, comparing_val, rtol=1e-03, atol=1e-08):
     """ function for comparing output, both multi and single output"""
     # multi output
     if isinstance(comparing_val, tuple):
         for l_score, c_score in zip(lightning_val, comparing_val):
-            assert np.allclose(l_score.numpy(), c_score, rtol=1e-3)
+            assert np.allclose(l_score.numpy(), c_score, rtol, atol)
     else:  # single output
-        assert np.allclose(lightning_val.numpy(), comparing_val, rtol=1e-3)
+        assert np.allclose(lightning_val.numpy(), comparing_val, rtol, atol)
 
 
 # ===== Tests start here =====
 def _test_ddp_single_batch(rank, worldsize, lightning_metric, comparing_metric, test_inputs):
+    """ ddp testing function, divide test_inputs equally between all processes """
     _setup_ddp(rank, worldsize)
 
     # Setup metric for ddp
     lightning_metric = lightning_metric()
     for test_input in test_inputs:
+        # rank 0 receives sample 0,2,4,...
+        # rank 1 receives sample 1,3,5,...
         lightning_val = lightning_metric(*[ti[rank::2] for ti in test_input])
+
         comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
 
         comparing_fn(lightning_val, comparing_val)
@@ -229,6 +233,8 @@ def test_multi_batch(test):
 
     for test_input in test.test_input:
         for i in range(2):  # for lightning device in 2 artificially batches
+            # first batch consist of samples 0,2,4,...
+            # second batch consist of samples 1,3,5,...
             _ = lightning_metric(*[ti[i::2] for ti in test_input])
         lightning_val = lightning_metric.aggregated
         comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
@@ -255,12 +261,18 @@ def test_multi_batch_unequal_sizes(test):
 
 
 def _test_ddp_multi_batch(rank, worldsize, lightning_metric, comparing_metric, test_inputs):
+    """ ddp testing function, test that metric works with aggregation over multiple
+        devices and multiple batches """
     _setup_ddp(rank, worldsize)
 
     # Setup metric for ddp
     lightning_metric = lightning_metric()
     for test_input in test_inputs:
         for i in range(2):  # artificially divide samples between batches and processes
+            # rank 0, batch 0 consist of samples 0,4,8,...
+            # rank 0, batch 1 consist of samples 1,5,9,...
+            # rank 1, batch 0 consist of samples 2,6,10,...
+            # rank 1, batch 1 consist of samples 3,7,11,...
             _ = lightning_metric(*[ti[i + worldsize * rank::4] for ti in test_input])
         lightning_val = lightning_metric.aggregated
         comparing_val = comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
@@ -282,41 +294,3 @@ def test_ddp_multi_batch(test):
                    test.comparing_metric,
                    test.test_input),
              nprocs=worldsize)
-
-
-# @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="test requires multi-GPU machine")
-# @pytest.mark.parametrize("distributed_backend", ["dp", "ddp_spawn"])
-# @pytest.mark.parametrize("test", TESTS, ids=idsfn)
-# def test_model_integration(tmpdir, distributed_backend, test):
-#     """ test model that metrics work with lightning module and trainer """
-
-#     if 'confusion matrix' in test.name:
-#         pytest.skip()  # confusion matrix does not return scalar output, so we skip these
-
-#     # setup ports for ddp
-#     tutils.set_random_master_port()
-
-#     # setup model with metric
-#     model = EvalModelTemplate()
-#     model.metric = test.lightning_metric()
-#     model.test_step = model.test_step__metrics
-#     model.test_epoch_end = model.test_epoch_end__metrics
-
-#     # here we only run with the first test_data
-#     test_input = test.test_input[0]
-#     dataset = torch.utils.data.TensorDataset(*test_input)
-#     # divide data into 2 batches
-#     dataloader = torch.utils.data.DataLoader(dataset, batch_size=int(len(test_input[0]) / 2))
-
-#     trainer_options = dict(
-#         default_root_dir=tmpdir,
-#         logger=False,
-#         gpus=2,
-#         distributed_backend=distributed_backend,
-#     )
-#     trainer = Trainer(**trainer_options)
-
-#     lightning_val = trainer.test(model, test_dataloaders=dataloader)[0]['metric_val']
-#     comparing_val = test.comparing_metric(*[ti.numpy() for ti in reversed(test_input)])
-
-#     comparing_fn(lightning_val, comparing_val)

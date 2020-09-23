@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, Callable
 import numbers
 
 import torch
@@ -57,7 +57,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
 
     """
 
-    def __init__(self, name: str, reduce_group: Optional[Any] = None, default_agg: str = torch.sum):
+    def __init__(self, name: str, reduce_group: Optional[Any] = None, default_agg: Callable = torch.sum):
         """
         Args:
             name: the metric's name
@@ -151,7 +151,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
         synced = self.ddp_sync(output)
         agg_val = self.aggregate(synced)
         self._step_vals.append(agg_val)
-        return self.aggregate(synced)
+        return agg_val
 
     def aggregate(self, *tensors: torch.Tensor) -> torch.Tensor:
         """
@@ -164,18 +164,13 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             aggregated values
 
         """
-        def stack_and_agg(tensors):
-            if isinstance(tensors, list):
-                return self._agg_fn(torch.stack([t for t in tensors]), 0)
-            return tensors.squeeze()
-
         # single tensor
         if len(tensors) == 1:
             tensors = tensors[0]
             if isinstance(tensors, Mapping):
-                return {k: stack_and_agg(tensors[k]) for k in tensors.keys()}
+                return {k: stack_and_agg(tensors[k], self._agg_fn) for k in tensors.keys()}
             if isinstance(tensors, list):
-                return stack_and_agg(tensors)
+                return stack_and_agg(tensors, self._agg_fn)
             if isinstance(tensors, tuple):
                 return tensors
             if isinstance(tensors, torch.Tensor):
@@ -217,6 +212,11 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
     def reset(self):
         self._step_vals = []
 
+
+def stack_and_agg(tensors, agg_fn):
+    if isinstance(tensors, list):
+        return agg_fn(torch.stack([t for t in tensors]), 0)
+    return tensors.squeeze()
 
 class TensorMetric(Metric):
     """
