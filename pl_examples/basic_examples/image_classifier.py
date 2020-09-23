@@ -20,12 +20,8 @@ import pytorch_lightning as pl
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
-try:
-    from torchvision import transforms
-    from torchvision.datasets import MNIST
-except ImportError:
-    warn('You want to use `torchvision` which is not installed yet,'  # pragma: no-cover
-         ' install it with `pip install torchvision`.')
+from torchvision import transforms
+from torchvision.datasets import MNIST
 
 
 class Backbone(torch.nn.Module):
