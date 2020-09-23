@@ -184,7 +184,7 @@ class Metric(DeviceDtypeModuleMixin, nn.Module, ABC):
             return tuple([self._agg_fn(torch.stack(tmp), 0) for tmp in zip(*tensors)])
         if isinstance(tensors[0], torch.Tensor):
             return self._agg_fn(torch.stack(tensors), 0)
-        
+
         raise TypeError("unknown metric value format to aggregate")
 
     @staticmethod

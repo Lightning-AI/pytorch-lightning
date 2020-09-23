@@ -277,7 +277,7 @@ class PSNR(Metric):
             output = {'data_range': torch.stack([t for t in tensors['data_range']]).max()}
             output.update({k: torch.stack([t for t in tensors[k]]).sum(0) for k in tensors.keys() if k != 'data_range'})
             return output
-        
+
         output = {'data_range': torch.stack([tensor['data_range'] for tensor in tensors]).max()}
         output.update({k: torch.stack([tensor[k] for tensor in tensors]).sum(0) for k in tensors[0].keys() if k != 'data_range'})
         return output
