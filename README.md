@@ -145,6 +145,7 @@ class LitAutoEncoder(pl.LightningModule):
         return embedding
 
     def training_step(self, batch, batch_idx):
+        # training_step defined the train loop. It is independent of forward
         x, y = batch
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
