@@ -304,12 +304,12 @@ def setup(app):
 
 
 # copy all notebooks to local folder
-path_nbs = os.path.join(PATH_HERE, 'notebooks')
-if not os.path.isdir(path_nbs):
-    os.mkdir(path_nbs)
-for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
-    path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
-    shutil.copy(path_ipynb, path_ipynb2)
+# path_nbs = os.path.join(PATH_HERE, 'notebooks')
+# if not os.path.isdir(path_nbs):
+#     os.mkdir(path_nbs)
+# for path_ipynb in glob.glob(os.path.join(PATH_ROOT, 'notebooks', '*.ipynb')):
+#     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
+#     shutil.copy(path_ipynb, path_ipynb2)
 
 
 # Ignoring Third-party packages

@@ -1,44 +1,47 @@
 ## Basic Examples   
 Use these examples to test how lightning works.   
 
-#### Test on CPU  
+#### MNIST
+Trains MNIST where the model is defined inside the LightningModule.
 ```bash
-python cpu_template.py
+# cpu
+python mnist.py
+
+# gpus (any number)
+python mnist.py
+
+# dataparallel
+python mnist.py --gpus 2 --distributed_backend 'dp'
 ```
 
 ---   
-#### Train on a single GPU
+#### Image classifier
+Generic image classifier with an arbitrary backbone (ie: a simple system)
 ```bash
-python gpu_template.py --gpus 1
-```   
+# cpu
+python image_classifier.py
 
+# gpus (any number)
+python image_classifier.py --gpus 2
+
+# dataparallel
+python image_classifier.py --gpus 2 --distributed_backend 'dp'
+```
+
+---   
+#### Autoencoder
+Showing the power of a system... arbitrarily complex training loops
+```bash
+# cpu
+python autoencoder.py
+
+# gpus (any number)
+python autoencoder.py --gpus 2
+
+# dataparallel
+python autoencoder.py --gpus 2 --distributed_backend 'dp'
+```
 ---    
-#### DataParallel (dp)   
-Train on multiple GPUs using DataParallel.
-
-```bash
-python gpu_template.py --gpus 2 --distributed_backend dp
-```   
-
----
-#### DistributedDataParallel (ddp)    
-
-Train on multiple GPUs using DistributedDataParallel   
-```bash
-python gpu_template.py --gpus 2 --distributed_backend ddp
-```
-
----
-#### DistributedDataParallel+DP (ddp2)    
-
-Train on multiple GPUs using DistributedDataParallel + DataParallel.
-On a single node, uses all GPUs for 1 model. Then shares gradient information
-across nodes.   
-```bash
-python gpu_template.py --gpus 2 --distributed_backend ddp2
-```
-
-
 # Multi-node example   
 
 This demo launches a job using 2 GPUs on 2 different nodes (4 GPUs total).
@@ -51,12 +54,12 @@ To run this demo do the following:
 #### DDP  
 Submit this job to run with DistributedDataParallel (2 nodes, 2 gpus each)
 ```bash
-sbatch ddp_job_submit.sh YourEnv
+sbatch submit_ddp_job.sh YourEnv
 ```
 
 #### DDP2  
 Submit this job to run with a different implementation of DistributedDataParallel.
 In this version, each node acts like DataParallel but syncs across nodes like DDP.
 ```bash
-sbatch ddp2_job_submit.sh YourEnv
+sbatch submit_ddp2_job.sh YourEnv
 ```
