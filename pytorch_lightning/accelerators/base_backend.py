@@ -73,7 +73,6 @@ class Accelerator(object):
                 closure_loss = closure_loss.__enter__()
 
         # do backward pass
-        print(closure_loss)
         model_ref.backward(self, closure_loss, optimizer, opt_idx)
 
         # exit amp context
