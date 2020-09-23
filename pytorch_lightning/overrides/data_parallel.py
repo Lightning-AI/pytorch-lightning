@@ -217,7 +217,7 @@ def warn_missing_output(fx_called):
         m = """
             Your training_step returned None. You should instead do:
             return loss
-            or 
+            or
             return TrainResult
         """
     elif fx_called in ['validation_step', 'test_step']:
