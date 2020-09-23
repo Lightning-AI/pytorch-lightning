@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 class ModelCheckpoint(Callback):
     r"""
-    Save the model after every epoch if it improves.
+    Save the model after every epoch by monitoring a quantity.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
     best checkpoint file and :attr:`best_model_score` to retrieve its score.
@@ -63,7 +63,7 @@ class ModelCheckpoint(Callback):
             :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
-        monitor: quantity to monitor.
+        monitor: quantity to monitor. If None, a checkpoint will be saved every epoch.
         verbose: verbosity mode. Default: ``False``.
         save_last: always saves the model at the end of the epoch. Default: ``False``.
         save_top_k: if ``save_top_k == k``,
@@ -120,7 +120,7 @@ class ModelCheckpoint(Callback):
     def __init__(
         self,
         filepath: Optional[str] = None,
-        monitor: str = "checkpoint_on",
+        monitor: Optional[str] = "checkpoint_on",
         verbose: bool = False,
         save_last: bool = False,
         save_top_k: int = 1,
@@ -174,7 +174,7 @@ class ModelCheckpoint(Callback):
             "min": (torch_inf, "min"),
             "max": (-torch_inf, "max"),
             "auto": (-torch_inf, "max")
-            if "acc" in self.monitor or self.monitor.startswith("fmeasure")
+            if monitor is not None and ("acc" in monitor or monitor.startswith("fmeasure"))
             else (torch_inf, "min"),
         }
 
@@ -337,11 +337,11 @@ class ModelCheckpoint(Callback):
         epoch = trainer.current_epoch
 
         # validate metric
-        if not self._is_valid_monitor_key(metrics):
-            keys = list(metrics.keys())
-            m = f"""
-                ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics ({keys}),
-                "did you call result.log(f'{self.monitor}', tensor)?"""
+        if not (self.monitor is None or self._is_valid_monitor_key(metrics)):
+            m = (
+                f"ModelCheckpoint(monitor='{self.monitor}') not found in the returned metrics:"
+                f" {list(metrics.keys())}. HINT: Did you call result.log('{self.monitor}', tensor)?"
+            )
             raise MisconfigurationException(m)
 
         if (
