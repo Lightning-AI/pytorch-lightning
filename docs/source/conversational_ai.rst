@@ -765,7 +765,7 @@ Learn More
 
 `NVIDIA NeMo <https://github.com/NVIDIA/NeMo>`_ is actively being developed on GitHub.
 Go there to see our 
-`tutorials <https://github.com/NVIDIA/NeMo#tutorials`_, or
+`tutorials <https://github.com/NVIDIA/NeMo#tutorials`_ , 
 `example scripts <https://github.com/NVIDIA/NeMo/tree/main/examples>`_, 
 or make a `contribution <https://github.com/NVIDIA/NeMo/blob/main/CONTRIBUTING.md>`_!
 
