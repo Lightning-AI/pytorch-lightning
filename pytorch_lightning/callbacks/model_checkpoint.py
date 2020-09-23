@@ -27,6 +27,7 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
+from pytorch_lightning import _logger as log
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -190,7 +191,7 @@ class ModelCheckpoint(Callback):
     def _del_model(self, filepath: str):
         if self._fs.exists(filepath):
             self._fs.rm(filepath)
-            rank_zero_info(f"Removed checkpoint: {filepath}")
+            log.info(f"Removed checkpoint: {filepath}")
 
     def _save_model(self, filepath: str, trainer, pl_module):
 
@@ -375,9 +376,11 @@ class ModelCheckpoint(Callback):
 
             if current is None:
                 m = f"Can save best model only with {self.monitor} available, skipping."
-                if self.monitor == 'checkpoint_on':
-                    m = f'No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or ' \
-                        f'TrainResult(checkpoint_on=tensor)?'
+                if self.monitor == "checkpoint_on":
+                    m = (
+                        f"No checkpoint_on found. Hint: Did you set it in EvalResult(checkpoint_on=tensor) or "
+                        f"TrainResult(checkpoint_on=tensor)?"
+                    )
                 rank_zero_warn(m, RuntimeWarning)
             elif self.check_monitor_top_k(current):
                 self._do_check_save(filepath, current, epoch, trainer, pl_module)
