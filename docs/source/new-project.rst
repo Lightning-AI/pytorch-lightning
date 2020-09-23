@@ -145,10 +145,18 @@ of the 20+ hooks found in :ref:`hooks`
         def backward(self, trainer, loss, optimizer, optimizer_idx):
             loss.backward()
 
-More details in :ref:`lightning_module` docs.
+In Lightning, training_step defines the train loop and is independent of forward. Use forward to define
+what happens during inference/predictions
 
-.. note:: The training_step defines the training loop and forward defines the prediction/inference behavior.
-    In this case, we want to use our Autoencoder for generating image embeddings.
+.. code-block:: python
+
+    def forward(...):
+        # how you want your model to do inference/predictions
+
+    def training_step(...):
+        # the train loop INDEPENDENT of forward.
+
+More details in :ref:`lightning_module` docs.
 
 ----------
 
